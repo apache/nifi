@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.controller;
 
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
+
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This context is passed to ControllerServices and Reporting Tasks in order
@@ -32,6 +33,11 @@ public interface ConfigurationContext extends PropertyContext {
      * {@link ControllerService}
      */
     Map<PropertyDescriptor, String> getProperties();
+
+    /**
+     * @return the annotation data configured for the component
+     */
+    String getAnnotationData();
 
     /**
      * @return a String representation of the scheduling period, or <code>null</code> if

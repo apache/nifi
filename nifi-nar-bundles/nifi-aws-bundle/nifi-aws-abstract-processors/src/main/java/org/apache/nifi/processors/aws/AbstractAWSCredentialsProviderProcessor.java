@@ -71,8 +71,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
      */
     protected void onScheduledUsingControllerService(ProcessContext context) {
         this.client = createClient(context, getCredentialsProvider(context), createConfiguration(context));
-        super.initializeRegionAndEndpoint(context);
-
+        super.initializeRegionAndEndpoint(context, this.client);
      }
 
     @OnShutdown

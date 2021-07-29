@@ -42,6 +42,11 @@ public class MockConfigurationContext implements ConfigurationContext {
     }
 
     @Override
+    public String getAnnotationData() {
+        return null;
+    }
+
+    @Override
     public String getSchedulingPeriod() {
         return "0 secs";
     }

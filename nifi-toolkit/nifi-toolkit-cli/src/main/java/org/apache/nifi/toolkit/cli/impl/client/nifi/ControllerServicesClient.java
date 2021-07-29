@@ -20,6 +20,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
 import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEntity;
+import org.apache.nifi.web.api.entity.VerifyControllerServiceConfigRequestEntity;
 
 import java.io.IOException;
 
@@ -41,4 +42,11 @@ public interface ControllerServicesClient {
     ControllerServiceReferencingComponentsEntity getControllerServiceReferences(String id) throws NiFiClientException, IOException;
 
     ControllerServiceReferencingComponentsEntity updateControllerServiceReferences(UpdateControllerServiceReferenceRequestEntity referencesEntity) throws NiFiClientException, IOException;
+
+    VerifyControllerServiceConfigRequestEntity submitConfigVerificationRequest(VerifyControllerServiceConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException;
+
+    VerifyControllerServiceConfigRequestEntity getConfigVerificationRequest(String serviceId, String verificationRequestId) throws NiFiClientException, IOException;
+
+    VerifyControllerServiceConfigRequestEntity deleteConfigVerificationRequest(String serviceId, String verificationRequestId) throws NiFiClientException, IOException;
+
 }

@@ -29,22 +29,35 @@ import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.OperationAuthorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.api.concurrent.AsyncRequestManager;
+import org.apache.nifi.web.api.concurrent.AsynchronousWebRequest;
+import org.apache.nifi.web.api.concurrent.RequestManager;
+import org.apache.nifi.web.api.concurrent.StandardAsynchronousWebRequest;
+import org.apache.nifi.web.api.concurrent.StandardUpdateStep;
+import org.apache.nifi.web.api.concurrent.UpdateStep;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.api.dto.VerifyReportingTaskConfigRequestDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
+import org.apache.nifi.web.api.entity.VerifyReportingTaskConfigRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -62,8 +75,11 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * RESTful endpoint for managing a Reporting Task.
@@ -74,6 +90,11 @@ import java.util.Set;
         description = "Endpoint for managing a Reporting Task."
 )
 public class ReportingTaskResource extends ApplicationResource {
+
+    private static final Logger logger = LoggerFactory.getLogger(ReportingTaskResource.class);
+    private static final String VERIFICATION_REQUEST_TYPE = "verification-request";
+    private RequestManager<VerifyReportingTaskConfigRequestEntity, List<ConfigVerificationResultDTO>> updateRequestManager =
+        new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Reporting Task Config Thread");
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -623,6 +644,228 @@ public class ReportingTaskResource extends ApplicationResource {
                     return generateOkResponse(entity).build();
                 }
         );
+    }
+
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/config/verification-requests")
+    @ApiOperation(
+        value = "Performs verification of the Reporting Task's configuration",
+        response = VerifyReportingTaskConfigRequestEntity.class,
+        notes = "This will initiate the process of verifying a given Reporting Task configuration. This may be a long-running task. As a result, this endpoint will immediately return a " +
+            "ReportingTaskConfigVerificationRequestEntity, and the process of performing the verification will occur asynchronously in the background. " +
+            "The client may then periodically poll the status of the request by " +
+            "issuing a GET request to /reporting-tasks/{serviceId}/verification-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
+            "/reporting-tasks/{serviceId}/verification-requests/{requestId}.",
+        authorizations = {
+            @Authorization(value = "Read - /reporting-tasks/{uuid}")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response submitConfigVerificationRequest(
+        @ApiParam(value = "The reporting task id.", required = true) @PathParam("id") final String reportingTaskId,
+        @ApiParam(value = "The reporting task configuration verification request.", required = true) final VerifyReportingTaskConfigRequestEntity reportingTaskConfigRequest) {
+
+        if (reportingTaskConfigRequest == null) {
+            throw new IllegalArgumentException("Reporting Task's configuration must be specified");
+        }
+
+        final VerifyReportingTaskConfigRequestDTO requestDto = reportingTaskConfigRequest.getRequest();
+        if (requestDto == null || requestDto.getReportingTask() == null) {
+            throw new IllegalArgumentException("Reporting Task must be specified");
+        }
+
+        if (requestDto.getReportingTaskId() == null) {
+            throw new IllegalArgumentException("Reporting Task's identifier must be specified in the request");
+        }
+
+        if (!requestDto.getReportingTaskId().equals(reportingTaskId)) {
+            throw new IllegalArgumentException("Reporting Task's identifier in the request must match the identifier provided in the URL");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, reportingTaskConfigRequest);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        return withWriteLock(
+            serviceFacade,
+            reportingTaskConfigRequest,
+            lookup -> {
+                final ComponentAuthorizable reportingTask = lookup.getReportingTask(reportingTaskId);
+                reportingTask.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            },
+            () -> {
+                serviceFacade.verifyCanVerifyReportingTaskConfig(reportingTaskId);
+            },
+            entity -> performAsyncConfigVerification(entity, user)
+        );
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/config/verification-requests/{requestId}")
+    @ApiOperation(
+        value = "Returns the Verification Request with the given ID",
+        response = VerifyReportingTaskConfigRequestEntity.class,
+        notes = "Returns the Verification Request with the given ID. Once an Verification Request has been created, "
+            + "that request can subsequently be retrieved via this endpoint, and the request that is fetched will contain the updated state, such as percent complete, the "
+            + "current state of the request, and any failures. ",
+        authorizations = {
+            @Authorization(value = "Only the user that submitted the request can get it")
+        })
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getVerificationRequest(
+        @ApiParam("The ID of the Reporting Task") @PathParam("id") final String reportingTaskId,
+        @ApiParam("The ID of the Verification Request") @PathParam("requestId") final String requestId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // request manager will ensure that the current is the user that submitted this request
+        final AsynchronousWebRequest<VerifyReportingTaskConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
+            updateRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+
+        final VerifyReportingTaskConfigRequestEntity updateRequestEntity = createVerifyReportingTaskConfigRequestEntity(asyncRequest, requestId);
+        return generateOkResponse(updateRequestEntity).build();
+    }
+
+
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/config/verification-requests/{requestId}")
+    @ApiOperation(
+        value = "Deletes the Verification Request with the given ID",
+        response = VerifyReportingTaskConfigRequestEntity.class,
+        notes = "Deletes the Verification Request with the given ID. After a request is created, it is expected "
+            + "that the client will properly clean up the request by DELETE'ing it, once the Verification process has completed. If the request is deleted before the request "
+            + "completes, then the Verification request will finish the step that it is currently performing and then will cancel any subsequent steps.",
+        authorizations = {
+            @Authorization(value = "Only the user that submitted the request can remove it")
+        })
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response deleteValidationRequest(
+        @ApiParam("The ID of the Reporting Task") @PathParam("id") final String reportingTaskId,
+        @ApiParam("The ID of the Verification Request") @PathParam("requestId") final String requestId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final boolean twoPhaseRequest = isTwoPhaseRequest(httpServletRequest);
+        final boolean executionPhase = isExecutionPhase(httpServletRequest);
+
+        // If this is a standalone node, or if this is the execution phase of the request, perform the actual request.
+        if (!twoPhaseRequest || executionPhase) {
+            // request manager will ensure that the current is the user that submitted this request
+            final AsynchronousWebRequest<VerifyReportingTaskConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
+                updateRequestManager.removeRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+
+            if (asyncRequest == null) {
+                throw new ResourceNotFoundException("Could not find request of type " + VERIFICATION_REQUEST_TYPE + " with ID " + requestId);
+            }
+
+            if (!asyncRequest.isComplete()) {
+                asyncRequest.cancel();
+            }
+
+            final VerifyReportingTaskConfigRequestEntity updateRequestEntity = createVerifyReportingTaskConfigRequestEntity(asyncRequest, requestId);
+            return generateOkResponse(updateRequestEntity).build();
+        }
+
+        if (isValidationPhase(httpServletRequest)) {
+            // Perform authorization by attempting to get the request
+            updateRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+            return generateContinueResponse().build();
+        } else if (isCancellationPhase(httpServletRequest)) {
+            return generateOkResponse().build();
+        } else {
+            throw new IllegalStateException("This request does not appear to be part of the two phase commit.");
+        }
+    }
+
+
+
+    public Response performAsyncConfigVerification(final VerifyReportingTaskConfigRequestEntity configRequest, final NiFiUser user) {
+        // Create an asynchronous request that will occur in the background, because this request may take an indeterminate amount of time.
+        final String requestId = generateUuid();
+
+        final VerifyReportingTaskConfigRequestDTO requestDto = configRequest.getRequest();
+        final String taskId = requestDto.getReportingTaskId();
+        final List<UpdateStep> updateSteps = Collections.singletonList(new StandardUpdateStep("Verify Reporting Task Configuration"));
+
+        final AsynchronousWebRequest<VerifyReportingTaskConfigRequestEntity, List<ConfigVerificationResultDTO>> request =
+            new StandardAsynchronousWebRequest<>(requestId, configRequest, taskId, user, updateSteps);
+
+        // Submit the request to be performed in the background
+        final Consumer<AsynchronousWebRequest<VerifyReportingTaskConfigRequestEntity, List<ConfigVerificationResultDTO>>> updateTask = asyncRequest -> {
+            try {
+                final List<ConfigVerificationResultDTO> results = serviceFacade.verifyReportingTaskConfiguration(taskId, requestDto.getReportingTask());
+                asyncRequest.markStepComplete(results);
+            } catch (final Exception e) {
+                logger.error("Failed to verify Reporting Task configuration", e);
+                asyncRequest.fail("Failed to verify Reporting Task configuration due to " + e);
+            }
+        };
+
+        updateRequestManager.submitRequest(VERIFICATION_REQUEST_TYPE, requestId, request, updateTask);
+
+        // Generate the response
+        final VerifyReportingTaskConfigRequestEntity resultsEntity = createVerifyReportingTaskConfigRequestEntity(request, requestId);
+        return generateOkResponse(resultsEntity).build();
+    }
+
+    private VerifyReportingTaskConfigRequestEntity createVerifyReportingTaskConfigRequestEntity(
+        final AsynchronousWebRequest<VerifyReportingTaskConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest, final String requestId) {
+
+        final VerifyReportingTaskConfigRequestDTO requestDto = asyncRequest.getRequest().getRequest();
+        final List<ConfigVerificationResultDTO> resultsList = asyncRequest.getResults();
+
+        final VerifyReportingTaskConfigRequestDTO dto = new VerifyReportingTaskConfigRequestDTO();
+        dto.setReportingTaskId(requestDto.getReportingTaskId());
+        dto.setReportingTask(requestDto.getReportingTask());
+        dto.setResults(resultsList);
+
+        dto.setComplete(resultsList != null);
+        dto.setFailureReason(asyncRequest.getFailureReason());
+        dto.setLastUpdated(asyncRequest.getLastUpdated());
+        dto.setPercentCompleted(asyncRequest.getPercentComplete());
+        dto.setRequestId(requestId);
+        dto.setState(asyncRequest.getState());
+        dto.setUri(generateResourceUri("reporting-tasks", requestDto.getReportingTaskId(), "config", "verification-requests", requestId));
+
+        final VerifyReportingTaskConfigRequestEntity entity = new VerifyReportingTaskConfigRequestEntity();
+        entity.setRequest(dto);
+        return entity;
     }
 
     private ReportingTaskDTO createDTOWithDesiredRunStatus(final String id, final String runStatus) {

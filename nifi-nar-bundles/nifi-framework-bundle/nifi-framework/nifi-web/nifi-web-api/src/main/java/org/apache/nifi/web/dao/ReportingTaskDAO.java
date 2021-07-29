@@ -19,8 +19,10 @@ package org.apache.nifi.web.dao;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 
+import java.util.List;
 import java.util.Set;
 
 public interface ReportingTaskDAO {
@@ -77,6 +79,20 @@ public interface ReportingTaskDAO {
      * @param reportingTaskDTO dto
      */
     void verifyUpdate(ReportingTaskDTO reportingTaskDTO);
+
+    /**
+     * Verifies the Reporting Task is in a state in which its configuration can be verified
+     * @param reportingTaskId the id of the Reporting Task
+     */
+    void verifyConfigVerification(String reportingTaskId);
+
+    /**
+     * Performs verification of the Configuration for the Reporting Task with the given ID
+     * @param reportingTaskId the id of the Reporting Task
+     * @param reportingTask the configuration to verify
+     * @return verification results
+     */
+    List<ConfigVerificationResultDTO> verifyConfiguration(String reportingTaskId, ReportingTaskDTO reportingTask);
 
     /**
      * Determines whether this reporting task can be removed.

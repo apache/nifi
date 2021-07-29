@@ -17,10 +17,14 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -67,7 +71,7 @@ public interface ReportingTaskNode extends ComponentNode {
      * has no active threads, only that it is not currently scheduled to be
      * given any more threads. To determine whether or not the
      * <code>ReportingTask</code> has any active threads, see
-     * {@link ProcessScheduler#getActiveThreadCount(ReportingTask)}
+     * {@link ProcessScheduler#getActiveThreadCount(Object)}
      */
     ScheduledState getScheduledState();
 
@@ -102,4 +106,23 @@ public interface ReportingTaskNode extends ComponentNode {
     void verifyCanUpdate();
 
     void verifyCanClearState();
+
+    /**
+     * Verifies that the Reporting Task is in a state in which it can verify a configuration by calling
+     * {@link #verifyConfiguration(ConfigurationContext, ComponentLog, ExtensionManager)}.
+     *
+     * @throws IllegalStateException if not in a state in which configuration can be verified
+     */
+    void verifyCanPerformVerification();
+
+    /**
+     * Verifies that the given configuration is valid for the Reporting Task
+     *
+     * @param context the configuration to verify
+     * @param logger a logger that can be used when performing verification
+     * @param extensionManager extension manager that is used for obtaining appropriate NAR ClassLoaders
+     * @return a list of results indicating whether or not the given configuration is valid
+     */
+    List<ConfigVerificationResult> verifyConfiguration(ConfigurationContext context, ComponentLog logger, ExtensionManager extensionManager);
+
 }

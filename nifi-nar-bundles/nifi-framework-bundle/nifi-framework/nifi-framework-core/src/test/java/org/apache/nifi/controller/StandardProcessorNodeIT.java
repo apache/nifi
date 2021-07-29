@@ -562,7 +562,7 @@ public class StandardProcessorNodeIT {
         return new ValidationContextFactory() {
             @Override
             public ValidationContext newValidationContext(Map<PropertyDescriptor, PropertyConfiguration> properties, String annotationData, String groupId, String componentId,
-                                                          ParameterContext context) {
+                                                          ParameterContext context, boolean validateConnections) {
                 return new ValidationContext() {
 
                     @Override

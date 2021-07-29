@@ -29,10 +29,18 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.exception.ValidationException;
+import org.apache.nifi.documentation.init.NopStateManager;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.logging.LogRepository;
+import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.BundleUtils;
@@ -40,6 +48,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
@@ -58,6 +67,7 @@ import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
@@ -341,6 +351,11 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         processor.getProcessGroup().terminateProcessor(processor);
     }
 
+    @Override
+    public void verifyConfigVerification(final String processorId) {
+        final ProcessorNode processor = locateProcessor(processorId);
+        processor.verifyCanPerformVerification();
+    }
 
     @Override
     public void verifyUpdate(final ProcessorDTO processorDTO) {
@@ -424,6 +439,34 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         if (modificationRequest) {
             processor.verifyCanUpdate();
         }
+    }
+
+    @Override
+    public List<ConfigVerificationResultDTO> verifyProcessorConfiguration(final String processorId, final ProcessorConfigDTO processorConfig, final Map<String, String> attributes) {
+        final ProcessorNode processor = locateProcessor(processorId);
+
+        final ProcessContext processContext = new StandardProcessContext(processor, processorConfig.getProperties(), processorConfig.getAnnotationData(),
+            processor.getProcessGroup().getParameterContext(), flowController.getControllerServiceProvider(),  flowController.getEncryptor(),
+            new NopStateManager(), () -> false, flowController);
+
+        final LogRepository logRepository = new NopLogRepository();
+        final ComponentLog configVerificationLog = new SimpleProcessLogger(processor, logRepository);
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
+        final List<ConfigVerificationResult> verificationResults = processor.verifyConfiguration(processContext, configVerificationLog, attributes, extensionManager);
+
+        final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()
+            .map(this::createConfigVerificationResultDto)
+            .collect(Collectors.toList());
+
+        return resultsDtos;
+    }
+
+    private ConfigVerificationResultDTO createConfigVerificationResultDto(final ConfigVerificationResult result) {
+        final ConfigVerificationResultDTO dto = new ConfigVerificationResultDTO();
+        dto.setExplanation(result.getExplanation());
+        dto.setOutcome(result.getOutcome().name());
+        dto.setVerificationStepName(result.getVerificationStepName());
+        return dto;
     }
 
     @Override

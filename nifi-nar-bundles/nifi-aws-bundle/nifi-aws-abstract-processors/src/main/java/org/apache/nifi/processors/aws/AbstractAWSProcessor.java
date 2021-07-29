@@ -35,6 +35,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -154,8 +155,8 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     protected volatile ClientType client;
     protected volatile Region region;
 
-    private static final String VPCE_ENDPOINT_SUFFIX = ".vpce.amazonaws.com";
-    private static final Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
+    protected static final String VPCE_ENDPOINT_SUFFIX = ".vpce.amazonaws.com";
+    protected static final Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
 
     // If protocol is changed to be a property, ensure other uses are also changed
     protected static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
@@ -219,8 +220,12 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     }
 
     protected ClientConfiguration createConfiguration(final ProcessContext context) {
+        return createConfiguration(context, context.getMaxConcurrentTasks());
+    }
+
+    protected ClientConfiguration createConfiguration(final PropertyContext context, final int maxConcurrentTasks) {
         final ClientConfiguration config = new ClientConfiguration();
-        config.setMaxConnections(context.getMaxConcurrentTasks());
+        config.setMaxConnections(maxConcurrentTasks);
         config.setMaxErrorRetry(0);
         config.setUserAgent(DEFAULT_USER_AGENT);
         // If this is changed to be a property, ensure other uses are also changed
@@ -272,7 +277,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         this.client = createClient(context, getCredentials(context), createConfiguration(context));
-        initializeRegionAndEndpoint(context);
+        initializeRegionAndEndpoint(context, this.client);
     }
 
     /*
@@ -297,7 +302,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
      */
     public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
 
-    protected void initializeRegionAndEndpoint(ProcessContext context) {
+    protected void initializeRegionAndEndpoint(final ProcessContext context, final AmazonWebServiceClient client) {
         // if the processor supports REGION, get the configured region.
         if (getSupportedPropertyDescriptors().contains(REGION)) {
             final String region = context.getProperty(REGION).getValue();
@@ -324,11 +329,11 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
                     // falling back to the configured region if the parse fails
                     // e.g. in case of https://vpce-***-***.sqs.{region}.vpce.amazonaws.com
                     String region = parseRegionForVPCE(urlstr, this.region.getName());
-                    this.client.setEndpoint(urlstr, this.client.getServiceName(), region);
+                    client.setEndpoint(urlstr, this.client.getServiceName(), region);
                 } else {
                     // handling non-vpce custom endpoints where the AWS library can parse the region out
                     // e.g. https://sqs.{region}.***.***.***.gov
-                    this.client.setEndpoint(urlstr);
+                    client.setEndpoint(urlstr);
                 }
             }
         }
@@ -376,7 +381,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         return region;
     }
 
-    protected AWSCredentials getCredentials(final ProcessContext context) {
+    protected AWSCredentials getCredentials(final PropertyContext context) {
         final String accessKey = context.getProperty(ACCESS_KEY).evaluateAttributeExpressions().getValue();
         final String secretKey = context.getProperty(SECRET_KEY).evaluateAttributeExpressions().getValue();
 

@@ -21,9 +21,12 @@ import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.header.Headers;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -41,7 +44,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -307,5 +312,29 @@ public class PublisherLease implements Closeable {
         }
 
         return tracker;
+    }
+
+    public List<ConfigVerificationResult> verifyConfiguration(final String topic) {
+        final List<ConfigVerificationResult> verificationResults = new ArrayList<>();
+
+        try {
+            final List<PartitionInfo> partitionInfos = producer.partitionsFor(topic);
+
+            verificationResults.add(new ConfigVerificationResult.Builder()
+                .verificationStepName("Determine Topic Partitions")
+                .outcome(Outcome.SUCCESSFUL)
+                .explanation("Determined that there are " + partitionInfos.size() + " partitions for topic " + topic)
+                .build());
+        } catch (final Exception e) {
+            logger.error("Failed to determine Partition Information for Topic {} in order to verify configuration", topic, e);
+
+            verificationResults.add(new ConfigVerificationResult.Builder()
+                .verificationStepName("Determine Topic Partitions")
+                .outcome(Outcome.FAILED)
+                .explanation("Could not fetch Partition Information: " + e)
+                .build());
+        }
+
+        return verificationResults;
     }
 }

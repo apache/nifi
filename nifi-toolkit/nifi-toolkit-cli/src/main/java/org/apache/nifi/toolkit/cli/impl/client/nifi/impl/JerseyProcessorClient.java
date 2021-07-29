@@ -23,6 +23,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusEntity;
+import org.apache.nifi.web.api.entity.VerifyProcessorConfigRequestEntity;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
@@ -176,6 +177,65 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
                 Entity.entity(runStatusEntity, MediaType.APPLICATION_JSON_TYPE),
                 ProcessorEntity.class
             );
+        });
+    }
+
+    @Override
+    public VerifyProcessorConfigRequestEntity submitConfigVerificationRequest(final VerifyProcessorConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException {
+        if (configRequestEntity == null) {
+            throw new IllegalArgumentException("Config Request Entity cannot be null");
+        }
+        if (configRequestEntity.getRequest() == null) {
+            throw new IllegalArgumentException("Config Request DTO cannot be null");
+        }
+        if (configRequestEntity.getRequest().getProcessorId() == null) {
+            throw new IllegalArgumentException("Processor ID cannot be null");
+        }
+        if (configRequestEntity.getRequest().getProcessorConfig() == null) {
+            throw new IllegalArgumentException("Processor Config cannot be null");
+        }
+
+        return executeAction("Error submitting Config Verification Request", () -> {
+            final WebTarget target = processorTarget
+                .path("/config/verification-requests")
+                .resolveTemplate("id", configRequestEntity.getRequest().getProcessorId());
+
+            return getRequestBuilder(target).post(
+                Entity.entity(configRequestEntity, MediaType.APPLICATION_JSON_TYPE),
+                VerifyProcessorConfigRequestEntity.class
+            );
+        });
+    }
+
+    @Override
+    public VerifyProcessorConfigRequestEntity getConfigVerificationRequest(final String processorId, final String verificationRequestId) throws NiFiClientException, IOException {
+        if (verificationRequestId == null) {
+            throw new IllegalArgumentException("Verification Request ID cannot be null");
+        }
+
+        return executeAction("Error retrieving Config Verification Request", () -> {
+            final WebTarget target = processorTarget
+                .path("/config/verification-requests/{requestId}")
+                .resolveTemplate("id", processorId)
+                .resolveTemplate("requestId", verificationRequestId);
+
+            return getRequestBuilder(target).get(VerifyProcessorConfigRequestEntity.class);
+        });
+    }
+
+    @Override
+    public VerifyProcessorConfigRequestEntity deleteConfigVerificationRequest(final String processorId, final String verificationRequestId) throws NiFiClientException, IOException {
+        if (verificationRequestId == null) {
+            throw new IllegalArgumentException("Verification Request ID cannot be null");
+        }
+
+        return executeAction("Error deleting Config Verification Request", () -> {
+            final WebTarget target = processorTarget
+                .path("/config/verification-requests/{requestId}")
+                .resolveTemplate("id", processorId)
+                .resolveTemplate("requestId", verificationRequestId);
+
+            return getRequestBuilder(target).delete(VerifyProcessorConfigRequestEntity.class);
         });
     }
 }

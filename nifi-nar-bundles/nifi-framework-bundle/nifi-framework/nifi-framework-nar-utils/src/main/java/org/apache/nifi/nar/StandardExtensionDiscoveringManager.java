@@ -356,7 +356,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     }
 
     @Override
-    public InstanceClassLoader createInstanceClassLoader(final String classType, final String instanceIdentifier, final Bundle bundle, final Set<URL> additionalUrls) {
+    public InstanceClassLoader createInstanceClassLoader(final String classType, final String instanceIdentifier, final Bundle bundle, final Set<URL> additionalUrls, final boolean register) {
         if (StringUtils.isEmpty(classType)) {
             throw new IllegalArgumentException("Class-Type is required");
         }
@@ -427,7 +427,10 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             }
         }
 
-        instanceClassloaderLookup.put(instanceIdentifier, instanceClassLoader);
+        if (register) {
+            instanceClassloaderLookup.put(instanceIdentifier, instanceClassLoader);
+        }
+
         return instanceClassLoader;
     }
 

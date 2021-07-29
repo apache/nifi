@@ -45,7 +45,21 @@ public interface ExtensionManager {
      * @param additionalUrls additional URLs to add to the instance class loader
      * @return the ClassLoader for the given instance of the given type, or null if the type is not a detected extension type
      */
-    InstanceClassLoader createInstanceClassLoader(String classType, String instanceIdentifier, Bundle bundle, Set<URL> additionalUrls);
+    default InstanceClassLoader createInstanceClassLoader(String classType, String instanceIdentifier, Bundle bundle, Set<URL> additionalUrls) {
+        return createInstanceClassLoader(classType, instanceIdentifier, bundle, additionalUrls, true);
+    }
+
+    /**
+     * Creates the ClassLoader for the instance of the given type.
+     *
+     * @param classType the type of class to create the ClassLoader for
+     * @param instanceIdentifier the identifier of the specific instance of the classType to look up the ClassLoader for
+     * @param bundle the bundle where the classType exists
+     * @param additionalUrls additional URLs to add to the instance class loader
+     * @param registerClassLoader whether or not to register the class loader as the new classloader for the component with the given ID
+     * @return the ClassLoader for the given instance of the given type, or null if the type is not a detected extension type
+     */
+    InstanceClassLoader createInstanceClassLoader(String classType, String instanceIdentifier, Bundle bundle, Set<URL> additionalUrls, boolean registerClassLoader);
 
     /**
      * Retrieves the InstanceClassLoader for the component with the given identifier.

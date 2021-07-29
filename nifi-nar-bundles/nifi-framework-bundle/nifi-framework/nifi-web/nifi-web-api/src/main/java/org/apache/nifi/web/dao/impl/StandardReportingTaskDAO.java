@@ -21,6 +21,8 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -28,13 +30,21 @@ import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
+import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.LogRepository;
+import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
@@ -48,12 +58,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 public class StandardReportingTaskDAO extends ComponentDAO implements ReportingTaskDAO {
 
     private ReportingTaskProvider reportingTaskProvider;
     private ComponentStateDAO componentStateDAO;
     private ReloadComponent reloadComponent;
+    private FlowController flowController;
 
     private ReportingTaskNode locateReportingTask(final String reportingTaskId) {
         // get the reporting task
@@ -242,6 +254,41 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         verifyUpdate(reportingTask, reportingTaskDTO);
     }
 
+    @Override
+    public void verifyConfigVerification(final String reportingTaskId) {
+        final ReportingTaskNode reportingTask = locateReportingTask(reportingTaskId);
+        reportingTask.verifyCanPerformVerification();
+    }
+
+    @Override
+    public List<ConfigVerificationResultDTO> verifyConfiguration(final String reportingTaskId, final ReportingTaskDTO reportingTask) {
+        final ReportingTaskNode taskNode = locateReportingTask(reportingTaskId);
+
+        final LogRepository logRepository = new NopLogRepository();
+        final ComponentLog configVerificationLog = new SimpleProcessLogger(taskNode.getReportingTask(), logRepository);
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
+
+        final ParameterLookup parameterLookup = ParameterLookup.EMPTY;
+        final ConfigurationContext configurationContext = new StandardConfigurationContext(taskNode, reportingTask.getProperties(), reportingTask.getAnnotationData(),
+            parameterLookup, flowController.getControllerServiceProvider(), null, flowController.getVariableRegistry());
+
+        final List<ConfigVerificationResult> verificationResults = taskNode.verifyConfiguration(configurationContext, configVerificationLog, extensionManager);
+        final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()
+            .map(this::createConfigVerificationResultDto)
+            .collect(Collectors.toList());
+
+        return resultsDtos;
+    }
+
+    private ConfigVerificationResultDTO createConfigVerificationResultDto(final ConfigVerificationResult result) {
+        final ConfigVerificationResultDTO dto = new ConfigVerificationResultDTO();
+        dto.setExplanation(result.getExplanation());
+        dto.setOutcome(result.getOutcome().name());
+        dto.setVerificationStepName(result.getVerificationStepName());
+        return dto;
+    }
+
+
     private void verifyUpdate(final ReportingTaskNode reportingTask, final ReportingTaskDTO reportingTaskDTO) {
         // ensure the state, if specified, is valid
         if (isNotNull(reportingTaskDTO.getState())) {
@@ -379,5 +426,9 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
 
     public void setReloadComponent(ReloadComponent reloadComponent) {
         this.reloadComponent = reloadComponent;
+    }
+
+    public void setFlowController(FlowController flowController) {
+        this.flowController = flowController;
     }
 }

@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
@@ -43,6 +44,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
@@ -57,6 +60,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -111,7 +115,7 @@ import java.util.concurrent.atomic.AtomicReference;
         @WritesAttribute(attribute = "s3.user.metadata.___", description = "If 'Write User Metadata' is set to 'True', the user defined metadata associated to the S3 object that is being listed " +
                 "will be written as part of the flowfile attributes")})
 @SeeAlso({FetchS3Object.class, PutS3Object.class, DeleteS3Object.class})
-public class ListS3 extends AbstractS3Processor {
+public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
     public static final PropertyDescriptor DELIMITER = new Builder()
             .name("delimiter")
@@ -883,5 +887,50 @@ public class ListS3 extends AbstractS3Processor {
         public Set<String> getKeys() {
             return keys;
         }
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog logger, final Map<String, String> attributes) {
+        final AmazonS3Client client = createClient(context, getCredentials(context), createConfiguration(context));
+        initializeRegionAndEndpoint(context, client);
+
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+        final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+
+        if (bucketName == null || bucketName.trim().isEmpty()) {
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName("Perform Listing")
+                .outcome(Outcome.FAILED)
+                .explanation("Bucket Name must be specified")
+                .build());
+
+            return results;
+        }
+
+        final String prefix = context.getProperty(PREFIX).getValue();
+
+        // Attempt to perform a listing of objects in the S3 bucket
+        try {
+            final ObjectListing listing = client.listObjects(bucketName, prefix);
+            final int count = listing.getObjectSummaries().size();
+
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName("Perform Listing")
+                .outcome(Outcome.SUCCESSFUL)
+                .explanation("Successfully listed contents of bucket '" + bucketName + "', finding " + count + " objects" + (prefix == null ? "" : " with a prefix of '" + prefix + "'"))
+                .build());
+
+            logger.info("Successfully verified configuration");
+        } catch (final Exception e) {
+            logger.warn("Failed to verify configuration. Could not list contents of bucket '{}'", bucketName, e);
+
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName("Perform Listing")
+                .outcome(Outcome.FAILED)
+                .explanation("Failed to list contents of bucket '" + bucketName + "': " + e.getMessage())
+                .build());
+        }
+
+        return results;
     }
 }

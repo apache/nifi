@@ -16,27 +16,17 @@
  */
 package org.apache.nifi.reporting;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-import javax.json.JsonArray;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.remote.Transaction;
+import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -65,10 +55,28 @@ import org.codehaus.jackson.JsonToken;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ArrayNode;
 
+import javax.json.JsonArray;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonValue;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+
 /**
  * Base class for ReportingTasks that send data over site-to-site.
  */
-public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingTask {
+public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingTask implements VerifiableReportingTask {
+    private static final String ESTABLISH_COMMUNICATION = "Establish Site-to-Site Connection";
 
     protected static final String LAST_EVENT_ID_KEY = "last_event_id";
     protected static final String DESTINATION_URL_PATH = "/nifi";
@@ -114,7 +122,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         return properties;
     }
 
-    public void setup(final ReportingContext reportContext) throws IOException {
+    public void setup(final PropertyContext reportContext) throws IOException {
         if (siteToSiteClient == null) {
             siteToSiteClient = SiteToSiteUtils.getClient(reportContext, getLogger(), null);
         }
@@ -506,5 +514,42 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             return null;
         }
 
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger) {
+        final List<ConfigVerificationResult> verificationResults = new ArrayList<>();
+
+        try (final SiteToSiteClient client = SiteToSiteUtils.getClient(context, verificationLogger, null)) {
+            final Transaction transaction = client.createTransaction(TransferDirection.SEND);
+
+            // If transaction is null, indicates that all nodes are penalized
+            if (transaction == null) {
+                verificationResults.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName(ESTABLISH_COMMUNICATION)
+                    .outcome(Outcome.SKIPPED)
+                    .explanation("All nodes in destination NiFi are currently 'penalized', meaning that there have been recent failures communicating with the destination NiFi, or that" +
+                        " the NiFi instance is applying backpressure")
+                    .build());
+            } else {
+                transaction.cancel("Just verifying configuration");
+
+                verificationResults.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName(ESTABLISH_COMMUNICATION)
+                    .outcome(Outcome.SUCCESSFUL)
+                    .explanation("Established connection to destination NiFi instance and Received indication that it is ready to ready to receive data")
+                    .build());
+            }
+        } catch (final Exception e) {
+            verificationLogger.error("Failed to establish site-to-site connection", e);
+
+            verificationResults.add(new ConfigVerificationResult.Builder()
+                .verificationStepName(ESTABLISH_COMMUNICATION)
+                .outcome(Outcome.FAILED)
+                .explanation("Failed to establish Site-to-Site Connection: " + e)
+                .build());
+        }
+
+        return verificationResults;
     }
 }

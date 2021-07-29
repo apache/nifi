@@ -79,6 +79,11 @@ public interface ComponentNode extends ComponentAuthorizable {
     void onParametersModified(Map<String, ParameterUpdate> parameterUpdates);
 
     /**
+     * @return the Set of all attributes that are explicitly referenced by Expression Language used in the property values
+     */
+    Set<String> getReferencedAttributeNames();
+
+    /**
      * <p>
      * Pause triggering asynchronous validation to occur when the component is updated. Often times, it is necessary
      * to update several aspects of a component, such as the properties and annotation data, at once. When this occurs,

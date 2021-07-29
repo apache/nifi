@@ -54,6 +54,7 @@ public abstract class NiFiSystemIT {
     public static final String TEST_EXTENSIONS_ARTIFACT_ID = "nifi-system-test-extensions-nar";
     public static final String TEST_PROCESSORS_PACKAGE = "org.apache.nifi.processors.tests.system";
     public static final String TEST_CS_PACKAGE = "org.apache.nifi.cs.tests.system";
+    public static final String TEST_REPORTING_TASK_PACKAGE = "org.apache.nifi.reporting";
 
     private static final Pattern FRAMEWORK_NAR_PATTERN = Pattern.compile("nifi-framework-nar-(.*?)\\.nar");
     private static final File LIB_DIR = new File("target/nifi-lib-assembly/lib");

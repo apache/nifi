@@ -29,6 +29,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -45,9 +46,13 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
+import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VariableDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
+import org.apache.nifi.web.api.dto.VerifyControllerServiceConfigRequestDTO;
+import org.apache.nifi.web.api.dto.VerifyProcessorConfigRequestDTO;
+import org.apache.nifi.web.api.dto.VerifyReportingTaskConfigRequestDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
@@ -75,10 +80,14 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
+import org.apache.nifi.web.api.entity.VerifyControllerServiceConfigRequestEntity;
+import org.apache.nifi.web.api.entity.VerifyProcessorConfigRequestEntity;
+import org.apache.nifi.web.api.entity.VerifyReportingTaskConfigRequestEntity;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -345,7 +354,11 @@ public class NiFiClientUtil {
         while (true) {
             final ProcessorEntity entity = nifiClient.getProcessorClient().getProcessor(processorId);
             final String state = entity.getComponent().getState();
-            if (!expectedState.equals(state)) {
+
+            // We've reached the desired state if the state equal the expected state, OR if we expect stopped and the state is disabled (because disabled implies stopped)
+            final boolean desiredStateReached = expectedState.equals(state) || ("STOPPED".equalsIgnoreCase(expectedState) && "DISABLED".equalsIgnoreCase(state));
+
+            if (!desiredStateReached) {
                 Thread.sleep(10L);
                 continue;
             }
@@ -360,6 +373,19 @@ public class NiFiClientUtil {
 
             Thread.sleep(10L);
         }
+    }
+
+    public ControllerServiceEntity updateControllerService(final ControllerServiceEntity currentEntity, final Map<String, String> properties) throws NiFiClientException, IOException {
+        final ControllerServiceDTO dto = new ControllerServiceDTO();
+        dto.setProperties(properties);
+        dto.setId(currentEntity.getId());
+
+        final ControllerServiceEntity entity = new ControllerServiceEntity();
+        entity.setId(currentEntity.getId());
+        entity.setComponent(dto);
+        entity.setRevision(currentEntity.getRevision());
+
+        return nifiClient.getControllerServicesClient().updateControllerService(entity);
     }
 
     public ControllerServiceEntity enableControllerService(final ControllerServiceEntity entity) throws NiFiClientException, IOException {
@@ -951,6 +977,125 @@ public class NiFiClientUtil {
         }
 
         return current;
+    }
+
+    public List<ConfigVerificationResultDTO> verifyProcessorConfig(final String processorId, final Map<String, String> properties) throws InterruptedException, IOException, NiFiClientException {
+        return verifyProcessorConfig(processorId, properties, Collections.emptyMap());
+    }
+
+    public List<ConfigVerificationResultDTO> verifyProcessorConfig(final String processorId, final Map<String, String> properties, final Map<String, String> attributes)
+                    throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorConfigDTO processorConfig = new ProcessorConfigDTO();
+        processorConfig.setProperties(properties);
+
+        final VerifyProcessorConfigRequestDTO requestDto = new VerifyProcessorConfigRequestDTO();
+        requestDto.setProcessorId(processorId);
+        requestDto.setProcessorConfig(processorConfig);
+        requestDto.setAttributes(attributes);
+
+        final VerifyProcessorConfigRequestEntity verificationRequest = new VerifyProcessorConfigRequestEntity();
+        verificationRequest.setRequest(requestDto);
+
+        VerifyProcessorConfigRequestEntity results = nifiClient.getProcessorClient().submitConfigVerificationRequest(verificationRequest);
+        while (!results.getRequest().isComplete()) {
+            Thread.sleep(50L);
+            results = nifiClient.getProcessorClient().getConfigVerificationRequest(processorId, results.getRequest().getRequestId());
+        }
+
+        nifiClient.getProcessorClient().deleteConfigVerificationRequest(processorId, results.getRequest().getRequestId());
+
+        return results.getRequest().getResults();
+    }
+
+    public List<ConfigVerificationResultDTO> verifyControllerServiceConfig(final String serviceId, final Map<String, String> properties)
+                    throws InterruptedException, IOException,NiFiClientException {
+        return verifyControllerServiceConfig(serviceId, properties, Collections.emptyMap());
+    }
+
+    public List<ConfigVerificationResultDTO> verifyControllerServiceConfig(final String serviceId, final Map<String, String> properties, final Map<String, String> attributes)
+                    throws NiFiClientException, IOException, InterruptedException {
+
+        final ControllerServiceDTO serviceDto = new ControllerServiceDTO();
+        serviceDto.setProperties(properties);
+        serviceDto.setId(serviceId);
+
+        final VerifyControllerServiceConfigRequestDTO requestDto = new VerifyControllerServiceConfigRequestDTO();
+        requestDto.setControllerService(serviceDto);
+        requestDto.setAttributes(attributes);
+        requestDto.setControllerServiceId(serviceId);
+
+        final VerifyControllerServiceConfigRequestEntity verificationRequest = new VerifyControllerServiceConfigRequestEntity();
+        verificationRequest.setRequest(requestDto);
+
+        VerifyControllerServiceConfigRequestEntity results = nifiClient.getControllerServicesClient().submitConfigVerificationRequest(verificationRequest);
+        while (!results.getRequest().isComplete()) {
+            Thread.sleep(50L);
+            results = nifiClient.getControllerServicesClient().getConfigVerificationRequest(serviceId, results.getRequest().getRequestId());
+        }
+
+        nifiClient.getControllerServicesClient().deleteConfigVerificationRequest(serviceId, results.getRequest().getRequestId());
+
+        return results.getRequest().getResults();
+    }
+
+    public List<ConfigVerificationResultDTO> verifyReportingTaskConfig(final String taskId, final Map<String, String> properties)
+                throws InterruptedException, IOException,NiFiClientException {
+
+        final ReportingTaskDTO taskDto = new ReportingTaskDTO();
+        taskDto.setProperties(properties);
+        taskDto.setId(taskId);
+
+        final VerifyReportingTaskConfigRequestDTO requestDto = new VerifyReportingTaskConfigRequestDTO();
+        requestDto.setReportingTaskId(taskId);
+        requestDto.setReportingTask(taskDto);
+
+        final VerifyReportingTaskConfigRequestEntity verificationRequest = new VerifyReportingTaskConfigRequestEntity();
+        verificationRequest.setRequest(requestDto);
+
+        VerifyReportingTaskConfigRequestEntity results = nifiClient.getReportingTasksClient().submitConfigVerificationRequest(verificationRequest);
+        while (!results.getRequest().isComplete()) {
+            Thread.sleep(50L);
+            results = nifiClient.getReportingTasksClient().getConfigVerificationRequest(taskId, results.getRequest().getRequestId());
+        }
+
+        nifiClient.getReportingTasksClient().deleteConfigVerificationRequest(taskId, results.getRequest().getRequestId());
+
+        return results.getRequest().getResults();
+    }
+
+    public ReportingTaskEntity createReportingTask(final String simpleTypeName) throws NiFiClientException, IOException {
+        return createReportingTask(NiFiSystemIT.TEST_REPORTING_TASK_PACKAGE + "." + simpleTypeName, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
+    }
+
+    public ReportingTaskEntity createReportingTask(final String type, final String bundleGroupId, final String artifactId, final String version)
+                throws NiFiClientException, IOException {
+        final ReportingTaskDTO dto = new ReportingTaskDTO();
+        dto.setType(type);
+
+        final BundleDTO bundle = new BundleDTO();
+        bundle.setGroup(bundleGroupId);
+        bundle.setArtifact(artifactId);
+        bundle.setVersion(version);
+        dto.setBundle(bundle);
+
+        final ReportingTaskEntity entity = new ReportingTaskEntity();
+        entity.setComponent(dto);
+        entity.setRevision(createNewRevision());
+
+        return nifiClient.getControllerClient().createReportingTask(entity);
+    }
+
+    public ReportingTaskEntity updateReportingTask(final ReportingTaskEntity currentEntity, final Map<String, String> properties) throws NiFiClientException, IOException {
+        final ReportingTaskDTO dto = new ReportingTaskDTO();
+        dto.setProperties(properties);
+        dto.setId(currentEntity.getId());
+
+        final ReportingTaskEntity entity = new ReportingTaskEntity();
+        entity.setId(currentEntity.getId());
+        entity.setComponent(dto);
+        entity.setRevision(currentEntity.getRevision());
+
+        return nifiClient.getReportingTasksClient().updateReportingTask(entity);
     }
 
 }

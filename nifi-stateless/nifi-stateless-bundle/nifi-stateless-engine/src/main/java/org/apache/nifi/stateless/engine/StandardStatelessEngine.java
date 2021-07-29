@@ -262,7 +262,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         final Map<PropertyDescriptor, PropertyConfiguration> fullPropertyMap = buildConfiguredAndDefaultPropertyMap(component, explicitlyConfiguredPropertyMap);
 
         final ValidationContext validationContext = new StandardValidationContext(controllerServiceProvider, fullPropertyMap,
-            null, null, componentId, VariableRegistry.EMPTY_REGISTRY, null);
+            null, null, componentId, VariableRegistry.EMPTY_REGISTRY, null, true);
 
         final Collection<ValidationResult> validationResults = component.validate(validationContext);
         return validationResults.stream()

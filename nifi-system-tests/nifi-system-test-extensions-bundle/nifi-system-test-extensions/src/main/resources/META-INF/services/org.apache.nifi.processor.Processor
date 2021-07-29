@@ -19,6 +19,7 @@ org.apache.nifi.processors.tests.system.ConcatenateFlowFiles
 org.apache.nifi.processors.tests.system.DependOnProperties
 org.apache.nifi.processors.tests.system.DoNotTransferFlowFile
 org.apache.nifi.processors.tests.system.Duplicate
+org.apache.nifi.processors.tests.system.EnsureProcessorConfigurationCorrect
 org.apache.nifi.processors.tests.system.EvaluatePropertiesWithDifferentELScopes
 org.apache.nifi.processors.tests.system.FakeProcessor
 org.apache.nifi.processors.tests.system.FakeDynamicPropertiesProcessor
