@@ -28,6 +28,7 @@ public enum RequiredPermission {
     WRITE_DISTRIBUTED_FILESYSTEM("write-distributed-filesystem", "write distributed filesystem"),
     EXECUTE_CODE("execute-code", "execute code"),
     ACCESS_KEYTAB("access-keytab", "access keytab"),
+    ACCESS_TICKET_CACHE("access-ticket-cache", "access ticket cache"),
     EXPORT_NIFI_DETAILS("export-nifi-details", "export nifi details");
 
     private String permissionIdentifier;

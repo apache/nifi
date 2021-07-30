@@ -16,28 +16,32 @@
  */
 package org.apache.nifi.security.krb;
 
-import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.Configuration;
-import javax.security.auth.login.LoginContext;
-import javax.security.auth.login.LoginException;
 
 /**
  * Used to perform actions as a Subject that already has a ticket in the ticket cache.
  */
 public class KerberosTicketCacheUser extends AbstractKerberosUser {
 
+    private final String ticketCache;
+
     public KerberosTicketCacheUser(final String principal) {
+        this(principal, null);
+    }
+
+    public KerberosTicketCacheUser(final String principal, final String ticketCache) {
         super(principal);
+        this.ticketCache = ticketCache;
     }
 
     @Override
-    protected LoginContext createLoginContext(Subject subject) throws LoginException {
-        final Configuration config = new TicketCacheConfiguration(principal);
-        return new LoginContext("TicketCacheConf", subject, null, config);
+    protected Configuration createConfiguration() {
+        return new TicketCacheConfiguration(principal, ticketCache);
     }
 
-    // Visible for testing
-    Subject getSubject() {
-        return this.subject;
+    @Override
+    protected CallbackHandler createCallbackHandler() {
+        return null;
     }
 }
