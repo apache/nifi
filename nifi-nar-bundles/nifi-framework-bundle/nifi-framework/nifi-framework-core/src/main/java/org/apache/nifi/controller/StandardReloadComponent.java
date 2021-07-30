@@ -100,6 +100,7 @@ public class StandardReloadComponent implements ReloadComponent {
         // need to refresh the properties in case we are changing from ghost component to real component
         existingNode.refreshProperties();
 
+        // set the new processor's properties based on the existing node, to preserve any dynamic properties
         newNode.setProperties(getPropertiesForSetting(existingNode.getProperties()));
 
         logger.debug("Triggering async validation of {} due to processor reload", existingNode);
