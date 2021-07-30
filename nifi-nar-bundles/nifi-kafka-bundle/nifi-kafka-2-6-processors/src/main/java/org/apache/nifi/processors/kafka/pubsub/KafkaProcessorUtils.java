@@ -33,13 +33,17 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
+import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.security.auth.login.AppConfigurationEntry;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -57,7 +61,7 @@ import java.util.regex.Pattern;
 public final class KafkaProcessorUtils {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
-    final Logger logger = LoggerFactory.getLogger(this.getClass());
+    static final Logger LOGGER = LoggerFactory.getLogger(KafkaProcessorUtils.class);
 
     static final AllowableValue UTF8_ENCODING = new AllowableValue("utf-8", "UTF-8 Encoded", "The key is interpreted as a UTF-8 Encoded string.");
     static final AllowableValue HEX_ENCODING = new AllowableValue("hex", "Hex Encoded",
@@ -199,6 +203,13 @@ public final class KafkaProcessorUtils {
         .identifiesControllerService(KerberosCredentialsService.class)
         .required(false)
         .build();
+    public static final PropertyDescriptor SELF_CONTAINED_KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
+            .name("kerberos-user-service")
+            .displayName("Kerberos User Service")
+            .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
+            .identifiesControllerService(SelfContainedKerberosUserService.class)
+            .required(false)
+            .build();
 
     static final PropertyDescriptor FAILURE_STRATEGY = new PropertyDescriptor.Builder()
         .name("Failure Strategy")
@@ -209,6 +220,8 @@ public final class KafkaProcessorUtils {
         .defaultValue(FAILURE_STRATEGY_FAILURE_RELATIONSHIP.getValue())
         .build();
 
+    public static final String JAVA_SECURITY_AUTH_LOGIN_CONFIG = "java.security.auth.login.config";
+
     static List<PropertyDescriptor> getCommonPropertyDescriptors() {
         return Arrays.asList(
                 BOOTSTRAP_SERVERS,
@@ -216,6 +229,7 @@ public final class KafkaProcessorUtils {
                 SASL_MECHANISM,
                 JAAS_SERVICE_NAME,
                 KERBEROS_CREDENTIALS_SERVICE,
+                SELF_CONTAINED_KERBEROS_USER_SERVICE,
                 USER_PRINCIPAL,
                 USER_KEYTAB,
                 USERNAME,
@@ -230,6 +244,8 @@ public final class KafkaProcessorUtils {
 
         final String securityProtocol = validationContext.getProperty(SECURITY_PROTOCOL).getValue();
         final String saslMechanism = validationContext.getProperty(SASL_MECHANISM).getValue();
+
+        final KerberosUserService kerberosUserService = validationContext.getProperty(SELF_CONTAINED_KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
 
         final String explicitPrincipal = validationContext.getProperty(USER_PRINCIPAL).evaluateAttributeExpressions().getValue();
         final String explicitKeytab = validationContext.getProperty(USER_KEYTAB).evaluateAttributeExpressions().getValue();
@@ -251,6 +267,22 @@ public final class KafkaProcessorUtils {
                 .valid(false)
                 .explanation("Cannot specify both a Kerberos Credentials Service and a principal/keytab")
                 .build());
+        }
+
+        if (kerberosUserService != null && (explicitPrincipal != null || explicitKeytab != null)) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Kerberos User")
+                    .valid(false)
+                    .explanation("Cannot specify both a Kerberos User Service and a principal/keytab")
+                    .build());
+        }
+
+        if (kerberosUserService != null && credentialsService != null) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Kerberos User")
+                    .valid(false)
+                    .explanation("Cannot specify both a Kerberos User Service and a Kerberos Credentials Service")
+                    .build());
         }
 
         final String allowExplicitKeytabVariable = System.getenv(ALLOW_EXPLICIT_KEYTAB);
@@ -283,6 +315,16 @@ public final class KafkaProcessorUtils {
                     .explanation("Both <" + USER_KEYTAB.getDisplayName() + "> and <" + USER_PRINCIPAL.getDisplayName() + "> "
                         + "must be set or neither must be set.")
                     .build());
+            }
+
+            final String jvmJaasConfigFile = System.getProperty(JAVA_SECURITY_AUTH_LOGIN_CONFIG);
+            if (kerberosUserService == null && resolvedPrincipal == null && resolvedKeytab == null && StringUtils.isBlank(jvmJaasConfigFile)) {
+                results.add(new ValidationResult.Builder()
+                        .subject("Kerberos Credentials")
+                        .valid(false)
+                        .explanation("Kerberos credentials must be provided by a Kerberos Credentials Service, " +
+                                "Kerberos User Service, explicit principal/keytab properties, or JVM JAAS configuration")
+                        .build());
             }
         }
 
@@ -437,7 +479,7 @@ public final class KafkaProcessorUtils {
             }
         }
 
-        String securityProtocol = context.getProperty(SECURITY_PROTOCOL).getValue();
+        final String securityProtocol = context.getProperty(SECURITY_PROTOCOL).getValue();
         if (SEC_SASL_PLAINTEXT.getValue().equals(securityProtocol) || SEC_SASL_SSL.getValue().equals(securityProtocol)) {
             setJaasConfig(mapToPopulate, context);
         }
@@ -484,6 +526,20 @@ public final class KafkaProcessorUtils {
     }
 
     private static void setGssApiJaasConfig(final Map<String, Object> mapToPopulate, final ProcessContext context) {
+        final SelfContainedKerberosUserService kerberosUserService = context.getProperty(SELF_CONTAINED_KERBEROS_USER_SERVICE).asControllerService(SelfContainedKerberosUserService.class);
+
+        final String jaasConfig;
+        if (kerberosUserService == null) {
+            jaasConfig = createGssApiJaasConfig(context);
+        } else {
+            jaasConfig = createGssApiJaasConfig(kerberosUserService);
+        }
+
+        mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, jaasConfig);
+        mapToPopulate.put(SaslConfigs.SASL_LOGIN_CLASS, CustomKerberosLogin.class);
+    }
+
+    private static String createGssApiJaasConfig(final ProcessContext context) {
         String keytab = context.getProperty(USER_KEYTAB).evaluateAttributeExpressions().getValue();
         String principal = context.getProperty(USER_PRINCIPAL).evaluateAttributeExpressions().getValue();
 
@@ -495,17 +551,51 @@ public final class KafkaProcessorUtils {
             keytab = credentialsService.getKeytab();
         }
 
+        final String serviceName = context.getProperty(JAAS_SERVICE_NAME).evaluateAttributeExpressions().getValue();
 
-        String serviceName = context.getProperty(JAAS_SERVICE_NAME).evaluateAttributeExpressions().getValue();
-        if (StringUtils.isNotBlank(keytab) && StringUtils.isNotBlank(principal) && StringUtils.isNotBlank(serviceName)) {
-            mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, "com.sun.security.auth.module.Krb5LoginModule required "
+        return "com.sun.security.auth.module.Krb5LoginModule required "
                     + "useTicketCache=false "
                     + "renewTicket=true "
                     + "serviceName=\"" + serviceName + "\" "
                     + "useKeyTab=true "
                     + "keyTab=\"" + keytab + "\" "
-                    + "principal=\"" + principal + "\";");
+                    + "principal=\"" + principal + "\";";
+    }
+
+    static String createGssApiJaasConfig(final SelfContainedKerberosUserService kerberosUserService) {
+        final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
+        final AppConfigurationEntry configEntry = kerberosUser.getConfigurationEntry();
+
+        final StringBuilder configBuilder = new StringBuilder(configEntry.getLoginModuleName())
+                .append(" ").append(getControlFlagValue(configEntry.getControlFlag()));
+
+        final Map<String, ?> options = configEntry.getOptions();
+        options.entrySet().forEach((entry) -> {
+            configBuilder.append(" ").append(entry.getKey()).append("=");
+            final Object value = entry.getValue();
+            if (value instanceof String) {
+                configBuilder.append("\"").append((String)value).append("\"");
+            } else {
+                configBuilder.append(value);
+            }
+        });
+
+        configBuilder.append(";");
+        return configBuilder.toString();
+    }
+
+    private static String getControlFlagValue(final AppConfigurationEntry.LoginModuleControlFlag controlFlag) {
+        if (controlFlag == AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL) {
+            return "optional";
+        } else if (controlFlag == AppConfigurationEntry.LoginModuleControlFlag.REQUIRED) {
+            return "required";
+        } else if (controlFlag == AppConfigurationEntry.LoginModuleControlFlag.REQUISITE) {
+            return "requisite";
+        } else if (controlFlag == AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT) {
+            return "sufficient";
         }
+
+        throw new IllegalStateException("Unknown control flag: " + controlFlag.toString());
     }
 
     private static void setPlainJaasConfig(final Map<String, Object> mapToPopulate, final ProcessContext context) {

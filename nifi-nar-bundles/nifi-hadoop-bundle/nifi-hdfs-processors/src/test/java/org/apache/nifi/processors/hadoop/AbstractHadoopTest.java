@@ -25,7 +25,10 @@ import org.apache.nifi.components.resource.ResourceReference;
 import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.components.resource.StandardResourceReferences;
 import org.apache.nifi.hadoop.KerberosProperties;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.NiFiProperties;
@@ -185,7 +188,62 @@ public class AbstractHadoopTest {
         runner.setProperty(kerberosProperties.getKerberosPrincipal(), "principal");
         runner.setProperty(kerberosProperties.getKerberosKeytab(), temporaryFile.getAbsolutePath());
         runner.assertNotValid();
+    }
 
+    @Test
+    public void testCustomValidateWhenKerberosUserServiceProvided() throws InitializationException {
+        final TestRunner runner = createTestRunnerWithKerberosEnabled();
+        final KerberosUserService kerberosUserService = enableKerberosUserService(runner);
+        runner.setProperty(AbstractHadoopProcessor.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        runner.assertValid();
+    }
+
+    @Test
+    public void testCustomValidateWhenKerberosUserServiceAndKerberosCredentialsService() throws InitializationException {
+        final TestRunner runner = createTestRunnerWithKerberosEnabled();
+
+        final KerberosUserService kerberosUserService = enableKerberosUserService(runner);
+        runner.setProperty(AbstractHadoopProcessor.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        runner.assertValid();
+
+        final KerberosCredentialsService credentialsService = enabledKerberosCredentialsService(runner);
+        runner.setProperty(AbstractHadoopProcessor.KERBEROS_CREDENTIALS_SERVICE, credentialsService.getIdentifier());
+        runner.assertNotValid();
+
+        runner.removeProperty(AbstractHadoopProcessor.KERBEROS_USER_SERVICE);
+        runner.assertValid();
+    }
+
+    @Test
+    public void testCustomValidateWhenKerberosUserServiceAndPrincipalAndKeytab() throws InitializationException {
+        final TestRunner runner = createTestRunnerWithKerberosEnabled();
+
+        final KerberosUserService kerberosUserService = enableKerberosUserService(runner);
+        runner.setProperty(AbstractHadoopProcessor.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        runner.assertValid();
+
+        runner.setProperty(kerberosProperties.getKerberosPrincipal(), "principal1");
+        runner.setProperty(kerberosProperties.getKerberosKeytab(), temporaryFile.getAbsolutePath());
+        runner.assertNotValid();
+
+        runner.removeProperty(AbstractHadoopProcessor.KERBEROS_USER_SERVICE);
+        runner.assertValid();
+    }
+
+    @Test
+    public void testCustomValidateWhenKerberosUserServiceAndPrincipalAndPassword() throws InitializationException {
+        final TestRunner runner = createTestRunnerWithKerberosEnabled();
+
+        final KerberosUserService kerberosUserService = enableKerberosUserService(runner);
+        runner.setProperty(AbstractHadoopProcessor.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        runner.assertValid();
+
+        runner.setProperty(kerberosProperties.getKerberosPrincipal(), "principal1");
+        runner.setProperty(kerberosProperties.getKerberosPassword(), "password");
+        runner.assertNotValid();
+
+        runner.removeProperty(AbstractHadoopProcessor.KERBEROS_USER_SERVICE);
+        runner.assertValid();
     }
 
     @Test
@@ -268,4 +326,34 @@ public class AbstractHadoopTest {
 
         return runner;
     }
+
+    private KerberosUserService enableKerberosUserService(final TestRunner runner) throws InitializationException {
+        final KerberosUserService kerberosUserService = mock(KerberosUserService.class);
+        when(kerberosUserService.getIdentifier()).thenReturn("userService1");
+        runner.addControllerService(kerberosUserService.getIdentifier(), kerberosUserService);
+        runner.enableControllerService(kerberosUserService);
+        return kerberosUserService;
+    }
+
+    private KerberosCredentialsService enabledKerberosCredentialsService(final TestRunner runner) throws InitializationException {
+        final KerberosCredentialsService credentialsService = mock(KerberosCredentialsService.class);
+        when(credentialsService.getIdentifier()).thenReturn("credsService1");
+        when(credentialsService.getPrincipal()).thenReturn("principal1");
+        when(credentialsService.getKeytab()).thenReturn("keytab1");
+
+        runner.addControllerService(credentialsService.getIdentifier(), credentialsService);
+        runner.enableControllerService(credentialsService);
+        return credentialsService;
+    }
+
+    private TestRunner createTestRunnerWithKerberosEnabled() {
+        final SimpleHadoopProcessor processor = new SimpleHadoopProcessor(kerberosProperties);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.assertValid();
+
+        runner.setProperty(AbstractHadoopProcessor.HADOOP_CONFIGURATION_RESOURCES, "src/test/resources/core-site-security.xml");
+        runner.assertNotValid();
+        return runner;
+    }
+
 }

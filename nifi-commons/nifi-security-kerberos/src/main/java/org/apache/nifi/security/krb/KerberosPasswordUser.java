@@ -18,11 +18,8 @@ package org.apache.nifi.security.krb;
 
 import org.apache.commons.lang3.Validate;
 
-import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.Configuration;
-import javax.security.auth.login.LoginContext;
-import javax.security.auth.login.LoginException;
 
 /**
  * KerberosUser that authenticates via username and password instead of keytab.
@@ -33,15 +30,17 @@ public class KerberosPasswordUser extends AbstractKerberosUser {
 
     public KerberosPasswordUser(final String principal, final String password) {
         super(principal);
-        this.password = password;
-        Validate.notBlank(this.password);
+        this.password = Validate.notBlank(password);
     }
 
     @Override
-    protected LoginContext createLoginContext(final Subject subject) throws LoginException {
-        final Configuration configuration = new PasswordConfiguration();
-        final CallbackHandler callbackHandler = new UsernamePasswordCallbackHandler(principal, password);
-        return new LoginContext("PasswordConf", subject, callbackHandler, configuration);
+    protected Configuration createConfiguration() {
+        return new PasswordConfiguration();
+    }
+
+    @Override
+    protected CallbackHandler createCallbackHandler() {
+        return new UsernamePasswordCallbackHandler(principal, password);
     }
 
 }

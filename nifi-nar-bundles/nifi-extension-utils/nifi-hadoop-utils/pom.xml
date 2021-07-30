@@ -44,6 +44,10 @@
             <artifactId>nifi-kerberos-credentials-service-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kerberos-user-service-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.9</version>
@@ -67,6 +71,7 @@
             <version>4.5.5</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Test dependencies -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>

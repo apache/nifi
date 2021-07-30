@@ -16,12 +16,20 @@
  */
 package org.apache.nifi.processors.kafka.pubsub;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
+import org.apache.nifi.security.krb.KerberosUser;
+import org.junit.Test;
 
+import javax.security.auth.login.AppConfigurationEntry;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Supplier;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class KafkaProcessorUtilsTest {
 
@@ -38,4 +46,27 @@ public class KafkaProcessorUtilsTest {
     Supplier<String> prefix = KafkaProcessorUtils.getTransactionalIdSupplier(null);
     assertEquals(36, prefix.get().length() );
   }
+
+  @Test
+  public void testCreateJaasConfigFromKerberosUser() {
+    final String loginModule = "com.sun.security.auth.module.Krb5LoginModule";
+    final AppConfigurationEntry.LoginModuleControlFlag controlFlag = AppConfigurationEntry.LoginModuleControlFlag.REQUIRED;
+
+    final Map<String,String> options = new HashMap<>();
+    options.put("option1", "value1");
+    options.put("option2", "value2");
+
+    final AppConfigurationEntry configEntry = new AppConfigurationEntry(loginModule, controlFlag, options);
+
+    final KerberosUser kerberosUser = mock(KerberosUser.class);
+    when(kerberosUser.getConfigurationEntry()).thenReturn(configEntry);
+
+    final SelfContainedKerberosUserService kerberosUserService = mock(SelfContainedKerberosUserService.class);
+    when(kerberosUserService.createKerberosUser()).thenReturn(kerberosUser);
+
+    final String jaasConfig = KafkaProcessorUtils.createGssApiJaasConfig(kerberosUserService);
+    assertNotNull(jaasConfig);
+    assertEquals("com.sun.security.auth.module.Krb5LoginModule required option1=\"value1\" option2=\"value2\";", jaasConfig);
+  }
+
 }

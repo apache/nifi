@@ -27,7 +27,7 @@ public class PasswordConfiguration extends Configuration {
 
     @Override
     public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
-        HashMap<String, String> options = new HashMap<String, String>();
+        HashMap<String, String> options = new HashMap<>();
         options.put("storeKey", "true");
         options.put("refreshKrb5Config", "true");
 

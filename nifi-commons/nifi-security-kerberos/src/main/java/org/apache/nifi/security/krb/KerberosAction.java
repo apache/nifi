@@ -32,13 +32,22 @@ public class KerberosAction<T> {
     private final KerberosUser kerberosUser;
     private final PrivilegedExceptionAction<T> action;
     private final ComponentLog logger;
+    private final ClassLoader contextClassLoader;
 
     public KerberosAction(final KerberosUser kerberosUser,
                           final PrivilegedExceptionAction<T> action,
                           final ComponentLog logger) {
+        this(kerberosUser, action, logger, null);
+    }
+
+    public KerberosAction(final KerberosUser kerberosUser,
+                          final PrivilegedExceptionAction<T> action,
+                          final ComponentLog logger,
+                          final ClassLoader contextClassLoader) {
         this.kerberosUser = kerberosUser;
         this.action = action;
         this.logger = logger;
+        this.contextClassLoader = contextClassLoader;
         Validate.notNull(this.kerberosUser);
         Validate.notNull(this.action);
         Validate.notNull(this.logger);
@@ -65,7 +74,11 @@ public class KerberosAction<T> {
 
         // attempt to execute the action, if an exception is caught attempt to logout/login and retry
         try {
-            result = kerberosUser.doAs(action);
+            if (contextClassLoader == null) {
+                result = kerberosUser.doAs(action);
+            } else {
+                result = kerberosUser.doAs(action, contextClassLoader);
+            }
         } catch (SecurityException se) {
             logger.info("Privileged action failed, attempting relogin and retrying...");
             logger.debug("", se);
