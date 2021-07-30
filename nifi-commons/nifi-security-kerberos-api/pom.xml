@@ -20,32 +20,7 @@
         <artifactId>nifi-commons</artifactId>
         <version>1.15.0-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-security-kerberos</artifactId>
+    <artifactId>nifi-security-kerberos-api</artifactId>
     <dependencies>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-api</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
-        </dependency>
-	    <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-security-kerberos-api</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.11</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-minikdc</artifactId>
-            <version>3.1.0</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 </project>

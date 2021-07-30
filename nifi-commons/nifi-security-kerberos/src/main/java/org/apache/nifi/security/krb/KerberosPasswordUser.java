@@ -33,8 +33,7 @@ public class KerberosPasswordUser extends AbstractKerberosUser {
 
     public KerberosPasswordUser(final String principal, final String password) {
         super(principal);
-        this.password = password;
-        Validate.notBlank(this.password);
+        this.password = Validate.notBlank(password);
     }
 
     @Override

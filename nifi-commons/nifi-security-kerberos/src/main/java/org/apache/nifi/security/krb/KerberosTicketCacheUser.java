@@ -26,13 +26,20 @@ import javax.security.auth.login.LoginException;
  */
 public class KerberosTicketCacheUser extends AbstractKerberosUser {
 
+    private final String ticketCache;
+
     public KerberosTicketCacheUser(final String principal) {
+        this(principal, null);
+    }
+
+    public KerberosTicketCacheUser(final String principal, final String ticketCache) {
         super(principal);
+        this.ticketCache = ticketCache;
     }
 
     @Override
     protected LoginContext createLoginContext(Subject subject) throws LoginException {
-        final Configuration config = new TicketCacheConfiguration(principal);
+        final Configuration config = new TicketCacheConfiguration(principal, ticketCache);
         return new LoginContext("TicketCacheConf", subject, null, config);
     }
 
