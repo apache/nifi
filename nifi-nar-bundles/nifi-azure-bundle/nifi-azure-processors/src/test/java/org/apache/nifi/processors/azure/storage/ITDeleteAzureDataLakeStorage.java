@@ -29,14 +29,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.nifi.processors.azure.storage.DeleteAzureDataLakeStorage.FS_TYPE_DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.DeleteAzureDataLakeStorage.FS_TYPE_FILE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
-
-    private static final boolean FILE = true;
-    private static final boolean DIRECTORY = false;
 
     @Override
     protected Class<? extends Processor> getProcessorClass() {
@@ -55,11 +54,11 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         // WHEN
         // THEN
-        testSuccessfulDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, DIRECTORY);
+        testSuccessfulDelete(fileSystemName, directory, null, inputFlowFileContent, inputFlowFileContent);
     }
 
     @Test
-    public void testDeleteEmptyDirectoryAsFolder() {
+    public void testDeleteEmptyDirectoryWithFSTypeDirectory() {
         // GIVEN
         String directory = "TestDirectory";
         String inputFlowFileContent = "InputFlowFileContent";
@@ -68,7 +67,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         // WHEN
         // THEN
-        testSuccessfulDelete(fileSystemName, directory, null, inputFlowFileContent, inputFlowFileContent, DIRECTORY);
+        testSuccessfulDelete(fileSystemName, directory, null, inputFlowFileContent, inputFlowFileContent);
     }
 
     @Test
@@ -81,11 +80,11 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
         String inputFlowFileContent = "InputFlowFileContent";
 
         createDirectory(parentDirectory);
-        createDirectory(childDirectory);
+        createDirectoryAndUploadFile(childDirectory, filename, fileContent);
 
         // WHEN
         // THEN
-        testSuccessfulDelete(fileSystemName, childDirectory, filename, inputFlowFileContent, inputFlowFileContent, DIRECTORY);
+        testSuccessfulDelete(fileSystemName, childDirectory, null, inputFlowFileContent, inputFlowFileContent);
         assertTrue(directoryExists(parentDirectory));
     }
 
@@ -103,7 +102,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         // WHEN
         // THEN
-        testSuccessfulDelete(fileSystemName, parentDirectory, filename, inputFlowFileContent, inputFlowFileContent, DIRECTORY);
+        testSuccessfulDelete(fileSystemName, parentDirectory, null, inputFlowFileContent, inputFlowFileContent);
         assertFalse(directoryExists(childDirectory));
     }
 
@@ -119,7 +118,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         // WHEN
         // THEN
-        testSuccessfulDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, FILE);
+        testSuccessfulDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent);
     }
 
     @Test
@@ -134,7 +133,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         // WHEN
         // THEN
-        testSuccessfulDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, FILE);
+        testSuccessfulDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent);
     }
 
     @Test
@@ -151,7 +150,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         // WHEN
         // THEN
-        testSuccessfulDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, FILE);
+        testSuccessfulDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent);
     }
 
     @Test
@@ -166,7 +165,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         // WHEN
         // THEN
-        testSuccessfulDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, FILE);
+        testSuccessfulDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent);
     }
 
     @Test
@@ -181,11 +180,11 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         // WHEN
         // THEN
-        testSuccessfulDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, FILE);
+        testSuccessfulDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent);
     }
 
     @Test
-    public void testDeleteEmptyDirectory() {
+    public void testDeleteEmptyDirectoryWithFSTypeFile() {
         // GIVEN
         String parentDirectory = "ParentDirectory";
         String childDirectory = "ChildDirectory";
@@ -195,7 +194,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         // WHEN
         // THEN
-        testSuccessfulDelete(fileSystemName, parentDirectory, childDirectory, inputFlowFileContent, inputFlowFileContent, FILE);
+        testSuccessfulDelete(fileSystemName, parentDirectory, childDirectory, inputFlowFileContent, inputFlowFileContent);
     }
 
     @Test
@@ -213,7 +212,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         // WHEN
         // THEN
-        testSuccessfulDelete(fileSystemName, directory, filename1, inputFlowFileContent, inputFlowFileContent, FILE);
+        testSuccessfulDelete(fileSystemName, directory, filename1, inputFlowFileContent, inputFlowFileContent);
         assertTrue(fileExists(directory, filename2));
     }
 
@@ -246,8 +245,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
                 inputFlowFileContent,
                 inputFlowFileContent,
                 directory,
-                filename,
-                FILE);
+                filename);
     }
 
     @Test
@@ -276,8 +274,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
                 "${" + expLangFilename + "}",
                 attributes,
                 inputFlowFileContent,
-                inputFlowFileContent,
-                FILE);
+                inputFlowFileContent);
         assertTrue(fileExists(directory, filename));
     }
 
@@ -306,8 +303,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
                 "${" + expLangFilename + "}",
                 attributes,
                 inputFlowFileContent,
-                inputFlowFileContent,
-                FILE);
+                inputFlowFileContent);
         assertTrue(fileExists(directory, filename));
     }
 
@@ -322,7 +318,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         // WHEN
         // THEN
-        testFailedDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, 404, FILE);
+        testFailedDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, 404);
         assertTrue(fileExists("", directory));
     }
 
@@ -335,7 +331,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         // WHEN
         // THEN
-        testFailedDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, 404, FILE);
+        testFailedDelete(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, 404);
     }
 
     @Test
@@ -348,11 +344,11 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         // WHEN
         // THEN
-        testFailedDelete(fileSystem, directory, filename, inputFlowFileContent, inputFlowFileContent, 400, FILE);
+        testFailedDelete(fileSystem, directory, filename, inputFlowFileContent, inputFlowFileContent, 400);
     }
 
     @Test
-    public void testDeleteNonEmptyDirectory() {
+    public void testDeleteNonEmptyDirectoryWithFSTypeFile() {
         // GIVEN
         String directory = "TestDirectory";
         String filename = "testFile.txt";
@@ -361,7 +357,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         createDirectoryAndUploadFile(directory, filename, fileContent);
 
-        testFailedDelete(fileSystemName, "", directory, inputFlowFileContent, inputFlowFileContent, 409, FILE);
+        testFailedDelete(fileSystemName, "", directory, inputFlowFileContent, inputFlowFileContent, 409);
         assertTrue(fileExists(directory, filename));
     }
 
@@ -378,33 +374,33 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
         // WHEN
         // THEN
-        testFailedDelete(fileSystemName, directory, invalidFilename, inputFlowFileContent, inputFlowFileContent, 400, FILE);
+        testFailedDelete(fileSystemName, directory, invalidFilename, inputFlowFileContent, inputFlowFileContent, 400);
         assertTrue(fileExists(directory, filename));
     }
 
-    private void testSuccessfulDelete(String fileSystem, String directory, String filename, String inputFlowFileContent, String expectedFlowFileContent, boolean isFile) {
+    private void testSuccessfulDelete(String fileSystem, String directory, String filename, String inputFlowFileContent, String expectedFlowFileContent) {
         testSuccessfulDeleteWithExpressionLanguage(fileSystem, directory, filename, Collections.emptyMap(), inputFlowFileContent, expectedFlowFileContent,
-                directory, filename, isFile);
+                directory, filename);
     }
 
     private void testSuccessfulDeleteWithExpressionLanguage(String expLangFileSystem, String expLangDirectory, String expLangFilename, Map<String, String> attributes,
-                                                            String inputFlowFileContent, String expectedFlowFileContent, String directory, String filename, boolean isFile) {
+                                                            String inputFlowFileContent, String expectedFlowFileContent, String directory, String filename) {
         // GIVEN
         int expectedNumberOfProvenanceEvents = 1;
         ProvenanceEventType expectedEventType = ProvenanceEventType.REMOTE_INVOCATION;
 
-        setRunnerProperties(expLangFileSystem, expLangDirectory, expLangFilename, isFile);
+        setRunnerProperties(expLangFileSystem, expLangDirectory, expLangFilename);
 
         // WHEN
         startRunner(inputFlowFileContent, attributes);
 
         // THEN
-        assertSuccess(directory, filename, expectedFlowFileContent, expectedNumberOfProvenanceEvents, expectedEventType, isFile);
+        assertSuccess(directory, filename, expectedFlowFileContent, expectedNumberOfProvenanceEvents, expectedEventType);
     }
 
-    private void testFailedDelete(String fileSystem, String directory, String filename, String inputFlowFileContent, String expectedFlowFileContent, int expectedErrorCode, boolean isFile) {
+    private void testFailedDelete(String fileSystem, String directory, String filename, String inputFlowFileContent, String expectedFlowFileContent, int expectedErrorCode) {
         // GIVEN
-        setRunnerProperties(fileSystem, directory, filename, isFile);
+        setRunnerProperties(fileSystem, directory, filename);
 
         // WHEN
         startRunner(inputFlowFileContent, Collections.emptyMap());
@@ -417,9 +413,9 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     }
 
     private void testFailedDeleteWithProcessException(String fileSystem, String directory, String filename, Map<String, String> attributes,
-                                                      String inputFlowFileContent, String expectedFlowFileContent, boolean isFile) {
+                                                      String inputFlowFileContent, String expectedFlowFileContent) {
         // GIVEN
-        setRunnerProperties(fileSystem, directory, filename, isFile);
+        setRunnerProperties(fileSystem, directory, filename);
 
         // WHEN
         startRunner(inputFlowFileContent, attributes);
@@ -444,11 +440,11 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
         return directoryClient.exists();
     }
 
-    private void setRunnerProperties(String fileSystem, String directory, String filename, boolean isFile) {
-        runner.setProperty(DeleteAzureDataLakeStorage.FILESYSTEM_OBJECT_TYPE, isFile ? "file" : "folder");
+    private void setRunnerProperties(String fileSystem, String directory, String filename) {
+        runner.setProperty(DeleteAzureDataLakeStorage.FILESYSTEM_OBJECT_TYPE, filename != null ? FS_TYPE_FILE.getValue() : FS_TYPE_DIRECTORY.getValue());
         runner.setProperty(DeleteAzureDataLakeStorage.FILESYSTEM, fileSystem);
         runner.setProperty(DeleteAzureDataLakeStorage.DIRECTORY, directory);
-        if (isFile) {
+        if (filename != null) {
             runner.setProperty(DeleteAzureDataLakeStorage.FILE, filename);
         }
         runner.assertValid();
@@ -459,7 +455,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
         runner.run();
     }
 
-    private void assertSuccess(String directory, String filename, String expectedFlowFileContent, int expectedNumberOfProvenanceEvents, ProvenanceEventType expectedEventType, boolean isFile) {
+    private void assertSuccess(String directory, String filename, String expectedFlowFileContent, int expectedNumberOfProvenanceEvents, ProvenanceEventType expectedEventType) {
         runner.assertAllFlowFilesTransferred(DeleteAzureDataLakeStorage.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteAzureDataLakeStorage.REL_SUCCESS).get(0);
         flowFile.assertContentEquals(expectedFlowFileContent);
@@ -470,7 +466,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
         ProvenanceEventType actualEventType = runner.getProvenanceEvents().get(0).getEventType();
         assertEquals(expectedEventType, actualEventType);
 
-        if (isFile) {
+        if (filename != null) {
             assertFalse(fileExists(directory, filename));
         } else {
             assertFalse(directoryExists(directory));
