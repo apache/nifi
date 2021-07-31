@@ -194,14 +194,16 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             }
         }
 
+        // At this point, we could not get a subject/version associated to the schema and its ID
+        // we add the schema and its ID in the cache without a subject/version
         if(completeSchema == null) {
-            throw new SchemaNotFoundException("Could not get schema with id: " + schemaId);
+            return createRecordSchema(null, null, schemaId, schemaJson.get(SCHEMA_TEXT_FIELD_NAME).asText());
         }
 
         return createRecordSchema(completeSchema);
     }
 
-    private RecordSchema createRecordSchema(final String name, final int version, final int id, final String schema) throws SchemaNotFoundException {
+    private RecordSchema createRecordSchema(final String name, final Integer version, final int id, final String schema) throws SchemaNotFoundException {
         try {
             final Schema avroSchema = new Schema.Parser().parse(schema);
             final SchemaIdentifier schemaId = SchemaIdentifier.builder().name(name).id((long) id).version(version).build();
