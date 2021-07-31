@@ -28,8 +28,11 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -119,6 +122,14 @@ public class ListGCSBucketTest extends AbstractGCSTest {
     }
 
     @Override
+    public TestRunner buildNewRunner(Processor processor) throws Exception {
+        TestRunner testRunner = super.buildNewRunner(processor);
+        MockProcessContext processContext = (MockProcessContext) testRunner.getProcessContext();
+        processContext.setExecutionNode(ExecutionNode.PRIMARY);
+        return testRunner;
+    }
+
+    @Override
     protected void addRequiredPropertiesToRunner(TestRunner runner) {
         runner.setProperty(ListGCSBucket.BUCKET, BUCKET);
     }
@@ -134,7 +145,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         assertEquals("Cluster StateMap should be fresh (version -1L)", -1L, runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).getVersion());
         assertTrue(processor.getStateKeys().isEmpty());
 
-        processor.restoreState(runner.getProcessSessionFactory().createSession());
+        processor.restoreState(runner.getProcessContext(), runner.getProcessSessionFactory().createSession());
 
         assertTrue(processor.getStateKeys().isEmpty());
         assertEquals(0L, processor.getStateTimestamp());
@@ -162,7 +173,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         assertTrue(processor.getStateKeys().isEmpty());
         assertEquals(0L, processor.getStateTimestamp());
 
-        processor.restoreState(runner.getProcessSessionFactory().createSession());
+        processor.restoreState(runner.getProcessContext(), runner.getProcessSessionFactory().createSession());
 
         assertNotNull(processor.getStateKeys());
         assertTrue(processor.getStateKeys().contains("test-key-0"));
@@ -185,7 +196,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         final Set<String> keys = ImmutableSet.of("test-key-0", "test-key-1");
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
-        processor.persistState(session, 4L, keys);
+        processor.persistState(runner.getProcessContext(), session, 4L, keys);
 
         final StateMap stateMap = runner.getStateManager().getState(Scope.CLUSTER);
         assertEquals("Cluster StateMap should have been written to", 1L, stateMap.getVersion());
@@ -215,7 +226,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         assertTrue(runner.getLogger().getErrorMessages().isEmpty());
 
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
-        processor.persistState(session, 4L, keys);
+        processor.persistState(runner.getProcessContext(), session, 4L, keys);
 
         // The method should have caught the error and reported it to the logger.
         final List<LogMessage> logMessages = runner.getLogger().getErrorMessages();

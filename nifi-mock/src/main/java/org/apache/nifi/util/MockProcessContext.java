@@ -73,6 +73,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     private volatile boolean isConfiguredForClustering;
     private volatile boolean isPrimaryNode;
     private volatile boolean isConnected = true;
+    private volatile ExecutionNode executionNode = ExecutionNode.ALL;
 
     public MockProcessContext(final ConfigurableComponent component) {
         this(component, null);
@@ -265,7 +266,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
 
     @Override
     public ExecutionNode getExecutionNode() {
-        return ExecutionNode.ALL;
+        return executionNode;
     }
 
     public void setAnnotationData(final String annotationData) {
@@ -578,5 +579,9 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     @Override
     public boolean isConnectedToCluster() {
         return isConnected;
+    }
+
+    public void setExecutionNode(ExecutionNode executionNode) {
+        this.executionNode = executionNode;
     }
 }

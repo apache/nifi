@@ -30,9 +30,11 @@ import com.amazonaws.services.s3.model.VersionListing;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -66,12 +68,14 @@ public class TestListS3 {
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
         mockListS3 = new ListS3() {
+            @Override
             protected AmazonS3Client getClient() {
                 actualS3Client = client;
                 return mockS3Client;
             }
         };
         runner = TestRunners.newTestRunner(mockListS3);
+        ((MockProcessContext) runner.getProcessContext()).setExecutionNode(ExecutionNode.PRIMARY);
     }
 
 

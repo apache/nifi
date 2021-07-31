@@ -24,7 +24,7 @@ import com.google.cloud.storage.Storage;
 import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
+import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
@@ -44,6 +44,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -116,19 +117,20 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
 /**
  * List objects in a google cloud storage bucket by object name pattern.
  */
-@PrimaryNodeOnly
 @TriggerSerially
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
+@DefaultSettings(executionNode = ExecutionNode.PRIMARY)
 @Tags({"google cloud", "google", "storage", "gcs", "list"})
 @CapabilityDescription("Retrieves a listing of objects from an GCS bucket. For each object that is listed, creates a FlowFile that represents "
         + "the object so that it can be fetched in conjunction with FetchGCSObject. This Processor is designed to run on Primary Node only "
         + "in a cluster. If the primary node changes, the new Primary Node will pick up where the previous node left off without duplicating "
         + "all of the data.")
-@Stateful(scopes = Scope.CLUSTER, description = "After performing a listing of keys, the timestamp of the newest key is stored, "
+@Stateful(scopes = { Scope.CLUSTER, Scope.LOCAL }, description = "After performing a listing of keys, the timestamp of the newest key is stored, "
         + "along with the keys that share that same timestamp. This allows the Processor to list only keys that have been added or modified after "
-        + "this date the next time that the Processor is run. State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary "
-        + "Node is selected, the new node can pick up where the previous node left off, without duplicating the data.")
+        + "this date the next time that the Processor is run. State is stored across the cluster so that this Processor can be run on Primary Node "
+        + "only and if a new Primary Node is selected, the new node can pick up where the previous node left off, without duplicating the data. "
+        + "The state will be stored locally in case the processor is configured to run on all nodes.")
 @SeeAlso({PutGCSObject.class, DeleteGCSObject.class, FetchGCSObject.class})
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The name of the file"),
@@ -228,8 +230,12 @@ public class ListGCSBucket extends AbstractGCSProcessor {
                 .collect(Collectors.toSet());
     }
 
-    void restoreState(final ProcessSession session) throws IOException {
-        final StateMap stateMap = session.getState(Scope.CLUSTER);
+    private Scope getScope(final ProcessContext context) {
+        return context.getExecutionNode().equals(ExecutionNode.PRIMARY) ? Scope.CLUSTER : Scope.LOCAL;
+    }
+
+    protected void restoreState(final ProcessContext context, final ProcessSession session) throws IOException {
+        final StateMap stateMap = session.getState(getScope(context));
         if (stateMap.getVersion() == -1L || stateMap.get(CURRENT_TIMESTAMP) == null || stateMap.get(CURRENT_KEY_PREFIX+"0") == null) {
             currentTimestamp = 0L;
             currentKeys.clear();
@@ -240,7 +246,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         }
     }
 
-    void persistState(final ProcessSession session, final long timestamp, final Set<String> keys) {
+    protected void persistState(final ProcessContext context, final ProcessSession session, final long timestamp, final Set<String> keys) {
         final Map<String, String> state = new HashMap<>();
         state.put(CURRENT_TIMESTAMP, String.valueOf(timestamp));
 
@@ -251,7 +257,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         }
 
         try {
-            session.setState(state, Scope.CLUSTER);
+            session.setState(state, getScope(context));
         } catch (IOException ioe) {
             getLogger().error("Failed to save cluster-wide state. If NiFi is restarted, data duplication may occur", ioe);
         }
@@ -268,7 +274,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         try {
-            restoreState(session);
+            restoreState(context, session);
         } catch (IOException e) {
             getLogger().error("Failed to restore processor state; yielding", e);
             context.yield();
@@ -331,7 +337,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
                 }
 
                 if (writer.isCheckpoint()) {
-                    commit(session, listCount, maxTimestamp, keysMatchingTimestamp);
+                    commit(context, session, listCount, maxTimestamp, keysMatchingTimestamp);
                     listCount = 0;
                 }
 
@@ -344,7 +350,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
                 getLogger().debug("No new objects in GCS bucket {} to list. Yielding.", bucket);
                 context.yield();
             } else {
-                commit(session, listCount, maxTimestamp, keysMatchingTimestamp);
+                commit(context, session, listCount, maxTimestamp, keysMatchingTimestamp);
             }
         } catch (final Exception e) {
             getLogger().error("Failed to list contents of GCS Bucket due to {}", new Object[] {e}, e);
@@ -358,12 +364,12 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         getLogger().info("Successfully listed GCS bucket {} in {} millis", new Object[]{bucket, listMillis});
     }
 
-    private void commit(final ProcessSession session, final int listCount, final long timestamp, final Set<String> keysMatchingTimestamp) {
+    private void commit(final ProcessContext context, final ProcessSession session, final int listCount, final long timestamp, final Set<String> keysMatchingTimestamp) {
         if (listCount > 0) {
             currentTimestamp = timestamp;
             currentKeys.clear();
             currentKeys.addAll(keysMatchingTimestamp);
-            persistState(session, currentTimestamp, currentKeys);
+            persistState(context, session, currentTimestamp, currentKeys);
 
             getLogger().info("Successfully listed {} new files from GCS; routing to success", new Object[] {listCount});
             session.commitAsync();

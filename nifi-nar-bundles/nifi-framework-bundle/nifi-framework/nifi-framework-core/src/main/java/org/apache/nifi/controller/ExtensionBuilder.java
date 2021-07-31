@@ -347,6 +347,7 @@ public class ExtensionBuilder {
                 processorNode.setYieldPeriod(ds.yieldDuration());
                 processorNode.setPenalizationPeriod(ds.penaltyDuration());
                 processorNode.setBulletinLevel(ds.bulletinLevel());
+                processorNode.setExecutionNode(ds.executionNode());
             }
         } catch (final Exception ex) {
             logger.error("Error while setting default settings from DefaultSettings annotation: {}", ex.toString(), ex);

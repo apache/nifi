@@ -50,7 +50,7 @@ public abstract class AbstractGCSTest {
         MockitoAnnotations.initMocks(this);
     }
 
-    public static TestRunner buildNewRunner(Processor processor) throws Exception {
+    public TestRunner buildNewRunner(Processor processor) throws Exception {
         final GCPCredentialsService credentialsService = new GCPCredentialsControllerService();
 
         final TestRunner runner = TestRunners.newTestRunner(processor);

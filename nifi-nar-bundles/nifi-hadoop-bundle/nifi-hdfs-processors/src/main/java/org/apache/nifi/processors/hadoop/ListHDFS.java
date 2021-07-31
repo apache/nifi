@@ -25,7 +25,7 @@ import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
+import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
@@ -50,6 +50,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -78,10 +79,10 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-@PrimaryNodeOnly
 @TriggerSerially
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
+@DefaultSettings(executionNode = ExecutionNode.PRIMARY)
 @Tags({"hadoop", "HCFS", "HDFS", "get", "list", "ingest", "source", "filesystem"})
 @CapabilityDescription("Retrieves a listing of files from HDFS. Each time a listing is performed, the files with the latest timestamp will be excluded "
         + "and picked up during the next execution of the processor. This is done to ensure that we do not miss any files, or produce duplicates, in the "
@@ -102,11 +103,12 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute="hdfs.permissions", description="The permissions for the file in HDFS. This is formatted as 3 characters for the owner, "
             + "3 for the group, and 3 for other users. For example rw-rw-r--")
 })
-@Stateful(scopes = Scope.CLUSTER, description = "After performing a listing of HDFS files, the latest timestamp of all the files listed and the latest "
+@Stateful(scopes = { Scope.CLUSTER, Scope.LOCAL }, description = "After performing a listing of HDFS files, the latest timestamp of all the files listed and the latest "
         + "timestamp of all the files transferred are both stored. This allows the Processor to list only files that have been added or modified after "
         + "this date the next time that the Processor is run, without having to store all of the actual filenames/paths which could lead to performance "
         + "problems. State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary "
-        + "Node is selected, the new node can pick up where the previous node left off, without duplicating the data.")
+        + "Node is selected, the new node can pick up where the previous node left off, without duplicating the data. The state will be stored locally "
+        + "in case the processor is configured to run on all nodes.")
 @SeeAlso({GetHDFS.class, FetchHDFS.class, PutHDFS.class})
 public class ListHDFS extends AbstractHadoopProcessor {
 
@@ -384,7 +386,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
     public void resetStateIfNecessary(final ProcessContext context) throws IOException {
         if (resetState) {
             getLogger().debug("Property has been modified. Resetting the state values - listing.timestamp and emitted.timestamp to -1L");
-            context.getStateManager().clear(Scope.CLUSTER);
+            context.getStateManager().clear(getScope(context));
             this.resetState = false;
         }
     }
@@ -404,7 +406,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
         try {
-            final StateMap stateMap = session.getState(Scope.CLUSTER);
+            final StateMap stateMap = session.getState(getScope(context));
             if (stateMap.getVersion() == -1L) {
                 latestTimestampEmitted = -1L;
                 latestTimestampListed = -1L;
@@ -483,7 +485,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         getLogger().debug("New state map: {}", new Object[] {updatedState});
 
         try {
-            session.setState(updatedState, Scope.CLUSTER);
+            session.setState(updatedState, getScope(context));
         } catch (final IOException ioe) {
             getLogger().warn("Failed to save cluster-wide state. If NiFi is restarted, data duplication may occur", ioe);
         }
@@ -496,6 +498,10 @@ public class ListHDFS extends AbstractHadoopProcessor {
             getLogger().debug("There is no data to list. Yielding.");
             context.yield();
         }
+    }
+
+    private Scope getScope(final ProcessContext context) {
+        return context.getExecutionNode().equals(ExecutionNode.PRIMARY) ? Scope.CLUSTER : Scope.LOCAL;
     }
 
     private void createFlowFiles(final Set<FileStatus> fileStatuses, final ProcessSession session) {

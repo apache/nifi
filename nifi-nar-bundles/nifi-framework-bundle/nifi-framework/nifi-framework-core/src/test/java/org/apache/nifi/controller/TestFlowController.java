@@ -629,6 +629,7 @@ public class TestFlowController {
         assertEquals(1, p_settings.getMaxConcurrentTasks());
         assertEquals(SchedulingStrategy.TIMER_DRIVEN, p_settings.getSchedulingStrategy());
         assertEquals("0 sec", p_settings.getSchedulingPeriod());
+        assertEquals(ExecutionNode.PRIMARY.toString(), p_settings.getExecutionNode().toString());
     }
 
     @Test

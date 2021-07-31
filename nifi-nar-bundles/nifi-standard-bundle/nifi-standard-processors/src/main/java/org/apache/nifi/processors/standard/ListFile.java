@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -44,6 +45,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.standard.util.FileInfo;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.Tuple;
 
@@ -92,6 +94,7 @@ import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALI
 
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
+@DefaultSettings(executionNode = ExecutionNode.PRIMARY)
 @Tags({"file", "get", "list", "ingest", "source", "filesystem"})
 @CapabilityDescription("Retrieves a listing of files from the local filesystem. For each file that is listed, " +
         "creates a FlowFile that represents the file so that it can be fetched in conjunction with FetchFile. This " +
@@ -915,10 +918,12 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             logger.debug("Purged {} entries from Performance Tracker; now holding {} entries", new Object[] {purgedCount, directoryToTimingInfo.size()});
         }
 
+        @Override
         public long getEarliestTimestamp() {
             return earliestTimestamp;
         }
 
+        @Override
         public synchronized OperationStatistics getOperationStatistics(final DiskOperation operation) {
             long count = 0L;
             long sum = 0L;
@@ -951,7 +956,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             double average = (double) sum / (double) count;
 
             // Calculate Standard Deviation
-            final double stdDeviation = calculateStdDev(average, (double) count, operation);
+            final double stdDeviation = calculateStdDev(average, count, operation);
             final double outlierCutoff = average + 2 * stdDeviation;
 
             final Map<String, Long> outliers = new HashMap<>();
@@ -977,7 +982,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                     continue;
                 }
 
-                final double differenceSquared = Math.pow(((double) operationTime - average), 2);
+                final double differenceSquared = Math.pow((operationTime - average), 2);
                 squaredDifferenceSum += differenceSquared;
             }
 
@@ -1177,26 +1182,32 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             this.outliers = outliers;
         }
 
+        @Override
         public long getMin() {
             return min;
         }
 
+        @Override
         public long getMax() {
             return max;
         }
 
+        @Override
         public long getCount() {
             return count;
         }
 
+        @Override
         public double getAverage() {
             return average;
         }
 
+        @Override
         public double getStandardDeviation() {
             return stdDev;
         }
 
+        @Override
         public Map<String, Long> getOutliers() {
             return outliers;
         }

@@ -31,8 +31,10 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -94,6 +96,8 @@ public class TestListHDFS {
 
         runner.setProperty(ListHDFS.HADOOP_CONFIGURATION_RESOURCES, "src/test/resources/core-site.xml");
         runner.setProperty(ListHDFS.DIRECTORY, "/test");
+
+        ((MockProcessContext) runner.getProcessContext()).setExecutionNode(ExecutionNode.PRIMARY);
     }
 
     @Test

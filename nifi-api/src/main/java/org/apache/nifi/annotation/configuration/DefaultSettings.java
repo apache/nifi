@@ -24,6 +24,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.scheduling.ExecutionNode;
 
 /**
  * <p>
@@ -39,4 +40,5 @@ public @interface DefaultSettings {
     String yieldDuration() default "1 sec";
     String penaltyDuration() default "30 sec";
     LogLevel bulletinLevel() default LogLevel.WARN;
+    ExecutionNode executionNode() default ExecutionNode.ALL;
 }
