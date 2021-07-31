@@ -25,7 +25,7 @@ public interface JwsSignerProvider {
     /**
      * Get JSON Web Signature Signer Container
      *
-     * @param expiration JSON Web Token Expiration
+     * @param expiration New JSON Web Token Expiration to be set for the returned Signer
      * @return JSON Web Signature Signer Container
      */
     JwsSignerContainer getJwsSignerContainer(Instant expiration);

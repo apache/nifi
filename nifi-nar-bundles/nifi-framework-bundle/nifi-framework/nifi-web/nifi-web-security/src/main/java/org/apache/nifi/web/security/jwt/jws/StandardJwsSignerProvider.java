@@ -39,7 +39,7 @@ public class StandardJwsSignerProvider implements JwsSignerProvider, SignerListe
     /**
      * Get Current JWS Signer Container and update expiration
      *
-     * @param expiration JSON Web Token Expiration
+     * @param expiration New JSON Web Token Expiration to be set for the returned Signing Key
      * @return JWS Signer Container
      */
     @Override

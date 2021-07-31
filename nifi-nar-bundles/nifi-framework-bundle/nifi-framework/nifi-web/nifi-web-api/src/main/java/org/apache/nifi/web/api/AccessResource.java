@@ -268,7 +268,7 @@ public class AccessResource extends ApplicationResource {
                         // attempt authorize to /flow
                         accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
                         accessStatus.setMessage("You are already logged in.");
-                    } catch (final InvalidAuthenticationException iae) {
+                    } catch (final AuthenticationException iae) {
                         if (WebUtils.getCookie(httpServletRequest, SecurityCookieName.AUTHORIZATION_BEARER.getName()) != null) {
                             removeCookie(httpServletResponse, SecurityCookieName.AUTHORIZATION_BEARER.getName());
                         }

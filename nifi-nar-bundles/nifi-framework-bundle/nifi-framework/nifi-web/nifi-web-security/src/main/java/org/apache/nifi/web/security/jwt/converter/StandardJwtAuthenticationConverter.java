@@ -24,6 +24,7 @@ import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.authorization.util.UserGroupUtil;
+import org.apache.nifi.idp.IdpUserGroup;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.springframework.core.convert.converter.Converter;
@@ -73,7 +74,7 @@ public class StandardJwtAuthenticationConverter implements Converter<Jwt, NiFiAu
 
     private Set<String> getIdentityProviderGroups(final String identity) {
         return idpUserGroupService.getUserGroups(identity).stream()
-                .map(userGroup -> userGroup.getGroupName())
+                .map(IdpUserGroup::getGroupName)
                 .collect(Collectors.toSet());
     }
 }

@@ -20,6 +20,27 @@ package org.apache.nifi.web.security.jwt.provider;
  * Supported Claim for JSON Web Tokens
  */
 public enum SupportedClaim {
+    /** RFC 7519 Section 4.1.1 */
+    ISSUER("iss"),
+
+    /** RFC 7519 Section 4.1.2 */
+    SUBJECT("sub"),
+
+    /** RFC 7519 Section 4.1.3 */
+    AUDIENCE("aud"),
+
+    /** RFC 7519 Section 4.1.4 */
+    EXPIRATION("exp"),
+
+    /** RFC 7519 Section 4.1.5 */
+    NOT_BEFORE("nbf"),
+
+    /** RFC 7519 Section 4.1.6 */
+    ISSUED_AT("iat"),
+
+    /** RFC 7519 Section 4.1.7 */
+    JWT_ID("jti"),
+
     /** Preferred Username defined in OpenID Connect Core 1.0 Standard Claims */
     PREFERRED_USERNAME("preferred_username");
 

@@ -90,7 +90,7 @@ public class StandardVerificationKeyService implements VerificationKeyService {
             } catch (final IOException e) {
                 throw new UncheckedIOException("Delete Expired Verification Keys Failed", e);
             }
-            LOGGER.debug("Delete Expired Verification Keys: Before [{}] After [{}]", state.size(), updatedState.size());
+            LOGGER.debug("Delete Expired Verification Keys Completed: Keys Before [{}] Keys After [{}]", state.size(), updatedState.size());
         }
     }
 
@@ -146,8 +146,7 @@ public class StandardVerificationKeyService implements VerificationKeyService {
 
     private Optional<String> findSerializedKey(final String id) {
         final StateMap stateMap = getStateMap();
-        final String serializedKey = stateMap.get(id);
-        return serializedKey == null ? Optional.empty() : Optional.of(serializedKey);
+        return Optional.ofNullable(stateMap.get(id));
     }
 
     private String serializeVerificationKey(final VerificationKey verificationKey) {

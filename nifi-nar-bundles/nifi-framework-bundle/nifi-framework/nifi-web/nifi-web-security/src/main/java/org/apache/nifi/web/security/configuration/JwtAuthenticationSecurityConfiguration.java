@@ -37,6 +37,7 @@ import org.apache.nifi.web.security.jwt.key.service.StandardVerificationKeyServi
 import org.apache.nifi.web.security.jwt.key.service.VerificationKeyService;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.jwt.provider.StandardBearerTokenProvider;
+import org.apache.nifi.web.security.jwt.provider.SupportedClaim;
 import org.apache.nifi.web.security.jwt.revocation.JwtLogoutListener;
 import org.apache.nifi.web.security.jwt.revocation.JwtRevocationService;
 import org.apache.nifi.web.security.jwt.revocation.JwtRevocationValidator;
@@ -55,6 +56,7 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -64,7 +66,15 @@ import java.util.Set;
  */
 @Configuration
 public class JwtAuthenticationSecurityConfiguration {
-    private static final Set<String> REQUIRED_CLAIMS = new HashSet<>(Arrays.asList("sub", "iss", "aud", "nbf", "iat", "exp", "jti"));
+    private static final Set<String> REQUIRED_CLAIMS = new HashSet<>(Arrays.asList(
+            SupportedClaim.ISSUER.getClaim(),
+            SupportedClaim.SUBJECT.getClaim(),
+            SupportedClaim.AUDIENCE.getClaim(),
+            SupportedClaim.EXPIRATION.getClaim(),
+            SupportedClaim.NOT_BEFORE.getClaim(),
+            SupportedClaim.ISSUED_AT.getClaim(),
+            SupportedClaim.JWT_ID.getClaim()
+    ));
 
     private final NiFiProperties niFiProperties;
 
@@ -73,6 +83,8 @@ public class JwtAuthenticationSecurityConfiguration {
     private final IdpUserGroupService idpUserGroupService;
 
     private final StateManagerProvider stateManagerProvider;
+
+    private final Duration keyRotationPeriod;
 
     @Autowired
     public JwtAuthenticationSecurityConfiguration(
@@ -85,6 +97,7 @@ public class JwtAuthenticationSecurityConfiguration {
         this.authorizer = authorizer;
         this.idpUserGroupService = idpUserGroupService;
         this.stateManagerProvider = stateManagerProvider;
+        this.keyRotationPeriod = niFiProperties.getSecurityUserJwsKeyRotationPeriod();
     }
 
     @Bean
@@ -156,7 +169,7 @@ public class JwtAuthenticationSecurityConfiguration {
 
     @Bean
     public StandardVerificationKeySelector verificationKeySelector() {
-        return new StandardVerificationKeySelector(verificationKeyService(), niFiProperties.getSecurityUserJwsKeyRotationPeriod());
+        return new StandardVerificationKeySelector(verificationKeyService(), keyRotationPeriod);
     }
 
     @Bean
@@ -168,21 +181,21 @@ public class JwtAuthenticationSecurityConfiguration {
     @Bean
     public KeyGenerationCommand keyGenerationCommand() {
         final KeyGenerationCommand command = new KeyGenerationCommand(jwsSignerProvider(), verificationKeySelector());
-        commandScheduler().scheduleAtFixedRate(command, niFiProperties.getSecurityUserJwsKeyRotationPeriod());
+        commandScheduler().scheduleAtFixedRate(command, keyRotationPeriod);
         return command;
     }
 
     @Bean
     public KeyExpirationCommand keyExpirationCommand() {
         final KeyExpirationCommand command = new KeyExpirationCommand(verificationKeyService());
-        commandScheduler().scheduleAtFixedRate(command, niFiProperties.getSecurityUserJwsKeyRotationPeriod());
+        commandScheduler().scheduleAtFixedRate(command, keyRotationPeriod);
         return command;
     }
 
     @Bean
     public RevocationExpirationCommand revocationExpirationCommand() {
         final RevocationExpirationCommand command = new RevocationExpirationCommand(jwtRevocationService());
-        commandScheduler().scheduleAtFixedRate(command, niFiProperties.getSecurityUserJwsKeyRotationPeriod());
+        commandScheduler().scheduleAtFixedRate(command, keyRotationPeriod);
         return command;
     }
 

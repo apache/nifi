@@ -27,7 +27,7 @@ public interface VerificationKeySelector {
      * Get Verification Keys for Key Identifier
      *
      * @param keyIdentifier Key Identifier
-     * @return List of Keys
+     * @return List of found java.security.Key objects
      */
     List<? extends Key> getVerificationKeys(String keyIdentifier);
 }
