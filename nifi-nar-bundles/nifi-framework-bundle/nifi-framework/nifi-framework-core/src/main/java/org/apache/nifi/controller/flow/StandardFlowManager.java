@@ -211,7 +211,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         final ProcessGroup rootGroup = getRootGroup();
         Port port = rootGroup.findOutputPort(id);
         if (port != null) {
-            throw new IllegalStateException("An Input Port already exists with ID " + id);
+            throw new IllegalStateException("An Output Port already exists with ID " + id);
         }
         port = rootGroup.findInputPort(id);
         if (port != null) {
@@ -317,7 +317,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .identifier(id)
             .type(type)
             .bundleCoordinate(coordinate)
-            .extensionManager(extensionManager)
             .controllerServiceProvider(flowController.getControllerServiceProvider())
             .processScheduler(processScheduler)
             .nodeTypeProvider(flowController)
@@ -344,7 +343,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 throw new ComponentLifeCycleException("Failed to invoke @OnAdded methods of " + procNode.getProcessor(), e);
             }
 
-            if (firstTimeAdded && flowController.isInitialized()) {
+            if (flowController.isInitialized()) {
                 try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, procNode.getProcessor());
                 }
@@ -360,9 +359,9 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
     public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls,
                                                  final boolean firstTimeAdded, final boolean register) {
-        if (type == null || id == null || bundleCoordinate == null) {
-            throw new NullPointerException();
-        }
+        requireNonNull(type);
+        requireNonNull(id);
+        requireNonNull(bundleCoordinate);
 
         // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
@@ -372,7 +371,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .identifier(id)
             .type(type)
             .bundleCoordinate(bundleCoordinate)
-            .extensionManager(flowController.getExtensionManager())
             .controllerServiceProvider(flowController.getControllerServiceProvider())
             .processScheduler(processScheduler)
             .nodeTypeProvider(flowController)
