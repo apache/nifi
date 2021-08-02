@@ -82,13 +82,6 @@ NfRegistryCreateBucket.prototype = {
     cancel: function () {
         this.dialogRef.close();
     }
-
-//    /**
-//     * Focus the new bucket input.
-//     */
-//    ngAfterViewChecked: function () {
-//        this.newBucketName.nativeElement.focus();
-//    }
 };
 
 NfRegistryCreateBucket.annotations = [

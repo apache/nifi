@@ -440,6 +440,7 @@ NfRegistryManageBucket.prototype = {
                 });
             } else if (response.status === 409) {
                 self.bucketname = self.nfRegistryService.bucket.name;
+                self.description = self.nfRegistryService.bucket.description;
                 self.allowBundleRedeploy = self.nfRegistryService.bucket.allowBundleRedeploy;
                 self.allowPublicRead = self.nfRegistryService.bucket.allowPublicRead;
 
@@ -528,6 +529,7 @@ NfRegistryManageBucket.prototype = {
                             if (!response.status || response.status === 200) {
                                 self.nfRegistryService.bucket = response;
                                 self.bucketname = self.nfRegistryService.bucket.name;
+                                self.description = self.nfRegistryService.bucket.description;
                                 self.allowBundleRedeploy = self.nfRegistryService.bucket.allowBundleRedeploy;
                                 self.allowPublicRead = self.nfRegistryService.bucket.allowPublicRead;
                             } else if (response.status === 404) {
@@ -587,6 +589,7 @@ NfRegistryManageBucket.prototype = {
                             if (!response.status || response.status === 200) {
                                 self.nfRegistryService.bucket = response;
                                 self.bucketname = self.nfRegistryService.bucket.name;
+                                self.description = self.nfRegistryService.bucket.description;
                                 self.allowBundleRedeploy = self.nfRegistryService.bucket.allowBundleRedeploy;
                                 self.allowPublicRead = self.nfRegistryService.bucket.allowPublicRead;
                             } else if (response.status === 404) {
