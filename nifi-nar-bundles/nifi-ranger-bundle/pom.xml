@@ -47,6 +47,12 @@
                 <artifactId>snakeyaml</artifactId>
                 <version>1.29</version>
             </dependency>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
+            </dependency>
             <!-- Override jackson-databind 2.9.10.4 from ranger -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>

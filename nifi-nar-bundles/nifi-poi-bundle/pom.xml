@@ -32,4 +32,13 @@
         <module>nifi-poi-nar</module>
     </modules>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

@@ -45,6 +45,12 @@
                 <artifactId>nifi-mongodb-processors</artifactId>
                 <version>1.15.0-SNAPSHOT</version>
             </dependency>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
