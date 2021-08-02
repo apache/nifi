@@ -32,4 +32,14 @@
         <module>nifi-image-viewer</module>
     </modules>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- Override version from tika-parsers -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>
