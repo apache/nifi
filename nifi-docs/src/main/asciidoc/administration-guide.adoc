@@ -1765,7 +1765,7 @@ All options require a password (`nifi.sensitive.props.key` value) of *at least 1
 [[encrypt-config_tool]]
 == Encrypted Passwords in Configuration Files
 
-In order to facilitate the secure setup of NiFi, you can use the `encrypt-config` command line utility to encrypt raw configuration values that NiFi decrypts in memory on startup. This extensible protection scheme transparently allows NiFi to use raw values in operation, while protecting them at rest.  In addition to the default AES encryption provider, a HashiCorp Vault encryption provider can be configured in the `bootstrap-hashicorp-vault.properties` file.
+In order to facilitate the secure setup of NiFi, you can use the `encrypt-config` command line utility to encrypt raw configuration values that NiFi decrypts in memory on startup. This extensible protection scheme transparently allows NiFi to use raw values in operation, while protecting them at rest.
 
 This is a change in behavior; prior to 1.0, all configuration values were stored in plaintext on the file system. POSIX file permissions were recommended to limit unauthorized access to these files.
 
@@ -1773,6 +1773,121 @@ If no administrator action is taken, the configuration values remain unencrypted
 
 For more information, see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
 
+In addition to the default AES encryption provider, other providers can be configured in their respective `bootstrap-*.conf` files. Following is a list of additional encryption providers and their configuration:
+
+=== HashiCorp Vault providers
+Two encryption providers are currently configurable in the `bootstrap-hashicorp-vault.conf` file:
+
+[options="header,footer"]
+|===
+|Provider|Provider Identifier|Description
+|HashiCorp Vault Transit provider|`hashicorp/vault/kv/{vault.transit.path}`|Uses HashiCorp Vault's Transit Secrets Engine to decrypt sensitive properties.
+|HashiCorp Vault Key/Value provider|`hashicorp/vault/kv/{vault.transit.path}`|Retrieves sensitive values from Secrets stored in a HashiCorp Vault Key/Value (unversioned) Secrets Engine.
+|===
+
+Note that all HashiCorp Vault encryption providers require a running Vault instance in order to decrypt these values at NiFi's startup.
+
+Following are the configuration properties available inside the `bootstrap-hashicorp-vault.conf` file:
+
+==== Required properties
+
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`vault.uri`|The HashiCorp Vault URI (e.g., `https://vault-server:8200`).  If not set, all HashiCorp Vault providers will be disabled.|_none_
+|`vault.authentication.properties.file`|Filename of a properties file containing Vault authentication properties.  See the `Authentication-specific property keys` section of https://docs.spring.io/spring-vault/docs/2.3.x/reference/html/#vault.core.environment-vault-configuration for all authentication property keys. If not set, all Spring Vault authentication properties must be configured directly in bootstrap-hashicorp-vault.conf.|_none_
+|`vault.transit.path`|If set, enables the HashiCorp Vault Transit provider.  The value should be the Vault `path` of a Transit Secrets Engine (e.g., `nifi-transit`).  Valid characters include alphanumeric, dash, and underscore.|_none_
+|`vault.kv.path`|If set, enables the HashiCorp Vault Key/Value provider.  The value should be the Vault `path` of a K/V (v1) Secrets Engine (e.g., `nifi-kv`).  Valid characters include alphanumeric, dash, and underscore.|_none_
+|===
+
+==== Optional properties
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`vault.connection.timeout`|The connection timeout of the Vault client|`5 secs`
+|`vault.read.timeout`|The read timeout of the Vault client|`15 secs`
+|`vault.ssl.enabledCipherSuites`|A comma-separated list of the enabled TLS cipher suites|_none_
+|`vault.ssl.enabledProtocols`|A comma-separated list of the enabled TLS protocols|_none_
+|`vault.ssl.key-store`|Path to a keystore.  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.key-store-type`|Keystore type (JKS, BCFKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.key-store-password`|Keystore password.  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.trust-store`|Path to a truststore.  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.trust-store-type`|Truststore type (JKS, BCFKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.trust-store-password`|Truststore password.  Required if the Vault server is TLS-enabled|_none_
+|===
+
+=== AWS KMS provider
+This provider uses AWS Key Management Service (https://aws.amazon.com/kms/) for decryption. AWS KMS configuration properties can be stored in the `bootstrap-aws.conf` file, as referenced in `bootstrap.conf`. If the configuration properties are not specified in `bootstrap-aws.conf`, then the provider will attempt to use the AWS default credentials provider, which checks standard environment variables and system properties.
+
+==== Required properties
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`aws.kms.key.id`|The identifier or ARN that the AWS KMS client uses for encryption and decryption.|_none_
+|===
+
+==== Optional properties
+===== All of the following must be configured, or will be ignored entirely.
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`aws.region`|The AWS region used to configure the AWS KMS Client.|_none_
+|`aws.access.key.id`|The access key ID credential used to access AWS KMS.|_none_
+|`aws.secret.access.key`|The secret access key used to access AWS KMS.|_none_
+|===
+
+=== Property Context Mapping
+Some encryption providers store protected values in an external service instead of persisting the encrypted values directly in the configuration file.  To support this use case, a property context is defined for each protected property in NiFi's configuration files, in the format: `{context-name}/{property-name}`
+
+* `context-name` - represents a namespace for properties in order to disambiguate properties with the same name.  Without additional configuration, all protected properties are assigned the `default` context.
+* `property-name` - contains the name of the property.
+
+In order to support logical context names, mapping properties may be provided in `bootstrap.conf`, as follows:
+
+```
+nifi.bootstrap.protection.context.mapping.<context-name>=<identifier matching regex>
+```
+
+Here, `context-name` would determine the context name above, and `<identifier matching regex>` would map any property whose *group identifier* matched the provided Regular Expression.  *Group identifiers* are defined per configuration file type, and are described as follows:
+[options="header,footer"]
+|===
+|Configuration File|Group Identifier Description|Assigned Context
+|`nifi.properties`|There is no concept of a group identifier here, since all property names should be unique.|_default_
+|`authorizers.xml`|The `<identifier>` value of the XML block surrounding the property.|The mapped context name if RegEx matches the identifier, otherwise _default_
+|`login-identity-providers.xml`|The `<identifier>` value of the XML block surrounding the property.|The mapped context name if RegEx matches the identifier, otherwise _default_
+|===
+
+==== Example
+In the NiFi binary distribution, the `login-identity-providers.xml` file comes with a provider with the identifier `ldap-provider` and a property called `Manager Password`:
+
+```
+   <provider>
+        <identifier>ldap-provider</identifier>
+        <class>org.apache.nifi.ldap.LdapProvider</class>
+        ...
+        <property name="Manager Password"/>
+        ...
+    </provider>
+```
+Similarly, the `authorizers.xml` file comes with a `ldap-user-group-provider` and a property also called `Manager Password`:
+
+```
+    <userGroupProvider>
+        <identifier>ldap-user-group-provider</identifier>
+        <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
+        ...
+        <property name="Manager Password"/>
+        ...
+    </userGroupProvider>
+```
+
+If the Manager Password is desired to reference the same exact property (e.g., the same Secret in the HashiCorp Vault K/V provider) but still be distinguished from any other `Manager Password` property unrelated to LDAP, the following mapping could be added:
+
+```
+nifi.bootstrap.protection.context.mapping.ldap=ldap-.*
+```
+
+This would cause both of the above to be assigned a context of `"ldap/Manager Password"` instead of `"default/Manager Password"`.
 [[admin-toolkit]]
 == NiFi Toolkit Administrative Tools
 In addition to `tls-toolkit` and `encrypt-config`, the NiFi Toolkit also contains command line utilities for administrators to support NiFi maintenance in standalone and clustered environments. These utilities include:

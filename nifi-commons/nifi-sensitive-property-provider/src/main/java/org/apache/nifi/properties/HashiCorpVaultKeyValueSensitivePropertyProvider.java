@@ -68,7 +68,7 @@ public class HashiCorpVaultKeyValueSensitivePropertyProvider extends AbstractHas
         Objects.requireNonNull(context, "Context is required to protect a value");
 
         getVaultCommunicationService().writeKeyValueSecret(getPath(), context.getContextKey(), unprotectedValue);
-        return String.format("Protected by [%s] at [%s/%s]", getName(), getPath(), context.getContextKey());
+        return String.format("%s/%s", getPath(), context.getContextKey());
     }
 
     /**

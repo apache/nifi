@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.vault.hashicorp;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultConfiguration;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultPropertySource;
@@ -109,12 +111,8 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
     private static class SecretData {
         private final String value;
 
-        // required for Jackson deserialization
-        private SecretData() {
-            value = null;
-        }
-
-        public SecretData(final String value) {
+        @JsonCreator
+        public SecretData(@JsonProperty("value") final String value) {
             this.value = value;
         }
 
