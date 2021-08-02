@@ -330,8 +330,8 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             return 0L;
         }
 
-        final long minNanos = aggregation.getMin();
-        return timeUnit.convert(minNanos, TimeUnit.NANOSECONDS);
+        final long maxNanos = aggregation.getMax();
+        return timeUnit.convert(maxNanos, TimeUnit.NANOSECONDS);
     }
 
     @Override
@@ -578,7 +578,6 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                     listener.onLeaderElection();
                 } catch (final Exception e) {
                     logger.error("This node was elected Leader for Role '{}' but failed to take leadership. Will relinquish leadership role. Failure was due to: {}", roleName, e);
-                    logger.error("", e);
                     setLeader(false);
                     Thread.sleep(1000L);
                     return;
