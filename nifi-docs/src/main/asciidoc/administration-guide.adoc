@@ -2012,7 +2012,8 @@ subnets of permitted nodes. The Cluster Coordinator uses the configuration to de
 heartbeats and connection requests from potential cluster members.
 
 The configuration file format expects one entry per line and ignores lines beginning with the `#` character. NiFi uses
-standard hostname resolution to convert names to IP addresses. The configuration file supports IPv4 addresses or subnet
+standard Java host name resolution to convert names to IP addresses. Java host name resolution leverages a combination
+of local machine configuration and network services, such as DNS. The configuration file supports IPv4 addresses or subnet
 ranges using CIDR notation. The following example cluster firewall configuration includes a combination of supported entries:
 
 ----
