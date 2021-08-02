@@ -24,9 +24,9 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.namespace.QName;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -80,11 +80,15 @@ public class JAXBSerializer<T> implements VersionedSerializer<T> {
             final Marshaller marshaller = jaxbContext.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 
-            String className = clazz.getSimpleName();
-            String tagName = Character.toLowerCase(className.charAt(0)) + className.substring(1);
+            if (clazz.getAnnotation(XmlRootElement.class) != null) {
+                marshaller.marshal(t, out);
+            } else {
+                String className = clazz.getSimpleName();
+                String tagName = Character.toLowerCase(className.charAt(0)) + className.substring(1);
 
-            marshaller.marshal(new JAXBElement<>(new QName(tagName), clazz, t), out);
-        } catch (Exception e) {
+                marshaller.marshal(new JAXBElement<>(new QName(tagName), clazz, t), out);
+            }
+        } catch (JAXBException e) {
             throw new SerializationException("Unable to serialize object", e);
         }
     }
@@ -99,14 +103,12 @@ public class JAXBSerializer<T> implements VersionedSerializer<T> {
             // Consume the header bytes.
             readDataModelVersion(input);
 
-            XMLStreamReader streamReader = XMLInputFactory.newInstance().createXMLStreamReader(input);
-
             final Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-            JAXBElement<T> jaxbElement = unmarshaller.unmarshal(streamReader, clazz);
+            JAXBElement<T> jaxbElement = unmarshaller.unmarshal(new StreamSource(input), clazz);
             T deserializedObject = jaxbElement.getValue();
 
             return deserializedObject;
-        } catch (Exception e) {
+        } catch (JAXBException e) {
             throw new SerializationException("Unable to deserialize object", e);
         }
     }
