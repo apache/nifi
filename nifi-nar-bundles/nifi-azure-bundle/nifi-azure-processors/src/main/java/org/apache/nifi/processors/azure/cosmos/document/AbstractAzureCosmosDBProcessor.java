@@ -158,13 +158,13 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
             if (logger.isDebugEnabled()) {
                 logger.debug("Creating CosmosClient");
             }
-            createCosmosClient(uri, accessKey, clevel);
+            initCosmosClient(uri, accessKey, clevel);
         }
         getCosmosDocumentContainer(context);
         doPostActionOnSchedule(context);
     }
 
-    protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) {
+    protected void initCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) {
         this.cosmosClient = new CosmosClientBuilder()
                                 .endpoint(uri)
                                 .key(accessKey)

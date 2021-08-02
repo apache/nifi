@@ -26,19 +26,19 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestAzureStorageSecureCredentialsControllerService {
+public class TestAzureStorageKeyVaultCredentialsControllerService {
 
     private static final String ACCOUNT_NAME_SECRET = "AccountNameSecret";
     private static final String ACCOUNT_KEY_SECRET = "AccountKeySecret";
     private static final String SAS_TOKEN_SECRET = "SasTokenSecret";
 
     private TestRunner runner;
-    private AzureStorageSecureCredentialsControllerService credentialsService;
+    private AzureStorageKeyVaultCredentialsControllerService credentialsService;
 
     @Before
     public void setUp() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
-        credentialsService = new AzureStorageSecureCredentialsControllerService();
+        credentialsService = new AzureStorageKeyVaultCredentialsControllerService();
         runner.addControllerService("credentials-service", credentialsService);
     }
 

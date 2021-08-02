@@ -34,9 +34,7 @@ import org.apache.nifi.services.azure.cosmos.AzureCosmosDBConnectionService;
         "Provides a controller service that configures a connection to Cosmos DB (Core SQL API) " +
                 " and provides access to that connection to other Cosmos DB-related components."
 )
-public abstract class AbstractCosmosDBClientService
-        extends AbstractControllerService
-        implements AzureCosmosDBConnectionService {
+public abstract class AbstractCosmosDBClientService extends AbstractControllerService implements AzureCosmosDBConnectionService {
 
     private CosmosClient cosmosClient;
 
@@ -62,7 +60,7 @@ public abstract class AbstractCosmosDBClientService
         }
     }
 
-    protected void createCosmosClient(final String uri, final String accessKey, final String selectedConsistency){
+    protected void initCosmosClient(final String uri, final String accessKey, final String selectedConsistency){
         final ConsistencyLevel cLevel;
 
         switch(selectedConsistency) {

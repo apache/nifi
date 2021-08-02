@@ -64,7 +64,7 @@ public class MockTestBase {
 
     private class MockConnectionService extends AzureCosmosDBClientService {
         @Override
-        protected void createCosmosClient(final String uri, final String accessKey, final String selectedConsistency){
+        protected void initCosmosClient(final String uri, final String accessKey, final String selectedConsistency){
             // mock cosmos client
             this.setCosmosClient(mock(CosmosClient.class));
         }

@@ -266,7 +266,7 @@ class MockPutAzureCosmosDBRecord extends PutAzureCosmosDBRecord {
     private List<Map<String, Object>> mockBackend = new ArrayList<>();
 
     @Override
-    protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) {
+    protected void initCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) {
         this.setCosmosClient(mockClient);
     }
     @Override

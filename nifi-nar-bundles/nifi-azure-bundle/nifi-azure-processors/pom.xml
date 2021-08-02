@@ -118,7 +118,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-security-keyvault-secrets</artifactId>
-            <version>4.2.3</version>
+            <version>${azure.keyvault.secrets.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.azure</groupId>

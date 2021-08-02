@@ -47,7 +47,7 @@ import java.util.function.Function;
  */
 @Tags({"azure", "microsoft", "cloud", "storage", "adls", "credentials", "secure"})
 @CapabilityDescription("Defines credentials for ADLS processors.")
-public class ADLSSecureCredentialsControllerService
+public class ADLSKeyVaultCredentialsControllerService
         extends AbstractControllerService
         implements ADLSCredentialsService {
 

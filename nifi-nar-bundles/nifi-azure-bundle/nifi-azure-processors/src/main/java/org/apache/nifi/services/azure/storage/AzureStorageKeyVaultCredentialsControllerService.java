@@ -47,7 +47,7 @@ import org.apache.nifi.services.azure.keyvault.AzureKeyVaultConnectionService;
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob", "queue", "credentials" })
 @CapabilityDescription("Defines credentials for Azure Storage processors. " +
         "Uses Account Name with Account Key or Account Name with SAS Token.")
-public class AzureStorageSecureCredentialsControllerService
+public class AzureStorageKeyVaultCredentialsControllerService
         extends AbstractControllerService
         implements AzureStorageCredentialsService {
 

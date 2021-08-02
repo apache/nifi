@@ -36,8 +36,7 @@ import org.apache.nifi.util.StringUtils;
         "Provides a controller service that configures a connection to Cosmos DB (Core SQL API) " +
         " and provides access to that connection to other Cosmos DB-related components."
 )
-public class AzureCosmosDBClientService
-        extends AbstractCosmosDBClientService {
+public class AzureCosmosDBClientService extends AbstractCosmosDBClientService {
     private String uri;
     private String accessKey;
     private String consistencyLevel;
@@ -46,16 +45,12 @@ public class AzureCosmosDBClientService
     public void onEnabled(final ConfigurationContext context) {
         this.uri = context.getProperty(AzureCosmosDBUtils.URI).getValue();
         this.accessKey = context.getProperty(AzureCosmosDBUtils.DB_ACCESS_KEY).getValue();
-        this.consistencyLevel = context.getProperty(
-                AzureCosmosDBUtils.CONSISTENCY).getValue();
+        this.consistencyLevel = context.getProperty(AzureCosmosDBUtils.CONSISTENCY).getValue();
 
         if (getCosmosClient() != null) {
             onStopped();
         }
-        createCosmosClient(
-                getURI(),
-                getAccessKey(),
-                getConsistencyLevel()
+        initCosmosClient(getURI(), getAccessKey(), getConsistencyLevel()
         );
     }
 

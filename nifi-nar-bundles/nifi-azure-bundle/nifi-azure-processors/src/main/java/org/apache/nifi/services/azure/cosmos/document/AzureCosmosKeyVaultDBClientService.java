@@ -38,8 +38,7 @@ import org.apache.nifi.util.StringUtils;
         "Provides a controller service that configures a connection to Cosmos DB (Core SQL API) " +
                 " and provides access to that connection to other Cosmos DB-related components."
 )
-public class AzureCosmosSecureDBClientService
-        extends AbstractCosmosDBClientService {
+public class AzureCosmosKeyVaultDBClientService extends AbstractCosmosDBClientService {
 
     private String uriSecret;
     private String accessKeySecret;
@@ -94,10 +93,7 @@ public class AzureCosmosSecureDBClientService
                 KEYVAULT_CONNECTION_SERVICE
         ).asControllerService(AzureKeyVaultConnectionService.class);
 
-        createCosmosClient(
-                getURI(),
-                getAccessKey(),
-                getConsistencyLevel()
+        initCosmosClient(getURI(), getAccessKey(), getConsistencyLevel()
         );
     }
 

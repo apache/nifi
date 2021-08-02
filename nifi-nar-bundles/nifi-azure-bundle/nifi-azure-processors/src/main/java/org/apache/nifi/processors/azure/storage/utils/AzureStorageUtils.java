@@ -160,8 +160,9 @@ public final class AzureStorageUtils {
     public static final PropertyDescriptor ACCOUNT_NAME_SECRET = new PropertyDescriptor.Builder()
             .name("storage-account-name-secret")
             .displayName("Storage Account Name Secret Name")
-            .description("The controller service will get the value of secret from Keyvault. " +
-                    "Provide the name of secret which stores Storage Account Name.")
+            .description("The name of the Azure Key Vault secret containing the Azure Storage account " +
+                    " name. The Controller Service will use this name to get the value of the secret from " +
+                    " Key Vault.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(true)
             .sensitive(true)
@@ -170,18 +171,19 @@ public final class AzureStorageUtils {
     public static final PropertyDescriptor ACCOUNT_KEY_SECRET = new PropertyDescriptor.Builder()
             .name("storage-account-key-secret")
             .displayName("Storage Account Key Secret Name")
-            .description("The controller service will get the value of secret from Keyvault. " +
-                    "Provide the name of secret which stores Storage Account Key.")
+            .description("The name of the Azure Key Vault secret containing the Azure Storage account " +
+                    " access key. The Controller Service will use this name to get the value of the secret from " +
+                    " Key Vault.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(false)
             .sensitive(true)
             .build();
 
     public static final PropertyDescriptor ACCOUNT_SAS_TOKEN_SECRET = new PropertyDescriptor.Builder()
-            .name("storage-sas-token")
+            .name("-secret")
             .displayName("SAS Token Secret Name")
-            .description("The controller service will get the value of secret from Keyvault. " +
-                    "Provide the name of secret which stores Storage SAS Token.")
+            .description("The name of the Azure Key Vault secret containing the Azure Storage SAS Token. " +
+                    "The Controller Service will use this name to get the value of the secret from Key Vault.")
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)

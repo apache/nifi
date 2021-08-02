@@ -72,7 +72,7 @@ class MockKeyVaultConnectionService extends AzureKeyVaultClientService {
     }
 }
 
-public class TestADLSSecureCredentialsControllerService {
+public class TestADLSKeyVaultCredentialsControllerService {
 
     public static final String CREDENTIALS_SERVICE_IDENTIFIER = "secure-credentials-service";
 
@@ -87,12 +87,12 @@ public class TestADLSSecureCredentialsControllerService {
     private String END_POINT_SUFFIX_SECRET_VALUE = "end.point.suffix";
 
     private TestRunner runner;
-    private ADLSSecureCredentialsControllerService credentialsService;
+    private ADLSKeyVaultCredentialsControllerService credentialsService;
 
     @Before
     public void setUp() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
-        credentialsService = new ADLSSecureCredentialsControllerService();
+        credentialsService = new ADLSKeyVaultCredentialsControllerService();
         runner.addControllerService(CREDENTIALS_SERVICE_IDENTIFIER, credentialsService);
     }
 

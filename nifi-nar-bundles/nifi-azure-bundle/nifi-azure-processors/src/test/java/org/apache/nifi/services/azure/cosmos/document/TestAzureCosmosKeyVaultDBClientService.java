@@ -57,18 +57,18 @@ class MockKeyVaultConnectionService extends AzureKeyVaultClientService {
     }
 }
 
-public class TestAzureCosmosSecureDBClientService {
+public class TestAzureCosmosKeyVaultDBClientService {
 
     private static final String URI_SECRET = "uriSecret";
     private static final String DB_ACCESS_KEY_SECRET = "dbAccessKeySecret";
 
     private TestRunner runner;
-    private AzureCosmosSecureDBClientService service;
+    private AzureCosmosKeyVaultDBClientService service;
 
     @Before
     public void setUp() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
-        service = new AzureCosmosSecureDBClientService();
+        service = new AzureCosmosKeyVaultDBClientService();
         runner.addControllerService("connService", service);
     }
 
@@ -96,18 +96,18 @@ public class TestAzureCosmosSecureDBClientService {
     }
 
     private void configureURI() {
-        runner.setProperty(service, AzureCosmosSecureDBClientService.URI_SECRET, URI_SECRET);
+        runner.setProperty(service, AzureCosmosKeyVaultDBClientService.URI_SECRET, URI_SECRET);
     }
 
     private void configureDBAccessKey() {
-        runner.setProperty(service, AzureCosmosSecureDBClientService.DB_ACCESS_KEY_SECRET, DB_ACCESS_KEY_SECRET);
+        runner.setProperty(service, AzureCosmosKeyVaultDBClientService.DB_ACCESS_KEY_SECRET, DB_ACCESS_KEY_SECRET);
     }
 
     private void configureKeyVaultConnectionService() throws InitializationException {
         AzureKeyVaultClientService keyVaultConnectionService = new MockKeyVaultConnectionService();
         String keyVaultServiceName = "keyvault-service";
         runner.addControllerService(keyVaultServiceName, keyVaultConnectionService);
-        runner.setProperty(service, AzureCosmosSecureDBClientService.KEYVAULT_CONNECTION_SERVICE, keyVaultServiceName);
+        runner.setProperty(service, AzureCosmosKeyVaultDBClientService.KEYVAULT_CONNECTION_SERVICE, keyVaultServiceName);
     }
 }
 
