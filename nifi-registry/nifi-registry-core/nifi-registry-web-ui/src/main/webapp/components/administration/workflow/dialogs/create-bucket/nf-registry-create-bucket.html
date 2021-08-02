@@ -27,7 +27,12 @@ limitations under the License.
     <div fxLayout="column" fxLayoutAlign="space-between start" class="pad-bottom-md">
         <div class="fill-available-width">
             <mat-form-field floatLabel="always" fxFlex>
-                <input #newBucketInput matInput floatPlaceholder="always" placeholder="Bucket Name">
+                <input #newBucketName matInput floatPlaceholder="always" placeholder="Bucket Name">
+            </mat-form-field>
+        </div>
+        <div class="fill-available-width">
+            <mat-form-field floatLabel="always" fxFlex>
+                <input #newBucketDescription matInput floatPlaceholder="always" placeholder="Description">
             </mat-form-field>
         </div>
         <mat-checkbox #newBucketPublicReadCheckbox [disabled]="protocol === 'http:'" >
@@ -44,7 +49,8 @@ limitations under the License.
                 i18n="Cancel creation of new bucket|A button for cancelling the creation of a new bucket in the registry.@@nf-admin-workflow-cancel-create-bucket-button">
             Cancel
         </button>
-        <button [disabled]="newBucketInput.value.length === 0" class="push-left-sm" data-automation-id="create-new-bucket-button" (click)="createBucket(newBucketInput,newBucketPublicReadCheckbox)"
+        <button [disabled]="newBucketName.value.length === 0" class="push-left-sm" data-automation-id="create-new-bucket-button"
+                (click)="createBucket(newBucketName, newBucketDescription, newBucketPublicReadCheckbox)"
                 color="fds-primary" mat-raised-button i18n="Create new bucket button|A button for creating a new bucket in the registry.@@nf-admin-workflow-create-bucket-button">
             Create
         </button>

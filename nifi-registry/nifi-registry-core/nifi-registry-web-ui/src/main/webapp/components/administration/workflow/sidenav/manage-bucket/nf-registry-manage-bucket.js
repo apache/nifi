@@ -63,6 +63,7 @@ function NfRegistryManageBucket(nfRegistryApi, nfRegistryService, tdDataTableSer
     ];
     this.userPermsSearchTerms = [];
     this.bucketname = '';
+    this.description = '';
     this.allowBundleRedeploy = false;
     this.allowPublicRead = false;
     this.bucketPolicies = [];
@@ -108,6 +109,7 @@ NfRegistryManageBucket.prototype = {
                     var bucket = response[0];
                     self.nfRegistryService.bucket = bucket;
                     self.bucketname = bucket.name;
+                    self.description = bucket.description;
                     self.allowBundleRedeploy = bucket.allowBundleRedeploy;
                     self.allowPublicRead = bucket.allowPublicRead;
                     if (!self.nfRegistryService.currentUser.anonymous) {
@@ -168,6 +170,7 @@ NfRegistryManageBucket.prototype = {
                 .subscribe(function (response) {
                     self.nfRegistryService.bucket = response;
                     self.bucketname = response.name;
+                    self.description = response.description;
                     self.allowBundleRedeploy = response.allowBundleRedeploy;
                     self.allowPublicRead = response.allowPublicRead;
 
@@ -208,6 +211,7 @@ NfRegistryManageBucket.prototype = {
                 .subscribe(function (response) {
                     self.nfRegistryService.bucket = response;
                     self.bucketname = response.name;
+                    self.description = response.description;
                     self.allowBundleRedeploy = response.allowBundleRedeploy;
                     self.allowPublicRead = response.allowPublicRead;
 
@@ -405,13 +409,15 @@ NfRegistryManageBucket.prototype = {
     /**
      * Update bucket name.
      *
-     * @param username
+     * @param bucketname        The new bucket name. Must be unique otherwise an error will be shown.
+     * @param description       The new bucket description
      */
-    updateBucketName: function (bucketname) {
+    updateBucketNameAndDescription: function (bucketname, description) {
         var self = this;
         this.nfRegistryApi.updateBucket({
             'identifier': this.nfRegistryService.bucket.identifier,
             'name': bucketname,
+            'description': description,
             'revision': this.nfRegistryService.bucket.revision
         }).subscribe(function (response) {
             if (!response.status || response.status === 200) {
@@ -421,11 +427,12 @@ NfRegistryManageBucket.prototype = {
                     return self.nfRegistryService.bucket.identifier === bucket.identifier;
                 }).forEach(function (bucket) {
                     bucket.name = response.name;
+                    bucket.description = response.description;
                     bucket.revision = response.revision;
                 });
                 self.snackBarService.openCoaster({
                     title: 'Success',
-                    message: 'This bucket name has been updated.',
+                    message: 'This bucket name and description have been updated.',
                     verticalPosition: 'bottom',
                     horizontalPosition: 'right',
                     icon: 'fa fa-check-circle-o',
@@ -434,6 +441,7 @@ NfRegistryManageBucket.prototype = {
                 });
             } else if (response.status === 409) {
                 self.bucketname = self.nfRegistryService.bucket.name;
+                self.description = self.nfRegistryService.bucket.description;
                 self.allowBundleRedeploy = self.nfRegistryService.bucket.allowBundleRedeploy;
                 self.allowPublicRead = self.nfRegistryService.bucket.allowPublicRead;
 
@@ -462,6 +470,7 @@ NfRegistryManageBucket.prototype = {
                             if (!response.status || response.status === 200) {
                                 self.nfRegistryService.bucket = response;
                                 self.bucketname = self.nfRegistryService.bucket.name;
+                                self.description = self.nfRegistryService.bucket.description;
                                 self.allowBundleRedeploy = self.nfRegistryService.bucket.allowBundleRedeploy;
                                 self.allowPublicRead = self.nfRegistryService.bucket.allowPublicRead;
                             } else if (response.status === 404) {
@@ -521,6 +530,7 @@ NfRegistryManageBucket.prototype = {
                             if (!response.status || response.status === 200) {
                                 self.nfRegistryService.bucket = response;
                                 self.bucketname = self.nfRegistryService.bucket.name;
+                                self.description = self.nfRegistryService.bucket.description;
                                 self.allowBundleRedeploy = self.nfRegistryService.bucket.allowBundleRedeploy;
                                 self.allowPublicRead = self.nfRegistryService.bucket.allowPublicRead;
                             } else if (response.status === 404) {
@@ -580,6 +590,7 @@ NfRegistryManageBucket.prototype = {
                             if (!response.status || response.status === 200) {
                                 self.nfRegistryService.bucket = response;
                                 self.bucketname = self.nfRegistryService.bucket.name;
+                                self.description = self.nfRegistryService.bucket.description;
                                 self.allowBundleRedeploy = self.nfRegistryService.bucket.allowBundleRedeploy;
                                 self.allowPublicRead = self.nfRegistryService.bucket.allowPublicRead;
                             } else if (response.status === 404) {

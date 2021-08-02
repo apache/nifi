@@ -47,12 +47,13 @@ NfRegistryCreateBucket.prototype = {
     /**
      * Create a new bucket.
      *
-     * @param newBucketInput                The newBucketInput element.
+     * @param newBucketName                 The newBucketName element.
+     * @param newBucketDescription          The newBucketDescription element.
      * @param newBucketPublicReadCheckbox   The newBucketPublicReadCheckbox element.
      */
-    createBucket: function (newBucketInput, newBucketPublicReadCheckbox) {
+    createBucket: function (newBucketName, newBucketDescription, newBucketPublicReadCheckbox) {
         var self = this;
-        this.nfRegistryApi.createBucket(newBucketInput.value, newBucketPublicReadCheckbox.checked).subscribe(function (bucket) {
+        this.nfRegistryApi.createBucket(newBucketName.value, newBucketDescription.value, newBucketPublicReadCheckbox.checked).subscribe(function (bucket) {
             if (!bucket.error) {
                 self.nfRegistryService.buckets.push(bucket);
                 self.nfRegistryService.filterBuckets();
@@ -80,13 +81,6 @@ NfRegistryCreateBucket.prototype = {
      */
     cancel: function () {
         this.dialogRef.close();
-    },
-
-    /**
-     * Focus the new bucket input.
-     */
-    ngAfterViewChecked: function () {
-        this.newBucketInput.nativeElement.focus();
     }
 };
 
@@ -94,7 +88,8 @@ NfRegistryCreateBucket.annotations = [
     new Component({
         templateUrl: './nf-registry-create-bucket.html',
         queries: {
-            newBucketInput: new ViewChild('newBucketInput')
+            newBucketName: new ViewChild('newBucketName'),
+            newBucketDescription: new ViewChild('newBucketDescription')
         }
     })
 ];

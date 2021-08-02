@@ -462,7 +462,7 @@ describe('NfRegistry API w/ Angular testing utils', function () {
 
     it('should POST to create a new bucket.', inject([HttpTestingController], function (httpMock) {
         // api call
-        nfRegistryApi.createBucket('test').subscribe(function (response) {
+        nfRegistryApi.createBucket('test', 'testDesc').subscribe(function (response) {
             expect(response.identifier).toBe('1234');
         });
         // the request it made
@@ -484,7 +484,7 @@ describe('NfRegistry API w/ Angular testing utils', function () {
         });
 
         // api call
-        nfRegistryApi.createBucket('test').subscribe(function (response) {
+        nfRegistryApi.createBucket('test', 'testDesc').subscribe(function (response) {
             expect(response.message).toEqual('Http failure response for ../nifi-registry-api/buckets: 401 POST bucket mock error');
             var dialogServiceCall = nfRegistryApi.dialogService.openConfirm.calls.first();
             expect(dialogServiceCall.args[0].title).toBe('Error');

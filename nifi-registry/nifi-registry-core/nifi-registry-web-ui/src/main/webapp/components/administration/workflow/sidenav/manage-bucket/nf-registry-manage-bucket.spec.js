@@ -564,6 +564,7 @@ describe('NfRegistryManageBucket Component', function () {
         }).and.returnValue(of({
             identifier: '123',
             name: 'test',
+            description: 'testDesc',
             status: 200
         }));
 
@@ -580,11 +581,12 @@ describe('NfRegistryManageBucket Component', function () {
         expect(nfRegistryApi.getBucket.calls.count()).toBe(1);
 
         // the function to test
-        comp.updateBucketName('test');
+        comp.updateBucketNameAndDescription('test', 'testDesc');
 
         //assertions
         expect(comp.snackBarService.openCoaster.calls.count()).toBe(1);
         expect(comp.nfRegistryService.bucket.name).toBe('test');
+        expect(comp.nfRegistryService.bucket.description).toBe('testDesc');
     }));
 
     it('should fail to update bucket name (409)', fakeAsync(function () {
@@ -600,7 +602,8 @@ describe('NfRegistryManageBucket Component', function () {
         spyOn(nfRegistryApi, 'getBucket').and.callFake(function () {
         }).and.returnValue(of({
             identifier: '123',
-            name: 'Bucket #1'
+            name: 'Bucket #1',
+            description: 'Bucket description'
         }));
         spyOn(nfRegistryApi, 'getPolicies').and.callFake(function () {
         }).and.returnValue(of([
@@ -621,6 +624,7 @@ describe('NfRegistryManageBucket Component', function () {
         }).and.returnValue(of({
             identifier: '123',
             name: 'test',
+            description: 'testDesc',
             status: 409
         }));
 
@@ -637,11 +641,12 @@ describe('NfRegistryManageBucket Component', function () {
         expect(nfRegistryApi.getBucket.calls.count()).toBe(1);
 
         // the function to test
-        comp.updateBucketName('test');
+        comp.updateBucketNameAndDescription('test', 'testDesc');
 
         //assertions
         expect(comp.dialogService.openConfirm.calls.count()).toBe(1);
         expect(comp.nfRegistryService.bucket.name).toBe('Bucket #1');
+        expect(comp.nfRegistryService.bucket.description).toBe('Bucket description');
     }));
 
     it('should fail to update bucket name (400)', fakeAsync(function () {
@@ -657,7 +662,8 @@ describe('NfRegistryManageBucket Component', function () {
         spyOn(nfRegistryApi, 'getBucket').and.callFake(function () {
         }).and.returnValue(of({
             identifier: '123',
-            name: 'Bucket #1'
+            name: 'Bucket #1',
+            description: 'Bucket description'
         }));
         spyOn(nfRegistryApi, 'getPolicies').and.callFake(function () {
         }).and.returnValue(of([
@@ -678,6 +684,7 @@ describe('NfRegistryManageBucket Component', function () {
         }).and.returnValue(of({
             identifier: '123',
             name: 'test',
+            description: 'testDesc',
             status: 400
         }));
 
@@ -694,11 +701,12 @@ describe('NfRegistryManageBucket Component', function () {
         expect(nfRegistryApi.getBucket.calls.count()).toBe(1);
 
         // the function to test
-        comp.updateBucketName('test');
+        comp.updateBucketNameAndDescription('test', 'testDesc');
 
         //assertions
         expect(comp.dialogService.openConfirm.calls.count()).toBe(1);
         expect(comp.nfRegistryService.bucket.name).toBe('Bucket #1');
+        expect(comp.nfRegistryService.bucket.description).toBe('Bucket description');
     }));
 
     it('should destroy the component', fakeAsync(function () {
