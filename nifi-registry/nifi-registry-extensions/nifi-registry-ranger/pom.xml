@@ -49,6 +49,12 @@
                 <artifactId>jackson-core</artifactId>
                 <version>${jackson.version}</version>
             </dependency>
+            <!-- Override snakeyaml:1.17 -->
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.29</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>
