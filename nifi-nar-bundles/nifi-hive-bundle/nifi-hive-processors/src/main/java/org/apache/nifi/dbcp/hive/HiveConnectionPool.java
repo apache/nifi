@@ -352,7 +352,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
         final Long maxWaitMillis = context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
-        final Long maxConnectionLifetimeMillis = extractMillisWithInfinite(context.getProperty(MAX_CONN_LIFETIME).evaluateAttributeExpressions());
+        final long maxConnectionLifetimeMillis = extractMillisWithInfinite(context.getProperty(MAX_CONN_LIFETIME).evaluateAttributeExpressions());
 
         dataSource = new BasicDataSource();
         dataSource.setDriverClassName(drv);
@@ -446,8 +446,12 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
     }
 
-    private Long extractMillisWithInfinite(PropertyValue prop) {
-        return "-1".equals(prop.getValue()) ? -1 : prop.asTimePeriod(TimeUnit.MILLISECONDS);
+    private long extractMillisWithInfinite(PropertyValue prop) {
+        if (prop.getValue() == null || "-1".equals(prop.getValue())) {
+            return -1;
+        } else {
+            return prop.asTimePeriod(TimeUnit.MILLISECONDS);
+        }
     }
 
 }
