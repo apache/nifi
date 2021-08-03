@@ -23,7 +23,6 @@
     <artifactId>nifi-web-ui</artifactId>
     <packaging>war</packaging>
     <properties>
-        <node.version>v12.22.2</node.version>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
         <staging.dir>${project.build.directory}/tmp</staging.dir>
