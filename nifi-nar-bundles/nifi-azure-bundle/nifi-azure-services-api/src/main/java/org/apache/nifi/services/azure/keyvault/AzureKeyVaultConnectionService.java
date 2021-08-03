@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.services.azure.keyvault;
 
 import org.apache.nifi.controller.ControllerService;
@@ -26,7 +25,7 @@ import org.apache.nifi.controller.ControllerService;
 public interface AzureKeyVaultConnectionService extends ControllerService {
 
     /**
-     * Get Secret Value from KeyVault for requested secret name
+     * Get Secret Value from Azure Key Vault for the requested secret name
      * @param secretName Secret Name
      * @return String
      */

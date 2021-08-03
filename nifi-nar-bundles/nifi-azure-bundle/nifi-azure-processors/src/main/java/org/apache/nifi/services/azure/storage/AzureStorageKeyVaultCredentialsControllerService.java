@@ -121,16 +121,14 @@ public class AzureStorageKeyVaultCredentialsControllerService
         ).asControllerService(AzureKeyVaultConnectionService.class);
 
         if (keyVaultClientService == null) {
-            throw new IllegalArgumentException(String.format(
-                    "Cannot get '%s'.", AzureStorageUtils.KEYVAULT_CONNECTION_SERVICE.getDisplayName()));
+            throw new IllegalArgumentException(String.format("Cannot get '%s'.", AzureStorageUtils.KEYVAULT_CONNECTION_SERVICE.getDisplayName()));
         }
 
         if (StringUtils.isBlank(accountNameSecret)) {
-            throw new IllegalArgumentException(String.format(
-                    "'%s' must not be empty.", AzureStorageUtils.ACCOUNT_NAME_SECRET.getDisplayName()));
+            throw new IllegalArgumentException(String.format("'%s' must not be empty.", AzureStorageUtils.ACCOUNT_NAME_SECRET.getDisplayName()));
         }
 
-        String accountNameValue = keyVaultClientService.getSecret(accountNameSecret);
+        final String accountNameValue = keyVaultClientService.getSecret(accountNameSecret);
 
         StorageCredentials storageCredentials;
 
@@ -141,7 +139,7 @@ public class AzureStorageKeyVaultCredentialsControllerService
             String sasTokenValue = keyVaultClientService.getSecret(sasTokenSecret);
             storageCredentials = new StorageCredentialsSharedAccessSignature(sasTokenValue);
         } else {
-            throw new IllegalArgumentException(String.format(
+            throw new IllegalStateException(String.format(
                     "Either '%s' or '%s' must be defined.",
                     AzureStorageUtils.ACCOUNT_KEY_SECRET.getDisplayName(),
                     AzureStorageUtils.ACCOUNT_SAS_TOKEN_SECRET.getDisplayName()));

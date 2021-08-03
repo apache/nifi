@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.services.azure.storage;
 
 import org.apache.commons.lang3.StringUtils;
@@ -47,9 +46,7 @@ import java.util.function.Function;
  */
 @Tags({"azure", "microsoft", "cloud", "storage", "adls", "credentials", "secure"})
 @CapabilityDescription("Defines credentials for ADLS processors.")
-public class ADLSKeyVaultCredentialsControllerService
-        extends AbstractControllerService
-        implements ADLSCredentialsService {
+public class ADLSKeyVaultCredentialsControllerService extends AbstractControllerService implements ADLSCredentialsService {
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             AzureStorageUtils.KEYVAULT_CONNECTION_SERVICE,

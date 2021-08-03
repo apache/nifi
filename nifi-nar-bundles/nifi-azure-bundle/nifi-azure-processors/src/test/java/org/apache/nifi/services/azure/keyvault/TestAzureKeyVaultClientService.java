@@ -62,7 +62,7 @@ public class TestAzureKeyVaultClientService {
     private String MOCK_INVALID_SECRET_VALUE = "mockInvalidSecretValue1";
 
     @Before
-    public void Setup() throws Exception {
+    public void setup() throws Exception {
         kvService = new MockConnectionService();
         testRunner = TestRunners.newTestRunner(NoOpProcessor.class);
         testRunner.addControllerService("kvService", kvService);
@@ -75,22 +75,22 @@ public class TestAzureKeyVaultClientService {
 
     @Test
     public void testGetKeyVaultSecret() {
-        assertEquals(kvService.getSecretFromKeyVault(MOCK_SECRET_NAME), MOCK_SECRET_VALUE);
+        assertEquals(MOCK_SECRET_VALUE , kvService.getSecretFromKeyVault(MOCK_SECRET_NAME));
     }
 
     @Test
     public void testInvalidGetKeyVaultSecret() {
-        assertNotEquals(kvService.getSecretFromKeyVault(MOCK_SECRET_NAME), MOCK_INVALID_SECRET_VALUE);
+        assertNotEquals(MOCK_INVALID_SECRET_VALUE , kvService.getSecretFromKeyVault(MOCK_SECRET_NAME));
     }
 
     @Test
     public void testGetSecret() {
-        assertEquals(kvService.getSecret(MOCK_SECRET_NAME), MOCK_SECRET_VALUE);
+        assertEquals(MOCK_SECRET_VALUE, kvService.getSecret(MOCK_SECRET_NAME));
     }
 
     @Test
     public void testInvalidGetKeySecret() {
-        assertNotEquals(kvService.getSecret(MOCK_SECRET_NAME), MOCK_INVALID_SECRET_VALUE);
+        assertNotEquals(MOCK_INVALID_SECRET_VALUE, kvService.getSecret(MOCK_SECRET_NAME));
     }
 }
 

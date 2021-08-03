@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.services.azure.keyvault;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -38,19 +37,19 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Tags({"azure", "keyvault", "credential", "service", "secure"})
-@CapabilityDescription(
-        "Provides a controller service that configures a connection to Azure Key Vault" +
-                " and provides access to that connection to Azure Key Vault components."
+@CapabilityDescription("Provides a controller service that configures a connection to Azure Key Vault" +
+        " and provides access to that connection to Azure Key Vault components."
 )
-public class AzureKeyVaultClientService
-        extends AbstractControllerService
-        implements AzureKeyVaultConnectionService {
+public class AzureKeyVaultClientService extends AbstractControllerService implements AzureKeyVaultConnectionService {
 
     private String keyVaultName;
     private String servicePrincipalClientID;
@@ -71,32 +70,27 @@ public class AzureKeyVaultClientService
     }
 
     @Override
-    public String getSecret(String secretName) {
-        if (secretCache != null) {
-            try {
-                return secretCache.get(secretName);
-            } catch (final Exception e) {
-                logger.error("Failed to get secret '"+ secretName +"' from cache", e);
-            }
-        }
-        return getSecretFromKeyVault(secretName);
-    }
+   public String getSecret(String secretName) {
+       return Optional.ofNullable(secretCache)
+           .map(c -> {
+               final String secretValue = c.getIfPresent(secretName);
+               if (logger.isDebugEnabled()) {
+                   logger.debug("Cache miss for secret '{}'", secretName);
+               }
+               return secretValue;
+           })
+           .orElse(getSecretFromKeyVault(secretName));
+   }
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         logger = getLogger();
-        this.keyVaultName = context.getProperty(
-                AzureKeyVaultUtils.KEYVAULT_NAME).getValue();
-        this.servicePrincipalClientID = context.getProperty(
-                AzureKeyVaultUtils.SP_CLIENT_ID).getValue();
-        this.servicePrincipalClientSecret = context.getProperty(
-                AzureKeyVaultUtils.SP_CLIENT_SECRET).getValue();
-        this.tenantID = context.getProperty(
-                AzureKeyVaultUtils.TENANT_ID).getValue();
-        this.endPointSuffix = context.getProperty(
-                AzureKeyVaultUtils.ENDPOINT_SUFFIX).getValue();
-        this.useManagedIdentity = context.getProperty(
-                AzureKeyVaultUtils.USE_MANAGED_IDENTITY).asBoolean();
+        this.keyVaultName = context.getProperty(AzureKeyVaultUtils.KEYVAULT_NAME).getValue();
+        this.servicePrincipalClientID = context.getProperty(AzureKeyVaultUtils.SP_CLIENT_ID).getValue();
+        this.servicePrincipalClientSecret = context.getProperty(AzureKeyVaultUtils.SP_CLIENT_SECRET).getValue();
+        this.tenantID = context.getProperty(AzureKeyVaultUtils.TENANT_ID).getValue();
+        this.endPointSuffix = context.getProperty(AzureKeyVaultUtils.ENDPOINT_SUFFIX).getValue();
+        this.useManagedIdentity = context.getProperty(AzureKeyVaultUtils.USE_MANAGED_IDENTITY).asBoolean();
 
         createKeyVaultSecretClient();
 
@@ -112,8 +106,7 @@ public class AzureKeyVaultClientService
             }
 
             logger.info(String.format(
-                    "Secret cache enabled with cacheSize: %d and cacheTTL: %d secs",
-                    cacheSize, cacheTTL));
+                    "Secret cache enabled with cacheSize: %d and cacheTTL: %d secs", cacheSize, cacheTTL));
             secretCache = cacheBuilder.build(
                     new CacheLoader<String, String>() {
                         @Override
@@ -149,22 +142,17 @@ public class AzureKeyVaultClientService
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
-        final String keyVaultName = validationContext.getProperty(
-                AzureKeyVaultUtils.KEYVAULT_NAME).getValue();
-        final String clientID = validationContext.getProperty(
-                AzureKeyVaultUtils.SP_CLIENT_ID).getValue();
-        final String clientSecret = validationContext.getProperty(
-                AzureKeyVaultUtils.SP_CLIENT_SECRET).getValue();
-        final String tenantID = validationContext.getProperty(
-                AzureKeyVaultUtils.TENANT_ID).getValue();
-        final Boolean useManagedIdentity = validationContext.getProperty(
-                AzureKeyVaultUtils.USE_MANAGED_IDENTITY).asBoolean();
+        final String keyVaultName = validationContext.getProperty(AzureKeyVaultUtils.KEYVAULT_NAME).getValue();
+        final String clientID = validationContext.getProperty(AzureKeyVaultUtils.SP_CLIENT_ID).getValue();
+        final String clientSecret = validationContext.getProperty(AzureKeyVaultUtils.SP_CLIENT_SECRET).getValue();
+        final String tenantID = validationContext.getProperty(AzureKeyVaultUtils.TENANT_ID).getValue();
+        final Boolean useManagedIdentity = validationContext.getProperty(AzureKeyVaultUtils.USE_MANAGED_IDENTITY).asBoolean();
 
         if (StringUtils.isBlank(keyVaultName)) {
             results.add(new ValidationResult.Builder()
                     .subject(this.getClass().getSimpleName())
                     .valid(false)
-                    .explanation(AzureKeyVaultUtils.KEYVAULT_NAME.getDisplayName() +" is required")
+                    .explanation(AzureKeyVaultUtils.KEYVAULT_NAME.getDisplayName() + " is required")
                     .build());
         } else if (useManagedIdentity && (StringUtils.isNotBlank(clientID)
                 || StringUtils.isNotBlank(clientSecret))) {
@@ -192,11 +180,16 @@ public class AzureKeyVaultClientService
     }
 
     protected void createKeyVaultSecretClient(){
-        String kvUri = "https://" + this.keyVaultName + this.endPointSuffix;
+        URL kvURL;
+        try {
+                kvURL = new URL("https://" + this.keyVaultName + this.endPointSuffix);
+        } catch (final MalformedURLException e1) {
+                throw new AssertionError();
+        }
 
         if (this.useManagedIdentity) {
             this.keyVaultSecretClient = new SecretClientBuilder()
-                    .vaultUrl(kvUri)
+                    .vaultUrl(kvURL.toString())
                     .credential(new DefaultAzureCredentialBuilder().build())
                     .buildClient();
         } else {
@@ -207,7 +200,7 @@ public class AzureKeyVaultClientService
                     .build();
 
             this.keyVaultSecretClient = new SecretClientBuilder()
-                    .vaultUrl(kvUri)
+                    .vaultUrl(kvURL.toString())
                     .credential(clientSecretCredential)
                     .buildClient();
         }

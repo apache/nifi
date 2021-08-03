@@ -57,6 +57,8 @@ public final class AzureStorageUtils {
     public static final String STORAGE_SAS_TOKEN_PROPERTY_DESCRIPTOR_NAME = "storage-sas-token";
     public static final String STORAGE_ENDPOINT_SUFFIX_PROPERTY_DESCRIPTOR_NAME = "storage-endpoint-suffix";
 
+    public static final String DEFAULT_ADLS_ENDPOINT_SUFFIX = "dfs.core.windows.net";
+
     public static final String ACCOUNT_KEY_BASE_DESCRIPTION =
             "The storage account key. This is an admin-like password providing access to every container in this account. It is recommended " +
             "one uses Shared Access Signature (SAS) token instead for fine-grained control with policies.";
@@ -191,9 +193,9 @@ public final class AzureStorageUtils {
 
     public static final PropertyDescriptor KEYVAULT_CONNECTION_SERVICE = new PropertyDescriptor.Builder()
             .name("azure-keyvault-connection-service")
-            .displayName("KeyVault Connection Service")
-            .description("The controller service will get the value of secrets from Keyvault. " +
-                "Provide the name of keyvault controller service.")
+            .displayName("Key Vault Connection Service")
+            .description("The controller service will get the value of secrets from Key vault. " +
+                "Provide the name of key vault controller service.")
             .required(true)
             .identifiesControllerService(AzureKeyVaultConnectionService.class)
             .build();
@@ -205,7 +207,7 @@ public final class AzureStorageUtils {
                 "Storage accounts in public Azure always use a common FQDN suffix. " +
                     "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
             .required(true)
-            .defaultValue("dfs.core.windows.net")
+            .defaultValue(DEFAULT_ADLS_ENDPOINT_SUFFIX)
             .build();
 
     private AzureStorageUtils() {

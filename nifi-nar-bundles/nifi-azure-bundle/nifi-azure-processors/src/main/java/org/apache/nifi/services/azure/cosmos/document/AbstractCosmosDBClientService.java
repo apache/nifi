@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.services.azure.cosmos.document;
 
 import com.azure.cosmos.ConsistencyLevel;
@@ -30,9 +29,8 @@ import org.apache.nifi.processors.azure.cosmos.document.AzureCosmosDBUtils;
 import org.apache.nifi.services.azure.cosmos.AzureCosmosDBConnectionService;
 
 @Tags({"azure", "cosmos", "document", "service"})
-@CapabilityDescription(
-        "Provides a controller service that configures a connection to Cosmos DB (Core SQL API) " +
-                " and provides access to that connection to other Cosmos DB-related components."
+@CapabilityDescription("Provides a controller service that configures a connection to Cosmos DB (Core SQL API) " +
+        " and provides access to that connection to other Cosmos DB-related components."
 )
 public abstract class AbstractCosmosDBClientService extends AbstractControllerService implements AzureCosmosDBConnectionService {
 

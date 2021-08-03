@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.services.azure.keyvault;
 
 import org.apache.nifi.components.PropertyDescriptor;
@@ -22,10 +21,11 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 public final class AzureKeyVaultUtils {
 
+    private static final String DEFAULT_KEYVAULT_ENDPOINT_SUFFIX = ".vault.azure.net";
     public static final PropertyDescriptor KEYVAULT_NAME = new PropertyDescriptor.Builder()
             .name("azure-keyvault-name")
-            .displayName("KeyVault Name")
-            .description("KeyVault Name")
+            .displayName("Key Vault Name")
+            .description("The name of the Azure Key Vault to get secrets from.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .sensitive(true)
@@ -34,8 +34,7 @@ public final class AzureKeyVaultUtils {
     public static final PropertyDescriptor SP_CLIENT_ID = new PropertyDescriptor.Builder()
             .name("azure-service-principal-client-id")
             .displayName("Service Principal Client ID")
-            .description("This processor will use Azure Service Principal for authentication. " +
-                    "Please provide Azure Service Principal Client ID for authentication")
+            .description("The Azure Active Directory Tenant ID to use when using Service Principal authentication.")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .sensitive(true)
@@ -44,8 +43,7 @@ public final class AzureKeyVaultUtils {
     public static final PropertyDescriptor SP_CLIENT_SECRET = new PropertyDescriptor.Builder()
             .name("azure-service-principal-client-secret")
             .displayName("Service Principal Client Secret")
-            .description("This processor will use Azure Service Principal for authentication. " +
-                    "Please provide Azure Service Principal Client Secret for authentication")
+            .description("The Azure Service Principal Client Secret to use when using Service Principal authentication.")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .sensitive(true)
@@ -63,13 +61,13 @@ public final class AzureKeyVaultUtils {
 
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
             .name("keyvault-uri-suffix")
-            .displayName("KeyVault URI  Suffix")
-            .description("KeyVault in public Azure always uses a common FQDN suffix. " +
+            .displayName("Endpoint Suffix")
+            .description("The Endpoint or FQDN Suffix or to use when connecting Azure Key Vault." +
                     "Override this endpoint suffix with a different suffix in certain " +
                     "circumstances (like Azure Stack or non-public Azure regions). ")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(false)
-            .defaultValue(".vault.azure.net")
+            .defaultValue(DEFAULT_KEYVAULT_ENDPOINT_SUFFIX)
             .sensitive(false)
             .build();
 
@@ -86,7 +84,7 @@ public final class AzureKeyVaultUtils {
 
     public static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
             .name("cache-size")
-            .displayName("Cache size")
+            .displayName("Cache Size")
             .description("Maximum number of secrets to cache. Zero disables the cache.")
             .required(true)
             .defaultValue("10")
@@ -95,10 +93,10 @@ public final class AzureKeyVaultUtils {
 
     public static final PropertyDescriptor CACHE_TTL_AFTER_WRITE = new PropertyDescriptor.Builder()
             .name("cache-ttl-after-write")
-            .displayName("Cache TTL after write")
+            .displayName("Cache TTL after Write")
             .description("The cache TTL (time-to-live) or how long to keep secret in the cache after it was written.")
             .required(true)
-            .defaultValue("600 secs")
+            .defaultValue("5 mins")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 }
