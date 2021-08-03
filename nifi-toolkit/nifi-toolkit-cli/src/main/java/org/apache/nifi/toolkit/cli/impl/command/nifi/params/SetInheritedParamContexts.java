@@ -67,7 +67,7 @@ public class SetInheritedParamContexts extends AbstractUpdateParamContextCommand
 
         final String[] inheritedIdArray = inheritedIds.split(",");
         final List<ParameterContextReferenceEntity> referenceEntities = new ArrayList<>();
-        for(String inheritedId : inheritedIdArray) {
+        for(final String inheritedId : inheritedIdArray) {
             final ParameterContextEntity existingInheritedEntity = paramContextClient.getParamContext(inheritedId, false);
             final ParameterContextReferenceEntity parameterContextReferenceEntity = new ParameterContextReferenceEntity();
             parameterContextReferenceEntity.setId(existingInheritedEntity.getId());

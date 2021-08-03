@@ -61,7 +61,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         verifyInheritedParameterContextRefs(parameterContextDto.getInheritedParameterContexts());
     }
 
-    private void verifyInheritedParameterContextRefs(List<ParameterContextReferenceEntity> inheritedParameterContexts) {
+    private void verifyInheritedParameterContextRefs(final List<ParameterContextReferenceEntity> inheritedParameterContexts) {
         if (inheritedParameterContexts != null) {
             // This will throw an exception if one is not found
             inheritedParameterContexts.stream().forEach(entity -> flowManager.getParameterContextManager()
@@ -85,7 +85,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
     private void resolveInheritedParameterContexts(final ParameterContextDTO parameterContextDto) {
         if (parameterContextDto.getInheritedParameterContexts() != null && !parameterContextDto.getInheritedParameterContexts().isEmpty()) {
-            Map<String, ParameterContext> paramContextNameMap = flowManager.getParameterContextManager().getParameterContextNameMapping();
+            final Map<String, ParameterContext> paramContextNameMap = flowManager.getParameterContextManager().getParameterContextNameMapping();
             for (final ParameterContextReferenceEntity ref : parameterContextDto.getInheritedParameterContexts()) {
                 if (ref.getComponent() == null || (ref.getComponent().getId() == null && ref.getComponent().getName() == null)) {
                     throw new IllegalStateException(String.format("Could not resolve inherited parameter context references in Parameter Context [%s]",
@@ -197,7 +197,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         return context;
     }
 
-    private List<ParameterContext> getInheritedParameterContexts(ParameterContextDTO parameterContextDto) {
+    private List<ParameterContext> getInheritedParameterContexts(final ParameterContextDTO parameterContextDto) {
         resolveInheritedParameterContexts(parameterContextDto);
 
         final List<ParameterContext> inheritedParameterContexts = new ArrayList<>();

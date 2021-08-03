@@ -676,9 +676,9 @@ public class TestStandardParameterContext {
         Assert.assertEquals(Collections.EMPTY_LIST, a.getInheritedParameterContexts());
     }
 
-    private static void removeParameter(ParameterContext parameterContext, String name) {
+    private static void removeParameter(final ParameterContext parameterContext, final String name) {
         final Map<String, Parameter> parameters = new HashMap<>();
-        for(Map.Entry<ParameterDescriptor, Parameter> entry : parameterContext.getParameters().entrySet()) {
+        for(final Map.Entry<ParameterDescriptor, Parameter> entry : parameterContext.getParameters().entrySet()) {
             if (entry.getKey().getName().equals(name)) {
                 parameters.put(name, null);
             } else {
@@ -688,13 +688,13 @@ public class TestStandardParameterContext {
         parameterContext.setParameters(parameters);
     }
 
-    private static ParameterDescriptor addParameter(ParameterContext parameterContext, String name, String value) {
+    private static ParameterDescriptor addParameter(final ParameterContext parameterContext, final String name, final String value) {
         return addParameter(parameterContext, name, value, false);
     }
 
-    private static ParameterDescriptor addParameter(ParameterContext parameterContext, String name, String value, boolean isSensitive) {
+    private static ParameterDescriptor addParameter(final ParameterContext parameterContext, final String name, final String value, final boolean isSensitive) {
         final Map<String, Parameter> parameters = new HashMap<>();
-        for(Map.Entry<ParameterDescriptor, Parameter> entry : parameterContext.getParameters().entrySet()) {
+        for(final Map.Entry<ParameterDescriptor, Parameter> entry : parameterContext.getParameters().entrySet()) {
             parameters.put(entry.getKey().getName(), entry.getValue());
         }
         final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(name).sensitive(isSensitive).build();
@@ -703,15 +703,14 @@ public class TestStandardParameterContext {
         return parameterDescriptor;
     }
 
-    private static ParameterContext createParameterContext(String id, ParameterContextManager parameterContextLookup,
-                                                           ParameterContext... children) {
+    private static ParameterContext createParameterContext(final String id, final ParameterContextManager parameterContextLookup,
+                                                           final ParameterContext... children) {
         return createParameterContext(id, parameterContextLookup, ParameterReferenceManager.EMPTY, children);
     }
 
-    private static ParameterContext createParameterContext(String id, ParameterContextManager parameterContextLookup,
-                                                           ParameterReferenceManager referenceManager, ParameterContext... children) {
-        ParameterContext parameterContext = new StandardParameterContext(id, id.toUpperCase(), referenceManager, null
-        );
+    private static ParameterContext createParameterContext(final String id, final ParameterContextManager parameterContextLookup,
+                                                           final ParameterReferenceManager referenceManager, final ParameterContext... children) {
+        final ParameterContext parameterContext = new StandardParameterContext(id, id.toUpperCase(), referenceManager, null );
         parameterContext.setInheritedParameterContexts(Arrays.asList(children));
 
         parameterContextLookup.addParameterContext(parameterContext);

@@ -132,7 +132,7 @@ public class StandardParameterContext implements ParameterContext {
      * Alerts all referencing components of any relevant updates.
      * @param parameterUpdates A map from parameter name to ParameterUpdate (empty if none are applicable)
      */
-    private void alertReferencingComponents(Map<String, ParameterUpdate> parameterUpdates) {
+    private void alertReferencingComponents(final Map<String, ParameterUpdate> parameterUpdates) {
         if (!parameterUpdates.isEmpty()) {
             logger.debug("Parameter Context {} was updated. {} parameters changed ({}). Notifying all affected components.", this, parameterUpdates.size(), parameterUpdates);
 
@@ -324,7 +324,7 @@ public class StandardParameterContext implements ParameterContext {
     private void overrideParameters(final Map<ParameterDescriptor, Parameter> existingParameters,
                                     final Map<ParameterDescriptor, Parameter> overridingParameters,
                                     final ParameterContext overridingContext) {
-        for(Map.Entry<ParameterDescriptor, Parameter> entry : overridingParameters.entrySet()) {
+        for(final Map.Entry<ParameterDescriptor, Parameter> entry : overridingParameters.entrySet()) {
             final ParameterDescriptor overridingParameterDescriptor = entry.getKey();
             Parameter overridingParameter = entry.getValue();
 
@@ -358,7 +358,7 @@ public class StandardParameterContext implements ParameterContext {
     /**
      * Converts a map of Descriptor -> Parameter to a map of Parameter Name -> Parameter.
      * @param parameterMap A map from ParameterDescriptor to Parameter
-     * @return
+     * @return A map from parameter name to parameter
      */
     private static Map<String, Parameter> getParameterNameMap(final Map<ParameterDescriptor, Parameter> parameterMap) {
         return (parameterMap.isEmpty()) ? new HashMap<>()
@@ -387,7 +387,7 @@ public class StandardParameterContext implements ParameterContext {
      * @throws IllegalStateException If a cycle was detected
      */
     private void verifyNoCycles(final Stack<String> traversedIds, final List<ParameterContext> parameterContexts) {
-        for (ParameterContext parameterContext : parameterContexts) {
+        for (final ParameterContext parameterContext : parameterContexts) {
             final String id = parameterContext.getIdentifier();
             if (traversedIds.contains(id)) {
                 throw new IllegalStateException(String.format("Circular references in Parameter Contexts not allowed. [%s] was detected in a cycle.", parameterContext.getName()));
@@ -414,7 +414,7 @@ public class StandardParameterContext implements ParameterContext {
 
             try {
                 verifyCanSetParameters(currentEffectiveParameters, effectiveParameterUpdates);
-            } catch (IllegalStateException e) {
+            } catch (final IllegalStateException e) {
                 // Wrap with a more accurate message
                 throw new IllegalStateException(String.format("Could not update inherited Parameter Contexts for Parameter Context [%s] because: %s",
                         name, e.getMessage()), e);
@@ -435,12 +435,12 @@ public class StandardParameterContext implements ParameterContext {
      * Returns a map that can be used to indicate all effective parameters updates, including removed parameters.
      * @param currentEffectiveParameters A current map of effective parameters
      * @param effectiveProposedParameters A map of effective parameters that would result if a proposed update were applied
-     * @return
+     * @return a map that can be used to indicate all effective parameters updates, including removed parameters
      */
     private static Map<String, Parameter> getEffectiveParameterUpdates(final Map<ParameterDescriptor, Parameter> currentEffectiveParameters,
                                                                        final Map<ParameterDescriptor, Parameter> effectiveProposedParameters) {
         final Map<String, Parameter> effectiveParameterUpdates = getParameterNameMap(effectiveProposedParameters);
-        for (Map.Entry<ParameterDescriptor, Parameter> entry : currentEffectiveParameters.entrySet()) {
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : currentEffectiveParameters.entrySet()) {
             // Indicate that the parameter would effectively be removed
             if (!effectiveProposedParameters.containsKey(entry.getKey())) {
                 effectiveParameterUpdates.put(entry.getKey().getName(), null);
@@ -463,7 +463,7 @@ public class StandardParameterContext implements ParameterContext {
     public List<String> getInheritedParameterContextNames() {
         readLock.lock();
         try {
-            return inheritedParameterContexts.stream().map(parameterContext -> parameterContext.getName())
+            return inheritedParameterContexts.stream().map(ParameterContext::getName)
                     .collect(Collectors.toList());
         } finally {
             readLock.unlock();
@@ -594,7 +594,7 @@ public class StandardParameterContext implements ParameterContext {
         ParameterContext.super.authorize(authorizer, action, user);
 
         if (RequestAction.READ == action) {
-            for (ParameterContext parameterContext : inheritedParameterContexts) {
+            for (final ParameterContext parameterContext : inheritedParameterContexts) {
                 parameterContext.authorize(authorizer, action, user);
             }
         }

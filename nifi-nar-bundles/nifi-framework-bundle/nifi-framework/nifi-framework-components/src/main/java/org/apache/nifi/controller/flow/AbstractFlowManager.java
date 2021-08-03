@@ -419,7 +419,7 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     @Override
     public ParameterContext createParameterContext(final String id, final String name, final Map<String, Parameter> parameters,
-                                                   List<ParameterContextReferenceEntity> parameterContexts) {
+                                                   final List<ParameterContextReferenceEntity> parameterContexts) {
         final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
             .anyMatch(paramContext -> paramContext.getName().equals(name));
 
@@ -433,7 +433,7 @@ public abstract class AbstractFlowManager implements FlowManager {
 
         if (parameterContexts != null && !parameterContexts.isEmpty()) {
             final List<ParameterContext> parameterContextList = new ArrayList<>();
-            for(ParameterContextReferenceEntity parameterContextRef : parameterContexts) {
+            for(final ParameterContextReferenceEntity parameterContextRef : parameterContexts) {
                 parameterContextList.add(lookupParameterContext(parameterContextRef.getId()));
             }
             parameterContext.setInheritedParameterContexts(parameterContextList);
@@ -467,7 +467,6 @@ public abstract class AbstractFlowManager implements FlowManager {
 
         // if any reference-only inherited param contexts still exist, it means they couldn't be resolved
         for (final ParameterContext parameterContext : parameterContextManager.getParameterContexts()) {
-            final List<ParameterContext> inheritedParamContexts = new ArrayList<>();
             for(final ParameterContext inheritedParamContext : parameterContext.getInheritedParameterContexts()) {
                 if (inheritedParamContext instanceof ReferenceOnlyParameterContext) {
                     throw new IllegalStateException(String.format("Parameter Context [%s] tries to inherit from a Parameter Context [%s] that does not exist",
@@ -483,7 +482,7 @@ public abstract class AbstractFlowManager implements FlowManager {
      * @param id A parameter context ID
      * @return The matching ParameterContext, or ReferenceOnlyParameterContext if not found yet
      */
-    private ParameterContext lookupParameterContext(String id) {
+    private ParameterContext lookupParameterContext(final String id) {
         if (!parameterContextManager.hasParameterContext(id)) {
             parameterContextManager.addParameterContext(new ReferenceOnlyParameterContext(id));
         }

@@ -42,7 +42,7 @@ public class RemoveInheritedParamContexts extends AbstractUpdateParamContextComm
 
     @Override
     public String getDescription() {
-        return "Removes a list of parameter context ids from which the given parameter context should inherit parameters";
+        return "Removes all inherited parameter contexts from the given parameter context";
     }
 
     @Override
@@ -62,8 +62,6 @@ public class RemoveInheritedParamContexts extends AbstractUpdateParamContextComm
         final ParamContextClient paramContextClient = client.getParamContextClient();
         final ParameterContextEntity existingParameterContextEntity = paramContextClient.getParamContext(paramContextId, false);
 
-        final List<ParameterContextReferenceEntity> referenceEntities = new ArrayList<>();
-
         final ParameterContextDTO parameterContextDTO = new ParameterContextDTO();
         parameterContextDTO.setId(existingParameterContextEntity.getId());
         parameterContextDTO.setParameters(existingParameterContextEntity.getComponent().getParameters());
@@ -73,6 +71,7 @@ public class RemoveInheritedParamContexts extends AbstractUpdateParamContextComm
         updatedParameterContextEntity.setComponent(parameterContextDTO);
         updatedParameterContextEntity.setRevision(existingParameterContextEntity.getRevision());
 
+        final List<ParameterContextReferenceEntity> referenceEntities = new ArrayList<>();
         parameterContextDTO.setInheritedParameterContexts(referenceEntities);
 
         // Submit the update request...

@@ -21,13 +21,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class StandardParameterContextManager implements ParameterContextManager {
     private final Map<String, ParameterContext> parameterContexts = new HashMap<>();
 
     @Override
-    public boolean hasParameterContext(String id) {
+    public boolean hasParameterContext(final String id) {
         return parameterContexts.get(id) != null;
     }
 
@@ -68,6 +69,6 @@ public class StandardParameterContextManager implements ParameterContextManager 
 
     @Override
     public Map<String, ParameterContext> getParameterContextNameMapping() {
-        return parameterContexts.values().stream().collect(Collectors.toMap(ParameterContext::getName, pc -> pc));
+        return parameterContexts.values().stream().collect(Collectors.toMap(ParameterContext::getName, Function.identity()));
     }
 }
