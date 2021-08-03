@@ -21,7 +21,6 @@ language governing permissions and limitations under the License. -->
 
     <packaging>war</packaging>
     <properties>
-        <node.version>v8.10.0</node.version>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
         <frontend.dependency.configs>${basedir}/src/main/frontend</frontend.dependency.configs>
