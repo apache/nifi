@@ -35,7 +35,7 @@
         <module>nifi-toolkit-api</module>
     </modules>
     <properties>
-        <toolkit.groovy.version>2.5.4</toolkit.groovy.version>
+        <toolkit.groovy.version>2.5.14</toolkit.groovy.version>
     </properties>
     <dependencyManagement>
         <dependencies>

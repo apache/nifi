@@ -102,6 +102,12 @@
             <artifactId>hive-hcatalog-core</artifactId>
             <version>${hive.version}</version>
         </dependency>
+        <!-- Override groovy-all:2.4.11 from Hive -->
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-all</artifactId>
+            <version>2.4.21</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hadoop-utils</artifactId>
