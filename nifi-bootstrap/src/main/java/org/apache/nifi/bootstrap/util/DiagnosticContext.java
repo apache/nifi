@@ -41,7 +41,7 @@ public class DiagnosticContext {
     private static final String DIR_DEFAULT_VALUE = "./diagnostics";
 
     private static final String MAX_FILE_COUNT_PROP_NAME = "nifi.diag.filecount.max";
-    private static final int MAX_FILE_COUNT_DEFAULT_VALUE = Integer.MAX_VALUE;
+    private static final int MAX_FILE_COUNT_DEFAULT_VALUE = 10;
 
     private static final String MAX_SIZE_PROP_NAME = "nifi.diag.size.max.byte";
     private static final int MAX_SIZE_DEFAULT_VALUE = Integer.MAX_VALUE;
