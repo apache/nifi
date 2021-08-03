@@ -51,17 +51,11 @@ import java.util.concurrent.TimeUnit;
 )
 public class AzureKeyVaultClientService extends AbstractControllerService implements AzureKeyVaultConnectionService {
 
-    private String keyVaultName;
-    private String servicePrincipalClientID;
-    private String servicePrincipalClientSecret;
-    private String tenantID;
-    private String endPointSuffix;
-    private Boolean useManagedIdentity;
     private SecretClient keyVaultSecretClient;
     private ComponentLog logger;
     private LoadingCache<String, String> secretCache;
 
-    public SecretClient getKeyVaultSecretClient() {
+    private SecretClient getKeyVaultSecretClient() {
         return this.keyVaultSecretClient;
     }
 
@@ -70,7 +64,7 @@ public class AzureKeyVaultClientService extends AbstractControllerService implem
     }
 
     @Override
-   public String getSecret(String secretName) {
+    public String getSecret(String secretName) {
        return Optional.ofNullable(secretCache)
            .map(c -> {
                final String secretValue = c.getIfPresent(secretName);
@@ -80,24 +74,22 @@ public class AzureKeyVaultClientService extends AbstractControllerService implem
                return secretValue;
            })
            .orElse(getSecretFromKeyVault(secretName));
-   }
+    }
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         logger = getLogger();
-        this.keyVaultName = context.getProperty(AzureKeyVaultUtils.KEYVAULT_NAME).getValue();
-        this.servicePrincipalClientID = context.getProperty(AzureKeyVaultUtils.SP_CLIENT_ID).getValue();
-        this.servicePrincipalClientSecret = context.getProperty(AzureKeyVaultUtils.SP_CLIENT_SECRET).getValue();
-        this.tenantID = context.getProperty(AzureKeyVaultUtils.TENANT_ID).getValue();
-        this.endPointSuffix = context.getProperty(AzureKeyVaultUtils.ENDPOINT_SUFFIX).getValue();
-        this.useManagedIdentity = context.getProperty(AzureKeyVaultUtils.USE_MANAGED_IDENTITY).asBoolean();
+        final String keyVaultName = context.getProperty(AzureKeyVaultUtils.KEYVAULT_NAME).getValue();
+        final String servicePrincipalClientID = context.getProperty(AzureKeyVaultUtils.SP_CLIENT_ID).getValue();
+        final String servicePrincipalClientSecret = context.getProperty(AzureKeyVaultUtils.SP_CLIENT_SECRET).getValue();
+        final String tenantID = context.getProperty(AzureKeyVaultUtils.TENANT_ID).getValue();
+        final String endPointSuffix = context.getProperty(AzureKeyVaultUtils.ENDPOINT_SUFFIX).getValue();
+        final Boolean useManagedIdentity = context.getProperty(AzureKeyVaultUtils.USE_MANAGED_IDENTITY).asBoolean();
 
-        createKeyVaultSecretClient();
+        createKeyVaultSecretClient(keyVaultName, servicePrincipalClientID, servicePrincipalClientSecret, tenantID, endPointSuffix, useManagedIdentity);
 
-        final Integer cacheSize = context.getProperty(AzureKeyVaultUtils.CACHE_SIZE).asInteger();
-        final Long cacheTTL = context.getProperty(
-                AzureKeyVaultUtils.CACHE_TTL_AFTER_WRITE
-        ).asTimePeriod(TimeUnit.SECONDS);
+        final int cacheSize = context.getProperty(AzureKeyVaultUtils.CACHE_SIZE).asInteger();
+        final long cacheTTL = context.getProperty(AzureKeyVaultUtils.CACHE_TTL_AFTER_WRITE).asTimePeriod(TimeUnit.SECONDS);
 
         if (cacheSize > 0) {
             CacheBuilder<Object, Object> cacheBuilder = CacheBuilder.newBuilder().maximumSize(cacheSize);
@@ -179,24 +171,24 @@ public class AzureKeyVaultClientService extends AbstractControllerService implem
         return results;
     }
 
-    protected void createKeyVaultSecretClient(){
+    protected void createKeyVaultSecretClient(String keyVaultName, String spClientID, String spClientSecret, String tenantID, String endPointSuffix,Boolean useManagedIdentity){
         URL kvURL;
         try {
-                kvURL = new URL("https://" + this.keyVaultName + this.endPointSuffix);
+                kvURL = new URL("https://" + keyVaultName + endPointSuffix);
         } catch (final MalformedURLException e1) {
                 throw new AssertionError();
         }
 
-        if (this.useManagedIdentity) {
+        if (useManagedIdentity) {
             this.keyVaultSecretClient = new SecretClientBuilder()
                     .vaultUrl(kvURL.toString())
                     .credential(new DefaultAzureCredentialBuilder().build())
                     .buildClient();
         } else {
             ClientSecretCredential clientSecretCredential = new ClientSecretCredentialBuilder()
-                    .clientId(this.servicePrincipalClientID)
-                    .clientSecret(this.servicePrincipalClientSecret)
-                    .tenantId(this.tenantID)
+                    .clientId(spClientID)
+                    .clientSecret(spClientSecret)
+                    .tenantId(tenantID)
                     .build();
 
             this.keyVaultSecretClient = new SecretClientBuilder()

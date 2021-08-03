@@ -26,7 +26,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.mock;
 
@@ -36,8 +35,7 @@ class MockConnectionService extends AzureKeyVaultClientService {
     private String MOCK_SECRET_VALUE = "mockSecretValue1";
     private String MOCK_INVALID_SECRET_VALUE = "mockInvalidSecretValue1";
 
-    @Override
-    public SecretClient getKeyVaultSecretClient(){
+    private SecretClient getKeyVaultSecretClient(){
         return mock(SecretClient.class);
     }
 
@@ -66,11 +64,6 @@ public class TestAzureKeyVaultClientService {
         kvService = new MockConnectionService();
         testRunner = TestRunners.newTestRunner(NoOpProcessor.class);
         testRunner.addControllerService("kvService", kvService);
-    }
-
-    @Test
-    public void testGetKeyVaultSecretClient() {
-        assertNotNull(kvService.getKeyVaultSecretClient());
     }
 
     @Test

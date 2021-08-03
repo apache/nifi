@@ -50,8 +50,7 @@ class MockKeyVaultConnectionService extends AzureKeyVaultClientService {
 
     private String MOCK_INVALID_SECRET_VALUE = "INVALID_VALUE";
 
-    @Override
-    public SecretClient getKeyVaultSecretClient(){
+    private SecretClient getKeyVaultSecretClient(){
         return mock(SecretClient.class);
     }
 
