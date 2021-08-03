@@ -97,7 +97,7 @@
         <ranger.version>2.1.0</ranger.version>
         <jetty.version>9.4.43.v20210629</jetty.version>
         <jackson.version>2.12.3</jackson.version>
-        <nifi.groovy.version>2.5.6</nifi.groovy.version>
+        <nifi.groovy.version>2.5.14</nifi.groovy.version>
         <surefire.version>2.22.2</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
             a specific version should override this property, or use a more specific property like abc.hadoop.version -->

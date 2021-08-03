@@ -128,7 +128,8 @@ class TlsHelperGroovyTest extends GroovyTestCase {
         File keyFile = new File("src/test/resources/rootCert-pkcs8.key")
         FileReader keyReader = new FileReader(keyFile)
 
-        final PrivateKey EXPECTED_PRIVATE_KEY = TlsHelper.parseKeyPairFromReader(new FileReader(new File ("src/test/resources/rootCert.key"))).private
+        final KeyPair expectedKeyPair = TlsHelper.parseKeyPairFromReader(new FileReader(new File ("src/test/resources/rootCert.key")))
+        final PrivateKey EXPECTED_PRIVATE_KEY = expectedKeyPair.getPrivate()
 
         // Act
         KeyPair keyPair = TlsHelper.parseKeyPairFromReader(keyReader)
