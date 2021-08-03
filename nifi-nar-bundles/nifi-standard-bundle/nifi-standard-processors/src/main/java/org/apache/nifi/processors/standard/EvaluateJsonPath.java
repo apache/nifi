@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -60,7 +61,9 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
+import org.apache.nifi.processor.util.StandardValidators;
 
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @EventDriven
@@ -84,7 +87,7 @@ import java.util.stream.Collectors;
         + "empty strings as the value, and the FlowFile will always be routed to 'matched.'")
 @DynamicProperty(name = "A FlowFile attribute(if <Destination> is set to 'flowfile-attribute')",
         value = "A JsonPath expression", description = "If <Destination>='flowfile-attribute' then that FlowFile attribute "
-        + "will be set to any JSON objects that match the JsonPath.  If <Destination>='flowfile-content' then the FlowFile "
+        + "will be set to any JSON objects from attributes that match the JsonPath.  If <Destination>='flowfile-content' then the FlowFile "
         + "content will be updated to any JSON objects that match the JsonPath.")
 public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
@@ -97,6 +100,12 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     public static final String PATH_NOT_FOUND_IGNORE = "ignore";
     public static final String PATH_NOT_FOUND_WARN = "warn";
+
+    public static final String MATCH_ALL ="ALL";
+    public static final String MATCH_ANY = "ANY";
+
+    public static final String EVALUATION_SCOPE_ATTRIBUTE = "flowfile-attribute";
+    public static final String EVALUATION_SCOPE_CONTENT = "flowfile-content";
 
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
             .name("Destination")
@@ -125,6 +134,33 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
             .defaultValue(PATH_NOT_FOUND_IGNORE)
             .build();
 
+    public static final PropertyDescriptor MATCH_CRITERIA = new PropertyDescriptor.Builder()
+            .displayName("Match Criteria")
+            .name("Match Criteria")
+            .description("If 'ALL', all JSON path expressions must be successfully evaluated for success. 'ANY', at least one JSON path expression must evaluate for success. ")
+            .required(true)
+            .allowableValues(MATCH_ALL, MATCH_ANY)
+            .defaultValue(MATCH_ANY)
+            .build();
+
+    public static final PropertyDescriptor EVALUATION_SCOPE = new PropertyDescriptor.Builder()
+            .displayName("Evaluation Scope")
+            .name("Evaluation Scope")
+            .description("Indicates whether JSON path expressions are evaluated against flowfile content or attributes.")
+            .required(true)
+            .allowableValues(EVALUATION_SCOPE_ATTRIBUTE, EVALUATION_SCOPE_CONTENT)
+            .defaultValue(EVALUATION_SCOPE_CONTENT)
+            .build();
+
+    public static final PropertyDescriptor ATTRIBUTE_PATTERN = new PropertyDescriptor.Builder()
+            .name("Attribute Pattern")
+            .description("Regular Expression that specifies the names of attributes whose values will be matched against the terms in the dictionary")
+            .required(true)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .defaultValue(".*")
+            .build();
+
+
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
             .description("FlowFiles are routed to this relationship when the JsonPath is successfully evaluated and the FlowFile is modified as a result")
@@ -150,6 +186,11 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
     private volatile String returnType;
     private volatile String pathNotFound;
     private volatile String nullDefaultValue;
+    private volatile String matchCriteria;
+    private volatile String evaluationScope;
+
+    private volatile Pattern attributePattern = null;
+
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -162,6 +203,9 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(DESTINATION);
         properties.add(RETURN_TYPE);
+        properties.add(EVALUATION_SCOPE);
+        properties.add(MATCH_CRITERIA);
+        properties.add(ATTRIBUTE_PATTERN);
         properties.add(PATH_NOT_FOUND);
         properties.add(NULL_VALUE_DEFAULT_REPRESENTATION);
         this.properties = Collections.unmodifiableList(properties);
@@ -256,6 +300,13 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
         }
         pathNotFound = processContext.getProperty(PATH_NOT_FOUND).getValue();
         nullDefaultValue = NULL_REPRESENTATION_MAP.get(representationOption);
+        matchCriteria = processContext.getProperty(MATCH_CRITERIA).getValue();
+        evaluationScope = processContext.getProperty(EVALUATION_SCOPE).getValue();
+
+
+        final String attributeRegex = processContext.getProperty(ATTRIBUTE_PATTERN).getValue();
+        this.attributePattern = (attributeRegex.equals(".*")) ? null : Pattern.compile(attributeRegex);
+
     }
 
     @OnUnscheduled
@@ -272,13 +323,39 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
         final ComponentLog logger = getLogger();
 
-        DocumentContext documentContext;
-        try {
-            documentContext = validateAndEstablishJsonContext(processSession, flowFile);
-        } catch (InvalidJsonException e) {
-            logger.error("FlowFile {} did not have valid JSON content.", new Object[]{flowFile});
-            processSession.transfer(flowFile, REL_FAILURE);
-            return;
+        Set<Map.Entry<String, String>> attributesToEvaluateMap = null;
+        Map<String, DocumentContext> documentContextsMap = new HashMap<>();
+        if (evaluationScope.equals(EVALUATION_SCOPE_ATTRIBUTE)) {
+            attributesToEvaluateMap = flowFile.getAttributes().entrySet().stream()
+                    .filter(e -> attributePattern.matcher(e.getKey()).matches())
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)).entrySet();
+            boolean hasMatch = false;
+            for (final Map.Entry<String, String> entry : attributesToEvaluateMap) {
+                try {
+                    documentContextsMap.put(entry.getKey(), validateAndEstablishJsonContext(new ByteArrayInputStream(entry.getValue().getBytes())));
+                    hasMatch = true;
+                } catch(Exception e) {
+                    if (matchCriteria.equals(EvaluateJsonPath.MATCH_ALL)) {
+                        logger.error("FlowFile {} attribute {} did not have valid JSON content.", flowFile , entry.getKey());
+                        processSession.transfer(flowFile, REL_FAILURE);
+                        return;
+                    }
+                }
+            }
+            if (matchCriteria.equals(EvaluateJsonPath.MATCH_ANY) && !hasMatch) {
+                logger.error("FlowFile {} did not have valid JSON content matching attributes.", flowFile);
+                processSession.transfer(flowFile, REL_FAILURE);
+                return;
+            }
+        } else {
+            try {
+                validateAndEstablishJsonContext(processSession, flowFile);
+                documentContextsMap.put(""+flowFile.getId(),validateAndEstablishJsonContext(processSession, flowFile));
+            } catch (InvalidJsonException e) {
+                logger.error("FlowFile {} did not have valid JSON content.", flowFile);
+                processSession.transfer(flowFile, REL_FAILURE);
+                return;
+            }
         }
 
         Set<Map.Entry<String, JsonPath>> attributeJsonPathEntries = attributeToJsonPathEntrySetQueue.poll();
@@ -298,40 +375,42 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                 final JsonPath jsonPathExp = attributeJsonPathEntry.getValue();
 
                 Object result;
-                try {
-                    Object potentialResult = documentContext.read(jsonPathExp);
-                    if (returnType.equals(RETURN_TYPE_SCALAR) && !isJsonScalar(potentialResult)) {
-                        logger.error("Unable to return a scalar value for the expression {} for FlowFile {}. Evaluated value was {}. Transferring to {}.",
-                                new Object[]{jsonPathExp.getPath(), flowFile.getId(), potentialResult.toString(), REL_FAILURE.getName()});
-                        processSession.transfer(flowFile, REL_FAILURE);
-                        return;
-                    }
-                    result = potentialResult;
-                } catch (PathNotFoundException e) {
-                    if (pathNotFound.equals(PATH_NOT_FOUND_WARN)) {
-                        logger.warn("FlowFile {} could not find path {} for attribute key {}.",
-                                new Object[]{flowFile.getId(), jsonPathExp.getPath(), jsonPathAttrKey}, e);
-                    }
-
-                    if (destinationIsAttribute) {
-                        jsonPathResults.put(jsonPathAttrKey, StringUtils.EMPTY);
-                        continue;
-                    } else {
-                        processSession.transfer(flowFile, REL_NO_MATCH);
-                        return;
-                    }
-                }
-
-                final String resultRepresentation = getResultRepresentation(result, nullDefaultValue);
-                if (destinationIsAttribute) {
-                    jsonPathResults.put(jsonPathAttrKey, resultRepresentation);
-                } else {
-                    flowFile = processSession.write(flowFile, out -> {
-                        try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                            outputStream.write(resultRepresentation.getBytes(StandardCharsets.UTF_8));
+                for (Map.Entry<String, DocumentContext> entry : documentContextsMap.entrySet()) {
+                    try {
+                        Object potentialResult = entry.getValue().read(jsonPathExp);
+                        if (returnType.equals(RETURN_TYPE_SCALAR) && !isJsonScalar(potentialResult)) {
+                            logger.error("Unable to return a scalar value for the expression {} for FlowFile {}. Evaluated value was {}. Transferring to {}.",
+                                    new Object[]{jsonPathExp.getPath(), flowFile.getId(), potentialResult.toString(), REL_FAILURE.getName()});
+                            processSession.transfer(flowFile, REL_FAILURE);
+                            return;
                         }
-                    });
-                    processSession.getProvenanceReporter().modifyContent(flowFile, "Replaced content with result of expression " + jsonPathExp.getPath());
+                        result = potentialResult;
+                    } catch (PathNotFoundException e) {
+                        if (pathNotFound.equals(PATH_NOT_FOUND_WARN)) {
+                            logger.warn("FlowFile {} could not find path {} for attribute key {}.",
+                                    new Object[]{flowFile.getId(), jsonPathExp.getPath(), jsonPathAttrKey}, e);
+                        }
+
+                        if (destinationIsAttribute) {
+                            jsonPathResults.put(jsonPathAttrKey, StringUtils.EMPTY);
+                            continue;
+                        } else {
+                            processSession.transfer(flowFile, REL_NO_MATCH);
+                            return;
+                        }
+                    }
+
+                    final String resultRepresentation = getResultRepresentation(result, nullDefaultValue);
+                    if (destinationIsAttribute) {
+                        jsonPathResults.put(jsonPathAttrKey, resultRepresentation);
+                    } else {
+                        flowFile = processSession.write(flowFile, out -> {
+                            try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                                outputStream.write(resultRepresentation.getBytes(StandardCharsets.UTF_8));
+                            }
+                        });
+                        processSession.getProvenanceReporter().modifyContent(flowFile, "Replaced content with result of expression " + jsonPathExp.getPath());
+                    }
                 }
             }
 

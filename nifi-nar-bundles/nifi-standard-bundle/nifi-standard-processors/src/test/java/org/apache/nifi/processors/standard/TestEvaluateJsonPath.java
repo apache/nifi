@@ -22,10 +22,13 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -238,6 +241,71 @@ public class TestEvaluateJsonPath {
         testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
         testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("54df94072d5dbf7dc6340cc5");
     }
+
+    @Test
+    public void testExtractPath_destinationContentFromValidAttributes() throws Exception {
+        String jsonPathAttrKey = "JsonPath";
+        byte[] fileArray;
+        fileArray = Files.readAllBytes(JSON_SNIPPET);
+        String jsonForEvaluation = new String(fileArray);
+        HashMap<String,String> propsToAdd = new HashMap<>();
+        propsToAdd.put("TestJsonAttr",jsonForEvaluation);
+        propsToAdd.put("TestJsonAttr1","This is not valid json");
+
+
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
+        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        testRunner.setProperty(jsonPathAttrKey, "$[0]._id");
+        testRunner.setProperty(EvaluateJsonPath.ATTRIBUTE_PATTERN,"TestJsonAttr(.*)");
+        testRunner.setProperty(EvaluateJsonPath.EVALUATION_SCOPE,EvaluateJsonPath.EVALUATION_SCOPE_ATTRIBUTE);
+
+        testRunner.enqueue(JSON_SNIPPET,propsToAdd);
+        testRunner.run();
+
+        Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
+        testRunner.assertTransferCount(expectedRel,1);
+
+        testRunner.setProperty(EvaluateJsonPath.MATCH_CRITERIA,EvaluateJsonPath.MATCH_ALL);
+        propsToAdd.put("TestJsonAttr1",jsonForEvaluation);
+
+        testRunner.enqueue(JSON_SNIPPET,propsToAdd);
+        testRunner.run();
+        testRunner.assertTransferCount(expectedRel,2);
+    }
+
+    @Test
+    public void testExtractPath_destinationContentFromInValidAttributes() throws Exception {
+        String jsonPathAttrKey = "JsonPath";
+        HashMap<String,String> propsToAdd = new HashMap<>();
+        propsToAdd.put("TestJsonAttr","this is Not json");
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
+        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        testRunner.setProperty(jsonPathAttrKey, "$[0]._id");
+        testRunner.setProperty(EvaluateJsonPath.ATTRIBUTE_PATTERN,"TestJsonAttr(.*)");
+        testRunner.setProperty(EvaluateJsonPath.EVALUATION_SCOPE,EvaluateJsonPath.EVALUATION_SCOPE_ATTRIBUTE);
+
+        testRunner.enqueue(JSON_SNIPPET,propsToAdd);
+        testRunner.run();
+
+        testRunner.assertTransferCount(EvaluateJsonPath.REL_FAILURE,1);
+
+        byte[] fileArray;
+        fileArray = Files.readAllBytes(JSON_SNIPPET);
+        String jsonForEvaluation = new String(fileArray);
+        propsToAdd.put("TestJsonAttr1",jsonForEvaluation);
+        testRunner.enqueue(JSON_SNIPPET,propsToAdd);
+        testRunner.run();
+
+        testRunner.assertTransferCount(EvaluateJsonPath.REL_MATCH,1);
+
+        testRunner.setProperty(EvaluateJsonPath.MATCH_CRITERIA,EvaluateJsonPath.MATCH_ALL);
+        testRunner.enqueue(JSON_SNIPPET,propsToAdd);
+        testRunner.run();
+
+        testRunner.assertTransferCount(EvaluateJsonPath.REL_FAILURE,2);
+
+    }
+
 
     @Test
     public void testExtractPath_destinationContent_indefiniteResult() throws Exception {
