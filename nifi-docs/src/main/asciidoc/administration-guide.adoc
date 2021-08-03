@@ -1803,7 +1803,7 @@ ZooKeeper) as the Cluster Coordinator. All nodes in the cluster will then send h
 to this node, and this node is responsible for disconnecting nodes that do not report any heartbeat status
 for some amount of time. Additionally, when a new node elects to join the cluster, the new node must first
 connect to the currently-elected Cluster Coordinator in order to obtain the most up-to-date flow. If the Cluster
-Coordinator determines that the node is allowed to join (based on its configured Firewall file), the current
+Coordinator determines that the node is allowed to join (based on its configured <<cluster_firewall_configuration,Firewall>> file), the current
 flow is provided to that node, and that node is able to join the cluster, assuming that the node's copy of the
 flow matches the copy provided by the Cluster Coordinator. If the node's version of the flow configuration differs
 from that of the Cluster Coordinator's, the node will not join the cluster.
@@ -2002,6 +2002,32 @@ Now, it is possible to start up the cluster. It does not matter which order the 
 one of the nodes, and the User Interface should look similar to the following:
 
 image:ncm.png["Clustered User Interface"]
+
+[[cluster_firewall_configuration]]
+=== Cluster Firewall Configuration
+
+NiFi clustering supports network access restrictions using a custom firewall configuration.
+The `nifi.cluster.firewall.file` property can be configured with a path to a file containing hostnames, IP addresses, or
+subnets of permitted nodes. The Cluster Coordinator uses the configuration to determine whether to accept or reject
+heartbeats and connection requests from potential cluster members.
+
+The configuration file format expects one entry per line and ignores lines beginning with the `#` character. NiFi uses
+standard Java host name resolution to convert names to IP addresses. Java host name resolution leverages a combination
+of local machine configuration and network services, such as DNS. The configuration file supports IPv4 addresses or subnet
+ranges using CIDR notation. The following example cluster firewall configuration includes a combination of supported entries:
+
+----
+# Cluster Node Hostnames
+nifi0.example.com
+nifi1.example.com
+nifi3.example.com
+# Cluster Node Addresses
+192.168.0.1
+192.168.0.2
+192.168.0.3
+# Cluster Subnet Address
+192.168.0.0/29 # Address Range from 192.168.0.1 to 192.168.0.6
+----
 
 === Troubleshooting
 
@@ -3697,7 +3723,7 @@ the connection a failure. The default value is `5 secs`.
 from the remote node before considering the communication with the node a failure. The default value is `5 secs`.
 |`nifi.cluster.node.max.concurrent.requests`|The maximum number of outstanding web requests that can be replicated to nodes in the cluster. If this number of requests is exceeded, the embedded Jetty server will return a "409: Conflict" response.  This property defaults to `100`.
 |`nifi.cluster.firewall.file`|The location of the node firewall file. This is a file that may be used to list all the nodes that are allowed to connect
-to the cluster. It provides an additional layer of security. This value is blank by default, meaning that no firewall file is to be used.
+to the cluster. It provides an additional layer of security. This value is blank by default, meaning that no firewall file is to be used. See <<cluster_firewall_configuration>> for file format details.
 |`nifi.cluster.flow.election.max.wait.time`|Specifies the amount of time to wait before electing a Flow as the "correct" Flow. If the number of Nodes that have voted is equal to the number specified
  by the `nifi.cluster.flow.election.max.candidates` property, the cluster will not wait this long. The default value is `5 mins`. Note that the time starts as soon as the first vote is cast.
 |`nifi.cluster.flow.election.max.candidates`|Specifies the number of Nodes required in the cluster to cause early election of Flows. This allows the Nodes in the cluster to avoid having to wait a
