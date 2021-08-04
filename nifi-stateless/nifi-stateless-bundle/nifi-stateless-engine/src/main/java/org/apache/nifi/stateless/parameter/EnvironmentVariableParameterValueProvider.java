@@ -15,36 +15,25 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.parameters;
+package org.apache.nifi.stateless.parameter;
 
-import org.apache.nifi.stateless.parameter.AbstractParameterProvider;
-
-import java.util.HashMap;
 import java.util.Map;
 
-public class NumericParameterProvider extends AbstractParameterProvider {
-    private final Map<String, String> parameterValues = new HashMap<>();
-
-    {
-        parameterValues.put("zero", "0");
-        parameterValues.put("one", "1");
-        parameterValues.put("two", "2");
-        parameterValues.put("three", "3");
-        parameterValues.put("four", "4");
-        parameterValues.put("five", "5");
-        parameterValues.put("six", "6");
-        parameterValues.put("seven", "7");
-        parameterValues.put("eight", "8");
-        parameterValues.put("nine", "9");
-    }
+public class EnvironmentVariableParameterValueProvider extends AbstractParameterValueProvider implements ParameterValueProvider {
+    private final Map<String, String> environmentVariables = System.getenv();
 
     @Override
     public String getParameterValue(final String contextName, final String parameterName) {
-        return parameterValues.get(parameterName);
+        String envValue = environmentVariables.get(contextName + ":" + parameterName);
+        if (envValue != null) {
+            return envValue;
+        }
+
+        return environmentVariables.get(parameterName);
     }
 
     @Override
     public boolean isParameterDefined(final String contextName, final String parameterName) {
-        return parameterValues.containsKey(parameterName);
+        return getParameterValue(contextName, parameterName) != null;
     }
 }

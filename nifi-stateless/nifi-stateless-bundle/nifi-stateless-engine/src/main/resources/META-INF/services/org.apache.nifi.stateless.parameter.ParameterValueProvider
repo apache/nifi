@@ -13,5 +13,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-org.apache.nifi.stateless.parameter.EnvironmentVariableParameterProvider
-org.apache.nifi.stateless.parameter.ParameterOverrideProvider
+org.apache.nifi.stateless.parameter.EnvironmentVariableParameterValueProvider
+org.apache.nifi.stateless.parameter.OverrideParameterValueProvider
