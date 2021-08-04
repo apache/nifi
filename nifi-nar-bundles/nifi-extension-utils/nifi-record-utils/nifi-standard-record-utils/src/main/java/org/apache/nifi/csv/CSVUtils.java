@@ -275,12 +275,7 @@ public class CSVUtils {
         final Character quoteChar = getCharUnescaped(context, QUOTE_CHAR, variables);
         format = format.withQuote(quoteChar);
 
-        final Character escapeChar;
-        if (context.getProperty(CSVUtils.ESCAPE_CHAR).evaluateAttributeExpressions(variables).getValue().isEmpty()) {
-            escapeChar = null;
-        } else {
-            escapeChar = getCharUnescaped(context, ESCAPE_CHAR, variables);
-        }
+        final Character escapeChar = context.getProperty(CSVUtils.ESCAPE_CHAR).evaluateAttributeExpressions(variables).getValue().isEmpty() ? null : getCharUnescaped(context, ESCAPE_CHAR, variables);
         format = format.withEscape(escapeChar);
 
         format = format.withTrim(context.getProperty(TRIM_FIELDS).asBoolean());
