@@ -846,12 +846,12 @@
         },
 
         /**
-         * Enable all controllers in the specified ProcessGroup.
+         * Enable all controller services in the specified ProcessGroup.
          *
          * @argument {selection} selection      The selection
          * @argument {cb} callback              The function to call when request is processed
          */
-         enableAllControllers: function (selection,cb) {
+         enableAllControllerServices: function (selection,cb) {
             if (selection.empty()) {
                 // build the entity
                 var entity = {
@@ -901,12 +901,12 @@
         },
 
         /**
-         * Disable all controllers in the specified ProcessGroup.
+         * Disable all controller services in the specified ProcessGroup.
          *
          * @argument {selection} selection      The selection
          * @argument {cb} callback              The function to call when request is processed
          */
-         disableAllControllers: function (selection,cb) {
+         disableAllControllerServices: function (selection,cb) {
             if (selection.empty()) {
                 // build the entity
                 var entity = {
