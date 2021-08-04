@@ -143,7 +143,7 @@ public class Hive_1_1ConnectionPool extends AbstractControllerService implements
             .displayName("Max Connection Lifetime")
             .name("hive-max-conn-lifetime")
             .description("The maximum lifetime in milliseconds of a connection. After this time is exceeded the " +
-                    "connection pool will invalidate the connection. A value of zero or less " +
+                    "connection pool will invalidate the connection. A value of zero or -1 " +
                     "means the connection has an infinite lifetime.")
             .defaultValue(DEFAULT_MAX_CONN_LIFETIME)
             .required(true)
@@ -442,7 +442,7 @@ public class Hive_1_1ConnectionPool extends AbstractControllerService implements
     }
 
     private long extractMillisWithInfinite(PropertyValue prop) {
-        if (prop.getValue() == null || "-1".equals(prop.getValue())) {
+        if (prop.getValue() == null || DEFAULT_MAX_CONN_LIFETIME.equals(prop.getValue())) {
             return -1;
         } else {
             return prop.asTimePeriod(TimeUnit.MILLISECONDS);
