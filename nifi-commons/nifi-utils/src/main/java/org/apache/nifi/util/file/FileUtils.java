@@ -610,7 +610,7 @@ public class FileUtils {
             try {
                 return Files.size(path);
             } catch (IOException e) {
-                logger.error("Failed to get size of directory {}", path, e);
+                logger.error("Failed to get size of file {}", path, e);
                 return 0L;
             }
         };

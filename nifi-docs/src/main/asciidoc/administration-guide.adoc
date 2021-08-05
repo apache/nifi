@@ -4281,6 +4281,6 @@ components, part of the configuration, memory usage, etc., and writes it to the 
 
 The verbose switch is optional and can be used to control the level of diagnostic detail. In case of a missing dump file path, NiFi writes the diagnostics information to the bootstrap.log file.
 
-== Automatic diagnostics at shutdown
+== Automatic diagnostics at shutdown/restart
 
 NiFi supports automatic diagnostics in the event of a shutdown. The feature is disabled by default. The settings can be found in the bootstrap.conf file and the feature can be enabled there also.

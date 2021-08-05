@@ -64,15 +64,15 @@ public class DiagnosticContext {
     public Path getOldestFile() throws IOException {
         Comparator<? super Path> lastModifiedComparator = Comparator.comparingLong(p -> p.toFile().lastModified());
 
-        final Optional<Path> oldestFiles;
+        final Optional<Path> oldestFile;
 
         try (Stream<Path> paths = Files.walk(Paths.get(diagnosticProperties.getDirPath()))) {
-            oldestFiles = paths
+            oldestFile = paths
                     .filter(Files::isRegularFile)
                     .min(lastModifiedComparator);
         }
 
-        return oldestFiles.orElseThrow(
+        return oldestFile.orElseThrow(
                 () -> new RuntimeException(String.format("Could not find oldest file in diagnostic directory: %s", diagnosticProperties.getDirPath())));
     }
 
