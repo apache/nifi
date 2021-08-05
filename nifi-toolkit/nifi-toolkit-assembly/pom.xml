@@ -316,38 +316,6 @@ language governing permissions and limitations under the License. -->
             <build>
                 <plugins>
                     <plugin>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>unpack-shared-resources</id>
-                                <goals>
-                                    <goal>unpack-dependencies</goal>
-                                </goals>
-                                <phase>generate-resources</phase>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
-                                    <includeArtifactIds>nifi-resources</includeArtifactIds>
-                                    <includeGroupIds>org.apache.nifi</includeGroupIds>
-                                    <excludeTransitive>false</excludeTransitive>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>unpack-docs</id>
-                                <goals>
-                                    <goal>unpack-dependencies</goal>
-                                </goals>
-                                <phase>generate-resources</phase>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/generated-docs</outputDirectory>
-                                    <includeArtifactIds>nifi-docs</includeArtifactIds>
-                                    <includeGroupIds>org.apache.nifi</includeGroupIds>
-                                    <excludeTransitive>false</excludeTransitive>
-                                    <excludes>LICENSE,NOTICE</excludes>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>rpm-maven-plugin</artifactId>
                         <configuration>
