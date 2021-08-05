@@ -409,7 +409,8 @@ NfRegistryManageBucket.prototype = {
     /**
      * Update bucket name.
      *
-     * @param username
+     * @param bucketname        The new bucket name. Must be unique otherwise an error will be shown.
+     * @param description       The new bucket description
      */
     updateBucketNameAndDescription: function (bucketname, description) {
         var self = this;
