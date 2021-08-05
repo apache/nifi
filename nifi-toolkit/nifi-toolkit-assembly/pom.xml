@@ -353,7 +353,7 @@ language governing permissions and limitations under the License. -->
                         <configuration>
                             <name>nifi-toolkit</name>
                             <summary>Apache NiFi Toolkit</summary>
-                            <description>Apache NiFi Toolkit</description>
+                            <description>The NiFi Toolkit contains several command line utilities to setup and support NiFi in standalone and clustered environments.</description>
                             <license>Apache License, Version 2.0 and others (see included LICENSE file)</license>
                             <url>http://nifi.apache.org</url>
                             <group>Utilities</group>
