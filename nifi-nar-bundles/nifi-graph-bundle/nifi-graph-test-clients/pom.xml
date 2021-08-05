@@ -24,6 +24,9 @@
 
     <artifactId>nifi-graph-test-clients</artifactId>
     <packaging>jar</packaging>
+    <properties>
+        <gremlin.version>3.4.4</gremlin.version>
+    </properties>
     <dependencyManagement>
         <dependencies>
             <!-- Override commons-io:2.3 from janusgraph-core -->
@@ -32,21 +35,45 @@
                 <artifactId>commons-io</artifactId>
                 <version>2.10.0</version>
             </dependency>
-            <!-- Override Gremlin -->
+            <!-- Override Gremlin and Groovy -->
+            <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy</artifactId>
+                <version>2.5.14</version>
+                <classifier>indy</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy-json</artifactId>
+                <version>2.5.14</version>
+                <classifier>indy</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy-groovysh</artifactId>
+                <version>2.5.14</version>
+                <classifier>indy</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy-jsr223</artifactId>
+                <version>2.5.14</version>
+                <classifier>indy</classifier>
+            </dependency>
             <dependency>
                 <groupId>org.apache.tinkerpop</groupId>
                 <artifactId>gremlin-core</artifactId>
-                <version>3.5.1</version>
+                <version>${gremlin.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.tinkerpop</groupId>
                 <artifactId>gremlin-driver</artifactId>
-                <version>3.5.1</version>
+                <version>${gremlin.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.tinkerpop</groupId>
                 <artifactId>gremlin-groovy</artifactId>
-                <version>3.5.1</version>
+                <version>${gremlin.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -82,12 +109,6 @@
             <groupId>org.janusgraph</groupId>
             <artifactId>janusgraph-inmemory</artifactId>
             <version>0.5.3</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy</artifactId>
-            <version>2.5.14</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
