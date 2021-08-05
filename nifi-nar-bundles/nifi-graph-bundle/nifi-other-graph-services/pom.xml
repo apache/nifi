@@ -18,6 +18,9 @@
     <artifactId>nifi-other-graph-services</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <gremlin.version>3.4.4</gremlin.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -82,14 +85,38 @@
             <version>1.0.4</version>
         </dependency>
         <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>2.5.14</version>
+            <classifier>indy</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-json</artifactId>
+            <version>2.5.14</version>
+            <classifier>indy</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-groovysh</artifactId>
+            <version>2.5.14</version>
+            <classifier>indy</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-jsr223</artifactId>
+            <version>2.5.14</version>
+            <classifier>indy</classifier>
+        </dependency>
+        <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-core</artifactId>
-            <version>3.5.1</version>
+            <version>${gremlin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-driver</artifactId>
-            <version>3.5.1</version>
+            <version>${gremlin.version}</version>
         </dependency>
     </dependencies>
 
