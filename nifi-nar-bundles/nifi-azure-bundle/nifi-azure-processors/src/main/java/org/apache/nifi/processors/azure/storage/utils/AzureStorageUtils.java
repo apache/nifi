@@ -23,6 +23,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.OperationContext;
@@ -33,9 +35,11 @@ import com.microsoft.azure.storage.blob.CloudBlobClient;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -44,6 +48,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.services.azure.keyvault.AzureKeyVaultConnectionService;
+import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
 import org.apache.nifi.services.azure.storage.AzureStorageEmulatorCredentialsDetails;
@@ -324,4 +329,26 @@ public final class AzureStorageUtils {
         final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(processContext);
         operationContext.setProxy(proxyConfig.createProxy());
     }
+
+    public static <T> void setValue(
+            ConfigurationContext context,
+            ADLSCredentialsDetails.Builder credentialsBuilder,
+            PropertyDescriptor propertyDescriptor, Function<PropertyValue, T> getPropertyValue,
+            BiConsumer<ADLSCredentialsDetails.Builder, T> setBuilderValue, Map<String, String> attributes
+    ) {
+        PropertyValue property = context.getProperty(propertyDescriptor);
+
+        if (property.isSet()) {
+            if (propertyDescriptor.isExpressionLanguageSupported()) {
+                if (propertyDescriptor.getExpressionLanguageScope() == ExpressionLanguageScope.FLOWFILE_ATTRIBUTES) {
+                    property = property.evaluateAttributeExpressions(attributes);
+                } else {
+                    property = property.evaluateAttributeExpressions();
+                }
+            }
+            T value = getPropertyValue.apply(property);
+            setBuilderValue.accept(credentialsBuilder, value);
+        }
+    }
+
 }

@@ -105,20 +105,11 @@ public class AzureStorageKeyVaultCredentialsControllerService
 
     @Override
     public AzureStorageCredentialsDetails getStorageCredentialsDetails(Map<String, String> attributes) {
-        final String accountNameSecret = context.getProperty(
-                AzureStorageUtils.ACCOUNT_NAME_SECRET
-        ).evaluateAttributeExpressions(attributes).getValue();
-        final String accountKeySecret = context.getProperty(
-                AzureStorageUtils.ACCOUNT_KEY_SECRET).evaluateAttributeExpressions(attributes).getValue();
-        final String sasTokenSecret = context.getProperty(
-                AzureStorageUtils.ACCOUNT_SAS_TOKEN_SECRET
-        ).evaluateAttributeExpressions(attributes).getValue();
-        final String storageSuffix = context.getProperty(
-                AzureStorageUtils.ENDPOINT_SUFFIX
-        ).evaluateAttributeExpressions(attributes).getValue();;
-        final AzureKeyVaultConnectionService keyVaultClientService = context.getProperty(
-                AzureStorageUtils.KEYVAULT_CONNECTION_SERVICE
-        ).asControllerService(AzureKeyVaultConnectionService.class);
+        final String accountNameSecret = context.getProperty(AzureStorageUtils.ACCOUNT_NAME_SECRET).getValue();
+        final String accountKeySecret = context.getProperty(AzureStorageUtils.ACCOUNT_KEY_SECRET).getValue();
+        final String sasTokenSecret = context.getProperty(AzureStorageUtils.ACCOUNT_SAS_TOKEN_SECRET).getValue();
+        final String storageSuffix = context.getProperty(AzureStorageUtils.ENDPOINT_SUFFIX).evaluateAttributeExpressions(attributes).getValue();;
+        final AzureKeyVaultConnectionService keyVaultClientService = context.getProperty(AzureStorageUtils.KEYVAULT_CONNECTION_SERVICE).asControllerService(AzureKeyVaultConnectionService.class);
 
         if (keyVaultClientService == null) {
             throw new IllegalArgumentException(String.format("Cannot get '%s'.", AzureStorageUtils.KEYVAULT_CONNECTION_SERVICE.getDisplayName()));

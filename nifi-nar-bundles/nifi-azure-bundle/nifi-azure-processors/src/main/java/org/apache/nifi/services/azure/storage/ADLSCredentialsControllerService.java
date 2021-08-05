@@ -36,8 +36,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 /**
  * Provides credentials details for ADLS
@@ -173,35 +171,35 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
     public ADLSCredentialsDetails getCredentialsDetails(Map<String, String> attributes) {
         ADLSCredentialsDetails.Builder credentialsBuilder = ADLSCredentialsDetails.Builder.newBuilder();
 
-        setValue(credentialsBuilder, ACCOUNT_NAME, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountName, attributes);
-        setValue(credentialsBuilder, AzureStorageUtils.ACCOUNT_KEY, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountKey, attributes);
-        setValue(credentialsBuilder, AzureStorageUtils.PROP_SAS_TOKEN, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setSasToken, attributes);
-        setValue(credentialsBuilder, AzureStorageUtils.ADLS_ENDPOINT_SUFFIX, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setEndpointSuffix, attributes);
-        setValue(credentialsBuilder, USE_MANAGED_IDENTITY, PropertyValue::asBoolean, ADLSCredentialsDetails.Builder::setUseManagedIdentity, attributes);
-        setValue(credentialsBuilder, SERVICE_PRINCIPAL_TENANT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalTenantId, attributes);
-        setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientId, attributes);
-        setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_SECRET, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientSecret, attributes);
+        AzureStorageUtils.setValue(context, credentialsBuilder, ACCOUNT_NAME, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountName, attributes);
+        AzureStorageUtils.setValue(context, credentialsBuilder, AzureStorageUtils.ACCOUNT_KEY, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountKey, attributes);
+        AzureStorageUtils.setValue(context, credentialsBuilder, AzureStorageUtils.PROP_SAS_TOKEN, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setSasToken, attributes);
+        AzureStorageUtils.setValue(context, credentialsBuilder, AzureStorageUtils.ADLS_ENDPOINT_SUFFIX, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setEndpointSuffix, attributes);
+        AzureStorageUtils.setValue(context, credentialsBuilder, USE_MANAGED_IDENTITY, PropertyValue::asBoolean, ADLSCredentialsDetails.Builder::setUseManagedIdentity, attributes);
+        AzureStorageUtils.setValue(context, credentialsBuilder, SERVICE_PRINCIPAL_TENANT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalTenantId, attributes);
+        AzureStorageUtils.setValue(context, credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientId, attributes);
+        AzureStorageUtils.setValue(context, credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_SECRET, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientSecret, attributes);
 
         return credentialsBuilder.build();
     }
 
-    private <T> void setValue(
-            ADLSCredentialsDetails.Builder credentialsBuilder,
-            PropertyDescriptor propertyDescriptor, Function<PropertyValue, T> getPropertyValue,
-            BiConsumer<ADLSCredentialsDetails.Builder, T> setBuilderValue, Map<String, String> attributes
-    ) {
-        PropertyValue property = context.getProperty(propertyDescriptor);
-
-        if (property.isSet()) {
-            if (propertyDescriptor.isExpressionLanguageSupported()) {
-                if (propertyDescriptor.getExpressionLanguageScope() == ExpressionLanguageScope.FLOWFILE_ATTRIBUTES) {
-                    property = property.evaluateAttributeExpressions(attributes);
-                } else {
-                    property = property.evaluateAttributeExpressions();
-                }
-            }
-            T value = getPropertyValue.apply(property);
-            setBuilderValue.accept(credentialsBuilder, value);
-        }
-    }
+//    private <T> void setValue(
+//            ADLSCredentialsDetails.Builder credentialsBuilder,
+//            PropertyDescriptor propertyDescriptor, Function<PropertyValue, T> getPropertyValue,
+//            BiConsumer<ADLSCredentialsDetails.Builder, T> setBuilderValue, Map<String, String> attributes
+//    ) {
+//        PropertyValue property = context.getProperty(propertyDescriptor);
+//
+//        if (property.isSet()) {
+//            if (propertyDescriptor.isExpressionLanguageSupported()) {
+//                if (propertyDescriptor.getExpressionLanguageScope() == ExpressionLanguageScope.FLOWFILE_ATTRIBUTES) {
+//                    property = property.evaluateAttributeExpressions(attributes);
+//                } else {
+//                    property = property.evaluateAttributeExpressions();
+//                }
+//            }
+//            T value = getPropertyValue.apply(property);
+//            setBuilderValue.accept(credentialsBuilder, value);
+//        }
+//    }
 }

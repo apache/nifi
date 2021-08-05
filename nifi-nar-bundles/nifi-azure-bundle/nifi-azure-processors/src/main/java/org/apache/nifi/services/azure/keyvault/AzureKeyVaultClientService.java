@@ -60,7 +60,11 @@ public class AzureKeyVaultClientService extends AbstractControllerService implem
     }
 
     public String getSecretFromKeyVault(String secretName) {
-        return this.keyVaultSecretClient.getSecret(secretName).getValue();
+        if (secretName != null && !secretName.isEmpty()) {
+            return this.keyVaultSecretClient.getSecret(secretName).getValue();
+        } else {
+            return secretName;
+        }
     }
 
     @Override
@@ -84,9 +88,9 @@ public class AzureKeyVaultClientService extends AbstractControllerService implem
         final String servicePrincipalClientSecret = context.getProperty(AzureKeyVaultUtils.SP_CLIENT_SECRET).getValue();
         final String tenantID = context.getProperty(AzureKeyVaultUtils.TENANT_ID).getValue();
         final String endPointSuffix = context.getProperty(AzureKeyVaultUtils.ENDPOINT_SUFFIX).getValue();
-        final Boolean useManagedIdentity = context.getProperty(AzureKeyVaultUtils.USE_MANAGED_IDENTITY).asBoolean();
+        final String authMethod = context.getProperty(AzureKeyVaultUtils.AUTH_METHOD).getValue();
 
-        createKeyVaultSecretClient(keyVaultName, servicePrincipalClientID, servicePrincipalClientSecret, tenantID, endPointSuffix, useManagedIdentity);
+        createKeyVaultSecretClient(keyVaultName, servicePrincipalClientID, servicePrincipalClientSecret, tenantID, endPointSuffix, authMethod);
 
         final int cacheSize = context.getProperty(AzureKeyVaultUtils.CACHE_SIZE).asInteger();
         final long cacheTTL = context.getProperty(AzureKeyVaultUtils.CACHE_TTL_AFTER_WRITE).asTimePeriod(TimeUnit.SECONDS);
@@ -120,9 +124,9 @@ public class AzureKeyVaultClientService extends AbstractControllerService implem
         descriptors.add(AzureKeyVaultUtils.SP_CLIENT_SECRET);
         descriptors.add(AzureKeyVaultUtils.TENANT_ID);
         descriptors.add(AzureKeyVaultUtils.ENDPOINT_SUFFIX);
-        descriptors.add(AzureKeyVaultUtils.USE_MANAGED_IDENTITY);
         descriptors.add(AzureKeyVaultUtils.CACHE_SIZE);
         descriptors.add(AzureKeyVaultUtils.CACHE_TTL_AFTER_WRITE);
+        descriptors.add(AzureKeyVaultUtils.AUTH_METHOD);
     }
 
     @Override
@@ -138,7 +142,7 @@ public class AzureKeyVaultClientService extends AbstractControllerService implem
         final String clientID = validationContext.getProperty(AzureKeyVaultUtils.SP_CLIENT_ID).getValue();
         final String clientSecret = validationContext.getProperty(AzureKeyVaultUtils.SP_CLIENT_SECRET).getValue();
         final String tenantID = validationContext.getProperty(AzureKeyVaultUtils.TENANT_ID).getValue();
-        final Boolean useManagedIdentity = validationContext.getProperty(AzureKeyVaultUtils.USE_MANAGED_IDENTITY).asBoolean();
+        final String authMethod = validationContext.getProperty(AzureKeyVaultUtils.AUTH_METHOD).getValue();
 
         if (StringUtils.isBlank(keyVaultName)) {
             results.add(new ValidationResult.Builder()
@@ -146,18 +150,18 @@ public class AzureKeyVaultClientService extends AbstractControllerService implem
                     .valid(false)
                     .explanation(AzureKeyVaultUtils.KEYVAULT_NAME.getDisplayName() + " is required")
                     .build());
-        } else if (useManagedIdentity && (StringUtils.isNotBlank(clientID)
+        } else if (authMethod == AzureKeyVaultUtils.MANAGED_IDENTITY.getValue() && (StringUtils.isNotBlank(clientID)
                 || StringUtils.isNotBlank(clientSecret))) {
             results.add(new ValidationResult.Builder()
                     .subject(this.getClass().getSimpleName())
                     .valid(false)
-                    .explanation("if " + AzureKeyVaultUtils.USE_MANAGED_IDENTITY.getDisplayName()
+                    .explanation("if " + AzureKeyVaultUtils.MANAGED_IDENTITY.getDisplayName()
                             + " is used then " + AzureKeyVaultUtils.SP_CLIENT_ID.getDisplayName()
                             + ", " + AzureKeyVaultUtils.SP_CLIENT_SECRET.getDisplayName()
                             + ", " + AzureKeyVaultUtils.TENANT_ID.getDisplayName()
                             + " should be blank.")
                     .build());
-        } else if (!useManagedIdentity && (StringUtils.isBlank(clientID)
+        } else if (authMethod == "service-principal" && (StringUtils.isBlank(clientID)
                 || StringUtils.isBlank(clientSecret)
                 || StringUtils.isBlank(tenantID))) {
             results.add(new ValidationResult.Builder()
@@ -171,7 +175,7 @@ public class AzureKeyVaultClientService extends AbstractControllerService implem
         return results;
     }
 
-    protected void createKeyVaultSecretClient(String keyVaultName, String spClientID, String spClientSecret, String tenantID, String endPointSuffix,Boolean useManagedIdentity){
+    protected void createKeyVaultSecretClient(String keyVaultName, String spClientID, String spClientSecret, String tenantID, String endPointSuffix, String authMethod){
         URL kvURL;
         try {
                 kvURL = new URL("https://" + keyVaultName + endPointSuffix);
@@ -179,12 +183,12 @@ public class AzureKeyVaultClientService extends AbstractControllerService implem
                 throw new AssertionError();
         }
 
-        if (useManagedIdentity) {
+        if (authMethod == AzureKeyVaultUtils.MANAGED_IDENTITY.getValue()) {
             this.keyVaultSecretClient = new SecretClientBuilder()
                     .vaultUrl(kvURL.toString())
                     .credential(new DefaultAzureCredentialBuilder().build())
                     .buildClient();
-        } else {
+        } else if (authMethod == AzureKeyVaultUtils.SERVICE_PRINCIPAL.getValue()) {
             ClientSecretCredential clientSecretCredential = new ClientSecretCredentialBuilder()
                     .clientId(spClientID)
                     .clientSecret(spClientSecret)

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.services.azure.keyvault;
 
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -31,11 +32,25 @@ public final class AzureKeyVaultUtils {
             .sensitive(true)
             .build();
 
+
+    public static final AllowableValue SERVICE_PRINCIPAL = new AllowableValue("service-principal", "Service Principal", "Use Service Principal authentication to authenticate to Azure Key Vault.");
+    public static final AllowableValue MANAGED_IDENTITY = new AllowableValue("managed-identity", "Managed Identity", "Use a Managed Identity to authenticate to Azure Key Vault.");
+    public static final PropertyDescriptor AUTH_METHOD = new PropertyDescriptor.Builder()
+             .name("azure-keyvault-auth-method")
+             .displayName("Authentication Method")
+             .description("How to authenticate to Azure Key Vault")
+             .required(true)
+             .defaultValue(SERVICE_PRINCIPAL.getValue())
+             .allowableValues(SERVICE_PRINCIPAL, MANAGED_IDENTITY)
+             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+             .build();
+
     public static final PropertyDescriptor SP_CLIENT_ID = new PropertyDescriptor.Builder()
             .name("azure-service-principal-client-id")
             .displayName("Service Principal Client ID")
             .description("The Azure Active Directory Tenant ID to use when using Service Principal authentication.")
             .required(false)
+            .dependsOn(AUTH_METHOD, SERVICE_PRINCIPAL)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .sensitive(true)
             .build();
@@ -45,6 +60,7 @@ public final class AzureKeyVaultUtils {
             .displayName("Service Principal Client Secret")
             .description("The Azure Service Principal Client Secret to use when using Service Principal authentication.")
             .required(false)
+            .dependsOn(AUTH_METHOD, SERVICE_PRINCIPAL)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .sensitive(true)
             .build();
@@ -55,6 +71,7 @@ public final class AzureKeyVaultUtils {
             .description("This processor will use Azure Service Principal for authentication. " +
                     "Please provide Azure Tenant ID for authentication")
             .required(false)
+            .dependsOn(AUTH_METHOD, SERVICE_PRINCIPAL)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .sensitive(true)
             .build();
@@ -69,17 +86,6 @@ public final class AzureKeyVaultUtils {
             .required(false)
             .defaultValue(DEFAULT_KEYVAULT_ENDPOINT_SUFFIX)
             .sensitive(false)
-            .build();
-
-    public static final PropertyDescriptor USE_MANAGED_IDENTITY = new PropertyDescriptor.Builder()
-            .name("azure-use-managed-identity")
-            .displayName("Use Azure Managed Identity")
-            .description("Choose whether or not to use the managed identity of Azure VM/VMSS. " +
-                    "If using managed identity user will not be required to provide service principal details")
-            .required(false)
-            .defaultValue("false")
-            .allowableValues("true", "false")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()

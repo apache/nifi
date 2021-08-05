@@ -36,8 +36,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 /**
  * Provides secure credentials details for ADLS
@@ -103,31 +101,20 @@ public class ADLSKeyVaultCredentialsControllerService extends AbstractController
     public ADLSCredentialsDetails getCredentialsDetails(Map<String, String> attributes) {
         ADLSCredentialsDetails.Builder credentialsBuilder = ADLSCredentialsDetails.Builder.newBuilder();
 
-        setValue(credentialsBuilder,
-                AzureStorageUtils.ADLS_ENDPOINT_SUFFIX,
-                PropertyValue::getValue,
-                ADLSCredentialsDetails.Builder::setEndpointSuffix);
+        AzureStorageUtils.setValue(context, credentialsBuilder, AzureStorageUtils.ADLS_ENDPOINT_SUFFIX, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setEndpointSuffix, attributes);
 
-        final AzureKeyVaultConnectionService keyVaultClientService = context.getProperty(
-                AzureStorageUtils.KEYVAULT_CONNECTION_SERVICE
-        ).asControllerService(AzureKeyVaultConnectionService.class);
-        String accountNameSecret = context.getProperty(
-                AzureStorageUtils.ACCOUNT_NAME_SECRET).getValue();
-        String accountKeySecret = context.getProperty(
-                AzureStorageUtils.ACCOUNT_KEY_SECRET).getValue();
-        String sasTokenSecret = context.getProperty(
-                AzureStorageUtils.ACCOUNT_SAS_TOKEN_SECRET).getValue();
+        final AzureKeyVaultConnectionService keyVaultClientService = context.getProperty(AzureStorageUtils.KEYVAULT_CONNECTION_SERVICE).asControllerService(AzureKeyVaultConnectionService.class);
+        String accountNameSecret = context.getProperty(AzureStorageUtils.ACCOUNT_NAME_SECRET).getValue();
+        String accountKeySecret = context.getProperty(AzureStorageUtils.ACCOUNT_KEY_SECRET).getValue();
+        String sasTokenSecret = context.getProperty(AzureStorageUtils.ACCOUNT_SAS_TOKEN_SECRET).getValue();
 
         if(StringUtils.isNotBlank(accountNameSecret)) {
-            credentialsBuilder.setAccountName(
-                    keyVaultClientService.getSecret(accountNameSecret));
+            credentialsBuilder.setAccountName(keyVaultClientService.getSecret(accountNameSecret));
         }
         if(StringUtils.isNotBlank(accountKeySecret)) {
-            credentialsBuilder.setAccountKey(
-                    keyVaultClientService.getSecret(accountKeySecret));
+            credentialsBuilder.setAccountKey(keyVaultClientService.getSecret(accountKeySecret));
         } else if(StringUtils.isNotBlank(sasTokenSecret)) {
-            credentialsBuilder.setSasToken(
-                    keyVaultClientService.getSecret(sasTokenSecret));
+            credentialsBuilder.setSasToken(keyVaultClientService.getSecret(sasTokenSecret));
         } else {
             throw new IllegalArgumentException(String.format(
                     "Either '%s' or '%s' must be defined.",
@@ -138,17 +125,17 @@ public class ADLSKeyVaultCredentialsControllerService extends AbstractController
         return credentialsBuilder.build();
     }
 
-    private <T> void setValue(
-            ADLSCredentialsDetails.Builder credentialsBuilder,
-            PropertyDescriptor propertyDescriptor, Function<PropertyValue, T> getPropertyValue,
-            BiConsumer<ADLSCredentialsDetails.Builder, T> setBuilderValue
-    ) {
-        PropertyValue property = context.getProperty(propertyDescriptor);
+//     private <T> void setValue(
+//             ADLSCredentialsDetails.Builder credentialsBuilder,
+//             PropertyDescriptor propertyDescriptor, Function<PropertyValue, T> getPropertyValue,
+//             BiConsumer<ADLSCredentialsDetails.Builder, T> setBuilderValue
+//     ) {
+//         PropertyValue property = context.getProperty(propertyDescriptor);
 
-        if (property.isSet()) {
-            T value = getPropertyValue.apply(property);
-            setBuilderValue.accept(credentialsBuilder, value);
-        }
-    }
+//         if (property.isSet()) {
+//             T value = getPropertyValue.apply(property);
+//             setBuilderValue.accept(credentialsBuilder, value);
+//         }
+//     }
 }
 

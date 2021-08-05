@@ -160,7 +160,7 @@ public class TestAzureKeyVaultUtils {
     }
 
     private void configureIdentity() {
-        runner.setProperty(service, AzureKeyVaultUtils.USE_MANAGED_IDENTITY, "true");
+        runner.setProperty(service, AzureKeyVaultUtils.AUTH_METHOD, AzureKeyVaultUtils.MANAGED_IDENTITY);
     }
 }
 
