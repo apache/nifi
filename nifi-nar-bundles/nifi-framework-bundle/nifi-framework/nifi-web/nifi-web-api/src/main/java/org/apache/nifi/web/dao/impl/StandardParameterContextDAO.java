@@ -84,26 +84,31 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
     }
 
     private void resolveInheritedParameterContexts(final ParameterContextDTO parameterContextDto) {
-        if (parameterContextDto.getInheritedParameterContexts() != null && !parameterContextDto.getInheritedParameterContexts().isEmpty()) {
-            final Map<String, ParameterContext> paramContextNameMap = flowManager.getParameterContextManager().getParameterContextNameMapping();
-            for (final ParameterContextReferenceEntity ref : parameterContextDto.getInheritedParameterContexts()) {
-                if (ref.getComponent() == null || (ref.getComponent().getId() == null && ref.getComponent().getName() == null)) {
-                    throw new IllegalStateException(String.format("Could not resolve inherited parameter context references in Parameter Context [%s]",
-                            parameterContextDto.getName()));
-                }
-                final ParameterContextReferenceDTO refDto = ref.getComponent();
-                // If resolving by name only, look up the ids
-                if (refDto.getId() == null) {
-                    final ParameterContext resolvedParameterContext = paramContextNameMap.get(refDto.getName());
-                    if (resolvedParameterContext == null) {
-                        throw new IllegalStateException(String.format("Parameter Context [%s] references missing inherited Parameter Context [%s]",
-                                parameterContextDto.getName(), refDto.getName()));
-                    }
+        final List<ParameterContextReferenceEntity> inheritedParameterContexts = parameterContextDto.getInheritedParameterContexts();
+        if (inheritedParameterContexts == null || inheritedParameterContexts.isEmpty()) {
+            return;
+        }
 
-                    ref.setId(resolvedParameterContext.getIdentifier());
-                    ref.getComponent().setId(resolvedParameterContext.getIdentifier());
-                }
+        final Map<String, ParameterContext> paramContextNameMap = flowManager.getParameterContextManager().getParameterContextNameMapping();
+        for (final ParameterContextReferenceEntity ref : inheritedParameterContexts) {
+            if (ref.getComponent() == null || (ref.getComponent().getId() == null && ref.getComponent().getName() == null)) {
+                throw new IllegalStateException(String.format("Could not resolve inherited parameter context references in Parameter Context [%s]",
+                        parameterContextDto.getName()));
             }
+            final ParameterContextReferenceDTO refDto = ref.getComponent();
+            if (refDto.getId() != null) {
+                continue;
+            }
+
+            // If resolving by name only, look up the ids
+            final ParameterContext resolvedParameterContext = paramContextNameMap.get(refDto.getName());
+            if (resolvedParameterContext == null) {
+                throw new IllegalStateException(String.format("Parameter Context [%s] references missing inherited Parameter Context [%s]",
+                        parameterContextDto.getName(), refDto.getName()));
+            }
+
+            ref.setId(resolvedParameterContext.getIdentifier());
+            ref.getComponent().setId(resolvedParameterContext.getIdentifier());
         }
     }
 
@@ -327,8 +332,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         }
 
         for (final ParameterContext parameterContext : flowManager.getParameterContextManager().getParameterContexts()) {
-            if (parameterContext.getInheritedParameterContexts().stream().filter(pc -> pc.getIdentifier().equals(parameterContextId))
-                    .findFirst().isPresent()) {
+            if (parameterContext.getInheritedParameterContexts().stream().anyMatch(pc -> pc.getIdentifier().equals(parameterContextId))) {
                 throw new IllegalStateException(String.format("Cannot delete Parameter Context with ID [%s] because it is referenced by at least one Parameter Context [%s]",
                         parameterContextId, parameterContext.getName()));
             }

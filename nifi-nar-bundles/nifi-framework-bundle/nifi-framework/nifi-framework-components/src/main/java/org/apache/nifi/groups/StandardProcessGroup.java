@@ -5665,6 +5665,17 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public boolean referencesParameterContext(final ParameterContext parameterContext) {
+        final ParameterContext ownParameterContext = this.getParameterContext();
+        if (ownParameterContext == null || parameterContext == null) {
+            return false;
+        }
+
+        return ownParameterContext.getIdentifier().equals(parameterContext.getIdentifier())
+                || ownParameterContext.inheritsFrom(parameterContext.getIdentifier());
+    }
+
+    @Override
     public void setDefaultFlowFileExpiration(final String defaultFlowFileExpiration) {
         // use default if value not provided
         if (StringUtils.isBlank(defaultFlowFileExpiration)) {

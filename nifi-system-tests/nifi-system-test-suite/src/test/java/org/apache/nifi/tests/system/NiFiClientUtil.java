@@ -173,7 +173,7 @@ public class NiFiClientUtil {
     }
 
     public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters) {
-        return createParameterContextEntity(name, description, parameters, Collections.EMPTY_LIST);
+        return createParameterContextEntity(name, description, parameters, Collections.emptyList());
     }
 
     public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters,

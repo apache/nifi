@@ -654,7 +654,7 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters) {
-        return createParameterContextEntity(name, description, parameters, Collections.EMPTY_LIST);
+        return createParameterContextEntity(name, description, parameters, Collections.emptyList());
     }
 
     private ProcessGroupEntity setParameterContext(final String groupId, final ParameterContextEntity parameterContext) throws NiFiClientException, IOException {

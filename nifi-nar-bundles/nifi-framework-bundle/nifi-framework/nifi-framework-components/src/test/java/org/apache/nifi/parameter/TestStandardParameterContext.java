@@ -243,7 +243,7 @@ public class TestStandardParameterContext {
         Assert.assertEquals(originalValue, a.getParameter(inheritedParamName).get().getValue());
 
         // Now demonstrate that we can't effectively add the parameter by referencing Context B while processor runs
-        a.setInheritedParameterContexts(Collections.EMPTY_LIST); // A now no longer includes 'def'
+        a.setInheritedParameterContexts(Collections.emptyList()); // A now no longer includes 'def'
         startProcessor(procNode);
         try {
             a.setInheritedParameterContexts(Arrays.asList(b));
@@ -257,7 +257,7 @@ public class TestStandardParameterContext {
         a.setInheritedParameterContexts(Arrays.asList(b));
         startProcessor(procNode);
         try {
-            a.setInheritedParameterContexts(Collections.EMPTY_LIST);
+            a.setInheritedParameterContexts(Collections.emptyList());
             Assert.fail("Was able to remove parameter while referencing processor was running");
         } catch (final IllegalStateException expected) {
             Assert.assertTrue(expected.getMessage().contains("def"));
@@ -399,7 +399,7 @@ public class TestStandardParameterContext {
         }
 
         try {
-            b.setInheritedParameterContexts(Collections.EMPTY_LIST);
+            b.setInheritedParameterContexts(Collections.emptyList());
             Assert.fail("Was able to update parameter being referenced by Controller Service that is DISABLING");
         } catch (final IllegalStateException expected) {
         }
@@ -658,7 +658,7 @@ public class TestStandardParameterContext {
         } catch (IllegalStateException e) {
             Assert.assertTrue(e.getMessage().contains("foo"));
         }
-        Assert.assertEquals(Collections.EMPTY_LIST, a.getInheritedParameterContexts());
+        Assert.assertEquals(Collections.emptyList(), a.getInheritedParameterContexts());
 
         // Now switch and set a.foo to non-sensitive and b.foo to sensitive
         removeParameter(a, "foo");
@@ -673,7 +673,7 @@ public class TestStandardParameterContext {
         } catch (IllegalStateException e) {
             Assert.assertTrue(e.getMessage().contains("foo"));
         }
-        Assert.assertEquals(Collections.EMPTY_LIST, a.getInheritedParameterContexts());
+        Assert.assertEquals(Collections.emptyList(), a.getInheritedParameterContexts());
     }
 
     private static void removeParameter(final ParameterContext parameterContext, final String name) {
