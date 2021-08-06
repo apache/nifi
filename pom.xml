@@ -22,23 +22,25 @@
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
-        <module>nifi-commons</module>
         <module>nifi-api</module>
+        <module>nifi-assembly</module>
+        <module>nifi-bootstrap</module>
+        <module>nifi-commons</module>
+        <module>nifi-docker</module>
         <module>nifi-framework-api</module>
         <module>nifi-server-api</module>
-        <module>nifi-bootstrap</module>
         <module>nifi-mock</module>
         <module>nifi-nar-bundles</module>
-        <module>nifi-assembly</module>
         <module>nifi-docs</module>
         <module>nifi-maven-archetypes</module>
         <module>nifi-external</module>
-        <module>nifi-docker</module>
         <module>nifi-system-tests</module>
-        <module>minifi</module>
         <module>nifi-stateless</module>
+        <!-- The following modules are included in profiles which are active by default. The purpose of the profiles
+             is to allow the exclusion of the module, if desired
+        <module>minifi</module>
         <module>nifi-registry</module>
-        <module>nifi-toolkit</module>
+        <module>nifi-toolkit</module> -->
     </modules>
     <url>https://nifi.apache.org</url>
     <organization>
@@ -1105,6 +1107,54 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <!-- This profile will include minifi in the maven build. It is enabled by default.
+                 It may be useful to deactivate particularly during development/testing when desiring to
+                 exclude certain portions of nifi not required by the main application.
+                 Activation by property name is used to avoid conflict with similar profiles.
+                 Usage example to exclude minifi from the build: mvn -DexcludeMinifi clean install -->
+            <id>include-minifi</id>
+            <activation>
+                <property>
+                    <name>!excludeMinifi</name>
+                </property>
+            </activation>
+            <modules>
+                <module>minifi</module>
+            </modules>
+        </profile>
+        <profile>
+            <!-- This profile will include nifi-registry in the maven build. It is enabled by default.
+                 It may be useful to deactivate particularly during development/testing when desiring to
+                 exclude certain portions of nifi not required by the main application.
+                 Activation by property name is used to avoid conflict with similar profiles.
+                 Usage example to exclude nifi-registry from the build: mvn -DexcludeNiFiRegistry clean install -->
+            <id>include-nifi-registry</id>
+            <activation>
+                <property>
+                    <name>!excludeNiFiRegistry</name>
+                </property>
+            </activation>
+            <modules>
+                <module>nifi-registry</module>
+            </modules>
+        </profile>
+        <profile>
+            <!-- This profile will include nifi-toolkit in the maven build. It is enabled by default.
+                 It may be useful to deactivate particularly during development/testing when desiring to
+                 exclude certain portions of nifi not required by the main application.
+                 Activation by property name is used to avoid conflict with similar profiles.
+                 Usage example to exclude nifi-toolkit from the build: mvn -DexcludeNiFiToolkit clean install -->
+            <id>include-nifi-toolkit</id>
+            <activation>
+                <property>
+                    <name>!excludeNiFiToolkit</name>
+                </property>
+            </activation>
+            <modules>
+                <module>nifi-toolkit</module>
+            </modules>
         </profile>
     </profiles>
 </project>
