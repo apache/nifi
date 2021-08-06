@@ -447,7 +447,7 @@
                             <goal>integration-test</goal>
                             <goal>verify</goal>
                         </goals>
-                        <phase>verify</phase>
+                        <phase>none</phase>
                     </execution>
                 </executions>
             </plugin>
@@ -565,8 +565,8 @@
             </build>
         </profile>
         <profile>
-            <!-- Disables execution of integration tests managed by the Maven FailSafe plugin. -->
-            <id>nifi-registry-no-integration-tests</id>
+            <!-- Enables execution of integration tests managed by the Maven FailSafe plugin. -->
+            <id>nifi-registry-integration-tests</id>
             <build>
                 <plugins>
                     <plugin>
@@ -579,7 +579,7 @@
                                     <goal>integration-test</goal>
                                     <goal>verify</goal>
                                 </goals>
-                                <phase>none</phase>
+                                <phase>verify</phase>
                             </execution>
                         </executions>
                     </plugin>
