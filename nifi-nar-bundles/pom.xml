@@ -106,6 +106,7 @@
 	    <module>nifi-accumulo-bundle</module>
 	    <module>nifi-asn1-bundle</module>
         <module>nifi-pgp-bundle</module>
+        <module>nifi-hashicorp-vault-bundle</module>
     </modules>
 
     <build>
