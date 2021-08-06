@@ -85,7 +85,7 @@ public class StandardJwtRevocationService implements JwtRevocationService {
      * Set Revoked Status is synchronized to avoid competing changes to the State Map
      *
      * @param id JSON Web Token Identifier
-     * @param expiration Expiration of Revocation Status
+     * @param expiration Expiration of Revocation Status after which the status record can be removed
      */
     @Override
     public synchronized void setRevoked(final String id, final Instant expiration) {

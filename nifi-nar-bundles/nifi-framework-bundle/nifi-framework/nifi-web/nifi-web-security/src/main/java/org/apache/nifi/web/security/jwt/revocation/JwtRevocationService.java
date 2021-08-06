@@ -39,7 +39,7 @@ public interface JwtRevocationService {
      * Set Revoked Status using JSON Web Token Identifier
      *
      * @param id JSON Web Token Identifier
-     * @param expiration Expiration of Revocation Status
+     * @param expiration Expiration of Revocation Status after which the status record can be removed
      */
     void setRevoked(String id, Instant expiration);
 }

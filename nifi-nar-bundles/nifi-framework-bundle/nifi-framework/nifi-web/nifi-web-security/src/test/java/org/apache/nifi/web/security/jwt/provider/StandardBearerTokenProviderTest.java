@@ -62,7 +62,7 @@ public class StandardBearerTokenProviderTest {
 
     private static final int KEY_SIZE = 4096;
 
-    private static final JWSAlgorithm JWS_ALGORITHM = JWSAlgorithm.RS512;
+    private static final JWSAlgorithm JWS_ALGORITHM = JWSAlgorithm.PS512;
 
     @Mock
     private JwsSignerProvider jwsSignerProvider;

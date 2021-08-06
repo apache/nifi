@@ -33,7 +33,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Key Generation Command produces new RSA Key Pairs and configures a JWS Signer using RS512
+ * Key Generation Command produces new RSA Key Pairs and configures a JWS Signer
  */
 public class KeyGenerationCommand implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(KeyGenerationCommand.class);
@@ -42,7 +42,7 @@ public class KeyGenerationCommand implements Runnable {
 
     private static final int KEY_SIZE = 4096;
 
-    private static final JWSAlgorithm JWS_ALGORITHM = JWSAlgorithm.RS512;
+    private static final JWSAlgorithm JWS_ALGORITHM = JWSAlgorithm.PS512;
 
     private final KeyPairGenerator keyPairGenerator;
 
