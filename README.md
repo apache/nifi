@@ -92,6 +92,17 @@ The parallel build should take around fifteen minutes on modern hardware.
 
 Run `mvn clean install -DskipTests` to skip unit test execution.
 
+By default, the following subprojects/modules will be included when building NiFi from the project root:
+MiNiFi, NiFi Registry and NiFi Toolkit. If any are desired to be excluded from the build, the following mvn
+build parameters can be used either individually or in combination: `-DexcludeMinifi`, `-DexcludeNiFiRegistry`,
+`-DexcludeNiFiToolkit`.
+
+Some examples include:
+
+    mvn clean install -DexcludeMinifi
+    mvn clean install -DexcludeNiFiRegistry
+    mvn clean install -DexcludeNiFiRegistry -DexcludeNiFiToolkit
+
 ### Deploying
 
 Change directories to `nifi-assembly`. The `target` directory contains binary archives.
