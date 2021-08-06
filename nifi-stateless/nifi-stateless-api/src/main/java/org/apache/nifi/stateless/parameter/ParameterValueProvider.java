@@ -17,8 +17,19 @@
 
 package org.apache.nifi.stateless.parameter;
 
-import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.components.ConfigurableComponent;
 
-public interface ParameterProviderInitializationContext extends PropertyContext {
-    String getIdentifier();
+public interface ParameterValueProvider extends ConfigurableComponent {
+
+    void initialize(ParameterValueProviderInitializationContext context);
+
+    /**
+     * Given a Parameter Context Name and a Parameter Name, returns the value of the parameter
+     * @param contextName the name of the Parameter Context
+     * @param parameterName the name of the Parameter
+     * @return the value for the Parameter, or <code>null</code> if no value has been specified
+     */
+    String getParameterValue(String contextName, String parameterName);
+
+    boolean isParameterDefined(String contextName, String parameterName);
 }

@@ -17,32 +17,34 @@
 
 package org.apache.nifi.stateless.parameters;
 
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.stateless.parameter.AbstractParameterProvider;
+import org.apache.nifi.stateless.parameter.AbstractParameterValueProvider;
 
-import java.util.Collection;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
-public class InvalidParameterProvider extends AbstractParameterProvider {
+public class NumericParameterValueProvider extends AbstractParameterValueProvider {
+    private final Map<String, String> parameterValues = new HashMap<>();
 
-    @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final ValidationResult validationResult = new ValidationResult.Builder()
-            .valid(false)
-            .explanation("This Parameter Provider is never valid")
-            .build();
-
-        return Collections.singleton(validationResult);
+    {
+        parameterValues.put("zero", "0");
+        parameterValues.put("one", "1");
+        parameterValues.put("two", "2");
+        parameterValues.put("three", "3");
+        parameterValues.put("four", "4");
+        parameterValues.put("five", "5");
+        parameterValues.put("six", "6");
+        parameterValues.put("seven", "7");
+        parameterValues.put("eight", "8");
+        parameterValues.put("nine", "9");
     }
 
     @Override
     public String getParameterValue(final String contextName, final String parameterName) {
-        return null;
+        return parameterValues.get(parameterName);
     }
 
     @Override
     public boolean isParameterDefined(final String contextName, final String parameterName) {
-        return false;
+        return parameterValues.containsKey(parameterName);
     }
 }

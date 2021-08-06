@@ -18,7 +18,7 @@
 package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
-import org.apache.nifi.stateless.config.ParameterProviderDefinition;
+import org.apache.nifi.stateless.config.ParameterValueProviderDefinition;
 import org.apache.nifi.stateless.config.ReportingTaskDefinition;
 
 import java.util.List;
@@ -35,7 +35,7 @@ public interface DataflowDefinition<T> {
 
     List<ReportingTaskDefinition> getReportingTaskDefinitions();
 
-    List<ParameterProviderDefinition> getParameterProviderDefinitions();
+    List<ParameterValueProviderDefinition> getParameterValueProviderDefinitions();
 
     TransactionThresholds getTransactionThresholds();
 }

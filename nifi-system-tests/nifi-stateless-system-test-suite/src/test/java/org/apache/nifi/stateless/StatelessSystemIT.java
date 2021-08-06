@@ -23,7 +23,7 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.stateless.bootstrap.StatelessBootstrap;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
-import org.apache.nifi.stateless.config.ParameterProviderDefinition;
+import org.apache.nifi.stateless.config.ParameterValueProviderDefinition;
 import org.apache.nifi.stateless.config.ReportingTaskDefinition;
 import org.apache.nifi.stateless.config.SslContextDefinition;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
@@ -141,7 +141,7 @@ public class StatelessSystemIT {
     }
 
     protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts,
-                                             final List<ParameterProviderDefinition> parameterProviderDefinitions, final Set<String> failurePortNames,
+                                             final List<ParameterValueProviderDefinition> parameterValueProviderDefinitions, final Set<String> failurePortNames,
                                              final TransactionThresholds transactionThresholds) throws IOException, StatelessConfigurationException {
 
         final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition = new DataflowDefinition<VersionedFlowSnapshot>() {
@@ -171,8 +171,8 @@ public class StatelessSystemIT {
         }
 
             @Override
-            public List<ParameterProviderDefinition> getParameterProviderDefinitions() {
-                return parameterProviderDefinitions;
+            public List<ParameterValueProviderDefinition> getParameterValueProviderDefinitions() {
+                return parameterValueProviderDefinitions;
             }
 
             @Override

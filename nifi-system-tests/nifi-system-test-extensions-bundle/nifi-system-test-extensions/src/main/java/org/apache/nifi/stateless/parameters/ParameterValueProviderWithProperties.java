@@ -18,7 +18,7 @@
 package org.apache.nifi.stateless.parameters;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.stateless.parameter.AbstractParameterProvider;
+import org.apache.nifi.stateless.parameter.AbstractParameterValueProvider;
 
 import java.util.Arrays;
 import java.util.List;
@@ -26,7 +26,7 @@ import java.util.List;
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 
-public class ParameterProviderWithProperties extends AbstractParameterProvider {
+public class ParameterValueProviderWithProperties extends AbstractParameterValueProvider {
 
     static final PropertyDescriptor REQUIRED_PARAMETER = new PropertyDescriptor.Builder()
         .name("Required")

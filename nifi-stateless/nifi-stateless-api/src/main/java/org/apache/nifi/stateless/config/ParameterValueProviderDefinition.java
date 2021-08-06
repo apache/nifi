@@ -15,21 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.parameter;
+package org.apache.nifi.stateless.config;
 
-import org.apache.nifi.components.ConfigurableComponent;
+import java.util.HashMap;
+import java.util.Map;
 
-public interface ParameterProvider extends ConfigurableComponent {
+public class ParameterValueProviderDefinition extends ConfigurableExtensionDefinition {
+    private Map<String, String> propertyValues = new HashMap<>();
 
-    void initialize(ParameterProviderInitializationContext context);
+    public Map<String, String> getPropertyValues() {
+        return propertyValues;
+    }
 
-    /**
-     * Given a Parameter Context Name and a Parameter Name, returns the value of the parameter
-     * @param contextName the name of the Parameter Context
-     * @param parameterName the name of the Parameter
-     * @return the value for the Parameter, or <code>null</code> if no value has been specified
-     */
-    String getParameterValue(String contextName, String parameterName);
-
-    boolean isParameterDefined(String contextName, String parameterName);
+    public void setPropertyValues(final Map<String, String> propertyValues) {
+        this.propertyValues = propertyValues;
+    }
 }

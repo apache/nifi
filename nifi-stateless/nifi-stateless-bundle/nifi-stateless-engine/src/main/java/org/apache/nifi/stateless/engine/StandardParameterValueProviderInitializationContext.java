@@ -19,21 +19,21 @@ package org.apache.nifi.stateless.engine;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.service.StandardPropertyContext;
-import org.apache.nifi.stateless.parameter.ParameterProvider;
-import org.apache.nifi.stateless.parameter.ParameterProviderInitializationContext;
+import org.apache.nifi.stateless.parameter.ParameterValueProvider;
+import org.apache.nifi.stateless.parameter.ParameterValueProviderInitializationContext;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class StandardParameterProviderInitializationContext extends StandardPropertyContext implements ParameterProviderInitializationContext {
+public class StandardParameterValueProviderInitializationContext extends StandardPropertyContext implements ParameterValueProviderInitializationContext {
     private final String identifier;
 
-    public StandardParameterProviderInitializationContext(final ParameterProvider parameterProvider, final Map<String, String> propertyValues, final String identifier) {
-        super(createPropertyMap(parameterProvider, propertyValues), parameterProvider);
+    public StandardParameterValueProviderInitializationContext(final ParameterValueProvider parameterValueProvider, final Map<String, String> propertyValues, final String identifier) {
+        super(createPropertyMap(parameterValueProvider, propertyValues), parameterValueProvider);
         this.identifier = identifier;
     }
 
-    private static Map<PropertyDescriptor, String> createPropertyMap(final ParameterProvider provider, final Map<String, String> propertyValues) {
+    private static Map<PropertyDescriptor, String> createPropertyMap(final ParameterValueProvider provider, final Map<String, String> propertyValues) {
         final Map<PropertyDescriptor, String> propertyMap = new LinkedHashMap<>();
         for (final Map.Entry<String, String> entry : propertyValues.entrySet()) {
             final PropertyDescriptor descriptor = provider.getPropertyDescriptor(entry.getKey());

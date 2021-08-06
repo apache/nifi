@@ -20,11 +20,11 @@ package org.apache.nifi.stateless.parameter;
 import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.context.PropertyContext;
 
-public abstract class AbstractParameterProvider extends AbstractConfigurableComponent implements ParameterProvider {
-    private ParameterProviderInitializationContext context;
+public abstract class AbstractParameterValueProvider extends AbstractConfigurableComponent implements ParameterValueProvider {
+    private ParameterValueProviderInitializationContext context;
 
     @Override
-    public final void initialize(final ParameterProviderInitializationContext context) {
+    public final void initialize(final ParameterValueProviderInitializationContext context) {
         this.context = context;
         init(context);
     }
@@ -45,7 +45,7 @@ public abstract class AbstractParameterProvider extends AbstractConfigurableComp
      * An empty method that is intended for subclasses to optionally override in order to provide initialization
      * @param context the initialization context
      */
-    protected void init(ParameterProviderInitializationContext context) {
+    protected void init(ParameterValueProviderInitializationContext context) {
 
     }
 }

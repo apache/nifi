@@ -26,12 +26,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class ParameterOverrideProvider extends AbstractParameterProvider implements ParameterProvider {
+public class OverrideParameterValueProvider extends AbstractParameterValueProvider implements ParameterValueProvider {
     // Effectively final
     private List<ParameterOverride> parameterOverrides;
 
     @Override
-    public void init(final ParameterProviderInitializationContext context) {
+    public void init(final ParameterValueProviderInitializationContext context) {
         parameterOverrides = parseConfiguration(context);
     }
 
@@ -43,7 +43,7 @@ public class ParameterOverrideProvider extends AbstractParameterProvider impleme
             .build();
     }
 
-    private List<ParameterOverride> parseConfiguration(final ParameterProviderInitializationContext context) {
+    private List<ParameterOverride> parseConfiguration(final ParameterValueProviderInitializationContext context) {
         final List<ParameterOverride> overrides = new ArrayList<>();
 
         final Map<String, String> properties = context.getAllProperties();

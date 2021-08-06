@@ -13,6 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-org.apache.nifi.stateless.parameters.InvalidParameterProvider
-org.apache.nifi.stateless.parameters.NumericParameterProvider
-org.apache.nifi.stateless.parameters.ParameterProviderWithProperties
+org.apache.nifi.stateless.parameters.InvalidParameterValueProvider
+org.apache.nifi.stateless.parameters.NumericParameterValueProvider
+org.apache.nifi.stateless.parameters.ParameterValueProviderWithProperties

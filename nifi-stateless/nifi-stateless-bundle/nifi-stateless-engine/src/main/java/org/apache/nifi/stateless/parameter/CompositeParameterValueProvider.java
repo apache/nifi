@@ -17,23 +17,41 @@
 
 package org.apache.nifi.stateless.parameter;
 
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
-public class EnvironmentVariableParameterProvider extends AbstractParameterProvider implements ParameterProvider {
-    private final Map<String, String> environmentVariables = System.getenv();
+public class CompositeParameterValueProvider extends AbstractParameterValueProvider implements ParameterValueProvider {
+    private final List<ParameterValueProvider> parameterValueProviders;
+
+    public CompositeParameterValueProvider(final List<ParameterValueProvider> providers) {
+        this.parameterValueProviders = new ArrayList<>(providers);
+    }
 
     @Override
     public String getParameterValue(final String contextName, final String parameterName) {
-        String envValue = environmentVariables.get(contextName + ":" + parameterName);
-        if (envValue != null) {
-            return envValue;
+        for (final ParameterValueProvider provider : parameterValueProviders) {
+            if (!provider.isParameterDefined(contextName, parameterName)) {
+                continue;
+            }
+
+            final String value = provider.getParameterValue(contextName, parameterName);
+            if (value != null) {
+                return value;
+            }
         }
 
-        return environmentVariables.get(parameterName);
+        return null;
     }
 
     @Override
     public boolean isParameterDefined(final String contextName, final String parameterName) {
-        return getParameterValue(contextName, parameterName) != null;
+        for (final ParameterValueProvider provider : parameterValueProviders) {
+            final boolean defined = provider.isParameterDefined(contextName, parameterName);
+            if (defined) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -15,19 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.config;
+package org.apache.nifi.stateless.parameter;
 
-import java.util.HashMap;
-import java.util.Map;
+import org.apache.nifi.context.PropertyContext;
 
-public class ParameterProviderDefinition extends ConfigurableExtensionDefinition {
-    private Map<String, String> propertyValues = new HashMap<>();
-
-    public Map<String, String> getPropertyValues() {
-        return propertyValues;
-    }
-
-    public void setPropertyValues(final Map<String, String> propertyValues) {
-        this.propertyValues = propertyValues;
-    }
+public interface ParameterValueProviderInitializationContext extends PropertyContext {
+    String getIdentifier();
 }
