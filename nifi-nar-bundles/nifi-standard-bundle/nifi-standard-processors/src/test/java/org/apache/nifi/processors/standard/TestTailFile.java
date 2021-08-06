@@ -30,6 +30,8 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
@@ -59,6 +61,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 
 public class TestTailFile {
+    private static final Logger logger = LoggerFactory.getLogger(TestTailFile.class);
 
     private File file;
     private File existingFile;
@@ -867,7 +870,7 @@ public class TestTailFile {
         runner.clearTransferState();
 
         for (int i=0; i < 10; i++) {
-            System.out.println("i = " + i);
+            logger.info("i = " + i);
             raf.write(String.valueOf(i).getBytes());
             raf.write("\n".getBytes());
 

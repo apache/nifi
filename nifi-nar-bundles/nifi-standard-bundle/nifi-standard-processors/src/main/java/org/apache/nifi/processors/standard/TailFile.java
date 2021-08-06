@@ -258,8 +258,8 @@ public class TailFile extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor LINE_START_REGEX = new Builder()
-        .name("Line Start Regex")
-        .displayName("Line Start Regex")
+        .name("Line Start Pattern")
+        .displayName("Line Start Pattern")
         .description("A Regular Expression to match against the start of a log line. If specified, any line that matches the expression, and any following lines, will be buffered until another line" +
             " matches the Expression. In doing this, we can avoid splitting apart multi-line messages in the file. This assumes that the data is in UTF-8 format.")
         .required(false)
@@ -902,7 +902,7 @@ public class TailFile extends AbstractProcessor {
             session.getProvenanceReporter().receive(flowFile, file.toURI().toString(), "FlowFile contains bytes " + position + " through " + positionHolder.get() + " of source file",
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
             session.transfer(flowFile, REL_SUCCESS);
-            getLogger().debug("Created {} and routed to success", new Object[]{flowFile});
+            getLogger().debug("Created {} and routed to success", flowFile);
         }
 
         if (flowFile.getSize() > 0 || linesBuffer.size() > 0) {
