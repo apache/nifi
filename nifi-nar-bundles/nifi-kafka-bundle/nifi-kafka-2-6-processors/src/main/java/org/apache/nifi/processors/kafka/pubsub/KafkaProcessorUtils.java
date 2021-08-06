@@ -96,6 +96,10 @@ public final class KafkaProcessorUtils {
     static final String SCRAM_SHA512_VALUE = "SCRAM-SHA-512";
     static final AllowableValue SASL_MECHANISM_SCRAM_SHA512 = new AllowableValue(SCRAM_SHA512_VALUE, SCRAM_SHA512_VALUE,"The Salted Challenge Response Authentication Mechanism using SHA-512. " +
             "The username and password properties must be set when using this mechanism.");
+    
+    static final String AWS_MSK_IAM_VALUE = "AWS_MSK_IAM";
+    static final AllowableValue SASL_MECHANISM_AWS_MSK_IAM = new AllowableValue(AWS_MSK_IAM_VALUE, AWS_MSK_IAM_VALUE,"IAM role based authentication mechanism for AWS MSK. " +
+            "AWS Credentials should be configured on the NiFi Instance");
 
     static final AllowableValue FAILURE_STRATEGY_FAILURE_RELATIONSHIP = new AllowableValue("Route to Failure", "Route to Failure",
         "When unable to publish a FlowFile to Kafka, the FlowFile will be routed to the 'failure' relationship.");
@@ -127,7 +131,7 @@ public final class KafkaProcessorUtils {
             .description("The SASL mechanism to use for authentication. Corresponds to Kafka's 'sasl.mechanism' property.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(SASL_MECHANISM_GSSAPI, SASL_MECHANISM_PLAIN, SASL_MECHANISM_SCRAM_SHA256, SASL_MECHANISM_SCRAM_SHA512)
+            .allowableValues(SASL_MECHANISM_GSSAPI, SASL_MECHANISM_PLAIN, SASL_MECHANISM_SCRAM_SHA256, SASL_MECHANISM_SCRAM_SHA512, SASL_MECHANISM_AWS_MSK_IAM)
             .defaultValue(GSSAPI_VALUE)
             .build();
     public static final PropertyDescriptor JAAS_SERVICE_NAME = new PropertyDescriptor.Builder()
@@ -176,6 +180,32 @@ public final class KafkaProcessorUtils {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
+    static final PropertyDescriptor AWS_PROFILE_NAME = new PropertyDescriptor.Builder()
+            .name("aws.profilename")
+            .displayName("AWS Profile Name")
+            .description("The AWS Profile to consider when there are multiple profiles in the instance.")
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+    static final PropertyDescriptor AWS_ROLE_ARN = new PropertyDescriptor.Builder()
+            .name("aws.arn")
+            .displayName("AWS Role ARN")
+            .description("The awsRoleArn specifies the ARN for the IAM role the client should use.")
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+    static final PropertyDescriptor AWS_SESSION_NAME = new PropertyDescriptor.Builder()
+            .name("aws.session.name")
+            .displayName("AWS Role Session Name")
+            .description("specifies the session name that this particular client should use while assuming the IAM role. If the same IAM Role "
+            		+ "is used in multiple contexts, the session names can be used to differentiate between the different contexts. "
+            		+ "The awsRoleSessionName is optional")
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
     static final PropertyDescriptor TOKEN_AUTH = new PropertyDescriptor.Builder()
             .name("sasl.token.auth")
             .displayName("Token Auth")
@@ -220,6 +250,9 @@ public final class KafkaProcessorUtils {
                 USER_KEYTAB,
                 USERNAME,
                 PASSWORD,
+                AWS_PROFILE_NAME,
+                AWS_ROLE_ARN,
+                AWS_SESSION_NAME,
                 TOKEN_AUTH,
                 SSL_CONTEXT_SERVICE
         );
@@ -478,6 +511,9 @@ public final class KafkaProcessorUtils {
             case SCRAM_SHA512_VALUE:
                 setScramJaasConfig(mapToPopulate, context);
                 break;
+            case AWS_MSK_IAM_VALUE:
+            	setIamJaasConfig(mapToPopulate, context);
+                break;
             default:
                 throw new IllegalStateException("Unknown " + SASL_MECHANISM.getDisplayName() + ": " + saslMechanism);
         }
@@ -532,6 +568,28 @@ public final class KafkaProcessorUtils {
 
         builder.append(";");
         mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, builder.toString());
+    }
+    
+    private static void setIamJaasConfig(final Map<String, Object> mapToPopulate, final ProcessContext context) {
+        final String awsProfileName = context.getProperty(AWS_PROFILE_NAME).evaluateAttributeExpressions().getValue();
+        final String awsRoleArn = context.getProperty(AWS_ROLE_ARN).evaluateAttributeExpressions().getValue();
+        final String awsSessionName = context.getProperty(AWS_SESSION_NAME).evaluateAttributeExpressions().getValue();
+
+        final StringBuilder builder = new StringBuilder("software.amazon.msk.auth.iam.IAMLoginModule required ");
+		if (awsProfileName != null && !StringUtils.isBlank(awsProfileName)) {
+			builder.append("awsProfileName=\"" + awsProfileName + "\"");
+		} else if (awsRoleArn != null && !StringUtils.isBlank(awsRoleArn)) {
+			builder.append("awsRoleArn=\"" + awsRoleArn + "\"");
+			if (awsSessionName != null && !StringUtils.isBlank(awsSessionName)) {
+				builder.append(" awsRoleSessionName=\"" + awsSessionName + "\"");
+			}
+		}
+		
+        builder.append(";");
+        mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, builder.toString());
+        // This callback handler is key for this Authentication mechanism. AWS callback handler JAR should be placed in
+        // the NIFI libraries CLASSPATH.
+        mapToPopulate.put(SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS, "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
     }
 
     public static boolean isStaticStringFieldNamePresent(final String name, final Class<?>... classes) {
