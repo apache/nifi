@@ -14,37 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.distributed.cache.client;
+package org.apache.nifi.distributed.cache.client.adapter;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.concurrent.TimeUnit;
+/**
+ * Implementation of {@link InboundAdapter} where no service response payload is expected.
+ */
+public class VoidInboundAdapter implements InboundAdapter {
 
-import javax.net.ssl.SSLContext;
+    /**
+     * Constructor.
+     */
+    public VoidInboundAdapter() {
+    }
 
-public interface CommsSession extends Closeable {
+    @Override
+    public boolean isComplete() {
+        return true;
+    }
 
-    void setTimeout(final long value, final TimeUnit timeUnit);
+    @Override
+    public void queue(final byte[] bytes) {
+    }
 
-    InputStream getInputStream() throws IOException;
-
-    OutputStream getOutputStream() throws IOException;
-
-    boolean isClosed();
-
-    void interrupt();
-
-    String getHostname();
-
-    int getPort();
-
-    long getTimeout(TimeUnit timeUnit);
-
-    SSLContext getSSLContext();
-
-    int getProtocolVersion();
-
-    void setProtocolVersion(final int protocolVersion);
+    @Override
+    public void dequeue() {
+    }
 }
