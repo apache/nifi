@@ -382,7 +382,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         ProcessSession session = sessionFactory.createSession();
         try {
             onTrigger(context, session);
-            session.commit();
+            session.commitAsync();
         } catch (final Throwable t) {
             getLogger().error("{} failed to process due to {}; rolling back session", new Object[]{this, t});
             session.rollback(true);

@@ -1,0 +1,261 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# extended LDIF
+#
+# LDAPv3
+# base <dc=example,dc=com> with scope subtree
+# filter: objectclass=*
+# requesting: ALL
+#
+# Adapted from Forum Systems' LDAP Test Server
+#
+
+# example.com
+dn: dc=example,dc=com
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+o: example.com
+dc: example
+
+# read-only-admin, example.com
+dn: cn=read-only-admin,dc=example,dc=com
+sn: Read Only Admin
+cn: read-only-admin
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+
+# nifiadmin, example.com
+dn: uid=nifiadmin,dc=example,dc=com
+sn: nifiadmin
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+uid: nifiadmin
+cn: NiFi Admin
+userPassword: password
+
+# newton, example.com
+dn: uid=newton,dc=example,dc=com
+sn: Newton
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+uid: newton
+cn: Isaac Newton
+userPassword: password
+
+# einstein, example.com
+dn: uid=einstein,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Albert Einstein
+sn: Einstein
+uid: einstein
+userPassword: password
+
+# tesla, example.com
+dn: uid=tesla,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+objectClass: posixAccount
+cn: Nikola Tesla
+sn: Tesla
+uid: tesla
+uidNumber: 88888
+gidNumber: 99999
+homeDirectory: home
+userPassword: password
+
+# galileo, example.com
+dn: uid=galileo,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Galileo Galilei
+sn: Galilei
+uid: galileo
+mail: galileo@example.com
+userPassword: password
+
+# euler, example.com
+dn: uid=euler,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+uid: euler
+sn: Euler
+cn: Leonhard Euler
+userPassword: password
+
+# gauss, example.com
+dn: uid=gauss,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Carl Friedrich Gauss
+sn: Gauss
+uid: gauss
+userPassword: password
+
+# riemann, example.com
+dn: uid=riemann,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Bernhard Riemann
+sn: Riemann
+uid: riemann
+userPassword: password
+
+# euclid, example.com
+dn: uid=euclid,dc=example,dc=com
+uid: euclid
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Euclid
+sn: Euclid
+userPassword: password
+
+# curie, example.com
+dn: uid=curie,dc=example,dc=com
+uid: curie
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Marie Curie
+sn: Curie
+userPassword: password
+
+# nobel, example.com
+dn: uid=nobel,dc=example,dc=com
+uid: nobel
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+sn: Nobel
+cn: Alfred Nobel
+userPassword: password
+
+# boyle, example.com
+dn: uid=boyle,dc=example,dc=com
+uid: boyle
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Robert Boyle
+sn: Boyle
+telephoneNumber: 999-867-5309
+userPassword: password
+
+# pasteur, example.com
+dn: uid=pasteur,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+sn: Pasteur
+cn: Louis Pasteur
+uid: pasteur
+telephoneNumber: 602-214-4978
+userPassword: password
+
+# nogroup, example.com
+dn: uid=nogroup,dc=example,dc=com
+uid: nogroup
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: No Group
+sn: Group
+
+# test, example.com
+dn: uid=test,dc=example,dc=com
+objectClass: posixAccount
+objectClass: top
+objectClass: inetOrgPerson
+gidNumber: 0
+givenName: Test
+sn: Test
+displayName: Test
+uid: test
+initials: TS
+homeDirectory: home
+cn: Test
+uidNumber: 24601
+o: Company
+
+# mathematicians, example.com
+dn: ou=mathematicians,dc=example,dc=com
+uniqueMember: uid=euclid,dc=example,dc=com
+uniqueMember: uid=riemann,dc=example,dc=com
+uniqueMember: uid=euler,dc=example,dc=com
+uniqueMember: uid=gauss,dc=example,dc=com
+uniqueMember: uid=test,dc=example,dc=com
+ou: mathematicians
+cn: Mathematicians
+objectClass: groupOfUniqueNames
+objectClass: top
+
+# scientists, example.com
+dn: ou=scientists,dc=example,dc=com
+uniqueMember: uid=einstein,dc=example,dc=com
+uniqueMember: uid=galileo,dc=example,dc=com
+uniqueMember: uid=tesla,dc=example,dc=com
+uniqueMember: uid=newton,dc=example,dc=com
+ou: scientists
+cn: Scientists
+objectClass: groupOfUniqueNames
+objectClass: top
+
+# italians, example.com
+dn: ou=italians,dc=example,dc=com
+uniqueMember: uid=galileo,dc=example,dc=com
+ou: italians
+cn: Italians
+objectClass: groupOfUniqueNames
+objectClass: top
+
+# chemists, example.com
+dn: ou=chemists,dc=example,dc=com
+ou: chemists
+objectClass: groupOfUniqueNames
+objectClass: top
+uniqueMember: uid=curie,dc=example,dc=com
+uniqueMember: uid=boyle,dc=example,dc=com
+uniqueMember: uid=nobel,dc=example,dc=com
+uniqueMember: uid=pasteur,dc=example,dc=com
+cn: Chemists

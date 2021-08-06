@@ -18,10 +18,10 @@ package org.apache.nifi.rules;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.jeasy.rules.support.JsonRuleDefinitionReader;
+import org.jeasy.rules.support.reader.JsonRuleDefinitionReader;
 import org.jeasy.rules.support.RuleDefinition;
-import org.jeasy.rules.support.RuleDefinitionReader;
-import org.jeasy.rules.support.YamlRuleDefinitionReader;
+import org.jeasy.rules.support.reader.RuleDefinitionReader;
+import org.jeasy.rules.support.reader.YamlRuleDefinitionReader;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 

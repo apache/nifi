@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <artifactId>minifi-c2-provider</artifactId>
         <groupId>org.apache.nifi.minifi</groupId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
     <artifactId>minifi-c2-provider-nifi-rest</artifactId>
     <packaging>jar</packaging>
@@ -39,7 +39,7 @@ limitations under the License.
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>2.8.7</version>
+            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>

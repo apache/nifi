@@ -20,6 +20,8 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
@@ -29,9 +31,13 @@ import org.apache.nifi.websocket.AbstractWebSocketSession;
 import org.apache.nifi.websocket.WebSocketClientService;
 import org.apache.nifi.websocket.WebSocketMessage;
 import org.apache.nifi.websocket.WebSocketSession;
+import org.apache.nifi.websocket.jetty.JettyWebSocketClient;
+import org.apache.nifi.websocket.jetty.JettyWebSocketServer;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.net.InetSocketAddress;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +57,9 @@ public class TestConnectWebSocket extends TestListenWebSocket {
     @Test
     public void testSuccess() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ConnectWebSocket.class);
-        final ConnectWebSocket processor = (ConnectWebSocket)runner.getProcessor();
+        runner.setIncomingConnection(false);
+
+        final ConnectWebSocket processor = (ConnectWebSocket) runner.getProcessor();
 
         final SharedSessionState sharedSessionState = new SharedSessionState(processor, new AtomicLong(0));
         // Use this custom session factory implementation so that createdSessions can be read from test case,
@@ -121,4 +129,63 @@ public class TestConnectWebSocket extends TestListenWebSocket {
         assertTrue(provenanceEvents.stream().allMatch(event -> ProvenanceEventType.RECEIVE.equals(event.getEventType())));
     }
 
+    @Test
+    public void testDynamicUrlsParsedFromFlowFileAndAbleToConnect() throws InitializationException {
+        // Start websocket server
+        final int port = NetworkUtils.availablePort();
+        TestRunner webSocketListener = getListenWebSocket(port);
+        webSocketListener.run(1, false);
+
+        final TestRunner runner = TestRunners.newTestRunner(ConnectWebSocket.class);
+
+        final String serviceId = "ws-service";
+        final String endpointId = "client-1";
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("dynamicUrlPart", "test");
+        MockFlowFile flowFile = new MockFlowFile(1L);
+        flowFile.putAttributes(attributes);
+        runner.enqueue(flowFile);
+
+        attributes.put("dynamicUrlPart", "test2");
+        MockFlowFile flowFileWithWrongUrl = new MockFlowFile(2L);
+        flowFileWithWrongUrl.putAttributes(attributes);
+        runner.enqueue(flowFileWithWrongUrl);
+
+        JettyWebSocketClient service = new JettyWebSocketClient();
+
+
+        runner.addControllerService(serviceId, service);
+        runner.setProperty(service, JettyWebSocketClient.WS_URI, String.format("ws://localhost:%s/${dynamicUrlPart}", port));
+        runner.enableControllerService(service);
+
+        runner.setProperty(ConnectWebSocket.PROP_WEBSOCKET_CLIENT_SERVICE, serviceId);
+        runner.setProperty(ConnectWebSocket.PROP_WEBSOCKET_CLIENT_ID, endpointId);
+
+        runner.run(1, false);
+
+        final List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ConnectWebSocket.REL_CONNECTED);
+        assertEquals(1, flowFilesForRelationship.size());
+
+        final AssertionError assertionError = Assert.assertThrows(AssertionError.class, () -> runner.run(1));
+        assertTrue(assertionError.getCause().getLocalizedMessage().contains("Failed to renew session and connect to WebSocket service"));
+
+        runner.stop();
+        webSocketListener.stop();
+    }
+
+    private TestRunner getListenWebSocket(final int port) throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(ListenWebSocket.class);
+
+        final String serviceId = "ws-server-service";
+        JettyWebSocketServer service = new JettyWebSocketServer();
+        runner.addControllerService(serviceId, service);
+        runner.setProperty(service, JettyWebSocketServer.LISTEN_PORT, String.valueOf(port));
+        runner.enableControllerService(service);
+
+        runner.setProperty(ListenWebSocket.PROP_WEBSOCKET_SERVER_SERVICE, serviceId);
+        runner.setProperty(ListenWebSocket.PROP_SERVER_URL_PATH, "/test");
+
+        return runner;
+    }
 }

@@ -402,8 +402,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
         }
         lastRunTimestamp = now;
 
-        final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
-
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
         try {
             final StateMap stateMap = session.getState(Scope.CLUSTER);
@@ -443,7 +441,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
         final Set<FileStatus> statuses;
         try {
-            final Path rootPath = new Path(directory);
+            final Path rootPath = getNormalizedPath(context, DIRECTORY);
             statuses = getStatuses(rootPath, recursive, hdfs, createPathFilter(context), fileFilterMode);
             getLogger().debug("Found a total of {} files in HDFS", new Object[] {statuses.size()});
         } catch (final IOException | IllegalArgumentException e) {
@@ -479,15 +477,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
             }
         }
 
-        final int listCount = listable.size();
-        if ( listCount > 0 ) {
-            getLogger().info("Successfully created listing with {} new files from HDFS", new Object[] {listCount});
-            session.commit();
-        } else {
-            getLogger().debug("There is no data to list. Yielding.");
-            context.yield();
-        }
-
         final Map<String, String> updatedState = new HashMap<>(1);
         updatedState.put(LISTING_TIMESTAMP_KEY, String.valueOf(latestTimestampListed));
         updatedState.put(EMITTED_TIMESTAMP_KEY, String.valueOf(latestTimestampEmitted));
@@ -497,6 +486,15 @@ public class ListHDFS extends AbstractHadoopProcessor {
             session.setState(updatedState, Scope.CLUSTER);
         } catch (final IOException ioe) {
             getLogger().warn("Failed to save cluster-wide state. If NiFi is restarted, data duplication may occur", ioe);
+        }
+
+        final int listCount = listable.size();
+        if ( listCount > 0 ) {
+            getLogger().info("Successfully created listing with {} new files from HDFS", new Object[] {listCount});
+            session.commitAsync();
+        } else {
+            getLogger().debug("There is no data to list. Yielding.");
+            context.yield();
         }
     }
 

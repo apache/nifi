@@ -244,7 +244,11 @@ public class NiFiClientUtil {
         while (true) {
             final ParameterContextUpdateRequestEntity entity = nifiClient.getParamContextClient().getParamContextUpdateRequest(contextId, requestId);
             if (entity.getRequest().isComplete()) {
-                return;
+                if (entity.getRequest().getFailureReason() == null) {
+                    return;
+                }
+
+                throw new RuntimeException("Parameter Context Update failed: " + entity.getRequest().getFailureReason());
             }
 
             Thread.sleep(100L);
@@ -461,13 +465,22 @@ public class NiFiClientUtil {
         }
     }
 
-    public ActivateControllerServicesEntity disableControllerServices(final String groupId) throws NiFiClientException, IOException {
+    public ActivateControllerServicesEntity disableControllerServices(final String groupId, final boolean recurse) throws NiFiClientException, IOException {
         final ActivateControllerServicesEntity activateControllerServicesEntity = new ActivateControllerServicesEntity();
         activateControllerServicesEntity.setId(groupId);
         activateControllerServicesEntity.setState(ActivateControllerServicesEntity.STATE_DISABLED);
 
         final ActivateControllerServicesEntity activateControllerServices = nifiClient.getFlowClient().activateControllerServices(activateControllerServicesEntity);
         waitForControllerSerivcesDisabled(groupId);
+
+        if (recurse) {
+            final ProcessGroupFlowEntity groupEntity = nifiClient.getFlowClient().getProcessGroup(groupId);
+            final FlowDTO flowDto = groupEntity.getProcessGroupFlow().getFlow();
+            for (final ProcessGroupEntity childGroupEntity : flowDto.getProcessGroups()) {
+                final String childGroupId = childGroupEntity.getId();
+                disableControllerServices(childGroupId, recurse);
+            }
+        }
 
         return activateControllerServices;
     }

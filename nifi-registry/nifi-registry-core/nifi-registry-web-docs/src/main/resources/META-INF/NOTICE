@@ -1,0 +1,14 @@
+nifi-web-docs
+Copyright 2014-2017 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (https://www.apache.org/).
+
+************************
+Common Development and Distribution License 1.1
+************************
+
+The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
+
+    (CDDL 1.1) (GPL2 w/ CPE) Java Servlet API  (javax.servlet:javax.servlet-api:jar:3.1.0 - https://servlet-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages Standard Tag Library  (javax.servlet.jsp.jstl:jstl:jar:1.2 - https://javaee.github.io/jstl-api/)

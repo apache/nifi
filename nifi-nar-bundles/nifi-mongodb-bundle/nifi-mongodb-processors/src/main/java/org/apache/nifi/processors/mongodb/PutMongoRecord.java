@@ -159,7 +159,6 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                 getLogger().info("Inserted {} records into MongoDB", new Object[]{ added });
             }
         }
-        session.commit();
     }
 
     private Document convertArrays(Document doc) {

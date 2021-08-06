@@ -41,6 +41,7 @@ import javax.xml.stream.XMLStreamWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
@@ -105,7 +106,8 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         this.allowWritingMultipleRecords = !(this.rootTagName == null);
         hasWrittenRecord = false;
 
-        final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
+        // Use DateFormat with default TimeZone to avoid unexpected conversion of year-month-day
+        final DateFormat df = dateFormat == null ? null : new SimpleDateFormat(dateFormat);
         final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
         final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
 

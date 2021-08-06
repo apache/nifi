@@ -231,31 +231,32 @@ public class PutHive3QL extends AbstractHive3QLProcessor {
 
                 final String hiveQL = hiveQLStr.trim();
                 if (!StringUtils.isEmpty(hiveQL)) {
-                    final PreparedStatement stmt = conn.prepareStatement(hiveQL);
+                    try (final PreparedStatement stmt = conn.prepareStatement(hiveQL)) {
 
-                    // Get ParameterMetadata
-                    // Hive JDBC Doesn't support this yet:
-                    // ParameterMetaData pmd = stmt.getParameterMetaData();
-                    // int paramCount = pmd.getParameterCount();
-                    int paramCount = StringUtils.countMatches(hiveQL, "?");
+                        // Get ParameterMetadata
+                        // Hive JDBC Doesn't support this yet:
+                        // ParameterMetaData pmd = stmt.getParameterMetaData();
+                        // int paramCount = pmd.getParameterCount();
+                        int paramCount = StringUtils.countMatches(hiveQL, "?");
 
-                    if (paramCount > 0) {
-                        loc = setParameters(loc, stmt, paramCount, flowFile.getAttributes());
+                        if (paramCount > 0) {
+                            loc = setParameters(loc, stmt, paramCount, flowFile.getAttributes());
+                        }
+
+                        // Parse hiveQL and extract input/output tables
+                        try {
+                            tableNames.addAll(findTableNames(hiveQL));
+                        } catch (Exception e) {
+                            // If failed to parse the query, just log a warning message, but continue.
+                            getLogger().warn("Failed to parse hiveQL: {} due to {}", new Object[]{hiveQL, e}, e);
+                        }
+
+                        stmt.setQueryTimeout(context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(flowFile).asInteger());
+
+                        // Execute the statement
+                        stmt.execute();
+                        fc.proceed();
                     }
-
-                    // Parse hiveQL and extract input/output tables
-                    try {
-                        tableNames.addAll(findTableNames(hiveQL));
-                    } catch (Exception e) {
-                        // If failed to parse the query, just log a warning message, but continue.
-                        getLogger().warn("Failed to parse hiveQL: {} due to {}", new Object[]{hiveQL, e}, e);
-                    }
-
-                    stmt.setQueryTimeout(context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(flowFile).asInteger());
-
-                    // Execute the statement
-                    stmt.execute();
-                    fc.proceed();
                 }
             }
 

@@ -67,8 +67,6 @@
      */
     var config = {
         urls: {
-            uiExtensionToken: '../nifi-api/access/ui-extension-token',
-            downloadToken: '../nifi-api/access/download-token'
         }
     };
 
@@ -247,33 +245,20 @@
     var downloadContent = function (flowFileSummary) {
         var dataUri = ((nfCommon.isDefinedAndNotNull(flowFileSummary.uri))?flowFileSummary.uri:$('#flowfile-uri').text())+ '/content';
 
-        // perform the request once we've received a token
-        nfCommon.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
-            var parameters = {};
+        var parameters = {};
 
-            // conditionally include the ui extension token
-            if (!nfCommon.isBlank(downloadToken)) {
-                parameters['access_token'] = downloadToken;
-            }
+        // conditionally include the cluster node id
+        var clusterNodeId = (nfCommon.isDefinedAndNotNull(flowFileSummary.clusterNodeId))?flowFileSummary.clusterNodeId:$('#flowfile-cluster-node-id').text();
+        if (!nfCommon.isBlank(clusterNodeId)) {
+            parameters['clusterNodeId'] = clusterNodeId;
+        }
 
-            // conditionally include the cluster node id
-            var clusterNodeId = (nfCommon.isDefinedAndNotNull(flowFileSummary.clusterNodeId))?flowFileSummary.clusterNodeId:$('#flowfile-cluster-node-id').text();
-            if (!nfCommon.isBlank(clusterNodeId)) {
-                parameters['clusterNodeId'] = clusterNodeId;
-            }
-
-            // open the url
-            if ($.isEmptyObject(parameters)) {
-                window.open(dataUri);
-            } else {
-                window.open(dataUri + '?' + $.param(parameters));
-            }
-        }).fail(function () {
-            nfDialog.showOkDialog({
-                headerText: 'Queue Listing',
-                dialogContent: 'Unable to generate access token for downloading content.'
-            });
-        });
+        // open the url
+        if ($.isEmptyObject(parameters)) {
+            window.open(dataUri);
+        } else {
+            window.open(dataUri + '?' + $.param(parameters));
+        }
     };
 
     /**
@@ -285,80 +270,37 @@
 
         var dataUri = ((nfCommon.isDefinedAndNotNull(flowFileSummary.uri))?flowFileSummary.uri:$('#flowfile-uri').text())+ '/content';
 
-        // generate tokens as necessary
-        var getAccessTokens = $.Deferred(function (deferred) {
-            if (nfStorage.hasItem('jwt')) {
-                // generate a token for the ui extension and another for the callback
-                var uiExtensionToken = $.ajax({
-                    type: 'POST',
-                    url: config.urls.uiExtensionToken
-                });
-                var downloadToken = $.ajax({
-                    type: 'POST',
-                    url: config.urls.downloadToken
-                });
+        var dataUriParameters = {};
 
-                // wait for each token
-                $.when(uiExtensionToken, downloadToken).done(function (uiExtensionTokenResult, downloadTokenResult) {
-                    var uiExtensionToken = uiExtensionTokenResult[0];
-                    var downloadToken = downloadTokenResult[0];
-                    deferred.resolve(uiExtensionToken, downloadToken);
-                }).fail(function () {
-                    nfDialog.showOkDialog({
-                        headerText: 'Queue Listing',
-                        dialogContent: 'Unable to generate access token for viewing content.'
-                    });
-                    deferred.reject();
-                });
-            } else {
-                deferred.resolve('', '');
-            }
-        }).promise();
+        // conditionally include the cluster node id
+        var clusterNodeId = (nfCommon.isDefinedAndNotNull(flowFileSummary.clusterNodeId))?flowFileSummary.clusterNodeId:$('#flowfile-cluster-node-id').text();
+        if (!nfCommon.isBlank(clusterNodeId)) {
+            dataUriParameters['clusterNodeId'] = clusterNodeId;
+        }
 
-        // perform the request after we've received the tokens
-        getAccessTokens.done(function (uiExtensionToken, downloadToken) {
-            var dataUriParameters = {};
+        // include parameters if necessary
+        if ($.isEmptyObject(dataUriParameters) === false) {
+            dataUri = dataUri + '?' + $.param(dataUriParameters);
+        }
 
-            // conditionally include the cluster node id
-            var clusterNodeId = (nfCommon.isDefinedAndNotNull(flowFileSummary.clusterNodeId))?flowFileSummary.clusterNodeId:$('#flowfile-cluster-node-id').text();
-            if (!nfCommon.isBlank(clusterNodeId)) {
-                dataUriParameters['clusterNodeId'] = clusterNodeId;
-            }
+        // open the content viewer
+        var contentViewerUrl = $('#nifi-content-viewer-url').text();
 
-            // include the download token if applicable
-            if (!nfCommon.isBlank(downloadToken)) {
-                dataUriParameters['access_token'] = downloadToken;
-            }
+        // if there's already a query string don't add another ?... this assumes valid
+        // input meaning that if the url has already included a ? it also contains at
+        // least one query parameter
+        if (contentViewerUrl.indexOf('?') === -1) {
+            contentViewerUrl += '?';
+        } else {
+            contentViewerUrl += '&';
+        }
 
-            // include parameters if necessary
-            if ($.isEmptyObject(dataUriParameters) === false) {
-                dataUri = dataUri + '?' + $.param(dataUriParameters);
-            }
+        var contentViewerParameters = {
+            'ref': dataUri
+        };
 
-            // open the content viewer
-            var contentViewerUrl = $('#nifi-content-viewer-url').text();
-
-            // if there's already a query string don't add another ?... this assumes valid
-            // input meaning that if the url has already included a ? it also contains at
-            // least one query parameter
-            if (contentViewerUrl.indexOf('?') === -1) {
-                contentViewerUrl += '?';
-            } else {
-                contentViewerUrl += '&';
-            }
-
-            var contentViewerParameters = {
-                'ref': dataUri
-            };
-
-            // include the download token if applicable
-            if (!nfCommon.isBlank(uiExtensionToken)) {
-                contentViewerParameters['access_token'] = uiExtensionToken;
-            }
-
-            // open the content viewer
-            window.open(contentViewerUrl + $.param(contentViewerParameters));
-        });
+        // open the content viewer
+        window.open(contentViewerUrl + $.param(contentViewerParameters));
     };
 
     /**

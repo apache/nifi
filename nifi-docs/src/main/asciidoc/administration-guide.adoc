@@ -84,15 +84,14 @@ The following table lists the default ports used by NiFi and the corresponding p
 [options="header,footer"]
 |==================================================================================================================================================
 | Function                        |  Property                             | Default Value
-|HTTP Port                        | `nifi.web.http.port`                  | `8080`
-|HTTPS Port*                      | `nifi.web.https.port`                 | `9443`
+|HTTPS Port                       | `nifi.web.https.port`                 | `8443`
 |Remote Input Socket Port*        | `nifi.remote.input.socket.port`       | `10443`
 |Cluster Node Protocol Port*      | `nifi.cluster.node.protocol.port`     | `11443`
 |Cluster Node Load Balancing Port | `nifi.cluster.node.load.balance.port` | `6342`
 |Web HTTP Forwarding Port         | `nifi.web.http.port.forwarding`       | _none_
 |==================================================================================================================================================
 
-NOTE: The ports marked with an asterisk (*) have property values that are blank by default in _nifi.properties_.  The values shown in the table are the default values for these ports when <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is used to generate _nifi.properties_ for a secured NiFi instance.  The default Certificate Authority Port used by <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is `8443`.
+NOTE: The ports marked with an asterisk (*) have property values that are blank by default in _nifi.properties_.  The values shown in the table are the default values for these ports when <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is used to generate _nifi.properties_ for a secured NiFi instance.  The default Certificate Authority Port used by <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is `9443`.
 
 === Embedded ZooKeeper
 The following table lists the default ports used by an <<embedded_zookeeper>> and the corresponding property in the _zookeeper.properties_ file.
@@ -140,8 +139,14 @@ Set how long sockets stay in a TIMED_WAIT state when closed::
 You don't want your sockets to sit and linger too long given that you want to be
 able to quickly setup and teardown new sockets.  It is a good idea to read more about
 it and adjust to something like
+
+for kernel 2.6
 ----
 sudo sysctl -w net.ipv4.netfilter.ip_conntrack_tcp_timeout_time_wait="1"
+----
+for kernel 3.0
+----
+sudo sysctl -w net.netfilter.nf_conntrack_tcp_timeout_time_wait="1"
 ----
 
 Tell Linux you never want NiFi to swap::
@@ -252,12 +257,12 @@ NiFi supports user authentication via client certificates, via username/password
 
 Username/password authentication is performed by a 'Login Identity Provider'. The Login Identity Provider is a pluggable mechanism for
 authenticating users via their username/password. Which Login Identity Provider to use is configured in the _nifi.properties_ file.
-Currently NiFi offers username/password with Login Identity Providers options for <<ldap_login_identity_provider>> and <<kerberos_login_identity_provider>>.
+Currently NiFi offers username/password with Login Identity Providers options for <<single_user_identity_provider>>, <<ldap_login_identity_provider>> and <<kerberos_login_identity_provider>>.
 
 The `nifi.login.identity.provider.configuration.file` property specifies the configuration file for Login Identity Providers.  By default, this property is set to `./conf/login-identity-providers.xml`.
 
 The `nifi.security.user.login.identity.provider` property indicates which of the configured Login Identity Provider should be
-used. By default, this property is not configured meaning that username/password must be explicitly enabled.
+used. The default value of this property is `single-user-provider` supporting authentication with a generated username and password.
 
 During OpenId Connect authentication, NiFi will redirect users to login with the Provider before returning to NiFi. NiFi will then
 call the Provider to obtain the user identity.
@@ -280,6 +285,37 @@ request is authenticated or rejected. In all three of these scenarios if the req
 authorization based on the requested resource.
 
 NOTE: NiFi does not perform user authentication over HTTP. Using HTTP, all users will be granted all roles.
+
+[[single_user_identity_provider]]
+=== Single User
+
+The default Single User Login Identity Provider supports automated generation of username and password credentials.
+
+The generated username will be a random UUID consisting of 36 characters. The generated password will be a random string
+consisting of 32 characters and stored using bcrypt hashing.
+
+The default configuration in _nifi.properties_ enables Single User authentication:
+
+----
+nifi.security.user.login.identity.provider=single-user-provider
+----
+
+The default _login-identity-providers.xml_ includes a blank provider definition:
+
+----
+<provider>
+   <identifier>single-user-provider</identifier>
+   <class>org.apache.nifi.authentication.single.user.SingleUserLoginIdentityProvider</class>
+   <property name="Username"/>
+   <property name="Password"/>
+</provider>
+----
+
+The following command can be used to change the Username and Password:
+
+```
+$ ./bin/nifi.sh set-single-user-credentials <username> <password>
+```
 
 [[ldap_login_identity_provider]]
 === Lightweight Directory Access Protocol (LDAP)
@@ -427,7 +463,7 @@ To enable authentication via SAML the following properties must be configured in
 |`nifi.security.user.saml.group.attribute.name`| The name of a SAML assertion attribute containing group names the user belongs to. This property is optional, but if populated the groups will be passed along to the authorization process.
 |`nifi.security.user.saml.metadata.signing.enabled`| Enables signing of the generated service provider metadata.
 |`nifi.security.user.saml.request.signing.enabled`| Controls the value of `AuthnRequestsSigned` in the generated service provider metadata from `nifi-api/access/saml/metadata`. This indicates that the service provider (i.e. NiFi) should not sign authentication requests sent to the identity provider, but the requests may still need to be signed if the identity provider indicates `WantAuthnRequestSigned=true`.
-|`nifi.security.user.saml.want.assertions.signed`| Controls the value of `WantAssertionsSigned` in the generated service provider metadata from `nifi-api/access/saml/metadata`. This indictaes that the identity provider should sign assertions, but some identity providers may provide their own configuration for controlling whether assertions are signed.
+|`nifi.security.user.saml.want.assertions.signed`| Controls the value of `WantAssertionsSigned` in the generated service provider metadata from `nifi-api/access/saml/metadata`. This indicates that the identity provider should sign assertions, but some identity providers may provide their own configuration for controlling whether assertions are signed.
 |`nifi.security.user.saml.signature.algorithm`| The algorithm to use when signing SAML messages. Reference the link:https://git.shibboleth.net/view/?p=java-xmltooling.git;a=blob;f=src/main/java/org/opensaml/xml/signature/SignatureConstants.java[Open SAML Signature Constants] for a list of valid values. If not specified, a default of SHA-256 will be used.
 |`nifi.security.user.saml.signature.digest.algorithm`| The digest algorithm to use when signing SAML messages. Reference the link:https://git.shibboleth.net/view/?p=java-xmltooling.git;a=blob;f=src/main/java/org/opensaml/xml/signature/SignatureConstants.java[Open SAML Signature Constants] for a list of valid values. If not specified, a default of SHA-256 will be used.
 |`nifi.security.user.saml.message.logging.enabled`| Enables logging of SAML messages for debugging purposes.
@@ -1729,7 +1765,7 @@ All options require a password (`nifi.sensitive.props.key` value) of *at least 1
 [[encrypt-config_tool]]
 == Encrypted Passwords in Configuration Files
 
-In order to facilitate the secure setup of NiFi, you can use the `encrypt-config` command line utility to encrypt raw configuration values that NiFi decrypts in memory on startup. This extensible protection scheme transparently allows NiFi to use raw values in operation, while protecting them at rest.  In the future, hardware security modules (HSM) and external secure storage mechanisms will be integrated, but for now, an AES encryption provider is the default implementation.
+In order to facilitate the secure setup of NiFi, you can use the `encrypt-config` command line utility to encrypt raw configuration values that NiFi decrypts in memory on startup. This extensible protection scheme transparently allows NiFi to use raw values in operation, while protecting them at rest.  In addition to the default AES encryption provider, a HashiCorp Vault encryption provider can be configured in the `bootstrap-hashicorp-vault.properties` file.
 
 This is a change in behavior; prior to 1.0, all configuration values were stored in plaintext on the file system. POSIX file permissions were recommended to limit unauthorized access to these files.
 
@@ -1767,7 +1803,7 @@ ZooKeeper) as the Cluster Coordinator. All nodes in the cluster will then send h
 to this node, and this node is responsible for disconnecting nodes that do not report any heartbeat status
 for some amount of time. Additionally, when a new node elects to join the cluster, the new node must first
 connect to the currently-elected Cluster Coordinator in order to obtain the most up-to-date flow. If the Cluster
-Coordinator determines that the node is allowed to join (based on its configured Firewall file), the current
+Coordinator determines that the node is allowed to join (based on its configured <<cluster_firewall_configuration,Firewall>> file), the current
 flow is provided to that node, and that node is able to join the cluster, assuming that the node's copy of the
 flow matches the copy provided by the Cluster Coordinator. If the node's version of the flow configuration differs
 from that of the Cluster Coordinator's, the node will not join the cluster.
@@ -1966,6 +2002,32 @@ Now, it is possible to start up the cluster. It does not matter which order the 
 one of the nodes, and the User Interface should look similar to the following:
 
 image:ncm.png["Clustered User Interface"]
+
+[[cluster_firewall_configuration]]
+=== Cluster Firewall Configuration
+
+NiFi clustering supports network access restrictions using a custom firewall configuration.
+The `nifi.cluster.firewall.file` property can be configured with a path to a file containing hostnames, IP addresses, or
+subnets of permitted nodes. The Cluster Coordinator uses the configuration to determine whether to accept or reject
+heartbeats and connection requests from potential cluster members.
+
+The configuration file format expects one entry per line and ignores lines beginning with the `#` character. NiFi uses
+standard Java host name resolution to convert names to IP addresses. Java host name resolution leverages a combination
+of local machine configuration and network services, such as DNS. The configuration file supports IPv4 addresses or subnet
+ranges using CIDR notation. The following example cluster firewall configuration includes a combination of supported entries:
+
+----
+# Cluster Node Hostnames
+nifi0.example.com
+nifi1.example.com
+nifi3.example.com
+# Cluster Node Addresses
+192.168.0.1
+192.168.0.2
+192.168.0.3
+# Cluster Subnet Address
+192.168.0.0/29 # Address Range from 192.168.0.1 to 192.168.0.6
+----
 
 === Troubleshooting
 
@@ -2429,6 +2491,7 @@ take effect only after NiFi has been stopped and restarted.
 |`java`|Specifies the fully qualified java command to run. By default, it is simply `java` but could be changed to an absolute path or a reference an environment variable, such as `$JAVA_HOME/bin/java`
 |`run.as`|The username to run NiFi as. For instance, if NiFi should be run as the `nifi` user, setting this value to `nifi` will cause the NiFi Process to be run as the `nifi` user.
         This property is ignored on Windows. For Linux, the specified user may require sudo permissions.
+|`preserve.environment`|Whether or not to preserve shell environment while using `run.as` (see "sudo -E" man page). By default, this is set to false.
 |`lib.dir`|The _lib_ directory to use for NiFi. By default, this is set to `./lib`
 |`conf.dir`|The _conf_ directory to use for NiFi. By default, this is set to `./conf`
 |`graceful.shutdown.seconds`|When NiFi is instructed to shutdown, the Bootstrap will wait this number of seconds for the process to shutdown cleanly. At this amount of time,
@@ -2828,8 +2891,9 @@ NOTE: Unlike the encrypted content and provenance repositories, the repository i
 
 |====
 |*Property*|*Description*
-|`nifi.flowfile.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the content claims. There are currently two implementations -- `StaticKeyProvider` which reads a key directly from _nifi.properties_, and `FileBasedKeyProvider` which reads *n* many keys from an encrypted file. The interface is extensible, and HSM-backed or other providers are expected in the future.
+|`nifi.flowfile.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the content claims. There are currently three implementations: `StaticKeyProvider` which reads a key directly from _nifi.properties_, `FileBasedKeyProvider` which reads keys from an encrypted file, and `KeyStoreKeyProvider` which reads keys from a standard `java.security.KeyStore`.
 |`nifi.flowfile.repository.encryption.key.provider.location`|The path to the key definition resource (empty for `StaticKeyProvider`, `./keys.nkp` or similar path for `FileBasedKeyProvider`). For future providers like an HSM, this may be a connection string or URL.
+|`nifi.flowfile.repository.encryption.key.provider.password`|The password used for decrypting the key definition resource, such as the keystore for `KeyStoreKeyProvider`.
 |`nifi.flowfile.repository.encryption.key.id`|The active key ID to use for encryption (e.g. `Key1`).
 |`nifi.flowfile.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
 |`nifi.flowfile.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.flowfile.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
@@ -2960,7 +3024,9 @@ available again. These properties govern how that process occurs.
 
 |====
 |*Property*|*Description*
-|`nifi.swap.manager.implementation`|The Swap Manager implementation. The default value is `org.apache.nifi.controller.FileSystemSwapManager` and should not be changed.
+|`nifi.swap.manager.implementation`| The Swap Manager implementation. The default value is `org.apache.nifi.controller.FileSystemSwapManager`.
+There is an alternate implementation, `EncryptedFileSystemSwapManager`, that encrypts the swap file content on
+disk.  The encryption key configured for the FlowFile repository is used to perform the encryption, using the AES-GCM algorithm.
 |`nifi.queue.swap.threshold`|The queue threshold at which NiFi starts to swap FlowFile information to disk. The default value is `20000`.
 |====
 
@@ -3008,8 +3074,9 @@ All of the properties defined above (see <<file-system-content-repository-proper
 
 |====
 |*Property*|*Description*
- |`nifi.content.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the content claims. There are currently two implementations -- `StaticKeyProvider` which reads a key directly from _nifi.properties_, and `FileBasedKeyProvider` which reads *n* many keys from an encrypted file. The interface is extensible, and HSM-backed or other providers are expected in the future.
+ |`nifi.content.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the content claims. There are currently three implementations: `StaticKeyProvider` which reads a key directly from _nifi.properties_, `FileBasedKeyProvider` which reads keys from an encrypted file, and `KeyStoreKeyProvider` which reads keys from a standard `java.security.KeyStore`.
  |`nifi.content.repository.encryption.key.provider.location`|The path to the key definition resource (empty for `StaticKeyProvider`, `./keys.nkp` or similar path for `FileBasedKeyProvider`). For future providers like an HSM, this may be a connection string or URL.
+ |`nifi.content.repository.encryption.key.provider.password`|The password used for decrypting the key definition resource, such as the keystore for `KeyStoreKeyProvider`.
  |`nifi.content.repository.encryption.key.id`|The active key ID to use for encryption (e.g. `Key1`).
  |`nifi.content.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
  |`nifi.content.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.content.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
@@ -3134,8 +3201,9 @@ All of the properties defined above (see <<write-ahead-provenance-repository-pro
 
 |====
 |*Property*|*Description*
- |`nifi.provenance.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the provenance events. There are currently two implementations -- `StaticKeyProvider` which reads a key directly from _nifi.properties_, and `FileBasedKeyProvider` which reads *n* many keys from an encrypted file. The interface is extensible, and HSM-backed or other providers are expected in the future.
+ |`nifi.provenance.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the provenance events. There are currently three implementations: `StaticKeyProvider` which reads a key directly from _nifi.properties_, `FileBasedKeyProvider` which reads keys from an encrypted file, and `KeyStoreKeyProvider` which reads keys from a standard `java.security.KeyStore`.
  |`nifi.provenance.repository.encryption.key.provider.location`|The path to the key definition resource (empty for `StaticKeyProvider`, `./keys.nkp` or similar path for `FileBasedKeyProvider`). For future providers like an HSM, this may be a connection string or URL.
+ |`nifi.provenance.repository.encryption.key.provider.password`|The password used for decrypting the key definition resource, such as the keystore for `KeyStoreKeyProvider`.
  |`nifi.provenance.repository.encryption.key.id`|The active key ID to use for encryption (e.g. `Key1`).
  |`nifi.provenance.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
  |`nifi.provenance.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.provenance.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
@@ -3513,8 +3581,8 @@ These properties pertain to the web-based User Interface.
 
 |====
 |*Property*|*Description*
-|`nifi.web.http.host`|The HTTP host. The default value is `127.0.0.1`.
-|`nifi.web.http.port`|The HTTP port. The default value is `8080`.
+|`nifi.web.http.host`|The HTTP host. The default value is blank.
+|`nifi.web.http.port`|The HTTP port. The default value is blank.
 |`nifi.web.http.port.forwarding`|The port which forwards incoming HTTP requests to `nifi.web.http.host`. This property is designed to be used with 'port forwarding', when NiFi has to be started by a non-root user for better security, yet it needs to be accessed via low port to go through a firewall. For example, to expose NiFi via HTTP protocol on port 80, but actually listening on port 8080, you need to configure OS level port forwarding such as `iptables` (Linux/Unix) or `pfctl` (macOS) that redirects requests from 80 to 8080. Then set `nifi.web.http.port` as 8080, and `nifi.web.http.port.forwarding` as 80. It is blank by default.
 |`nifi.web.http.network.interface`*|The name of the network interface to which NiFi should bind for HTTP requests. It is blank by default. +
  +
@@ -3526,8 +3594,8 @@ For example, to provide two additional network interfaces, a user could also spe
 `nifi.web.http.network.interface.eth1=eth1` +
  +
 Providing three total network interfaces, including  `nifi.web.http.network.interface.default`.
-|`nifi.web.https.host`|The HTTPS host. It is blank by default.
-|`nifi.web.https.port`|The HTTPS port. It is blank by default. When configuring NiFi to run securely, this port should be configured.
+|`nifi.web.https.host`|The HTTPS host. The default value is `127.0.0.1`.
+|`nifi.web.https.port`|The HTTPS port. The default value is `8443`.
 |`nifi.web.https.port.forwarding`|Same as `nifi.web.http.port.forwarding`, but with HTTPS for secure communication. It is blank by default.
 |`nifi.web.https.ciphersuites.include`|Cipher suites used to initialize the SSLContext of the Jetty HTTPS port.  If unspecified, the runtime SSLContext defaults are used.
 |`nifi.web.https.ciphersuites.exclude`|Cipher suites that may not be used by an SSL client to establish a connection to Jetty.  If unspecified, the runtime SSLContext defaults are used.
@@ -3557,6 +3625,7 @@ host[:port] that NiFi is bound to.
 blank meaning all requests containing a proxy context path are rejected. Configuring this property would allow requests where the proxy path is contained in this listing.
 |`nifi.web.max.content.size`|The maximum size (HTTP `Content-Length`) for PUT and POST requests. No default value is set for backward compatibility. Providing a value for this property enables the `Content-Length` filter on all incoming API requests (except Site-to-Site and cluster communications). A suggested value is `20 MB`.
 |`nifi.web.max.requests.per.second`|The maximum number of requests from a connection per second. Requests in excess of this are first delayed, then throttled.
+|`nifi.web.max.access.token.requests.per.second`|The maximum number of requests for login Access Tokens from a connection per second. Requests in excess of this are rejected with HTTP 429.
 |`nifi.web.request.ip.whitelist`|A comma separated list of IP addresses. Used to specify the IP addresses of clients which can exceed the maximum requests per second (`nifi.web.max.requests.per.second`). Does not apply to web request timeout.
 |`nifi.web.request.timeout`|The request timeout for web requests. Requests running longer than this time will be forced to end with a HTTP 503 Service Unavailable response. Default value is `60 secs`.
 |====
@@ -3570,7 +3639,7 @@ These properties pertain to various security features in NiFi. Many of these pro
 |====
 |*Property*|*Description*
 |`nifi.sensitive.props.key`|This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
-|`nifi.sensitive.props.algorithm`|The algorithm used to encrypt sensitive properties. The default value is `PBEWITHMD5AND256BITAES-CBC-OPENSSL`.
+|`nifi.sensitive.props.algorithm`|The algorithm used to encrypt sensitive properties. The default value is `NIFI_PBKDF2_AES_GCM_256`.
 |`nifi.sensitive.props.provider`|The sensitive property provider. The default value is `BC`.
 |`nifi.sensitive.props.additional.keys`|The comma separated list of properties in _nifi.properties_ to encrypt in addition to the default sensitive properties (see <<encrypt-config_tool>>).
 |`nifi.security.autoreload.enabled`|Specifies whether the SSL context factory should be automatically reloaded if updates to the keystore and truststore are detected. By default, it is set to `false`.
@@ -3654,7 +3723,7 @@ the connection a failure. The default value is `5 secs`.
 from the remote node before considering the communication with the node a failure. The default value is `5 secs`.
 |`nifi.cluster.node.max.concurrent.requests`|The maximum number of outstanding web requests that can be replicated to nodes in the cluster. If this number of requests is exceeded, the embedded Jetty server will return a "409: Conflict" response.  This property defaults to `100`.
 |`nifi.cluster.firewall.file`|The location of the node firewall file. This is a file that may be used to list all the nodes that are allowed to connect
-to the cluster. It provides an additional layer of security. This value is blank by default, meaning that no firewall file is to be used.
+to the cluster. It provides an additional layer of security. This value is blank by default, meaning that no firewall file is to be used. See <<cluster_firewall_configuration>> for file format details.
 |`nifi.cluster.flow.election.max.wait.time`|Specifies the amount of time to wait before electing a Flow as the "correct" Flow. If the number of Nodes that have voted is equal to the number specified
  by the `nifi.cluster.flow.election.max.candidates` property, the cluster will not wait this long. The default value is `5 mins`. Note that the time starts as soon as the first vote is cast.
 |`nifi.cluster.flow.election.max.candidates`|Specifies the number of Nodes required in the cluster to cause early election of Flows. This allows the Nodes in the cluster to avoid having to wait a
@@ -3728,6 +3797,22 @@ These properties determine the behavior of the internal NiFi predictive analytic
 |`nifi.analytics.connection.model.implementation`|The implementation class for the status analytics model used to make connection predictions.  The default value is `org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares`.
 |`nifi.analytics.connection.model.score.name`|The name of the scoring type that should be used to evaluate the model.  The default value is `rSquared`.
 |`nifi.analytics.connection.model.score.threshold`|The threshold for the scoring value (where model score should be above given threshold).  The default value is `.90`.
+
+|====
+
+[[runtime_monitoring_properties]]
+=== Runtime Monitoring Properties
+
+Long-Running Task Monitor periodically checks the NiFi processor executor threads and produces warning logs and bulletin messages for those that have been running for a longer period of time.
+It can be used to detect possibly stuck / hanging processor tasks.
+Please note the performance impact of the task monitor: it creates a thread dump for every run that may affect the normal flow execution.
+The Long-Running Task Monitor can be disabled via defining no values for its properties, and it is disabled by default.
+To enable it, both `nifi.monitor.long.running.task.schedule` and `nifi.monitor.long.running.task.threshold` properties need to be configured with valid time periods.
+
+|====
+|*Property*|*Description*
+|`nifi.monitor.long.running.task.schedule`|The time period between successive executions of the Long-Running Task Monitor (e.g. `1 min`).
+|`nifi.monitor.long.running.task.threshold`|The time period beyond which a task is considered long-running, i.e. stuck / hanging (e.g. `5 mins`).
 
 |====
 
@@ -3926,6 +4011,18 @@ where:
 
 For more information see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the NiFi Toolkit Guide.
 
+==== Updating the Sensitive Properties Key
+
+Starting with version 1.14.0, NiFi requires a value for 'nifi.sensitive.props.key' in _nifi.properties_.
+
+The following command can be used to read an existing _flow.xml.gz_ configuration and set a new sensitive properties key in _nifi.properties_:
+
+```
+$ ./bin/nifi.sh set-sensitive-properties-key <sensitivePropertiesKey>
+```
+
+The minimum required length for a new sensitive properties key is 12 characters.
+
 === Start New NiFi
 
 In your new NiFi installation:
@@ -3999,3 +4096,43 @@ Now, we must place our custom processor nar in the configured directory. The con
 Ensure that the file has appropriate permissions for the nifi user and group.
 
 Refresh the browser page and the custom processor should now be available when adding a new Processor to your flow.
+
+=== NAR Providers
+
+NiFi supports fetching NAR files for the autoloading feature from external sources. This can be achieved by using NAR Providers. A NAR Provider serves as a connector between an external data store
+and NiFi.
+
+When configured, a NAR Provider polls the external source for available NAR files and offers them to the framework. The framework then fetches new NAR files and copies them to
+the `nifi.nar.library.autoload.directory` for autoloading.
+
+NAR Provider can be configured by adding the `nifi.nar.library.provider.<providerName>.implementation` property with value containing the proper implementation class. Some implementations might need
+further properties. These are defined by the implementation and must be prefixed with `nifi.nar.library.provider.<providerName>.`.
+
+The `<providerName>` is arbitrary and serves to correlate multiple properties together for a single provider. Multiple providers might be set, with different `<providerName>`. Currently NiFi supports HDFS based NAR provider.
+
+==== HDFS NAR Provider
+
+This implementation is capable of downloading NAR files from an HDFS file system.
+
+The value of the `nifi.nar.library.provider.<providerName>.implementation` must be `org.apache.nifi.nar.hadoop.HDFSNarProvider`. The following further properties are defined by the provider:
+
+[options="header"]
+|===
+| Name                       |  Description
+| resources                  |  List of HDFS resources, separated by comma.
+| source.directory           |  The source directory of NAR files within HDFS. Note: the provider does not check for files recursively.
+| storage.location           |  Optional. If set the storage location defined in the core-site.xml will be overwritten by this value.
+| kerberos.principal         |  Optional. Kerberos principal to authenticate as.
+| kerberos.keytab            |  Optional. Kerberos keytab associated with the principal.
+| kerberos.password          |  Optional. Kerberos password associated with the principal.
+|===
+
+Example configuration:
+
+   nifi.nar.library.provider.hdfs1.implementation=org.apache.nifi.nar.hadoop.HDFSNarProvider
+   nifi.nar.library.provider.hdfs1.resources=/etc/hadoop/core-site.xml
+   nifi.nar.library.provider.hdfs1.source.directory=/customNars
+
+   nifi.nar.library.provider.hdfs2.implementation=org.apache.nifi.nar.hadoop.HDFSNarProvider
+   nifi.nar.library.provider.hdfs2.resources=/etc/hadoop/core-site.xml
+   nifi.nar.library.provider.hdfs2.source.directory=/other/dir/for/customNars

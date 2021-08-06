@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -47,7 +48,6 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -61,13 +61,13 @@ public class TestAvroReaderWithEmbeddedSchema {
 
 
     @Test
-    public void testLogicalTypes() throws IOException, ParseException, MalformedRecordException, SchemaNotFoundException {
+    public void testLogicalTypes() throws IOException, ParseException, MalformedRecordException {
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/logical-types.avsc"));
         testLogicalTypes(schema);
     }
 
     @Test
-    public void testNullableLogicalTypes() throws IOException, ParseException, MalformedRecordException, SchemaNotFoundException {
+    public void testNullableLogicalTypes() throws IOException, ParseException, MalformedRecordException {
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/logical-types-nullable.avsc"));
         testLogicalTypes(schema);
     }
@@ -75,6 +75,7 @@ public class TestAvroReaderWithEmbeddedSchema {
     private void testLogicalTypes(Schema schema) throws ParseException, IOException, MalformedRecordException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
+        final int epochDay = 17260;
         final String expectedTime = "2017-04-04 14:20:33.000";
         final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
         df.setTimeZone(TimeZone.getTimeZone("gmt"));
@@ -95,7 +96,7 @@ public class TestAvroReaderWithEmbeddedSchema {
             record.put("timeMicros", millisSinceMidnight * 1000L);
             record.put("timestampMillis", timeLong);
             record.put("timestampMicros", timeLong * 1000L);
-            record.put("date", 17260);
+            record.put("date", epochDay);
             record.put("decimal", ByteBuffer.wrap(bigDecimal.unscaledValue().toByteArray()));
 
             writer.append(record);
@@ -120,15 +121,15 @@ public class TestAvroReaderWithEmbeddedSchema {
             assertEquals(new java.sql.Time(millisSinceMidnight), record.getValue("timeMicros"));
             assertEquals(new java.sql.Timestamp(timeLong), record.getValue("timestampMillis"));
             assertEquals(new java.sql.Timestamp(timeLong), record.getValue("timestampMicros"));
-            final DateFormat noTimeOfDayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            noTimeOfDayDateFormat.setTimeZone(TimeZone.getTimeZone("gmt"));
-            assertEquals(noTimeOfDayDateFormat.format(new java.sql.Date(timeLong)), noTimeOfDayDateFormat.format(record.getValue("date")));
+
+            final Object date = record.getValue("date");
+            assertEquals(LocalDate.ofEpochDay(epochDay).toString(), date.toString());
             assertEquals(bigDecimal, record.getValue("decimal"));
         }
     }
 
     @Test
-    public void testDataTypes() throws IOException, MalformedRecordException, SchemaNotFoundException {
+    public void testDataTypes() throws IOException, MalformedRecordException {
         final List<Field> accountFields = new ArrayList<>();
         accountFields.add(new Field("accountId", Schema.create(Type.LONG), null, (Object) null));
         accountFields.add(new Field("accountName", Schema.create(Type.STRING), null, (Object) null));
@@ -291,7 +292,7 @@ public class TestAvroReaderWithEmbeddedSchema {
     }
 
     @Test
-    public void testMultipleTypes() throws IOException, ParseException, MalformedRecordException, SchemaNotFoundException {
+    public void testMultipleTypes() throws IOException, MalformedRecordException {
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/multiple-types.avsc"));
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 

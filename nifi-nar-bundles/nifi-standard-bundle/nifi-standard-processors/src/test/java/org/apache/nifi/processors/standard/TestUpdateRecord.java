@@ -115,6 +115,21 @@ public class TestUpdateRecord {
     }
 
     @Test
+    public void testRecordPathReplacementWithFilterFunctionCall() {
+        runner.setProperty("/hasAge", "not(isEmpty(/age))");
+        runner.setProperty(UpdateRecord.REPLACEMENT_VALUE_STRATEGY, UpdateRecord.RECORD_PATH_VALUES.getValue());
+        runner.enqueue("");
+
+        readerService.addRecord("John Doe", 35);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0);
+        out.assertContentEquals("header\nJohn Doe,35,true\n");
+
+    }
+
+    @Test
     public void testInvalidRecordPathUsingExpressionLanguage() {
         runner.setProperty("/name", "${recordPath}");
         runner.setProperty(UpdateRecord.REPLACEMENT_VALUE_STRATEGY, UpdateRecord.RECORD_PATH_VALUES.getValue());

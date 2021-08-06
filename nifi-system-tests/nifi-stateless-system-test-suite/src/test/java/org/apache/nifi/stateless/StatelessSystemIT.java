@@ -23,12 +23,14 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.stateless.bootstrap.StatelessBootstrap;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
+import org.apache.nifi.stateless.config.ParameterProviderDefinition;
 import org.apache.nifi.stateless.config.ReportingTaskDefinition;
 import org.apache.nifi.stateless.config.SslContextDefinition;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
+import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -56,7 +58,7 @@ public class StatelessSystemIT {
     public TestName name = new TestName();
 
     @Rule
-    public Timeout defaultTimeout = new Timeout(30, TimeUnit.SECONDS);
+    public Timeout defaultTimeout = new Timeout(30, TimeUnit.MINUTES);
 
 
     @Before
@@ -129,7 +131,18 @@ public class StatelessSystemIT {
     }
 
     protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts, final Set<String> failurePortNames)
-        throws IOException, StatelessConfigurationException {
+                    throws IOException, StatelessConfigurationException {
+        return loadDataflow(versionedFlowSnapshot, parameterContexts, failurePortNames, TransactionThresholds.SINGLE_FLOWFILE);
+    }
+
+    protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts, final Set<String> failurePortNames,
+                                             final TransactionThresholds transactionThresholds) throws IOException, StatelessConfigurationException {
+        return loadDataflow(versionedFlowSnapshot, parameterContexts, Collections.emptyList(), failurePortNames, transactionThresholds);
+    }
+
+    protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts,
+                                             final List<ParameterProviderDefinition> parameterProviderDefinitions, final Set<String> failurePortNames,
+                                             final TransactionThresholds transactionThresholds) throws IOException, StatelessConfigurationException {
 
         final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition = new DataflowDefinition<VersionedFlowSnapshot>() {
             @Override
@@ -154,12 +167,23 @@ public class StatelessSystemIT {
 
             @Override
             public List<ReportingTaskDefinition> getReportingTaskDefinitions() {
-                return Collections.emptyList();
+            return Collections.emptyList();
+        }
+
+            @Override
+            public List<ParameterProviderDefinition> getParameterProviderDefinitions() {
+                return parameterProviderDefinitions;
+            }
+
+            @Override
+            public TransactionThresholds getTransactionThresholds() {
+                return transactionThresholds;
             }
         };
 
         final StatelessBootstrap bootstrap = StatelessBootstrap.bootstrap(getEngineConfiguration());
-        final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition, Collections.emptyList());
+        final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition);
+        dataflow.initialize();
 
         createdFlows.add(dataflow);
         return dataflow;

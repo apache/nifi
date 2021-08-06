@@ -119,7 +119,7 @@ public abstract class NiFiSystemIT {
 
     protected void destroyFlow() throws NiFiClientException, IOException {
         getClientUtil().stopProcessGroupComponents("root");
-        getClientUtil().disableControllerServices("root");
+        getClientUtil().disableControllerServices("root", true);
         getClientUtil().stopTransmitting("root");
         getClientUtil().deleteAll("root");
     }
@@ -307,6 +307,7 @@ public abstract class NiFiSystemIT {
         try {
             return getNifiClient().getFlowClient().getConnectionStatus(connectionId, true);
         } catch (final Exception e) {
+            e.printStackTrace();
             Assert.fail("Failed to obtain connection status");
             return null;
         }

@@ -19,11 +19,14 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-email-bundle</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-email-processors</artifactId>
     <packaging>jar</packaging>
+    <properties>
+        <spring.integration.version>5.5.2</spring.integration.version>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -33,7 +36,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>javax.mail</groupId>
@@ -88,7 +91,7 @@
         <dependency>
             <groupId>org.springframework.integration</groupId>
             <artifactId>spring-integration-mail</artifactId>
-            <version>4.3.24.RELEASE</version>
+            <version>${spring.integration.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework.retry</groupId>
@@ -97,14 +100,9 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>commons-logging</groupId>
-            <artifactId>commons-logging</artifactId>
-            <version>1.2</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-scratchpad</artifactId>
-            <version>4.0.1</version>
+            <version>5.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -114,7 +112,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>

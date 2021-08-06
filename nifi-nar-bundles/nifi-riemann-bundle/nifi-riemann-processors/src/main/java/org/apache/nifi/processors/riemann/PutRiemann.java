@@ -316,11 +316,9 @@ public class PutRiemann extends AbstractProcessor {
       }
       riemannClient.flush();
       session.transfer(successfulFlowFiles, REL_SUCCESS);
-      session.commit();
     } catch (Exception e) {
       context.yield();
       session.transfer(incomingFlowFiles);
-      session.commit();
       throw new ProcessException("Failed writing to Riemann\n" + e.getMessage());
     }
   }

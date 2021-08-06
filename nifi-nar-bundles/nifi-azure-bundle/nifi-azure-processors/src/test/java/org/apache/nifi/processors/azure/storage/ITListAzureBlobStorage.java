@@ -20,7 +20,6 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Before;
 import org.junit.Test;
-
 import java.util.concurrent.TimeUnit;
 
 public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
@@ -34,11 +33,11 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
     public void setUp() throws Exception {
         uploadTestBlob();
 
-        Thread.sleep(ListAzureBlobStorage.LISTING_LAG_MILLIS.get(TimeUnit.SECONDS));
+        Thread.sleep(ListAzureBlobStorage.LISTING_LAG_MILLIS.get(TimeUnit.SECONDS) * 2);
     }
 
     @Test
-    public void testListBlobs() {
+    public void testListBlobs() throws Exception {
         runner.assertValid();
         runner.run(1);
 
@@ -60,7 +59,7 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
         runner.assertAllFlowFilesTransferred(ListAzureBlobStorage.REL_SUCCESS, 1);
 
         for (MockFlowFile entry : runner.getFlowFilesForRelationship(ListAzureBlobStorage.REL_SUCCESS)) {
-            entry.assertAttributeEquals("azure.length", "10");
+            entry.assertAttributeEquals("azure.length", "36");
             entry.assertAttributeEquals("mime.type", "application/octet-stream");
         }
     }

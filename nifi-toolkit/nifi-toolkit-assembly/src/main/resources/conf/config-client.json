@@ -3,7 +3,7 @@
   "keyStoreType" : "jks",
   "token" : "myTestTokenUseSomethingStronger",
   "dn" : "CN=otherHostname,OU=NIFI",
-  "port" : 8443,
+  "port" : 9443,
   "caHostname" : "localhost",
   "trustStore" : "clientTrustStore",
   "trustStoreType" : "jks",

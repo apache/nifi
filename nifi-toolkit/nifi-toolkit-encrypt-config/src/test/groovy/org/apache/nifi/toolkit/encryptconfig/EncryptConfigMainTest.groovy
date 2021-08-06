@@ -16,8 +16,11 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
-import org.apache.nifi.properties.AESSensitivePropertyProvider
+
 import org.apache.nifi.properties.NiFiPropertiesLoader
+import org.apache.nifi.properties.PropertyProtectionScheme
+import org.apache.nifi.properties.ProtectedPropertyContext
+import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -181,7 +184,8 @@ class EncryptConfigMainTest extends GroovyTestCase {
                 "-k", TestUtil.KEY_HEX,
                 "-v"]
 
-        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(TestUtil.KEY_HEX)
+        SensitivePropertyProvider spp = org.apache.nifi.properties.StandardSensitivePropertyProviderFactory.withKey(TestUtil.KEY_HEX)
+                .getProvider(PropertyProtectionScheme.AES_GCM)
 
         exit.checkAssertionAfterwards(new Assertion() {
             void checkAssertion() {
@@ -218,7 +222,7 @@ class EncryptConfigMainTest extends GroovyTestCase {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
                 lipEncryptedValues.each {
-                    assert spp.unprotect(it.text()) == TestUtil.PASSWORD
+                    assert spp.unprotect((String) it.text(), ProtectedPropertyContext.defaultContext((String) it.@name)) == TestUtil.PASSWORD
                 }
                 // Check that the comments are still there
                 def lipTrimmedLines = inputLIPFile.readLines().collect { it.trim() }.findAll { it }
@@ -242,7 +246,7 @@ class EncryptConfigMainTest extends GroovyTestCase {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
                 authorizersEncryptedValues.each {
-                    assert spp.unprotect(it.text()) == TestUtil.PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) ProtectedPropertyContext.defaultContext((String) it.@name)) == TestUtil.PASSWORD
                 }
                 // Check that the comments are still there
                 def authorizersTrimmedLines = inputAuthorizersFile.readLines().collect { it.trim() }.findAll { it }

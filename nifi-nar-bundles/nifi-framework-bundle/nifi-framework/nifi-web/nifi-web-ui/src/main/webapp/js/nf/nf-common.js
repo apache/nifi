@@ -852,11 +852,11 @@
         /**
          * Shows the logout link if appropriate.
          */
-        showLogoutLink: function () {
-            if (nfStorage.getItem('jwt') === null) {
-                $('#user-logout-container').css('display', 'none');
-            } else {
+        updateLogoutLink: function () {
+            if (nfStorage.getItem('jwt') !== null) {
                 $('#user-logout-container').css('display', 'block');
+            } else {
+                $('#user-logout-container').css('display', 'none');
             }
         },
 
@@ -1193,29 +1193,6 @@
             } else {
                 $('#' + domId).removeClass('pointer');
             }
-        },
-
-        /**
-         * Gets an access token from the specified url.
-         *
-         * @param accessTokenUrl    The access token
-         * @returns the access token as a deferred
-         */
-        getAccessToken: function (accessTokenUrl) {
-            return $.Deferred(function (deferred) {
-                if (nfStorage.hasItem('jwt')) {
-                    $.ajax({
-                        type: 'POST',
-                        url: accessTokenUrl
-                    }).done(function (token) {
-                        deferred.resolve(token);
-                    }).fail(function () {
-                        deferred.reject();
-                    })
-                } else {
-                    deferred.resolve('');
-                }
-            }).promise();
         },
 
         /**

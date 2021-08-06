@@ -465,7 +465,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                         logger.info("content not retrieved because server returned HTTP Status Code {}: Not Modified", new Object[]{NOT_MODIFIED});
                         context.yield();
                         // doing a commit in case there were flow files in the input queue
-                        session.commit();
+                        session.commitAsync();
                         return;
                     }
                     final String statusExplanation = response.getStatusLine().getReasonPhrase();
@@ -473,7 +473,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                     if ((statusCode >= 300) || (statusCode == 204)) {
                         logger.error("received status code {}:{} from {}", new Object[]{statusCode, statusExplanation, url});
                         // doing a commit in case there were flow files in the input queue
-                        session.commit();
+                        session.commitAsync();
                         return;
                     }
 
@@ -496,9 +496,9 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                     session.getProvenanceReporter().receive(flowFile, url, stopWatch.getDuration(TimeUnit.MILLISECONDS));
                     session.transfer(flowFile, REL_SUCCESS);
                     logger.info("Successfully received {} from {} at a rate of {}; transferred to success", new Object[]{flowFile, url, dataRate});
-                    session.commit();
 
                     updateStateMap(context, session, response, beforeStateMap, url);
+                    session.commitAsync();
 
                 } catch (final IOException e) {
                     context.yield();

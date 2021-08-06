@@ -19,8 +19,8 @@ package org.apache.nifi.kafka.connect;
 
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.nifi.kafka.connect.validators.ConnectDirectoryExistsValidator;
-import org.apache.nifi.kafka.connect.validators.FlowSnapshotValidator;
 import org.apache.nifi.kafka.connect.validators.ConnectHttpUrlValidator;
+import org.apache.nifi.kafka.connect.validators.FlowSnapshotValidator;
 import org.apache.nifi.stateless.bootstrap.StatelessBootstrap;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
 import org.apache.nifi.stateless.config.ParameterOverride;
@@ -183,8 +183,8 @@ public class StatelessKafkaConnectorUtil {
                 unpackNarLock.unlock();
             }
 
-            dataflowDefinition = bootstrap.parseDataflowDefinition(dataflowDefinitionProperties);
-            return bootstrap.createDataflow(dataflowDefinition, parameterOverrides);
+            dataflowDefinition = bootstrap.parseDataflowDefinition(dataflowDefinitionProperties, parameterOverrides);
+            return bootstrap.createDataflow(dataflowDefinition);
         } catch (final Exception e) {
             throw new RuntimeException("Failed to bootstrap Stateless NiFi Engine", e);
         }

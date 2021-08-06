@@ -16,6 +16,7 @@
  */
 package org.apache.nifi;
 
+import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.diagnostics.DiagnosticsDump;
 import org.apache.nifi.util.LimitingInputStream;
 import org.slf4j.Logger;
@@ -203,6 +204,23 @@ public class BootstrapListener {
                                         logger.info("Received DUMP request from Bootstrap");
                                         writeDump(socket.getOutputStream());
                                         break;
+                                    case DECOMMISSION:
+                                        logger.info("Received DECOMMISSION request from Bootstrap");
+
+                                        try {
+                                            decommission();
+                                            sendAnswer(socket.getOutputStream(), "DECOMMISSION");
+                                            nifi.shutdownHook(false);
+                                        } catch (final Exception e) {
+                                            final OutputStream out = socket.getOutputStream();
+
+                                            out.write(("Failed to decommission node: " + e + "; see app-log for additional details").getBytes(StandardCharsets.UTF_8));
+                                            out.flush();
+                                        } finally {
+                                            socket.close();
+                                        }
+
+                                        break;
                                     case DIAGNOSTICS:
                                         logger.info("Received DIAGNOSTICS request from Bootstrap");
                                         final String[] args = request.getArgs();
@@ -248,6 +266,15 @@ public class BootstrapListener {
     private void writeDump(final OutputStream out) throws IOException {
         final DiagnosticsDump diagnosticsDump = nifi.getServer().getThreadDumpFactory().create(true);
         diagnosticsDump.writeTo(out);
+    }
+
+    private void decommission() throws InterruptedException {
+        final DecommissionTask decommissionTask = nifi.getServer().getDecommissionTask();
+        if (decommissionTask == null) {
+            throw new IllegalArgumentException("This NiFi instance does not support decommissioning");
+        }
+
+        decommissionTask.decommission();
     }
 
     private void writeDiagnostics(final OutputStream out, final boolean verbose) throws IOException {
@@ -304,6 +331,7 @@ public class BootstrapListener {
             SHUTDOWN,
             DUMP,
             DIAGNOSTICS,
+            DECOMMISSION,
             PING,
             IS_LOADED
         }

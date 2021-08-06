@@ -29,7 +29,10 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
+                <include>nifi-bootstrap-utils</include>
                 <include>nifi-bootstrap</include>
+                <include>bcprov-jdk15on</include>
+                <include>commons-lang3</include>
                 <include>slf4j-api</include>
                 <include>nifi-api</include>
             </includes>
@@ -62,9 +65,11 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
+                <exclude>nifi-bootstrap-utils</exclude>
                 <exclude>nifi-bootstrap</exclude>
                 <exclude>nifi-resources</exclude>
                 <exclude>nifi-docs</exclude>
+                <exclude>nifi-toolkit-cli</exclude>
 
                 <!-- exclude jaxb/activation/annotation libs from lib, they'll be included in the java11 subdir -->
                 <!-- TODO: remove these once minimum Java version is 11 -->

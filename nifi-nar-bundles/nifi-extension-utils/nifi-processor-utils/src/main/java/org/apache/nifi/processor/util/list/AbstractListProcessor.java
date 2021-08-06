@@ -811,7 +811,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 latestIdentifiersProcessed.addAll(orderedEntries.lastEntry().getValue().stream().map(T::getIdentifier).collect(Collectors.toList()));
                 lastProcessedLatestEntryTimestampMillis = orderedEntries.lastKey();
                 getLogger().info("Successfully created listing with {} new objects", new Object[]{entitiesListed});
-                session.commit();
+                session.commitAsync();
             }
 
             lastRunTimeNanos = currentRunTimeNanos;
@@ -823,8 +823,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             if (lastListedLatestEntryTimestampMillis == null) {
                 lastListedLatestEntryTimestampMillis = 0L;
             }
-
-            return;
         }
     }
 

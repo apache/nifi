@@ -71,6 +71,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 
 @EventDriven
@@ -85,6 +86,7 @@ import java.util.concurrent.atomic.LongAdder;
  *
  */
 public class ScanAccumulo extends BaseAccumuloProcessor {
+
     static final PropertyDescriptor START_KEY = new PropertyDescriptor.Builder()
             .displayName("Start key")
             .name("start-key")
@@ -243,10 +245,13 @@ public class ScanAccumulo extends BaseAccumuloProcessor {
 
         boolean cloneFlowFile = incomingFlowFile.isPresent();
 
+        accumuloConnectorService.renewTgtIfNecessary();
+
         try (BatchScanner scanner = client.createBatchScanner(table,auths,threads)) {
             if (!StringUtils.isBlank(startKeyCf) &&  StringUtils.isBlank(endKeyCf))
                 scanner.fetchColumnFamily(new Text(startKeyCf));
             scanner.setRanges(Collections.singleton(lookupRange));
+            scanner.setTimeout(processContext.getProperty(ACCUMULO_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).longValue(), TimeUnit.SECONDS);
 
             final Iterator<Map.Entry<Key,Value>> kvIter = scanner.iterator();
             if (!kvIter.hasNext()){

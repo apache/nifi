@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-toolkit</artifactId>
     <packaging>pom</packaging>
@@ -35,7 +35,7 @@
         <module>nifi-toolkit-api</module>
     </modules>
     <properties>
-        <toolkit.groovy.version>2.5.4</toolkit.groovy.version>
+        <toolkit.groovy.version>2.5.14</toolkit.groovy.version>
     </properties>
     <dependencyManagement>
         <dependencies>

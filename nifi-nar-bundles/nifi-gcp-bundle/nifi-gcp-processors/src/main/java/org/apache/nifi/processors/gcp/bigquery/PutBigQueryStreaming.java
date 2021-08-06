@@ -18,10 +18,17 @@
 package org.apache.nifi.processors.gcp.bigquery;
 
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
@@ -92,6 +99,9 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("false")
             .build();
+
+    private static final DateTimeFormatter timestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
+    private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -191,6 +201,18 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
                     lmapr.add(convertMapRecord(((MapRecord) mapr).toMap()));
                 }
                 result.put(key, lmapr);
+            } else if (obj instanceof Timestamp) {
+                // ZoneOffset.UTC time zone is necessary due to implicit time zone conversion in Record Readers from
+                // the local system time zone to the GMT time zone
+                LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Timestamp) obj).getTime()), ZoneOffset.UTC);
+                result.put(key, dateTime.format(timestampFormatter));
+            } else if (obj instanceof Time) {
+                // ZoneOffset.UTC time zone is necessary due to implicit time zone conversion in Record Readers from
+                // the local system time zone to the GMT time zone
+                LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Time) obj).getTime()), ZoneOffset.UTC);
+                result.put(key, dateTime.format(timeFormatter) );
+            } else if (obj instanceof Date) {
+                result.put(key, obj.toString());
             } else {
                 result.put(key, obj);
             }

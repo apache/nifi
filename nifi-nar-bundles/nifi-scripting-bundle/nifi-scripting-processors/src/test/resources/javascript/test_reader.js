@@ -75,7 +75,7 @@ var processor = new Object() {
         flowFile = session.putAttribute(flowFile, "from-content", content)
         // transfer
         session.transfer(flowFile, REL_TEST)
-        session.commit()
+        session.commitAsync()
     },
 
     // ConfigurableComponent

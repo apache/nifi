@@ -25,19 +25,29 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.security.KeyManagementException;
+import java.security.KeyStore;
 import java.util.Arrays;
-import java.util.List;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.security.kms.EncryptionException;
+import org.apache.nifi.security.kms.FileBasedKeyProvider;
 import org.apache.nifi.security.kms.KeyProvider;
 import org.apache.nifi.security.kms.KeyProviderFactory;
+import org.apache.nifi.security.kms.KeyStoreKeyProvider;
+import org.apache.nifi.security.kms.StaticKeyProvider;
+import org.apache.nifi.security.kms.configuration.FileBasedKeyProviderConfiguration;
+import org.apache.nifi.security.kms.configuration.KeyProviderConfiguration;
+import org.apache.nifi.security.kms.configuration.KeyStoreKeyProviderConfiguration;
+import org.apache.nifi.security.kms.configuration.StaticKeyProviderConfiguration;
 import org.apache.nifi.security.repository.config.RepositoryEncryptionConfiguration;
 import org.apache.nifi.security.util.EncryptionMethod;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
 import org.apache.nifi.stream.io.NonCloseableInputStream;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,11 +56,7 @@ public class RepositoryEncryptorUtils {
 
     private static final int CONTENT_HEADER_SIZE = 2;
     private static final int IV_LENGTH = 16;
-    private static final byte[] EMPTY_IV = new byte[IV_LENGTH];
-    private static final String VERSION = "v1";
-    private static final List<String> SUPPORTED_VERSIONS = Arrays.asList(VERSION);
     private static final int MIN_METADATA_LENGTH = IV_LENGTH + 3 + 3; // 3 delimiters and 3 non-zero elements
-    private static final int METADATA_DEFAULT_LENGTH = (20 + 17 + IV_LENGTH + VERSION.length()) * 2; // Default to twice the expected length
     private static final String EWAPR_CLASS_NAME = "org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository";
 
     // TODO: Add Javadoc
@@ -204,53 +210,6 @@ public class RepositoryEncryptorUtils {
     }
 
     /**
-     * Returns a configured {@link KeyProvider} instance that does not require a {@code root key} to use (usually a {@link org.apache.nifi.security.kms.StaticKeyProvider}).
-     *
-     * @param niFiProperties the {@link NiFiProperties} object
-     * @param repositoryType the {@link RepositoryType} indicator
-     * @return the configured KeyProvider
-     * @throws KeyManagementException if there is a problem with the configuration
-     */
-    private static KeyProvider buildKeyProvider(NiFiProperties niFiProperties, RepositoryType repositoryType) throws KeyManagementException {
-        return buildKeyProvider(niFiProperties, null, repositoryType);
-    }
-
-    /**
-     * Returns a configured {@link KeyProvider} instance that requires a {@code root key} to use
-     * (usually a {@link org.apache.nifi.security.kms.FileBasedKeyProvider} or an encrypted
-     * {@link org.apache.nifi.security.kms.StaticKeyProvider}).
-     *
-     * @param niFiProperties the {@link NiFiProperties} object
-     * @param rootKey      the root encryption key used to encrypt the data encryption keys in the key provider configuration
-     * @param repositoryType the {@link RepositoryType} indicator
-     * @return the configured KeyProvider
-     * @throws KeyManagementException if there is a problem with the configuration
-     */
-    public static KeyProvider buildKeyProvider(NiFiProperties niFiProperties, SecretKey rootKey, RepositoryType repositoryType) throws KeyManagementException {
-        RepositoryEncryptionConfiguration rec = RepositoryEncryptionConfiguration.fromNiFiProperties(niFiProperties, repositoryType);
-
-        return buildKeyProviderFromConfig(rootKey, rec);
-    }
-
-    /**
-     * Returns a configured {@link KeyProvider} instance given the {@link RepositoryEncryptionConfiguration}.
-     *
-     * @param rootKey the root encryption key used to encrypt the data encryption keys in the key provider configuration
-     * @param rec       the repository-specific encryption configuration
-     * @return the configured KeyProvider
-     * @throws KeyManagementException if there is a problem with the configuration
-     */
-    public static KeyProvider buildKeyProviderFromConfig(SecretKey rootKey, RepositoryEncryptionConfiguration rec) throws KeyManagementException {
-        if (rec.getKeyProviderImplementation() == null) {
-            final String keyProviderImplementationClass = determineKeyProviderImplementationClassName(rec.getRepositoryType());
-            throw new KeyManagementException("Cannot create key provider because the NiFi properties are missing the following property: "
-                    + keyProviderImplementationClass);
-        }
-
-        return KeyProviderFactory.buildKeyProvider(rec, rootKey);
-    }
-
-    /**
      * Utility method which returns the {@link KeyProvider} implementation class name for a given repository type.
      *
      * @param repositoryType the {@link RepositoryType} indicator
@@ -284,20 +243,12 @@ public class RepositoryEncryptorUtils {
      * @throws IOException if there is a problem reading the properties or they are not valid & complete
      */
     public static KeyProvider validateAndBuildRepositoryKeyProvider(NiFiProperties niFiProperties, RepositoryType repositoryType) throws IOException {
-        // Initialize the encryption-specific fields
         if (isRepositoryEncryptionConfigured(niFiProperties, repositoryType)) {
             try {
-                KeyProvider keyProvider;
-                final String keyProviderImplementation = niFiProperties.getProperty(determineKeyProviderImplementationClassName(repositoryType));
-                if (KeyProviderFactory.requiresRootKey(keyProviderImplementation)) {
-                    SecretKey rootKey = CryptoUtils.getRootKey();
-                    keyProvider = buildKeyProvider(niFiProperties, rootKey, repositoryType);
-                } else {
-                    keyProvider = buildKeyProvider(niFiProperties, repositoryType);
-                }
-                return keyProvider;
-            } catch (KeyManagementException e) {
-                String msg = "Encountered an error building the key provider";
+                final RepositoryEncryptionConfiguration configuration = RepositoryEncryptionConfiguration.fromNiFiProperties(niFiProperties, repositoryType);
+                return getKeyProvider(configuration);
+            } catch (final KeyManagementException e) {
+                final String msg = "Encountered an error building the key provider";
                 logger.error(msg, e);
                 throw new IOException(msg, e);
             }
@@ -313,15 +264,51 @@ public class RepositoryEncryptorUtils {
      * @return the configured KeyProvider
      * @throws IOException if there is a problem reading the properties or they are not valid & complete
      */
-    public static KeyProvider validateAndBuildRepositoryKeyProvider(RepositoryEncryptionConfiguration repositoryEncryptionConfiguration) throws IOException {
-        // Initialize the encryption-specific fields
+    public static KeyProvider validateAndBuildRepositoryKeyProvider(final RepositoryEncryptionConfiguration repositoryEncryptionConfiguration) throws IOException {
         try {
-            SecretKey rootKey = KeyProviderFactory.requiresRootKey(repositoryEncryptionConfiguration.getKeyProviderImplementation()) ? CryptoUtils.getRootKey() : null;
-            return buildKeyProviderFromConfig(rootKey, repositoryEncryptionConfiguration);
-        } catch (KeyManagementException e) {
-            String msg = "Encountered an error building the key provider";
+            return getKeyProvider(repositoryEncryptionConfiguration);
+        } catch (final KeyManagementException e) {
+            final String msg = "Encountered an error building the key provider";
             logger.error(msg, e);
             throw new IOException(msg, e);
+        }
+    }
+
+    private static KeyProvider getKeyProvider(final RepositoryEncryptionConfiguration repositoryEncryptionConfiguration) throws KeyManagementException {
+        final KeyProviderConfiguration<?> keyProviderConfiguration = getKeyProviderConfiguration(repositoryEncryptionConfiguration);
+        final KeyProvider keyProvider = KeyProviderFactory.getKeyProvider(keyProviderConfiguration);
+
+        final String keyId = repositoryEncryptionConfiguration.getEncryptionKeyId();
+        if (keyProvider.keyExists(keyId)) {
+            return keyProvider;
+        } else {
+            throw new KeyManagementException(String.format("Key Identifier [%s] not found in Key Provider", keyId));
+        }
+    }
+
+    private static KeyProviderConfiguration<?> getKeyProviderConfiguration(final RepositoryEncryptionConfiguration repositoryEncryptionConfiguration) throws KeyManagementException {
+        final String keyProviderImplementation = repositoryEncryptionConfiguration.getKeyProviderImplementation();
+        if (keyProviderImplementation.endsWith(StaticKeyProvider.class.getSimpleName())) {
+            return new StaticKeyProviderConfiguration(repositoryEncryptionConfiguration.getEncryptionKeys());
+        } else if (keyProviderImplementation.endsWith(FileBasedKeyProvider.class.getSimpleName())) {
+            final SecretKey rootKey = CryptoUtils.getRootKey();
+            return new FileBasedKeyProviderConfiguration(repositoryEncryptionConfiguration.getKeyProviderLocation(), rootKey);
+        } else if (keyProviderImplementation.endsWith(KeyStoreKeyProvider.class.getSimpleName())) {
+            final String keyProviderPassword = repositoryEncryptionConfiguration.getKeyProviderPassword();
+            if (StringUtils.isBlank(keyProviderPassword)) {
+                throw new KeyManagementException("Key Provider Password not configured");
+            }
+            final String location = repositoryEncryptionConfiguration.getKeyProviderLocation();
+            final char[] keyStorePassword = repositoryEncryptionConfiguration.getKeyProviderPassword().toCharArray();
+            final String keyStoreType = repositoryEncryptionConfiguration.getKeyStoreType();
+            try {
+                final KeyStore keyStore = KeyStoreUtils.loadSecretKeyStore(location, keyStorePassword, keyStoreType);
+                return new KeyStoreKeyProviderConfiguration(keyStore, keyStorePassword);
+            } catch (final TlsException e) {
+                throw new KeyManagementException("Key Store Provider loading failed", e);
+            }
+        } else {
+            throw new UnsupportedOperationException(String.format("Key Provider Implementation [%s] not supported", keyProviderImplementation));
         }
     }
 }

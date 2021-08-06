@@ -59,12 +59,14 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.BatchUpdateException;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -608,7 +610,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         final SchemaKey schemaKey = new PutDatabaseRecord.SchemaKey(catalog, schemaName, tableName);
         final TableSchema tableSchema = schemaCache.get(schemaKey, key -> {
             try {
-                final TableSchema schema = TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, includePrimaryKeys);
+                final TableSchema schema = TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, includePrimaryKeys, log);
                 getLogger().debug("Fetched Table Schema {} for table name {}", schema, tableName);
                 return schema;
             } catch (SQLException e) {
@@ -691,25 +693,62 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                     final Object[] values = currentRecord.getValues();
                     final List<DataType> dataTypes = currentRecord.getSchema().getDataTypes();
-                    List<ColumnDescription> columns = tableSchema.getColumnsAsList();
+                    final RecordSchema recordSchema = currentRecord.getSchema();
+                    final Map<String, ColumnDescription> columns = tableSchema.getColumns();
 
+                    int deleteIndex = 0;
                     for (int i = 0; i < fieldIndexes.size(); i++) {
                         final int currentFieldIndex = fieldIndexes.get(i);
                         Object currentValue = values[currentFieldIndex];
                         final DataType dataType = dataTypes.get(currentFieldIndex);
                         final int fieldSqlType = DataTypeUtils.getSQLTypeValue(dataType);
-                        final ColumnDescription column = columns.get(currentFieldIndex);
-                        int sqlType = column.dataType;
+                        final String fieldName = recordSchema.getField(currentFieldIndex).getFieldName();
+                        String columnName = normalizeColumnName(fieldName, settings.translateFieldNames);
+                        int sqlType;
+
+                        final ColumnDescription column = columns.get(columnName);
+                        // 'column' should not be null here as the fieldIndexes should correspond to fields that match table columns, but better to handle just in case
+                        if (column == null) {
+                            if (!settings.ignoreUnmappedFields) {
+                                throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database\n"
+                                        + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", columns.keySet()));
+                            } else {
+                                sqlType = fieldSqlType;
+                            }
+                        } else {
+                            sqlType = column.dataType;
+                        }
 
                         // Convert (if necessary) from field data type to column data type
                         if (fieldSqlType != sqlType) {
                             try {
                                 DataType targetDataType = DataTypeUtils.getDataTypeFromSQLTypeValue(sqlType);
                                 if (targetDataType != null) {
-                                    currentValue = DataTypeUtils.convertType(
-                                            currentValue,
-                                            targetDataType,
-                                            currentRecord.getSchema().getField(currentFieldIndex).getFieldName());
+                                    if (sqlType == Types.BLOB || sqlType == Types.BINARY) {
+                                        if (currentValue instanceof Object[]) {
+                                            // Convert Object[Byte] arrays to byte[]
+                                            Object[] src = (Object[]) currentValue;
+                                            if (src.length > 0) {
+                                                if (!(src[0] instanceof Byte)) {
+                                                    throw new IllegalTypeConversionException("Cannot convert value " + currentValue + " to BLOB/BINARY");
+                                                }
+                                            }
+                                            byte[] dest = new byte[src.length];
+                                            for (int j = 0; j < src.length; j++) {
+                                                dest[j] = (Byte) src[j];
+                                            }
+                                            currentValue = dest;
+                                        } else if (currentValue instanceof String) {
+                                            currentValue = ((String) currentValue).getBytes(StandardCharsets.UTF_8);
+                                        } else if (currentValue != null && !(currentValue instanceof byte[])) {
+                                            throw new IllegalTypeConversionException("Cannot convert value " + currentValue + " to BLOB/BINARY");
+                                        }
+                                    } else {
+                                        currentValue = DataTypeUtils.convertType(
+                                                currentValue,
+                                                targetDataType,
+                                                fieldName);
+                                    }
                                 }
                             } catch (IllegalTypeConversionException itce) {
                                 // If the field and column types don't match or the value can't otherwise be converted to the column datatype,
@@ -718,22 +757,19 @@ public class PutDatabaseRecord extends AbstractProcessor {
                             }
                         }
 
-                        if (sqlType == Types.DATE && currentValue instanceof Date) {
-                            // convert Date from the internal UTC normalized form to local time zone needed by database drivers
-                            currentValue = DataTypeUtils.convertDateToLocalTZ((Date) currentValue);
-                        }
-
-                        // If DELETE type, insert the object twice because of the null check (see generateDelete for details)
+                        // If DELETE type, insert the object twice if the column is nullable because of the null check (see generateDelete for details)
                         if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
-                            ps.setObject(i * 2 + 1, currentValue, sqlType);
-                            ps.setObject(i * 2 + 2, currentValue, sqlType);
+                            setParameter(ps, ++deleteIndex, currentValue, fieldSqlType, sqlType);
+                            if (column.isNullable()) {
+                                setParameter(ps, ++deleteIndex, currentValue, fieldSqlType, sqlType);
+                            }
                         } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
                             final int timesToAddObjects = databaseAdapter.getTimesToAddColumnObjectsForUpsert();
                             for (int j = 0; j < timesToAddObjects; j++) {
-                                ps.setObject(i + (fieldIndexes.size() * j) + 1, currentValue, sqlType);
+                                setParameter(ps, i + (fieldIndexes.size() * j) + 1, currentValue, fieldSqlType, sqlType);
                             }
                         } else {
-                            ps.setObject(i + 1, currentValue, sqlType);
+                            setParameter(ps, i + 1, currentValue, fieldSqlType, sqlType);
                         }
                     }
 
@@ -757,6 +793,60 @@ public class PutDatabaseRecord extends AbstractProcessor {
         } finally {
             for (final PreparedSqlAndColumns preparedSqlAndColumns : preparedSql.values()) {
                 preparedSqlAndColumns.getPreparedStatement().close();
+            }
+        }
+    }
+
+    private void setParameter(PreparedStatement ps, int index, Object value, int fieldSqlType, int sqlType) throws IOException {
+        if (sqlType == Types.BLOB) {
+            // Convert Byte[] or String (anything that has been converted to byte[]) into BLOB
+            if (fieldSqlType == Types.ARRAY || fieldSqlType == Types.VARCHAR) {
+                if (!(value instanceof byte[])) {
+                    if (value == null) {
+                        try {
+                            ps.setNull(index, Types.BLOB);
+                            return;
+                        } catch (SQLException e) {
+                            throw new IOException("Unable to setNull() on prepared statement" , e);
+                        }
+                    } else {
+                        throw new IOException("Expected BLOB to be of type byte[] but is instead " + value.getClass().getName());
+                    }
+                }
+                byte[] byteArray = (byte[]) value;
+                try (InputStream inputStream = new ByteArrayInputStream(byteArray)) {
+                    ps.setBlob(index, inputStream);
+                } catch (SQLException e) {
+                    throw new IOException("Unable to parse binary data " + value, e.getCause());
+                }
+            } else {
+                try (InputStream inputStream = new ByteArrayInputStream(value.toString().getBytes(StandardCharsets.UTF_8))) {
+                    ps.setBlob(index, inputStream);
+                } catch (IOException | SQLException e) {
+                    throw new IOException("Unable to parse binary data " + value, e.getCause());
+                }
+            }
+        } else if (sqlType == Types.CLOB) {
+            if (value == null) {
+                try {
+                    ps.setNull(index, Types.CLOB);
+                } catch (SQLException e) {
+                    throw new IOException("Unable to setNull() on prepared statement", e);
+                }
+            } else {
+                try {
+                    Clob clob = ps.getConnection().createClob();
+                    clob.setString(1, value.toString());
+                    ps.setClob(index, clob);
+                } catch (SQLException e) {
+                    throw new IOException("Unable to parse data as CLOB/String " + value, e.getCause());
+                }
+            }
+        } else {
+            try {
+                ps.setObject(index, value, sqlType);
+            } catch (SQLException e) {
+                throw new IOException("Unable to setObject() with value " + value + " at index " + index + " of type " + sqlType , e);
             }
         }
     }
@@ -1191,9 +1281,16 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     //   (column = ? OR (column is null AND ? is null))
                     sqlBuilder.append("(");
                     sqlBuilder.append(columnName);
-                    sqlBuilder.append(" = ? OR (");
-                    sqlBuilder.append(columnName);
-                    sqlBuilder.append(" is null AND ? is null))");
+                    sqlBuilder.append(" = ?");
+
+                    // Only need null check if the column is nullable, otherwise the row wouldn't exist
+                    if (desc.isNullable()) {
+                        sqlBuilder.append(" OR (");
+                        sqlBuilder.append(columnName);
+                        sqlBuilder.append(" is null AND ? is null))");
+                    } else {
+                        sqlBuilder.append(")");
+                    }
                     includedColumns.add(i);
                 } else {
                     // User is ignoring unmapped fields, but log at debug level just in case
@@ -1322,7 +1419,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
 
         public static TableSchema from(final Connection conn, final String catalog, final String schema, final String tableName,
-                                       final boolean translateColumnNames, final boolean includePrimaryKeys) throws SQLException {
+                                       final boolean translateColumnNames, final boolean includePrimaryKeys, ComponentLog log) throws SQLException {
             final DatabaseMetaData dmd = conn.getMetaData();
 
             try (final ResultSet colrs = dmd.getColumns(catalog, schema, tableName, "%")) {
@@ -1330,6 +1427,31 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 while (colrs.next()) {
                     final ColumnDescription col = ColumnDescription.from(colrs);
                     cols.add(col);
+                }
+                // If no columns are found, check that the table exists
+                if (cols.isEmpty()) {
+                    try (final ResultSet tblrs = dmd.getTables(catalog, schema, tableName, null)) {
+                        List<String> qualifiedNameSegments = new ArrayList<>();
+                        if (catalog != null) {
+                            qualifiedNameSegments.add(catalog);
+                        }
+                        if (schema != null) {
+                            qualifiedNameSegments.add(schema);
+                        }
+                        if (tableName != null) {
+                            qualifiedNameSegments.add(tableName);
+                        }
+                        if (!tblrs.next()) {
+
+                            throw new SQLException("Table "
+                                    + String.join(".", qualifiedNameSegments)
+                                    + " not found, ensure the Catalog, Schema, and/or Table Names match those in the database exactly");
+                        } else {
+                            log.warn("Table "
+                                    + String.join(".", qualifiedNameSegments)
+                                    + " found but no columns were found, if this is not expected then check the user permissions for getting table metadata from the database");
+                        }
+                    }
                 }
 
                 final Set<String> primaryKeyColumns = new HashSet<>();
@@ -1358,12 +1480,14 @@ public class PutDatabaseRecord extends AbstractProcessor {
         private final int dataType;
         private final boolean required;
         private final Integer columnSize;
+        private final boolean nullable;
 
-        public ColumnDescription(final String columnName, final int dataType, final boolean required, final Integer columnSize) {
+        public ColumnDescription(final String columnName, final int dataType, final boolean required, final Integer columnSize, final boolean nullable) {
             this.columnName = columnName;
             this.dataType = dataType;
             this.required = required;
             this.columnSize = columnSize;
+            this.nullable = nullable;
         }
 
         public int getDataType() {
@@ -1380,6 +1504,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
         public boolean isRequired() {
             return required;
+        }
+
+        public boolean isNullable() {
+            return nullable;
         }
 
         public static ColumnDescription from(final ResultSet resultSet) throws SQLException {
@@ -1406,7 +1534,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             final boolean isAutoIncrement = "YES".equalsIgnoreCase(autoIncrementValue);
             final boolean required = !isNullable && !isAutoIncrement && defaultValue == null;
 
-            return new ColumnDescription(columnName, dataType, required, colSize == 0 ? null : colSize);
+            return new ColumnDescription(columnName, dataType, required, colSize == 0 ? null : colSize, isNullable);
         }
 
         @Override

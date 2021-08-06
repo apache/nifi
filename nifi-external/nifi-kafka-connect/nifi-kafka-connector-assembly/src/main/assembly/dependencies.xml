@@ -28,6 +28,7 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
+                <exclude>nifi-bootstrap-utils</exclude>
                 <exclude>nifi-bootstrap</exclude>
                 <exclude>nifi-resources</exclude>
                 <exclude>nifi-docs</exclude>

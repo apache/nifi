@@ -16,13 +16,8 @@
  */
 package org.apache.nifi.controller.serialization
 
-import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.encrypt.EncryptionException
 import org.apache.nifi.encrypt.PropertyEncryptor
-import org.apache.nifi.encrypt.PropertyEncryptorFactory
-import org.apache.nifi.security.kms.CryptoUtils
-import org.apache.nifi.security.util.EncryptionMethod
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,27 +25,14 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import javax.crypto.Cipher
-import javax.crypto.SecretKey
-import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.PBEKeySpec
-import javax.crypto.spec.PBEParameterSpec
-import java.security.Security
-
 import static groovy.test.GroovyAssert.shouldFail
 
 @RunWith(JUnit4.class)
 class FlowFromDOMFactoryTest {
     private static final Logger logger = LoggerFactory.getLogger(FlowFromDOMFactoryTest.class)
 
-    private static final String DEFAULT_PASSWORD = "nififtw!"
-    private static final byte[] DEFAULT_SALT = new byte[8]
-    private static final int DEFAULT_ITERATION_COUNT = 0
-    private static final EncryptionMethod DEFAULT_ENCRYPTION_METHOD = EncryptionMethod.MD5_128AES
-
     @BeforeClass
     static void setUpOnce() throws Exception {
-        Security.addProvider(new BouncyCastleProvider())
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
