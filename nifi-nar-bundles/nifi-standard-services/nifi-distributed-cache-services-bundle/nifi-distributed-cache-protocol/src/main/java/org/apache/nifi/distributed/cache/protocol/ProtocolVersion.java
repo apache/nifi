@@ -14,37 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.distributed.cache.client;
+package org.apache.nifi.distributed.cache.protocol;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.concurrent.TimeUnit;
+/**
+ * Represents a distributed cache protocol version.
+ */
+public enum ProtocolVersion {
+    V1(1),
+    V2(2),
+    V3(3);
 
-import javax.net.ssl.SSLContext;
+    private final int version;
 
-public interface CommsSession extends Closeable {
+    ProtocolVersion(final int version) {
+        this.version = version;
+    }
 
-    void setTimeout(final long value, final TimeUnit timeUnit);
-
-    InputStream getInputStream() throws IOException;
-
-    OutputStream getOutputStream() throws IOException;
-
-    boolean isClosed();
-
-    void interrupt();
-
-    String getHostname();
-
-    int getPort();
-
-    long getTimeout(TimeUnit timeUnit);
-
-    SSLContext getSSLContext();
-
-    int getProtocolVersion();
-
-    void setProtocolVersion(final int protocolVersion);
+    public int value() {
+        return version;
+    }
 }
