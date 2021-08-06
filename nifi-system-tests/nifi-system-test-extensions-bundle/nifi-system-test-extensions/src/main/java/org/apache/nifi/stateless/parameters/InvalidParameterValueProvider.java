@@ -15,43 +15,34 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.parameter;
+package org.apache.nifi.stateless.parameters;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.stateless.parameter.AbstractParameterValueProvider;
 
-public class CompositeParameterProvider extends AbstractParameterProvider implements ParameterProvider {
-    private final List<ParameterProvider> parameterProviders;
+import java.util.Collection;
+import java.util.Collections;
 
-    public CompositeParameterProvider(final List<ParameterProvider> providers) {
-        this.parameterProviders = new ArrayList<>(providers);
+public class InvalidParameterValueProvider extends AbstractParameterValueProvider {
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final ValidationResult validationResult = new ValidationResult.Builder()
+            .valid(false)
+            .explanation("This Parameter Value Provider is never valid")
+            .build();
+
+        return Collections.singleton(validationResult);
     }
 
     @Override
     public String getParameterValue(final String contextName, final String parameterName) {
-        for (final ParameterProvider provider : parameterProviders) {
-            if (!provider.isParameterDefined(contextName, parameterName)) {
-                continue;
-            }
-
-            final String value = provider.getParameterValue(contextName, parameterName);
-            if (value != null) {
-                return value;
-            }
-        }
-
         return null;
     }
 
     @Override
     public boolean isParameterDefined(final String contextName, final String parameterName) {
-        for (final ParameterProvider provider : parameterProviders) {
-            final boolean defined = provider.isParameterDefined(contextName, parameterName);
-            if (defined) {
-                return true;
-            }
-        }
-
         return false;
     }
 }
