@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,6 +43,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Stack;
+import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -294,7 +296,15 @@ public class StandardParameterContext implements ParameterContext {
     public Map<ParameterDescriptor, Parameter> getEffectiveParameters() {
         readLock.lock();
         try {
-            return this.getEffectiveParameters(inheritedParameterContexts);
+            final Map<ParameterDescriptor, Parameter> effectiveParameters = this.getEffectiveParameters(inheritedParameterContexts);
+
+            // Now return direct parameters at the top
+            final Comparator<Object> parameterDescriptorComparator = Comparator
+                    .comparing(d -> parameters.containsKey(d)).reversed()
+                    .thenComparing(d -> ((ParameterDescriptor) d).getName());
+            final Map<ParameterDescriptor, Parameter> sortedParameters = new TreeMap<>(parameterDescriptorComparator);
+            sortedParameters.putAll(effectiveParameters);
+            return sortedParameters;
         } finally {
             readLock.unlock();
         }

@@ -1475,9 +1475,8 @@ public final class DtoFactory {
 
         final List<ParameterContextReferenceEntity> parameterContextRefs = new ArrayList<>();
         if (parameterContext.getInheritedParameterContexts() != null) {
-            parameterContextRefs.addAll(parameterContext.getInheritedParameterContexts()
-                    .stream().map(pc -> entityFactory.createParameterReferenceEntity(
-                    createParameterContextReference(pc), createPermissionsDto(pc)))
+            parameterContextRefs.addAll(parameterContext.getInheritedParameterContexts().stream()
+                    .map(pc -> entityFactory.createParameterReferenceEntity(createParameterContextReference(pc), createPermissionsDto(pc)))
                     .collect(Collectors.toList()));
         }
         dto.setInheritedParameterContexts(parameterContextRefs);

@@ -325,13 +325,41 @@ public interface FlowManager {
 
     void removeRootControllerService(final ControllerServiceNode service);
 
+    /**
+     * Creates a <code>ParameterContext</code>.  Note that in order to safely create a <code>ParameterContext</code> that includes
+     * inherited <code>ParameterContext</code>s, the action must be performed using {@link FlowManager#withParameterContextResolution(Runnable)},
+     * which ensures that all inherited <code>ParameterContext</code>s are resolved.  If <code>parameterContexts</code> is
+     * not empty and this method is called outside of {@link FlowManager#withParameterContextResolution(Runnable)},
+     * <code>IllegalStateException</code> is thrown.  See {@link FlowManager#withParameterContextResolution(Runnable)}
+     * for example usage.
+     *
+     * @param id                The unique id
+     * @param name              The ParameterContext name
+     * @param parameters        The Parameters
+     * @param parameterContexts Optional inherited ParameterContexts
+     * @return The created ParameterContext
+     * @throws IllegalStateException If <code>parameterContexts</code> is not empty and this method is called without being wrapped
+     * by {@link FlowManager#withParameterContextResolution(Runnable)}
+     */
     ParameterContext createParameterContext(String id, String name, Map<String, Parameter> parameters, List<ParameterContextReferenceEntity> parameterContexts);
 
     /**
-     * Resolves any reference-only parameter contexts in lists of inherited parameter contexts
+     * Performs the given ParameterContext-related action, and then resolves all inherited ParameterContext references.
+     * Example usage: <br/><br/>
+     * <pre>
+     *     // This ensures that regardless of the order of parameter contexts created in the loop,
+     *     // all inherited parameter contexts will be resolved if possible.  If not possible, IllegalStateException is thrown.
+     *     flowManager.withParameterContextResolution(() -> {
+     *         for (final ParameterContextDTO dto : parameterContextDtos) {
+     *             flowManager.createParameterContext(dto.getId(), dto.getName(), parameters, dto.getInheritedParameterContexts());
+     *         }
+     *     });
+     * </pre>
+     * @param parameterContextAction A runnable action, usually involving creating a ParameterContext, that requires
+     *                               parameter context references to be resolved after it is performed
      * @throws IllegalStateException if an invalid parameter context reference was detected
      */
-    void resolveParameterContextReferences();
+    void withParameterContextResolution(Runnable parameterContextAction);
 
     ParameterContextManager getParameterContextManager();
 

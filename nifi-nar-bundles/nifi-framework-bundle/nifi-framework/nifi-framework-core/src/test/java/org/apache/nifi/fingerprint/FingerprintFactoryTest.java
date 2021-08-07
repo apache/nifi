@@ -95,6 +95,23 @@ public class FingerprintFactoryTest {
     }
 
     @Test
+    public void testInheritedParameterContextsInFingerprint() throws IOException {
+        final String flowWithParameterContext = new String(getResourceBytes("/nifi/fingerprint/flow-with-parameter-context.xml"));
+        final String flowWithNoInheritedParameterContexts = flowWithParameterContext.replaceAll("<inheritedParameterContextId>.*?</inheritedParameterContextId>", "");
+        final String flowWithDifferentInheritedParamContextOrder = flowWithParameterContext
+                .replaceFirst("153a6266-dcd0-33e9-b5af-b8c282d25bf1", "SWAP")
+                .replaceFirst("253a6266-dcd0-33e9-b5af-b8c282d25bf2", "153a6266-dcd0-33e9-b5af-b8c282d25bf1")
+                .replaceFirst("SWAP", "253a6266-dcd0-33e9-b5af-b8c282d25bf2");
+
+        final String originalFingerprint = fingerprintFactory.createFingerprint(flowWithParameterContext.getBytes(StandardCharsets.UTF_8), null);
+        final String fingerprintWithNoInheritedParameterContexts = fingerprintFactory.createFingerprint(flowWithNoInheritedParameterContexts.getBytes(StandardCharsets.UTF_8), null);
+        final String fingerprintWithDifferentInheritedParamContextOrder = fingerprintFactory.createFingerprint(flowWithDifferentInheritedParamContextOrder.getBytes(StandardCharsets.UTF_8), null);
+
+        assertNotEquals(originalFingerprint, fingerprintWithNoInheritedParameterContexts);
+        assertNotEquals(originalFingerprint, fingerprintWithDifferentInheritedParamContextOrder);
+    }
+
+    @Test
     public void testResourceValueInFingerprint() throws IOException {
         final String fingerprint = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
         assertEquals(3, StringUtils.countMatches(fingerprint, "success"));

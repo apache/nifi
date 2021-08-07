@@ -174,6 +174,13 @@
     var sortParameters = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
+            // direct parameters always come above inherited ones
+            if (a.isInherited === false && b.isInherited === true) {
+                return -1;
+            }
+            if (a.isInherited === true && b.isInherited === false) {
+                return 1;
+            }
             if (sortDetails.columnId === 'name') {
                 var aString = _.get(a, '[' + sortDetails.columnId + ']', '');
                 var bString = _.get(b, '[' + sortDetails.columnId + ']', '');
@@ -833,8 +840,13 @@
             });
 
             if (_.isNil(param.id)) {
-                // add a row for the new parameter
-                parameterData.addItem(parameter);
+                var matchingParameter = _.find(parameterData.getItems(), {name: parameter.name});
+                if (_.isNil(matchingParameter)) {
+                    // add a row for the new parameter
+                    parameterData.addItem(parameter);
+                } else {
+                    parameterData.updateItem(matchingParameter.id, parameter);
+                }
             } else {
                 parameterData.updateItem(param.id, parameter);
             }
@@ -929,8 +941,10 @@
         // validate the parameter is not a duplicate
         var matchingParameter = _.find(existingParameters, {name: parameter.name});
 
-        // Valid if no duplicate is found or it is edit mode and a matching parameter was found
-        if (_.isNil(matchingParameter) || (editMode === true && !_.isNil(matchingParameter))) {
+        // Valid if no duplicate is found or it is edit mode and a matching parameter was found, or it's
+        // an inherited parameter
+        if (_.isNil(matchingParameter) || (editMode === true && !_.isNil(matchingParameter))
+                || matchingParameter.isInherited === true) {
             return true;
         } else {
             var matchingParamIsHidden = _.get(matchingParameter, 'hidden', false);

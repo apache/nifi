@@ -57,8 +57,12 @@ public class ParamContextResult extends AbstractWritableResult<ParameterContextE
                 .map(p -> p.getParameter())
                 .collect(Collectors.toSet());
 
-        final List<ParameterDTO> sortedParams =paramDTOs.stream()
-                .sorted(Comparator.comparing(ParameterDTO::getName))
+        final List<ParameterDTO> sortedParams = paramDTOs.stream()
+                .sorted(Comparator
+                        .comparing((ParameterDTO param) -> // Direct parameters first
+                                param.getParameterContext().getComponent().getId().equals((this.parameterContext.getComponent().getId())))
+                        .reversed()
+                        .thenComparing(ParameterDTO::getName))
                 .collect(Collectors.toList());
 
         final Table.Builder tableBuilder = new Table.Builder()

@@ -3981,7 +3981,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             group.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
         }
 
-        updateParameterContext(group, proposed, versionedParameterContexts, componentIdSeed);
+        flowManager.withParameterContextResolution(() -> updateParameterContext(group, proposed, versionedParameterContexts, componentIdSeed));
         updateVariableRegistry(group, proposed, variablesToSkip);
 
         final FlowFileConcurrency flowFileConcurrency = proposed.getFlowFileConcurrency() == null ? FlowFileConcurrency.UNBOUNDED :
@@ -4498,8 +4498,6 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
 
                 final ParameterContext selectedParameterContext = selectParameterContext(versionedParameterContext, componentIdSeed, versionedParameterContexts);
-
-                flowManager.resolveParameterContextReferences();
                 group.setParameterContext(selectedParameterContext);
             } else {
                 // Update the current Parameter Context so that it has any Parameters included in the proposed context

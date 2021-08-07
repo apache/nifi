@@ -25,11 +25,13 @@ import org.junit.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -561,6 +563,17 @@ public class TestStandardParameterContext {
 
         Assert.assertEquals("d.grandchild", effectiveParameters.get(grandchild).getValue());
         Assert.assertEquals("d", effectiveParameters.get(grandchild).getParameterContextId());
+
+        // Now verify that the parameters are returned in the correct order
+        final List<ParameterDescriptor> orderedDescriptors = new ArrayList<>(effectiveParameters.keySet());
+        int i = 0;
+        // Direct children first, a-z
+        assertEquals("bar", orderedDescriptors.get(i++).getName());
+        assertEquals("foo", orderedDescriptors.get(i++).getName());
+        // Then all inherited parameters, a-z
+        assertEquals("child", orderedDescriptors.get(i++).getName());
+        assertEquals("grandchild", orderedDescriptors.get(i++).getName());
+        assertEquals("secondChild", orderedDescriptors.get(i++).getName());
     }
 
     @Test
