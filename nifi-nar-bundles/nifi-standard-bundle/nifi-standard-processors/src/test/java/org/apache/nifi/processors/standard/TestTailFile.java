@@ -848,7 +848,7 @@ public class TestTailFile {
     }
 
     private void testMultiLineWaitsForRegexMatch(final boolean shutdownBetweenReads) throws IOException {
-        runner.setProperty(TailFile.LINE_START_REGEX, "<\\d>");
+        runner.setProperty(TailFile.LINE_START_PATTERN, "<\\d>");
         runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.*");
 
         final String line1 = "<1>Hello, World\n";
