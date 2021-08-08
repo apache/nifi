@@ -161,6 +161,9 @@ public class StandardReloadComponent implements ReloadComponent {
         // need to refresh the properties in case we are changing from ghost component to real component
         existingNode.refreshProperties();
 
+        // set the new service's properties based on the existing node, to preserve any dynamic properties
+        newNode.setProperties(getPropertiesForSetting(existingNode.getProperties()));
+
         logger.debug("Triggering async validation of {} due to controller service reload", existingNode);
         flowController.getValidationTrigger().triggerAsync(existingNode);
     }
@@ -207,6 +210,9 @@ public class StandardReloadComponent implements ReloadComponent {
 
         // need to refresh the properties in case we are changing from ghost component to real component
         existingNode.refreshProperties();
+
+        // set the new task's properties based on the existing node, to preserve any dynamic properties
+        newNode.setProperties(getPropertiesForSetting(existingNode.getProperties()));
 
         logger.debug("Triggering async validation of {} due to reporting task reload", existingNode);
         flowController.getValidationTrigger().triggerAsync(existingNode);
