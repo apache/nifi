@@ -18,14 +18,14 @@ package org.apache.nifi.graph;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.neo4j.driver.AuthTokens;
-import org.neo4j.driver.Driver;
-import org.neo4j.driver.GraphDatabase;
-import org.neo4j.driver.Record;
-import org.neo4j.driver.Session;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.neo4j.driver.v1.AuthTokens;
+import org.neo4j.driver.v1.Driver;
+import org.neo4j.driver.v1.GraphDatabase;
+import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.v1.StatementResult;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,37 +40,37 @@ import static org.junit.Assert.assertEquals;
 public class ITNeo4JCypherExecutor {
     protected TestRunner runner;
     protected Driver driver;
-    protected String neo4jUrl = "neo4j://localhost:7687";
+    protected String neo4jUrl = "bolt://localhost:7687";
     protected String user = "neo4j";
     protected String password = "testing1234";
 
     private GraphClientService clientService;
     private GraphQueryResultCallback EMPTY_CALLBACK = (record, hasMore) -> {};
 
-    @BeforeEach
+    @Before
     public void setUp() throws Exception {
-        clientService = new Neo4JCypherClientService();
+        clientService = new Neo4JCypher3xClientService();
         runner = TestRunners.newTestRunner(MockProcessor.class);
         runner.addControllerService("clientService", clientService);
-        runner.setProperty(clientService, Neo4JCypherClientService.USERNAME, user);
-        runner.setProperty(clientService, Neo4JCypherClientService.PASSWORD, password);
+        runner.setProperty(clientService, Neo4JCypher3xClientService.USERNAME, user);
+        runner.setProperty(clientService, Neo4JCypher3xClientService.PASSWORD, password);
         runner.enableControllerService(clientService);
         runner.setProperty(MockProcessor.CLIENT, "clientService");
         driver = GraphDatabase.driver(neo4jUrl, AuthTokens.basic(user, password));
         executeSession("match (n) detach delete n");
 
-        List<Record> result = executeSession("match (n) return n");
+        StatementResult result = executeSession("match (n) return n");
 
-        assertEquals("nodes should be equal", 0, result.size());
+        assertEquals("nodes should be equal", 0, result.list().size());
     }
 
-    protected List<Record> executeSession(String statement) {
+    protected StatementResult executeSession(String statement) {
         try (Session session = driver.session()) {
-            return session.run(statement).list();
+            return session.run(statement);
         }
     }
 
-    @AfterEach
+    @After
     public void tearDown() {
         runner = null;
         if (driver != null) {
