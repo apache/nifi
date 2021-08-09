@@ -18,6 +18,7 @@
 package org.apache.nifi.dbcp.hive;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -27,8 +28,11 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.security.PrivilegedExceptionAction;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -38,13 +42,19 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockVariableRegistry;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -54,7 +64,14 @@ public class Hive3ConnectionPoolTest {
     private BasicDataSource basicDataSource;
     private ComponentLog componentLog;
     private KerberosProperties kerberosProperties;
-    private File krb5conf = new File("src/test/resources/krb5.conf");
+    private final File krb5conf = new File("src/test/resources/krb5.conf");
+    private TestRunner runner;
+    private static final String DB_LOCATION = "target/db";
+
+    @BeforeClass
+    public static void setupBeforeClass() {
+        System.setProperty("derby.stream.error.file", "target/derby.log");
+    }
 
     @Before
     public void setup() throws Exception {
@@ -90,11 +107,13 @@ public class Hive3ConnectionPoolTest {
                 .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                 .build());
 
+        runner = TestRunners.newTestRunner(MockProcessor.class);
         initPool();
+        runner.addControllerService("1", hive3ConnectionPool);
     }
 
     private void initPool() throws Exception {
-        hive3ConnectionPool = new Hive3ConnectionPool();
+        hive3ConnectionPool = new Hive3ConnectionPoolOverride();
 
         Field ugiField = Hive3ConnectionPool.class.getDeclaredField("ugi");
         ugiField.setAccessible(true);
@@ -139,7 +158,7 @@ public class Hive3ConnectionPoolTest {
         final String MAX_CONN_LIFETIME = "1 min";
         final String MAX_WAIT = "10 sec"; // 10000 milliseconds
         final String CONF = "/path/to/hive-site.xml";
-        hive3ConnectionPool = new Hive3ConnectionPool();
+        hive3ConnectionPool = new Hive3ConnectionPoolOverride();
 
         Map<PropertyDescriptor, String> props = new HashMap<PropertyDescriptor, String>() {{
             put(Hive3ConnectionPool.DATABASE_URL, "${url}");
@@ -185,6 +204,42 @@ public class Hive3ConnectionPoolTest {
         assertEquals(URL, hive3ConnectionPool.getConnectionURL());
     }
 
+    @Test
+    public void testDynamicProperties() throws InitializationException, SQLException {
+        assertConnectionNotNullDynamicProperty("create", "true");
+    }
+
+    @Test
+    public void testExpressionLanguageDynamicProperties() throws InitializationException, SQLException {
+        assertConnectionNotNullDynamicProperty("create", "${literal(1):gt(0)}");
+    }
+
+    @Test
+    public void testSensitiveDynamicProperties() throws InitializationException, SQLException {
+        assertConnectionNotNullDynamicProperty("SENSITIVE.create", "true");
+    }
+
+    private void assertConnectionNotNullDynamicProperty(final String propertyName, final String propertyValue) throws InitializationException, SQLException {
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        final Hive3ConnectionPool service = new Hive3ConnectionPoolOverride();
+        runner.addControllerService(Hive3ConnectionPool.class.getSimpleName(), service);
+
+        runner.setProperty(service, Hive3ConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION);
+        runner.setProperty(service, Hive3ConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, Hive3ConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, propertyName, propertyValue);
+
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        try (final Connection connection = service.getConnection()) {
+            assertNotNull(connection);
+        }
+    }
+
     @Ignore("Kerberos does not seem to be properly handled in Travis build, but, locally, this test should successfully run")
     @Test(expected = InitializationException.class)
     public void testKerberosAuthException() throws Exception {
@@ -210,5 +265,56 @@ public class Hive3ConnectionPoolTest {
 
         MockConfigurationContext context = new MockConfigurationContext(props, null, registry);
         hive3ConnectionPool.onConfigured(context);
+    }
+
+    @Test
+    public void testValidWithDynamicProperty() throws Exception {
+        // set embedded Derby database connection url
+        runner.setProperty(hive3ConnectionPool, Hive3ConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION);
+        runner.setProperty(hive3ConnectionPool, Hive3ConnectionPool.DB_USER, "tester");
+        runner.setProperty(hive3ConnectionPool, Hive3ConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(hive3ConnectionPool, "create", "true");
+        runner.assertValid(hive3ConnectionPool);
+
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        runner.enableControllerService(hive3ConnectionPool);
+
+        Connection connection = hive3ConnectionPool.getConnection();
+        assertNotNull(connection);
+        connection.close(); // will return connection to pool
+        connection = hive3ConnectionPool.getConnection();
+        assertNotNull(connection);
+        connection.close(); // will return connection to pool
+    }
+
+    public static class MockProcessor extends AbstractProcessor {
+        static final PropertyDescriptor HIVE_CONNECTION_POOL = new PropertyDescriptor.Builder()
+                .name("Hive Connection Pool")
+                .required(true)
+                .identifiesControllerService(Hive3ConnectionPool.class)
+                .build();
+
+        static final List<PropertyDescriptor> PROPS = Collections.singletonList(HIVE_CONNECTION_POOL);
+
+        @Override
+        public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+            return PROPS;
+        }
+
+        @Override
+        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+
+        }
+    }
+
+    // Override the driver class name to use Derby
+    private static class Hive3ConnectionPoolOverride extends Hive3ConnectionPool {
+        @Override
+        protected String getDriverClassName() {
+            return "org.apache.derby.jdbc.EmbeddedDriver";
+        }
     }
 }

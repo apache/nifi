@@ -28,5 +28,7 @@ import org.apache.nifi.dbcp.DBCPService;
 @Tags({"hive", "dbcp", "jdbc", "database", "connection", "pooling", "store"})
 @CapabilityDescription("Provides Database Connection Pooling Service for Apache Hive. Connections can be asked from pool and returned after usage.")
 public interface HiveDBCPService extends DBCPService {
-    public String getConnectionURL();
+    /** Property Name Prefix for Sensitive Dynamic Properties */
+    String SENSITIVE_PROPERTY_PREFIX = "SENSITIVE.";
+    String getConnectionURL();
 }
