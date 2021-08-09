@@ -605,7 +605,7 @@ public class FileUtils {
         return size;
     }
 
-    private static ToLongFunction<Path> getFileSizeByPathFunction(Logger logger) {
+    private static ToLongFunction<Path> getFileSizeByPathFunction(final Logger logger) {
         return path -> {
             try {
                 return Files.size(path);

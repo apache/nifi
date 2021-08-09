@@ -17,8 +17,10 @@
 package org.apache.nifi.bootstrap;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.bootstrap.diagnostic.DiagnosticProperties;
+import org.apache.nifi.bootstrap.diagnostic.DiagnosticPropertiesFactory;
+import org.apache.nifi.bootstrap.diagnostic.DiagnosticUtils;
 import org.apache.nifi.bootstrap.notification.NotificationType;
-import org.apache.nifi.bootstrap.util.DiagnosticContext;
 import org.apache.nifi.bootstrap.util.OSUtils;
 import org.apache.nifi.bootstrap.util.SecureNiFiConfigUtil;
 import org.apache.nifi.util.file.FileUtils;
@@ -286,17 +288,25 @@ public class RunNiFi {
     }
 
     private void runDiagnostics() throws IOException {
-        final DiagnosticContext diagnosticContext = new DiagnosticContext();
-        if (diagnosticContext.isAllowed()) {
-            if (diagnosticContext.isFileCountExceeded()) {
-                final Path oldestFile = diagnosticContext.getOldestFile();
+        final Properties bootstrapProperties = loadProperties(defaultLogger);
+        final DiagnosticProperties diagnosticProperties = DiagnosticPropertiesFactory.create(bootstrapProperties);
+        final String diagnosticDirectoryPath = diagnosticProperties.getDirPath();
+        final boolean isCreated = DiagnosticUtils.createDiagnosticDirectory(diagnosticDirectoryPath);
+        if (isCreated) {
+            defaultLogger.debug("Diagnostic directory has successfully been created.");
+        } else {
+            defaultLogger.warn("Diagnostic directory could not be created.");
+        }
+        if (diagnosticProperties.isAllowed()) {
+            if (DiagnosticUtils.isFileCountExceeded(diagnosticDirectoryPath, diagnosticProperties.getMaxFileCount())) {
+                final Path oldestFile = DiagnosticUtils.getOldestFile(diagnosticDirectoryPath);
                 Files.delete(oldestFile);
             }
-            diagnostics(new File(diagnosticContext.getDirPath() + "/diagnostic-" + LocalDateTime.now() + ".log"),
-                    diagnosticContext.isVerbose());
+            diagnostics(new File(diagnosticDirectoryPath + "/diagnostic-" + LocalDateTime.now() + ".log"),
+                    diagnosticProperties.isVerbose());
 
-            while (diagnosticContext.isSizeExceeded()) {
-                final Path oldestFile = diagnosticContext.getOldestFile();
+            while (DiagnosticUtils.isSizeExceeded(diagnosticDirectoryPath, diagnosticProperties.getMaxSizeInBytes())) {
+                final Path oldestFile = DiagnosticUtils.getOldestFile(diagnosticDirectoryPath);
                 Files.delete(oldestFile);
             }
         }
