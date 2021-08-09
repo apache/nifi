@@ -570,6 +570,9 @@ public final class KafkaProcessorUtils {
         mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, builder.toString());
     }
     
+    /**
+     * New function created to support IAM JASS configuration.
+     */
     private static void setIamJaasConfig(final Map<String, Object> mapToPopulate, final ProcessContext context) {
         final String awsProfileName = context.getProperty(AWS_PROFILE_NAME).evaluateAttributeExpressions().getValue();
         final String awsRoleArn = context.getProperty(AWS_ROLE_ARN).evaluateAttributeExpressions().getValue();
