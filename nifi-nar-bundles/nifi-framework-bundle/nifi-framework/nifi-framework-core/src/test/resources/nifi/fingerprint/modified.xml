@@ -23,6 +23,8 @@
         <name>NiFi Flow</name>
         <position x="0.0" y="0.0"/>
         <comment/>
+        <flowfileConcurrency>UNBOUNDED</flowfileConcurrency>
+        <flowfileOutboundPolicy>STREAM_WHEN_AVAILABLE</flowfileOutboundPolicy>
         <processor>
             <id>f3214b1c-016f-1000-0000-00001b1546be</id>
             <name>GetFTP</name>

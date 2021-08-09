@@ -159,6 +159,51 @@ public class FingerprintFactoryTest {
     }
 
     @Test
+    public void testPublicPortWithAccessPoliciesFingerprint()  throws IOException {
+        final String fingerprint = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
+        // user access control
+        assertTrue(fingerprint.contains("user1"));
+        // group access control
+        assertTrue(fingerprint.contains("group1"));
+        // policies fingerprinted
+        assertTrue(fingerprint.contains("user1group1"));
+    }
+
+    @Test
+    public void testPublicPortWithDifferentFingerprintInAccessPolicies() throws IOException, ParserConfigurationException, SAXException {
+        final String f1 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
+        assertEquals(2, StringUtils.countMatches(f1, "user1group1"));
+
+        final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
+        final Document document = docBuilder.parse(new File("src/test/resources/nifi/fingerprint/public-port-with-no-policies.xml"));
+        final Element rootProcessGroup = document.getDocumentElement();
+
+        final StringBuilder sb = new StringBuilder();
+        fingerprintFactory.addProcessGroupFingerprint(sb, rootProcessGroup, new FlowEncodingVersion(1, 0));
+
+        final String f2 = sb.toString();
+        assertEquals(2, StringUtils.countMatches(f1, "NO_USER_ACCESS_CONTROLNO_GROUP_ACCESS_CONTROL"));
+
+        // actual -> Public-IntrueNO_USER_ACCESS_CONTROLNO_GROUP_ACCESS_CONTROL
+        // expected -> Public-Intrueuser1group1
+        assertNotEquals(StringUtils.countMatches(f1, "user1group1"), StringUtils.countMatches(f2, "user1group1"));
+    }
+
+    @Test
+    public void testPublicPortWithNoAccessPoliciesFingerprint() throws ParserConfigurationException, IOException, SAXException {
+        final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
+        final Document document = docBuilder.parse(new File("src/test/resources/nifi/fingerprint/public-port-with-no-policies.xml"));
+        final Element rootProcessGroup = document.getDocumentElement();
+
+        final StringBuilder sb = new StringBuilder();
+        fingerprintFactory.addProcessGroupFingerprint(sb, rootProcessGroup, new FlowEncodingVersion(1, 0));
+
+        final String fingerprint = sb.toString();
+        assertTrue(fingerprint.contains("NO_USER_ACCESS_CONTROL"));
+        assertTrue(fingerprint.contains("NO_GROUP_ACCESS_CONTROL"));
+    }
+
+    @Test
     public void testSchemaValidation() throws IOException {
         FingerprintFactory fp = new FingerprintFactory(null, getValidatingDocumentBuilder(), extensionManager, null);
         fp.createFingerprint(getResourceBytes("/nifi/fingerprint/validating-flow.xml"), null);
