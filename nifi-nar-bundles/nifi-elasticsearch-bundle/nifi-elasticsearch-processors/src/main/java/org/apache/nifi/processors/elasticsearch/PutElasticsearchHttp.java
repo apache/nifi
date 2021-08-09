@@ -140,6 +140,7 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    private final AtomicReference<Iterator<String>> esUrlsIteratorAtomicReference = new AtomicReference<>();
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
 
@@ -200,8 +201,13 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         return problems;
     }
 
+    protected String getESUrl() {
+        return esUrlsIteratorAtomicReference.get().next().trim()
+    }
+
     @OnScheduled
     public void setup(ProcessContext context) {
+        esUrlsIteratorAtomicReference.set(Iterables.cycle(Array.asList(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue().split(","))).iterator())
         super.setup(context);
     }
 
@@ -228,7 +234,7 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         List<FlowFile> flowFilesToTransfer = new LinkedList<>(flowFiles);
 
         final StringBuilder sb = new StringBuilder();
-        final String baseUrl = context.getProperty(ES_URL).evaluateAttributeExpressions().getValue().trim();
+        final String baseUrl = getESUrl();
         if (StringUtils.isEmpty(baseUrl)) {
             throw new ProcessException("Elasticsearch URL is empty or null, this indicates an invalid Expression (missing variables, e.g.)");
         }

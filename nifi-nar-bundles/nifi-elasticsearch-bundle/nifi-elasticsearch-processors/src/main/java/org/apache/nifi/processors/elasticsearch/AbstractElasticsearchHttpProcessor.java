@@ -65,9 +65,9 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
     public static final PropertyDescriptor ES_URL = new PropertyDescriptor.Builder()
             .name("elasticsearch-http-url")
             .displayName("Elasticsearch URL")
-            .description("Elasticsearch URL which will be connected to, including scheme (http, e.g.), host, and port. The default port for the REST API is 9200.")
+            .description("Elasticsearch URLs seperated by comma which will be connected to, including scheme (http, e.g.), host, and port. The default port for the REST API is 9200.")
             .required(true)
-            .addValidator(StandardValidators.URL_VALIDATOR)
+            .addValidator(StandardValidators.URI_LIST_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
