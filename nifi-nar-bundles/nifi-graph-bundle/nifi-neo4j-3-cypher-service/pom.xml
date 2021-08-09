@@ -15,17 +15,15 @@
         <artifactId>nifi-graph-bundle</artifactId>
         <version>1.16.0-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-other-graph-services</artifactId>
+    <artifactId>nifi-neo4j-3-cypher-service</artifactId>
     <packaging>jar</packaging>
 
-    <properties>
-        <gremlin.version>3.4.4</gremlin.version>
-    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-lookup-service-api</artifactId>
@@ -80,44 +78,12 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.opencypher.gremlin</groupId>
-            <artifactId>cypher-gremlin-neo4j-driver</artifactId>
-            <version>1.0.4</version>
+            <groupId>org.neo4j.driver</groupId>
+            <artifactId>neo4j-java-driver</artifactId>
+            <version>1.7.5</version>
+            <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy</artifactId>
-            <version>2.5.14</version>
-            <classifier>indy</classifier>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-json</artifactId>
-            <version>2.5.14</version>
-            <classifier>indy</classifier>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-groovysh</artifactId>
-            <version>2.5.14</version>
-            <classifier>indy</classifier>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-jsr223</artifactId>
-            <version>2.5.14</version>
-            <classifier>indy</classifier>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.tinkerpop</groupId>
-            <artifactId>gremlin-core</artifactId>
-            <version>${gremlin.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.tinkerpop</groupId>
-            <artifactId>gremlin-driver</artifactId>
-            <version>${gremlin.version}</version>
-        </dependency>
+
     </dependencies>
 
     <build>

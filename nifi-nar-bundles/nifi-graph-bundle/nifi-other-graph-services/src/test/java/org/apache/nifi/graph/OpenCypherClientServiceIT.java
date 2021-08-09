@@ -17,6 +17,7 @@
 
 package org.apache.nifi.graph;
 
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
@@ -57,10 +58,9 @@ public class OpenCypherClientServiceIT {
     @BeforeEach
     public void before() throws Exception {
         service = new OpenCypherClientService();
-        runner = TestRunners.newTestRunner(MockProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("clientService", service);
         runner.setProperty(service, AbstractTinkerpopClientService.CONTACT_POINTS, "localhost");
-        runner.setProperty(MockProcessor.CLIENT, "clientService");
         runner.enableControllerService(service);
         runner.assertValid();
 
