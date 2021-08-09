@@ -18,8 +18,6 @@ package org.apache.nifi.security.util;
 
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -28,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.net.URL;
 
 
 /**
@@ -36,8 +35,6 @@ import java.util.Properties;
  * building {@link javax.net.ssl.SSLContext}s.
  */
 public class StandardTlsConfiguration implements TlsConfiguration {
-    private static final Logger logger = LoggerFactory.getLogger(StandardTlsConfiguration.class);
-
     private static final String TLS_PROTOCOL_VERSION = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion();
     private static final String MASKED_PASSWORD_LOG = "********";
     private static final String NULL_LOG = "null";
@@ -192,22 +189,17 @@ public class StandardTlsConfiguration implements TlsConfiguration {
      * @return a populated TlsConfiguration container object
      */
     public static TlsConfiguration fromNiFiProperties(final Properties niFiProperties) {
-        Objects.requireNonNull("The NiFi properties cannot be null");
-
-        String keystorePath = niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE);
-        String keystorePassword = niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD);
-        String keyPassword = niFiProperties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD);
-        String keystoreType = niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE);
-        String truststorePath = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE);
-        String truststorePassword = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD);
-        String truststoreType = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE);
-        String protocol = TLS_PROTOCOL_VERSION;
-
-        final StandardTlsConfiguration tlsConfiguration = new StandardTlsConfiguration(keystorePath, keystorePassword, keyPassword,
-                keystoreType, truststorePath, truststorePassword,
-                truststoreType, protocol);
-
-        return tlsConfiguration;
+        Objects.requireNonNull(niFiProperties, "Properties required");
+        return new StandardTlsConfiguration(
+                niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE),
+                niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD),
+                niFiProperties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD),
+                niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE),
+                niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE),
+                niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD),
+                niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE),
+                TLS_PROTOCOL_VERSION
+        );
     }
 
     /**
@@ -218,38 +210,18 @@ public class StandardTlsConfiguration implements TlsConfiguration {
      * @param niFiProperties the NiFi properties
      * @return a populated TlsConfiguration container object
      */
-    public static StandardTlsConfiguration fromNiFiPropertiesTruststoreOnly(NiFiProperties niFiProperties) {
-        if (niFiProperties == null) {
-            throw new IllegalArgumentException("The NiFi properties cannot be null");
-        }
-
-        String truststorePath = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE);
-        String truststorePassword = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD);
-        String truststoreType = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE);
-        String protocol = TLS_PROTOCOL_VERSION;
-
-        final StandardTlsConfiguration tlsConfiguration = new StandardTlsConfiguration(null, null, null, null, truststorePath, truststorePassword,
-                truststoreType, protocol);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Instantiating TlsConfiguration from NiFi properties: null x4, {}, {}, {}, {}",
-                    truststorePath, tlsConfiguration.getTruststorePasswordForLogging(), truststoreType, protocol);
-        }
-
-        return tlsConfiguration;
+    public static StandardTlsConfiguration fromNiFiPropertiesTruststoreOnly(final NiFiProperties niFiProperties) {
+        Objects.requireNonNull(niFiProperties, "Properties required");
+        return new StandardTlsConfiguration(
+                null,
+                null,
+                null,
+                null,
+                niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE),
+                niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD),
+                niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE),
+                TLS_PROTOCOL_VERSION);
     }
-
-    // /**
-    //  * Returns {@code true} if the provided TlsConfiguration is {@code null} or <em>empty</em>
-    //  * (i.e. neither any of the keystore nor truststore properties are populated).
-    //  *
-    //  * @param tlsConfiguration the container object to check
-    //  * @return true if this container is empty or null
-    //  */
-    // public static boolean isEmpty(org.apache.nifi.security.util.TlsConfiguration tlsConfiguration) {
-    //     return tlsConfiguration == null || !(tlsConfiguration.isAnyKeystorePopulated() || tlsConfiguration.isAnyTruststorePopulated());
-    // }
-
-    // Getters & setters
 
     @Override
     public String getKeystorePath() {
@@ -350,7 +322,7 @@ public class StandardTlsConfiguration implements TlsConfiguration {
      */
     @Override
     public boolean isKeystorePopulated() {
-        return isStorePopulated(keystorePath, keystorePassword, keystoreType, "keystore");
+        return isStorePopulated(keystorePath, keystorePassword, keystoreType, StoreType.KEY_STORE);
     }
 
     /**
@@ -370,19 +342,12 @@ public class StandardTlsConfiguration implements TlsConfiguration {
      */
     @Override
     public boolean isKeystoreValid() {
-        boolean simpleCheck = isStoreValid(keystorePath, keystorePassword, keystoreType, "keystore");
-        if (simpleCheck) {
+        if (isStoreValid(keystorePath, keystorePassword, keystoreType, StoreType.KEY_STORE)) {
             return true;
-        } else if (StringUtils.isNotBlank(keyPassword) && !keystorePassword.equals(keyPassword)) {
-            logger.debug("Simple keystore validity check failed; trying with separate key password");
-            try {
-                return isKeystorePopulated()
-                        && KeyStoreUtils.isKeyPasswordCorrect(new File(keystorePath).toURI().toURL(), keystoreType, keystorePassword.toCharArray(),
-                        getFunctionalKeyPassword().toCharArray());
-            } catch (MalformedURLException e) {
-                logger.error("Encountered an error validating the keystore: " + e.getLocalizedMessage());
-                return false;
-            }
+        } else if (StringUtils.isNotBlank(keyPassword) && !keyPassword.equals(keystorePassword)) {
+            return isKeystorePopulated()
+                    && KeyStoreUtils.isKeyPasswordCorrect(getFileUrl(keystorePath), keystoreType, keystorePassword.toCharArray(),
+                    getFunctionalKeyPassword().toCharArray());
         } else {
             return false;
         }
@@ -395,7 +360,7 @@ public class StandardTlsConfiguration implements TlsConfiguration {
      */
     @Override
     public boolean isTruststorePopulated() {
-        return isStorePopulated(truststorePath, truststorePassword, truststoreType, "truststore");
+        return isStorePopulated(truststorePath, truststorePassword, truststoreType, StoreType.TRUST_STORE);
     }
 
     /**
@@ -415,7 +380,7 @@ public class StandardTlsConfiguration implements TlsConfiguration {
      */
     @Override
     public boolean isTruststoreValid() {
-        return isStoreValid(truststorePath, truststorePassword, truststoreType, "truststore");
+        return isStoreValid(truststorePath, truststorePassword, truststoreType, StoreType.TRUST_STORE);
     }
 
     /**
@@ -462,21 +427,19 @@ public class StandardTlsConfiguration implements TlsConfiguration {
             enabledProtocols.add(configuredProtocol);
         }
 
-        return enabledProtocols.toArray(new String[enabledProtocols.size()]);
+        return enabledProtocols.toArray(new String[0]);
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("[TlsConfiguration]");
-        sb.append("keystorePath=").append(keystorePath);
-        sb.append(",keystorePassword=").append(getKeystorePasswordForLogging());
-        sb.append(",keyPassword=").append(getKeyPasswordForLogging());
-        sb.append(",keystoreType=").append(keystoreType);
-        sb.append(",truststorePath=").append(truststorePath);
-        sb.append(",truststorePassword=").append(getTruststorePasswordForLogging());
-        sb.append(",truststoreType=").append(truststoreType);
-        sb.append(",protocol=").append(protocol);
-        return sb.toString();
+        return "[TlsConfiguration]" + "keystorePath=" + keystorePath +
+                ",keystorePassword=" + getKeystorePasswordForLogging() +
+                ",keyPassword=" + getKeyPasswordForLogging() +
+                ",keystoreType=" + keystoreType +
+                ",truststorePath=" + truststorePath +
+                ",truststorePassword=" + getTruststorePasswordForLogging() +
+                ",truststoreType=" + truststoreType +
+                ",protocol=" + protocol;
     }
 
     @Override
@@ -507,32 +470,32 @@ public class StandardTlsConfiguration implements TlsConfiguration {
         return StringUtils.isNotBlank(path) || StringUtils.isNotBlank(password) || type != null;
     }
 
-    private boolean isStorePopulated(String path, String password, KeystoreType type, String label) {
-        boolean isPopulated;
-        String passwordForLogging;
+    private boolean isStorePopulated(final String path, final String password, final KeystoreType type, final StoreType storeType) {
+        boolean populated;
 
-        // Legacy truststores can be populated without a password; only check the path and type
-        isPopulated = StringUtils.isNotBlank(path) && type != null;
-        if ("truststore".equalsIgnoreCase(label)) {
-            passwordForLogging = getTruststorePasswordForLogging();
-        } else {
-            // Keystores require a password
-            isPopulated = isPopulated && StringUtils.isNotBlank(password);
-            passwordForLogging = getKeystorePasswordForLogging();
+        // Legacy trust stores such as JKS can be populated without a password; only check the path and type
+        populated = StringUtils.isNotBlank(path) && type != null;
+        if (StoreType.KEY_STORE == storeType) {
+            populated = populated && StringUtils.isNotBlank(password);
         }
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("TLS config {} is {}: {}, {}, {}", label, isPopulated ? "populated" : "not populated", path, passwordForLogging, type);
-        }
-        return isPopulated;
+        return populated;
     }
 
-    private boolean isStoreValid(String path, String password, KeystoreType type, String label) {
+    private boolean isStoreValid(final String path, final String password, final KeystoreType type, final StoreType storeType) {
+        return isStorePopulated(path, password, type, storeType) && KeyStoreUtils.isStoreValid(getFileUrl(path), type, password.toCharArray());
+    }
+
+    private URL getFileUrl(final String path) {
         try {
-            return isStorePopulated(path, password, type, label) && KeyStoreUtils.isStoreValid(new File(path).toURI().toURL(), type, password.toCharArray());
-        } catch (MalformedURLException e) {
-            logger.error("Encountered an error validating the " + label + ": " + e.getLocalizedMessage());
-            return false;
+            return new File(path).toURI().toURL();
+        } catch (final MalformedURLException e) {
+            throw new IllegalArgumentException(String.format("File Path [%s] URL conversion failed", path), e);
         }
+    }
+
+    private enum StoreType {
+        KEY_STORE,
+        TRUST_STORE
     }
 }

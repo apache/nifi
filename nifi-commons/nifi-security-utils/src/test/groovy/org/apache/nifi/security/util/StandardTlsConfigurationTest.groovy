@@ -171,6 +171,12 @@ class StandardTlsConfigurationTest extends GroovyTestCase {
     }
 
     @Test
+    void testIsKeystoreValidFalseNullKeystorePassword() {
+        TlsConfiguration configuration = new StandardTlsConfiguration(KEYSTORE_PATH, null, KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE)
+        assert !configuration.isKeystoreValid()
+    }
+
+    @Test
     void testShouldValidateKeystoreConfiguration() {
         // Arrange
         TlsConfiguration empty = new StandardTlsConfiguration()
@@ -234,7 +240,7 @@ class StandardTlsConfigurationTest extends GroovyTestCase {
         TlsConfiguration configuration = getTlsConfiguration(currentProtocol)
 
         String[] enabledProtocols = configuration.enabledProtocols
-        assert enabledProtocols == [currentProtocol]
+        assert enabledProtocols == [currentProtocol] as String[]
     }
 
     @Test
