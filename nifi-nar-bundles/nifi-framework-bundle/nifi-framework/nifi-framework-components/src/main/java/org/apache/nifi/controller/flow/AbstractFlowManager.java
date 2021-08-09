@@ -49,7 +49,6 @@ import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -80,7 +79,7 @@ public abstract class AbstractFlowManager implements FlowManager {
     private volatile ControllerServiceProvider controllerServiceProvider;
     private volatile ProcessGroup rootGroup;
 
-    private static final String PARAMETER_CONTEXT_RESOLUTION_METHOD = "withParameterContextResolution";
+    private final ThreadLocal<Boolean> withParameterContextResolution = ThreadLocal.withInitial(() -> false);
 
     public AbstractFlowManager(final FlowFileEventRepository flowFileEventRepository, final ParameterContextManager parameterContextManager,
                                final FlowRegistryClient flowRegistryClient, final BooleanSupplier flowInitializedCheck) {
@@ -435,8 +434,8 @@ public abstract class AbstractFlowManager implements FlowManager {
         parameterContext.setParameters(parameters);
 
         if (parameterContexts != null && !parameterContexts.isEmpty()) {
-            if (!isCalledFromMethod(PARAMETER_CONTEXT_RESOLUTION_METHOD)) {
-                throw new IllegalStateException("A ParameterContext with inherited ParameterContexts may only be created from within a call to " + PARAMETER_CONTEXT_RESOLUTION_METHOD);
+            if (!withParameterContextResolution.get()) {
+                throw new IllegalStateException("A ParameterContext with inherited ParameterContexts may only be created from within a call to AbstractFlowManager#withParameterContextResolution");
             }
             final List<ParameterContext> parameterContextList = new ArrayList<>();
             for(final ParameterContextReferenceEntity parameterContextRef : parameterContexts) {
@@ -449,15 +448,11 @@ public abstract class AbstractFlowManager implements FlowManager {
         return parameterContext;
     }
 
-    private boolean isCalledFromMethod(final String methodName) {
-        return Arrays.stream(Thread.currentThread().getStackTrace())
-                .map(StackTraceElement::getMethodName)
-                .anyMatch(methodName::equals);
-    }
-
     @Override
     public void withParameterContextResolution(final Runnable parameterContextAction) {
+        withParameterContextResolution.set(true);
         parameterContextAction.run();
+        withParameterContextResolution.set(false);
 
         for (final ParameterContext parameterContext : parameterContextManager.getParameterContexts()) {
             // if a param context in the manager itself is reference-only, it means there is a reference to a param
