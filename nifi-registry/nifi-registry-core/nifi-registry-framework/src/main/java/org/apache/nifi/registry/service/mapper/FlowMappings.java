@@ -22,7 +22,7 @@ import org.apache.nifi.registry.db.entity.FlowEntity;
 import org.apache.nifi.registry.db.entity.FlowSnapshotEntity;
 import org.apache.nifi.registry.diff.ComponentDifference;
 import org.apache.nifi.registry.diff.ComponentDifferenceGroup;
-import org.apache.nifi.registry.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.diff.FlowDifference;

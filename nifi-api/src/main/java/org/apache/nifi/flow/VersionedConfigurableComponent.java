@@ -14,19 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.registry.flow;
+package org.apache.nifi.flow;
+
+import java.util.Map;
 
 /**
- * A component that is an extension and has a type and bundle.
+ * A component that has property descriptors and can be configured with values for those properties.
  */
-public interface VersionedExtensionComponent {
+public interface VersionedConfigurableComponent {
 
-    Bundle getBundle();
+    Map<String, VersionedPropertyDescriptor> getPropertyDescriptors();
 
-    void setBundle(Bundle bundle);
+    void setPropertyDescriptors(Map<String,VersionedPropertyDescriptor> propertyDescriptors);
 
-    String getType();
+    Map<String,String> getProperties();
 
-    void setType(String type);
+    void setProperties(Map<String,String> properties);
 
 }

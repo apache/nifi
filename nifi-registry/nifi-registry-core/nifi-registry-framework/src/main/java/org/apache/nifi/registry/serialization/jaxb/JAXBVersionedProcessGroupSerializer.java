@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.serialization.jaxb;
 
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 
 /**
  * A JAXB serializer for VersionedFlowSnapshots.

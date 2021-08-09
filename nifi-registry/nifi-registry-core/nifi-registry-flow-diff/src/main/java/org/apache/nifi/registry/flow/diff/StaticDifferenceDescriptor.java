@@ -19,9 +19,9 @@ package org.apache.nifi.registry.flow.diff;
 
 import java.util.Objects;
 
-import org.apache.nifi.registry.flow.ScheduledState;
-import org.apache.nifi.registry.flow.VersionedComponent;
-import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
 
 /**
  * Describes differences between flows as if the flows are two disparate flows that are being

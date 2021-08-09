@@ -17,11 +17,11 @@
 package org.apache.nifi.registry.web.api;
 
 import org.apache.nifi.registry.bucket.Bucket;
-import org.apache.nifi.registry.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 
 import java.util.Set;
 

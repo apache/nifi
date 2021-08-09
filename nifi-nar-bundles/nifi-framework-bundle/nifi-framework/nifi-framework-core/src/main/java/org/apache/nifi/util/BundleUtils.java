@@ -19,7 +19,7 @@ package org.apache.nifi.util;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.web.api.dto.BundleDTO;
 
 import java.util.List;
@@ -168,19 +168,19 @@ public final class BundleUtils {
         }
     }
 
-    public static BundleCoordinate discoverCompatibleBundle(final ExtensionManager extensionManager, final String type, final org.apache.nifi.registry.flow.Bundle bundle) {
+    public static BundleCoordinate discoverCompatibleBundle(final ExtensionManager extensionManager, final String type, final org.apache.nifi.flow.Bundle bundle) {
         return getCompatibleBundle(extensionManager, type, createBundleDto(bundle));
     }
 
-    private static org.apache.nifi.registry.flow.Bundle createBundle(final BundleCoordinate coordinate) {
-        final org.apache.nifi.registry.flow.Bundle bundle = new org.apache.nifi.registry.flow.Bundle();
+    private static org.apache.nifi.flow.Bundle createBundle(final BundleCoordinate coordinate) {
+        final org.apache.nifi.flow.Bundle bundle = new org.apache.nifi.flow.Bundle();
         bundle.setArtifact(coordinate.getId());
         bundle.setGroup(coordinate.getGroup());
         bundle.setVersion(coordinate.getVersion());
         return bundle;
     }
 
-    public static BundleDTO createBundleDto(final org.apache.nifi.registry.flow.Bundle bundle) {
+    public static BundleDTO createBundleDto(final org.apache.nifi.flow.Bundle bundle) {
         final BundleDTO dto = new BundleDTO();
         dto.setArtifact(bundle.getArtifact());
         dto.setGroup(bundle.getGroup());

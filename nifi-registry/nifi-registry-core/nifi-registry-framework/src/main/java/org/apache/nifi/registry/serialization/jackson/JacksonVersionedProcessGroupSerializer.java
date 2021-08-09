@@ -17,7 +17,7 @@
 package org.apache.nifi.registry.serialization.jackson;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.serialization.SerializationException;
 
 /**

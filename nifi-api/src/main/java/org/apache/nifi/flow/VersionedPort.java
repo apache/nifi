@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.registry.flow;
+package org.apache.nifi.flow;
 
 import io.swagger.annotations.ApiModelProperty;
 

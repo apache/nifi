@@ -28,7 +28,7 @@ import org.apache.nifi.minifi.commons.schema.common.CollectionUtil;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 
 import java.util.Comparator;
 import java.util.HashMap;

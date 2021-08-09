@@ -14,9 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.registry.flow;
+package org.apache.nifi.flow;
 
-public enum ScheduledState {
-    ENABLED,
-    DISABLED;
+/**
+ * A component that is an extension and has a type and bundle.
+ */
+public interface VersionedExtensionComponent {
+
+    Bundle getBundle();
+
+    void setBundle(Bundle bundle);
+
+    String getType();
+
+    void setType(String type);
+
 }

@@ -15,17 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.registry.flow;
+package org.apache.nifi.flow;
 
 import io.swagger.annotations.ApiModelProperty;
 
-import javax.xml.bind.annotation.XmlRootElement;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-@XmlRootElement
 public class VersionedProcessGroup extends VersionedComponent {
 
     private Set<VersionedProcessGroup> processGroups = new HashSet<>();

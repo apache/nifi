@@ -15,18 +15,35 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.registry.flow;
+package org.apache.nifi.flow;
 
-public enum VersionedResourceCardinality {
+public enum ComponentType {
 
-    /**
-     * Exactly one resource must be specified
-     */
-    SINGLE,
+    CONNECTION("Connection"),
+    PROCESSOR("Processor"),
+    PROCESS_GROUP("Process Group"),
+    REMOTE_PROCESS_GROUP("Remote Process Group"),
+    INPUT_PORT("Input Port"),
+    OUTPUT_PORT("Output Port"),
+    REMOTE_INPUT_PORT("Remote Input Port"),
+    REMOTE_OUTPUT_PORT("Remote Output Port"),
+    FUNNEL("Funnel"),
+    LABEL("Label"),
+    CONTROLLER_SERVICE("Controller Service");
 
-    /**
-     * One or more resources may be supplied, as a comma-separated list
-     */
-    MULTIPLE;
 
+    private final String typeName;
+
+    private ComponentType(final String typeName) {
+        this.typeName = typeName;
+    }
+
+    public String getTypeName() {
+        return typeName;
+    }
+
+    @Override
+    public String toString() {
+        return typeName;
+    }
 }

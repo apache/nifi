@@ -15,13 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.registry.flow;
+package org.apache.nifi.flow;
 
-public enum ConnectableComponentType {
-    PROCESSOR,
-    REMOTE_INPUT_PORT,
-    REMOTE_OUTPUT_PORT,
-    INPUT_PORT,
-    OUTPUT_PORT,
-    FUNNEL;
+public enum VersionedResourceCardinality {
+
+    /**
+     * Exactly one resource must be specified
+     */
+    SINGLE,
+
+    /**
+     * One or more resources may be supplied, as a comma-separated list
+     */
+    MULTIPLE;
+
 }

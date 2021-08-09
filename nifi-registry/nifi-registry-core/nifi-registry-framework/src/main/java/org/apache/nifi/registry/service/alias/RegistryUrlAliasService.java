@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.registry.service.alias;
 
-import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.registry.provider.ProviderFactoryException;
 import org.apache.nifi.registry.provider.StandardProviderFactory;

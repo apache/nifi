@@ -18,6 +18,8 @@
 package org.apache.nifi.registry.flow;
 
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.BucketClient;
 import org.apache.nifi.registry.client.FlowClient;

@@ -17,7 +17,7 @@
 package org.apache.nifi.minifi.toolkit.configuration.registry;
 
 import org.apache.nifi.minifi.commons.schema.FunnelSchema;
-import org.apache.nifi.registry.flow.VersionedFunnel;
+import org.apache.nifi.flow.VersionedFunnel;
 
 import java.util.HashMap;
 import java.util.Map;

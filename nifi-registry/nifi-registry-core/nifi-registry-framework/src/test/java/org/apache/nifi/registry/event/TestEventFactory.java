@@ -24,7 +24,7 @@ import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.hook.Event;
 import org.apache.nifi.registry.hook.EventFieldName;
 import org.apache.nifi.registry.hook.EventType;

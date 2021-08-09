@@ -18,7 +18,7 @@
 package org.apache.nifi.stateless;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.registry.flow.Bundle;
+import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.stateless.bootstrap.StatelessBootstrap;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;

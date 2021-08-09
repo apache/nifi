@@ -17,7 +17,7 @@
 package org.apache.nifi.minifi.toolkit.configuration.registry;
 
 import org.apache.nifi.minifi.commons.schema.PortSchema;
-import org.apache.nifi.registry.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedPort;
 
 import java.util.HashMap;
 import java.util.Map;

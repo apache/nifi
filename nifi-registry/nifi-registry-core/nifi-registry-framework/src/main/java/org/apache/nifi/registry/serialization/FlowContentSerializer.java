@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.serialization;
 
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.serialization.jackson.JacksonFlowContentSerializer;
 import org.apache.nifi.registry.serialization.jackson.JacksonVersionedProcessGroupSerializer;
 import org.apache.nifi.registry.serialization.jaxb.JAXBVersionedProcessGroupSerializer;

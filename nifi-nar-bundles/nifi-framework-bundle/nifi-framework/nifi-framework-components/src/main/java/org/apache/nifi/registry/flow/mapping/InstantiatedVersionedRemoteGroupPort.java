@@ -17,7 +17,7 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
-import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
+import org.apache.nifi.flow.VersionedRemoteGroupPort;
 
 public class InstantiatedVersionedRemoteGroupPort extends VersionedRemoteGroupPort implements InstantiatedVersionedComponent {
     private final String instanceId;

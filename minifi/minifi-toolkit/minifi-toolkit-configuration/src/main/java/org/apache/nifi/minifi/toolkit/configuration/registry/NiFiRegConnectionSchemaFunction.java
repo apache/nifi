@@ -18,7 +18,7 @@ package org.apache.nifi.minifi.toolkit.configuration.registry;
 
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
-import org.apache.nifi.registry.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedConnection;
 
 import java.util.HashMap;
 import java.util.List;

@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.registry.serialization.jaxb;
 
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.registry.serialization.SerializationException;
 import org.apache.nifi.registry.serialization.VersionedSerializer;
 import org.junit.Assert;

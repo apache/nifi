@@ -13,7 +13,8 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
@@ -22,5 +23,23 @@
     </parent>
     <artifactId>nifi-api</artifactId>
     <packaging>jar</packaging>
-    <!-- This module should kept to having no dependencies -->
- </project>
+
+    <!--
+        This module should have no external dependencies. The following dependency is acceptable ONLY
+        due to the fact that it is an optional dependency, and NiFi functions perfectly without it.
+        Adding a dependency on nifi-api does not bring in any transitive dependencies.
+        The dependency is provided here because Swagger Annotations are used within the Versioned Components
+        objects of the NiFi API in order to provide documentation for generating REST API's, generating clients, etc.
+        While NiFi does not need these, any application that wants these capabilities can achieve this
+        simply by adding their own dependency on Swagger Annotations.
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>1.5.16</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+</project>

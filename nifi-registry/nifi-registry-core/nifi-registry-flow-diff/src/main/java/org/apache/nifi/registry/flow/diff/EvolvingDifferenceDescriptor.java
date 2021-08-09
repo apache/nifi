@@ -17,8 +17,8 @@
 
 package org.apache.nifi.registry.flow.diff;
 
-import org.apache.nifi.registry.flow.ScheduledState;
-import org.apache.nifi.registry.flow.VersionedComponent;
+import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flow.VersionedComponent;
 
 /**
  * Describes differences between flows as if Flow A is an 'earlier version' of the same flow than Flow B.

@@ -18,7 +18,7 @@
 package org.apache.nifi.registry.flow.mapping;
 
 import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 
 import javax.xml.bind.annotation.XmlTransient;
 import java.util.Map;
