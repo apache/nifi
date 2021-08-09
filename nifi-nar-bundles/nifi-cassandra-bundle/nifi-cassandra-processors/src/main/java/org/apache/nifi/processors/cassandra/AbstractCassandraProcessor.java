@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLContext;
+import com.datastax.driver.extras.codecs.arrays.ObjectArrayCodec;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.commons.lang3.StringUtils;
@@ -223,6 +224,9 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
     public void onScheduled(ProcessContext context) {
         final boolean connectionProviderIsSet = context.getProperty(CONNECTION_PROVIDER_SERVICE).isSet();
 
+        // Register codecs
+        registerAdditionalCodecs();
+
         if (connectionProviderIsSet) {
             CassandraSessionProviderService sessionProvider = context.getProperty(CONNECTION_PROVIDER_SERVICE).asControllerService(CassandraSessionProviderService.class);
             cluster.set(sessionProvider.getCluster());
@@ -252,24 +256,10 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
             // Set up the client for secure (SSL/TLS communications) if configured to do so
             final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-            final String rawClientAuth = context.getProperty(CLIENT_AUTH).getValue();
             final SSLContext sslContext;
 
             if (sslService != null) {
-                final ClientAuth clientAuth;
-
-                if (StringUtils.isBlank(rawClientAuth)) {
-                    clientAuth = ClientAuth.REQUIRED;
-                } else {
-                    try {
-                        clientAuth = ClientAuth.valueOf(rawClientAuth);
-                    } catch (final IllegalArgumentException iae) {
-                        throw new IllegalStateException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
-                                rawClientAuth, StringUtils.join(ClientAuth.values(), ", ")));
-                    }
-                }
-
-                sslContext = sslService.createSSLContext(clientAuth);
+                sslContext = sslService.createContext();
             } else {
                 sslContext = null;
             }
@@ -306,6 +296,14 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             cluster.set(newCluster);
             cassandraSession.set(newSession);
         }
+    }
+
+    protected void registerAdditionalCodecs() {
+        // Conversion between a String[] and a list of varchar
+        CodecRegistry.DEFAULT_INSTANCE.register(new ObjectArrayCodec<>(
+                DataType.list(DataType.varchar()),
+                String[].class,
+                TypeCodec.varchar()));
     }
 
     /**

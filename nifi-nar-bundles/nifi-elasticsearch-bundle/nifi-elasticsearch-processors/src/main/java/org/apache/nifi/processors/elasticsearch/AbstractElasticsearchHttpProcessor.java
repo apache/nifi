@@ -46,17 +46,17 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.security.util.OkHttpClientUtils;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * A base class for Elasticsearch processors that use the HTTP API
  */
 public abstract class AbstractElasticsearchHttpProcessor extends AbstractElasticsearchProcessor {
-
-    static final String FIELD_INCLUDE_QUERY_PARAM = "_source_include";
+    static final String SOURCE_QUERY_PARAM = "_source";
     static final String QUERY_QUERY_PARAM = "q";
     static final String SORT_QUERY_PARAM = "sort";
     static final String SIZE_QUERY_PARAM = "size";
@@ -209,8 +209,9 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         // Apply the TLS configuration if present
         final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslService != null) {
-            final TlsConfiguration tlsConfiguration = sslService.createTlsConfiguration();
-            OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, okHttpClient);
+            final SSLContext sslContext = sslService.createContext();
+            final X509TrustManager trustManager = sslService.createTrustManager();
+            okHttpClient.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
         }
 
         okHttpClientAtomicReference.set(okHttpClient.build());
@@ -282,13 +283,18 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
     }
 
     protected void buildBulkCommand(StringBuilder sb, String index, String docType, String indexOp, String id, String jsonString) {
-        if (indexOp.equalsIgnoreCase("index")) {
-            sb.append("{\"index\": { \"_index\": \"");
+        if (indexOp.equalsIgnoreCase("index") || indexOp.equalsIgnoreCase("create")) {
+            sb.append("{\"");
+            sb.append(indexOp.toLowerCase());
+            sb.append("\": { \"_index\": \"");
             sb.append(StringEscapeUtils.escapeJson(index));
-            sb.append("\", \"_type\": \"");
-            sb.append(StringEscapeUtils.escapeJson(docType));
             sb.append("\"");
-            if (!StringUtils.isEmpty(id)) {
+            if (StringUtils.isNotBlank(docType)) {
+                sb.append(", \"_type\": \"");
+                sb.append(StringEscapeUtils.escapeJson(docType));
+                sb.append("\"");
+            }
+            if (StringUtils.isNotBlank(id)) {
                 sb.append(", \"_id\": \"");
                 sb.append(StringEscapeUtils.escapeJson(id));
                 sb.append("\"");
@@ -299,11 +305,15 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         } else if (indexOp.equalsIgnoreCase("upsert") || indexOp.equalsIgnoreCase("update")) {
             sb.append("{\"update\": { \"_index\": \"");
             sb.append(StringEscapeUtils.escapeJson(index));
-            sb.append("\", \"_type\": \"");
-            sb.append(StringEscapeUtils.escapeJson(docType));
-            sb.append("\", \"_id\": \"");
+            sb.append("\"");
+            if (StringUtils.isNotBlank(docType)) {
+                sb.append(", \"_type\": \"");
+                sb.append(StringEscapeUtils.escapeJson(docType));
+                sb.append("\"");
+            }
+            sb.append(", \"_id\": \"");
             sb.append(StringEscapeUtils.escapeJson(id));
-            sb.append("\" }\n");
+            sb.append("\" } }\n");
             sb.append("{\"doc\": ");
             sb.append(jsonString);
             sb.append(", \"doc_as_upsert\": ");
@@ -312,11 +322,15 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         } else if (indexOp.equalsIgnoreCase("delete")) {
             sb.append("{\"delete\": { \"_index\": \"");
             sb.append(StringEscapeUtils.escapeJson(index));
-            sb.append("\", \"_type\": \"");
-            sb.append(StringEscapeUtils.escapeJson(docType));
-            sb.append("\", \"_id\": \"");
+            sb.append("\"");
+            if (StringUtils.isNotBlank(docType)) {
+                sb.append(", \"_type\": \"");
+                sb.append(StringEscapeUtils.escapeJson(docType));
+                sb.append("\"");
+            }
+            sb.append(", \"_id\": \"");
             sb.append(StringEscapeUtils.escapeJson(id));
-            sb.append("\" }\n");
+            sb.append("\" } }\n");
         }
     }
 }

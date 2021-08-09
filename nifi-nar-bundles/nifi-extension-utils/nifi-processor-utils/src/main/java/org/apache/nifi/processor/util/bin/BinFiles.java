@@ -16,17 +16,6 @@
  */
 package org.apache.nifi.processor.util.bin;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -43,6 +32,17 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Base class for file-binning processors.
  *
@@ -51,7 +51,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor MIN_SIZE = new PropertyDescriptor.Builder()
             .name("Minimum Group Size")
-            .description("The minimum size of for the bundle")
+            .description("The minimum size for the bundle")
             .required(true)
             .defaultValue("0 B")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -210,9 +210,11 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             final Bin bin = binManager.removeOldestBin();
             if (bin != null) {
                 added++;
+                bin.setEvictionReason(EvictionReason.BIN_MANAGER_FULL);
                 this.readyBins.add(bin);
             }
         }
+
         return added;
     }
 
@@ -231,7 +233,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                 for (final FlowFile flowFile : bin.getContents()) {
                     binSession.transfer(flowFile, REL_FAILURE);
                 }
-                binSession.commit();
+                binSession.commitAsync();
                 continue;
             } catch (final Exception e) {
                 logger.error("Failed to process bundle of {} files due to {}; rolling back sessions", new Object[] {bin.getContents().size(), e});
@@ -243,9 +245,9 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             // If this bin's session has been committed, move on.
             if (!binProcessingResult.isCommitted()) {
                 final ProcessSession binSession = bin.getSession();
-                bin.getContents().stream().forEach(ff -> binSession.putAllAttributes(ff, binProcessingResult.getAttributes()));
+                bin.getContents().forEach(ff -> binSession.putAllAttributes(ff, binProcessingResult.getAttributes()));
                 binSession.transfer(bin.getContents(), REL_ORIGINAL);
-                binSession.commit();
+                binSession.commitAsync();
             }
 
             processedBins++;

@@ -66,6 +66,8 @@ import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.user.generated.Users;
+import org.apache.nifi.util.FlowInfo;
+import org.apache.nifi.util.FlowParser;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.PortDTO;

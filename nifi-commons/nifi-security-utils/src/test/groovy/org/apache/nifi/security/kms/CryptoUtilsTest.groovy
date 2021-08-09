@@ -33,17 +33,10 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import javax.crypto.Cipher
-import javax.crypto.SecretKey
-import javax.crypto.spec.IvParameterSpec
-import javax.crypto.spec.SecretKeySpec
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
-import java.security.KeyManagementException
-import java.security.SecureRandom
 import java.security.Security
-
-import static groovy.test.GroovyAssert.shouldFail
 
 @RunWith(JUnit4.class)
 class CryptoUtilsTest {
@@ -341,154 +334,6 @@ class CryptoUtilsTest {
     }
 
     @Test
-    void testShouldReadKeys() {
-        // Arrange
-        String rootKeyHex = KEY_HEX
-        SecretKey rootKey = new SecretKeySpec(Hex.decode(rootKeyHex), "AES")
-
-        // Generate the file
-        String keyFileName = "keys.nkp"
-        File keyFile = tempFolder.newFile(keyFileName)
-        final int KEY_COUNT = 5
-        List<String> lines = []
-        KEY_COUNT.times { int i ->
-            lines.add("key${i + 1}=${generateEncryptedKey(rootKey)}")
-        }
-
-        keyFile.text = lines.join("\n")
-
-        logger.info("File contents: \n${keyFile.text}")
-
-        // Act
-        def readKeys = CryptoUtils.readKeys(keyFile.path, rootKey)
-        logger.info("Read ${readKeys.size()} keys from ${keyFile.path}")
-
-        // Assert
-        assert readKeys.size() == KEY_COUNT
-    }
-
-    @Test
-    void testShouldReadKeysWithDuplicates() {
-        // Arrange
-        String rootKeyHex = KEY_HEX
-        SecretKey rootKey = new SecretKeySpec(Hex.decode(rootKeyHex), "AES")
-
-        // Generate the file
-        String keyFileName = "keys.nkp"
-        File keyFile = tempFolder.newFile(keyFileName)
-        final int KEY_COUNT = 3
-        List<String> lines = []
-        KEY_COUNT.times { int i ->
-            lines.add("key${i + 1}=${generateEncryptedKey(rootKey)}")
-        }
-
-        lines.add("key3=${generateEncryptedKey(rootKey)}")
-
-        keyFile.text = lines.join("\n")
-
-        logger.info("File contents: \n${keyFile.text}")
-
-        // Act
-        def readKeys = CryptoUtils.readKeys(keyFile.path, rootKey)
-        logger.info("Read ${readKeys.size()} keys from ${keyFile.path}")
-
-        // Assert
-        assert readKeys.size() == KEY_COUNT
-    }
-
-    @Test
-    void testShouldReadKeysWithSomeMalformed() {
-        // Arrange
-        String rootKeyHex = KEY_HEX
-        SecretKey rootKey = new SecretKeySpec(Hex.decode(rootKeyHex), "AES")
-
-        // Generate the file
-        String keyFileName = "keys.nkp"
-        File keyFile = tempFolder.newFile(keyFileName)
-        final int KEY_COUNT = 5
-        List<String> lines = []
-        KEY_COUNT.times { int i ->
-            lines.add("key${i + 1}=${generateEncryptedKey(rootKey)}")
-        }
-
-        // Insert the malformed keys in the middle
-        lines.add(2, "keyX1==${generateEncryptedKey(rootKey)}")
-        lines.add(4, "=${generateEncryptedKey(rootKey)}")
-        lines.add(6, "keyX3=non Base64-encoded data")
-
-        keyFile.text = lines.join("\n")
-
-        logger.info("File contents: \n${keyFile.text}")
-
-        // Act
-        def readKeys = CryptoUtils.readKeys(keyFile.path, rootKey)
-        logger.info("Read ${readKeys.size()} keys from ${keyFile.path}")
-
-        // Assert
-        assert readKeys.size() == KEY_COUNT
-    }
-
-    @Test
-    void testShouldNotReadKeysIfAllMalformed() {
-        // Arrange
-        String rootKeyHex = KEY_HEX
-        SecretKey rootKey = new SecretKeySpec(Hex.decode(rootKeyHex), "AES")
-
-        // Generate the file
-        String keyFileName = "keys.nkp"
-        File keyFile = tempFolder.newFile(keyFileName)
-        final int KEY_COUNT = 5
-        List<String> lines = []
-
-        // All of these keys are malformed
-        KEY_COUNT.times { int i ->
-            lines.add("key${i + 1}=${generateEncryptedKey(rootKey)[0..<-4]}")
-        }
-
-        keyFile.text = lines.join("\n")
-
-        logger.info("File contents: \n${keyFile.text}")
-
-        // Act
-        def msg = shouldFail(KeyManagementException) {
-            def readKeys = CryptoUtils.readKeys(keyFile.path, rootKey)
-            logger.info("Read ${readKeys.size()} keys from ${keyFile.path}")
-        }
-
-        // Assert
-        assert msg.getMessage() == "The provided file contained no valid keys"
-    }
-
-    @Test
-    void testShouldNotReadKeysIfEmptyOrMissing() {
-        // Arrange
-        String rootKeyHex = KEY_HEX
-        SecretKey rootKey = new SecretKeySpec(Hex.decode(rootKeyHex), "AES")
-
-        // Generate the file
-        String keyFileName = "empty.nkp"
-        File keyFile = tempFolder.newFile(keyFileName)
-        logger.info("File contents: \n${keyFile.text}")
-
-        // Act
-        def missingMsg = shouldFail(KeyManagementException) {
-            def readKeys = CryptoUtils.readKeys(keyFile.path, rootKey)
-            logger.info("Read ${readKeys.size()} keys from ${keyFile.path}")
-        }
-        logger.expected("Missing file: ${missingMsg}")
-
-        def emptyMsg = shouldFail(KeyManagementException) {
-            def readKeys = CryptoUtils.readKeys(null, rootKey)
-            logger.info("Read ${readKeys.size()} keys from ${null}")
-        }
-        logger.expected("Empty file: ${emptyMsg}")
-
-        // Assert
-        assert missingMsg.getMessage() == "The provided file contained no valid keys"
-        assert emptyMsg.getMessage() == "The key provider file is not present and readable"
-    }
-
-    @Test
     void testShouldEvaluateConstantTimeEqualsForStrings() {
         // Arrange
         String plaintext = "This is a short string."
@@ -684,20 +529,4 @@ class CryptoUtilsTest {
         long end = System.nanoTime()
         end - start
     }
-
-    private static String generateEncryptedKey(SecretKey rootKey) {
-        byte[] ivBytes = new byte[16]
-        byte[] keyBytes = new byte[isUnlimitedStrengthCryptoAvailable() ? 32 : 16]
-
-        SecureRandom sr = new SecureRandom()
-        sr.nextBytes(ivBytes)
-        sr.nextBytes(keyBytes)
-
-        Cipher rootCipher = Cipher.getInstance("AES/GCM/NoPadding", "BC")
-        rootCipher.init(Cipher.ENCRYPT_MODE, rootKey, new IvParameterSpec(ivBytes))
-        byte[] cipherBytes = rootCipher.doFinal(keyBytes)
-
-        Base64.encoder.encodeToString(CryptoUtils.concatByteArrays(ivBytes, cipherBytes))
-    }
-
 }

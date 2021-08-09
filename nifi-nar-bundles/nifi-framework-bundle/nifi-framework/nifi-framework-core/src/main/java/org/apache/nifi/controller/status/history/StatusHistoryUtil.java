@@ -28,9 +28,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class StatusHistoryUtil {
 
@@ -76,13 +78,24 @@ public class StatusHistoryUtil {
     }
 
     public static List<StatusDescriptorDTO> createFieldDescriptorDtos(final Collection<MetricDescriptor<?>> metricDescriptors) {
-        final StatusDescriptorDTO[] result = new StatusDescriptorDTO[metricDescriptors.size()];
+        final StatusDescriptorDTO[] standardMetricDescriptors = new StatusDescriptorDTO[metricDescriptors.size()];
+        final List<StatusDescriptorDTO> counterMetricDescriptors = new LinkedList<>();
 
         for (final MetricDescriptor<?> metricDescriptor : metricDescriptors) {
-            result[metricDescriptor.getMetricIdentifier()] = createStatusDescriptorDto(metricDescriptor);
+            if (metricDescriptor instanceof StandardMetricDescriptor) {
+                standardMetricDescriptors[metricDescriptor.getMetricIdentifier()] = createStatusDescriptorDto(metricDescriptor);
+            } else if (metricDescriptor instanceof CounterMetricDescriptor) {
+                counterMetricDescriptors.add(createStatusDescriptorDto(metricDescriptor));
+            } else {
+                throw new IllegalArgumentException("Unknown metric descriptor type: " + metricDescriptor.getClass().getName());
+            }
         }
 
-        return Arrays.asList(result);
+        // Ordered standard metric descriptors are added first than counter metric descriptors in the order of appearance.
+        final List<StatusDescriptorDTO> result = new ArrayList<>(metricDescriptors.size());
+        result.addAll(Arrays.asList(standardMetricDescriptors).stream().filter(i -> i != null).collect(Collectors.toList()));
+        result.addAll(counterMetricDescriptors);
+        return result;
     }
 
     public static List<StatusDescriptorDTO> createFieldDescriptorDtos(final StatusHistory statusHistory) {

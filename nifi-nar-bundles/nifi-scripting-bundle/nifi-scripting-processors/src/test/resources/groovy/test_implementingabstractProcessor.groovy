@@ -29,9 +29,7 @@ import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.io.OutputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.stream.io.StreamUtils
-
-import java.security.MessageDigest
-
+import org.apache.nifi.util.security.MessageDigestUtils
 
 class TestAbstractProcessor extends AbstractProcessor {
 
@@ -88,20 +86,20 @@ class TestAbstractProcessor extends AbstractProcessor {
 			}
 		});
 		final String content = new String(buff);
-		final String md5 = generateMD5_A(content + myCustomPropValue);
-		requestFlowFile = session.putAttribute(requestFlowFile, attr, md5);
+		final String digest = generateDigest(content + myCustomPropValue);
+		requestFlowFile = session.putAttribute(requestFlowFile, attr, digest);
 		requestFlowFile = session.write(requestFlowFile, new OutputStreamCallback() {
 			@Override
 			public void process(OutputStream out) throws IOException {
-				out.write(md5.getBytes());
+				out.write(digest.getBytes());
 			}
 		});
 
 		session.transfer(requestFlowFile, REL_SUCCESS);
 	}
 
-    static def generateMD5_A(String s){
-        new String(Hex.encodeHex(MessageDigest.getInstance("MD5").digest(s.bytes)));
+    static def generateDigest(String s){
+        new String(Hex.encodeHex(MessageDigestUtils.getDigest(s.bytes)));
 	}
 }
 

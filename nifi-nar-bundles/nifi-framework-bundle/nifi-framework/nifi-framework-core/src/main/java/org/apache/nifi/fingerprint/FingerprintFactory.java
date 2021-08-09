@@ -16,26 +16,6 @@
  */
 package org.apache.nifi.fingerprint;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.stream.Stream;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -43,15 +23,13 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.encrypt.SensitiveValueEncoder;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.properties.NiFiPropertiesLoader;
-import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.LoggingXmlParserErrorHandler;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -62,6 +40,21 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.stream.Stream;
 
 /**
  * <p>Creates a fingerprint of a flow.xml. The order of elements or attributes in the flow.xml does not influence the fingerprint generation.
@@ -89,17 +82,17 @@ public class FingerprintFactory {
     static final String FLOW_CONFIG_XSD = "/FlowConfiguration.xsd";
     private static final String ENCRYPTED_VALUE_PREFIX = "enc{";
     private static final String ENCRYPTED_VALUE_SUFFIX = "}";
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
     private final DocumentBuilder flowConfigDocBuilder;
     private final ExtensionManager extensionManager;
-
-    private byte[] sensitivePropertyKeyBytes;
+    private final SensitiveValueEncoder sensitiveValueEncoder;
 
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactory.class);
 
-    public FingerprintFactory(final StringEncryptor encryptor, final ExtensionManager extensionManager) {
+    public FingerprintFactory(final PropertyEncryptor encryptor, final ExtensionManager extensionManager, final SensitiveValueEncoder sensitiveValueEncoder) {
         this.encryptor = encryptor;
         this.extensionManager = extensionManager;
+        this.sensitiveValueEncoder = sensitiveValueEncoder;
 
         final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
         final Schema schema;
@@ -116,10 +109,11 @@ public class FingerprintFactory {
         }
     }
 
-    public FingerprintFactory(final StringEncryptor encryptor, final DocumentBuilder docBuilder, final ExtensionManager extensionManager) {
+    public FingerprintFactory(final PropertyEncryptor encryptor, final DocumentBuilder docBuilder, final ExtensionManager extensionManager, final SensitiveValueEncoder sensitiveValueEncoder) {
         this.encryptor = encryptor;
         this.flowConfigDocBuilder = docBuilder;
         this.extensionManager = extensionManager;
+        this.sensitiveValueEncoder = sensitiveValueEncoder;
     }
 
     /**
@@ -352,6 +346,10 @@ public class FingerprintFactory {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "parameterContextId"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "flowfileConcurrency"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "flowfileOutboundPolicy"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "defaultFlowFileExpiration"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "defaultBackPressureObjectThreshold"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "defaultBackPressureDataSizeThreshold"));
+
 
         final Element versionControlInfo = DomUtils.getChild(processGroupElem, "versionControlInformation");
         if (versionControlInfo == null) {
@@ -549,34 +547,8 @@ public class FingerprintFactory {
      * @return a deterministic string value which represents this input but is safe to print in a log
      */
     private String getLoggableRepresentationOfSensitiveValue(String encryptedPropertyValue) {
-        initializeSensitivePropertyKeyBytes();
         final String plaintextValue = decrypt(encryptedPropertyValue);
-        try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(sensitivePropertyKeyBytes, "HmacSHA256"));
-            byte[] hashedBytes = mac.doFinal(plaintextValue.getBytes(StandardCharsets.UTF_8));
-            return "[MASKED] (" + Base64.getEncoder().encodeToString(hashedBytes) + ")";
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-            // This should not occur on any system which runs NiFi as HmacSHA256 is provided by BouncyCastle and SunJCE
-            logger.error("Encountered an error making the sensitive value loggable: {}", e.getLocalizedMessage());
-            return "[Unable to mask value]";
-        }
-    }
-
-    private void initializeSensitivePropertyKeyBytes() {
-        if (sensitivePropertyKeyBytes == null || sensitivePropertyKeyBytes.length == 0) {
-            Argon2SecureHasher a2sh = new Argon2SecureHasher();
-
-            // Derive the reusable HMAC key from the nifi.sensitive.props.key to ensure deterministic output across nodes
-            try {
-                String npsk = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap().getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
-
-                // The output will be 32B (256b)
-                sensitivePropertyKeyBytes = a2sh.hashRaw(npsk.getBytes(StandardCharsets.UTF_8));
-            } catch (IOException e) {
-                logger.error("Encountered an error loading NiFi properties while fingerprinting flow: ", e);
-            }
-        }
+        return sensitiveValueEncoder.getEncoded(plaintextValue);
     }
 
     private StringBuilder addPortFingerprint(final StringBuilder builder, final Element portElem) throws FingerprintException {

@@ -26,6 +26,7 @@ import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter
 import org.apache.curator.framework.recipes.leader.Participant;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.retry.RetryNTimes;
+import org.apache.curator.utils.ZookeeperFactory;
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.util.NiFiProperties;
@@ -35,7 +36,13 @@ import org.apache.nifi.util.timebuffer.TimedBuffer;
 import org.apache.nifi.util.timebuffer.TimestampedLong;
 import org.apache.nifi.util.timebuffer.TimestampedLongAggregation;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.admin.ZooKeeperAdmin;
+import org.apache.zookeeper.client.ZKClientConfig;
+import org.apache.zookeeper.common.ClientX509Util;
 import org.apache.zookeeper.common.PathUtils;
+import org.apache.zookeeper.common.X509Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,6 +94,17 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         }
 
         logger.info("{} started", this);
+    }
+
+    @Override
+    public boolean isActiveParticipant(final String roleName) {
+        final RegisteredRole role = registeredRoles.get(roleName);
+        if (role == null) {
+            return false;
+        }
+
+        final String participantId = role.getParticipantId();
+        return participantId != null;
     }
 
     @Override
@@ -151,15 +169,17 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
         final LeaderRole leaderRole = leaderRoles.remove(roleName);
         if (leaderRole == null) {
-            logger.info("Cannot unregister Leader Election Role '{}' becuase that role is not registered", roleName);
+            logger.info("Cannot unregister Leader Election Role '{}' because that role is not registered", roleName);
             return;
         }
 
         final LeaderSelector leaderSelector = leaderRole.getLeaderSelector();
         if (leaderSelector == null) {
-            logger.info("Cannot unregister Leader Election Role '{}' becuase that role is not registered", roleName);
+            logger.info("Cannot unregister Leader Election Role '{}' because that role is not registered", roleName);
             return;
         }
+
+        leaderRole.getElectionListener().disable();
 
         leaderSelector.close();
         logger.info("This node is no longer registered to be elected as the Leader for Role '{}'", roleName);
@@ -226,8 +246,15 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
     @Override
     public boolean isLeader(final String roleName) {
+        final boolean activeParticipant = isActiveParticipant(roleName);
+        if (!activeParticipant) {
+            logger.debug("Node is not an active participant in election for role {} so cannot be leader", roleName);
+            return false;
+        }
+
         final LeaderRole role = getLeaderRole(roleName);
         if (role == null) {
+            logger.debug("Node is an active participant in election for role {} but there is no LeaderRole registered so this node cannot be leader", roleName);
             return false;
         }
 
@@ -303,8 +330,8 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             return 0L;
         }
 
-        final long minNanos = aggregation.getMin();
-        return timeUnit.convert(minNanos, TimeUnit.NANOSECONDS);
+        final long maxNanos = aggregation.getMax();
+        return timeUnit.convert(maxNanos, TimeUnit.NANOSECONDS);
     }
 
     @Override
@@ -381,14 +408,19 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         final RetryPolicy retryPolicy = new RetryNTimes(1, 100);
         final CuratorACLProviderFactory aclProviderFactory = new CuratorACLProviderFactory();
 
-        final CuratorFramework client = CuratorFrameworkFactory.builder()
+        final CuratorFrameworkFactory.Builder clientBuilder = CuratorFrameworkFactory.builder()
             .connectString(zkConfig.getConnectString())
             .sessionTimeoutMs(zkConfig.getSessionTimeoutMillis())
             .connectionTimeoutMs(zkConfig.getConnectionTimeoutMillis())
             .retryPolicy(retryPolicy)
             .aclProvider(aclProviderFactory.create(zkConfig))
-            .defaultData(new byte[0])
-            .build();
+            .defaultData(new byte[0]);
+
+        if (zkConfig.isClientSecure()) {
+            clientBuilder.zookeeperFactory(new SecureClientZooKeeperFactory(zkConfig));
+        }
+
+        final CuratorFramework client = clientBuilder.build();
 
         client.start();
         return client;
@@ -409,6 +441,10 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
         public LeaderSelector getLeaderSelector() {
             return leaderSelector;
+        }
+
+        public ElectionListener getElectionListener() {
+            return electionListener;
         }
 
         public boolean isLeader() {
@@ -446,6 +482,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         private final String participantId;
 
         private volatile boolean leader;
+        private volatile Thread leaderThread;
         private long leaderUpdateTimestamp = 0L;
         private final long MAX_CACHE_MILLIS = TimeUnit.SECONDS.toMillis(5L);
 
@@ -453,6 +490,17 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             this.roleName = roleName;
             this.listener = listener;
             this.participantId = participantId;
+        }
+
+        public void disable() {
+            logger.info("Election Listener for Role {} disabled", roleName);
+            setLeader(false);
+
+            if (leaderThread == null) {
+                logger.debug("Election Listener for Role {} disabled but there is no leader thread. Will not interrupt any threads.", roleName);
+            } else {
+                leaderThread.interrupt();
+            }
         }
 
         public synchronized boolean isLeader() {
@@ -471,6 +519,8 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
                     return false;
                 }
+            } else {
+                logger.debug("Checking if this node is leader for role {}: using cached response, returning {}", roleName, leader);
             }
 
             return leader;
@@ -519,6 +569,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
         @Override
         public void takeLeadership(final CuratorFramework client) throws Exception {
+            leaderThread = Thread.currentThread();
             setLeader(true);
             logger.info("{} This node has been elected Leader for Role '{}'", this, roleName);
 
@@ -527,7 +578,6 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                     listener.onLeaderElection();
                 } catch (final Exception e) {
                     logger.error("This node was elected Leader for Role '{}' but failed to take leadership. Will relinquish leadership role. Failure was due to: {}", roleName, e);
-                    logger.error("", e);
                     setLeader(false);
                     Thread.sleep(1000L);
                     return;
@@ -589,4 +639,44 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             }
         }
     }
+
+    public static class SecureClientZooKeeperFactory implements ZookeeperFactory {
+
+        public static final String NETTY_CLIENT_CNXN_SOCKET =
+            org.apache.zookeeper.ClientCnxnSocketNetty.class.getName();
+
+        private ZKClientConfig zkSecureClientConfig;
+
+        public SecureClientZooKeeperFactory(final ZooKeeperClientConfig zkConfig) {
+            this.zkSecureClientConfig = new ZKClientConfig();
+
+            // Netty is required for the secure client config.
+            final String cnxnSocket = zkConfig.getConnectionSocket();
+            if (!NETTY_CLIENT_CNXN_SOCKET.equals(cnxnSocket)) {
+                throw new IllegalArgumentException(String.format("connection factory set to '%s', %s required", String.valueOf(cnxnSocket), NETTY_CLIENT_CNXN_SOCKET));
+            }
+            zkSecureClientConfig.setProperty(ZKClientConfig.ZOOKEEPER_CLIENT_CNXN_SOCKET, cnxnSocket);
+
+            // This should never happen but won't get checked elsewhere.
+            final boolean clientSecure = zkConfig.isClientSecure();
+            if (!clientSecure) {
+                throw new IllegalStateException(String.format("%s set to '%b', expected true", ZKClientConfig.SECURE_CLIENT, clientSecure));
+            }
+            zkSecureClientConfig.setProperty(ZKClientConfig.SECURE_CLIENT, String.valueOf(clientSecure));
+
+            final X509Util clientX509util = new ClientX509Util();
+            zkSecureClientConfig.setProperty(clientX509util.getSslKeystoreLocationProperty(), zkConfig.getKeyStore());
+            zkSecureClientConfig.setProperty(clientX509util.getSslKeystoreTypeProperty(), zkConfig.getKeyStoreType());
+            zkSecureClientConfig.setProperty(clientX509util.getSslKeystorePasswdProperty(), zkConfig.getKeyStorePassword());
+            zkSecureClientConfig.setProperty(clientX509util.getSslTruststoreLocationProperty(), zkConfig.getTrustStore());
+            zkSecureClientConfig.setProperty(clientX509util.getSslTruststoreTypeProperty(), zkConfig.getTrustStoreType());
+            zkSecureClientConfig.setProperty(clientX509util.getSslTruststorePasswdProperty(), zkConfig.getTrustStorePassword());
+        }
+
+        @Override
+        public ZooKeeper newZooKeeper(String connectString, int sessionTimeout, Watcher watcher, boolean canBeReadOnly) throws Exception {
+            return new ZooKeeperAdmin(connectString, sessionTimeout, watcher, zkSecureClientConfig);
+        }
+    }
+
 }

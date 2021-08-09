@@ -68,6 +68,16 @@ final class AMQPConsumer extends AMQPWorker {
                     Thread.currentThread().interrupt();
                 }
             }
+
+            @Override
+            public void handleCancel(String consumerTag) throws IOException {
+                processorLog.error("Consumer has been cancelled by the broker, eg. due to deleted queue.");
+                try {
+                    close();
+                } catch (Exception e) {
+                    processorLog.error("Failed to close consumer.", e);
+                }
+            }
         };
 
         channel.basicConsume(queueName, autoAcknowledge, consumer);

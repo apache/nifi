@@ -144,7 +144,7 @@ public class SplitRecord extends AbstractProcessor {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        final int maxRecords = context.getProperty(RECORDS_PER_SPLIT).evaluateAttributeExpressions(original).asInteger();
+        final int maxRecords = Math.max(1, context.getProperty(RECORDS_PER_SPLIT).evaluateAttributeExpressions(original).asInteger());
 
         final List<FlowFile> splits = new ArrayList<>();
         final Map<String, String> originalAttributes = original.getAttributes();

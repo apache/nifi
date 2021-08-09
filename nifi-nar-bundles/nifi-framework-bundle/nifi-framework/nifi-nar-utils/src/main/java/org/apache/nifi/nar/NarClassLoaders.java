@@ -35,7 +35,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.Set;
@@ -93,8 +92,18 @@ public final class NarClassLoaders {
      * @throws IllegalStateException already initialized with a given pair of
      * directories cannot reinitialize or use a different pair of directories.
      */
+    public void init(File frameworkWorkingDir, File extensionsWorkingDir, final String frameworkNarId) throws IOException, ClassNotFoundException {
+        init(ClassLoader.getSystemClassLoader(), frameworkWorkingDir, extensionsWorkingDir, frameworkNarId);
+    }
+
     public void init(File frameworkWorkingDir, File extensionsWorkingDir) throws IOException, ClassNotFoundException {
-        init(ClassLoader.getSystemClassLoader(), frameworkWorkingDir, extensionsWorkingDir);
+        init(frameworkWorkingDir, extensionsWorkingDir, NarClassLoaders.FRAMEWORK_NAR_ID);
+    }
+
+    // Default to NiFi's framework NAR ID
+    public void init(final ClassLoader rootClassloader,
+                     final File frameworkWorkingDir, final File extensionsWorkingDir) throws IOException, ClassNotFoundException {
+        init(rootClassloader, frameworkWorkingDir, extensionsWorkingDir, NarClassLoaders.FRAMEWORK_NAR_ID);
     }
 
     /**
@@ -112,7 +121,7 @@ public final class NarClassLoaders {
      * directories cannot reinitialize or use a different pair of directories.
      */
     public void init(final ClassLoader rootClassloader,
-                     final File frameworkWorkingDir, final File extensionsWorkingDir) throws IOException, ClassNotFoundException {
+                     final File frameworkWorkingDir, final File extensionsWorkingDir, final String frameworkNarId) throws IOException, ClassNotFoundException {
         if (extensionsWorkingDir == null) {
             throw new NullPointerException("cannot have empty arguments");
         }
@@ -122,16 +131,9 @@ public final class NarClassLoaders {
             synchronized (this) {
                 ic = initContext;
                 if (ic == null) {
-                    initContext = ic = load(rootClassloader, frameworkWorkingDir, extensionsWorkingDir);
+                    initContext = ic = load(rootClassloader, frameworkWorkingDir, extensionsWorkingDir, frameworkNarId);
                 }
             }
-        }
-
-        boolean matching = initContext.extensionWorkingDir.equals(extensionsWorkingDir)
-                && Objects.equals(initContext.frameworkWorkingDir, frameworkWorkingDir);
-
-        if (!matching) {
-            throw new IllegalStateException("Cannot reinitialize and extension/framework directories cannot change");
         }
     }
 
@@ -139,7 +141,7 @@ public final class NarClassLoaders {
      * Should be called at most once.
      */
     private InitContext load(final ClassLoader rootClassloader,
-                             final File frameworkWorkingDir, final File extensionsWorkingDir)
+                             final File frameworkWorkingDir, final File extensionsWorkingDir, final String frameworkNarId)
             throws IOException, ClassNotFoundException {
 
         // find all nar files and create class loaders for them.
@@ -228,7 +230,8 @@ public final class NarClassLoaders {
                     // see if this class loader is eligible for loading
                     ClassLoader narClassLoader = null;
                     if (narDependencyCoordinate == null) {
-                        narClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), jettyClassLoader);
+                        final ClassLoader parentClassLoader = jettyClassLoader == null ? ClassLoader.getSystemClassLoader() : jettyClassLoader;
+                        narClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), parentClassLoader);
                     } else {
                         final String dependencyCoordinateStr = narDependencyCoordinate.getCoordinate();
 
@@ -279,7 +282,7 @@ public final class NarClassLoaders {
 
             // Ensure exactly one NiFiServer implementation, otherwise report none or multiples found
             if (niFiServers.size() == 0) {
-                throw new IOException("No implementations of NiFiServer found, there must be exactly one implementation.");
+                serverInstance = null;
             } else if (niFiServers.size() > 1) {
                 String sb = "Expected exactly one implementation of NiFiServer but found " + niFiServers.size() + ": " +
                         niFiServers.entrySet().stream().map((entry) -> entry.getKey().getClass().getName() + " from " + entry.getValue()).collect(Collectors.joining(", "));
@@ -299,7 +302,7 @@ public final class NarClassLoaders {
 
         // find the framework bundle, NarUnpacker already checked that there was a framework NAR and that there was only one
         final Bundle frameworkBundle = narDirectoryBundleLookup.values().stream()
-                .filter(b -> b.getBundleDetails().getCoordinate().getId().equals(FRAMEWORK_NAR_ID))
+                .filter(b -> b.getBundleDetails().getCoordinate().getId().equals(frameworkNarId))
                 .findFirst().orElse(null);
 
         // find the Jetty bundle

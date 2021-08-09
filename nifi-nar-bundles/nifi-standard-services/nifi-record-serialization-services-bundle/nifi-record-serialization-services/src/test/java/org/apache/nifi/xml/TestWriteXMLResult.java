@@ -173,6 +173,7 @@ public class TestWriteXMLResult {
         final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
         df.setTimeZone(TimeZone.getTimeZone("gmt"));
         final long time = df.parse("2017/01/01 17:00:00.000").getTime();
+        final String date = "2017-01-01";
 
         final Map<String, Object> map = new LinkedHashMap<>();
         map.put("height", 48);
@@ -190,11 +191,12 @@ public class TestWriteXMLResult {
         valueMap.put("float", 8.0F);
         valueMap.put("double", 8.0D);
         valueMap.put("decimal", 8.1D);
-        valueMap.put("date", new Date(time));
+        valueMap.put("date", Date.valueOf(date));
         valueMap.put("time", new Time(time));
         valueMap.put("timestamp", new Timestamp(time));
         valueMap.put("record", null);
         valueMap.put("array", null);
+        valueMap.put("enum", null);
         valueMap.put("choice", 48L);
         valueMap.put("map", map);
 
@@ -207,7 +209,7 @@ public class TestWriteXMLResult {
         writer.write(rs);
         writer.flush();
 
-        String xmlResult = "<ROOT><RECORD><string>string</string><boolean>true</boolean><byte>1</byte><char>c</char><short>8</short>" +
+        String xmlResult = "<ROOT><RECORD><string>string</string><boolean>true</boolean><byte>1</byte><char>c</char><enum /><short>8</short>" +
                 "<int>9</int><bigint>8</bigint><long>8</long><float>8.0</float><double>8.0</double><decimal>8.1</decimal>" +
                 "<date>2017-01-01</date><time>17:00:00</time><timestamp>2017-01-01 17:00:00</timestamp><record /><choice>48</choice><array />" +
                 "<map><height>48</height><width>96</width></map></RECORD></ROOT>";

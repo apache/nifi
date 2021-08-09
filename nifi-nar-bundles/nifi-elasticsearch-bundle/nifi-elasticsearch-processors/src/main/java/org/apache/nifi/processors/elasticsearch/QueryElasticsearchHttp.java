@@ -145,7 +145,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     public static final PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
             .name("query-es-index")
             .displayName("Index")
-            .description("The name of the index to read from. If the property is set "
+            .description("The name of the index to read from. If the property is unset or set "
                             + "to _all, the query will match across all indexes.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -155,12 +155,11 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
             .name("query-es-type")
             .displayName("Type")
-            .description(
-                    "The (optional) type of this query, used by Elasticsearch for indexing and searching. If the property is empty, "
-                            + "the the query will match across all types.")
+            .description("The type of document (if unset, the query will be against all types in the _index). "
+                    + "This should be unset or '_doc' for Elasticsearch 7.0+.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
@@ -307,9 +306,9 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(flowFile)
                 .getValue();
         final int pageSize = context.getProperty(PAGE_SIZE).evaluateAttributeExpressions(flowFile)
-                .asInteger().intValue();
+                .asInteger();
         final Integer limit = context.getProperty(LIMIT).isSet() ? context.getProperty(LIMIT)
-                .evaluateAttributeExpressions(flowFile).asInteger().intValue() : null;
+                .evaluateAttributeExpressions(flowFile).asInteger() : null;
         final String fields = context.getProperty(FIELDS).isSet() ? context.getProperty(FIELDS)
                 .evaluateAttributeExpressions(flowFile).getValue() : null;
         final String sort = context.getProperty(SORT).isSet() ? context.getProperty(SORT)
@@ -511,7 +510,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         }
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder();
         builder.addPathSegment((StringUtils.isEmpty(index)) ? "_all" : index);
-        if (!StringUtils.isEmpty(type)) {
+        if (StringUtils.isNotBlank(type)) {
             builder.addPathSegment(type);
         }
         builder.addPathSegment("_search");
@@ -520,7 +519,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         builder.addQueryParameter(FROM_QUERY_PARAM, String.valueOf(fromIndex));
         if (!StringUtils.isEmpty(fields)) {
             String trimmedFields = Stream.of(fields.split(",")).map(String::trim).collect(Collectors.joining(","));
-            builder.addQueryParameter(FIELD_INCLUDE_QUERY_PARAM, trimmedFields);
+            builder.addQueryParameter(SOURCE_QUERY_PARAM, trimmedFields);
         }
         if (!StringUtils.isEmpty(sort)) {
             String trimmedFields = Stream.of(sort.split(",")).map(String::trim).collect(Collectors.joining(","));

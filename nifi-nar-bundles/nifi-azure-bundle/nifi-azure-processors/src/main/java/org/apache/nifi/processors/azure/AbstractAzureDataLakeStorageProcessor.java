@@ -16,21 +16,15 @@
  */
 package org.apache.nifi.processors.azure;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenCredential;
+import com.azure.identity.ClientSecretCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -48,17 +42,24 @@ import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
 
 public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor ADLS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-        .name("adls-credentials-service")
-        .displayName("ADLS Credentials")
-        .description("Controller Service used to obtain Azure Credentials.")
-        .identifiesControllerService(ADLSCredentialsService.class)
-        .required(true)
-        .build();
+            .name("adls-credentials-service")
+            .displayName("ADLS Credentials")
+            .description("Controller Service used to obtain Azure Credentials.")
+            .identifiesControllerService(ADLSCredentialsService.class)
+            .required(true)
+            .build();
 
     public static final PropertyDescriptor FILESYSTEM = new PropertyDescriptor.Builder()
             .name("filesystem-name").displayName("Filesystem Name")
@@ -120,7 +121,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
 
         final ADLSCredentialsService credentialsService = context.getProperty(ADLS_CREDENTIALS_SERVICE).asControllerService(ADLSCredentialsService.class);
 
-        ADLSCredentialsDetails credentialsDetails = credentialsService.getCredentialsDetails(attributes);
+        final ADLSCredentialsDetails credentialsDetails = credentialsService.getCredentialsDetails(attributes);
 
         final String accountName = credentialsDetails.getAccountName();
         final String accountKey = credentialsDetails.getAccountKey();
@@ -128,9 +129,13 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
         final AccessToken accessToken = credentialsDetails.getAccessToken();
         final String endpointSuffix = credentialsDetails.getEndpointSuffix();
         final boolean useManagedIdentity = credentialsDetails.getUseManagedIdentity();
+        final String servicePrincipalTenantId = credentialsDetails.getServicePrincipalTenantId();
+        final String servicePrincipalClientId = credentialsDetails.getServicePrincipalClientId();
+        final String servicePrincipalClientSecret = credentialsDetails.getServicePrincipalClientSecret();
 
-        final String endpoint = String.format("https://%s.%s", accountName,endpointSuffix);
-        DataLakeServiceClient storageClient;
+        final String endpoint = String.format("https://%s.%s", accountName, endpointSuffix);
+
+        final DataLakeServiceClient storageClient;
         if (StringUtils.isNotBlank(accountKey)) {
             final StorageSharedKeyCredential credential = new StorageSharedKeyCredential(accountName,
                     accountKey);
@@ -140,17 +145,28 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             storageClient = new DataLakeServiceClientBuilder().endpoint(endpoint).sasToken(sasToken)
                     .buildClient();
         } else if (accessToken != null) {
-            TokenCredential credential = tokenRequestContext -> Mono.just(accessToken);
+            final TokenCredential credential = tokenRequestContext -> Mono.just(accessToken);
 
             storageClient = new DataLakeServiceClientBuilder().endpoint(endpoint).credential(credential)
-                .buildClient();
-        } else if(useManagedIdentity){
-            final ManagedIdentityCredential misCrendential = new ManagedIdentityCredentialBuilder()
-                                                                .build();
-            storageClient = new  DataLakeServiceClientBuilder()
-                                    .endpoint(endpoint)
-                                    .credential(misCrendential)
-                                    .buildClient();
+                    .buildClient();
+        } else if (useManagedIdentity) {
+            final ManagedIdentityCredential misCredential = new ManagedIdentityCredentialBuilder()
+                    .build();
+            storageClient = new DataLakeServiceClientBuilder()
+                    .endpoint(endpoint)
+                    .credential(misCredential)
+                    .buildClient();
+        } else if (StringUtils.isNoneBlank(servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret)) {
+            final ClientSecretCredential credential = new ClientSecretCredentialBuilder()
+                    .tenantId(servicePrincipalTenantId)
+                    .clientId(servicePrincipalClientId)
+                    .clientSecret(servicePrincipalClientSecret)
+                    .build();
+
+            storageClient = new DataLakeServiceClientBuilder()
+                    .endpoint(endpoint)
+                    .credential(credential)
+                    .buildClient();
         } else {
             throw new IllegalArgumentException("No valid credentials were provided");
         }

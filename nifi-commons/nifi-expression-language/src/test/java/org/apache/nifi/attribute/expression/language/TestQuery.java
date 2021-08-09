@@ -123,6 +123,18 @@ public class TestQuery {
         final PreparedQuery mixedQuery = Query.prepare("${foo}$${foo}");
         final String mixedEvaluated = mixedQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
         assertEquals("bar${foo}", mixedEvaluated);
+
+        final PreparedQuery multipleEscapedQuery = Query.prepare("$${foo}$${bar}");
+        final String multipleEscapedEvaluated = multipleEscapedQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
+        assertEquals("${foo}${bar}", multipleEscapedEvaluated);
+
+        final PreparedQuery multipleEscapedWithTextQuery = Query.prepare("foo$${foo}bar$${bar}");
+        final String multipleEscapedWithTextEvaluated = multipleEscapedWithTextQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
+        assertEquals("foo${foo}bar${bar}", multipleEscapedWithTextEvaluated);
+
+        final PreparedQuery multipleMixedQuery = Query.prepare("foo${foo}$${foo}bar${bar}$${bar}");
+        final String multipleMixedEvaluated = multipleMixedQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
+        assertEquals("foobar${foo}bar${bar}", multipleMixedEvaluated);
     }
 
     private void assertValid(final String query) {
@@ -342,6 +354,20 @@ public class TestQuery {
 
         verifyEquals("${#{test}}", attributes, stateValues, parameters,"unit");
         verifyEquals("${#{test}:append(' - '):append(#{test})}", attributes, stateValues, parameters,"unit - unit");
+    }
+
+    @Test
+    public void testParameterReferenceWithSpace() {
+        final Map<String, String> attributes = Collections.emptyMap();
+        final Map<String, String> stateValues = Collections.emptyMap();
+        final Map<String, String> parameters = new HashMap<>();
+        parameters.put("test param", "unit");
+
+        final Query query = Query.compile("${'#{test param}'}");
+        verifyEquals("${#{'test param'}}", attributes, stateValues, parameters,"unit");
+        verifyEquals("${#{'test param'}:append(' - '):append(#{'test param'})}", attributes, stateValues, parameters,"unit - unit");
+
+        verifyEquals("${#{\"test param\"}}", attributes, stateValues, parameters,"unit");
     }
 
     @Test

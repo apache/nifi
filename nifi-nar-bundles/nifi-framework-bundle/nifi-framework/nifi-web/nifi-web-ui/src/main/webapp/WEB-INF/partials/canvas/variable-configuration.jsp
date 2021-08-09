@@ -46,6 +46,7 @@
             <div class="setting">
                 <div class="setting-name">
                     Variables
+                    <div class="referencing-components-loading"></div>
                 </div>
                 <div class="setting-field">
                     <div id="variable-affected-components-context"></div>
@@ -55,7 +56,7 @@
                 <div class="setting-name">
                     Referencing Processors
                     <div class="fa fa-question-circle" alt="Info" title="Processors referencing this variable."></div>
-                </div>
+            </div>
                 <div class="setting-field">
                     <ul id="variable-registry-affected-processors"></ul>
                 </div>

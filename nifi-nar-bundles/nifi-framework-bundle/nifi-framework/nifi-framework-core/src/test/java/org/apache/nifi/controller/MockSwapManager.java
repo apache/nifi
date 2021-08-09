@@ -146,6 +146,8 @@ public class MockSwapManager implements FlowFileSwapManager {
         int count = 0;
         long size = 0L;
         Long max = null;
+        Long minLastQueueDate = null;
+        Long totalLastQueueDate = 0L;
         final List<ResourceClaim> resourceClaims = new ArrayList<>();
         for (final FlowFileRecord flowFile : flowFiles) {
             count++;
@@ -154,12 +156,16 @@ public class MockSwapManager implements FlowFileSwapManager {
                 max = flowFile.getId();
             }
 
+            minLastQueueDate = minLastQueueDate == null ? flowFile.getLastQueueDate() : Long.min(minLastQueueDate, flowFile.getLastQueueDate());
+
+            totalLastQueueDate += flowFile.getLastQueueDate();
+
             if (flowFile.getContentClaim() != null) {
                 resourceClaims.add(flowFile.getContentClaim().getResourceClaim());
             }
         }
 
-        return new StandardSwapSummary(new QueueSize(count, size), max, resourceClaims);
+        return new StandardSwapSummary(new QueueSize(count, size), max, resourceClaims, minLastQueueDate, totalLastQueueDate);
     }
 
     @Override

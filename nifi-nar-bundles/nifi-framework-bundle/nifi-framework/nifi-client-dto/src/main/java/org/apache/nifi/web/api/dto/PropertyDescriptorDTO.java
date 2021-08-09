@@ -40,6 +40,7 @@ public class PropertyDescriptorDTO {
     private String expressionLanguageScope;
     private String identifiesControllerService;
     private BundleDTO identifiesControllerServiceBundle;
+    private List<PropertyDependencyDTO> dependencies;
 
     /**
      * @return set of allowable values for this property. If empty then the allowable values are not constrained
@@ -207,5 +208,15 @@ public class PropertyDescriptorDTO {
 
     public void setIdentifiesControllerServiceBundle(BundleDTO identifiesControllerServiceBundle) {
         this.identifiesControllerServiceBundle = identifiesControllerServiceBundle;
+    }
+
+    @ApiModelProperty(value="A list of dependencies that must be met in order for this Property to be relevant. If any of these dependencies is not met, the property described by this " +
+        "Property Descriptor is not relevant.")
+    public List<PropertyDependencyDTO> getDependencies() {
+        return dependencies;
+    }
+
+    public void setDependencies(final List<PropertyDependencyDTO> dependencies) {
+        this.dependencies = dependencies;
     }
 }

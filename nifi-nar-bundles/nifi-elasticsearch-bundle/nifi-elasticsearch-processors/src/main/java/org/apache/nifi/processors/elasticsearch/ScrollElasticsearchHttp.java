@@ -135,12 +135,11 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
             .name("scroll-es-type")
             .displayName("Type")
-            .description(
-                    "The (optional) type of this query, used by Elasticsearch for indexing and searching. If the property is empty, "
-                    + "the the query will match across all types.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .description("The type of document (if unset, the query will be against all types in the _index). "
+                    + "This should be unset or '_doc' for Elasticsearch 7.0+.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
@@ -216,7 +215,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             throws ProcessException {
 
         try {
-            if (isQueryFinished(context.getStateManager())) {
+            if (isQueryFinished(session)) {
                 getLogger().trace(
                         "Query has been marked finished in the state manager.  "
                                 + "To run another query, clear the state.");
@@ -237,7 +236,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(flowFile)
                 .getValue();
         final int pageSize = context.getProperty(PAGE_SIZE).evaluateAttributeExpressions(flowFile)
-                .asInteger().intValue();
+                .asInteger();
         final String fields = context.getProperty(FIELDS).isSet() ? context.getProperty(FIELDS)
                 .evaluateAttributeExpressions(flowFile).getValue() : null;
         final String sort = context.getProperty(SORT).isSet() ? context.getProperty(SORT)
@@ -253,7 +252,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         final ComponentLog logger = getLogger();
 
         try {
-            String scrollId = loadScrollId(context.getStateManager());
+            String scrollId = loadScrollId(session);
 
             // read the url property from the context
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ES_URL).evaluateAttributeExpressions()
@@ -348,7 +347,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             });
             session.transfer(flowFile, REL_SUCCESS);
 
-            saveScrollId(context.getStateManager(), scrollId);
+            session.setState(Collections.singletonMap(SCROLL_ID_STATE, scrollId), Scope.LOCAL);
 
             // emit provenance event
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
@@ -368,8 +367,8 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         }
     }
 
-    private boolean isQueryFinished(StateManager stateManager) throws IOException {
-        final StateMap stateMap = stateManager.getState(Scope.LOCAL);
+    private boolean isQueryFinished(final ProcessSession session) throws IOException {
+        final StateMap stateMap = session.getState(Scope.LOCAL);
 
         if (stateMap.getVersion() < 0) {
             getLogger().debug("No previous state found");
@@ -382,8 +381,8 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         return "true".equals(isQueryFinished);
     }
 
-    private String loadScrollId(StateManager stateManager) throws IOException {
-        final StateMap stateMap = stateManager.getState(Scope.LOCAL);
+    private String loadScrollId(final ProcessSession session) throws IOException {
+        final StateMap stateMap = session.getState(Scope.LOCAL);
 
         if (stateMap.getVersion() < 0) {
             getLogger().debug("No previous state found");
@@ -405,15 +404,6 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         stateManager.setState(state, Scope.LOCAL);
     }
 
-    private void saveScrollId(StateManager stateManager, String scrollId) throws IOException {
-
-        Map<String, String> state = new HashMap<>(2);
-        state.put(SCROLL_ID_STATE, scrollId);
-
-        getLogger().debug("Saving state with scrollId of {}", new Object[] { scrollId });
-        stateManager.setState(state, Scope.LOCAL);
-    }
-
     private URL buildRequestURL(String baseUrl, String query, String index, String type, String fields,
             String sort, String scrollId, int pageSize, String scroll, ProcessContext context) throws MalformedURLException {
         if (StringUtils.isEmpty(baseUrl)) {
@@ -425,7 +415,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             builder.addPathSegment("scroll");
         } else {
             builder.addPathSegment((StringUtils.isEmpty(index)) ? "_all" : index);
-            if (!StringUtils.isEmpty(type)) {
+            if (StringUtils.isNotBlank(type)) {
                 builder.addPathSegment(type);
             }
             builder.addPathSegment("_search");
@@ -433,7 +423,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             builder.addQueryParameter(SIZE_QUERY_PARAM, String.valueOf(pageSize));
             if (!StringUtils.isEmpty(fields)) {
                 String trimmedFields = Stream.of(fields.split(",")).map(String::trim).collect(Collectors.joining(","));
-                builder.addQueryParameter(FIELD_INCLUDE_QUERY_PARAM, trimmedFields);
+                builder.addQueryParameter(SOURCE_QUERY_PARAM, trimmedFields);
             }
             if (!StringUtils.isEmpty(sort)) {
                 String trimmedFields = Stream.of(sort.split(",")).map(String::trim).collect(Collectors.joining(","));

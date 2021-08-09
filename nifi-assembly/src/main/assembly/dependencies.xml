@@ -32,6 +32,7 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
+                <exclude>nifi-bootstrap-utils</exclude>
                 <exclude>nifi-bootstrap</exclude>
                 <exclude>nifi-resources</exclude>
                 <exclude>nifi-docs</exclude>
@@ -43,6 +44,9 @@
                 <exclude>com.sun.xml.bind:jaxb-core</exclude>
                 <exclude>javax.activation:javax.activation-api</exclude>
                 <exclude>javax.annotation:javax.annotation-api</exclude>
+
+                <!-- exclude AspectJ library from lib, it'll be included in the aspectj subdir -->
+                <exclude>org.aspectj:aspectjweaver</exclude>
             </excludes>
         </dependencySet>
     </dependencySets>

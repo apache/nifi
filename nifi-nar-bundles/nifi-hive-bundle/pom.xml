@@ -19,11 +19,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.13.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-hive-bundle</artifactId>
-    <version>1.13.0-SNAPSHOT</version>
+    <version>1.15.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -45,6 +45,46 @@
                 <artifactId>netty</artifactId>
                 <version>3.7.1.Final</version>
             </dependency>
+            <!-- Override snapshot versions of javax.el -->
+            <dependency>
+                <groupId>org.glassfish</groupId>
+                <artifactId>javax.el</artifactId>
+                <version>3.0.1-b12</version>
+            </dependency>
+            <!-- Override Apache Calcite version to avoid deprecated dependencies -->
+            <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-avatica</artifactId>
+                <version>${calcite.avatica.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-core</artifactId>
+                <version>${calcite.version}</version>
+            </dependency>
+            <!-- Override jackson -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <!-- Override snakeyaml:1.17 -->
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.29</version>
+            </dependency>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -55,6 +95,8 @@
         <hive12.hadoop.version>2.6.2</hive12.hadoop.version>
         <hive3.version>3.1.2</hive3.version>
         <hive.version>${hive3.version}</hive.version>
+        <calcite.version>1.27.0</calcite.version>
+        <calcite.avatica.version>1.6.0</calcite.avatica.version>
     </properties>
 
     <build>

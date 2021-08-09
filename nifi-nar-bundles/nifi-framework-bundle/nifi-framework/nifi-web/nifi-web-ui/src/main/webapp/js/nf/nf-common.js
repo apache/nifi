@@ -98,8 +98,13 @@
 
         // handle logout
         $('#user-logout').on('click', function () {
-            nfStorage.removeItem('jwt');
-            window.location = '../nifi/logout';
+            $.ajax({
+                type: 'DELETE',
+                url: '../nifi-api/access/logout',
+            }).done(function () {
+                nfStorage.removeItem("jwt");
+                window.location = '../nifi/logout';
+            }).fail(nfErrorHandler.handleAjaxError);
         });
 
         // handle home
@@ -847,11 +852,11 @@
         /**
          * Shows the logout link if appropriate.
          */
-        showLogoutLink: function () {
-            if (nfStorage.getItem('jwt') === null) {
-                $('#user-logout-container').css('display', 'none');
-            } else {
+        updateLogoutLink: function () {
+            if (nfStorage.getItem('jwt') !== null) {
                 $('#user-logout-container').css('display', 'block');
+            } else {
+                $('#user-logout-container').css('display', 'none');
             }
         },
 
@@ -929,6 +934,9 @@
                 }
                 if (!nfCommon.isBlank(propertyDescriptor.supportsEl)) {
                     tipContent.push('<b>Expression language scope:</b> ' + nfCommon.escapeHtml(propertyDescriptor.expressionLanguageScope));
+                }
+                if (!nfCommon.isBlank(propertyDescriptor.sensitive)) {
+                    tipContent.push('<b>Sensitive property:</b> ' + nfCommon.escapeHtml(propertyDescriptor.sensitive));
                 }
                 if (!nfCommon.isBlank(propertyDescriptor.identifiesControllerService)) {
                     var formattedType = nfCommon.formatType({
@@ -1185,29 +1193,6 @@
             } else {
                 $('#' + domId).removeClass('pointer');
             }
-        },
-
-        /**
-         * Gets an access token from the specified url.
-         *
-         * @param accessTokenUrl    The access token
-         * @returns the access token as a deferred
-         */
-        getAccessToken: function (accessTokenUrl) {
-            return $.Deferred(function (deferred) {
-                if (nfStorage.hasItem('jwt')) {
-                    $.ajax({
-                        type: 'POST',
-                        url: accessTokenUrl
-                    }).done(function (token) {
-                        deferred.resolve(token);
-                    }).fail(function () {
-                        deferred.reject();
-                    })
-                } else {
-                    deferred.resolve('');
-                }
-            }).promise();
         },
 
         /**

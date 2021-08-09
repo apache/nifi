@@ -47,7 +47,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 /**
@@ -203,7 +204,17 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @throws IllegalStateException if the processor is not valid, or is
      *             already running
      */
-    CompletableFuture<Void> startProcessor(ProcessorNode processor, boolean failIfStopping);
+    Future<Void> startProcessor(ProcessorNode processor, boolean failIfStopping);
+
+    /**
+     * Runs the given Processor once and the stops it by calling the provided callback.
+     *
+     * @param processor the processor to start
+     * @param stopCallback the callback responsible for stopping the processor
+     * @throws IllegalStateException if the processor is not valid, or is
+     *             already running
+     */
+    Future<Void> runProcessorOnce(ProcessorNode processor, Callable<Future<Void>> stopCallback);
 
     /**
      * Starts the given Input Port
@@ -231,7 +242,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      *
      * @param processor to stop
      */
-    CompletableFuture<Void> stopProcessor(ProcessorNode processor);
+    Future<Void> stopProcessor(ProcessorNode processor);
 
     /**
      * Terminates the given Processor
@@ -1163,4 +1174,40 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @return the DataValve associated with this Process Group
      */
     DataValve getDataValve();
+
+    /**
+     * @return the default flowfile expiration of the ProcessGroup
+     */
+    String getDefaultFlowFileExpiration();
+
+    /**
+     * Updates the default flowfile expiration of this ProcessGroup.
+     *
+     * @param defaultFlowFileExpiration new default flowfile expiration value (must include time unit label)
+     */
+    void setDefaultFlowFileExpiration(String defaultFlowFileExpiration);
+
+    /**
+     * @return the default back pressure object threshold of this ProcessGroup
+     */
+    Long getDefaultBackPressureObjectThreshold();
+
+    /**
+     * Updates the default back pressure object threshold of this ProcessGroup
+     *
+     * @param defaultBackPressureObjectThreshold new default back pressure object threshold value
+     */
+    void setDefaultBackPressureObjectThreshold(Long defaultBackPressureObjectThreshold);
+
+    /**
+     * @returnthe default back pressure size threshold of this ProcessGroup
+     */
+    String getDefaultBackPressureDataSizeThreshold();
+
+    /**
+     * Updates the default back pressure size threshold of this ProcessGroup
+     *
+     * @param defaultBackPressureDataSizeThreshold new default back pressure size threshold (must include size unit label)
+     */
+    void setDefaultBackPressureDataSizeThreshold(String defaultBackPressureDataSizeThreshold);
 }

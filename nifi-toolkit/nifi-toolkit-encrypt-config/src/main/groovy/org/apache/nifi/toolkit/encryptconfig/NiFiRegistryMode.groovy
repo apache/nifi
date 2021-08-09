@@ -20,8 +20,15 @@ import groovy.cli.commons.CliBuilder
 import groovy.cli.commons.OptionAccessor
 import org.apache.commons.cli.HelpFormatter
 import org.apache.commons.cli.Options
-import org.apache.nifi.properties.AESSensitivePropertyProvider
+import org.apache.nifi.properties.BootstrapProperties
+import org.apache.nifi.properties.ConfigEncryptionTool
+import org.apache.nifi.properties.PropertyProtectionScheme
+import org.apache.nifi.properties.ProtectedPropertyContext
+import org.apache.nifi.properties.SensitivePropertyProtectionException
 import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.properties.SensitivePropertyProviderFactory
+import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
+import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapUtils
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryAuthorizersXmlEncryptor
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryIdentityProvidersXmlEncryptor
@@ -30,6 +37,8 @@ import org.apache.nifi.toolkit.encryptconfig.util.ToolUtilities
 import org.apache.nifi.util.console.TextDevices
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+
+import java.util.function.Supplier
 
 class NiFiRegistryMode implements ToolMode {
 
@@ -41,6 +50,19 @@ class NiFiRegistryMode implements ToolMode {
     NiFiRegistryMode() {
         cli = cliBuilder()
         verboseEnabled = false
+    }
+
+    static Supplier<BootstrapProperties> getBootstrapSupplier(final String bootstrapConfPath) {
+        new Supplier<BootstrapProperties>() {
+            @Override
+            BootstrapProperties get() {
+                try {
+                    NiFiRegistryBootstrapUtils.loadBootstrapProperties(bootstrapConfPath)
+                } catch (final IOException e) {
+                    throw new SensitivePropertyProtectionException(e.getCause(), e)
+                }
+            }
+        }
     }
 
     @Override
@@ -186,6 +208,10 @@ class NiFiRegistryMode implements ToolMode {
                 argName: 'keyhex',
                 optionalArg: true,
                 'Protect the files using a raw hexadecimal key. If an argument is not provided to this flag, interactive mode will be triggered to prompt the user to enter the key.')
+        cli.S(longOpt: 'protectionScheme',
+                args: 1,
+                argName: 'protectionScheme',
+                "Selects the protection scheme for encrypted properties.  Valid values are: [${PropertyProtectionScheme.values().join(", ")}] (default is ${ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME.name()})")
 
         // Options for the old password or key, if running the tool to migrate keys
         cli._(longOpt: 'oldPassword',
@@ -196,12 +222,16 @@ class NiFiRegistryMode implements ToolMode {
                 args: 1,
                 argName: 'keyhex',
                 'If the input files are already protected using a key, this specifies the raw hexadecimal key so that the files can be unprotected before re-protecting.')
+        cli.H(longOpt: 'oldProtectionScheme',
+                args: 1,
+                argName: 'protectionScheme',
+                "The old protection scheme to use during encryption migration (see --protectionScheme for possible values).  Default is ${ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME.name()}.")
 
         // Options for output bootstrap.conf file
         cli.b(longOpt: 'bootstrapConf',
                 args: 1,
                 argName: 'file',
-                'The bootstrap.conf file containing no root key or an existing root key. If a new password or key is specified (using -p or -k) and no output bootstrap.conf file is specified, then this file will be overwritten to persist the new master key.')
+                'The bootstrap.conf file containing no root key or an existing root key, and any other protection scheme configuration properties. If a new password or key is specified (using -p or -k) and no output bootstrap.conf file is specified, then this file will be overwritten to persist the new master key.')
         cli.B(longOpt: 'outputBootstrapConf',
                 args: 1,
                 argName: 'file',
@@ -249,11 +279,14 @@ class NiFiRegistryMode implements ToolMode {
         boolean usingPassword
         boolean usingBootstrapKey
 
+        PropertyProtectionScheme protectionScheme
         String encryptionKey
+        PropertyProtectionScheme oldProtectionScheme
         String decryptionKey
 
         SensitivePropertyProvider encryptionProvider
         SensitivePropertyProvider decryptionProvider
+        SensitivePropertyProviderFactory providerFactory
 
         boolean writingKeyToBootstrap = false
         String inputBootstrapPath
@@ -285,46 +318,72 @@ class NiFiRegistryMode implements ToolMode {
             // Set input bootstrap.conf path
             inputBootstrapPath = rawOptions.b
 
-            // Determine key for encryption (required)
-            determineEncryptionKey()
-            if (!encryptionKey) {
-                throw new RuntimeException("Failed to configure tool, could not determine encryption key. Must provide -p, -k, or -b. If using -b, bootstrap.conf argument must already contain root key.")
-            }
-            encryptionProvider = new AESSensitivePropertyProvider(encryptionKey)
-
+            determineOldProtectionScheme()
             // Determine key for decryption (if migrating)
             determineDecryptionKey()
             if (!decryptionKey) {
                 logger.debug("No decryption key specified via options, so if any input files require decryption prior to re-encryption (i.e., migration), this tool will fail.")
-            }
-            decryptionProvider = decryptionKey ? new AESSensitivePropertyProvider(decryptionKey) : null
-
-            writingKeyToBootstrap = (usingPassword || usingRawKeyHex || rawOptions.B)
-            if (writingKeyToBootstrap) {
-                outputBootstrapPath = rawOptions.B ?: inputBootstrapPath
             }
 
             handlingNiFiRegistryProperties = rawOptions.r
             if (handlingNiFiRegistryProperties) {
                 inputNiFiRegistryPropertiesPath = rawOptions.r
                 outputNiFiRegistryPropertiesPath = rawOptions.R ?: inputNiFiRegistryPropertiesPath
+            }
+
+            determineProtectionScheme()
+
+            // Determine key for encryption (required)
+            determineEncryptionKey()
+            if (!encryptionKey) {
+                throw new RuntimeException("Failed to configure tool, could not determine encryption key. Must provide -p, -k, or -b. If using -b, bootstrap.conf argument must already contain root key.")
+            }
+            providerFactory = StandardSensitivePropertyProviderFactory
+                    .withKeyAndBootstrapSupplier(encryptionKey, getBootstrapSupplier(inputBootstrapPath))
+            encryptionProvider = providerFactory.getProvider(protectionScheme)
+
+            decryptionProvider = decryptionKey ? providerFactory.getProvider(oldProtectionScheme) : null
+
+            if (handlingNiFiRegistryProperties) {
                 propertiesEncryptor = new NiFiRegistryPropertiesEncryptor(encryptionProvider, decryptionProvider)
+            }
+
+            writingKeyToBootstrap = (usingPassword || usingRawKeyHex || rawOptions.B)
+            if (writingKeyToBootstrap) {
+                outputBootstrapPath = rawOptions.B ?: inputBootstrapPath
             }
 
             handlingIdentityProviders = rawOptions.i
             if (handlingIdentityProviders) {
                 inputIdentityProvidersPath = rawOptions.i
                 outputIdentityProvidersPath = rawOptions.I ?: inputIdentityProvidersPath
-                identityProvidersXmlEncryptor = new NiFiRegistryIdentityProvidersXmlEncryptor(encryptionProvider, decryptionProvider)
+                identityProvidersXmlEncryptor = new NiFiRegistryIdentityProvidersXmlEncryptor(encryptionProvider, decryptionProvider, providerFactory)
             }
 
             handlingAuthorizers = rawOptions.a
             if (handlingAuthorizers) {
                 inputAuthorizersPath = rawOptions.a
                 outputAuthorizersPath = rawOptions.A ?: inputAuthorizersPath
-                authorizersXmlEncryptor = new NiFiRegistryAuthorizersXmlEncryptor(encryptionProvider, decryptionProvider)
+                authorizersXmlEncryptor = new NiFiRegistryAuthorizersXmlEncryptor(encryptionProvider, decryptionProvider, providerFactory)
             }
 
+        }
+
+        private void determineProtectionScheme() {
+
+            if (rawOptions.S) {
+                protectionScheme = PropertyProtectionScheme.valueOf(rawOptions.S)
+            } else {
+                protectionScheme = ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME
+            }
+        }
+        private void determineOldProtectionScheme() {
+
+            if (rawOptions.H) {
+                oldProtectionScheme = PropertyProtectionScheme.valueOf(rawOptions.H)
+            } else {
+                oldProtectionScheme = ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME
+            }
         }
 
         private void validateOptions() {

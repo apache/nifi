@@ -16,17 +16,18 @@
  */
 package org.apache.nifi.controller.service;
 
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.groups.ProcessGroup;
+
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public interface ControllerServiceNode extends ComponentNode, VersionedComponent {
 
@@ -180,6 +181,15 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
      * {@link #disable(ScheduledExecutorService)}.
      */
     boolean isActive();
+
+    /**
+     * Waits up to the given amount of time for the Controller Service to transition to an ENABLED state.
+     * @param timePeriod maximum amount of time to wait
+     * @param timeUnit the unit for the time period
+     * @return <code>true</code> if the Controller Service finished enabling, <code>false</code> otherwise
+     * @throws InterruptedException if interrupted while waiting for the service complete its enabling
+     */
+    boolean awaitEnabled(long timePeriod, TimeUnit timeUnit) throws InterruptedException;
 
     /**
      * Sets a new proxy and implementation for this node.

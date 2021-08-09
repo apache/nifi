@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.web.security.spring;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authentication.LoginCredentials;
@@ -50,11 +32,7 @@ import org.apache.nifi.authentication.generated.Provider;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.properties.AESSensitivePropertyProviderFactory;
-import org.apache.nifi.properties.SensitivePropertyProtectionException;
-import org.apache.nifi.properties.SensitivePropertyProvider;
-import org.apache.nifi.properties.SensitivePropertyProviderFactory;
-import org.apache.nifi.security.kms.CryptoUtils;
+import org.apache.nifi.properties.SensitivePropertyProviderFactoryAware;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -63,18 +41,36 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.xml.sax.SAXException;
 
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  *
  */
-public class LoginIdentityProviderFactoryBean implements FactoryBean, DisposableBean, LoginIdentityProviderLookup {
+public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderFactoryAware
+        implements FactoryBean, DisposableBean, LoginIdentityProviderLookup {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginIdentityProviderFactoryBean.class);
     private static final String LOGIN_IDENTITY_PROVIDERS_XSD = "/login-identity-providers.xsd";
     private static final String JAXB_GENERATED_PATH = "org.apache.nifi.authentication.generated";
     private static final JAXBContext JAXB_CONTEXT = initializeJaxbContext();
 
-    private static SensitivePropertyProviderFactory SENSITIVE_PROPERTY_PROVIDER_FACTORY;
-    private static SensitivePropertyProvider SENSITIVE_PROPERTY_PROVIDER;
+    private NiFiProperties properties;
 
     /**
      * Load the JAXBContext.
@@ -87,10 +83,13 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
         }
     }
 
-    private NiFiProperties properties;
     private ExtensionManager extensionManager;
     private LoginIdentityProvider loginIdentityProvider;
     private final Map<String, LoginIdentityProvider> loginIdentityProviders = new HashMap<>();
+
+    public void setProperties(NiFiProperties properties) {
+        this.properties = properties;
+    }
 
     @Override
     public LoginIdentityProvider getLoginIdentityProvider(String identifier) {
@@ -208,7 +207,8 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
 
         for (final Property property : provider.getProperty()) {
             if (!StringUtils.isBlank(property.getEncryption())) {
-                String decryptedValue = decryptValue(property.getValue(), property.getEncryption());
+                String decryptedValue = decryptValue(property.getValue(), property.getEncryption(), property.getName(), provider
+                        .getIdentifier());
                 providerProperties.put(property.getName(), decryptedValue);
             } else {
                 providerProperties.put(property.getName(), property.getValue());
@@ -216,28 +216,6 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
         }
 
         return new StandardLoginIdentityProviderConfigurationContext(provider.getIdentifier(), providerProperties);
-    }
-
-    private String decryptValue(String cipherText, String encryptionScheme) throws SensitivePropertyProtectionException {
-            initializeSensitivePropertyProvider(encryptionScheme);
-        return SENSITIVE_PROPERTY_PROVIDER.unprotect(cipherText);
-    }
-
-    private static void initializeSensitivePropertyProvider(String encryptionScheme) throws SensitivePropertyProtectionException {
-        if (SENSITIVE_PROPERTY_PROVIDER == null || !SENSITIVE_PROPERTY_PROVIDER.getIdentifierKey().equalsIgnoreCase(encryptionScheme)) {
-            try {
-                String keyHex = getRootKey();
-                SENSITIVE_PROPERTY_PROVIDER_FACTORY = new AESSensitivePropertyProviderFactory(keyHex);
-                SENSITIVE_PROPERTY_PROVIDER = SENSITIVE_PROPERTY_PROVIDER_FACTORY.getProvider();
-            } catch (IOException e) {
-                logger.error("Error extracting master key from bootstrap.conf for login identity provider decryption", e);
-                throw new SensitivePropertyProtectionException("Could not read root key from bootstrap.conf");
-            }
-        }
-    }
-
-    private static String getRootKey() throws IOException {
-        return CryptoUtils.extractKeyFromBootstrapFile();
     }
 
     private void performMethodInjection(final LoginIdentityProvider instance, final Class loginIdentityProviderClass)
@@ -354,10 +332,6 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
         if (loginIdentityProvider != null) {
             loginIdentityProvider.preDestruction();
         }
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
     }
 
     public void setExtensionManager(ExtensionManager extensionManager) {

@@ -17,8 +17,10 @@
 
 package org.apache.nifi.cluster.coordination.flow;
 
-import java.util.concurrent.TimeUnit;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptorFactory;
+import org.apache.nifi.encrypt.SensitiveValueEncoder;
+import org.apache.nifi.encrypt.StandardSensitiveValueEncoder;
 import org.apache.nifi.fingerprint.FingerprintFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.FormatUtils;
@@ -26,6 +28,8 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
+
+import java.util.concurrent.TimeUnit;
 
 public class PopularVoteFlowElectionFactoryBean implements FactoryBean<PopularVoteFlowElection> {
     private static final Logger logger = LoggerFactory.getLogger(PopularVoteFlowElectionFactoryBean.class);
@@ -45,11 +49,9 @@ public class PopularVoteFlowElectionFactoryBean implements FactoryBean<PopularVo
         }
 
         final Integer maxNodes = properties.getFlowElectionMaxCandidates();
-        final String algorithm = properties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
-        final String provider =  properties.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER);
-        final String password =  properties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
-        final StringEncryptor encryptor = StringEncryptor.createEncryptor(algorithm, provider, password);
-        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager);
+        final PropertyEncryptor encryptor = PropertyEncryptorFactory.getPropertyEncryptor(properties);
+        final SensitiveValueEncoder sensitiveValueEncoder = new StandardSensitiveValueEncoder(properties);
+        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager, sensitiveValueEncoder);
         return new PopularVoteFlowElection(maxWaitMillis, TimeUnit.MILLISECONDS, maxNodes, fingerprintFactory);
     }
 

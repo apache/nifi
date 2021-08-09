@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerServicesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
@@ -29,8 +30,6 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 
 /**
  * Jersey implementation of ControllerServicersClient.
@@ -41,11 +40,11 @@ public class JerseyControllerServicesClient extends AbstractJerseyClient impleme
     private final WebTarget processGroupTarget;
 
     public JerseyControllerServicesClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyControllerServicesClient(final WebTarget baseTarget, final Map<String, String> headers) {
-        super(headers);
+    public JerseyControllerServicesClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.controllerServicesTarget = baseTarget.path("/controller-services");
         this.processGroupTarget = baseTarget.path("/process-groups/{pgId}");
     }

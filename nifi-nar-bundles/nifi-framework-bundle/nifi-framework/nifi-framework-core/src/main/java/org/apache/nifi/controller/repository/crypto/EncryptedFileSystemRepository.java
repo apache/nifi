@@ -16,16 +16,10 @@
  */
 package org.apache.nifi.controller.repository.crypto;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.file.Path;
-import java.security.KeyManagementException;
-import javax.crypto.CipherOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.repository.FileSystemRepository;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.security.kms.EncryptionException;
 import org.apache.nifi.security.kms.KeyProvider;
@@ -39,6 +33,14 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.crypto.CipherOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.file.Path;
+import java.security.KeyManagementException;
 
 /**
  * This class is an implementation of the {@link FileSystemRepository} content repository which provides transparent
@@ -155,6 +157,16 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
         return super.exportTo(claim, destination, append, offset, length);
     }
 
+    @Override
+    public InputStream read(final ResourceClaim claim) {
+        throw new UnsupportedOperationException("Cannot read full ResourceClaim as a Stream when using EncryptedFileSystemRepository");
+    }
+
+    @Override
+    public boolean isResourceClaimStreamSupported() {
+        return false;
+    }
+
     /**
      * Returns an InputStream (actually a {@link javax.crypto.CipherInputStream}) which wraps
      * the {@link java.io.FileInputStream} from the content repository claim on disk. This
@@ -167,6 +179,10 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
     @Override
     public InputStream read(final ContentClaim claim) throws IOException {
         InputStream inputStream = super.read(claim);
+
+        if (claim == null) {
+            return inputStream;
+        }
 
         try {
             String recordId = getRecordId(claim);

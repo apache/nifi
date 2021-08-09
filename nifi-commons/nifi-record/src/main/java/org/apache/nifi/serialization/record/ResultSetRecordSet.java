@@ -18,6 +18,7 @@
 package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,9 +44,14 @@ import java.util.stream.Stream;
 
 public class ResultSetRecordSet implements RecordSet, Closeable {
     private static final Logger logger = LoggerFactory.getLogger(ResultSetRecordSet.class);
+    private static final int JDBC_DEFAULT_PRECISION_VALUE = 10;
+    private static final int JDBC_DEFAULT_SCALE_VALUE = 0;
     private final ResultSet rs;
     private final RecordSchema schema;
     private final Set<String> rsColumnNames;
+    private final int defaultPrecision;
+    private final int defaultScale;
+
     private boolean moreRows;
 
     private static final String STRING_CLASS_NAME = String.class.getName();
@@ -57,15 +63,24 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     private static final String BIGDECIMAL_CLASS_NAME = BigDecimal.class.getName();
 
     public ResultSetRecordSet(final ResultSet rs, final RecordSchema readerSchema) throws SQLException {
-        this.rs = rs;
-        moreRows = rs.next();
-        this.schema = createSchema(rs, readerSchema);
+        this(rs, readerSchema, JDBC_DEFAULT_PRECISION_VALUE, JDBC_DEFAULT_SCALE_VALUE);
+    }
 
-        rsColumnNames = new HashSet<>();
-        final ResultSetMetaData metadata = rs.getMetaData();
-        for (int i = 0; i < metadata.getColumnCount(); i++) {
-            rsColumnNames.add(metadata.getColumnLabel(i + 1));
+    public ResultSetRecordSet(final ResultSet rs, final RecordSchema readerSchema, final int defaultPrecision, final int defaultScale) throws SQLException {
+        this.defaultPrecision = defaultPrecision;
+        this.defaultScale = defaultScale;
+        this.rs = rs;
+        this.rsColumnNames = new HashSet<>();
+        RecordSchema tempSchema;
+        try {
+            tempSchema = createSchema(rs, readerSchema);
+            moreRows = rs.next();
+        } catch(SQLException se) {
+            // Tried to create the schema with a ResultSet without calling next() first (probably for DB2), now try the other way around
+            moreRows = rs.next();
+            tempSchema = createSchema(rs, readerSchema);
         }
+        this.schema = tempSchema;
     }
 
     @Override
@@ -91,7 +106,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         try {
             if (moreRows) {
                 final Record record = createRecord(rs);
-                moreRows = rs.next();
+                moreRows = !rs.isClosed() && rs.next();
                 return record;
             } else {
                 return null;
@@ -135,6 +150,12 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             return null;
         }
 
+        if (value instanceof java.sql.Date) {
+            // Date objects should be stored in records as UTC normalized dates (UTC 00:00:00)
+            // but they come from the driver in JVM's local time zone 00:00:00 and need to be converted.
+            return DataTypeUtils.convertDateToUTC((java.sql.Date) value);
+        }
+
         if (value instanceof List) {
             return ((List) value).toArray();
         }
@@ -146,7 +167,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         return value;
     }
 
-    private static RecordSchema createSchema(final ResultSet rs, final RecordSchema readerSchema) throws SQLException {
+    private RecordSchema createSchema(final ResultSet rs, final RecordSchema readerSchema) throws SQLException {
         final ResultSetMetaData metadata = rs.getMetaData();
         final int numCols = metadata.getColumnCount();
         final List<RecordField> fields = new ArrayList<>(numCols);
@@ -168,12 +189,13 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
 
             final RecordField field = new RecordField(fieldName, dataType, nullable);
             fields.add(field);
+            rsColumnNames.add(metadata.getColumnLabel(column));
         }
 
         return new SimpleRecordSchema(fields);
     }
 
-    private static DataType getDataType(final int sqlType, final ResultSet rs, final int columnIndex, final RecordSchema readerSchema) throws SQLException {
+    private DataType getDataType(final int sqlType, final ResultSet rs, final int columnIndex, final RecordSchema readerSchema) throws SQLException {
         switch (sqlType) {
             case Types.ARRAY:
                 // The JDBC API does not allow us to know what the base type of an array is through the metadata.
@@ -198,7 +220,31 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
             case Types.NUMERIC:
             case Types.DECIMAL:
-                return RecordFieldType.DECIMAL.getDecimalDataType(rs.getMetaData().getPrecision(columnIndex), rs.getMetaData().getScale(columnIndex));
+                int decimalPrecision;
+                final int decimalScale;
+                final int resultSetPrecision = rs.getMetaData().getPrecision(columnIndex);
+                final int resultSetScale = rs.getMetaData().getScale(columnIndex);
+                if (rs.getMetaData().getPrecision(columnIndex) > 0) {
+                    // When database returns a certain precision, we can rely on that.
+                    decimalPrecision = resultSetPrecision;
+                    //For the float data type Oracle return decimalScale < 0 which cause is not expected to org.apache.avro.LogicalTypes
+                    //Hence falling back to default scale if decimalScale < 0
+                    decimalScale = resultSetScale > 0 ? resultSetScale : defaultScale;
+                } else {
+                    // If not, use default precision.
+                    decimalPrecision = defaultPrecision;
+                    // Oracle returns precision=0, scale=-127 for variable scale value such as ROWNUM or function result.
+                    // Specifying 'oracle.jdbc.J2EE13Compliant' SystemProperty makes it to return scale=0 instead.
+                    // Queries for example, 'SELECT 1.23 as v from DUAL' can be problematic because it can't be mapped with decimal with scale=0.
+                    // Default scale is used to preserve decimals in such case.
+                    decimalScale = resultSetScale > 0 ? resultSetScale : defaultScale;
+                }
+                // Scale can be bigger than precision in some cases (Oracle, e.g.) If this is the case, assume precision refers to the number of
+                // decimal digits and thus precision = scale
+                if (decimalScale > decimalPrecision) {
+                    decimalPrecision = decimalScale;
+                }
+                return RecordFieldType.DECIMAL.getDecimalDataType(decimalPrecision, decimalScale);
             case Types.OTHER: {
                 // If we have no records to inspect, we can't really know its schema so we simply use the default data type.
                 if (rs.isAfterLast()) {

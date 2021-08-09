@@ -27,14 +27,18 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
 import io.jsonwebtoken.UnsupportedJwtException;
-import java.nio.charset.StandardCharsets;
-import java.util.Calendar;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.key.Key;
+import org.apache.nifi.web.security.LogoutException;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.LoggerFactory;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Calendar;
 
 /**
  *
@@ -144,6 +148,7 @@ public class JwtService {
         // Create a JWT with the specified authentication
         final String identity = principal.toString();
         final String username = authenticationToken.getName();
+        final String rawIssuer = authenticationToken.getIssuer();
 
         try {
             // Get/create the key for this user
@@ -152,11 +157,13 @@ public class JwtService {
 
             logger.trace("Generating JWT for " + authenticationToken);
 
+            final String encodedIssuer = URLEncoder.encode(rawIssuer, "UTF-8");
+
             // TODO: Implement "jti" claim with nonce to prevent replay attacks and allow blacklisting of revoked tokens
             // Build the token
             return Jwts.builder().setSubject(identity)
-                    .setIssuer(authenticationToken.getIssuer())
-                    .setAudience(authenticationToken.getIssuer())
+                    .setIssuer(encodedIssuer)
+                    .setAudience(encodedIssuer)
                     .claim(USERNAME_CLAIM, username)
                     .claim(KEY_ID_CLAIM, key.getId())
                     .setExpiration(expiration.getTime())
@@ -164,6 +171,10 @@ public class JwtService {
                     .signWith(SIGNATURE_ALGORITHM, keyBytes).compact();
         } catch (NullPointerException | AdministrationException e) {
             final String errorMessage = "Could not retrieve the signing key for JWT for " + identity;
+            logger.error(errorMessage, e);
+            throw new JwtException(errorMessage, e);
+        } catch (UnsupportedEncodingException e) {
+            final String errorMessage = "Could not URL encode issuer: " + rawIssuer;
             logger.error(errorMessage, e);
             throw new JwtException(errorMessage, e);
         }
@@ -176,7 +187,7 @@ public class JwtService {
      * @throws JwtException if there is a problem with the token input
      * @throws Exception if there is an issue logging the user out
      */
-    public void logOut(String token) {
+    public void logOut(String token) throws LogoutException {
         Jws<Claims> claims = parseTokenFromBase64EncodedString(token);
 
         // Get the key ID from the claims
@@ -189,13 +200,9 @@ public class JwtService {
         try {
             keyService.deleteKey(keyId);
         } catch (Exception e) {
-            logger.error("The key with key ID: " + keyId + " failed to be removed from the user database.");
-            throw e;
+            final String errorMessage = String.format("The key with key ID: %s failed to be removed from the user database.", keyId);
+            logger.error(errorMessage);
+            throw new LogoutException(errorMessage);
         }
-    }
-
-    public void logOutUsingAuthHeader(String authorizationHeader) {
-        String base64EncodedToken = JwtAuthenticationFilter.getTokenFromHeader(authorizationHeader);
-        logOut(base64EncodedToken);
     }
 }

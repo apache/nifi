@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util.file;
 
+import org.apache.nifi.util.security.MessageDigestUtils;
 import org.slf4j.Logger;
 
 import java.io.Closeable;
@@ -31,8 +32,6 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -541,55 +540,28 @@ public class FileUtils {
     }
 
     /**
-     * Returns true if the given files are the same according to their MD5 hash.
+     * Returns true if the given files are the same according to their hash.
      *
      * @param file1 a file
      * @param file2 a file
      * @return true if the files are the same; false otherwise
-     * @throws IOException if the MD5 hash could not be computed
+     * @throws IOException if the hash could not be computed
      */
     public static boolean isSame(final File file1, final File file2) throws IOException {
-        return Arrays.equals(computeMd5Digest(file1), computeMd5Digest(file2));
+        return Arrays.equals(computeDigest(file1), computeDigest(file2));
     }
 
     /**
-     * Returns the MD5 hash of the given file.
+     * Returns the hash of the given file using default digest algorithm
      *
      * @param file a file
-     * @return the MD5 hash
-     * @throws IOException if the MD5 hash could not be computed
+     * @return Digest Hash Bytes
+     * @throws IOException if the hash could not be computed
      */
-    public static byte[] computeMd5Digest(final File file) throws IOException {
+    public static byte[] computeDigest(final File file) throws IOException {
         try (final FileInputStream fis = new FileInputStream(file)) {
-            return computeMd5Digest(fis);
+            return MessageDigestUtils.getDigest(fis);
         }
-    }
-
-    /**
-     * Returns the MD5 hash of the given stream.
-     *
-     * @param stream an input stream
-     * @return the MD5 hash
-     * @throws IOException if the MD5 hash could not be computed
-     */
-    public static byte[] computeMd5Digest(final InputStream stream) throws IOException {
-        final MessageDigest digest;
-        try {
-            digest = MessageDigest.getInstance("MD5");
-        } catch (final NoSuchAlgorithmException nsae) {
-            throw new IOException(nsae);
-        }
-
-
-        int len;
-        final byte[] buffer = new byte[8192];
-        while ((len = stream.read(buffer)) > -1) {
-            if (len > 0) {
-                digest.update(buffer, 0, len);
-            }
-        }
-
-        return digest.digest();
     }
 
     /**

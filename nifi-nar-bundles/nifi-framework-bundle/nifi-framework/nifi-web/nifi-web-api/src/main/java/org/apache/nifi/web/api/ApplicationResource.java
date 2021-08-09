@@ -16,40 +16,8 @@
  */
 package org.apache.nifi.web.api;
 
-import static javax.ws.rs.core.Response.Status.NOT_FOUND;
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriBuilderException;
-import javax.ws.rs.core.UriInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
@@ -87,10 +55,54 @@ import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
+import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
 import org.apache.nifi.web.security.util.CacheKey;
 import org.apache.nifi.web.util.WebUtils;
+import org.eclipse.jetty.http.HttpCookie;
+import org.eclipse.jetty.http.HttpHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.servlet.ServletContext;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.CacheControl;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriBuilderException;
+import javax.ws.rs.core.UriInfo;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
+import static org.apache.nifi.web.util.WebUtils.FORWARDED_HOST_HTTP_HEADER;
+import static org.apache.nifi.web.util.WebUtils.FORWARDED_PORT_HTTP_HEADER;
+import static org.apache.nifi.web.util.WebUtils.FORWARDED_PROTO_HTTP_HEADER;
+import static org.apache.nifi.web.util.WebUtils.PROXY_HOST_HTTP_HEADER;
+import static org.apache.nifi.web.util.WebUtils.PROXY_PORT_HTTP_HEADER;
+import static org.apache.nifi.web.util.WebUtils.PROXY_SCHEME_HTTP_HEADER;
 
 /**
  * Base class for controllers.
@@ -100,19 +112,9 @@ public abstract class ApplicationResource {
     public static final String VERSION = "version";
     public static final String CLIENT_ID = "clientId";
     public static final String DISCONNECTED_NODE_ACKNOWLEDGED = "disconnectedNodeAcknowledged";
-
-    public static final String PROXY_SCHEME_HTTP_HEADER = "X-ProxyScheme";
-    public static final String PROXY_HOST_HTTP_HEADER = "X-ProxyHost";
-    public static final String PROXY_PORT_HTTP_HEADER = "X-ProxyPort";
-    public static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
-
-    public static final String FORWARDED_PROTO_HTTP_HEADER = "X-Forwarded-Proto";
-    public static final String FORWARDED_HOST_HTTP_HEADER = "X-Forwarded-Host";
-    public static final String FORWARDED_PORT_HTTP_HEADER = "X-Forwarded-Port";
-    public static final String FORWARDED_CONTEXT_HTTP_HEADER = "X-Forwarded-Context";
-
-    // Traefik-specific headers
-    public static final String FORWARDED_PREFIX_HTTP_HEADER = "X-Forwarded-Prefix";
+    static final String LOGIN_ERROR_TITLE = "Unable to continue login sequence";
+    static final String LOGOUT_ERROR_TITLE = "Unable to continue logout sequence";
+    private static final int VALID_FOR_SESSION_ONLY = -1;
 
     protected static final String NON_GUARANTEED_ENDPOINT = "Note: This endpoint is subject to change as NiFi and it's REST API evolve.";
 
@@ -133,6 +135,23 @@ public abstract class ApplicationResource {
 
     private static final int MAX_CACHE_SOFT_LIMIT = 500;
     private final Cache<CacheKey, Request<? extends Entity>> twoPhaseCommitCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
+
+    protected void forwardToLoginMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final String message) throws Exception {
+        forwardToMessagePage(httpServletRequest, httpServletResponse, LOGIN_ERROR_TITLE, message);
+    }
+
+    protected void forwardToLogoutMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final String message) throws Exception {
+        forwardToMessagePage(httpServletRequest, httpServletResponse, LOGOUT_ERROR_TITLE, message);
+    }
+
+    protected void forwardToMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse,
+                                      final String title, final String message) throws Exception {
+        httpServletRequest.setAttribute("title", title);
+        httpServletRequest.setAttribute("messages", message);
+
+        final ServletContext uiContext = httpServletRequest.getServletContext().getContext("/nifi");
+        uiContext.getRequestDispatcher("/WEB-INF/pages/message-page.jsp").forward(httpServletRequest, httpServletResponse);
+    }
 
     /**
      * Generate a resource uri based off of the specified parameters.
@@ -157,8 +176,8 @@ public abstract class ApplicationResource {
             final String hostHeaderValue = getFirstHeaderValue(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
             final String portHeaderValue = getFirstHeaderValue(PROXY_PORT_HTTP_HEADER, FORWARDED_PORT_HTTP_HEADER);
 
-            final String host = determineProxiedHost(hostHeaderValue);
-            final String port = determineProxiedPort(hostHeaderValue, portHeaderValue);
+            final String host = WebUtils.determineProxiedHost(hostHeaderValue);
+            final String port = WebUtils.determineProxiedPort(hostHeaderValue, portHeaderValue);
 
             // Catch header poisoning
             String allowedContextPaths = properties.getAllowedContextPaths();
@@ -192,44 +211,6 @@ public abstract class ApplicationResource {
             throw new UriBuilderException(use);
         }
         return uri;
-    }
-
-    private String determineProxiedHost(String hostHeaderValue) {
-        final String host;
-        // check for a port in the proxied host header
-        String[] hostSplits = hostHeaderValue == null ? new String[] {} : hostHeaderValue.split(":");
-        if (hostSplits.length >= 1 && hostSplits.length <= 2) {
-            // zero or one occurrence of ':', this is an IPv4 address
-            // strip off the port by reassigning host the 0th split
-            host = hostSplits[0];
-        } else if (hostSplits.length == 0) {
-            // hostHeaderValue passed in was null, no splits
-            host = null;
-        } else {
-            // hostHeaderValue has more than one occurrence of ":", IPv6 address
-            host = hostHeaderValue;
-        }
-        return host;
-    }
-
-    private String determineProxiedPort(String hostHeaderValue, String portHeaderValue) {
-        final String port;
-        // check for a port in the proxied host header
-        String[] hostSplits = hostHeaderValue == null ? new String[] {} : hostHeaderValue.split(":");
-        // determine the proxied port
-        final String portFromHostHeader;
-        if (hostSplits.length == 2) {
-            // if the port is specified in the proxied host header, it will be overridden by the
-            // port specified in X-ProxyPort or X-Forwarded-Port
-            portFromHostHeader = hostSplits[1];
-        } else {
-            portFromHostHeader = null;
-        }
-        if (StringUtils.isNotBlank(portFromHostHeader) && StringUtils.isNotBlank(portHeaderValue)) {
-            logger.warn(String.format("The proxied host header contained a port, but was overridden by the proxied port header"));
-        }
-        port = StringUtils.isNotBlank(portHeaderValue) ? portHeaderValue : (StringUtils.isNotBlank(portFromHostHeader) ? portFromHostHeader : null);
-        return port;
     }
 
     /**
@@ -403,21 +384,7 @@ public abstract class ApplicationResource {
      * @return the value for the first key found
      */
     private String getFirstHeaderValue(final String... keys) {
-        if (keys == null) {
-            return null;
-        }
-
-        for (final String key : keys) {
-            final String value = httpServletRequest.getHeader(key);
-
-            // if we found an entry for this key, return the value
-            if (value != null) {
-                return value;
-            }
-        }
-
-        // unable to find any matching keys
-        return null;
+        return WebUtils.getFirstHeaderValue(httpServletRequest, keys);
     }
 
     /**
@@ -1314,5 +1281,28 @@ public abstract class ApplicationResource {
                     .entity(entity).build();
         }
 
+    }
+
+    protected Response generateTokenResponse(ResponseBuilder builder, String token) {
+        // currently there is no way to use javax.servlet-api to set SameSite=Strict, so we do this using Jetty
+        HttpCookie jwtCookie = new HttpCookie(NiFiBearerTokenResolver.JWT_COOKIE_NAME, token, null, "/", VALID_FOR_SESSION_ONLY, true, true, null, 0, HttpCookie.SameSite.STRICT);
+        return builder.header(HttpHeader.SET_COOKIE.asString(), jwtCookie.getRFC6265SetCookie()).build();
+    }
+
+    protected void removeCookie(final HttpServletResponse httpServletResponse, final String cookieName) {
+        final Cookie cookie = new Cookie(cookieName, null);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(0);
+        cookie.setSecure(true);
+        httpServletResponse.addCookie(cookie);
+    }
+
+    protected String getNiFiUri() {
+        final String nifiApiUrl = generateResourceUri();
+        final String baseUrl = StringUtils.substringBeforeLast(nifiApiUrl, "/nifi-api");
+        // Note: if the URL does not end with a / then Jetty will end up doing a redirect which can cause
+        // a problem when being behind a proxy b/c Jetty's redirect doesn't consider proxy headers
+        return baseUrl + "/nifi/";
     }
 }

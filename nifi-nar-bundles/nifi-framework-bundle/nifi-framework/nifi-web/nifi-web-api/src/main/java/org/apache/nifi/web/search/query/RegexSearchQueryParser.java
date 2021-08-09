@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class RegexSearchQueryParser implements SearchQueryParser {
-    private static final String REGEX = "(?<filter>(\\w+:\\w+\\s+)*(\\w+:\\w+)?)(?<term>.*)";
+    private static final String REGEX = "(?<filter>(\\w+:[\\w-]+\\s+)*(\\w+:[\\w-]+)?)(?<term>.*)";
     private static final String FILTER_TOKEN_SEPARATOR = "\\:";
     private static final String FILTER_SEPARATOR = "[\\s]+";
     private static final String FILTER_GROUP = "filter";
@@ -40,7 +40,7 @@ public class RegexSearchQueryParser implements SearchQueryParser {
     }
 
     @Override
-    public SearchQuery parse(final String searchLiteral, final NiFiUser user, final ProcessGroup rootGroup, final ProcessGroup activeGroup)  {
+    public SearchQuery parse(final String searchLiteral, final NiFiUser user, final ProcessGroup rootGroup, final ProcessGroup activeGroup) {
         final Matcher matcher = pattern.matcher(searchLiteral);
         if (matcher.matches()) {
             final String term = matcher.group(TERM_GROUP);

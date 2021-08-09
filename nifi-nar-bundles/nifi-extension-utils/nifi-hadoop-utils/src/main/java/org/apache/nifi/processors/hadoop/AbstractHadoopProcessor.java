@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -31,11 +30,14 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceReferences;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -49,7 +51,6 @@ import javax.net.SocketFactory;
 import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -60,9 +61,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 /**
  * This is a base class that is helpful when building processors interacting with HDFS.
@@ -79,6 +79,12 @@ import java.util.concurrent.atomic.AtomicReference;
 public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
+    private static final String DENY_LFS_ACCESS = "NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS";
+
+    private static final String DENY_LFS_EXPLANATION = String.format("LFS Access Denied according to Environment Variable [%s]", DENY_LFS_ACCESS);
+
+    private static final Pattern LOCAL_FILE_SYSTEM_URI = Pattern.compile("^file:.*");
+
     // properties
     public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
             .name("Hadoop Configuration Resources")
@@ -86,7 +92,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                     + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration. "
                     + "To use swebhdfs, see 'Additional Details' section of PutHDFS's documentation.")
             .required(false)
-            .addValidator(HadoopValidators.ONE_OR_MORE_FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -124,7 +130,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .description("A comma-separated list of paths to files and/or directories that will be added to the classpath and used for loading native libraries. " +
                     "When specifying a directory, all files with in the directory will be added to the classpath, but further sub-directories will not be included.")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -181,7 +187,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final String configResources = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
+        final ResourceReferences configResources = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().asResources();
         final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
         final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
         final String explicitPassword = validationContext.getProperty(kerberosProperties.getKerberosPassword()).getValue();
@@ -199,7 +205,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
         final List<ValidationResult> results = new ArrayList<>();
 
-        if (StringUtils.isBlank(configResources)) {
+        if (configResources.getCount() == 0) {
             return results;
         }
 
@@ -220,6 +226,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             results.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 this.getClass().getSimpleName(), conf, resolvedPrincipal, resolvedKeytab, explicitPassword, getLogger()));
 
+            final URI fileSystemUri = FileSystem.getDefaultUri(conf);
+            if (isFileSystemAccessDenied(fileSystemUri)) {
+                results.add(new ValidationResult.Builder()
+                        .valid(false)
+                        .subject("Hadoop File System")
+                        .explanation(DENY_LFS_EXPLANATION)
+                        .build());
+            }
         } catch (final IOException e) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
@@ -258,7 +272,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             // properties this processor sets. TODO: re-work ListHDFS to utilize Kerberos
             HdfsResources resources = hdfsResources.get();
             if (resources.getConfiguration() == null) {
-                final String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
+                final ResourceReferences configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().asResources();
                 resources = resetHDFSResources(configResources, context);
                 hdfsResources.set(resources);
             }
@@ -331,17 +345,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         }
     }
 
-    private static Configuration getConfigurationFromResources(final Configuration config, String configResources) throws IOException {
-        boolean foundResources = false;
-        if (null != configResources) {
-            String[] resources = configResources.split(",");
-            for (String resource : resources) {
+    private static Configuration getConfigurationFromResources(final Configuration config, final ResourceReferences resourceReferences) throws IOException {
+        boolean foundResources = resourceReferences.getCount() > 0;
+        if (foundResources) {
+            final List<String> locations = resourceReferences.asLocations();
+            for (String resource : locations) {
                 config.addResource(new Path(resource.trim()));
-                foundResources = true;
             }
-        }
-
-        if (!foundResources) {
+        } else {
             // check that at least 1 non-default resource is available on the classpath
             String configStr = config.toString();
             for (String resource : configStr.substring(configStr.indexOf(":") + 1).split(",")) {
@@ -361,11 +372,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     /*
      * Reset Hadoop Configuration and FileSystem based on the supplied configuration resources.
      */
-    HdfsResources resetHDFSResources(String configResources, ProcessContext context) throws IOException {
+    HdfsResources resetHDFSResources(final ResourceReferences resourceReferences, ProcessContext context) throws IOException {
         Configuration config = new ExtendedConfiguration(getLogger());
         config.setClassLoader(Thread.currentThread().getContextClassLoader());
 
-        getConfigurationFromResources(config, configResources);
+        getConfigurationFromResources(config, resourceReferences);
 
         // give sub-classes a chance to process configuration
         preProcessConfiguration(config, context);
@@ -562,46 +573,32 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
     }
 
-    static protected class HdfsResources {
-        private final Configuration configuration;
-        private final FileSystem fileSystem;
-        private final UserGroupInformation userGroupInformation;
-        private final KerberosUser kerberosUser;
+    boolean isLocalFileSystemAccessDenied() {
+        return Boolean.parseBoolean(System.getenv(DENY_LFS_ACCESS));
+    }
 
-        public HdfsResources(Configuration configuration, FileSystem fileSystem, UserGroupInformation userGroupInformation, KerberosUser kerberosUser) {
-            this.configuration = configuration;
-            this.fileSystem = fileSystem;
-            this.userGroupInformation = userGroupInformation;
-            this.kerberosUser = kerberosUser;
+    private boolean isFileSystemAccessDenied(final URI fileSystemUri) {
+        boolean accessDenied;
+
+        if (isLocalFileSystemAccessDenied()) {
+            accessDenied = LOCAL_FILE_SYSTEM_URI.matcher(fileSystemUri.toString()).matches();
+        } else {
+            accessDenied = false;
         }
 
-        public Configuration getConfiguration() {
-            return configuration;
-        }
-
-        public FileSystem getFileSystem() {
-            return fileSystem;
-        }
-
-        public UserGroupInformation getUserGroupInformation() {
-            return userGroupInformation;
-        }
-
-        public KerberosUser getKerberosUser() {
-            return kerberosUser;
-        }
+        return accessDenied;
     }
 
     static protected class ValidationResources {
-        private final String configResources;
+        private final ResourceReferences configResources;
         private final Configuration configuration;
 
-        public ValidationResources(String configResources, Configuration configuration) {
+        public ValidationResources(final ResourceReferences configResources, Configuration configuration) {
             this.configResources = configResources;
             this.configuration = configuration;
         }
 
-        public String getConfigResources() {
+        public ResourceReferences getConfigResources() {
             return configResources;
         }
 
@@ -610,57 +607,26 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         }
     }
 
-    /**
-     * Extending Hadoop Configuration to prevent it from caching classes that can't be found. Since users may be
-     * adding additional JARs to the classpath we don't want them to have to restart the JVM to be able to load
-     * something that was previously not found, but might now be available.
-     *
-     * Reference the original getClassByNameOrNull from Configuration.
-     */
-    static class ExtendedConfiguration extends Configuration {
-
-        private final ComponentLog logger;
-        private final Map<ClassLoader, Map<String, WeakReference<Class<?>>>> CACHE_CLASSES = new WeakHashMap<>();
-
-        public ExtendedConfiguration(final ComponentLog logger) {
-            this.logger = logger;
-        }
-
-        @Override
-        public Class<?> getClassByNameOrNull(String name) {
-            final ClassLoader classLoader = getClassLoader();
-
-            Map<String, WeakReference<Class<?>>> map;
-            synchronized (CACHE_CLASSES) {
-                map = CACHE_CLASSES.get(classLoader);
-                if (map == null) {
-                    map = Collections.synchronizedMap(new WeakHashMap<>());
-                    CACHE_CLASSES.put(classLoader, map);
-                }
-            }
-
-            Class<?> clazz = null;
-            WeakReference<Class<?>> ref = map.get(name);
-            if (ref != null) {
-                clazz = ref.get();
-            }
-
-            if (clazz == null) {
-                try {
-                    clazz = Class.forName(name, true, classLoader);
-                } catch (ClassNotFoundException e) {
-                    logger.error(e.getMessage(), e);
-                    return null;
-                }
-                // two putters can race here, but they'll put the same class
-                map.put(name, new WeakReference<>(clazz));
-                return clazz;
-            } else {
-                // cache hit
-                return clazz;
-            }
-        }
-
+    protected Path getNormalizedPath(ProcessContext context, PropertyDescriptor property) {
+        return getNormalizedPath(context, property, null);
     }
 
+    protected Path getNormalizedPath(ProcessContext context, PropertyDescriptor property, FlowFile flowFile) {
+        final String propertyValue = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
+        final Path path = new Path(propertyValue);
+        final URI uri = path.toUri();
+
+        final URI fileSystemUri = getFileSystem().getUri();
+
+        if (uri.getScheme() != null) {
+            if (!uri.getScheme().equals(fileSystemUri.getScheme()) || !uri.getAuthority().equals(fileSystemUri.getAuthority())) {
+                getLogger().warn("The filesystem component of the URI configured in the '{}' property ({}) does not match the filesystem URI from the Hadoop configuration file ({}) " +
+                        "and will be ignored.", property.getDisplayName(), uri, fileSystemUri);
+            }
+
+            return new Path(uri.getPath());
+        } else {
+            return path;
+        }
+    }
 }

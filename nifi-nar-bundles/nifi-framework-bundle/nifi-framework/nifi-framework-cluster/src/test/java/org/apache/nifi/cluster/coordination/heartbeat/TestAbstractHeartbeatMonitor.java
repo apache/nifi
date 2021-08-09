@@ -20,11 +20,11 @@ package org.apache.nifi.cluster.coordination.heartbeat;
 import org.apache.nifi.cluster.ReportedEvent;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.ClusterTopologyEventListener;
-import org.apache.nifi.cluster.coordination.node.OffloadCode;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.coordination.node.NodeWorkload;
+import org.apache.nifi.cluster.coordination.node.OffloadCode;
 import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.reporting.Severity;
@@ -45,7 +45,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
@@ -119,9 +121,10 @@ public class TestAbstractHeartbeatMonitor {
             }
 
             @Override
-            public synchronized void requestNodeDisconnect(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String explanation) {
+            public synchronized Future<Void> requestNodeDisconnect(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String explanation) {
                 super.requestNodeDisconnect(nodeId, disconnectionCode, explanation);
                 requestedToDisconnect.add(nodeId);
+                return CompletableFuture.completedFuture(null);
             }
         };
 
@@ -209,7 +212,7 @@ public class TestAbstractHeartbeatMonitor {
 
     private NodeHeartbeat createHeartbeat(final NodeIdentifier nodeId, final NodeConnectionState state) {
         final NodeConnectionStatus status = new NodeConnectionStatus(nodeId, state);
-        return new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(), status, 0, 0, 0, 0);
+        return new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(), status, 0, 0, 0, 0, 0L);
     }
 
     private TestFriendlyHeartbeatMonitor createMonitor(final ClusterCoordinator coordinator) {
@@ -253,13 +256,15 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
-        public synchronized void requestNodeOffload(NodeIdentifier nodeId, OffloadCode offloadCode, String explanation) {
+        public synchronized Future<Void> requestNodeOffload(NodeIdentifier nodeId, OffloadCode offloadCode, String explanation) {
             statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADED));
+            return CompletableFuture.completedFuture(null);
         }
 
         @Override
-        public synchronized void requestNodeDisconnect(NodeIdentifier nodeId, DisconnectionCode disconnectionCode, String explanation) {
+        public synchronized Future<Void> requestNodeDisconnect(NodeIdentifier nodeId, DisconnectionCode disconnectionCode, String explanation) {
             statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED));
+            return CompletableFuture.completedFuture(null);
         }
 
         @Override

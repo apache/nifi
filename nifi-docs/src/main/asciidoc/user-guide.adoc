@@ -139,8 +139,9 @@ application and highlights the different segments of the UI. Each segment is dis
 in the document.
 
 When the application is started, the user is able to navigate to the UI by going to the default address of
-`http://<hostname>:8080/nifi` in a web browser. There are no permissions configured by default, so anyone is
-able to view and modify the dataflow. For information on securing the system, see the link:administration-guide.html[System Administrator’s Guide].
+`https://localhost:8443/nifi` in a web browser. The default configuration generates a username and password
+with full system administration privileges.
+For information on securing the system, see the link:administration-guide.html[System Administrator’s Guide].
 
 When a DFM navigates to the UI for the first time, a blank canvas is provided on which a dataflow can be built:
 
@@ -300,6 +301,7 @@ While the options available from the context menu vary, the following options ar
 NOTE: For Processors, Ports, Remote Process Groups, Connections and Labels, it is possible to open the configuration dialog by double-clicking on the desired component.
 
 - *Start* or *Stop*: This option allows the user to start or stop a Processor; the option will be either Start or Stop, depending on the current state of the Processor.
+- *Run Once*: This option allows the user to run a selected Processor exactly once. If the Processor is prevented from executing (e.g. there are no incoming flow files or the outgoing connection has backpressure applied) the Processor won't get triggered. *Execution* settings apply - i.e. *Primary Node* and *All Nodes* setting will result in running the Processor only once on the Primary Node or one time on each of the nodes, respectively. Works only with *Timer Driven* and *CRON driven* Scheduling Strategy.
 - *Enable* or *Disable*: This option allows the user to enable or disable a Processor; the option will be either Enable or Disable, depending on the current state of the Processor.
 - *View data provenance*: This option displays the NiFi Data Provenance table, with information about data provenance events for the FlowFiles routed through that Processor (see <<data_provenance>>).
 - *View status history*: This option opens a graphical representation of the Processor's statistical information over time.
@@ -370,7 +372,7 @@ NOTE: It is also possible to double-click on the Process Group to enter it.
 - *View connections->Downstream*: This option allows the user to see and "jump to" downstream connections that are going out of the Process Group.
 - *Center in view*: This option centers the view of the canvas on the given Process Group.
 - *Group*: This option allows the user to create a new Process Group that contains the selected Process Group and any other components selected on the canvas.
-- *Download flow*: This option allows the user to download the flow as a JSON file. The file can be used as a backup or imported into a link:https://nifi.apache.org/registry.html[NiFi Registry^] using the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>>. (Note: If "Download flow" is selected for a versioned process group, there is no versioning information in the download. In other words, the resulting contents of the JSON file is the same whether the process group is versioned or not.)
+- *Download flow definition*: This option allows the user to download the flow definition of the process group as a JSON file. The file can be used as a backup or imported into a link:https://nifi.apache.org/registry.html[NiFi Registry^] using the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>>. (Note: If "Download flow definition" is selected for a versioned process group, there is no versioning information in the download. In other words, the resulting contents of the JSON file is the same whether the process group is versioned or not.)
 - *Create template*: This option allows the user to create a template from the selected Process Group.
 - *Copy*: This option places a copy of the selected Process Group on the clipboard, so that it may be pasted elsewhere on the canvas by right-clicking on the canvas and selecting Paste. The Copy/Paste actions also may be done using the keystrokes Ctrl-C (Command-C) and Ctrl-V (Command-V).
 - *Empty all queues*: This option allows the user to empty all queues in the selected Process Group. All FlowFiles from all connections waiting at the time of the request will be removed.
@@ -740,7 +742,7 @@ The next configuration element is the Process Group Parameter Context, which is 
 
 The third element in the configuration dialog is the Process Group Comments. This provides a mechanism for providing any useful information or context about the Process Group.
 
-The last two elements, Process Group FlowFile Currency and Process Group Outbound Policy, are covered in the following sections.
+The next two elements, Process Group FlowFile Currency and Process Group Outbound Policy, are covered in the following sections.
 
 [[Flowfile_Concurrency]]
 ===== FlowFile Concurrency
@@ -831,6 +833,17 @@ input FlowFile, it is recommended that backpressure for Connections ending in an
 largest expected number of FlowFiles or backpressure for those Connections be disabled all together (by setting the Backpressure Threshold to 0).
 See <<Backpressure>> for more information.
 
+[[Default_Connection_Settings]]
+===== Default Settings for Connections
+The final three elements in the Process Group configuration dialog are for Default FlowFile Expiration, Default Back Pressure Object Threshold, and
+Default Back Pressure Data Size Threshold. These settings configure the default values when creating a new Connection. Each Connection represents a queue,
+and every queue has settings for flowfile expiration, back pressure object count, and back pressure data size. The settings specified here will effect the
+default values for all new Connections created within the Process Group; it will not effect existing Connections. Child Process Groups created within the
+configured Process Group will inherit the default settings. Again, existing Process Groups will not be effected. If not overridden with these options, the
+root Process Group obtains its default back pressure settings from nifi.properties, and has a default FlowFile expiration of "0 sec", i.e. do not expire.
+
+NOTE: Setting the Default FlowFile Expiration to a non-zero value may lead to data loss due to a FlowFile expiring as its time limit is reached.
+
 ==== Controller Services
 The Controller Services tab in the Process Group configuration dialog is covered in <<Controller_Services_for_Dataflows>>.
 
@@ -881,7 +894,8 @@ The Add Parameter window has the following settings:
 
 - *Name* - A name that is used to denote the Parameter. Only alpha-numeric characters (a-z, A-Z, 0-9), hyphens ( - ), underscores ( _ ), periods ( . ), and spaces are allowed.
 
-- *Value* - The value that will be used when the Parameter is referenced. Parameter values do not support Expression Language or embedded parameter references.
+- *Value* - The value that will be used when the Parameter is referenced. If a Parameter makes use of the Expression Language, it is important to note that the Expression Language will be evaluated
+in the context of the component that references the Parameter. Please see the <<parameters-and-el>> section below for more information.
 
 - *Set empty string* - Check to explicitly set the value of the Parameter to an empty string. Unchecked by default. (Note: If checked but a value is set, the checkbox is ignored.)
 
@@ -898,6 +912,28 @@ To complete the process, select "Apply" from the Parameter Context window. The f
 image:parameters-validate-affected-components.png[Validate Affected Components]
 
 The Referencing Components section now lists an aggregation of all the components referenced by the set of parameters added/edited/deleted, organized by process group.
+
+
+[[parameters-and-el]]
+==== Parameters and Expression Language
+
+When adding a Parameter that makes use of the Expression Language, it is important to understand the context in which the Expression Language will be evaluated. The expression is always evaluated
+in the context of the Process or Controller Service that references the Parameter. Take, for example, a scenario where Parameter with the name `Time` is added with a value of `${now()}`. The
+Expression Language results in a call to determine the system time when it is evaluated. When added as a Parameter, the system time is not evaluated when the Parameter is added, but rather when a
+Processor or Controller Service evaluates the Expression. That is, if a Processor has a Property whose value is set to `#{Time}` it will function in exactly the same manner as if the Property's
+value were set to `${now()}`. Each time that the property is referenced, it will produce a different timestamp.
+
+Furthermore, some Properties do not allow for Expression Language, while others allow for Expression Language but do not evaluate expressions against FlowFile attributes. To help understand how
+this works, consider a Parameter named `File` whose value is `${filename}`. Then consider three different properties, each with a different Expression Language Scope and a FlowFile whose filename
+is `test.txt`. If each of those Properties is set to `#{File}`, then the follow table illustrates the resultant value.
+
+|===
+| Configured Property Value | Expression Language Scope | Effective Property Value | Notes
+
+| #{File} | FlowFile Attributes | test.txt | The filename is resolved by looking at the `filename` attribute.
+| #{File} | Variable Registry Only | _Empty String_ | FlowFile attributes are not in scope, and we assume there is no Variable in the Variable Registry named "filename"
+| #{File} | None | ${filename} | The literal text "${filename}" will be unevaluated.
+|===
 
 
 [[assigning_parameter_context_to_PG]]
@@ -1570,7 +1606,7 @@ To create an Output Port for Site-to-Site in a child Process Group, enter the na
 
 image::add-output-port-S2S.png["Add Output Port for Site-to-Site"]
 
-In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance. For example, NiFi provides an Apache Storm spout and an Apache Spark Receiver that are able to pull data from NiFi's Output Ports for Site-to-Site connections.
+In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance.
 
 NOTE: For information on how to enable and configure Site-to-Site on a NiFi instance, see the
 link:administration-guide.html#site_to_site_properties[Site-to-Site Properties] section of the
@@ -1661,7 +1697,7 @@ for more information). See <<terminating_tasks>> for how to terminate the runnin
 === Terminating a Component's tasks
 
 When a component is stopped, it does not interrupt the currently running tasks. This allows for the current execution to complete while no new
-tasks are scheduled, which is the desired behaviour in many cases. In some cases, it is desirable to terminate the running tasks, particularly 
+tasks are scheduled, which is the desired behaviour in many cases. In some cases, it is desirable to terminate the running tasks, particularly
 in cases where a task has hung and is no longer responsive, or while developing new flows.
 
 To be able to terminate the running task(s), the component must first be stopped (see <<stopping_components>>). Once the component is in the
@@ -1669,7 +1705,7 @@ Stopped state, the Terminate option will become available only if there are task
 (image:iconTerminate.png["Terminate"]) can be accessed either via the context menu or the Operations Palette while the component is selected.
 
 The number of tasks that are actively being terminated will be displayed in parentheses next to the number of active tasks e.g. image:terminated-thread.png["Terminated-Threads"]. For example, if there is one active task at the time that Terminate is selected, this will display "0 (1)" - meaning
-0 active tasks and 1 task being terminated. 
+0 active tasks and 1 task being terminated.
 
 A task may not terminate immediately, as different components may respond to the Terminate command differently. However, the components can be
 reconfigured and started/stopped regardless of whether there are tasks still in the terminating state.
@@ -1752,7 +1788,7 @@ NiFi provides various mechanisms for getting around a dataflow. The <<User_Inter
 
 A hyperlink can be used to navigate directly to a component on the NiFi canvas. This is especially useful when link:administration-guide.html#multi-tenant-authorization[Multi-Tenant Authorization] is configured. For example, a URL can be given to a user to direct them to the specific process group to which they have privileges.
 
-The default URL for a NiFI instance is `http://<hostname>:8080/nifi`, which points to the root process group.  When a component is selected on the canvas, the URL is updated with the component's process group id and component id in the form `http://<hostname>:8080/nifi/?processGroupId=<UUID>&componentIds=<UUIDs>`.  In the following screenshot, the GenerateFlowFile processor in the process group PG1 is the selected component:
+The default URL for a NiFI instance is `https://localhost:8443/nifi`, which points to the root process group.  When a component is selected on the canvas, the URL is updated with the component's process group id and component id in the form `https://localhost:8443/nifi/?processGroupId=<UUID>&componentIds=<UUIDs>`.  In the following screenshot, the GenerateFlowFile processor in the process group PG1 is the selected component:
 
 image::component-linking-processor.png["Component Linking Processor Example"]
 
@@ -2742,10 +2778,13 @@ image:search-events.png["Search Events"]
 
 For example, to determine if a particular FlowFile was received, search for an Event Type of "RECEIVE" and include an
 identifier for the FlowFile, such as its uuid or filename. The asterisk (*) may be used as a wildcard for any number of characters.
-So, to determine whether a FlowFile with "ABC" anywhere in its filename was received at any time on Jan. 6, 2015, the search shown in the following
+So, to determine whether a FlowFile with "ABC" anywhere in its filename was received at any time on July 29, 2016, the search shown in the following
 image could be performed:
 
 image:search-receive-event-abc.png["Search for RECEIVE Event"]
+
+If all filenames that do not have "ABC" anywhere in the filename is desired, then click the checkbox with the label "Exclude from search results" beneath
+this entry before performing the search.
 
 [[event_details]]
 === Details of an Event
@@ -2895,6 +2934,34 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
 
+===== KeyStoreKeyProvider
+The `KeyStoreKeyProvider` implementation reads from a standard `java.security.KeyStore` using the configured password to load AES Secret Key entries.
+
+The provider supports the following Keystore Types:
+
+* BCFKS
+* PKCS12
+
+The keystore filename extension must be either `.p12` indicating PKCS12 or `.bcfks` indicating BCFKS.
+
+The `keytool` command can be used to generate an AES-256 Secret Key stored in a PKCS12 file for repository encryption:
+
+...
+keytool -genseckey -alias primary-key -keyalg AES -keysize 256 -keystore repository.p12 -storetype PKCS12
+...
+
+Enter a keystore password when prompted. The same value must be used for both the keystore password and key password.
+The keystore password will be used in the provider configuration properties.
+
+The following configuration properties support using a PKCS12 keystore with a Secret Key:
+
+...
+nifi.provenance.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.KeyStoreKeyProvider
+nifi.provenance.repository.encryption.key.provider.location=./conf/repository.p12
+nifi.provenance.repository.encryption.key.provider.password=KEYSTORE_PASSWORD
+nifi.provenance.repository.encryption.key.id=primary-key
+...
+
 [[provenance-repository-key-rotation]]
 ===== Key Rotation
 Simply update _nifi.properties_ to reference a new key ID in `nifi.provenance.repository.encryption.key.id`. Previously-encrypted events can still be decrypted as long as that key is still available in the key definition file or `nifi.provenance.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted record.
@@ -2973,6 +3040,34 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 ....
 
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
+
+==== KeyStoreKeyProvider
+The `KeyStoreKeyProvider` implementation reads from a standard `java.security.KeyStore` using the configured password to load AES Secret Key entries.
+
+The provider supports the following Keystore Types:
+
+* BCFKS
+* PKCS12
+
+The keystore filename extension must be either `.p12` indicating PKCS12 or `.bcfks` indicating BCFKS.
+
+The `keytool` command can be used to generate an AES-256 Secret Key stored in a PKCS12 file for repository encryption:
+
+...
+keytool -genseckey -alias primary-key -keyalg AES -keysize 256 -keystore repository.p12 -storetype PKCS12
+...
+
+Enter a keystore password when prompted. The same value must be used for both the keystore password and key password.
+The keystore password will be used in the provider configuration properties.
+
+The following configuration properties support using a PKCS12 keystore with a Secret Key:
+
+...
+nifi.content.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.KeyStoreKeyProvider
+nifi.content.repository.encryption.key.provider.location=./conf/repository.p12
+nifi.content.repository.encryption.key.provider.password=KEYSTORE_PASSWORD
+nifi.content.repository.encryption.key.id=primary-key
+...
 
 .Data Protection vs. Key Protection
 ****
@@ -3059,6 +3154,34 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 ....
 
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
+
+==== KeyStoreKeyProvider
+The `KeyStoreKeyProvider` implementation reads from a standard `java.security.KeyStore` using the configured password to load AES Secret Key entries.
+
+The provider supports the following Keystore Types:
+
+* BCFKS
+* PKCS12
+
+The keystore filename extension must be either `.p12` indicating PKCS12 or `.bcfks` indicating BCFKS.
+
+The `keytool` command can be used to generate an AES-256 Secret Key stored in a PKCS12 file for repository encryption:
+
+...
+keytool -genseckey -alias primary-key -keyalg AES -keysize 256 -keystore repository.p12 -storetype PKCS12
+...
+
+Enter a keystore password when prompted. The same value must be used for both the keystore password and key password.
+The keystore password will be used in the provider configuration properties.
+
+The following configuration properties support using a PKCS12 keystore with a Secret Key:
+
+...
+nifi.flowfile.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.KeyStoreKeyProvider
+nifi.flowfile.repository.encryption.key.provider.location=./conf/repository.p12
+nifi.flowfile.repository.encryption.key.provider.password=KEYSTORE_PASSWORD
+nifi.flowfile.repository.encryption.key.id=primary-key
+...
 
 [[flowfile-repository-key-rotation]]
 ==== Key Rotation

@@ -46,7 +46,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -280,7 +280,7 @@ public class ListenTCPRecord extends AbstractProcessor {
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
             final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-            sslContext = sslContextService.createSSLContext(ClientAuth.valueOf(clientAuthValue));
+            sslContext = sslContextService.createContext();
             clientAuth = ClientAuth.valueOf(clientAuthValue);
         }
 
@@ -299,8 +299,8 @@ public class ListenTCPRecord extends AbstractProcessor {
         readerThread.start();
     }
 
-    @OnUnscheduled
-    public void onUnscheduled() {
+    @OnStopped
+    public void onStopped() {
         if (dispatcher != null) {
             dispatcher.close();
             dispatcher = null;
@@ -460,9 +460,4 @@ public class ListenTCPRecord extends AbstractProcessor {
     private String getRemoteAddress(final SocketChannelRecordReader socketChannelRecordReader) {
         return socketChannelRecordReader.getRemoteAddress() == null ? "null" : socketChannelRecordReader.getRemoteAddress().toString();
     }
-
-    public final int getDispatcherPort() {
-        return dispatcher == null ? 0 : dispatcher.getPort();
-    }
-
 }

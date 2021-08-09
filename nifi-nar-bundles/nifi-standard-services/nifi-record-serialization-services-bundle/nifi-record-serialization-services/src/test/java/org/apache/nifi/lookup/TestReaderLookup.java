@@ -17,7 +17,6 @@
 package org.apache.nifi.lookup;
 
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
@@ -42,6 +41,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class TestReaderLookup {
+    private final String DEFAULT_ATTRIBUTE_NAME = "recordreader.name";
 
     private MockRecordReaderFactory recordReaderA;
     private MockRecordReaderFactory recordReaderB;
@@ -75,29 +75,17 @@ public class TestReaderLookup {
     @Test
     public void testLookupServiceByName() throws SchemaNotFoundException, MalformedRecordException, IOException {
         final Map<String,String> attributes = new HashMap<>();
-        attributes.put(ReaderLookup.RECORDREADER_NAME_VARIABLE, "A");
+        attributes.put(DEFAULT_ATTRIBUTE_NAME, "A");
 
         MockRecordReader recordReader = (MockRecordReader) readerLookup.createRecordReader(attributes, null, -1, null);
         assertNotNull(recordReader);
         assertEquals(recordReaderA.name, recordReader.name);
 
-        attributes.put(ReaderLookup.RECORDREADER_NAME_VARIABLE, "B");
+        attributes.put(DEFAULT_ATTRIBUTE_NAME, "B");
 
         recordReader = (MockRecordReader) readerLookup.createRecordReader(attributes, null, -1, null);
         assertNotNull(recordReader);
         assertEquals(recordReaderB.name, recordReader.name);
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testLookupWithoutAttributes() throws SchemaNotFoundException, MalformedRecordException, IOException {
-        Map<String,String> attributes = null;
-        readerLookup.createRecordReader(attributes, null, -1, null);
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testLookupWithoutFlowFile() throws SchemaNotFoundException, MalformedRecordException, IOException {
-        FlowFile flowFile = null;
-        readerLookup.createRecordReader(flowFile, null, null);
     }
 
     @Test(expected = ProcessException.class)
@@ -109,7 +97,7 @@ public class TestReaderLookup {
     @Test(expected = ProcessException.class)
     public void testLookupWithNameThatDoesNotExist() throws SchemaNotFoundException, MalformedRecordException, IOException {
         final Map<String,String> attributes = new HashMap<>();
-        attributes.put(ReaderLookup.RECORDREADER_NAME_VARIABLE, "DOES-NOT-EXIST");
+        attributes.put(DEFAULT_ATTRIBUTE_NAME, "DOES-NOT-EXIST");
         readerLookup.createRecordReader(attributes, null, -1, null);
     }
 

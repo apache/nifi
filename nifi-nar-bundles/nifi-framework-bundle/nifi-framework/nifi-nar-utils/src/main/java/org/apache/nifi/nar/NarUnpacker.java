@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,8 +34,6 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -46,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -59,20 +57,34 @@ import static java.lang.String.format;
 public final class NarUnpacker {
     public static final String BUNDLED_DEPENDENCIES_DIRECTORY = "NAR-INF/bundled-dependencies";
     private static final Logger logger = LoggerFactory.getLogger(NarUnpacker.class);
-    private static String HASH_FILENAME = "nar-md5sum";
-    private static final FileFilter NAR_FILTER = new FileFilter() {
-        @Override
-        public boolean accept(File pathname) {
-            final String nameToTest = pathname.getName().toLowerCase();
-            return nameToTest.endsWith(".nar") && pathname.isFile();
-        }
+    private static final String HASH_FILENAME = "nar-digest";
+    private static final FileFilter NAR_FILTER = pathname -> {
+        final String nameToTest = pathname.getName().toLowerCase();
+        return nameToTest.endsWith(".nar") && pathname.isFile();
     };
 
     public static ExtensionMapping unpackNars(final NiFiProperties props, final Bundle systemBundle) {
+        // Default to NiFi's framework NAR ID if not given
+        return unpackNars(props, NarClassLoaders.FRAMEWORK_NAR_ID, systemBundle);
+    }
+
+    public static ExtensionMapping unpackNars(final NiFiProperties props, final String frameworkNarId, final Bundle systemBundle) {
         final List<Path> narLibraryDirs = props.getNarLibraryDirectories();
         final File frameworkWorkingDir = props.getFrameworkWorkingDirectory();
         final File extensionsWorkingDir = props.getExtensionsWorkingDirectory();
         final File docsWorkingDir = props.getComponentDocumentationWorkingDirectory();
+
+        return unpackNars(systemBundle, frameworkWorkingDir, frameworkNarId, extensionsWorkingDir, docsWorkingDir, narLibraryDirs);
+    }
+
+    public static ExtensionMapping unpackNars(final Bundle systemBundle, final File frameworkWorkingDir, final String frameworkNarId,
+                                              final File extensionsWorkingDir, final File docsWorkingDir, final List<Path> narLibraryDirs) {
+        return unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, docsWorkingDir, narLibraryDirs, true, frameworkNarId, true, true, (coordinate) -> true);
+    }
+
+    public static ExtensionMapping unpackNars(final Bundle systemBundle, final File frameworkWorkingDir, final File extensionsWorkingDir, final File docsWorkingDir, final List<Path> narLibraryDirs,
+                                              final boolean requireFrameworkNar, final String frameworkNarId,
+                                              final boolean requireJettyNar, final boolean verifyHash, final Predicate<BundleCoordinate> narFilter) {
         final Map<File, BundleCoordinate> unpackedNars = new HashMap<>();
 
         try {
@@ -82,9 +94,15 @@ public final class NarUnpacker {
             final List<File> narFiles = new ArrayList<>();
 
             // make sure the nar directories are there and accessible
-            FileUtils.ensureDirectoryExistAndCanReadAndWrite(frameworkWorkingDir);
+            if (requireFrameworkNar) {
+                FileUtils.ensureDirectoryExistAndCanReadAndWrite(frameworkWorkingDir);
+            }
+
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(extensionsWorkingDir);
-            FileUtils.ensureDirectoryExistAndCanReadAndWrite(docsWorkingDir);
+
+            if (docsWorkingDir != null) {
+                FileUtils.ensureDirectoryExistAndCanReadAndWrite(docsWorkingDir);
+            }
 
             for (Path narLibraryDir : narLibraryDirs) {
 
@@ -109,51 +127,63 @@ public final class NarUnpacker {
                     // get the manifest for this nar
                     try (final JarFile nar = new JarFile(narFile)) {
                         BundleCoordinate bundleCoordinate = createBundleCoordinate(nar.getManifest());
+
+                        if (!narFilter.test(bundleCoordinate)) {
+                            logger.debug("Will not expand NAR {} because it does not match the provided filter", bundleCoordinate);
+                            continue;
+                        }
+
                         // determine if this is the framework
-                        if (NarClassLoaders.FRAMEWORK_NAR_ID.equals(bundleCoordinate.getId())) {
+                        if (frameworkNarId != null && frameworkNarId.equals(bundleCoordinate.getId())) {
                             if (unpackedFramework != null) {
                                 throw new IllegalStateException("Multiple framework NARs discovered. Only one framework is permitted.");
                             }
 
                             // unpack the framework nar
-                            unpackedFramework = unpackNar(narFile, frameworkWorkingDir);
+                            unpackedFramework = unpackNar(narFile, frameworkWorkingDir, verifyHash);
                         } else if (NarClassLoaders.JETTY_NAR_ID.equals(bundleCoordinate.getId())) {
                             if (unpackedJetty != null) {
                                 throw new IllegalStateException("Multiple Jetty NARs discovered. Only one Jetty NAR is permitted.");
                             }
 
                             // unpack and record the Jetty nar
-                            unpackedJetty = unpackNar(narFile, extensionsWorkingDir);
+                            unpackedJetty = unpackNar(narFile, extensionsWorkingDir, verifyHash);
                             unpackedExtensions.add(unpackedJetty);
                         } else {
                             // unpack and record the extension nar
-                            final File unpackedExtension = unpackNar(narFile, extensionsWorkingDir);
+                            final File unpackedExtension = unpackNar(narFile, extensionsWorkingDir, verifyHash);
                             unpackedExtensions.add(unpackedExtension);
                         }
                     }
                 }
 
-                // ensure we've found the framework nar
-                if (unpackedFramework == null) {
-                    throw new IllegalStateException("No framework NAR found.");
-                } else if (!unpackedFramework.canRead()) {
-                    throw new IllegalStateException("Framework NAR cannot be read.");
+                if (requireFrameworkNar) {
+                    // ensure we've found the framework nar
+                    if (unpackedFramework == null) {
+                        throw new IllegalStateException("No framework NAR found.");
+                    } else if (!unpackedFramework.canRead()) {
+                        throw new IllegalStateException("Framework NAR cannot be read.");
+                    }
                 }
 
-                // ensure we've found the jetty nar
-                if (unpackedJetty == null) {
-                    throw new IllegalStateException("No Jetty NAR found.");
-                } else if (!unpackedJetty.canRead()) {
-                    throw new IllegalStateException("Jetty NAR cannot be read.");
+                if (requireJettyNar) {
+                    // ensure we've found the jetty nar
+                    if (unpackedJetty == null) {
+                        throw new IllegalStateException("No Jetty NAR found.");
+                    } else if (!unpackedJetty.canRead()) {
+                        throw new IllegalStateException("Jetty NAR cannot be read.");
+                    }
                 }
 
                 // Determine if any nars no longer exist and delete their working directories. This happens
                 // if a new version of a nar is dropped into the lib dir. ensure no old framework are present
-                final File[] frameworkWorkingDirContents = frameworkWorkingDir.listFiles();
-                if (frameworkWorkingDirContents != null) {
-                    for (final File unpackedNar : frameworkWorkingDirContents) {
-                        if (!unpackedFramework.equals(unpackedNar)) {
-                            FileUtils.deleteFile(unpackedNar, true);
+                if (unpackedFramework != null && frameworkWorkingDir != null) {
+                    final File[] frameworkWorkingDirContents = frameworkWorkingDir.listFiles();
+                    if (frameworkWorkingDirContents != null) {
+                        for (final File unpackedNar : frameworkWorkingDirContents) {
+                            if (!unpackedFramework.equals(unpackedNar)) {
+                                FileUtils.deleteFile(unpackedNar, true);
+                            }
                         }
                     }
                 }
@@ -171,15 +201,6 @@ public final class NarUnpacker {
                 final long duration = System.nanoTime() - startTime;
                 logger.info("NAR loading process took " + duration + " nanoseconds "
                         + "(" + (int) TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS) + " seconds).");
-            }
-
-            // attempt to delete any docs files that exist so that any components that have been removed
-            // will no longer have entries in the docs folder
-            final File[] docsFiles = docsWorkingDir.listFiles();
-            if (docsFiles != null) {
-                for (final File file : docsFiles) {
-                    FileUtils.deleteFile(file, true);
-                }
             }
 
             unpackedNars.putAll(createUnpackedNarBundleCoordinateMap(extensionsWorkingDir));
@@ -244,9 +265,7 @@ public final class NarUnpacker {
     public static void mapExtension(final File unpackedNar, final BundleCoordinate bundleCoordinate, final File docsDirectory, final ExtensionMapping mapping) throws IOException {
         final File bundledDependencies = new File(unpackedNar, BUNDLED_DEPENDENCIES_DIRECTORY);
         // If docsDirectory is null, assume NiFi is "headless" (no UI or REST API) and thus no docs are to be generated
-        if (docsDirectory != null) {
-            unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
-        }
+        unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
     }
 
     private static void unpackBundleDocs(final File docsDirectory, final ExtensionMapping mapping, final BundleCoordinate bundleCoordinate, final File bundledDirectory) throws IOException {
@@ -265,31 +284,36 @@ public final class NarUnpacker {
      *
      * @param nar the nar to unpack
      * @param baseWorkingDirectory the directory to unpack to
+     * @param verifyHash if the NAR has already been unpacked, indicates whether or not the hash should be verified. If this value is true,
+     * and the NAR's hash does not match the hash written to the unpacked directory, the working directory will be deleted and the NAR will be
+     * unpacked again. If false, the NAR will not be unpacked again and its hash will not be checked.
      * @return the directory to the unpacked NAR
      * @throws IOException if unable to explode nar
      */
-    public static File unpackNar(final File nar, final File baseWorkingDirectory) throws IOException {
+    public static File unpackNar(final File nar, final File baseWorkingDirectory, final boolean verifyHash) throws IOException {
         final File narWorkingDirectory = new File(baseWorkingDirectory, nar.getName() + "-unpacked");
 
         // if the working directory doesn't exist, unpack the nar
         if (!narWorkingDirectory.exists()) {
-            unpack(nar, narWorkingDirectory, calculateMd5sum(nar));
-        } else {
-            // the working directory does exist. Run MD5 sum against the nar
+            unpack(nar, narWorkingDirectory, FileDigestUtils.getDigest(nar));
+        } else if (verifyHash) {
+            // the working directory does exist. Run digest against the nar
             // file and check if the nar has changed since it was deployed.
-            final byte[] narMd5 = calculateMd5sum(nar);
+            final byte[] narDigest = FileDigestUtils.getDigest(nar);
             final File workingHashFile = new File(narWorkingDirectory, HASH_FILENAME);
             if (!workingHashFile.exists()) {
                 FileUtils.deleteFile(narWorkingDirectory, true);
-                unpack(nar, narWorkingDirectory, narMd5);
+                unpack(nar, narWorkingDirectory, narDigest);
             } else {
                 final byte[] hashFileContents = Files.readAllBytes(workingHashFile.toPath());
-                if (!Arrays.equals(hashFileContents, narMd5)) {
+                if (!Arrays.equals(hashFileContents, narDigest)) {
                     logger.info("Contents of nar {} have changed. Reloading.", new Object[] { nar.getAbsolutePath() });
                     FileUtils.deleteFile(narWorkingDirectory, true);
-                    unpack(nar, narWorkingDirectory, narMd5);
+                    unpack(nar, narWorkingDirectory, narDigest);
                 }
             }
+        } else {
+            logger.debug("Directory {} already exists. Will not verify hash. Assuming nothing has changed.", narWorkingDirectory);
         }
 
         return narWorkingDirectory;
@@ -337,6 +361,10 @@ public final class NarUnpacker {
 
         // merge the extension mapping found in this jar
         extensionMapping.merge(jarExtensionMapping);
+
+        if (docsDirectory == null) {
+            return;
+        }
 
         // look for all documentation related to each component
         try (final JarFile jarFile = new JarFile(jar)) {
@@ -438,33 +466,6 @@ public final class NarUnpacker {
             while ((numRead = in.read(bytes)) != -1) {
                 fos.write(bytes, 0, numRead);
             }
-        }
-    }
-
-    /**
-     * Calculates an md5 sum of the specified file.
-     *
-     * @param file
-     *            to calculate the md5sum of
-     * @return the md5sum bytes
-     * @throws IOException
-     *             if cannot read file
-     */
-    private static byte[] calculateMd5sum(final File file) throws IOException {
-        try (final FileInputStream inputStream = new FileInputStream(file)) {
-            final MessageDigest md5 = MessageDigest.getInstance("md5");
-
-            final byte[] buffer = new byte[1024];
-            int read = inputStream.read(buffer);
-
-            while (read > -1) {
-                md5.update(buffer, 0, read);
-                read = inputStream.read(buffer);
-            }
-
-            return md5.digest();
-        } catch (NoSuchAlgorithmException nsae) {
-            throw new IllegalArgumentException(nsae);
         }
     }
 

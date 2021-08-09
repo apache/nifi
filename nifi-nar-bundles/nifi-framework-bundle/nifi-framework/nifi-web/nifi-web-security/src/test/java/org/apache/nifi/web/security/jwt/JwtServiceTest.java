@@ -16,27 +16,7 @@
  */
 package org.apache.nifi.web.security.jwt;
 
-import static org.apache.nifi.util.NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX;
-import static org.apache.nifi.util.NiFiProperties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import io.jsonwebtoken.JwtException;
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.KeyService;
@@ -45,7 +25,7 @@ import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.key.Key;
-import org.apache.nifi.properties.StandardNiFiProperties;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.codehaus.jettison.json.JSONObject;
 import org.junit.After;
@@ -61,6 +41,28 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import static org.apache.nifi.util.NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX;
+import static org.apache.nifi.util.NiFiProperties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class JwtServiceTest {
 
@@ -242,7 +244,7 @@ public class JwtServiceTest {
         Properties props = new Properties();
         props.setProperty(SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX+"kerb",  "^(.*?)@(.*?)$");
         props.setProperty(SECURITY_IDENTITY_MAPPING_VALUE_PREFIX+"kerb", "$1");
-        identityMappings = IdentityMappingUtil.getIdentityMappings(new StandardNiFiProperties(props));
+        identityMappings = IdentityMappingUtil.getIdentityMappings(new NiFiProperties(props));
     }
 
     @After
@@ -453,6 +455,54 @@ public class JwtServiceTest {
         assertEquals("JWT token", EXPECTED_TOKEN_STRING, token);
     }
 
+    @Test
+    public void testShouldGenerateSignedTokenWithURLEncodedIssuer() throws Exception {
+        // Arrange
+
+        // Token expires in 60 seconds
+        final int EXPIRATION_MILLIS = 60000;
+        final String rawIssuer = "https://accounts.google.com/o/saml2?idpid=acode";
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken("alopresto", EXPIRATION_MILLIS, rawIssuer);
+        logger.info("Generating token for " + loginAuthenticationToken);
+
+        final String EXPECTED_HEADER = DEFAULT_HEADER;
+
+        // Convert the expiration time from ms to s
+        final long TOKEN_EXPIRATION_SEC = (long) (loginAuthenticationToken.getExpiration() / 1000.0);
+
+        // Act
+        String token = jwtService.generateSignedToken(loginAuthenticationToken);
+        logger.info("Generated JWT: " + token);
+
+        // Run after the SUT generates the token to ensure the same issued at time
+        // Split the token, decode the middle section, and form a new String
+        final String DECODED_PAYLOAD = new String(Base64.decodeBase64(token.split("\\.")[1].getBytes()));
+        final long ISSUED_AT_SEC = Long.valueOf(DECODED_PAYLOAD.substring(DECODED_PAYLOAD.lastIndexOf(":") + 1,
+                DECODED_PAYLOAD.length() - 1));
+        logger.trace("Actual token was issued at " + ISSUED_AT_SEC);
+
+        // Always use LinkedHashMap to enforce order of the signingKeys because the signature depends on order
+        final String encodedIssuer = URLEncoder.encode(rawIssuer, "UTF-8");
+
+        final Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put("sub", "alopresto");
+        claims.put("iss", encodedIssuer);
+        claims.put("aud", encodedIssuer);
+        claims.put("preferred_username", "alopresto");
+        claims.put("kid", 1);
+        claims.put("exp", TOKEN_EXPIRATION_SEC);
+        claims.put("iat", ISSUED_AT_SEC);
+        logger.trace("JSON Object to String: " + new JSONObject(claims).toString());
+
+        final String EXPECTED_PAYLOAD = new JSONObject(claims).toString();
+        final String EXPECTED_TOKEN_STRING = generateHS256Token(EXPECTED_HEADER, EXPECTED_PAYLOAD, true, true);
+        logger.info("Expected JWT: " + EXPECTED_TOKEN_STRING);
+
+        // Assert
+        assertEquals("JWT token", EXPECTED_TOKEN_STRING, token);
+    }
+
+
     @Test(expected = IllegalArgumentException.class)
     public void testShouldNotGenerateTokenWithNullAuthenticationToken() throws Exception {
         // Arrange
@@ -540,38 +590,6 @@ public class JwtServiceTest {
         logger.info("Token was valid");
         logger.info("Logging out user: " + authID);
         jwtService.logOut(token);
-        logger.info("Logged out user: " + authID);
-        logger.info("Checking that token is now invalid...");
-        jwtService.getAuthenticationFromToken(token);
-
-        // Assert
-        // Should throw exception when user is not found
-    }
-
-    @Test
-    public void testShouldLogOutUserUsingAuthHeader() throws Exception {
-        // Arrange
-        expectedException.expect(JwtException.class);
-        expectedException.expectMessage("Unable to validate the access token.");
-
-        // Token expires in 60 seconds
-        final int EXPIRATION_MILLIS = 60000;
-        LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(DEFAULT_IDENTITY,
-                EXPIRATION_MILLIS,
-                "MockIdentityProvider");
-        logger.info("Generating token for " + loginAuthenticationToken);
-
-        // Act
-        String token = jwtService.generateSignedToken(loginAuthenticationToken);
-
-        logger.info("Generated JWT: " + token);
-        logger.info("Validating token...");
-        String authID = jwtService.getAuthenticationFromToken(token);
-        assertEquals(DEFAULT_IDENTITY, authID);
-        logger.info("Token was valid");
-        logger.info("Logging out user: " + authID);
-        String header = "Bearer " + token;
-        jwtService.logOutUsingAuthHeader(header);
         logger.info("Logged out user: " + authID);
         logger.info("Checking that token is now invalid...");
         jwtService.getAuthenticationFromToken(token);

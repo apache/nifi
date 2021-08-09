@@ -24,12 +24,13 @@ import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.revision.RevisionManager;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
@@ -46,13 +47,14 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private NiFiProperties properties;
     private Authorizer authorizer;
     private AuditService auditService;
-    private StringEncryptor encryptor;
+    private PropertyEncryptor encryptor;
     private BulletinRepository bulletinRepository;
     private ClusterCoordinator clusterCoordinator;
     private VariableRegistry variableRegistry;
     private LeaderElectionManager leaderElectionManager;
     private FlowRegistryClient flowRegistryClient;
     private ExtensionManager extensionManager;
+    private RevisionManager revisionManager;
 
     @Override
     public Object getObject() throws Exception {
@@ -75,7 +77,8 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     leaderElectionManager,
                     variableRegistry,
                     flowRegistryClient,
-                    extensionManager);
+                    extensionManager,
+                    revisionManager);
             } else {
                 flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
@@ -119,7 +122,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
         this.authorizer = authorizer;
     }
 
-    public void setEncryptor(final StringEncryptor encryptor) {
+    public void setEncryptor(final PropertyEncryptor encryptor) {
         this.encryptor = encryptor;
     }
 
@@ -149,5 +152,9 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
 
     public void setExtensionManager(ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;
+    }
+
+    public void setRevisionManager(final RevisionManager revisionManager) {
+        this.revisionManager = revisionManager;
     }
 }

@@ -123,14 +123,26 @@ public enum CommandOption {
 
     // Security related
     KEYSTORE("ks", "keystore", "A keystore to use for TLS/SSL connections", true),
-    KEYSTORE_TYPE("kst", "keystoreType", "The type of key store being used (JKS or PKCS12)", true),
+    KEYSTORE_TYPE("kst", "keystoreType", "The type of key store being used such as PKCS12", true),
     KEYSTORE_PASSWORD("ksp", "keystorePasswd", "The password of the keystore being used", true),
     KEY_PASSWORD("kp", "keyPasswd", "The key password of the keystore being used", true),
     TRUSTSTORE("ts", "truststore", "A truststore to use for TLS/SSL connections", true),
-    TRUSTSTORE_TYPE("tst", "truststoreType", "The type of trust store being used (JKS or PKCS12)", true),
+    TRUSTSTORE_TYPE("tst", "truststoreType", "The type of trust store being used such as PKCS12", true),
     TRUSTSTORE_PASSWORD("tsp", "truststorePasswd", "The password of the truststore being used", true),
     PROXIED_ENTITY("pe", "proxiedEntity", "The identity of an entity to proxy", true),
     PROTOCOL("pro", "protocol", "The security protocol to use, such as TLSv.1.2", true),
+
+    BASIC_AUTH_USER("bau", "basicAuthUsername", "The username for basic auth", true),
+    BASIC_AUTH_PASSWORD("bap", "basicAuthPassword", "The password for basic auth ", true),
+
+    BEARER_TOKEN("btk", "bearerToken", "The bearer token to be passed in the Authorization header of a request", true),
+
+    USERNAME("usr", "username", "The username for authentication when obtaining an access token", true),
+    PASSWORD("pwd", "password", "The password for authentication when obtaining an access token", true),
+
+    KERBEROS_PRINCIPAL("krbPr", "kerberosPrincipal", "The kerberos principal", true),
+    KERBEROS_KEYTAB("krbKt", "kerberosKeytab", "The keytab for a kerberos principal", true, true),
+    KERBEROS_PASSWORD("krbPw", "kerberosPassword", "The password for a kerberos principal", true),
 
     // Miscellaneous
     FORCE("force", "force", "Indicates to force a delete operation", false),

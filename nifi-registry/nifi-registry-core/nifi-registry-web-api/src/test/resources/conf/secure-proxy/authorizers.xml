@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!--
+    This file lists the userGroupProviders, accessPolicyProviders, and authorizers to use when running securely. In order
+    to use a specific authorizer it must be configured here and its identifier must be specified in the nifi-registry.properties file.
+    If the authorizer is a managedAuthorizer, it may need to be configured with an accessPolicyProvider and an userGroupProvider.
+    This file allows for configuration of them, but they must be configured in order:
+
+    ...
+    all userGroupProviders
+    all accessPolicyProviders
+    all Authorizers
+    ...
+-->
+<authorizers>
+
+    <!--
+        The FileUserGroupProvider will provide support for managing users and groups which is backed by a file
+        on the local file system.
+
+        - Users File - The file where the FileUserGroupProvider will store users and groups.
+
+        - Initial User Identity [unique key] - The identity of a users and systems to seed the Users File. The name of
+            each property must be unique, for example: "Initial User Identity A", "Initial User Identity B",
+            "Initial User Identity C" or "Initial User Identity 1", "Initial User Identity 2", "Initial User Identity 3"
+
+            NOTE: Any identity mapping rules specified in nifi-registry.properties will also be applied to the user identities,
+            so the values should be the unmapped identities (i.e. full DN from a certificate).
+    -->
+    <userGroupProvider>
+        <identifier>file-user-group-provider</identifier>
+        <class>org.apache.nifi.registry.security.authorization.file.FileUserGroupProvider</class>
+        <property name="Users File">./target/test-classes/conf/secure-proxy/users.xml</property>
+        <property name="Initial User Identity 1">CN=user1, OU=nifi</property>
+        <property name="Initial User Identity 2">CN=user2, OU=nifi</property>
+        <property name="Initial User Identity 3">CN=Алйс, OU=nifi</property>
+        <property name="Initial User Identity 4">CN=proxy, OU=nifi</property>
+    </userGroupProvider>
+
+    <!--
+        The FileAccessPolicyProvider will provide support for managing access policies which is backed by a file
+        on the local file system.
+
+        - User Group Provider - The identifier for an User Group Provider defined above that will be used to access
+            users and groups for use in the managed access policies.
+
+        - Authorizations File - The file where the FileAccessPolicyProvider will store policies.
+
+        - Initial Admin Identity - The identity of an initial admin user that will be granted access to the UI and
+            given the ability to create additional users, groups, and policies. The value of this property could be
+            a DN when using certificates or LDAP. This property will only be used when there
+            are no other policies defined.
+
+            NOTE: Any identity mapping rules specified in nifi-registry.properties will also be applied to the initial admin identity,
+            so the value should be the unmapped identity. This identity must be found in the configured User Group Provider.
+
+        - NiFi Identity [unique key] - The identity of a NiFi node that will have access to this NiFi Registry and will be able
+            to act as a proxy on behalf of a NiFi Registry end user. A property should be created for the identity of every NiFi
+            node that needs to access this NiFi Registry.
+
+            NOTE: Any identity mapping rules specified in nifi-registry.properties will also be applied to the nifi identities,
+            so the values should be the unmapped identities (i.e. full DN from a certificate). This identity must be found
+            in the configured User Group Provider.
+    -->
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.registry.security.authorization.file.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">file-user-group-provider</property>
+        <property name="Authorizations File">./target/test-classes/conf/secure-proxy/authorizations.xml</property>
+        <property name="Initial Admin Identity">CN=user1, OU=nifi</property>
+        <property name="NiFi Identity 1">CN=proxy, OU=nifi</property>
+    </accessPolicyProvider>
+
+    <!--
+        The StandardManagedAuthorizer. This authorizer implementation must be configured with the
+        Access Policy Provider which it will use to access and manage users, groups, and policies.
+        These users, groups, and policies will be used to make all access decisions during authorization
+        requests.
+
+        - Access Policy Provider - The identifier for an Access Policy Provider defined above.
+    -->
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.registry.security.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
+    </authorizer>
+
+</authorizers>

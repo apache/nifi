@@ -253,6 +253,24 @@ public interface ContentRepository {
     InputStream read(ContentClaim claim) throws IOException;
 
     /**
+     * Provides access ot the input stream for the entire Resource Claim
+     * @param claim the resource claim to read from
+     * @return InputStream over the content of the entire Resource Claim
+     * @throws IOException if unable to read
+     */
+    InputStream read(ResourceClaim claim) throws IOException;
+
+    /**
+     * Indicates whether or not this Content Repository supports obtaining an InputStream for
+     * an entire Resource Claim. If this method returns <code>false</code>, the {@link #read(ResourceClaim)} should not
+     * be called and instead {@link #read(ContentClaim)} should always be used
+     * @return <code>true</code> if reading an entire Resource Claim is allowed, <code>false</code> otherwise
+     */
+    default boolean isResourceClaimStreamSupported() {
+        return true;
+    }
+
+    /**
      * Obtains an OutputStream to the content for the given claim.
      *
      * @param claim to write to

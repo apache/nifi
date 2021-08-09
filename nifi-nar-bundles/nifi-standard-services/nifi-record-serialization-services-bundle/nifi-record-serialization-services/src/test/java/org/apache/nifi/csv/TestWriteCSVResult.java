@@ -134,6 +134,7 @@ public class TestWriteCSVResult {
             valueMap.put("record", null);
             valueMap.put("choice", 48L);
             valueMap.put("array", null);
+            valueMap.put("enum", null);
 
             final Record record = new MapRecord(schema, valueMap);
             final RecordSet rs = RecordSet.of(schema, record);
@@ -156,7 +157,7 @@ public class TestWriteCSVResult {
 
         final String values = splits[1];
         final StringBuilder expectedBuilder = new StringBuilder();
-        expectedBuilder.append("\"true\",\"1\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",\"8.1\",\"" + timestampValue + "\",\"" + dateValue + "\",\"" + timeValue + "\",\"c\",\"a孟bc李12儒3\",,\"48\",,");
+        expectedBuilder.append("\"true\",\"1\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",\"8.1\",\"" + timestampValue + "\",\"" + dateValue + "\",\"" + timeValue + "\",\"c\",,\"a孟bc李12儒3\",,\"48\",,");
 
         final String expectedValues = expectedBuilder.toString();
 

@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
@@ -29,8 +30,6 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.Map;
 
 public class JerseyConnectionClient extends AbstractJerseyClient implements ConnectionClient {
     private final WebTarget connectionTarget;
@@ -38,11 +37,11 @@ public class JerseyConnectionClient extends AbstractJerseyClient implements Conn
     private final WebTarget flowFileQueueTarget;
 
     public JerseyConnectionClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyConnectionClient(final WebTarget baseTarget, final Map<String,String> headers) {
-        super(headers);
+    public JerseyConnectionClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
 
         this.connectionTarget = baseTarget.path("/connections/{id}");
         this.processGroupTarget = baseTarget.path("/process-groups/{pgId}");

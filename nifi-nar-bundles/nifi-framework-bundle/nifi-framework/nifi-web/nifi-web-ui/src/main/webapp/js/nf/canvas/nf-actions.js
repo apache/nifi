@@ -151,7 +151,6 @@
             api: '../nifi-api',
             controller: '../nifi-api/controller',
             parameterContexts: '../nifi-api/parameter-contexts',
-            downloadToken: '../nifi-api/access/download-token'
         }
     };
 
@@ -652,11 +651,18 @@
                     'id': nfCanvasUtils.getGroupId(),
                     'state': 'RUNNING'
                 };
-
                 updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()), entity).done(updateProcessGroup);
+
+                var remoteProcessGroupEntity = {
+                    'state': 'TRANSMITTING'
+                };
+                updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/run-status', remoteProcessGroupEntity)
+                    .done(function (response) {
+                        nfRemoteProcessGroup.set(response.remoteProcessGroups);
+                    });
             } else {
                 var componentsToStart = selection.filter(function (d) {
-                    return nfCanvasUtils.isRunnable(d3.select(this));
+                    return nfCanvasUtils.isRunnable(d3.select(this)) || nfCanvasUtils.canStartTransmitting(d3.select(this));
                 });
 
                 // ensure there are startable components selected
@@ -675,6 +681,12 @@
                                 'id': d.id,
                                 'state': 'RUNNING'
                             }
+                        } else if (nfCanvasUtils.isRemoteProcessGroup(selected)) {
+                            uri = d.uri + '/run-status';
+                            entity = {
+                                'revision': nfClient.getRevision(d),
+                                'state': 'TRANSMITTING'
+                            };
                         } else {
                             uri = d.uri + '/run-status';
                             entity = {
@@ -683,13 +695,21 @@
                             };
                         }
 
-                        startRequests.push(updateResource(uri, entity).done(function (response) {
-                            if (nfCanvasUtils.isProcessGroup(selected)) {
+                        if (nfCanvasUtils.isProcessGroup(selected)) {
+                            var remoteProcessGroupEntity = {
+                                'state': 'TRANSMITTING'
+                            };
+                            var startRemoteProcessGroups = updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/run-status', remoteProcessGroupEntity);
+                            startRequests.push(startRemoteProcessGroups.done(function (response) {}));
+
+                            startRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
-                            } else {
+                            }));
+                        } else {
+                            startRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType(d.type).set(response);
-                            }
-                        }));
+                            }));
+                        }
                     });
 
                     // inform Angular app once the updates have completed
@@ -698,6 +718,46 @@
                             nfNgBridge.digest();
                         });
                     }
+                }
+            }
+        },
+
+        /**
+         * Runs a processor once.
+         *
+         * @argument {selection} selection      The selection
+         */
+        runOnce: function (selection) {
+            var componentsToRunOnce = selection.filter(function (d) {
+                return nfCanvasUtils.isRunnable(d3.select(this));
+            });
+
+            // ensure there are startable components selected
+            if (!componentsToRunOnce.empty()) {
+                var requests = [];
+
+                // start each selected component
+                componentsToRunOnce.each(function (d) {
+                    var selected = d3.select(this);
+
+                    // prepare the request
+                    var uri, entity;
+                    uri = d.uri + '/run-status';
+                    entity = {
+                        'revision': nfClient.getRevision(d),
+                        'state': 'RUN_ONCE'
+                    };
+
+                    requests.push(updateResource(uri, entity).done(function (response) {
+                        nfCanvasUtils.getComponentByType(d.type).set(response);
+                    }));
+                });
+
+                // inform Angular app once the updates have completed
+                if (requests.length > 0) {
+                    $.when.apply(window, requests).always(function () {
+                        nfNgBridge.digest();
+                    });
                 }
             }
         },
@@ -715,11 +775,18 @@
                     'id': nfCanvasUtils.getGroupId(),
                     'state': 'STOPPED'
                 };
-
                 updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()), entity).done(updateProcessGroup);
+
+                var remoteProcessGroupEntity = {
+                    'state': 'STOPPED'
+                };
+                updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/run-status', remoteProcessGroupEntity)
+                    .done(function (response) {
+                        nfRemoteProcessGroup.set(response.remoteProcessGroups);
+                    });
             } else {
                 var componentsToStop = selection.filter(function (d) {
-                    return nfCanvasUtils.isStoppable(d3.select(this));
+                    return nfCanvasUtils.isStoppable(d3.select(this)) || nfCanvasUtils.canStopTransmitting(d3.select(this));
                 });
 
                 // ensure there are some component to stop
@@ -746,13 +813,21 @@
                             };
                         }
 
-                        stopRequests.push(updateResource(uri, entity).done(function (response) {
-                            if (nfCanvasUtils.isProcessGroup(selected)) {
+                        if (nfCanvasUtils.isProcessGroup(selected)) {
+                            var remoteProcessGroupEntity = {
+                                'state': 'STOPPED'
+                            };
+                            var stopRemoteProcessGroups = updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/run-status', remoteProcessGroupEntity);
+                            stopRequests.push(stopRemoteProcessGroups.done(function (response) {}));
+
+                            stopRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
-                            } else {
+                            }));
+                        } else {
+                            stopRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType(d.type).set(response);
-                            }
-                        }));
+                            }));
+                        }
                     });
 
                     // inform Angular app once the updates have completed
@@ -1572,26 +1647,11 @@
             }
 
             if (processGroupId !== null) {
-                nfCommon.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
-                    var parameters = {};
+                var parameters = {};
 
-                    // conditionally include the download token
-                    if (!nfCommon.isBlank(downloadToken)) {
-                        parameters['access_token'] = downloadToken;
-                    }
-
-                    // open the url
-                    var uri = '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/download';
-                    if (!$.isEmptyObject(parameters)) {
-                        uri += ('?' + $.param(parameters));
-                    }
-                    window.open(uri);
-                }).fail(function () {
-                    nfDialog.showOkDialog({
-                        headerText: 'Download Flow',
-                        dialogContent: 'Unable to generate access token for downloading content.'
-                    });
-                });
+                // open the url
+                var uri = '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/download';
+                window.open(uri);
             }
         },
 
@@ -1861,7 +1921,7 @@
             var origin = nfCanvasUtils.getOrigin(selection);
 
             var pt = {'x': origin.x, 'y': origin.y};
-            $.when(nfNgBridge.injector.get('groupComponent').promptForGroupName(pt, false)).done(function (processGroup) {
+            $.when(nfNgBridge.injector.get('groupComponent').promptForGroupName(pt, false, false)).done(function (processGroup) {
                 var group = d3.select('#id-' + processGroup.id);
                 nfCanvasUtils.moveComponents(selection, group);
             });

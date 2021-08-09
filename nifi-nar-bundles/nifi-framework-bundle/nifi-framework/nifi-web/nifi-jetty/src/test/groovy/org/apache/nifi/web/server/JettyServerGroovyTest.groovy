@@ -23,9 +23,10 @@ import org.apache.nifi.nar.ExtensionManagerHolder
 import org.apache.nifi.nar.ExtensionMapping
 import org.apache.nifi.nar.SystemBundle
 import org.apache.nifi.processor.DataUnit
-import org.apache.nifi.properties.StandardNiFiProperties
+import org.apache.nifi.remote.io.socket.NetworkUtils
 import org.apache.nifi.security.util.StandardTlsConfiguration
 import org.apache.nifi.security.util.TlsConfiguration
+import org.apache.nifi.security.util.TlsPlatform
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.eclipse.jetty.server.Connector
@@ -37,9 +38,7 @@ import org.eclipse.jetty.servlet.FilterHolder
 import org.eclipse.jetty.util.ssl.SslContextFactory
 import org.eclipse.jetty.webapp.WebAppContext
 import org.junit.After
-import org.junit.AfterClass
 import org.junit.Assume
-import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
@@ -49,9 +48,14 @@ import org.junit.contrib.java.lang.system.SystemErrRule
 import org.junit.contrib.java.lang.system.SystemOutRule
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
+import org.mockito.ArgumentMatchers
+import org.mockito.Mockito
+import org.mockito.invocation.InvocationOnMock
+import org.mockito.stubbing.Answer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 import javax.servlet.DispatcherType
@@ -71,7 +75,10 @@ class JettyServerGroovyTest extends GroovyTestCase {
     @Rule
     public final SystemErrRule systemErrRule = new SystemErrRule().enableLog()
 
-    private static final int HTTPS_PORT = 8443
+    private static final int DEFAULT_HTTP_PORT = 8080
+    private static final int DEFAULT_HTTPS_PORT = 8443
+
+    private static final int HTTPS_PORT = NetworkUtils.getAvailableTcpPort()
     private static final String HTTPS_HOSTNAME = "localhost"
 
     private static final String KEYSTORE_PATH = "src/test/resources/keystore.jks"
@@ -79,18 +86,13 @@ class JettyServerGroovyTest extends GroovyTestCase {
     private static final String STORE_PASSWORD = "passwordpassword"
     private static final String STORE_TYPE = "JKS"
 
-    private static final String TLS_1_2_PROTOCOL = "TLSv1.2"
     private static final String TLS_1_3_PROTOCOL = "TLSv1.3"
     private static final List<String> TLS_1_3_CIPHER_SUITES = ["TLS_AES_128_GCM_SHA256"]
-
-    // Depending if the test is run on Java 8 or Java 11, these values change (TLSv1.2 vs. TLSv1.3)
-    private static final CURRENT_TLS_PROTOCOL_VERSION = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion()
-    private static final List<String> CURRENT_TLS_PROTOCOL_VERSIONS = TlsConfiguration.getCurrentSupportedTlsProtocolVersions()
 
     // These protocol versions should not ever be supported
     static private final List<String> LEGACY_TLS_PROTOCOLS = ["TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3"]
 
-    NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+    NiFiProperties httpsProps = new NiFiProperties(new Properties([
             (NiFiProperties.WEB_HTTPS_PORT)            : HTTPS_PORT as String,
             (NiFiProperties.WEB_HTTPS_HOST)            : HTTPS_HOSTNAME,
             (NiFiProperties.SECURITY_KEYSTORE)         : KEYSTORE_PATH,
@@ -112,16 +114,6 @@ class JettyServerGroovyTest extends GroovyTestCase {
         TestAppender.reset()
     }
 
-    @AfterClass
-    static void tearDownOnce() throws Exception {
-
-    }
-
-    @Before
-    void setUp() throws Exception {
-
-    }
-
     @After
     void tearDown() throws Exception {
         // Cleans up the EMH so it can be reinitialized when a new Jetty server starts
@@ -137,15 +129,16 @@ class JettyServerGroovyTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTPS_HOST): "secure.host.com",
                 (NiFiProperties.WEB_THREADS)   : NiFiProperties.DEFAULT_WEB_THREADS
         ]
-        NiFiProperties mockProps = [
-                getPort    : { -> 8080 },
-                getSslPort : { -> 8443 },
-                getProperty: { String prop ->
-                    String value = badProps[prop] ?: "no_value"
-                    logger.mock("getProperty(${prop}) -> ${value}")
-                    value
-                },
-        ] as StandardNiFiProperties
+        NiFiProperties mockProps = Mockito.mock(NiFiProperties.class)
+        Mockito.when(mockProps.getPort()).thenReturn(DEFAULT_HTTP_PORT)
+        Mockito.when(mockProps.getSslPort()).thenReturn(DEFAULT_HTTPS_PORT)
+
+        Mockito.when(mockProps.getProperty(ArgumentMatchers.anyString())).thenAnswer(new Answer<Object>() {
+            @Override
+            Object answer(InvocationOnMock invocation) throws Throwable {
+                badProps[(String) invocation.getArgument(0)] ?: "no_value"
+            }
+        })
 
         // Act
         boolean bothConfigsPresent = JettyServer.bothHttpAndHttpsConnectorsConfigured(mockProps)
@@ -166,14 +159,14 @@ class JettyServerGroovyTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTPS_HOST): null,
         ]
         NiFiProperties httpProps = [
-                getPort    : { -> 8080 },
+                getPort    : { -> DEFAULT_HTTP_PORT },
                 getSslPort : { -> null },
                 getProperty: { String prop ->
                     String value = httpMap[prop] ?: "no_value"
                     logger.mock("getProperty(${prop}) -> ${value}")
                     value
                 },
-        ] as StandardNiFiProperties
+        ] as NiFiProperties
 
         Map httpsMap = [
                 (NiFiProperties.WEB_HTTP_HOST) : null,
@@ -181,13 +174,13 @@ class JettyServerGroovyTest extends GroovyTestCase {
         ]
         NiFiProperties httpsProps = [
                 getPort    : { -> null },
-                getSslPort : { -> 8443 },
+                getSslPort : { -> DEFAULT_HTTPS_PORT },
                 getProperty: { String prop ->
                     String value = httpsMap[prop] ?: "no_value"
                     logger.mock("getProperty(${prop}) -> ${value}")
                     value
                 },
-        ] as StandardNiFiProperties
+        ] as NiFiProperties
 
         // Act
         boolean bothConfigsPresentForHttp = JettyServer.bothHttpAndHttpsConnectorsConfigured(httpProps)
@@ -214,8 +207,8 @@ class JettyServerGroovyTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTPS_HOST): "secure.host.com",
         ]
         NiFiProperties mockProps = [
-                getPort            : { -> 8080 },
-                getSslPort         : { -> 8443 },
+                getPort            : { -> DEFAULT_HTTP_PORT },
+                getSslPort         : { -> DEFAULT_HTTPS_PORT },
                 getProperty        : { String prop ->
                     String value = badProps[prop] ?: "no_value"
                     logger.mock("getProperty(${prop}) -> ${value}")
@@ -224,7 +217,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
                 getWebThreads      : { -> NiFiProperties.DEFAULT_WEB_THREADS },
                 getWebMaxHeaderSize: { -> NiFiProperties.DEFAULT_WEB_MAX_HEADER_SIZE },
                 isHTTPSConfigured  : { -> true }
-        ] as StandardNiFiProperties
+        ] as NiFiProperties
 
         // The web server should fail to start and exit Java
         exit.expectSystemExitWithStatus(1)
@@ -256,7 +249,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         // Arrange
         final String externalHostname = "localhost"
 
-        NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+        NiFiProperties httpsProps = new NiFiProperties(new Properties([
                 (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
                 (NiFiProperties.WEB_HTTPS_HOST): externalHostname,
                 (NiFiProperties.SECURITY_KEYSTORE): "src/test/resources/multiple_cert_keystore.p12",
@@ -273,7 +266,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         jetty.start()
 
         // Assert
-        assertServerConnector(connectors, "TLS", CURRENT_TLS_PROTOCOL_VERSIONS, CURRENT_TLS_PROTOCOL_VERSIONS, externalHostname, HTTPS_PORT)
+        assertServerConnector(connectors, externalHostname, HTTPS_PORT)
 
         // Clean up
         jetty.stop()
@@ -288,7 +281,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         // Arrange
         final String externalHostname = "localhost"
 
-        NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+        NiFiProperties httpsProps = new NiFiProperties(new Properties([
                 (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
                 (NiFiProperties.WEB_HTTPS_HOST): externalHostname,
                 (NiFiProperties.SECURITY_KEYSTORE): "src/test/resources/multiple_cert_keystore.jks",
@@ -305,13 +298,13 @@ class JettyServerGroovyTest extends GroovyTestCase {
         jetty.start()
 
         // Assert
-        assertServerConnector(connectors, "TLS", CURRENT_TLS_PROTOCOL_VERSIONS, CURRENT_TLS_PROTOCOL_VERSIONS, externalHostname, HTTPS_PORT)
+        assertServerConnector(connectors, externalHostname, HTTPS_PORT)
 
         // Clean up
         jetty.stop()
     }
 
-    private static JettyServer createJettyServer(StandardNiFiProperties httpsProps) {
+    private static JettyServer createJettyServer(NiFiProperties httpsProps) {
         Server internalServer = new Server()
         JettyServer jetty = new JettyServer(internalServer, httpsProps)
         jetty.systemBundle = SystemBundle.create(httpsProps)
@@ -326,7 +319,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         // Arrange
         final String externalHostname = "localhost"
 
-        NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+        NiFiProperties httpsProps = new NiFiProperties(new Properties([
                 (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
                 (NiFiProperties.WEB_HTTPS_HOST): externalHostname,
         ]))
@@ -339,13 +332,14 @@ class JettyServerGroovyTest extends GroovyTestCase {
         List<Connector> connectors = Arrays.asList(internalServer.connectors)
 
         // Assert
-        assertServerConnector(connectors, "TLS", CURRENT_TLS_PROTOCOL_VERSIONS, CURRENT_TLS_PROTOCOL_VERSIONS, externalHostname, HTTPS_PORT)
+        assertServerConnector(connectors, externalHostname, HTTPS_PORT)
     }
 
     @Test
-    void testShouldSupportTLSv1_3OnJava11() {
+    void testShouldSupportTLSv1_3WhenProtocolFound() {
         // Arrange
-        Assume.assumeTrue("This test should only run on Java 11+", TlsConfiguration.getJavaVersion() >= 11)
+        String[] defaultProtocols = SSLContext.getDefault().defaultSSLParameters.protocols
+        Assume.assumeTrue("This test should only run when TLSv1.3 is found in the set of default protocols", defaultProtocols.contains(TLS_1_3_PROTOCOL))
 
         Server internalServer = new Server()
         JettyServer jetty = new JettyServer(internalServer, httpsProps)
@@ -368,17 +362,16 @@ class JettyServerGroovyTest extends GroovyTestCase {
         // Assert
         assert response =~ "HTTP/1.1 400"
 
-        // Assert that the connector prefers TLSv1.3 but the JVM supports TLSv1.2 as well
-        assertServerConnector(connectors, "TLS", [CURRENT_TLS_PROTOCOL_VERSION], CURRENT_TLS_PROTOCOL_VERSIONS)
+        assertServerConnector(connectors)
 
         // Clean up
         internalServer.stop()
     }
 
     @Test
-    void testShouldNotSupportTLSv1_3OnJava8() {
+    void testShouldNotSupportTLSv1_3WhenProtocolNotFound() {
         // Arrange
-        Assume.assumeTrue("This test should only run on Java 8 (prior to update 262 if from the Azul Zulu provider)", shouldRunOnStandardJava8())
+        Assume.assumeTrue("This test should only run when TLSv1.3 is not found in the set of default protocols", !TlsPlatform.supportedProtocols.contains(TLS_1_3_PROTOCOL))
 
         Server internalServer = new Server()
         JettyServer jetty = new JettyServer(internalServer, httpsProps)
@@ -396,7 +389,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         // Act
         String tls12Response = makeTLSRequest(defaultSocket, "This is a default socket request")
 
-        def msg = shouldFail(IllegalArgumentException) {
+        def msg = shouldFail() {
             // Create a (client) socket which only supports TLSv1.3
             SSLSocketFactory tls13SocketFactory = org.apache.nifi.security.util.SslContextFactory.createSSLSocketFactory(tlsConfiguration)
 
@@ -404,50 +397,17 @@ class JettyServerGroovyTest extends GroovyTestCase {
             tls13Socket.setEnabledProtocols([TLS_1_3_PROTOCOL] as String[])
             tls13Socket.setEnabledCipherSuites(TLS_1_3_CIPHER_SUITES as String[])
 
-            String tls13Response = makeTLSRequest(tls13Socket, "This is a TLSv1.3 socket request")
+            makeTLSRequest(tls13Socket, "This is a TLSv1.3 socket request")
         }
-        // The IAE message is just the invalid argument (i.e. "TLSv1.3")
         logger.expected(msg)
 
         // Assert
         assert tls12Response =~ "HTTP"
-        assert msg == "TLSv1.3"
 
-        // Assert that the connector only accepts TLSv1.2
-        assertServerConnector(connectors, "TLS", [CURRENT_TLS_PROTOCOL_VERSION], CURRENT_TLS_PROTOCOL_VERSIONS)
+        assertServerConnector(connectors)
 
         // Clean up
         internalServer.stop()
-    }
-
-    /**
-     * The Azul Zulu JDK 8 vendor followed Oracle and OpenJDK in adding support for
-     * TLS v1.3 in update 262 of JDK 8, but throws a different exception type
-     * ({@code SSLHandshakeException} vs. {@code IllegalArgumentException}). This
-     * method returns {@code true} if the TLS 1.3 tests should run on <em>this</em>
-     * version of Java 8.
-     *
-     * @return true if the current JVM is Java 8 (or below) AND is either prior to update 262 OR is a non-Zulu vendor
-     */
-    private static boolean shouldRunOnStandardJava8() {
-        final String ZULU_RE = /(?i)azul|zulu/
-        String javaVersion = System.getProperty("java.version")
-        logger.info("Complete Java version: ${javaVersion}")
-
-        String vendor = System.getProperty("java.vendor")
-        logger.info("Java vendor: ${vendor}")
-        String vendorVersion = System.getProperty("jdk.vendor.version")
-        logger.info("Java vendor version: ${vendorVersion}")
-        def isZulu = vendor =~ ZULU_RE || vendorVersion =~ ZULU_RE
-        logger.info("Vendor is Azul/Zulu: ${isZulu}")
-
-        def majorJavaVersion = TlsConfiguration.getJavaVersion()
-        logger.info("Detected major Java version: ${majorJavaVersion}")
-
-        // JDK 8 update 262 adds TLS 1.3 support to Java 8, and the Azul vendor throws a different exception than expected
-        def beforeUpdate262 = majorJavaVersion <= 8 && Integer.parseInt(javaVersion.tokenize("_")[-1]) < 262
-        logger.info("Java 8 before update 262: ${beforeUpdate262}")
-        majorJavaVersion <= 8 && (beforeUpdate262 || !isZulu)
     }
 
     /**
@@ -476,9 +436,6 @@ class JettyServerGroovyTest extends GroovyTestCase {
     }
 
     private static void assertServerConnector(List<Connector> connectors,
-                                              String EXPECTED_TLS_PROTOCOL = "TLS",
-                                              List<String> EXPECTED_INCLUDED_PROTOCOLS = TlsConfiguration.getCurrentSupportedTlsProtocolVersions(),
-                                              List<String> EXPECTED_SELECTED_PROTOCOLS = TlsConfiguration.getCurrentSupportedTlsProtocolVersions(),
                                               String EXPECTED_HOSTNAME = HTTPS_HOSTNAME,
                                               int EXPECTED_PORT = HTTPS_PORT) {
         // Assert the server connector is correct
@@ -490,10 +447,6 @@ class JettyServerGroovyTest extends GroovyTestCase {
 
         SslConnectionFactory connectionFactory = connector.getConnectionFactory("ssl") as SslConnectionFactory
         SslContextFactory sslContextFactory = connectionFactory.getSslContextFactory()
-        logger.debug("SSL Context Factory: ${sslContextFactory.dump()}")
-
-        assert sslContextFactory.getProtocol() == EXPECTED_TLS_PROTOCOL
-        assert Arrays.asList(sslContextFactory.getIncludeProtocols()).containsAll(EXPECTED_INCLUDED_PROTOCOLS ?: Collections.emptySet())
         assert (sslContextFactory.getExcludeProtocols() as List<String>).containsAll(LEGACY_TLS_PROTOCOLS)
     }
 
@@ -501,11 +454,11 @@ class JettyServerGroovyTest extends GroovyTestCase {
     void testShouldEnableContentLengthFilterIfWebMaxContentSizeSet() {
         // Arrange
         Map defaultProps = [
-                (NiFiProperties.WEB_HTTP_PORT)       : "8080",
+                (NiFiProperties.WEB_HTTP_PORT)       : DEFAULT_HTTP_PORT as String,
                 (NiFiProperties.WEB_HTTP_HOST)       : "localhost",
                 (NiFiProperties.WEB_MAX_CONTENT_SIZE): "1 MB",
         ]
-        NiFiProperties mockProps = new StandardNiFiProperties(new Properties(defaultProps))
+        NiFiProperties mockProps = new NiFiProperties(new Properties(defaultProps))
 
         List<FilterHolder> filters = []
         def mockWebContext = [
@@ -518,12 +471,10 @@ class JettyServerGroovyTest extends GroovyTestCase {
         JettyServer jettyServer = new JettyServer(new Server(), mockProps)
         logger.info("Created JettyServer: ${jettyServer.dump()}")
 
-        String path = "/mock"
-
         final int MAX_CONTENT_LENGTH_BYTES = DataUnit.parseDataSize(defaultProps[NiFiProperties.WEB_MAX_CONTENT_SIZE], DataUnit.B).intValue()
 
         // Act
-        jettyServer.addDenialOfServiceFilters(path, mockWebContext, mockProps)
+        jettyServer.addDenialOfServiceFilters(mockWebContext, mockProps)
 
         // Assert
         assert filters.size() == 2
@@ -545,10 +496,10 @@ class JettyServerGroovyTest extends GroovyTestCase {
     void testShouldNotEnableContentLengthFilterIfWebMaxContentSizeEmpty() {
         // Arrange
         Map defaultProps = [
-                (NiFiProperties.WEB_HTTP_PORT): "8080",
+                (NiFiProperties.WEB_HTTP_PORT): DEFAULT_HTTP_PORT as String,
                 (NiFiProperties.WEB_HTTP_HOST): "localhost",
         ]
-        NiFiProperties mockProps = new StandardNiFiProperties(new Properties(defaultProps))
+        NiFiProperties mockProps = new NiFiProperties(new Properties(defaultProps))
 
         List<FilterHolder> filters = []
         def mockWebContext = [
@@ -561,10 +512,8 @@ class JettyServerGroovyTest extends GroovyTestCase {
         JettyServer jettyServer = new JettyServer(new Server(), mockProps)
         logger.info("Created JettyServer: ${jettyServer.dump()}")
 
-        String path = "/mock"
-
         // Act
-        jettyServer.addDenialOfServiceFilters(path, mockWebContext, mockProps)
+        jettyServer.addDenialOfServiceFilters(mockWebContext, mockProps)
 
         // Assert
         assert filters.size() == 1

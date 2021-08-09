@@ -1,0 +1,59 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the 'License'); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an 'AS IS' BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* Welcome to Compass.
+ * In this file you should centralize your imports. After compilation simply import this file using the following HTML or equivalent:
+ * <link href='/stylesheets/nifi-flow-registry.css' media='screen, projection' rel='stylesheet' type='text/css' /> */
+
+// Path overrides
+$fa-font-path: './assets/fonts';
+$mat-font-url: './assets/fonts/';
+$fdsFontPath: './node_modules/roboto-fontface/fonts';
+
+@import '~@nifi-fds/core/common/styles/flow-design-system';
+@import '~@covalent/core/common/platform.scss';
+@import '~font-awesome/scss/font-awesome';
+@import 'structureElements';
+@import 'helperClasses';
+@import 'components/administration/structureElements';
+@import 'components/administration/users/structureElements';
+@import 'components/administration/workflow/structureElements';
+@import 'components/explorer/grid-list/structureElements';
+@import 'components/explorer/dialogs/structureElements';
+
+$primaryColor: $rose1; //$green2
+$primaryColorHover: $rose2; //$green3
+$accentColor: $blue-grey1; //$orange1
+$accentColorHover: $blue4; //$orange2
+
+// Include the base styles for Angular Material core. We include this here so that you only
+// have to load a single css file for Angular Material in your app.
+@include mat-core;
+
+// Define the palettes
+$fds-base-palette: (50: #89df79, 100: $primaryColorHover, 200: #65d550, 300: #53d03b, 400: #46c32f, 500: $primaryColor, 600: $primaryColor, 700: #89df79, 800: #29701b, 900: #215c16, A100: #9be48d, A200: #ade9a2, A400: #bfedb6, A700: #1a4711, contrast: (50: $black-87-opacity, 100: $black-87-opacity, 200: $black-87-opacity, 300: white, 400: white, 500: $white-87-opacity, 600: $white-87-opacity, 700: $white-87-opacity, 800: $white-87-opacity, 900: $white-87-opacity, A100: $black-87-opacity, A200: white, A400: white, A700: $white-87-opacity));
+$fds-accent-palette: (50: #89df79, 100: $accentColorHover, 200: #65d550, 300: #53d03b, 400: #46c32f, 500: $accentColor, 600: $accentColor, 700: #89df79, 800: #29701b, 900: #215c16, A100: #9be48d, A200: #ade9a2, A400: #bfedb6, A700: #1a4711, contrast: (50: $black-87-opacity, 100: $black-87-opacity, 200: $black-87-opacity, 300: white, 400: white, 500: $white-87-opacity, 600: $white-87-opacity, 700: $white-87-opacity, 800: $white-87-opacity, 900: $white-87-opacity, A100: $black-87-opacity, A200: white, A400: white, A700: $white-87-opacity));
+$fds-warn-palette: (50: #81410f, 100: #d14a50, 200: #af5814, 300: #c66317, 400: #dd6f19, 500: $warnColor, 600: $warnColor, 700: #eea66e, 800: #f1b485, 900: #f4c29b, A100: #ec9857, A200: #89df79, A400: #89df79, A700: #f6d0b2, contrast: (50: $black-87-opacity, 100: $black-87-opacity, 200: $black-87-opacity, 300: white, 400: white, 500: $white-87-opacity, 600: $white-87-opacity, 700: $white-87-opacity, 800: $white-87-opacity, 900: $white-87-opacity, A100: $black-87-opacity, A200: white, A400: white, A700: $white-87-opacity));
+$fds-primary: mat-palette($fds-base-palette, 500, 100, 500);
+$fds-accent: mat-palette($fds-accent-palette, 500, 100, 500);
+$fds-warn: mat-palette($fds-warn-palette, 500, 100, 500);
+
+// Define the theme (Optionally specify a default, lighter, and darker hue.)
+$fds-theme: mat-light-theme($fds-primary, $fds-accent, $fds-warn);
+
+// FDS theme mixin
+@include fds-theme($fds-theme);

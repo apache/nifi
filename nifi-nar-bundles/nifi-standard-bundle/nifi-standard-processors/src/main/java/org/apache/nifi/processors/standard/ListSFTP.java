@@ -82,7 +82,7 @@ public class ListSFTP extends ListFileTransfer {
         final PropertyDescriptor port = new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("22").build();
 
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(LISTING_STRATEGY);
+        properties.add(FILE_TRANSFER_LISTING_STRATEGY);
         properties.add(HOSTNAME);
         properties.add(port);
         properties.add(USERNAME);
@@ -116,6 +116,10 @@ public class ListSFTP extends ListFileTransfer {
         properties.add(ListFile.MAX_AGE);
         properties.add(ListFile.MIN_SIZE);
         properties.add(ListFile.MAX_SIZE);
+        properties.add(SFTPTransfer.CIPHERS_ALLOWED);
+        properties.add(SFTPTransfer.KEY_ALGORITHMS_ALLOWED);
+        properties.add(SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED);
+        properties.add(SFTPTransfer.MESSAGE_AUTHENTICATION_CODES_ALLOWED);
         return properties;
     }
 

@@ -16,19 +16,25 @@
  */
 package org.apache.nifi.controller.cluster;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
-
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.common.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+
 public class ZooKeeperClientConfig {
+
+    public static final String NETTY_CLIENT_CNXN_SOCKET =
+        org.apache.zookeeper.ClientCnxnSocketNetty.class.getName();
+
+    public static final String NIO_CLIENT_CNXN_SOCKET =
+        org.apache.zookeeper.ClientCnxnSocketNIO.class.getName();
 
     private static final Logger logger = LoggerFactory.getLogger(ZooKeeperClientConfig.class);
     private static final Pattern PORT_PATTERN = Pattern.compile("[0-9]{1,5}");
@@ -37,17 +43,33 @@ public class ZooKeeperClientConfig {
     private final int sessionTimeoutMillis;
     private final int connectionTimeoutMillis;
     private final String rootPath;
+    private final boolean clientSecure;
+    private final String keyStore;
+    private final String keyStoreType;
+    private final String keyStorePassword;
+    private final String trustStore;
+    private final String trustStoreType;
+    private final String trustStorePassword;
     private final String authType;
     private final String authPrincipal;
     private final String removeHostFromPrincipal;
     private final String removeRealmFromPrincipal;
 
-    private ZooKeeperClientConfig(String connectString, int sessionTimeoutMillis, int connectionTimeoutMillis, String rootPath,
-                                  String authType, String authPrincipal, String removeHostFromPrincipal, String removeRealmFromPrincipal) {
+    private ZooKeeperClientConfig(String connectString, int sessionTimeoutMillis, int connectionTimeoutMillis,
+                                  String rootPath, String authType, String authPrincipal, String removeHostFromPrincipal,
+                                  String removeRealmFromPrincipal, boolean clientSecure, String keyStore, String keyStoreType,
+                                  String keyStorePassword, String trustStore, String trustStoreType, String trustStorePassword) {
         this.connectString = connectString;
         this.sessionTimeoutMillis = sessionTimeoutMillis;
         this.connectionTimeoutMillis = connectionTimeoutMillis;
         this.rootPath = rootPath.endsWith("/") ? rootPath.substring(0, rootPath.length() - 1) : rootPath;
+        this.clientSecure = clientSecure;
+        this.keyStore = keyStore;
+        this.keyStoreType = keyStoreType;
+        this.keyStorePassword = keyStorePassword;
+        this.trustStore = trustStore;
+        this.trustStoreType = trustStoreType;
+        this.trustStorePassword = trustStorePassword;
         this.authType = authType;
         this.authPrincipal = authPrincipal;
         this.removeHostFromPrincipal = removeHostFromPrincipal;
@@ -68,6 +90,38 @@ public class ZooKeeperClientConfig {
 
     public String getRootPath() {
         return rootPath;
+    }
+
+    public boolean isClientSecure() {
+        return clientSecure;
+    }
+
+    public String getConnectionSocket() {
+        return (isClientSecure() ? NETTY_CLIENT_CNXN_SOCKET : NIO_CLIENT_CNXN_SOCKET);
+    }
+
+    public String getKeyStore() {
+        return keyStore;
+    }
+
+    public String getKeyStoreType() {
+        return keyStoreType;
+    }
+
+    public String getKeyStorePassword() {
+        return keyStorePassword;
+    }
+
+    public String getTrustStore() {
+        return trustStore;
+    }
+
+    public String getTrustStoreType() {
+        return trustStoreType;
+    }
+
+    public String getTrustStorePassword() {
+        return trustStorePassword;
     }
 
     public String getAuthType() {
@@ -107,7 +161,14 @@ public class ZooKeeperClientConfig {
         final long sessionTimeoutMs = getTimePeriod(nifiProperties, NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_SESSION_TIMEOUT);
         final long connectionTimeoutMs = getTimePeriod(nifiProperties, NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT);
         final String rootPath = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, NiFiProperties.DEFAULT_ZOOKEEPER_ROOT_NODE);
-        final String authType = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_AUTH_TYPE,NiFiProperties.DEFAULT_ZOOKEEPER_AUTH_TYPE);
+        final boolean clientSecure = nifiProperties.isZooKeeperClientSecure();
+        final String keyStore = getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, NiFiProperties.SECURITY_KEYSTORE);
+        final String keyStoreType = StringUtils.stripToNull(getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, NiFiProperties.SECURITY_KEYSTORE_TYPE));
+        final String keyStorePassword = getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, NiFiProperties.SECURITY_KEYSTORE_PASSWD);
+        final String trustStore = getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, NiFiProperties.SECURITY_TRUSTSTORE);
+        final String trustStoreType = StringUtils.stripToNull(getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, NiFiProperties.SECURITY_TRUSTSTORE_TYPE));
+        final String trustStorePassword = getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, NiFiProperties.SECURITY_TRUSTSTORE_PASSWD);
+        final String authType = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_AUTH_TYPE, NiFiProperties.DEFAULT_ZOOKEEPER_AUTH_TYPE);
         final String authPrincipal = nifiProperties.getKerberosServicePrincipal();
         final String removeHostFromPrincipal = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL,
                 NiFiProperties.DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL);
@@ -120,7 +181,23 @@ public class ZooKeeperClientConfig {
             throw new IllegalArgumentException("The '" + NiFiProperties.ZOOKEEPER_ROOT_NODE + "' property in nifi.properties is set to an illegal value: " + rootPath);
         }
 
-        return new ZooKeeperClientConfig(cleanedConnectString, (int) sessionTimeoutMs, (int) connectionTimeoutMs, rootPath, authType, authPrincipal, removeHostFromPrincipal, removeRealmFromPrincipal);
+        return new ZooKeeperClientConfig(
+            cleanedConnectString,
+            (int) sessionTimeoutMs,
+            (int) connectionTimeoutMs,
+            rootPath,
+            authType,
+            authPrincipal,
+            removeHostFromPrincipal,
+            removeRealmFromPrincipal,
+            clientSecure,
+            keyStore,
+            keyStoreType,
+            keyStorePassword,
+            trustStore,
+            trustStoreType,
+            trustStorePassword
+        );
     }
 
     private static int getTimePeriod(final NiFiProperties nifiProperties, final String propertyName, final String defaultValue) {
@@ -131,6 +208,23 @@ public class ZooKeeperClientConfig {
             logger.warn("Value of '" + propertyName + "' property is set to '" + timeout + "', which is not a valid time period. Using default of " + defaultValue);
             return (int) FormatUtils.getTimeDuration(defaultValue, TimeUnit.MILLISECONDS);
         }
+    }
+
+    /**
+     * Retrieves the preferred property value if it's set, otherwise retrieves the default property. If neither are set, returns null.
+     * @param properties The NiFi properties configuration.
+     * @param preferredPropertyName The preferred property to get from NiFi properties.
+     * @param defaultPropertyName The backup property to get from NiFi properties if the preferred property is not present.
+     * @return Returns the property in order of preference.
+     */
+    public static String getPreferredProperty(final NiFiProperties properties, final String preferredPropertyName, final String defaultPropertyName) {
+        String retrievedProperty = properties.getProperty(preferredPropertyName);
+
+        if(StringUtils.isBlank(retrievedProperty)) {
+            retrievedProperty = properties.getProperty(defaultPropertyName);
+        }
+
+        return retrievedProperty;
     }
 
     /**

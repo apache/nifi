@@ -179,7 +179,8 @@ public class PutS3Object extends AbstractS3Processor {
             .name("Storage Class")
             .required(true)
             .allowableValues(StorageClass.Standard.name(), StorageClass.IntelligentTiering.name(), StorageClass.StandardInfrequentAccess.name(),
-                    StorageClass.OneZoneInfrequentAccess.name(), StorageClass.Glacier.name(), StorageClass.DeepArchive.name(), StorageClass.ReducedRedundancy.name())
+                    StorageClass.OneZoneInfrequentAccess.name(), StorageClass.Glacier.name(), StorageClass.DeepArchive.name(),
+                    StorageClass.ReducedRedundancy.name(), StorageClass.Outposts.name())
             .defaultValue(StorageClass.Standard.name())
             .build();
 
@@ -316,7 +317,7 @@ public class PutS3Object extends AbstractS3Processor {
     }
 
     protected File getPersistenceFile() {
-        return new File(this.tempDirMultipart + File.pathSeparator + getIdentifier());
+        return new File(this.tempDirMultipart + File.separator + getIdentifier());
     }
 
     protected boolean localUploadExistsInS3(final AmazonS3Client s3, final String bucket, final MultipartState localState) {

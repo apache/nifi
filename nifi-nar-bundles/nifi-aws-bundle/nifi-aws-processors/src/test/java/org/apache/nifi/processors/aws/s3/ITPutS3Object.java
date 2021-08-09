@@ -393,6 +393,11 @@ public class ITPutS3Object extends AbstractS3IT {
         Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
 
         for (StorageClass storageClass : StorageClass.values()) {
+            if (storageClass == StorageClass.Outposts) {
+                // Outposts storage class cannot be tested on AWS cloud infrastructure
+                continue;
+            }
+
             runner.setProperty(PutS3Object.STORAGE_CLASS, storageClass.name());
 
             final Map<String, String> attrs = new HashMap<>();
@@ -419,6 +424,11 @@ public class ITPutS3Object extends AbstractS3IT {
         Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
 
         for (StorageClass storageClass : StorageClass.values()) {
+            if (storageClass == StorageClass.Outposts) {
+                // Outposts storage class cannot be tested on AWS cloud infrastructure
+                continue;
+            }
+
             runner.setProperty(PutS3Object.STORAGE_CLASS, storageClass.name());
 
             final Map<String, String> attrs = new HashMap<>();

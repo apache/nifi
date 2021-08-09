@@ -342,7 +342,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         final String altHeader = context.getProperty(HIVEQL_CSV_ALT_HEADER).evaluateAttributeExpressions(fileToProcess).getValue();
         final String delimiter = context.getProperty(HIVEQL_CSV_DELIMITER).evaluateAttributeExpressions(fileToProcess).getValue();
         final boolean quote = context.getProperty(HIVEQL_CSV_QUOTE).asBoolean();
-        final boolean escape = context.getProperty(HIVEQL_CSV_HEADER).asBoolean();
+        final boolean escape = context.getProperty(HIVEQL_CSV_ESCAPE).asBoolean();
         final String fragmentIdentifier = UUID.randomUUID().toString();
 
         try (final Connection con = dbcpService.getConnection(fileToProcess == null ? Collections.emptyMap() : fileToProcess.getAttributes());

@@ -19,4 +19,6 @@ package org.apache.nifi.cs.tests.system;
 import org.apache.nifi.controller.AbstractControllerService;
 
 public class FakeControllerService1 extends AbstractControllerService {
+    public void foo() {
+    }
 }

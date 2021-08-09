@@ -33,7 +33,7 @@ import java.util.Map;
 
 public class CSVUtils {
 
-    private static Logger LOG = LoggerFactory.getLogger(CSVUtils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CSVUtils.class);
 
     public static final AllowableValue CUSTOM = new AllowableValue("custom", "Custom Format",
         "The format of the CSV is configured by using the properties of this Controller Service, such as Value Separator");
@@ -59,6 +59,7 @@ public class CSVUtils {
                 "but the expression gets evaluated to an invalid Value Separator at runtime, then it will be skipped and the default Value Separator will be used.")
         .addValidator(CSVValidators.UNESCAPED_SINGLE_CHAR_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .defaultValue(",")
         .required(true)
         .build();
@@ -68,6 +69,7 @@ public class CSVUtils {
                 "but the expression gets evaluated to an invalid Quote Character at runtime, then it will be skipped and the default Quote Character will be used.")
         .addValidator(new CSVValidators.SingleCharacterValidator())
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .defaultValue("\"")
         .required(true)
         .build();
@@ -101,6 +103,7 @@ public class CSVUtils {
         .description("The character that is used to denote the start of a comment. Any line that begins with this comment will be ignored.")
         .addValidator(new CSVValidators.SingleCharacterValidator())
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .required(false)
         .build();
     public static final PropertyDescriptor ESCAPE_CHAR = new PropertyDescriptor.Builder()
@@ -109,6 +112,7 @@ public class CSVUtils {
                 "but the expression gets evaluated to an invalid Escape Character at runtime, then it will be skipped and the default Escape Character will be used.")
         .addValidator(new CSVValidators.SingleCharacterValidator())
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .defaultValue("\\")
         .required(true)
         .build();
@@ -117,6 +121,7 @@ public class CSVUtils {
         .description("Specifies a String that, if present as a value in the CSV, should be considered a null field instead of using the literal value.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .required(false)
         .build();
     public static final PropertyDescriptor TRIM_FIELDS = new PropertyDescriptor.Builder()
@@ -125,6 +130,7 @@ public class CSVUtils {
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .required(true)
         .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
@@ -135,6 +141,21 @@ public class CSVUtils {
         .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
         .defaultValue("UTF-8")
         .required(true)
+        .build();
+    public static final PropertyDescriptor ALLOW_DUPLICATE_HEADER_NAMES = new PropertyDescriptor.Builder()
+        .name("csvutils-allow-duplicate-header-names")
+        .displayName("Allow Duplicate Header Names")
+        .description("Whether duplicate header names are allowed. Header names are case-sensitive, for example \"name\" and \"Name\" are treated as separate fields. " +
+                "Handling of duplicate header names is CSV Parser specific (where applicable):\n" +
+                "* Apache Commons CSV - duplicate headers will result in column data \"shifting\" right with new fields " +
+                "created for \"unknown_field_index_X\" where \"X\" is the CSV column index number\n" +
+                "* Jackson CSV - duplicate headers will be de-duplicated with the field value being that of the right-most " +
+                "duplicate CSV column")
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .allowableValues("true", "false")
+        .dependsOn(CSV_FORMAT, CUSTOM)
+        .defaultValue("true")
+        .required(false)
         .build();
 
     // CSV Format fields for writers only
@@ -151,6 +172,7 @@ public class CSVUtils {
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(QUOTE_ALL, QUOTE_MINIMAL, QUOTE_NON_NUMERIC, QUOTE_NONE)
         .defaultValue(QUOTE_MINIMAL.getValue())
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .required(true)
         .build();
     public static final PropertyDescriptor TRAILING_DELIMITER = new PropertyDescriptor.Builder()
@@ -159,6 +181,7 @@ public class CSVUtils {
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("false")
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .required(true)
         .build();
     public static final PropertyDescriptor RECORD_SEPARATOR = new PropertyDescriptor.Builder()
@@ -167,6 +190,7 @@ public class CSVUtils {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .defaultValue("\\n")
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .required(true)
         .build();
     public static final PropertyDescriptor INCLUDE_HEADER_LINE = new PropertyDescriptor.Builder()
@@ -176,6 +200,10 @@ public class CSVUtils {
         .defaultValue("true")
         .required(true)
         .build();
+
+    private CSVUtils() {
+        // intentionally blank, prevents instantiation
+    }
 
     public static boolean isDynamicCSVFormat(final PropertyContext context) {
         final String formatName = context.getProperty(CSV_FORMAT).getValue();
@@ -208,23 +236,19 @@ public class CSVUtils {
         }
     }
 
-    private static Character getCharUnescapedJava(final PropertyContext context, final PropertyDescriptor property, final Map<String, String> variables) {
-        String value = context.getProperty(property).evaluateAttributeExpressions(variables).getValue();
+    private static Character getValueSeparatorCharUnescapedJava(final PropertyContext context, final Map<String, String> variables) {
+        String value = context.getProperty(VALUE_SEPARATOR).evaluateAttributeExpressions(variables).getValue();
 
         if (value != null) {
-            String unescaped = unescapeJava(value);
+            String unescaped = unescape(value);
             if (unescaped.length() == 1) {
                 return unescaped.charAt(0);
             }
         }
 
-        LOG.warn("'{}' property evaluated to an invalid value: \"{}\". It must be a single character. The property value will be ignored.", property.getName(), value);
+        LOG.warn("'{}' property evaluated to an invalid value: \"{}\". It must be a single character. The property value will be ignored.", VALUE_SEPARATOR.getName(), value);
 
-        if (property.getDefaultValue() != null) {
-            return property.getDefaultValue().charAt(0);
-        } else {
-            return null;
-        }
+        return VALUE_SEPARATOR.getDefaultValue().charAt(0);
     }
 
     private static Character getCharUnescaped(final PropertyContext context, final PropertyDescriptor property, final Map<String, String> variables) {
@@ -247,7 +271,7 @@ public class CSVUtils {
     }
 
     private static CSVFormat buildCustomFormat(final PropertyContext context, final Map<String, String> variables) {
-        final Character valueSeparator = getCharUnescapedJava(context, VALUE_SEPARATOR, variables);
+        final Character valueSeparator = getValueSeparatorCharUnescapedJava(context, variables);
         CSVFormat format = CSVFormat.newFormat(valueSeparator)
             .withAllowMissingColumnNames()
             .withIgnoreEmptyLines();
@@ -293,24 +317,18 @@ public class CSVUtils {
             format = format.withRecordSeparator(separator);
         }
 
+        final PropertyValue allowDuplicateHeaderNames = context.getProperty(ALLOW_DUPLICATE_HEADER_NAMES);
+        if (allowDuplicateHeaderNames != null && allowDuplicateHeaderNames.isSet()) {
+            format = format.withAllowDuplicateHeaderNames(allowDuplicateHeaderNames.asBoolean());
+        }
+
         return format;
     }
 
-    public static String unescapeJava(String input) {
+    public static String unescape(String input) {
         if (input != null && input.length() > 1) {
             input = StringEscapeUtils.unescapeJava(input);
         }
         return input;
-    }
-
-
-    public static String unescape(final String input) {
-        if (input == null) {
-            return input;
-        }
-
-        return input.replace("\\t", "\t")
-            .replace("\\n", "\n")
-            .replace("\\r", "\r");
     }
 }

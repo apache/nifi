@@ -18,8 +18,11 @@ package org.apache.nifi.processors.azure.eventhub.utils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
+import com.microsoft.azure.eventhubs.EventData;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -86,5 +89,18 @@ public final class AzureEventHubUtils {
                     .setEventHubName(eventHubName)
                     .setSasKeyName(sasName)
                     .setSasKey(sasKey).toString();
+    }
+
+    public static Map<String, String> getApplicationProperties(EventData eventData) {
+        final Map<String, String> properties = new HashMap<>();
+
+        final Map<String,Object> applicationProperties = eventData.getProperties();
+        if (null != applicationProperties) {
+            for (Map.Entry<String, Object> property : applicationProperties.entrySet()) {
+                properties.put(String.format("eventhub.property.%s", property.getKey()), property.getValue().toString());
+            }
+        }
+
+        return properties;
     }
 }

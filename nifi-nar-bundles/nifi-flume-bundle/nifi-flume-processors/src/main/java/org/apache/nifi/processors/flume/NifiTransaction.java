@@ -43,7 +43,7 @@ class NifiTransaction extends BasicTransactionSemantics {
 
     @Override
     protected void doCommit() throws InterruptedException {
-        session.commit();
+        session.commitAsync();
     }
 
     @Override

@@ -26,10 +26,10 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.controller.ComponentNode;
-import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -59,19 +59,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 public class MockProcessGroup implements ProcessGroup {
     private final Map<String, ControllerServiceNode> serviceMap = new HashMap<>();
     private final Map<String, ProcessorNode> processorMap = new HashMap<>();
-    private final FlowController flowController;
+    private final FlowManager flowManager;
     private final MutableVariableRegistry variableRegistry = new MutableVariableRegistry(VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY);
     private VersionControlInformation versionControlInfo;
     private ParameterContext parameterContext;
+    private String defaultFlowfileExpiration;
+    private long defaultBackPressureObjectThreshold;
+    private String defaultBackPressureDataSizeThreshold;
 
-    public MockProcessGroup(final FlowController flowController) {
-        this.flowController = flowController;
+    public MockProcessGroup(final FlowManager flowManager) {
+        this.flowManager = flowManager;
     }
 
     @Override
@@ -171,6 +176,11 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public CompletableFuture<Void> startProcessor(final ProcessorNode processor, final boolean failIfStopping) {
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public Future<Void> runProcessorOnce(ProcessorNode processor, Callable<Future<Void>> stopCallback) {
         return CompletableFuture.completedFuture(null);
     }
 
@@ -293,16 +303,16 @@ public class MockProcessGroup implements ProcessGroup {
     public void addProcessor(final ProcessorNode processor) {
         processor.setProcessGroup(this);
         processorMap.put(processor.getIdentifier(), processor);
-        if (flowController.getFlowManager() != null) {
-            flowController.getFlowManager().onProcessorAdded(processor);
+        if (flowManager != null) {
+            flowManager.onProcessorAdded(processor);
         }
     }
 
     @Override
     public void removeProcessor(final ProcessorNode processor) {
         processorMap.remove(processor.getIdentifier());
-        if (flowController.getFlowManager() != null) {
-            flowController.getFlowManager().onProcessorRemoved(processor);
+        if (flowManager != null) {
+            flowManager.onProcessorRemoved(processor);
         }
     }
 
@@ -800,6 +810,36 @@ public class MockProcessGroup implements ProcessGroup {
     @Override
     public DataValve getDataValve() {
         return null;
+    }
+
+    @Override
+    public String getDefaultFlowFileExpiration() {
+        return defaultFlowfileExpiration;
+    }
+
+    @Override
+    public void setDefaultFlowFileExpiration(String defaultFlowFileExpiration) {
+        this.defaultFlowfileExpiration = defaultFlowFileExpiration;
+    }
+
+    @Override
+    public Long getDefaultBackPressureObjectThreshold() {
+        return defaultBackPressureObjectThreshold;
+    }
+
+    @Override
+    public void setDefaultBackPressureObjectThreshold(Long defaultBackPressureObjectThreshold) {
+        this.defaultBackPressureObjectThreshold = defaultBackPressureObjectThreshold;
+    }
+
+    @Override
+    public String getDefaultBackPressureDataSizeThreshold() {
+        return defaultBackPressureDataSizeThreshold;
+    }
+
+    @Override
+    public void setDefaultBackPressureDataSizeThreshold(String defaultBackPressureDataSizeThreshold) {
+        this.defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThreshold;
     }
 
     @Override

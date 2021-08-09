@@ -19,7 +19,7 @@ package org.apache.nifi.controller.status.analytics;
 import java.util.Map;
 
 import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
     private static final Logger LOG = LoggerFactory.getLogger(ConnectionStatusAnalyticsEngine.class);
-    protected final ComponentStatusRepository statusRepository;
+    protected final StatusHistoryRepository statusRepository;
     protected final FlowManager flowManager;
     protected final StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory;
     protected final long predictionIntervalMillis;
@@ -39,7 +39,7 @@ public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
     protected final String scoreName;
     protected final double scoreThreshold;
 
-    public ConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository,
+    public ConnectionStatusAnalyticsEngine(FlowManager flowManager, StatusHistoryRepository statusRepository,
                                            StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory, long predictionIntervalMillis,
                                            long queryIntervalMillis, String scoreName, double scoreThreshold) {
         this.flowManager = flowManager;

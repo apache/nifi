@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.13.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
@@ -88,13 +88,14 @@
         <nifi.documentation.working.directory>./work/docs/components</nifi.documentation.working.directory>
 
         <nifi.sensitive.props.key.protected />
-        <nifi.sensitive.props.algorithm>PBEWITHMD5AND256BITAES-CBC-OPENSSL</nifi.sensitive.props.algorithm>
+        <nifi.sensitive.props.algorithm>NIFI_PBKDF2_AES_GCM_256</nifi.sensitive.props.algorithm>
         <nifi.sensitive.props.provider>BC</nifi.sensitive.props.provider>
         <nifi.sensitive.props.additional.keys />
 
         <nifi.h2.url.append>;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE</nifi.h2.url.append>
 
         <nifi.remote.input.socket.port>9990</nifi.remote.input.socket.port>
+        <nifi.remote.input.secure>true</nifi.remote.input.secure>
 
         <!-- persistent provenance repository properties -->
         <nifi.provenance.repository.implementation>org.apache.nifi.provenance.WriteAheadProvenanceRepository</nifi.provenance.repository.implementation>
@@ -125,12 +126,17 @@
         <nifi.components.status.repository.buffer.size>1440</nifi.components.status.repository.buffer.size>
         <nifi.components.status.snapshot.frequency>1 min</nifi.components.status.snapshot.frequency>
 
+        <!-- QuestDb status repository properties -->
+        <nifi.status.repository.questdb.persist.node.days>14</nifi.status.repository.questdb.persist.node.days>
+        <nifi.status.repository.questdb.persist.component.days>3</nifi.status.repository.questdb.persist.component.days>
+        <nifi.status.repository.questdb.persist.location>./status_repository</nifi.status.repository.questdb.persist.location>
+
         <!-- nifi.properties: web properties -->
         <nifi.web.http.host />
-        <nifi.web.http.port>8080</nifi.web.http.port>
+        <nifi.web.http.port />
         <nifi.web.http.network.interface.default />
-        <nifi.web.https.host />
-        <nifi.web.https.port />
+        <nifi.web.https.host>127.0.0.1</nifi.web.https.host>
+        <nifi.web.https.port>8443</nifi.web.https.port>
         <nifi.web.https.network.interface.default />
         <nifi.jetty.work.dir>./work/jetty</nifi.jetty.work.dir>
         <nifi.web.jetty.threads>200</nifi.web.jetty.threads>
@@ -139,18 +145,23 @@
         <nifi.web.proxy.host />
         <nifi.web.max.content.size />
         <nifi.web.max.requests.per.second>30000</nifi.web.max.requests.per.second>
+        <nifi.web.max.access.token.requests.per.second>25</nifi.web.max.access.token.requests.per.second>
+        <nifi.web.request.timeout>60 secs</nifi.web.request.timeout>
+        <nifi.web.request.ip.whitelist />
         <nifi.web.should.send.server.version>true</nifi.web.should.send.server.version>
         <!-- nifi.properties: security properties -->
-        <nifi.security.keystore />
-        <nifi.security.keystoreType />
+        <nifi.security.autoreload.enabled>false</nifi.security.autoreload.enabled>
+        <nifi.security.autoreload.interval>10 secs</nifi.security.autoreload.interval>
+        <nifi.security.keystore>./conf/keystore.p12</nifi.security.keystore>
+        <nifi.security.keystoreType>PKCS12</nifi.security.keystoreType>
         <nifi.security.keystorePasswd />
         <nifi.security.keyPasswd />
-        <nifi.security.truststore />
-        <nifi.security.truststoreType />
+        <nifi.security.truststore>./conf/truststore.p12</nifi.security.truststore>
+        <nifi.security.truststoreType>PKCS12</nifi.security.truststoreType>
         <nifi.security.truststorePasswd />
-        <nifi.security.user.authorizer>managed-authorizer</nifi.security.user.authorizer>
+        <nifi.security.user.authorizer>single-user-authorizer</nifi.security.user.authorizer>
         <nifi.security.allow.anonymous.authentication>false</nifi.security.allow.anonymous.authentication>
-        <nifi.security.user.login.identity.provider />
+        <nifi.security.user.login.identity.provider>single-user-provider</nifi.security.user.login.identity.provider>
         <nifi.security.x509.principal.extractor />
         <nifi.security.ocsp.responder.url />
         <nifi.security.ocsp.responder.certificate />
@@ -164,12 +175,30 @@
         <nifi.security.user.oidc.preferred.jwsalgorithm />
         <nifi.security.user.oidc.additional.scopes />
         <nifi.security.user.oidc.claim.identifying.user />
+        <nifi.security.user.oidc.fallback.claims.identifying.user />
 
         <!-- nifi.properties: apache knox -->
         <nifi.security.user.knox.url />
         <nifi.security.user.knox.publicKey />
         <nifi.security.user.knox.cookieName>hadoop-jwt</nifi.security.user.knox.cookieName>
         <nifi.security.user.knox.audiences />
+
+        <!-- nifi.properties: saml -->
+        <nifi.security.user.saml.idp.metadata.url />
+        <nifi.security.user.saml.sp.entity.id />
+        <nifi.security.user.saml.identity.attribute.name />
+        <nifi.security.user.saml.group.attribute.name />
+        <nifi.security.user.saml.metadata.signing.enabled>false</nifi.security.user.saml.metadata.signing.enabled>
+        <nifi.security.user.saml.request.signing.enabled>false</nifi.security.user.saml.request.signing.enabled>
+        <nifi.security.user.saml.want.assertions.signed>true</nifi.security.user.saml.want.assertions.signed>
+        <nifi.security.user.saml.signature.algorithm>http://www.w3.org/2001/04/xmldsig-more#rsa-sha256</nifi.security.user.saml.signature.algorithm>
+        <nifi.security.user.saml.signature.digest.algorithm>http://www.w3.org/2001/04/xmlenc#sha256</nifi.security.user.saml.signature.digest.algorithm>
+        <nifi.security.user.saml.message.logging.enabled>false</nifi.security.user.saml.message.logging.enabled>
+        <nifi.security.user.saml.authentication.expiration>12 hours</nifi.security.user.saml.authentication.expiration>
+        <nifi.security.user.saml.single.logout.enabled>false</nifi.security.user.saml.single.logout.enabled>
+        <nifi.security.user.saml.http.client.truststore.strategy>JDK</nifi.security.user.saml.http.client.truststore.strategy>
+        <nifi.security.user.saml.http.client.read.timeout>30 secs</nifi.security.user.saml.http.client.read.timeout>
+        <nifi.security.user.saml.http.client.connect.timeout>30 secs</nifi.security.user.saml.http.client.connect.timeout>
 
         <!-- nifi.properties: cluster common properties (cluster manager and nodes must have same values) -->
         <nifi.cluster.protocol.heartbeat.interval>5 sec</nifi.cluster.protocol.heartbeat.interval>
@@ -202,6 +231,13 @@
         <nifi.zookeeper.connect.timeout>10 secs</nifi.zookeeper.connect.timeout>
         <nifi.zookeeper.session.timeout>10 secs</nifi.zookeeper.session.timeout>
         <nifi.zookeeper.root.node>/nifi</nifi.zookeeper.root.node>
+        <nifi.zookeeper.client.secure>false</nifi.zookeeper.client.secure>
+        <nifi.zookeeper.security.keystore />
+        <nifi.zookeeper.security.keystoreType />
+        <nifi.zookeeper.security.keystorePasswd />
+        <nifi.zookeeper.security.truststore />
+        <nifi.zookeeper.security.truststoreType />
+        <nifi.zookeeper.security.truststorePasswd />
         <nifi.zookeeper.auth.type />
         <nifi.zookeeper.kerberos.removeHostFromPrincipal />
         <nifi.zookeeper.kerberos.removeRealmFromPrincipal />
@@ -221,6 +257,10 @@
         <nifi.analytics.connection.model.implementation>org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares</nifi.analytics.connection.model.implementation>
         <nifi.analytics.connection.model.score.name>rSquared</nifi.analytics.connection.model.score.name>
         <nifi.analytics.connection.model.score.threshold>.90</nifi.analytics.connection.model.score.threshold>
+
+        <!-- nifi.properties: runtime monitoring properties -->
+        <nifi.monitor.long.running.task.schedule>1 min</nifi.monitor.long.running.task.schedule>
+        <nifi.monitor.long.running.task.threshold>5 mins</nifi.monitor.long.running.task.threshold>
     </properties>
     <build>
         <plugins>

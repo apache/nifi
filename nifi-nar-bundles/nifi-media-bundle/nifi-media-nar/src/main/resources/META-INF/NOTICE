@@ -305,12 +305,6 @@ The following binary components are provided under the Apache Software License v
         Apache Maven
         Copyright 2003-2017 The Apache Software Foundation.
 
-************************
-Eclipse Public License 1.0
-************************
-
-    (EPL 1.0) AspectJ Runtime (org.aspectj:aspectjrt:jar:1.8.0 - http://www.eclipse.org/aspectj/)
-
 *****************
 Public Domain
 *****************

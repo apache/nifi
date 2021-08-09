@@ -20,10 +20,17 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.message.ByteArrayMessage;
+import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
@@ -38,7 +45,9 @@ public class TestPutUDP {
     private final static String UDP_SERVER_ADDRESS_EL = "${" + SERVER_VARIABLE + "}";
     private final static String UNKNOWN_HOST = "fgdsfgsdffd";
     private final static String INVALID_IP_ADDRESS = "300.300.300.300";
-    private final static int BUFFER_SIZE = 1024;
+    private static final String DELIMITER = "\n";
+    private static final Charset CHARSET = StandardCharsets.UTF_8;
+    private final static int MAX_FRAME_LENGTH = 32800;
     private final static int VALID_LARGE_FILE_SIZE = 32768;
     private final static int VALID_SMALL_FILE_SIZE = 64;
     private final static int INVALID_LARGE_FILE_SIZE = 1000000;
@@ -51,9 +60,12 @@ public class TestPutUDP {
     private final static int DEFAULT_TEST_TIMEOUT_PERIOD = 10000;
     private final static int LONG_TEST_TIMEOUT_PERIOD = 100000;
 
-    private UDPTestServer server;
     private TestRunner runner;
-    private ArrayBlockingQueue<DatagramPacket> recvQueue;
+    private int port;
+    private TransportProtocol PROTOCOL = TransportProtocol.UDP;
+    private EventServer eventServer;
+    private BlockingQueue<ByteArrayMessage> messages;
+
 
     // Test Data
     private final static String[] EMPTY_FILE = { "" };
@@ -61,15 +73,18 @@ public class TestPutUDP {
 
     @Before
     public void setup() throws Exception {
-        createTestServer(UDP_SERVER_ADDRESS, 0, BUFFER_SIZE);
         runner = TestRunners.newTestRunner(PutUDP.class);
         runner.setVariable(SERVER_VARIABLE, UDP_SERVER_ADDRESS);
+        port = NetworkUtils.getAvailableUdpPort();
+        createTestServer(UDP_SERVER_ADDRESS, port, VALID_LARGE_FILE_SIZE);
     }
 
-    private void createTestServer(final String address, final int port, final int recvQueueSize) throws Exception {
-        recvQueue = new ArrayBlockingQueue<DatagramPacket>(recvQueueSize);
-        server = new UDPTestServer(InetAddress.getByName(address), port, recvQueue);
-        server.startServer();
+    private void createTestServer(final String address, final int port, final int frameSize) throws Exception {
+        messages = new LinkedBlockingQueue<>();
+        final byte[] delimiter = DELIMITER.getBytes(CHARSET);
+        NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), address, port, PROTOCOL, delimiter, frameSize, messages);
+        serverFactory.setSocketReceiveBuffer(MAX_FRAME_LENGTH);
+        eventServer = serverFactory.getEventServer();
     }
 
     @After
@@ -79,20 +94,10 @@ public class TestPutUDP {
     }
 
     private void removeTestServer() {
-        if (server != null) {
-            server.shutdownServer();
-            server = null;
+        if (eventServer != null) {
+            eventServer.shutdown();
+            eventServer = null;
         }
-    }
-
-    private byte[] getPacketData(final DatagramPacket packet) {
-        final int length = packet.getLength();
-        final byte[] packetData = packet.getData();
-        final byte[] resizedPacketData = new byte[length];
-        for (int i = 0; i < length; i++) {
-            resizedPacketData[i] = packetData[i];
-        }
-        return resizedPacketData;
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
@@ -120,8 +125,8 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
-    public void testlargeValidFile() throws Exception {
+    @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
+    public void testLargeValidFile() throws Exception {
         configureProperties(UDP_SERVER_ADDRESS, true);
         final String[] testData = createContent(VALID_LARGE_FILE_SIZE);
         sendTestData(testData);
@@ -130,18 +135,12 @@ public class TestPutUDP {
     }
 
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
-    public void testlargeInvalidFile() throws Exception {
+    public void testLargeInvalidFile() throws Exception {
         configureProperties(UDP_SERVER_ADDRESS, true);
         String[] testData = createContent(INVALID_LARGE_FILE_SIZE);
         sendTestData(testData);
         checkRelationships(0, testData.length);
         checkNoDataReceived();
-        checkInputQueueIsEmpty();
-
-        // Check that the processor recovers and can send the next valid file
-        testData = createContent(VALID_LARGE_FILE_SIZE);
-        sendTestData(testData);
-        checkReceivedAllData(testData);
         checkInputQueueIsEmpty();
     }
 
@@ -165,16 +164,16 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testReconfiguration() throws Exception {
         configureProperties(UDP_SERVER_ADDRESS, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(VALID_FILES);
-        reset(UDP_SERVER_ADDRESS, 0, BUFFER_SIZE);
+        reset(UDP_SERVER_ADDRESS, port, MAX_FRAME_LENGTH);
         configureProperties(UDP_SERVER_ADDRESS, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(VALID_FILES);
-        reset(UDP_SERVER_ADDRESS, 0, BUFFER_SIZE);
+        reset(UDP_SERVER_ADDRESS, port, MAX_FRAME_LENGTH);
         configureProperties(UDP_SERVER_ADDRESS, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(VALID_FILES);
@@ -190,15 +189,17 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
-    private void reset(final String address, final int port, final int recvQueueSize) throws Exception {
+    private void reset(final String address, final int port, final int frameSize) throws Exception {
         runner.clearTransferState();
         removeTestServer();
-        createTestServer(address, port, recvQueueSize);
+        createTestServer(address, port, frameSize);
     }
 
     private void configureProperties(final String host, final boolean expectValid) {
         runner.setProperty(PutUDP.HOSTNAME, host);
-        runner.setProperty(PutUDP.PORT, Integer.toString(server.getLocalPort()));
+        runner.setProperty(PutUDP.PORT, Integer.toString(port));
+        runner.setProperty(PutUDP.MAX_SOCKET_SEND_BUFFER_SIZE, "40000B");
+
         if (expectValid) {
             runner.assertValid();
         } else {
@@ -231,7 +232,7 @@ public class TestPutUDP {
 
     private void checkNoDataReceived() throws Exception {
         Thread.sleep(DATA_WAIT_PERIOD);
-        assertNull(recvQueue.poll());
+        assertNull("Unexpected extra messages found", messages.poll());
     }
 
     private void checkInputQueueIsEmpty() {
@@ -244,18 +245,17 @@ public class TestPutUDP {
 
     private void checkReceivedAllData(final String[] sentData, final int iterations) throws Exception {
         // check each sent FlowFile was successfully sent and received.
-        for (String item : sentData) {
+         for (String item : sentData) {
             for (int i = 0; i < iterations; i++) {
-                DatagramPacket packet = recvQueue.take();
+                ByteArrayMessage packet = messages.take();
                 assertNotNull(packet);
-                assertArrayEquals(item.getBytes(), getPacketData(packet));
+                assertArrayEquals(item.getBytes(), packet.getMessage());
             }
         }
 
         runner.assertTransferCount(PutUDP.REL_SUCCESS, sentData.length * iterations);
 
-        // Check that we have no unexpected extra data.
-        assertNull(recvQueue.poll());
+        assertNull("Unexpected extra messages found", messages.poll());
     }
 
     private String[] createContent(final int size) {
@@ -265,6 +265,6 @@ public class TestPutUDP {
             content[i] = CONTENT_CHAR;
         }
 
-        return new String[] { new String(content) };
+        return new String[] { new String(content).concat("\n") };
     }
 }

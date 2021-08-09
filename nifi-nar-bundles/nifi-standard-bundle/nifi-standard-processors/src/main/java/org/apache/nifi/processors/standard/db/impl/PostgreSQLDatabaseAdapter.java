@@ -40,6 +40,11 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
     }
 
     @Override
+    public boolean supportsInsertIgnore() {
+        return true;
+    }
+
+    @Override
     public String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
         Preconditions.checkArgument(!StringUtils.isEmpty(table), "Table name cannot be null or blank");
         Preconditions.checkArgument(columnNames != null && !columnNames.isEmpty(), "Column names cannot be null or empty");
@@ -72,4 +77,32 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
 
         return statementStringBuilder.toString();
     }
+
+    @Override
+    public String getInsertIgnoreStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+        Preconditions.checkArgument(!StringUtils.isEmpty(table), "Table name cannot be null or blank");
+        Preconditions.checkArgument(columnNames != null && !columnNames.isEmpty(), "Column names cannot be null or empty");
+        Preconditions.checkArgument(uniqueKeyColumnNames != null && !uniqueKeyColumnNames.isEmpty(), "Key column names cannot be null or empty");
+
+        String columns = columnNames.stream()
+                .collect(Collectors.joining(", "));
+
+        String parameterizedInsertValues = columnNames.stream()
+                .map(__ -> "?")
+                .collect(Collectors.joining(", "));
+
+        String conflictClause = "(" + uniqueKeyColumnNames.stream().collect(Collectors.joining(", ")) + ")";
+
+        StringBuilder statementStringBuilder = new StringBuilder("INSERT INTO ")
+                .append(table)
+                .append("(").append(columns).append(")")
+                .append(" VALUES ")
+                .append("(").append(parameterizedInsertValues).append(")")
+                .append(" ON CONFLICT ")
+                .append(conflictClause)
+                .append(" DO NOTHING");
+        return statementStringBuilder.toString();
+    }
+
+
 }

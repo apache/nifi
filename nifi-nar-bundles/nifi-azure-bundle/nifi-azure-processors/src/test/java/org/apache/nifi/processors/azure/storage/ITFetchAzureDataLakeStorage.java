@@ -23,7 +23,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -47,14 +46,13 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         // GIVEN
         String directory = "TestDirectory";
         String filename = "testFile.txt";
-        String fileContent = "AzureFileContent";
         String inputFlowFileContent = "InputFlowFileContent";
 
-        createDirectoryAndUploadFile(directory, filename, fileContent);
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
 
         // WHEN
         // THEN
-        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, fileContent);
+        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, TEST_FILE_CONTENT);
     }
 
     @Test
@@ -62,14 +60,13 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         // GIVEN
         String directory= "";
         String filename = "testFile.txt";
-        String fileContent = "AzureFileContent";
         String inputFlowFileContent = "InputFlowFileContent";
 
-        uploadFile(directory, filename, fileContent);
+        uploadFile(directory, filename, TEST_FILE_CONTENT);
 
         // WHEN
         // THEN
-        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, fileContent);
+        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, TEST_FILE_CONTENT);
     }
 
     @Test
@@ -77,14 +74,13 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         // GIVEN
         String directory= "A Test Directory";
         String filename = "testFile.txt";
-        String fileContent = "AzureFileContent";
         String inputFlowFileContent = "InputFlowFileContent";
 
-        createDirectoryAndUploadFile(directory, filename, fileContent);
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
 
         // WHEN
         // THEN
-        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, fileContent);
+        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, TEST_FILE_CONTENT);
     }
 
     @Test
@@ -92,14 +88,13 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         // GIVEN
         String directory= "TestDirectory";
         String filename = "A test file.txt";
-        String fileContent = "AzureFileContent";
         String inputFlowFileContent = "InputFlowFileContent";
 
-        createDirectoryAndUploadFile(directory, filename, fileContent);
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
 
         // WHEN
         // THEN
-        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, fileContent);
+        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, TEST_FILE_CONTENT);
     }
 
     @Test
@@ -152,14 +147,13 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
                 + "Directory08/Directory09/Directory10/Directory11/Directory12/Directory13/Directory14/Directory15/"
                 + "Directory16/Directory17/Directory18/Directory19/Directory20/TestDirectory";
         String filename = "testFile.txt";
-        String fileContent = "AzureFileContent";
         String inputFlowFileContent = "InputFlowFileContent";
 
-        createDirectoryAndUploadFile(directory, filename, fileContent);
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
 
         // WHEN
         // THEN
-        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, fileContent);
+        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, TEST_FILE_CONTENT);
     }
 
     @Test
@@ -168,10 +162,9 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         String parentDirectory = "ParentDirectory";
         String childDirectory = "ChildDirectory";
         String filename = "testFile.txt";
-        String fileContent = "AzureFileContent";
         String inputFlowFileContent = "InputFlowFileContent";
 
-        createDirectoryAndUploadFile(parentDirectory + "/" + childDirectory, filename, fileContent);
+        createDirectoryAndUploadFile(parentDirectory + "/" + childDirectory, filename, TEST_FILE_CONTENT);
 
         // WHEN
         // THEN
@@ -217,7 +210,6 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         testFailedFetch(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, 404);
     }
 
-    @Ignore("Takes some time, only recommended for manual testing.")
     @Test
     public void testFetchLargeFile() {
         // GIVEN
@@ -229,11 +221,11 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         String fileContent = new String(fileContentBytes);
         String inputFlowFileContent = "InputFlowFileContent";
 
-        createDirectoryAndUploadFile(directory, filename, fileContent);
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
 
         // WHEN
         // THEN
-        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, fileContent);
+        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, TEST_FILE_CONTENT);
     }
 
     @Test
@@ -242,10 +234,9 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         String directory = "TestDirectory";
         String invalidDirectoryName = "Test/\\Directory";
         String filename = "testFile.txt";
-        String fileContent = "AzureFileContent";
         String inputFlowFileContent = "InputFlowFileContent";
 
-        createDirectoryAndUploadFile(directory, filename, fileContent);
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
 
         // WHEN
         // THEN
@@ -258,10 +249,9 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         String directory = "TestDirectory";
         String filename = "testFile.txt";
         String invalidFilename = "test/\\File.txt";
-        String fileContent = "AzureFileContent";
         String inputFlowFileContent = "InputFlowFileContent";
 
-        createDirectoryAndUploadFile(directory, filename, fileContent);
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
 
         // WHEN
         // THEN
@@ -277,7 +267,6 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         String directory = "TestDirectory";
         String filename = "testFile.txt";
-        String fileContent = "AzureFileContent";
 
         String inputFlowFileContent = "InputFlowFileContent";
 
@@ -286,7 +275,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         attributes.put(expLangDirectory, directory);
         attributes.put(expLangFilename, filename);
 
-        createDirectoryAndUploadFile(directory, filename, fileContent);
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
 
         // WHEN
         // THEN
@@ -295,7 +284,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
                     "${" + expLangFilename + "}",
                             attributes,
                             inputFlowFileContent,
-                            fileContent);
+                            TEST_FILE_CONTENT);
     }
 
     @Test
@@ -307,7 +296,6 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         String directory = "TestDirectory";
         String filename = "testFile.txt";
-        String fileContent = "AzureFileContent";
 
         String inputFlowFileContent = "InputFlowFileContent";
 
@@ -315,7 +303,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         attributes.put(expLangDirectory, directory);
         attributes.put(expLangFilename, filename);
 
-        createDirectoryAndUploadFile(directory, filename, fileContent);
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
 
         // WHEN
         // THEN
@@ -336,7 +324,6 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         String directory = "TestDirectory";
         String filename = "testFile.txt";
-        String fileContent = "AzureFileContent";
 
         String inputFlowFileContent = "InputFlowFileContent";
 
@@ -344,7 +331,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         attributes.put(expLangFileSystem, fileSystemName);
         attributes.put(expLangDirectory, directory);
 
-        createDirectoryAndUploadFile(directory, filename, fileContent);
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
 
         // WHEN
         // THEN
@@ -356,15 +343,113 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
                 inputFlowFileContent);
     }
 
+    @Test
+    public void testFetchWithRangeZeroOne() throws Exception {
+        // GIVEN
+        String directory= "A Test Directory";
+        String filename = "testFile.txt";
+        String inputFlowFileContent = "InputFlowFileContent";
+
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
+
+        // WHEN
+        // THEN
+        testSuccessfulFetch(fileSystemName, directory, filename, "0B", "1B", inputFlowFileContent, TEST_FILE_CONTENT.substring(0, 1));
+    }
+
+    @Test
+    public void testFetchWithRangeOneOne() throws Exception {
+        // GIVEN
+        String directory= "A Test Directory";
+        String filename = "testFile.txt";
+        String inputFlowFileContent = "InputFlowFileContent";
+
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
+
+        // WHEN
+        // THEN
+        testSuccessfulFetch(fileSystemName, directory, filename, "1B", "1B", inputFlowFileContent, TEST_FILE_CONTENT.substring(1, 2));
+    }
+
+    @Test
+    public void testFetchWithRangeTwentyThreeTwentySix() throws Exception {
+        // GIVEN
+        String directory= "A Test Directory";
+        String filename = "testFile.txt";
+        String inputFlowFileContent = "InputFlowFileContent";
+
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
+
+        // WHEN
+        // THEN
+        testSuccessfulFetch(fileSystemName, directory, filename, "23B", "3B", inputFlowFileContent, TEST_FILE_CONTENT.substring(23, 26));
+    }
+
+    @Test
+    public void testFetchWithRangeLengthGreater() throws Exception {
+        // GIVEN
+        String directory= "A Test Directory";
+        String filename = "testFile.txt";
+        String inputFlowFileContent = "InputFlowFileContent";
+
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
+
+        // WHEN
+        // THEN
+        testSuccessfulFetch(fileSystemName, directory, filename, "0B", "1KB", inputFlowFileContent, TEST_FILE_CONTENT);
+    }
+
+    @Test
+    public void testFetchWithRangeLengthUnset() throws Exception {
+        // GIVEN
+        String directory= "A Test Directory";
+        String filename = "testFile.txt";
+        String inputFlowFileContent = "InputFlowFileContent";
+
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
+
+        // WHEN
+        // THEN
+        testSuccessfulFetch(fileSystemName, directory, filename, "0B", null, inputFlowFileContent, TEST_FILE_CONTENT);
+    }
+
+    @Test
+    public void testFetchWithRangeStartOutOfRange() throws Exception {
+        // GIVEN
+        String directory= "A Test Directory";
+        String filename = "testFile.txt";
+        String inputFlowFileContent = "InputFlowFileContent";
+
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
+
+        setRunnerProperties(fileSystemName, directory, filename, String.format("%sB", TEST_FILE_CONTENT.length() + 1), "1B");
+
+        // WHEN
+        startRunner(inputFlowFileContent, Collections.emptyMap());
+
+        // THEN
+        DataLakeStorageException e = (DataLakeStorageException)runner.getLogger().getErrorMessages().get(0).getThrowable();
+        assertEquals(416, e.getStatusCode());
+    }
+
     private void testSuccessfulFetch(String fileSystem, String directory, String filename, String inputFlowFileContent, String expectedFlowFileContent) {
         testSuccessfulFetch(fileSystem, directory, filename, Collections.emptyMap(), inputFlowFileContent, expectedFlowFileContent);
     }
 
+    private void testSuccessfulFetch(String fileSystem, String directory, String filename, String rangeStart, String rangeLength, String inputFlowFileContent, String expectedFlowFileContent) {
+        testSuccessfulFetch(fileSystem, directory, filename, rangeStart, rangeLength, Collections.emptyMap(), inputFlowFileContent, expectedFlowFileContent);
+    }
+
     private void testSuccessfulFetch(String fileSystem, String directory, String filename, Map<String, String> attributes, String inputFlowFileContent, String expectedFlowFileContent) {
+        testSuccessfulFetch(fileSystem, directory, filename, null, null, attributes, inputFlowFileContent, expectedFlowFileContent);
+    }
+
+    private void testSuccessfulFetch(String fileSystem, String directory, String filename, String rangeStart, String rangeLength,
+                                 Map<String, String> attributes, String inputFlowFileContent, String expectedFlowFileContent) {
         // GIVEN
         Set<ProvenanceEventType> expectedEventTypes = Sets.newHashSet(ProvenanceEventType.CONTENT_MODIFIED, ProvenanceEventType.FETCH);
 
-        setRunnerProperties(fileSystem, directory, filename);
+        setRunnerProperties(fileSystem, directory, filename, rangeStart, rangeLength);
 
         // WHEN
         startRunner(inputFlowFileContent, attributes);
@@ -412,9 +497,22 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
     }
 
     private void setRunnerProperties(String fileSystem, String directory, String filename) {
+        setRunnerProperties(fileSystem, directory, filename, null, null);
+    }
+
+    private void setRunnerProperties(String fileSystem, String directory, String filename, String rangeStart, String rangeLength) {
         runner.setProperty(FetchAzureDataLakeStorage.FILESYSTEM, fileSystem);
         runner.setProperty(FetchAzureDataLakeStorage.DIRECTORY, directory);
         runner.setProperty(FetchAzureDataLakeStorage.FILE, filename);
+
+        if (rangeStart != null) {
+            runner.setProperty(FetchAzureDataLakeStorage.RANGE_START, rangeStart);
+        }
+
+        if (rangeLength != null) {
+            runner.setProperty(FetchAzureDataLakeStorage.RANGE_LENGTH, rangeLength);
+        }
+
         runner.assertValid();
     }
 

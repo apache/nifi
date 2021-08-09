@@ -1,0 +1,182 @@
+<?xml version="1.0"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<assembly>
+    <id>bin</id>
+    <formats>
+        <format>dir</format>
+        <format>zip</format>
+        <format>tar.gz</format>
+    </formats>
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <baseDirectory>minifi-${project.version}</baseDirectory>
+
+    <dependencySets>
+        <!-- Write out all dependency artifacts to lib directory -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0660</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <excludes>
+                <exclude>nifi-bootstrap-utils</exclude>
+                <exclude>minifi-bootstrap</exclude>
+                <exclude>minifi-resources</exclude>
+                <!-- Filter items introduced via transitive dependencies that are provided in associated NARs -->
+                <exclude>spring-aop</exclude>
+                <exclude>spring-context</exclude>
+                <exclude>spring-beans</exclude>
+                <exclude>swagger-annotations</exclude>
+                <exclude>aspectjweaver</exclude>
+                <exclude>h2</exclude>
+                <exclude>jaxb-impl</exclude>
+                <exclude>mail</exclude>
+                <exclude>log4j</exclude>
+                <exclude>lucene-queryparser</exclude>
+                <exclude>commons-net</exclude>
+                <exclude>spring-context</exclude>
+                <exclude>spring-security-core</exclude>
+            </excludes>
+        </dependencySet>
+
+        <!-- Write out the bootstrap lib component to its own dir -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/bootstrap</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0660</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>nifi-bootstrap-utils</include>
+                <include>minifi-bootstrap</include>
+                <include>minifi-utils</include>
+                <include>nifi-utils</include>
+                <include>commons-io</include>
+                <include>slf4j-api</include>
+                <include>logback-classic</include>
+            </includes>
+        </dependencySet>
+
+        <!-- Write out the conf directory contents -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>./</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>minifi-resources</include>
+            </includes>
+            <unpack>true</unpack>
+            <unpackOptions>
+                <filtered>true</filtered>
+                <includes>
+                    <include>conf/*</include>
+                </includes>
+                <excludes>
+                    <exclude>conf/authority-providers.xml</exclude>
+                    <exclude>conf/authorized-users.xml</exclude>
+                    <exclude>conf/identity-providers.xml</exclude>
+                    <exclude>conf/zookeeper.properties</exclude>
+                </excludes>
+            </unpackOptions>
+        </dependencySet>
+
+        <!-- Write out the bin directory contents -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>./</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0770</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>minifi-resources</include>
+            </includes>
+            <unpack>true</unpack>
+            <unpackOptions>
+                <filtered>false</filtered>
+                <includes>
+                    <include>bin/*</include>
+                </includes>
+            </unpackOptions>
+        </dependencySet>
+
+        <!-- Write out docs directory contents -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>docs/</outputDirectory>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>minifi-docs</include>
+            </includes>
+            <unpack>true</unpack>
+            <unpackOptions>
+                <filtered>false</filtered>
+                <excludes>
+                    <!-- LICENSE and NOTICE both covered by top-level -->
+                    <exclude>LICENSE</exclude>
+                    <exclude>NOTICE</exclude>
+                </excludes>
+            </unpackOptions>
+        </dependencySet>
+    </dependencySets>
+    <files>
+        <file>
+            <source>src/main/resources/build.properties.template</source>
+            <outputDirectory>./</outputDirectory>
+            <destName>build.properties</destName>
+            <fileMode>0644</fileMode>
+            <filtered>true</filtered>
+        </file>
+        <file>
+            <source>./target/minifi.exe</source>
+            <outputDirectory>./bin</outputDirectory>
+            <filtered>false</filtered>
+        </file>
+        <file>
+            <source>./target/minifiw.exe</source>
+            <outputDirectory>./bin</outputDirectory>
+            <filtered>false</filtered>
+        </file>
+
+        <file>
+            <source>./README.md</source>
+            <outputDirectory>./</outputDirectory>
+            <destName>README</destName>
+            <fileMode>0644</fileMode>
+            <filtered>true</filtered>
+        </file>
+        <file>
+            <source>./LICENSE</source>
+            <outputDirectory>./</outputDirectory>
+            <destName>LICENSE</destName>
+            <fileMode>0644</fileMode>
+            <filtered>true</filtered>
+        </file>
+        <file>
+            <source>./NOTICE</source>
+            <outputDirectory>./</outputDirectory>
+            <destName>NOTICE</destName>
+            <fileMode>0644</fileMode>
+            <filtered>true</filtered>
+        </file>
+    </files>
+</assembly>

@@ -16,23 +16,25 @@
  */
 package org.apache.nifi.processors.mongodb;
 
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientOptions.Builder;
-import javax.net.ssl.SSLContext;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+
+import javax.net.ssl.SSLContext;
+
+import java.util.List;
+
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class AbstractMongoProcessorTest {
 
@@ -46,11 +48,11 @@ public class AbstractMongoProcessorTest {
     }
 
     @Test
-    public void testcreateClientWithSSL() throws Exception {
+    public void testCreateClientWithSSL() throws Exception {
         SSLContextService sslService = mock(SSLContextService.class);
         SSLContext sslContext = mock(SSLContext.class);
         when(sslService.getIdentifier()).thenReturn("ssl-context");
-        when(sslService.createSSLContext(any(ClientAuth.class))).thenReturn(sslContext);
+        when(sslService.createContext()).thenReturn(sslContext);
         testRunner.addControllerService("ssl-context", sslService);
         testRunner.enableControllerService(sslService);
         testRunner.setProperty(AbstractMongoProcessor.URI, "mongodb://localhost:27017");
@@ -59,29 +61,9 @@ public class AbstractMongoProcessorTest {
         processor.createClient(testRunner.getProcessContext());
         assertNotNull(processor.mongoClient);
         processor.mongoClient = null;
-        testRunner.setProperty(AbstractMongoProcessor.CLIENT_AUTH, "WANT");
         processor.createClient(testRunner.getProcessContext());
         assertNotNull(processor.mongoClient);
     }
-
-    @Test(expected = IllegalStateException.class)
-    public void testcreateClientWithSSLBadClientAuth() throws Exception {
-        SSLContextService sslService = mock(SSLContextService.class);
-        SSLContext sslContext = mock(SSLContext.class);
-        when(sslService.getIdentifier()).thenReturn("ssl-context");
-        when(sslService.createSSLContext(any(ClientAuth.class))).thenReturn(sslContext);
-        testRunner.addControllerService("ssl-context", sslService);
-        testRunner.enableControllerService(sslService);
-        testRunner.setProperty(AbstractMongoProcessor.URI, "mongodb://localhost:27017");
-        testRunner.setProperty(AbstractMongoProcessor.SSL_CONTEXT_SERVICE, "ssl-context");
-        testRunner.assertValid(sslService);
-        processor.createClient(testRunner.getProcessContext());
-        assertNotNull(processor.mongoClient);
-        processor.mongoClient = null;
-        testRunner.setProperty(AbstractMongoProcessor.CLIENT_AUTH, "BAD");
-        processor.createClient(testRunner.getProcessContext());
-    }
-
 
     /**
      * Provides a stubbed processor instance for testing
@@ -90,6 +72,11 @@ public class AbstractMongoProcessorTest {
         @Override
         public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
             // nothing to do
+        }
+
+        @Override
+        protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+            return descriptors;
         }
 
         @Override

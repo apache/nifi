@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 
@@ -25,7 +26,6 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
-import java.util.Map;
 
 public class CRUDJerseyClient<T extends ComponentEntity> extends AbstractJerseyClient {
     private final WebTarget creationTarget;
@@ -34,8 +34,9 @@ public class CRUDJerseyClient<T extends ComponentEntity> extends AbstractJerseyC
     private final String componentType;
 
 
-    public CRUDJerseyClient(final WebTarget creationTarget, final WebTarget accessTarget, final Map<String, String> headers, final Class<T> entityType, final String componentType) {
-        super(headers);
+    public CRUDJerseyClient(final WebTarget creationTarget, final WebTarget accessTarget, final RequestConfig requestConfig,
+                            final Class<T> entityType, final String componentType) {
+        super(requestConfig);
         this.entityType = entityType;
         this.componentType = componentType;
 

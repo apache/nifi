@@ -23,18 +23,13 @@ import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.AlterTableOptions;
 import org.apache.kudu.client.AsyncKuduClient;
-import org.apache.kudu.client.Delete;
-import org.apache.kudu.client.Insert;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduSession;
-import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.SessionConfiguration;
-import org.apache.kudu.client.Update;
-import org.apache.kudu.client.Upsert;
 import org.apache.kudu.shaded.com.google.common.annotations.VisibleForTesting;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -60,12 +55,22 @@ import org.apache.nifi.util.StringUtils;
 
 import javax.security.auth.login.LoginException;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -113,7 +118,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .displayName("Kudu Operation Timeout")
             .description("Default timeout used for user operations (using sessions and scanners)")
             .required(false)
-            .defaultValue(String.valueOf(AsyncKuduClient.DEFAULT_OPERATION_TIMEOUT_MS) + "ms")
+            .defaultValue(AsyncKuduClient.DEFAULT_OPERATION_TIMEOUT_MS + "ms")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -123,8 +128,28 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .displayName("Kudu Keep Alive Period Timeout")
             .description("Default timeout used for user operations")
             .required(false)
-            .defaultValue(String.valueOf(AsyncKuduClient.DEFAULT_KEEP_ALIVE_PERIOD_MS) + "ms")
+            .defaultValue(AsyncKuduClient.DEFAULT_KEEP_ALIVE_PERIOD_MS + "ms")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    private static final int DEFAULT_WORKER_COUNT = 2 * Runtime.getRuntime().availableProcessors();
+    static final PropertyDescriptor WORKER_COUNT = new Builder()
+            .name("worker-count")
+            .displayName("Kudu Client Worker Count")
+            .description("The maximum number of worker threads handling Kudu client read and write operations. Defaults to the number of available processors multiplied by 2.")
+            .required(true)
+            .defaultValue(Integer.toString(DEFAULT_WORKER_COUNT))
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor KUDU_SASL_PROTOCOL_NAME = new Builder()
+            .name("kudu-sasl-protocol-name")
+            .displayName("Kudu SASL Protocol Name")
+            .description("The SASL protocol name to use for authenticating via Kerberos. Must match the service principal name.")
+            .required(false)
+            .defaultValue("kudu")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -137,6 +162,14 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
     protected KerberosUser getKerberosUser() {
         return this.kerberosUser;
+    }
+
+    protected boolean supportsIgnoreOperations() {
+        try {
+            return kuduClient.supportsIgnoreOperations();
+        } catch (KuduException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     protected void createKerberosUserAndOrKuduClient(ProcessContext context) throws LoginException {
@@ -179,12 +212,29 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
     protected KuduClient buildClient(final ProcessContext context) {
         final String masters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
-        final Integer operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        final Integer adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final int operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final int adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final String saslProtocolName = context.getProperty(KUDU_SASL_PROTOCOL_NAME).evaluateAttributeExpressions().getValue();
+        final int workerCount = context.getProperty(WORKER_COUNT).asInteger();
+
+        // Create Executor following approach of Executors.newCachedThreadPool() using worker count as maximum pool size
+        final int corePoolSize = 0;
+        final long threadKeepAliveTime = 60;
+        final Executor nioExecutor = new ThreadPoolExecutor(
+                corePoolSize,
+                workerCount,
+                threadKeepAliveTime,
+                TimeUnit.SECONDS,
+                new SynchronousQueue<>(),
+                new ClientThreadFactory(getIdentifier())
+        );
 
         return new KuduClient.KuduClientBuilder(masters)
                 .defaultOperationTimeoutMs(operationTimeout)
                 .defaultSocketReadTimeoutMs(adminOperationTimeout)
+                .saslProtocolName(saslProtocolName)
+                .workerCount(workerCount)
+                .nioExecutor(nioExecutor)
                 .build();
     }
 
@@ -289,77 +339,96 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     }
 
     @VisibleForTesting
-    protected void buildPartialRow(Schema schema, PartialRow row, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
+    protected void buildPartialRow(Schema schema, PartialRow row, Record record, List<String> fieldNames, boolean ignoreNull, boolean lowercaseFields) {
         for (String recordFieldName : fieldNames) {
             String colName = recordFieldName;
             if (lowercaseFields) {
                 colName = colName.toLowerCase();
             }
-            int colIdx = this.getColumnIndex(schema, colName);
-            if (colIdx != -1) {
-                ColumnSchema colSchema = schema.getColumnByIndex(colIdx);
-                Type colType = colSchema.getType();
-                if (record.getValue(recordFieldName) == null) {
-                    if (schema.getColumnByIndex(colIdx).isKey()) {
-                        throw new IllegalArgumentException(String.format("Can't set primary key column %s to null ", colName));
-                    } else if(!schema.getColumnByIndex(colIdx).isNullable()) {
-                        throw new IllegalArgumentException(String.format("Can't set column %s to null ", colName));
-                    }
 
-                    if (!ignoreNull) {
-                        row.setNull(colName);
-                    }
-                } else {
-                    Object value = record.getValue(recordFieldName);
-                    switch (colType) {
-                        case BOOL:
-                            row.addBoolean(colIdx, DataTypeUtils.toBoolean(value, recordFieldName));
-                            break;
-                        case INT8:
-                            row.addByte(colIdx, DataTypeUtils.toByte(value, recordFieldName));
-                            break;
-                        case INT16:
-                            row.addShort(colIdx,  DataTypeUtils.toShort(value, recordFieldName));
-                            break;
-                        case INT32:
-                            row.addInt(colIdx,  DataTypeUtils.toInteger(value, recordFieldName));
-                            break;
-                        case INT64:
-                            row.addLong(colIdx,  DataTypeUtils.toLong(value, recordFieldName));
-                            break;
-                        case UNIXTIME_MICROS:
-                            DataType fieldType = record.getSchema().getDataType(recordFieldName).get();
-                            Timestamp timestamp = DataTypeUtils.toTimestamp(record.getValue(recordFieldName),
-                                    () -> DataTypeUtils.getDateFormat(fieldType.getFormat()), recordFieldName);
-                            row.addTimestamp(colIdx, timestamp);
-                            break;
-                        case STRING:
-                            row.addString(colIdx, DataTypeUtils.toString(value, recordFieldName));
-                            break;
-                        case BINARY:
-                            row.addBinary(colIdx, DataTypeUtils.toString(value, recordFieldName).getBytes());
-                            break;
-                        case FLOAT:
-                            row.addFloat(colIdx, DataTypeUtils.toFloat(value, recordFieldName));
-                            break;
-                        case DOUBLE:
-                            row.addDouble(colIdx, DataTypeUtils.toDouble(value, recordFieldName));
-                            break;
-                        case DECIMAL:
-                            row.addDecimal(colIdx, new BigDecimal(DataTypeUtils.toString(value, recordFieldName)));
-                            break;
-                        case VARCHAR:
-                            row.addVarchar(colIdx, DataTypeUtils.toString(value, recordFieldName));
-                            break;
-                        case DATE:
-                            row.addDate(colIdx, DataTypeUtils.toDate(value, () -> DataTypeUtils.getDateFormat(RecordFieldType.DATE.getDefaultFormat()), recordFieldName));
-                            break;
-                        default:
-                            throw new IllegalStateException(String.format("unknown column type %s", colType));
-                    }
+            if (!schema.hasColumn(colName)) {
+                continue;
+            }
+
+            final int columnIndex = schema.getColumnIndex(colName);
+            final ColumnSchema colSchema = schema.getColumnByIndex(columnIndex);
+            final Type colType = colSchema.getType();
+
+            if (record.getValue(recordFieldName) == null) {
+                if (schema.getColumnByIndex(columnIndex).isKey()) {
+                    throw new IllegalArgumentException(String.format("Can't set primary key column %s to null ", colName));
+                } else if(!schema.getColumnByIndex(columnIndex).isNullable()) {
+                    throw new IllegalArgumentException(String.format("Can't set column %s to null ", colName));
+                }
+
+                if (!ignoreNull) {
+                    row.setNull(colName);
+                }
+            } else {
+                Object value = record.getValue(recordFieldName);
+                switch (colType) {
+                    case BOOL:
+                        row.addBoolean(columnIndex, DataTypeUtils.toBoolean(value, recordFieldName));
+                        break;
+                    case INT8:
+                        row.addByte(columnIndex, DataTypeUtils.toByte(value, recordFieldName));
+                        break;
+                    case INT16:
+                        row.addShort(columnIndex,  DataTypeUtils.toShort(value, recordFieldName));
+                        break;
+                    case INT32:
+                        row.addInt(columnIndex,  DataTypeUtils.toInteger(value, recordFieldName));
+                        break;
+                    case INT64:
+                        row.addLong(columnIndex,  DataTypeUtils.toLong(value, recordFieldName));
+                        break;
+                    case UNIXTIME_MICROS:
+                        DataType fieldType = record.getSchema().getDataType(recordFieldName).get();
+                        Timestamp timestamp = DataTypeUtils.toTimestamp(record.getValue(recordFieldName),
+                                () -> DataTypeUtils.getDateFormat(fieldType.getFormat()), recordFieldName);
+                        row.addTimestamp(columnIndex, timestamp);
+                        break;
+                    case STRING:
+                        row.addString(columnIndex, DataTypeUtils.toString(value, recordFieldName));
+                        break;
+                    case BINARY:
+                        row.addBinary(columnIndex, DataTypeUtils.toString(value, recordFieldName).getBytes());
+                        break;
+                    case FLOAT:
+                        row.addFloat(columnIndex, DataTypeUtils.toFloat(value, recordFieldName));
+                        break;
+                    case DOUBLE:
+                        row.addDouble(columnIndex, DataTypeUtils.toDouble(value, recordFieldName));
+                        break;
+                    case DECIMAL:
+                        row.addDecimal(columnIndex, new BigDecimal(DataTypeUtils.toString(value, recordFieldName)));
+                        break;
+                    case VARCHAR:
+                        row.addVarchar(columnIndex, DataTypeUtils.toString(value, recordFieldName));
+                        break;
+                    case DATE:
+                        final Optional<DataType> fieldDataType = record.getSchema().getDataType(recordFieldName);
+                        final String format = fieldDataType.isPresent() ? fieldDataType.get().getFormat() : RecordFieldType.DATE.getDefaultFormat();
+                        row.addDate(columnIndex, getDate(value, recordFieldName, format));
+                        break;
+                    default:
+                        throw new IllegalStateException(String.format("unknown column type %s", colType));
                 }
             }
         }
+    }
+
+    /**
+     * Get java.sql.Date from Record Field Value with optional parsing when input value is a String
+     *
+     * @param value Record Field Value
+     * @param recordFieldName Record Field Name
+     * @param format Date Format Pattern
+     * @return Date object or null when value is null
+     */
+    private Date getDate(final Object value, final String recordFieldName, final String format) {
+        final LocalDate localDate = DataTypeUtils.toLocalDate(value, () -> DataTypeUtils.getDateTimeFormatter(format, ZoneId.systemDefault()), recordFieldName);
+        return Date.valueOf(localDate);
     }
 
     /**
@@ -425,36 +494,33 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         return alterTable;
     }
 
-    private int getColumnIndex(Schema columns, String colName) {
-        try {
-            return columns.getColumnIndex(colName);
-        } catch (Exception ex) {
-            return -1;
+    private static class ClientThreadFactory implements ThreadFactory {
+        private final ThreadFactory defaultThreadFactory = Executors.defaultThreadFactory();
+
+        private final AtomicInteger threadCount = new AtomicInteger();
+
+        private final String identifier;
+
+        private ClientThreadFactory(final String identifier) {
+            this.identifier = identifier;
+        }
+
+        /**
+         * Create new daemon Thread with custom name
+         *
+         * @param runnable Runnable
+         * @return Created Thread
+         */
+        @Override
+        public Thread newThread(final Runnable runnable) {
+            final Thread thread = defaultThreadFactory.newThread(runnable);
+            thread.setDaemon(true);
+            thread.setName(getName());
+            return thread;
+        }
+
+        private String getName() {
+            return String.format("PutKudu[%s]-client-%d", identifier, threadCount.getAndIncrement());
         }
     }
-
-    protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
-        Upsert upsert = kuduTable.newUpsert();
-        buildPartialRow(kuduTable.getSchema(), upsert.getRow(), record, fieldNames, ignoreNull, lowercaseFields);
-        return upsert;
-    }
-
-    protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
-        Insert insert = kuduTable.newInsert();
-        buildPartialRow(kuduTable.getSchema(), insert.getRow(), record, fieldNames, ignoreNull, lowercaseFields);
-        return insert;
-    }
-
-    protected Delete deleteRecordFromKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
-        Delete delete = kuduTable.newDelete();
-        buildPartialRow(kuduTable.getSchema(), delete.getRow(), record, fieldNames, ignoreNull, lowercaseFields);
-        return delete;
-    }
-
-    protected Update updateRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
-        Update update = kuduTable.newUpdate();
-        buildPartialRow(kuduTable.getSchema(), update.getRow(), record, fieldNames, ignoreNull, lowercaseFields);
-        return update;
-    }
-
 }

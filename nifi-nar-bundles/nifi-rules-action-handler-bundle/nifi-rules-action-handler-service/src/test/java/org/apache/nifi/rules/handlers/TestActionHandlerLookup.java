@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.rules.handlers;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
@@ -25,7 +26,9 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -119,6 +122,11 @@ public class TestActionHandlerLookup {
 
         public Boolean getExecuteContextCalled() {
             return executeContextCalled;
+        }
+
+        @Override
+        protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+            return Arrays.asList(ENFORCE_ACTION_TYPE, ENFORCE_ACTION_TYPE_LEVEL);
         }
     }
 

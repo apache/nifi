@@ -31,6 +31,8 @@ public class TestServer {
 
     public static final String NEED_CLIENT_AUTH = "clientAuth";
 
+    private static final long IDLE_TIMEOUT = 60000;
+
     private Server jetty;
     private boolean secure = false;
 
@@ -71,12 +73,12 @@ public class TestServer {
         final ServerConnector http = new ServerConnector(jetty);
         http.setPort(0);
         // Severely taxed environments may have significant delays when executing.
-        http.setIdleTimeout(30000L);
+        http.setIdleTimeout(IDLE_TIMEOUT);
         jetty.addConnector(http);
     }
 
     private void createSecureConnector(final Map<String, String> sslProperties) {
-        SslContextFactory ssl = new SslContextFactory.Server();
+        SslContextFactory.Server ssl = new SslContextFactory.Server();
 
         if (sslProperties.get(StandardSSLContextService.KEYSTORE.getName()) != null) {
             ssl.setKeyStorePath(sslProperties.get(StandardSSLContextService.KEYSTORE.getName()));
@@ -103,7 +105,7 @@ public class TestServer {
         // set host and port
         https.setPort(0);
         // Severely taxed environments may have significant delays when executing.
-        https.setIdleTimeout(30000L);
+        https.setIdleTimeout(IDLE_TIMEOUT);
 
         // add the connector
         jetty.addConnector(https);
@@ -113,17 +115,11 @@ public class TestServer {
     }
 
     public void clearHandlers() {
-        HandlerCollection hc = (HandlerCollection) jetty.getHandler();
-        Handler[] ha = hc.getHandlers();
-        if (ha != null) {
-            for (Handler h : ha) {
-                hc.removeHandler(h);
-            }
-        }
+        JettyServerUtils.clearHandlers(jetty);
     }
 
-    public void addHandler(Handler handler) {
-        ((HandlerCollection) jetty.getHandler()).addHandler(handler);
+    public void addHandler(final Handler handler) {
+        JettyServerUtils.addHandler(jetty, handler);
     }
 
     public void startServer() throws Exception {
