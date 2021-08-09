@@ -33,6 +33,8 @@
         <module>nifi-graph-nar</module>
         <module>nifi-neo4j-cypher-service</module>
         <module>nifi-neo4j-cypher-service-nar</module>
+        <module>nifi-neo4j-3-cypher-service</module>
+        <module>nifi-neo4j-3-cypher-service-nar</module>
         <module>nifi-other-graph-services</module>
         <module>nifi-other-graph-services-nar</module>
     </modules>
