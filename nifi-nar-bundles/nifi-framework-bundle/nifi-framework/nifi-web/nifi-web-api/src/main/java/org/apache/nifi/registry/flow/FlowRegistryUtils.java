@@ -20,6 +20,8 @@ package org.apache.nifi.registry.flow;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.util.Tuple;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.NiFiServiceFacade;

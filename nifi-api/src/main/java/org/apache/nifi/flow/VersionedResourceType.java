@@ -15,35 +15,28 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.registry.flow;
+package org.apache.nifi.flow;
 
-public enum ComponentType {
+public enum VersionedResourceType {
+    /**
+     * Referenced Resource is a File on a local (or mounted) file system
+     */
+    FILE,
 
-    CONNECTION("Connection"),
-    PROCESSOR("Processor"),
-    PROCESS_GROUP("Process Group"),
-    REMOTE_PROCESS_GROUP("Remote Process Group"),
-    INPUT_PORT("Input Port"),
-    OUTPUT_PORT("Output Port"),
-    REMOTE_INPUT_PORT("Remote Input Port"),
-    REMOTE_OUTPUT_PORT("Remote Output Port"),
-    FUNNEL("Funnel"),
-    LABEL("Label"),
-    CONTROLLER_SERVICE("Controller Service");
+    /**
+     * Referenced Resource is a directory on a local (or mounted) file system
+     */
+    DIRECTORY,
 
+    /**
+     * Referenced Resource is UTF-8 text, rather than an external entity
+     */
+    TEXT,
 
-    private final String typeName;
+    /**
+     * Referenced Resource is a URL that uses the HTTP, HTTPS, or file protocol
+     * (i.e., <code>http://...</code>, <code>https://...</code>, or <code>file:...</code>)
+     */
+    URL;
 
-    private ComponentType(final String typeName) {
-        this.typeName = typeName;
-    }
-
-    public String getTypeName() {
-        return typeName;
-    }
-
-    @Override
-    public String toString() {
-        return typeName;
-    }
 }

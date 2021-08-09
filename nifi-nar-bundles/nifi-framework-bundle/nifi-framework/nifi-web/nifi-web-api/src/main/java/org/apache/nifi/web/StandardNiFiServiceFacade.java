@@ -118,19 +118,19 @@ import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.RestBasedFlowRegistry;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.registry.flow.VersionedComponent;
-import org.apache.nifi.registry.flow.VersionedConfigurableComponent;
-import org.apache.nifi.registry.flow.VersionedConnection;
-import org.apache.nifi.registry.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedConfigurableComponent;
+import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.registry.flow.VersionedFlow;
-import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.flow.VersionedProcessor;
-import org.apache.nifi.registry.flow.VersionedPropertyDescriptor;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
@@ -4845,7 +4845,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
 
             // If any Process Group is removed, consider all components below that Process Group as an affected component
-            if (difference.getDifferenceType() == DifferenceType.COMPONENT_REMOVED && localComponent.getComponentType() == org.apache.nifi.registry.flow.ComponentType.PROCESS_GROUP) {
+            if (difference.getDifferenceType() == DifferenceType.COMPONENT_REMOVED && localComponent.getComponentType() == org.apache.nifi.flow.ComponentType.PROCESS_GROUP) {
                 final String localGroupId = ((InstantiatedVersionedProcessGroup) localComponent).getInstanceId();
                 final ProcessGroup localGroup = processGroupDAO.getProcessGroup(localGroupId);
 
@@ -4870,7 +4870,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     .forEach(affectedComponents::add);
             }
 
-            if (localComponent.getComponentType() == org.apache.nifi.registry.flow.ComponentType.CONTROLLER_SERVICE) {
+            if (localComponent.getComponentType() == org.apache.nifi.flow.ComponentType.CONTROLLER_SERVICE) {
                 final String serviceId = ((InstantiatedVersionedControllerService) localComponent).getInstanceId();
                 final ControllerServiceNode serviceNode = controllerServiceDAO.getControllerService(serviceId);
 
@@ -4908,7 +4908,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 component = difference.getComponentB();
             }
 
-            if (component.getComponentType() != org.apache.nifi.registry.flow.ComponentType.CONNECTION) {
+            if (component.getComponentType() != org.apache.nifi.flow.ComponentType.CONNECTION) {
                 continue;
             }
 
@@ -5047,47 +5047,47 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private Authorizable getAuthorizable(final String componentTypeName, final InstantiatedVersionedComponent versionedComponent) {
         final String componentId = versionedComponent.getInstanceId();
 
-        if (componentTypeName.equals(org.apache.nifi.registry.flow.ComponentType.CONTROLLER_SERVICE.name())) {
+        if (componentTypeName.equals(org.apache.nifi.flow.ComponentType.CONTROLLER_SERVICE.name())) {
             return authorizableLookup.getControllerService(componentId).getAuthorizable();
         }
 
-        if (componentTypeName.equals(org.apache.nifi.registry.flow.ComponentType.CONNECTION.name())) {
+        if (componentTypeName.equals(org.apache.nifi.flow.ComponentType.CONNECTION.name())) {
             return authorizableLookup.getConnection(componentId).getAuthorizable();
         }
 
-        if (componentTypeName.equals(org.apache.nifi.registry.flow.ComponentType.FUNNEL.name())) {
+        if (componentTypeName.equals(org.apache.nifi.flow.ComponentType.FUNNEL.name())) {
             return authorizableLookup.getFunnel(componentId);
         }
 
-        if (componentTypeName.equals(org.apache.nifi.registry.flow.ComponentType.INPUT_PORT.name())) {
+        if (componentTypeName.equals(org.apache.nifi.flow.ComponentType.INPUT_PORT.name())) {
             return authorizableLookup.getInputPort(componentId);
         }
 
-        if (componentTypeName.equals(org.apache.nifi.registry.flow.ComponentType.OUTPUT_PORT.name())) {
+        if (componentTypeName.equals(org.apache.nifi.flow.ComponentType.OUTPUT_PORT.name())) {
             return authorizableLookup.getOutputPort(componentId);
         }
 
-        if (componentTypeName.equals(org.apache.nifi.registry.flow.ComponentType.LABEL.name())) {
+        if (componentTypeName.equals(org.apache.nifi.flow.ComponentType.LABEL.name())) {
             return authorizableLookup.getLabel(componentId);
         }
 
-        if (componentTypeName.equals(org.apache.nifi.registry.flow.ComponentType.PROCESS_GROUP.name())) {
+        if (componentTypeName.equals(org.apache.nifi.flow.ComponentType.PROCESS_GROUP.name())) {
             return authorizableLookup.getProcessGroup(componentId).getAuthorizable();
         }
 
-        if (componentTypeName.equals(org.apache.nifi.registry.flow.ComponentType.PROCESSOR.name())) {
+        if (componentTypeName.equals(org.apache.nifi.flow.ComponentType.PROCESSOR.name())) {
             return authorizableLookup.getProcessor(componentId).getAuthorizable();
         }
 
-        if (componentTypeName.equals(org.apache.nifi.registry.flow.ComponentType.REMOTE_INPUT_PORT.name())) {
+        if (componentTypeName.equals(org.apache.nifi.flow.ComponentType.REMOTE_INPUT_PORT.name())) {
             return authorizableLookup.getRemoteProcessGroup(versionedComponent.getInstanceGroupId());
         }
 
-        if (componentTypeName.equals(org.apache.nifi.registry.flow.ComponentType.REMOTE_OUTPUT_PORT.name())) {
+        if (componentTypeName.equals(org.apache.nifi.flow.ComponentType.REMOTE_OUTPUT_PORT.name())) {
             return authorizableLookup.getRemoteProcessGroup(versionedComponent.getInstanceGroupId());
         }
 
-        if (componentTypeName.equals(org.apache.nifi.registry.flow.ComponentType.REMOTE_PROCESS_GROUP.name())) {
+        if (componentTypeName.equals(org.apache.nifi.flow.ComponentType.REMOTE_PROCESS_GROUP.name())) {
             return authorizableLookup.getRemoteProcessGroup(componentId);
         }
 

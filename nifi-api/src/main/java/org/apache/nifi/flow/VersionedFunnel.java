@@ -15,9 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.registry.flow;
+package org.apache.nifi.flow;
 
-public enum PortType {
-    INPUT_PORT,
-    OUTPUT_PORT;
+public class VersionedFunnel extends VersionedComponent {
+    @Override
+    public ComponentType getComponentType() {
+        return ComponentType.FUNNEL;
+    }
 }

@@ -15,28 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.registry.flow;
+package org.apache.nifi.flow;
 
-public enum VersionedResourceType {
-    /**
-     * Referenced Resource is a File on a local (or mounted) file system
-     */
-    FILE,
-
-    /**
-     * Referenced Resource is a directory on a local (or mounted) file system
-     */
-    DIRECTORY,
-
-    /**
-     * Referenced Resource is UTF-8 text, rather than an external entity
-     */
-    TEXT,
-
-    /**
-     * Referenced Resource is a URL that uses the HTTP, HTTPS, or file protocol
-     * (i.e., <code>http://...</code>, <code>https://...</code>, or <code>file:...</code>)
-     */
-    URL;
-
+public enum ConnectableComponentType {
+    PROCESSOR,
+    REMOTE_INPUT_PORT,
+    REMOTE_OUTPUT_PORT,
+    INPUT_PORT,
+    OUTPUT_PORT,
+    FUNNEL;
 }

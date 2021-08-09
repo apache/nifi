@@ -14,12 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.flow;
 
-package org.apache.nifi.registry.flow;
-
-public class VersionedFunnel extends VersionedComponent {
-    @Override
-    public ComponentType getComponentType() {
-        return ComponentType.FUNNEL;
-    }
+public enum ScheduledState {
+    ENABLED,
+    DISABLED;
 }

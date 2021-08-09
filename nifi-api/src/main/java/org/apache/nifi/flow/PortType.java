@@ -14,21 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.registry.flow;
 
-import java.util.Map;
+package org.apache.nifi.flow;
 
-/**
- * A component that has property descriptors and can be configured with values for those properties.
- */
-public interface VersionedConfigurableComponent {
-
-    Map<String,VersionedPropertyDescriptor> getPropertyDescriptors();
-
-    void setPropertyDescriptors(Map<String,VersionedPropertyDescriptor> propertyDescriptors);
-
-    Map<String,String> getProperties();
-
-    void setProperties(Map<String,String> properties);
-
+public enum PortType {
+    INPUT_PORT,
+    OUTPUT_PORT;
 }
