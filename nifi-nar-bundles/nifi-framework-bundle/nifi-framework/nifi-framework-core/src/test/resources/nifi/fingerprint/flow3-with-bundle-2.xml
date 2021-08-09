@@ -21,6 +21,8 @@
         <position x="0.0" y="0.0"/>
         <style/>
         <comment/>
+        <flowfileConcurrency>UNBOUNDED</flowfileConcurrency>
+        <flowfileOutboundPolicy>STREAM_WHEN_AVAILABLE</flowfileOutboundPolicy>
         <processor>
             <id>d89ada5d-35fb-44ff-83f1-4cc00b48b2df</id>
             <name>GenerateFlowFile</name>
