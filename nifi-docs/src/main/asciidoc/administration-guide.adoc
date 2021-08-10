@@ -70,7 +70,7 @@ When NiFi first starts up, the following files and directories are created:
 * `provenance_repository`
 * `work` directory
 * `logs` directory
-* Within the `conf` directory, the _flow.xml.gz_ file is created
+* Within the `conf` directory, the _flow.json.gz_ file is created
 
 NOTE: For security purposes, when no security configuration is provided NiFi will now bind to 127.0.0.1 by default and the UI will only be accessible through this loopback interface. HTTPS properties should be configured to access NiFi from other interfaces. See the <<security_configuration,Security Configuration>> for guidance on how to do this.
 
@@ -732,7 +732,11 @@ If you are setting up a secured NiFi instance for the first time, you must manua
 
 After you have edited and saved the _authorizers.xml_ file, restart NiFi.  The “Initial Admin Identity” user and administrative policies are added to the _users.xml_ and _authorizations.xml_ files during restart. Once NiFi starts, the “Initial Admin Identity” user is able to access the UI and begin managing users, groups, and policies.
 
-NOTE: For a brand new secure flow, providing the "Initial Admin Identity" gives that user access to get into the UI and to manage users, groups and policies.  But if that user wants to start modifying the flow, they need to grant themselves policies for the root process group. The system is unable to do this automatically because in a new flow the UUID of the root process group is not permanent until the _flow.xml.gz_ is generated.  If the NiFi instance is an upgrade from an existing _flow.xml.gz_ or a 1.x instance going from unsecure to secure, then the "Initial Admin Identity" user is automatically given the privileges to modify the flow.
+NOTE: For a brand new secure flow, providing the "Initial Admin Identity" gives that user access to get into the UI and to manage users, groups and policies.  But if that user wants to start
+modifying the flow, they need to grant themselves policies for the root process group. The system is unable to do this automatically because in a new flow the UUID of the root process group is not
+permanent until the _flow.json.gz_ is generated.  If the NiFi instance is an upgrade from an existing _flow.json.gz_ or a 1.x instance going from unsecure to secure, then the "Initial Admin Identity"
+user
+is automatically given the privileges to modify the flow.
 
 Some common use cases are described below.
 
@@ -1128,7 +1132,7 @@ Here is an example entry:
 
 After you have edited and saved the _authorizers.xml_ file, restart NiFi. Users and roles from the _authorized-users.xml_ file are converted and added as identities and policies in the _users.xml_ and _authorizations.xml_ files.  Once the application starts, users who previously had a legacy Administrator role can access the UI and begin managing users, groups, and policies.
 
-The following tables summarize the global and component policies assigned to each legacy role if the NiFi instance has an existing _flow.xml.gz_:
+The following tables summarize the global and component policies assigned to each legacy role if the NiFi instance has an existing _flow.json.gz_:
 
 ===== Global Access Policies
 [cols=">s,^s,^s,^s,^s,^s,^s", options="header"]
@@ -2164,9 +2168,9 @@ Any node whose dataflow, users, groups, and policies conflict with those elected
 resources with those from the cluster. How the backup is performed depends on the configured Access Policy Provider and User Group Provider.
 For file-based access policy providers, the backup will be written to the same directory as the existing file (e.g., $NIFI_HOME/conf) and bear the same
 name but with a suffix of "." and a timestamp. For example, if the flow itself conflicts with the cluster's flow at 12:05:03 on January 1, 2020,
-the node's `flow.xml.gz` file will be copied to `flow.xml.gz.2020-01-01-12-05-03` and the cluster's flow will then be written to `flow.xml.gz`.
+the node's `flow.json.gz` file will be copied to `flow.json.gz.2020-01-01-12-05-03` and the cluster's flow will then be written to `flow.json.gz`.
 Similarly, this will happen for the `users.xml` and `authorizations.xml` file. This is done so that the flow can be manually reverted if necessary
-by renaming the backup file back to `flow.xml.gz`, for example.
+by renaming the backup file back to `flow.json.gz`, for example.
 
 It is important to note that before inheriting the elected flow, NiFi will first read through the FlowFile repository and any swap files to determine which
 queues in the dataflow currently hold data. If there exists any queue in the dataflow that contains a FlowFile, that queue must also exist in the elected
@@ -2175,7 +2179,7 @@ log errors to that effect and will fail to startup. This ensures that even if th
 restarting the node will not result in data loss.
 
 Election is performed according to the "popular vote" with the caveat that the winner will never be an "empty flow" unless all flows are empty. This
-allows an administrator to remove a node's _flow.xml.gz_ file and restart the node, knowing that the node's flow will
+allows an administrator to remove a node's _flow.json.gz_ file and restart the node, knowing that the node's flow will
 not be voted to be the "correct" flow unless no other flow is found. If there are two non-empty flows that receive the same number of votes, one of those
 flows will be chosen. The methodology used to determine which of those flows is undefined and may change at any time without notice.
 
@@ -3016,16 +3020,20 @@ The first section of the _nifi.properties_ file is for the Core Properties. Thes
 
 |===
 |*Property*|*Description*
-|`nifi.flow.configuration.file`*|The location of the flow configuration file (i.e., the file that contains what is currently displayed on the NiFi graph). The default value is `./conf/flow.xml.gz`.
+|`nifi.flow.configuration.file`*|The location of the XML-based flow configuration file. The default value is `./conf/flow.xml.gz`. This is a legacy property. Older versions of NiFi used an
+XML-formatted file to store the flow configuration. However, newer versions use a JSON representation. In order to maintain backward compatibility of flows and still load flows developed using
+older versions of NiFi, upon startup, NiFi will use the `nifi.flow.configuration.json.file` first. If the file exists, it will be used. However, if it does not exist, NiFi will fall back to this
+property to determine the XML version of the file and use it.
+|`nifi.flow.configuration.json.file`*|The location of the flow configuration file (i.e., the file that contains what is currently displayed on the NiFi graph). The default value is `./conf/flow.json.gz`.
 |`nifi.flow.configuration.archive.enabled`*|Specifies whether NiFi creates a backup copy of the flow automatically when the flow is updated. The default value is `true`.
-|`nifi.flow.configuration.archive.dir`*|The location of the archive directory where backup copies of the _flow.xml_ are saved. The default value is `./conf/archive`. NiFi removes old archive files to limit disk usage based on archived file lifespan, total size, and number of files, as specified with `nifi.flow.configuration.archive.max.time`, `max.storage` and `max.count` properties respectively. If none of these limitation for archiving is specified, NiFi uses default conditions, that is `30 days` for `max.time` and `500 MB` for `max.storage`. +
-This cleanup mechanism takes into account only automatically created archived _flow.xml_ files. If there are other files or directories in this archive directory, NiFi will ignore them. Automatically created archives have filename with ISO 8601 format timestamp prefix followed by `<original-filename>`. That is `<year><month><day>T<hour><minute><second>+<timezone offset>_<original filename>`. For example, `20160706T160719+0900_flow.xml.gz`. NiFi checks filenames when it cleans archive directory. If you would like to keep a particular archive in this directory without worrying about NiFi deleting it, you can do so by copying it with a different filename pattern.
-|`nifi.flow.configuration.archive.max.time`*|The lifespan of archived _flow.xml_ files. NiFi will delete expired archive files when it updates _flow.xml_ if this property is specified. Expiration is determined based on current system time and the last modified timestamp of an archived _flow.xml_. If no archive limitation is specified in _nifi.properties_, NiFi removes archives older than `30 days`.
-|`nifi.flow.configuration.archive.max.storage`*|The total data size allowed for the archived _flow.xml_ files. NiFi will delete the oldest archive files until the total archived file size becomes less than this configuration value, if this property is specified. If no archive limitation is specified in _nifi.properties_, NiFi uses `500 MB` for this.
+|`nifi.flow.configuration.archive.dir`*|The location of the archive directory where backup copies of the _flow.json_ are saved. The default value is `./conf/archive`. NiFi removes old archive files to limit disk usage based on archived file lifespan, total size, and number of files, as specified with `nifi.flow.configuration.archive.max.time`, `max.storage` and `max.count` properties respectively. If none of these limitation for archiving is specified, NiFi uses default conditions, that is `30 days` for `max.time` and `500 MB` for `max.storage`. +
+This cleanup mechanism takes into account only automatically created archived _flow.json_ files. If there are other files or directories in this archive directory, NiFi will ignore them. Automatically created archives have filename with ISO 8601 format timestamp prefix followed by `<original-filename>`. That is `<year><month><day>T<hour><minute><second>+<timezone offset>_<original filename>`. For example, `20160706T160719+0900_flow.json.gz`. NiFi checks filenames when it cleans archive directory. If you would like to keep a particular archive in this directory without worrying about NiFi deleting it, you can do so by copying it with a different filename pattern.
+|`nifi.flow.configuration.archive.max.time`*|The lifespan of archived _flow.json_ files. NiFi will delete expired archive files when it updates _flow.json_ if this property is specified. Expiration is determined based on current system time and the last modified timestamp of an archived _flow.json_. If no archive limitation is specified in _nifi.properties_, NiFi removes archives older than `30 days`.
+|`nifi.flow.configuration.archive.max.storage`*|The total data size allowed for the archived _flow.json_ files. NiFi will delete the oldest archive files until the total archived file size becomes less than this configuration value, if this property is specified. If no archive limitation is specified in _nifi.properties_, NiFi uses `500 MB` for this.
 |`nifi.flow.configuration.archive.max.count`*|The number of archive files allowed. NiFi will delete the oldest archive files so that only N latest archives can be kept, if this property is specified.
 |`nifi.flowcontroller.autoResumeState`|Indicates whether -upon restart- the components on the NiFi graph should return to their last state. The default value is `true`.
 |`nifi.flowcontroller.graceful.shutdown.period`|Indicates the shutdown period. The default value is `10 secs`.
-|`nifi.flowservice.writedelay.interval`|When many changes are made to the _flow.xml_, this property specifies how long to wait before writing out the changes, so as to batch the changes into a single write. The default value is `500 ms`.
+|`nifi.flowservice.writedelay.interval`|When many changes are made to the _flow.json_, this property specifies how long to wait before writing out the changes, so as to batch the changes into a single write. The default value is `500 ms`.
 |`nifi.administrative.yield.duration`|If a component allows an unexpected exception to escape, it is considered a bug. As a result, the framework will pause (or administratively yield) the component for this amount of time. This is done so that the component does not use up massive amounts of system resources, since it is known to have problems in the existing state. The default value is `30 secs`.
 |`nifi.bored.yield.duration`|When a component has no work to do (i.e., is "bored"), this is the amount of time it will wait before checking to see if it has new data to work on. This way, it does not use up CPU resources by checking for new work too often. When setting this property, be aware that it could add extra latency for components that do not constantly have work to do, as once they go into this "bored" state, they will wait this amount of time before checking for more work. The default value is `10 ms`.
 |`nifi.queue.backpressure.count`|When drawing a new connection between two components, this is the default value for that connection's back pressure object threshold. The default is `10000` and the value must be an integer.
@@ -3033,7 +3041,7 @@ This cleanup mechanism takes into account only automatically created archived _f
 |`nifi.authorizer.configuration.file`*|This is the location of the file that specifies how authorizers are defined.  The default value is `./conf/authorizers.xml`.
 |`nifi.login.identity.provider.configuration.file`*|This is the location of the file that specifies how username/password authentication is performed. This file is
 only considered if `nifi.security.user.login.identity.provider` is configured with a provider identifier. The default value is `./conf/login-identity-providers.xml`.
-|`nifi.templates.directory`*|This is the location of the directory where flow templates are saved (for backward compatibility only).  Templates are stored in the _flow.xml.gz_ starting with NiFi 1.0. The template directory can be used to (bulk) import templates into the _flow.xml.gz_ automatically on NiFi startup.  The default value is `./conf/templates`.
+|`nifi.templates.directory`*|This is the location of the directory where flow templates are saved (for backward compatibility only).  Templates are stored in the _flow.json.gz_ starting with NiFi 1.0. The template directory can be used to (bulk) import templates into the _flow.json.gz_ automatically on NiFi startup.  The default value is `./conf/templates`.
 |`nifi.ui.banner.text`|This is banner text that may be configured to display at the top of the User Interface. It is blank by default.
 |`nifi.ui.autorefresh.interval`|The interval at which the User Interface auto-refreshes. The default value is `30 secs`.
 |`nifi.nar.library.directory`|The location of the nar library. The default value is `./lib` and probably should be left as is. 
@@ -4212,9 +4220,9 @@ If you are using the `file-provider` authorizer, ensure that you copy the _users
 Configuration best practices recommend creating a separate location outside of the NiFi base directory for storing such configuration files, for example: `/opt/nifi/configuration-resources/`. If you are storing these files in a separate directory, you do not need to move them. Instead, ensure that the new NiFi is pointing to the same files.
 |_bootstrap-notification-services.xml_       | Use the existing NiFi _bootstrap-notification-services.xml_  file to update properties in the new NiFi.
 |_bootstrap.conf_                            | Use the existing NiFi _bootstrap.conf_ file to update properties in the new NiFi.
-|_flow.xml.gz_                               | If you retained the default location for storing flows (`<installation-directory>/conf/`), copy _flow.xml.gz_ from the existing to the new NiFi base install `conf` directory. If you stored flows to an external location via _nifi.properties_, update the property `nifi.flow.configuration.file` to point there.
+|_flow.json.gz_                               | If you retained the default location for storing flows (`<installation-directory>/conf/`), copy _flow.json.gz_ from the existing to the new NiFi base install `conf` directory. If you stored flows to an external location via _nifi.properties_, update the property `nifi.flow.configuration.file` to point there.
 
-If you are encrypting sensitive component properties in your dataflow via the sensitive properties key in _nifi.properties_, make sure the same key is used when copying over your _flow.xml.gz_.  If you need to change the key, see the <<sensitive_flow_migration>> section below.
+If you are encrypting sensitive component properties in your dataflow via the sensitive properties key in _nifi.properties_, make sure the same key is used when copying over your _flow.json.gz_.  If you need to change the key, see the <<sensitive_flow_migration>> section below.
 
 .8+|_nifi.properties_
 |Use the existing _nifi.properties_ to populate the same properties in the new NiFi file.
@@ -4225,15 +4233,17 @@ If you are encrypting sensitive component properties in your dataflow via the se
 
 If the below properties point to directories inside the NiFi base installation path, you must copy the target directories to the new NiFi. Stop your existing NiFi installation before you do this.
 
-|`nifi.flow.configuration.file=`
+|`nifi.flow.configuration.json.file=`
 
-If you have retained the default value (`./conf/flow.xml.gz`), copy _flow.xml.gz_ from the existing to the new NiFi base install conf directory.
+If you have retained the default value (`./conf/flow.json.gz`), copy _flow.json.gz_ from the existing to the new NiFi base install conf directory.
 
 If you stored flows to an external location, update the property value to point there.
 
+
+
 |`nifi.flow.configuration.archive.dir=`
 
-Same applies as above if you want to retain archived copies of the _flow.xml.gz_.
+Same applies as above if you want to retain archived copies of the _flow.json.gz_.
 
 |`nifi.database.directory=`
 
@@ -4285,22 +4295,23 @@ WARNING: Double check all configured properties for typos.
 [[sensitive_flow_migration]]
 ==== Migrating a Flow with Sensitive Properties
 
-When a value is set for `nifi.sensitive.props.key` in _nifi.properties_, the specified key is used to encrypt sensitive properties in the flow (e.g. password fields in components). If the key needs to change, the Encrypt-Config tool in the NiFi Toolkit can migrate the sensitive properties key and update the _flow.xml.gz_. Specifically, Encrypt-Config:
+When a value is set for `nifi.sensitive.props.key` in _nifi.properties_, the specified key is used to encrypt sensitive properties in the flow (e.g. password fields in components). If the key needs to change, the Encrypt-Config tool in the NiFi Toolkit can migrate the sensitive properties key and update the _flow.json.gz_. Specifically, Encrypt-Config:
 
-1. Reads the existing _flow.xml.gz_ and decrypts the sensitive values using the current key.
+1. Reads the existing _flow.json.gz_ and decrypts the sensitive values using the current key.
 2. Encrypts all the sensitive values with a specified new key.
-3. Updates the _nifi.properties_ and _flow.xml.gz_ files or creates new versions of them.
+3. Updates the _nifi.properties_ and _flow.json.gz_ files or creates new versions of them.
 
 As an example, assume version 1.9.2 is the existing NiFi instance and the sensitive properties key is set to `password`. The goal is to move the 1.9.2 _flow.xml.gz_ to a 1.10.0 instance with a new sensitive properties key: `new_password`. Running the following Encrypt-Config command would read in the _flow.xml.gz_ and _nifi.properties_ files from 1.9.2 using the original sensitive properties key and write out new versions in 1.10.0 with the sensitive properties encrypted with the new password:
 
 ```
-$ ./nifi-toolkit-1.10.0/bin/encrypt-config.sh -f /path/to/nifi/nifi-1.9.2/conf/flow.xml.gz -g /path/to/nifi/nifi-1.10.0/conf/flow.xml.gz -s new_password -n /path/to/nifi/nifi-1.9.2/conf/nifi.properties -o /path/to/nifi/nifi-1.10.0/conf/nifi.properties -x
+$ ./nifi-toolkit-1.10.0/bin/encrypt-config.sh -f /path/to/nifi/nifi-1.9.2/conf/flow.json.gz -g /path/to/nifi/nifi-1.10.0/conf/flow.json.gz -s new_password -n /path/to/nifi/nifi-1.9.2/conf/nifi
+.properties -o /path/to/nifi/nifi-1.10.0/conf/nifi.properties -x
 ```
 
 where:
 
-* `-f` specifies the source _flow.xml.gz_ (nifi-1.9.2)
-* `-g` specifies the destination _flow.xml.gz_ (nifi-1.10.0)
+* `-f` specifies the source _flow.json.gz_ (nifi-1.9.2)
+* `-g` specifies the destination _flow.json.gz_ (nifi-1.10.0)
 * `-s` specifies the new sensitive properties key (`new_password`)
 * `-n` specifies the source _nifi.properties_ (nifi-1.9.2)
 * `-o` specifies the destination _nifi.properties_ (nifi-1.10.0)
@@ -4312,7 +4323,7 @@ For more information see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Co
 
 Starting with version 1.14.0, NiFi requires a value for 'nifi.sensitive.props.key' in _nifi.properties_.
 
-The following command can be used to read an existing _flow.xml.gz_ configuration and set a new sensitive properties key in _nifi.properties_:
+The following command can be used to read an existing _flow.json.gz_ configuration and set a new sensitive properties key in _nifi.properties_:
 
 ```
 $ ./bin/nifi.sh set-sensitive-properties-key <sensitivePropertiesKey>

@@ -57,6 +57,7 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.groups.BundleUpdateStrategy;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
@@ -137,31 +138,24 @@ import java.util.zip.GZIPInputStream;
 
 /**
  */
-public class StandardFlowSynchronizer implements FlowSynchronizer {
+public class XmlFlowSynchronizer implements FlowSynchronizer {
 
-    private static final Logger logger = LoggerFactory.getLogger(StandardFlowSynchronizer.class);
+    private static final Logger logger = LoggerFactory.getLogger(XmlFlowSynchronizer.class);
     private final PropertyEncryptor encryptor;
     private final boolean autoResumeState;
     private final NiFiProperties nifiProperties;
     private final ExtensionManager extensionManager;
 
-    public StandardFlowSynchronizer(final PropertyEncryptor encryptor, final NiFiProperties nifiProperties, final ExtensionManager extensionManager) {
+    public XmlFlowSynchronizer(final PropertyEncryptor encryptor, final NiFiProperties nifiProperties, final ExtensionManager extensionManager) {
         this.encryptor = encryptor;
         this.autoResumeState = nifiProperties.getAutoResumeState();
         this.nifiProperties = nifiProperties;
         this.extensionManager = extensionManager;
     }
 
-    public static boolean isEmpty(final DataFlow dataFlow) {
-        if (dataFlow == null || dataFlow.getFlow() == null || dataFlow.getFlow().length == 0) {
-            return true;
-        }
-
-        return isFlowEmpty(dataFlow.getFlowDocument());
-    }
 
     @Override
-    public void sync(final FlowController controller, final DataFlow proposedFlow, final PropertyEncryptor encryptor, final FlowService flowService)
+    public void sync(final FlowController controller, final DataFlow proposedFlow, final PropertyEncryptor encryptor, final FlowService flowService, final BundleUpdateStrategy bundleUpdateStrategy)
             throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException {
 
         final FlowManager flowManager = controller.getFlowManager();
@@ -217,7 +211,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 logger.debug("Proposed flow is not directly inheritable. However, the Controller has not been synchronized yet, " +
                     "so will check if the existing flow can be backed up and replaced by the proposed flow.");
 
-                final FlowInheritabilityCheck connectionMissingCheck = new ConnectionMissingCheck();
+                final FlowInheritabilityCheck connectionMissingCheck = new ConnectionMissingCheck(null);
                 final FlowInheritability connectionMissingInheritability = connectionMissingCheck.checkInheritability(existingDataFlow, proposedFlow, controller);
                 if (connectionMissingInheritability.isInheritable()) {
                     backupAndPurge = true;
@@ -530,7 +524,11 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             .map(this::createParameter)
             .collect(Collectors.toMap(param -> param.getDescriptor().getName(), Function.identity()));
 
-        final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters, dto.getInheritedParameterContexts());
+        final List<String> referencedIds = dto.getInheritedParameterContexts().stream()
+            .map(ParameterContextReferenceEntity::getId)
+            .collect(Collectors.toList());
+
+        final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters, referencedIds);
         context.setDescription(dto.getDescription());
         return context;
     }
@@ -613,8 +611,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-
-    private static boolean isFlowEmpty(final Document flowDocument) {
+    public static boolean isFlowEmpty(final Document flowDocument) {
         if (flowDocument == null) {
             return true;
         }

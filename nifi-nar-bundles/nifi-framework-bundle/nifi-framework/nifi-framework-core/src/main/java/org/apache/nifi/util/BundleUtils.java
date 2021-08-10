@@ -18,17 +18,26 @@ package org.apache.nifi.util;
 
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.web.api.dto.BundleDTO;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * Utility class for Bundles.
  */
 public final class BundleUtils {
+    private static Optional<BundleCoordinate> findOptionalBundleForType(final ExtensionManager extensionManager, final String type, final BundleCoordinate desiredCoordinate) {
+        final List<Bundle> bundles = extensionManager.getBundles(type);
+        if (bundles.size() == 1) {
+            return Optional.of(bundles.get(0).getBundleDetails().getCoordinate());
+        }
+        return Optional.empty();
+    }
+
     private static BundleCoordinate findBundleForType(final ExtensionManager extensionManager, final String type, final BundleCoordinate desiredCoordinate) {
         final List<Bundle> bundles = extensionManager.getBundles(type);
         if (bundles.isEmpty()) {
@@ -64,6 +73,29 @@ public final class BundleUtils {
             }
         }
     }
+
+
+    private static Optional<BundleCoordinate> findOptionalCompatibleBundle(final ExtensionManager extensionManager, final String type,
+                                                         final BundleDTO bundleDTO, final boolean allowCompatibleBundle) {
+        final BundleCoordinate coordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
+        final Bundle bundle = extensionManager.getBundle(coordinate);
+
+        if (bundle == null) {
+            if (allowCompatibleBundle) {
+                return findOptionalBundleForType(extensionManager, type, coordinate);
+            } else {
+                return Optional.empty();
+            }
+        } else {
+            final List<BundleCoordinate> bundlesForType = extensionManager.getBundles(type).stream().map(b -> b.getBundleDetails().getCoordinate()).collect(Collectors.toList());
+            if (bundlesForType.contains(coordinate)) {
+                return Optional.of(coordinate);
+            } else {
+                return Optional.empty();
+            }
+        }
+    }
+
 
     /**
      * Gets a bundle that supports the specified type. If the bundle is specified, an
@@ -141,6 +173,14 @@ public final class BundleUtils {
         }
     }
 
+    public static Optional<BundleCoordinate> getOptionalCompatibleBundle(final ExtensionManager extensionManager, final String type, final BundleDTO bundleDTO) {
+        if (bundleDTO == null) {
+            return findOptionalBundleForType(extensionManager, type, null);
+        } else {
+            return findOptionalCompatibleBundle(extensionManager, type, bundleDTO, true);
+        }
+    }
+
 
     /**
      * Discovers the compatible bundle details for the components in the specified Versioned Process Group and updates the Versioned Process Group
@@ -151,14 +191,20 @@ public final class BundleUtils {
     public static void discoverCompatibleBundles(final ExtensionManager extensionManager, final VersionedProcessGroup versionedGroup) {
         if (versionedGroup.getProcessors() != null) {
             versionedGroup.getProcessors().forEach(processor -> {
-                final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(extensionManager, processor.getType(), createBundleDto(processor.getBundle()));
+                final BundleDTO dto = createBundleDto(processor.getBundle());
+                final BundleCoordinate coordinate = BundleUtils.getOptionalCompatibleBundle(extensionManager, processor.getType(), dto).orElse(
+                    new BundleCoordinate(dto.getGroup(), dto.getArtifact(), dto.getVersion()));
                 processor.setBundle(createBundle(coordinate));
             });
         }
 
         if (versionedGroup.getControllerServices() != null) {
             versionedGroup.getControllerServices().forEach(controllerService -> {
-                final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(extensionManager, controllerService.getType(), createBundleDto(controllerService.getBundle()));
+                final BundleDTO dto = createBundleDto(controllerService.getBundle());
+
+                final BundleCoordinate coordinate = BundleUtils.getOptionalCompatibleBundle(extensionManager, controllerService.getType(), createBundleDto(controllerService.getBundle())).orElse(
+                    new BundleCoordinate(dto.getGroup(), dto.getArtifact(), dto.getVersion()));
+
                 controllerService.setBundle(createBundle(coordinate));
             });
         }

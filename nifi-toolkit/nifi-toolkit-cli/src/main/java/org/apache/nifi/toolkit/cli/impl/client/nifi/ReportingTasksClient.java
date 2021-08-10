@@ -40,4 +40,6 @@ public interface ReportingTasksClient {
 
     VerifyConfigRequestEntity deleteConfigVerificationRequest(String taskId, String verificationRequestId) throws NiFiClientException, IOException;
 
+    ReportingTaskEntity deleteReportingTask(ReportingTaskEntity reportingTask) throws NiFiClientException, IOException;
+
 }

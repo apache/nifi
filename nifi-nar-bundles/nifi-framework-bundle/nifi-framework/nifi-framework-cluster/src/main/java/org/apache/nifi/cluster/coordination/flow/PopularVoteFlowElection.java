@@ -17,7 +17,12 @@
 
 package org.apache.nifi.cluster.coordination.flow;
 
-import static java.util.Objects.requireNonNull;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.nifi.cluster.protocol.DataFlow;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.serialization.StandardFlowSynchronizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -29,13 +34,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import org.apache.nifi.cluster.protocol.DataFlow;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.controller.StandardFlowSynchronizer;
-import org.apache.nifi.fingerprint.FingerprintFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -53,14 +51,13 @@ public class PopularVoteFlowElection implements FlowElection {
 
     private final long maxWaitNanos;
     private final Integer maxNodes;
-    private final FingerprintFactory fingerprintFactory;
 
     private volatile Long startNanos = null;
     private volatile DataFlow electedDataFlow = null;
 
     private final Map<String, FlowCandidate> candidateByFingerprint = new HashMap<>();
 
-    public PopularVoteFlowElection(final long maxWait, final TimeUnit maxWaitPeriod, final Integer maxNodes, final FingerprintFactory fingerprintFactory) {
+    public PopularVoteFlowElection(final long maxWait, final TimeUnit maxWaitPeriod, final Integer maxNodes) {
         this.maxWaitNanos = maxWaitPeriod.toNanos(maxWait);
         if (maxWaitNanos < 1) {
             throw new IllegalArgumentException("Maximum wait time to elect Cluster Flow cannot be less than 1 nanosecond");
@@ -70,8 +67,6 @@ public class PopularVoteFlowElection implements FlowElection {
         if (maxNodes != null && maxNodes < 1) {
             throw new IllegalArgumentException("Maximum number of nodes to wait on before electing Cluster Flow cannot be less than 1");
         }
-
-        this.fingerprintFactory = requireNonNull(fingerprintFactory);
     }
 
     @Override
@@ -141,7 +136,7 @@ public class PopularVoteFlowElection implements FlowElection {
     }
 
     private String fingerprint(final DataFlow dataFlow) {
-        final String flowFingerprint = fingerprintFactory.createFingerprint(dataFlow.getFlow());
+        final String flowFingerprint = DigestUtils.sha256Hex(dataFlow.getFlow());
         final String authFingerprint = dataFlow.getAuthorizerFingerprint() == null ? "" : new String(dataFlow.getAuthorizerFingerprint(), StandardCharsets.UTF_8);
         final String candidateFingerprint = flowFingerprint + authFingerprint;
 
@@ -244,7 +239,7 @@ public class PopularVoteFlowElection implements FlowElection {
         }
 
         public boolean isFlowEmpty() {
-            return StandardFlowSynchronizer.isEmpty(dataFlow);
+            return StandardFlowSynchronizer.isFlowEmpty(dataFlow);
         }
 
         public Set<NodeIdentifier> getNodes() {

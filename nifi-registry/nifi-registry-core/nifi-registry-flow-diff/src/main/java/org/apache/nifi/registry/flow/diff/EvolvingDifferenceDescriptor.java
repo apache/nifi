@@ -39,8 +39,10 @@ public class EvolvingDifferenceDescriptor implements DifferenceDescriptor {
                 description = String.format("%s with ID %s was removed from flow", componentA.getComponentType().getTypeName(), componentA.getIdentifier());
                 break;
             case SCHEDULED_STATE_CHANGED:
-                if (ScheduledState.DISABLED.equals(valueA)) {
-                    description = String.format("%s was enabled", componentA.getComponentType().getTypeName());
+                if (valueB == ScheduledState.RUNNING) {
+                    description = String.format("%s was started", componentB.getComponentType().getTypeName());
+                } else if (valueB == ScheduledState.ENABLED) {
+                    description = String.format("%s was enabled", componentB.getComponentType().getTypeName());
                 } else {
                     description = String.format("%s was disabled", componentA.getComponentType().getTypeName());
                 }

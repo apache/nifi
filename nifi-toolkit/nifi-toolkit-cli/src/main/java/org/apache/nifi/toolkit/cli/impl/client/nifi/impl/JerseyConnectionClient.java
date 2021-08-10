@@ -32,9 +32,9 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class JerseyConnectionClient extends AbstractJerseyClient implements ConnectionClient {
-    private final WebTarget connectionTarget;
-    private final WebTarget processGroupTarget;
-    private final WebTarget flowFileQueueTarget;
+    private volatile WebTarget connectionTarget;
+    private volatile WebTarget processGroupTarget;
+    private volatile WebTarget flowFileQueueTarget;
 
     public JerseyConnectionClient(final WebTarget baseTarget) {
         this(baseTarget, null);
@@ -48,6 +48,12 @@ public class JerseyConnectionClient extends AbstractJerseyClient implements Conn
         this.flowFileQueueTarget = baseTarget.path("/flowfile-queues/{id}");
     }
 
+    @Override
+    public void acknowledgeDisconnectedNode() {
+        connectionTarget = connectionTarget.queryParam("disconnectedNodeAcknowledged", true);
+        processGroupTarget = processGroupTarget.queryParam("disconnectedNodeAcknowledged", true);
+        flowFileQueueTarget = flowFileQueueTarget.queryParam("disconnectedNodeAcknowledged", true);
+    }
 
     @Override
     public ConnectionEntity getConnection(final String id) throws NiFiClientException, IOException {
@@ -65,15 +71,23 @@ public class JerseyConnectionClient extends AbstractJerseyClient implements Conn
 
     @Override
     public ConnectionEntity deleteConnection(final String id, final String clientId, final long version) throws NiFiClientException, IOException {
+        return deleteConnection(id, clientId, version, false);
+    }
+
+    public ConnectionEntity deleteConnection(final String id, final String clientId, final long version, final Boolean nodeDisconnectionAcknowledged) throws NiFiClientException, IOException {
         if (id == null) {
             throw new IllegalArgumentException("Connection id cannot be null");
         }
 
         return executeAction("Error deleting Connection", () -> {
-            final WebTarget target = connectionTarget
+            WebTarget target = connectionTarget
                 .queryParam("version", version)
                 .queryParam("clientId", clientId)
                 .resolveTemplate("id", id);
+
+            if (nodeDisconnectionAcknowledged == Boolean.TRUE) {
+                target = target.queryParam("disconnectedNodeAcknowledged", true);
+            }
 
             return getRequestBuilder(target).delete(ConnectionEntity.class);
         });
@@ -88,7 +102,7 @@ public class JerseyConnectionClient extends AbstractJerseyClient implements Conn
             throw new IllegalArgumentException("Revision cannot be null");
         }
 
-        return deleteConnection(connectionEntity.getId(), connectionEntity.getRevision().getClientId(), connectionEntity.getRevision().getVersion());
+        return deleteConnection(connectionEntity.getId(), connectionEntity.getRevision().getClientId(), connectionEntity.getRevision().getVersion(), connectionEntity.isDisconnectedNodeAcknowledged());
     }
 
     @Override

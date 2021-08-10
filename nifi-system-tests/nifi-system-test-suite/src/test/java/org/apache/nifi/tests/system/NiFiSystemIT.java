@@ -28,7 +28,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
+import org.junit.rules.TestWatcher;
 import org.junit.rules.Timeout;
+import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +42,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -50,6 +51,7 @@ public abstract class NiFiSystemIT {
     private final ConcurrentMap<String, Long> lastLogTimestamps = new ConcurrentHashMap<>();
 
     public static final int CLIENT_API_PORT = 5671;
+    public static final int CLIENT_API_BASE_PORT = 5670;
     public static final String NIFI_GROUP_ID = "org.apache.nifi";
     public static final String TEST_EXTENSIONS_ARTIFACT_ID = "nifi-system-test-extensions-nar";
     public static final String TEST_PROCESSORS_PACKAGE = "org.apache.nifi.processors.tests.system";
@@ -64,6 +66,20 @@ public abstract class NiFiSystemIT {
     public TestName name = new TestName();
     @Rule
     public Timeout defaultTimeout = new Timeout(5, TimeUnit.MINUTES);
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher quarantineRule = new TestWatcher() {
+        @Override
+        protected void failed(final Throwable t, final Description description) {
+            final String testName = description.getMethodName();
+            try {
+                final File dir = quarantineTroubleshootingInfo(testName, t);
+                logger.info("Test failure for <{}>. Successfully wrote troubleshooting info to {}", testName, dir.getAbsolutePath());
+            } catch (final Exception e) {
+                logger.error("Failed to quarantine troubleshooting info for test " + testName, e);
+            }
+        }
+    };
 
     private NiFiClient nifiClient;
     private NiFiClientUtil clientUtil;
@@ -98,20 +114,48 @@ public abstract class NiFiSystemIT {
     }
 
     @After
-    public void teardown() throws IOException, NiFiClientException {
+    public void teardown() throws Exception {
         try {
+            Exception destroyFlowFailure = null;
+
             if (isDestroyFlowAfterEachTest()) {
-                destroyFlow();
+                try {
+                    destroyFlow();
+                } catch (final Exception e) {
+                    logger.error("Failed to destroy flow", e);
+                    destroyFlowFailure = e;
+                }
             }
 
             if (isDestroyEnvironmentAfterEachTest()) {
                 cleanup();
+            }
+
+            if (destroyFlowFailure != null) {
+                throw destroyFlowFailure;
             }
         } finally {
             if (nifiClient != null) {
                 nifiClient.close();
             }
         }
+    }
+
+    protected File quarantineTroubleshootingInfo(final String methodName, final Throwable failureCause) throws IOException {
+        NiFiInstance instance = getNiFiInstance();
+
+        // The @AfterClass may or may not have already run at this point. If it has, the instance will be null.
+        // In that case, just create a new instance and use it - it will map to the same directories.
+        if (instance == null) {
+            instance = getInstanceFactory().createInstance();
+        }
+
+        final File troubleshooting = new File("target/troubleshooting");
+        final File quarantineDir = new File(troubleshooting, methodName);
+        quarantineDir.mkdirs();
+
+        instance.quarantineTroubleshootingInfo(quarantineDir, failureCause);
+        return quarantineDir;
     }
 
     protected boolean isDestroyEnvironmentAfterEachTest() {
@@ -121,8 +165,12 @@ public abstract class NiFiSystemIT {
     protected void destroyFlow() throws NiFiClientException, IOException {
         getClientUtil().stopProcessGroupComponents("root");
         getClientUtil().disableControllerServices("root", true);
+        getClientUtil().disableControllerLevelServices();
+        getClientUtil().stopReportingTasks();
         getClientUtil().stopTransmitting("root");
         getClientUtil().deleteAll("root");
+        getClientUtil().deleteControllerLevelServices();
+        getClientUtil().deleteReportingTasks();
     }
 
     protected void waitForAllNodesConnected() {
@@ -165,17 +213,21 @@ public abstract class NiFiSystemIT {
         }
     }
 
+    protected void switchClientToNode(final int nodeIndex) {
+        setupClient(CLIENT_API_BASE_PORT + nodeIndex);
+    }
+
     protected void setupClient() {
-        nifiClient = createClient();
+        setupClient(getClientApiPort());
+    }
+
+    protected void setupClient(final int apiPort) {
+        nifiClient = createClient(apiPort);
         clientUtil = new NiFiClientUtil(nifiClient, getNiFiVersion());
     }
 
     protected NiFiClientUtil getClientUtil() {
         return clientUtil;
-    }
-
-    protected NiFiClient createClient() {
-        return createClient(getClientApiPort());
     }
 
     protected NiFiClient createClient(final int port) {
@@ -204,7 +256,7 @@ public abstract class NiFiSystemIT {
         return nifiClient;
     }
 
-    protected String getNiFiVersion() {
+    protected static String getNiFiVersion() {
         final String knownVersion = nifiFrameworkVersion;
         if (knownVersion != null) {
             return knownVersion;
@@ -258,12 +310,18 @@ public abstract class NiFiSystemIT {
         return true;
     }
 
-    protected void waitFor(final BooleanSupplier condition) throws InterruptedException {
+    protected void waitFor(final ExceptionalBooleanSupplier condition) throws InterruptedException {
         waitFor(condition, 10L);
     }
 
-    protected void waitFor(final BooleanSupplier condition, final long delayMillis) throws InterruptedException {
-        while (!condition.getAsBoolean()) {
+    protected void waitFor(final ExceptionalBooleanSupplier condition, final long delayMillis) throws InterruptedException {
+        boolean result = false;
+        while (!result) {
+            try {
+                result = condition.getAsBoolean();
+            } catch (Exception ignore) {
+            }
+
             Thread.sleep(delayMillis);
         }
     }

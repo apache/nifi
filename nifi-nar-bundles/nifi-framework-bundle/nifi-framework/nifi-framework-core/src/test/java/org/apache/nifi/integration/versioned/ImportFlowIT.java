@@ -75,6 +75,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static junit.framework.TestCase.assertTrue;
@@ -109,7 +110,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         innerGroup.setName("Inner Group");
         getRootGroup().addProcessGroup(innerGroup);
 
-        innerGroup.updateFlow(proposedFlow, null, false, true, false);
+        innerGroup.updateFlow(proposedFlow, (String) null, false, true, false);
 
         // Ensure that the controller service is valid and enable it.
         final Set<ControllerServiceNode> serviceNodes = innerGroup.findAllControllerServices();
@@ -205,7 +206,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
 
         assertTrue(parameterContext.getParameters().isEmpty());
 
-        innerGroup.updateFlow(versionedFlowWithParameterReference, null, true, true, true);
+        innerGroup.updateFlow(versionedFlowWithParameterReference, (String) null, true, true, true);
 
         final Collection<Parameter> parameters = parameterContext.getParameters().values();
         assertEquals(1, parameters.size());
@@ -231,7 +232,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         innerGroup.setName("Inner Group");
         getRootGroup().addProcessGroup(innerGroup);
 
-        innerGroup.updateFlow(versionedFlowWithParameterReference, null, true, true, true);
+        innerGroup.updateFlow(versionedFlowWithParameterReference, (String) null, true, true, true);
 
         final ParameterContext parameterContext = innerGroup.getParameterContext();
         assertNotNull(parameterContext);
@@ -267,13 +268,13 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         innerGroup.setName("Inner Group");
         getRootGroup().addProcessGroup(innerGroup);
 
-        innerGroup.updateFlow(versionedFlowWithParameterReference, null, true, true, true);
+        innerGroup.updateFlow(versionedFlowWithParameterReference, (String) null, true, true, true);
 
         final ProcessorNode nodeInGroupWithRef = innerGroup.getProcessors().iterator().next();
         assertNotNull(nodeInGroupWithRef.getProperty(UsernamePasswordProcessor.PASSWORD).getRawValue());
 
         // Update the flow to new version that uses explicit value.
-        innerGroup.updateFlow(versionedFlowExplicitValue, null, true, true, true);
+        innerGroup.updateFlow(versionedFlowExplicitValue, (String) null, true, true, true);
 
         // Updated flow has sensitive property that no longer references parameter. Now is an explicit value, so it should be unset
         final ProcessorNode nodeInGroupWithNoValue = innerGroup.getProcessors().iterator().next();
@@ -305,7 +306,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         getRootGroup().addProcessGroup(innerGroup);
 
         // Import the flow into our newly created group
-        innerGroup.updateFlow(initialVersionSnapshot, null, true, true, true);
+        innerGroup.updateFlow(initialVersionSnapshot, (String) null, true, true, true);
 
         final ProcessorNode initialImportedProcessor = innerGroup.getProcessors().iterator().next();
         assertEquals("user", initialImportedProcessor.getProperty(UsernamePasswordProcessor.USERNAME).getRawValue());
@@ -316,7 +317,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         assertEquals("pass", initialImportedProcessor.getProperty(UsernamePasswordProcessor.PASSWORD).getRawValue());
 
         // Update the flow to new version
-        innerGroup.updateFlow(updatedVersionSnapshot, null, true, true, true);
+        innerGroup.updateFlow(updatedVersionSnapshot, (String) null, true, true, true);
 
         // Updated flow has sensitive property that no longer references parameter. Now is an explicit value, so it should be unset
         final ProcessorNode updatedImportedProcessor = innerGroup.getProcessors().iterator().next();
@@ -350,7 +351,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         getRootGroup().addProcessGroup(innerGroup);
 
         // Import the flow into our newly created group
-        innerGroup.updateFlow(initialVersionSnapshot, null, true, true, true);
+        innerGroup.updateFlow(initialVersionSnapshot, (String) null, true, true, true);
 
         final Set<FlowDifference> localModifications = getLocalModifications(innerGroup, updatedVersionSnapshot);
         assertEquals(1, localModifications.size());
@@ -380,14 +381,14 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         innerGroup.setName("Inner Group");
         getRootGroup().addProcessGroup(innerGroup);
 
-        innerGroup.updateFlow(versionedFlowExplicitValue, null, true, true, true);
+        innerGroup.updateFlow(versionedFlowExplicitValue, (String) null, true, true, true);
 
         final ProcessorNode nodeInGroupWithRef = innerGroup.getProcessors().iterator().next();
         assertNotNull(nodeInGroupWithRef.getProperty(UsernamePasswordProcessor.PASSWORD));
 
 
         // Update the flow to new version that uses explicit value.
-        innerGroup.updateFlow(versionedFlowWithParameterReference, null, true, true, true);
+        innerGroup.updateFlow(versionedFlowWithParameterReference, (String) null, true, true, true);
 
         // Updated flow has sensitive property that no longer references parameter. Now is an explicit value, so it should be unset
         final ProcessorNode nodeInGroupWithNoValue = innerGroup.getProcessors().iterator().next();
@@ -694,13 +695,13 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", registryGroup);
 
         final Set<String> ancestorServiceIds = processGroup.getAncestorServiceIds();
-        final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds, new ConciseEvolvingDifferenceDescriptor());
+        final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds, new ConciseEvolvingDifferenceDescriptor(), Function.identity());
         final FlowComparison flowComparison = flowComparator.compare();
         final Set<FlowDifference> differences = flowComparison.getDifferences().stream()
-            .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
             .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
             .filter(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES)
             .filter(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES)
+            .filter(difference -> !FlowDifferenceFilters.isVariableValueChange(difference))
             .collect(Collectors.toCollection(HashSet::new));
 
         return differences;

@@ -17,9 +17,9 @@
 
 package org.apache.nifi.flow;
 
-import java.util.Objects;
-
 import io.swagger.annotations.ApiModelProperty;
+
+import java.util.Objects;
 
 public class Bundle {
     private String group;
@@ -79,5 +79,14 @@ public class Bundle {
     @Override
     public int hashCode() {
         return Objects.hash(group, artifact, version);
+    }
+
+    @Override
+    public String toString() {
+        return "Bundle[" +
+            "group='" + group + "'" +
+            ", artifact='" + artifact + "'" +
+            ", version='" + version + "'" +
+            "]";
     }
 }

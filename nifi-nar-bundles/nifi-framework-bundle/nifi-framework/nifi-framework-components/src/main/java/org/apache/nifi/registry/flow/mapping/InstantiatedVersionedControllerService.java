@@ -29,7 +29,7 @@ public class InstantiatedVersionedControllerService extends VersionedControllerS
     }
 
     @Override
-    public String getInstanceId() {
+    public String getInstanceIdentifier() {
         return instanceId;
     }
 

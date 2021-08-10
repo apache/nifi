@@ -54,4 +54,8 @@ public interface ProcessorClient {
 
     VerifyConfigRequestEntity deleteConfigVerificationRequest(String processorId, String verificationRequestId) throws NiFiClientException, IOException;
 
+    /**
+     * Indicates that mutable requests should indicate that the client has acknowledged that the node is disconnected.
+     */
+    void acknowledgeDisconnectedNode();
 }

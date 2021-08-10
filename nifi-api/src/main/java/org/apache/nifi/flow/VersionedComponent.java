@@ -17,14 +17,15 @@
 
 package org.apache.nifi.flow;
 
-import java.util.Objects;
-
 import io.swagger.annotations.ApiModelProperty;
+
+import java.util.Objects;
 
 
 public abstract class VersionedComponent {
 
     private String identifier;
+    private String instanceIdentifier;
     private String groupId;
     private String name;
     private String comments;
@@ -37,6 +38,15 @@ public abstract class VersionedComponent {
 
     public void setIdentifier(String identifier) {
         this.identifier = identifier;
+    }
+
+    @ApiModelProperty("The instance ID of an existing component that is described by this VersionedComponent, or null if this is not mapped to an instantiated component")
+    public String getInstanceIdentifier() {
+        return instanceIdentifier;
+    }
+
+    public void setInstanceIdentifier(String instanceIdentifier) {
+        this.instanceIdentifier = instanceIdentifier;
     }
 
     @ApiModelProperty("The ID of the Process Group that this component belongs to")

@@ -29,7 +29,7 @@ public class InstantiatedVersionedConnection extends VersionedConnection impleme
     }
 
     @Override
-    public String getInstanceId() {
+    public String getInstanceIdentifier() {
         return instanceId;
     }
 

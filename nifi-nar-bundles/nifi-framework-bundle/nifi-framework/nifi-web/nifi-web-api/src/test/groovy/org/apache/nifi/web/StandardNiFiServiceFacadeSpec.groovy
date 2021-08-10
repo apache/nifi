@@ -208,7 +208,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         userEntityUpdateResult != null
         def userEntity = userEntityUpdateResult?.result
         if (isAuthorized) {
-            assert userEntity?.component?.id?.equals(userDto.id)
+            assert userEntity?.component?.getIdentifier?.equals(userDto.id)
             assert userEntity?.getPermissions?.canRead
             assert userEntity?.getPermissions?.canWrite
         } else {
@@ -317,7 +317,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
             def userEntity = userGroupDto.users.find { it.id.equals(userId) }?.component
             assert userEntity != null
             new User.Builder().identifier(userEntity.id).identity(userEntity.identity)
-                    .addGroups(userEntity.groups.collect { it.id } as Set)
+                    .addGroups(userEntity.groups.collect { it.getIdentifier } as Set)
                     .build()
         }
         userGroupDto.users.size() * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
@@ -463,7 +463,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
 
         assert userGroupEntity != null
         if (isAuthorized) {
-            assert userGroupEntity?.component?.id?.equals(userGroupDto.id)
+            assert userGroupEntity?.component?.getIdentifier?.equals(userGroupDto.id)
             assert userGroupEntity?.getPermissions?.canRead
             assert userGroupEntity?.getPermissions?.canWrite
         } else {
@@ -764,7 +764,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
 
         assert accessPolicyEntity != null
         if (isAuthorized) {
-            assert accessPolicyEntity?.component?.id?.equals(accessPolicyDto.id)
+            assert accessPolicyEntity?.component?.getIdentifier?.equals(accessPolicyDto.id)
             assert accessPolicyEntity?.getPermissions?.canRead
             assert accessPolicyEntity?.getPermissions?.canWrite
         } else {

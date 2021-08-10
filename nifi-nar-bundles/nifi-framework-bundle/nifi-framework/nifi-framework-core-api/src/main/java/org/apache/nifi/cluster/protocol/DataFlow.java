@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.cluster.protocol;
 
+import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.w3c.dom.Document;
 
 import java.util.Set;
@@ -28,6 +29,11 @@ public interface DataFlow {
     byte[] getFlow();
 
     Document getFlowDocument();
+
+    /**
+     * @return the VersionedDataflow represented by the bytes
+     */
+    VersionedDataflow getVersionedDataflow();
 
     /**
      * @return the raw byte array of the snippets
@@ -45,4 +51,8 @@ public interface DataFlow {
      */
     Set<String> getMissingComponents();
 
+    /**
+     * @return <code>true</code> if the contents are empty or are made up of XML, <code>false</code> if the contents are JSON
+     */
+    boolean isXml();
 }

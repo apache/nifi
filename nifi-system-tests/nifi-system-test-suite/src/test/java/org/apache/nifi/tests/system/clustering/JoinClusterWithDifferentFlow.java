@@ -62,6 +62,7 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -74,16 +75,20 @@ import static org.junit.Assert.assertFalse;
 public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
     @Override
     protected NiFiInstanceFactory getInstanceFactory() {
+        final Map<String, String> propertyOverrides = Collections.singletonMap("nifi.cluster.flow.serialization.format", "XML");
+
         return new SpawnedClusterNiFiInstanceFactory(
             new InstanceConfiguration.Builder()
                 .bootstrapConfig("src/test/resources/conf/clustered/node1/bootstrap.conf")
                 .instanceDirectory("target/node1")
+                .overrideNifiProperties(propertyOverrides)
                 .flowXml(new File("src/test/resources/flows/mismatched-flows/flow1.xml.gz"))
                 .build(),
             new InstanceConfiguration.Builder()
                 .bootstrapConfig("src/test/resources/conf/clustered/node2/bootstrap.conf")
                 .instanceDirectory("target/node2")
                 .flowXml(new File("src/test/resources/flows/mismatched-flows/flow2.xml.gz"))
+                .overrideNifiProperties(propertyOverrides)
                 .build()
         );
     }

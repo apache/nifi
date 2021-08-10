@@ -1509,9 +1509,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         if (starting) { // will ensure that the Processor represented by this node can only be started once
             initiateStart(taskScheduler, administrativeYieldMillis, timeoutMillis, processContextFactory, schedulingAgentCallback);
         } else {
-            final String procName = processorRef.get().toString();
-            LOG.warn("Cannot start {} because it is not currently stopped. Current state is {}", procName, currentState);
-            procLog.warn("Cannot start {} because it is not currently stopped. Current state is {}", new Object[]{procName, currentState});
+            final String procName = processorRef.get().getProcessor().toString();
+            procLog.warn("Cannot start {} because it is not currently stopped. Current state is {}", procName, currentState);
         }
     }
 

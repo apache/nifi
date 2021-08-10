@@ -53,7 +53,7 @@ env:
 
 jobs:
   ubuntu:
-    timeout-minutes: 60
+    timeout-minutes: 120
     runs-on: ubuntu-latest
     name: Ubuntu Java 11
     steps:
@@ -88,8 +88,15 @@ jobs:
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_RUN_ARGUMENTS }}
           ${{ env.MAVEN_PROJECTS }}
+      - name: Upload Troubleshooting Logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: ubuntu-latest-troubleshooting-logs
+          path: "**/target/troubleshooting/"
+          retention-days: 7
+
   macos:
-    timeout-minutes: 60
+    timeout-minutes: 120
     runs-on: macos-latest
     name: MacOS Java 8
     steps:
@@ -124,3 +131,9 @@ jobs:
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_RUN_ARGUMENTS }}
           ${{ env.MAVEN_PROJECTS }}
+      - name: Upload Troubleshooting Logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: macos-latest-troubleshooting-logs
+          path: "**/target/troubleshooting/"
+          retention-days: 7

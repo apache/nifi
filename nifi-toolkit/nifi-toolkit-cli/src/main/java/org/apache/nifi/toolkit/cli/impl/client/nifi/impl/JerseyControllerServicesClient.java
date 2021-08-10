@@ -134,11 +134,15 @@ public class JerseyControllerServicesClient extends AbstractJerseyClient impleme
         }
 
         return executeAction("Error deleting Controller Service", () -> {
-            final WebTarget target = controllerServicesTarget
+            WebTarget target = controllerServicesTarget
                 .path("/{id}")
                 .queryParam("version", revision.getVersion())
                 .queryParam("clientId", revision.getClientId())
                 .resolveTemplate("id", controllerServiceEntity.getId());
+
+            if (controllerServiceEntity.isDisconnectedNodeAcknowledged() == Boolean.TRUE) {
+                target = target.queryParam("disconnectedNodeAcknowledged", "true");
+            }
 
             return getRequestBuilder(target).delete(ControllerServiceEntity.class);
         });

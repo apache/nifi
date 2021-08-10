@@ -16,18 +16,11 @@
  */
 package org.apache.nifi.cluster.protocol;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.Serializable;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import org.apache.nifi.cluster.protocol.jaxb.message.DataFlowAdapter;
+import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.slf4j.Logger;
@@ -36,6 +29,18 @@ import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
+
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.Serializable;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Represents a dataflow, which includes the raw bytes of the flow.xml and
@@ -53,6 +58,8 @@ public class StandardDataFlow implements Serializable, DataFlow {
     private final byte[] authorizerFingerprint;
     private final Set<String> missingComponentIds;
     private Document flowDocument;
+    private VersionedDataflow versionedDataflow;
+
 
     /**
      * Constructs an instance.
@@ -100,6 +107,15 @@ public class StandardDataFlow implements Serializable, DataFlow {
     }
 
     @Override
+    public synchronized VersionedDataflow getVersionedDataflow() {
+        if (versionedDataflow == null) {
+            versionedDataflow = parseVersionedDataflow(flow);
+        }
+
+        return versionedDataflow;
+    }
+
+    @Override
     public byte[] getSnippets() {
         return snippetBytes;
     }
@@ -135,5 +151,30 @@ public class StandardDataFlow implements Serializable, DataFlow {
         } catch (final SAXException | ParserConfigurationException | IOException ex) {
             throw new FlowSerializationException(ex);
         }
+    }
+
+    private VersionedDataflow parseVersionedDataflow(final byte[] flow) {
+        if (flow == null || flow.length == 0) {
+            return null;
+        }
+
+        try {
+            final ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(objectMapper.getTypeFactory()));
+            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+            final VersionedDataflow versionedDataflow = objectMapper.readValue(flow, VersionedDataflow.class);
+            return versionedDataflow;
+        } catch (final Exception e) {
+            throw new FlowSerializationException("Could not parse flow as a VersionedDataflow", e);
+        }
+    }
+
+    public boolean isXml() {
+        if (flow == null || flow.length == 0) {
+            return true;
+        }
+
+        return flow[0] == '<';
     }
 }

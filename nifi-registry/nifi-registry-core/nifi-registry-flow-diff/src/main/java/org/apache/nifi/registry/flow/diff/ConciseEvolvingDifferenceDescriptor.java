@@ -17,11 +17,11 @@
 
 package org.apache.nifi.registry.flow.diff;
 
-import java.util.Objects;
-
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
+
+import java.util.Objects;
 
 /**
  * Describes differences between flows as if Flow A is an 'earlier version' of the same flow than Flow B.
@@ -42,8 +42,10 @@ public class ConciseEvolvingDifferenceDescriptor implements DifferenceDescriptor
                 description = String.format("%s was removed", componentA.getComponentType().getTypeName());
                 break;
             case SCHEDULED_STATE_CHANGED:
-                if (ScheduledState.DISABLED.equals(valueA)) {
-                    description = String.format("%s was enabled", componentA.getComponentType().getTypeName());
+                if (valueB == ScheduledState.RUNNING) {
+                    description = String.format("%s was started", componentB.getComponentType().getTypeName());
+                } else if (valueB == ScheduledState.ENABLED) {
+                    description = String.format("%s was enabled", componentB.getComponentType().getTypeName());
                 } else {
                     description = String.format("%s was disabled", componentA.getComponentType().getTypeName());
                 }

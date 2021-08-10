@@ -454,7 +454,6 @@ public class NiFiRegistryFlowMapperTest {
         prepareComponentAuthorizable(processorNode, processGroup.getIdentifier());
         preparePositionable(processorNode);
         prepareConnectable(processorNode, ConnectableType.PROCESSOR);
-        when(processorNode.getProcessGroup()).thenReturn(processGroup);
         when(processorNode.getAutoTerminatedRelationships()).thenReturn(Collections.emptySet());
         when(processorNode.getBulletinLevel()).thenReturn(LogLevel.INFO);
         when(processorNode.getExecutionNode()).thenReturn(ExecutionNode.ALL);

@@ -2559,7 +2559,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyComponentTypes(final VersionedProcessGroup versionedGroup) {
-        controllerFacade.verifyComponentTypes(versionedGroup);
     }
 
     @Override
@@ -3765,17 +3764,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ExtensionManager extensionManager = controllerFacade.getExtensionManager();
         for (final VersionedProcessor processor : versionedGroup.getProcessors()) {
-            final BundleCoordinate compatibleBundle = BundleUtils.discoverCompatibleBundle(extensionManager, processor.getType(), processor.getBundle());
-            final ConfigurableComponent tempComponent = extensionManager.getTempComponent(processor.getType(), compatibleBundle);
-
-            resolveInheritedControllerServices(processor, availableControllerServiceIds, serviceNodes, externalControllerServiceReferences, tempComponent::getPropertyDescriptor);
+            final Optional<BundleCoordinate> compatibleBundle = BundleUtils.getOptionalCompatibleBundle(extensionManager, processor.getType(), BundleUtils.createBundleDto(processor.getBundle()));
+            if (compatibleBundle.isPresent()) {
+                final ConfigurableComponent tempComponent = extensionManager.getTempComponent(processor.getType(), compatibleBundle.get());
+                resolveInheritedControllerServices(processor, availableControllerServiceIds, serviceNodes, externalControllerServiceReferences, tempComponent::getPropertyDescriptor);
+            }
         }
 
         for (final VersionedControllerService service : versionedGroup.getControllerServices()) {
-            final BundleCoordinate compatibleBundle = BundleUtils.discoverCompatibleBundle(extensionManager, service.getType(), service.getBundle());
-            final ConfigurableComponent tempComponent = extensionManager.getTempComponent(service.getType(), compatibleBundle);
-
-            resolveInheritedControllerServices(service, availableControllerServiceIds, serviceNodes, externalControllerServiceReferences, tempComponent::getPropertyDescriptor);
+            final Optional<BundleCoordinate> compatibleBundle = BundleUtils.getOptionalCompatibleBundle(extensionManager, service.getType(), BundleUtils.createBundleDto(service.getBundle()));
+            if (compatibleBundle.isPresent()) {
+                final ConfigurableComponent tempComponent = extensionManager.getTempComponent(service.getType(), compatibleBundle.get());
+                resolveInheritedControllerServices(service, availableControllerServiceIds, serviceNodes, externalControllerServiceReferences, tempComponent::getPropertyDescriptor);
+            }
         }
 
         for (final VersionedProcessGroup child : versionedGroup.getProcessGroups()) {
@@ -4798,26 +4799,33 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 + " but cannot find a Flow Registry with that identifier");
         }
 
-        final VersionedFlowSnapshot versionedFlowSnapshot;
-        try {
-            versionedFlowSnapshot = flowRegistry.getFlowContents(versionControlInfo.getBucketIdentifier(),
-                versionControlInfo.getFlowIdentifier(), versionControlInfo.getVersion(), true, NiFiUserUtils.getNiFiUser());
-        } catch (final IOException | NiFiRegistryException e) {
-            throw new NiFiCoreException("Failed to retrieve flow with Flow Registry in order to calculate local differences due to " + e.getMessage(), e);
+        VersionedProcessGroup registryGroup = null;
+        final VersionControlInformation vci = processGroup.getVersionControlInformation();
+        if (vci != null) {
+            registryGroup = vci.getFlowSnapshot();
+        }
+
+        if (registryGroup == null) {
+            try {
+                final VersionedFlowSnapshot versionedFlowSnapshot = flowRegistry.getFlowContents(versionControlInfo.getBucketIdentifier(),
+                    versionControlInfo.getFlowIdentifier(), versionControlInfo.getVersion(), true, NiFiUserUtils.getNiFiUser());
+                registryGroup = versionedFlowSnapshot.getFlowContents();
+            } catch (final IOException | NiFiRegistryException e) {
+                throw new NiFiCoreException("Failed to retrieve flow with Flow Registry in order to calculate local differences due to " + e.getMessage(), e);
+            }
         }
 
         final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), flowRegistryClient, true);
-        final VersionedProcessGroup registryGroup = versionedFlowSnapshot.getFlowContents();
 
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);
         final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", registryGroup);
 
         final Set<String> ancestorServiceIds = processGroup.getAncestorServiceIds();
-        final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds, new ConciseEvolvingDifferenceDescriptor());
+        final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds, new ConciseEvolvingDifferenceDescriptor(), Function.identity());
         final FlowComparison flowComparison = flowComparator.compare();
 
-        final Set<ComponentDifferenceDTO> differenceDtos = dtoFactory.createComponentDifferenceDtos(flowComparison, controllerFacade.getFlowManager());
+        final Set<ComponentDifferenceDTO> differenceDtos = dtoFactory.createComponentDifferenceDtosForLocalModifications(flowComparison, localGroup, controllerFacade.getFlowManager());
 
         final FlowComparisonEntity entity = new FlowComparisonEntity();
         entity.setComponentDifferences(differenceDtos);
@@ -4924,38 +4932,40 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("New Flow", updatedSnapshot.getFlowContents());
 
         final Set<String> ancestorServiceIds = group.getAncestorServiceIds();
-        final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow, ancestorServiceIds, new StaticDifferenceDescriptor());
+        final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow, ancestorServiceIds, new StaticDifferenceDescriptor(), Function.identity());
         final FlowComparison comparison = flowComparator.compare();
 
         final FlowManager flowManager = controllerFacade.getFlowManager();
         final Set<AffectedComponentEntity> affectedComponents = comparison.getDifferences().stream()
             .filter(difference -> difference.getDifferenceType() != DifferenceType.COMPONENT_ADDED) // components that are added are not components that will be affected in the local flow.
-            .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
+            .filter(difference -> !FlowDifferenceFilters.isVariableValueChange(difference))
             .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
             .filter(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES)
             .filter(diff -> !FlowDifferenceFilters.isNewPropertyWithDefaultValue(diff, flowManager))
             .filter(diff -> !FlowDifferenceFilters.isNewRelationshipAutoTerminatedAndDefaulted(diff, proposedFlow.getContents(), flowManager))
             .filter(diff -> !FlowDifferenceFilters.isScheduledStateNew(diff))
+            .filter(diff -> !FlowDifferenceFilters.isLocalScheduleStateChange(diff))
+            .filter(diff -> !FlowDifferenceFilters.isPropertyMissingFromGhostComponent(diff, flowManager))
             .map(difference -> {
                 final VersionedComponent localComponent = difference.getComponentA();
 
                 final String state;
                 switch (localComponent.getComponentType()) {
                     case CONTROLLER_SERVICE:
-                        final String serviceId = ((InstantiatedVersionedControllerService) localComponent).getInstanceId();
+                        final String serviceId = ((InstantiatedVersionedControllerService) localComponent).getInstanceIdentifier();
                         state = controllerServiceDAO.getControllerService(serviceId).getState().name();
                         break;
                     case PROCESSOR:
-                        final String processorId = ((InstantiatedVersionedProcessor) localComponent).getInstanceId();
+                        final String processorId = ((InstantiatedVersionedProcessor) localComponent).getInstanceIdentifier();
                         state = processorDAO.getProcessor(processorId).getPhysicalScheduledState().name();
                         break;
                     case REMOTE_INPUT_PORT:
                         final InstantiatedVersionedRemoteGroupPort remoteInputPort = (InstantiatedVersionedRemoteGroupPort) localComponent;
-                        state = remoteProcessGroupDAO.getRemoteProcessGroup(remoteInputPort.getInstanceGroupId()).getInputPort(remoteInputPort.getInstanceId()).getScheduledState().name();
+                        state = remoteProcessGroupDAO.getRemoteProcessGroup(remoteInputPort.getInstanceGroupId()).getInputPort(remoteInputPort.getInstanceIdentifier()).getScheduledState().name();
                         break;
                     case REMOTE_OUTPUT_PORT:
                         final InstantiatedVersionedRemoteGroupPort remoteOutputPort = (InstantiatedVersionedRemoteGroupPort) localComponent;
-                        state = remoteProcessGroupDAO.getRemoteProcessGroup(remoteOutputPort.getInstanceGroupId()).getOutputPort(remoteOutputPort.getInstanceId()).getScheduledState().name();
+                        state = remoteProcessGroupDAO.getRemoteProcessGroup(remoteOutputPort.getInstanceGroupId()).getOutputPort(remoteOutputPort.getInstanceIdentifier()).getScheduledState().name();
                         break;
                     case INPUT_PORT:
                         final InstantiatedVersionedPort versionedInputPort = (InstantiatedVersionedPort) localComponent;
@@ -4977,11 +4987,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             .collect(Collectors.toCollection(HashSet::new));
 
         for (final FlowDifference difference : comparison.getDifferences()) {
-            // Ignore these as local differences for now because we can't do anything with it
-            if (difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED) {
-                continue;
-            }
-
             // Ignore differences for adding remote ports
             if (FlowDifferenceFilters.isAddedOrRemovedRemotePort(difference)) {
                 continue;
@@ -5011,7 +5016,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             // If any Process Group is removed, consider all components below that Process Group as an affected component
             if (difference.getDifferenceType() == DifferenceType.COMPONENT_REMOVED && localComponent.getComponentType() == org.apache.nifi.flow.ComponentType.PROCESS_GROUP) {
-                final String localGroupId = ((InstantiatedVersionedProcessGroup) localComponent).getInstanceId();
+                final String localGroupId = ((InstantiatedVersionedProcessGroup) localComponent).getInstanceIdentifier();
                 final ProcessGroup localGroup = processGroupDAO.getProcessGroup(localGroupId);
 
                 localGroup.findAllProcessors().stream()
@@ -5036,7 +5041,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
 
             if (localComponent.getComponentType() == org.apache.nifi.flow.ComponentType.CONTROLLER_SERVICE) {
-                final String serviceId = ((InstantiatedVersionedControllerService) localComponent).getInstanceId();
+                final String serviceId = ((InstantiatedVersionedControllerService) localComponent).getInstanceIdentifier();
                 final ControllerServiceNode serviceNode = controllerServiceDAO.getControllerService(serviceId);
 
                 final List<ControllerServiceNode> referencingServices = serviceNode.getReferences().findRecursiveReferences(ControllerServiceNode.class);
@@ -5105,7 +5110,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             return null;
         }
 
-        return processGroup.getInputPort(port.getInstanceId());
+        return processGroup.getInputPort(port.getInstanceIdentifier());
     }
 
     private Port getOutputPort(final InstantiatedVersionedPort port) {
@@ -5114,7 +5119,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             return null;
         }
 
-        return processGroup.getOutputPort(port.getInstanceId());
+        return processGroup.getOutputPort(port.getInstanceIdentifier());
     }
 
     private void mapToConnectableId(final Collection<? extends Connectable> connectables, final Map<String, List<Connectable>> destination) {
@@ -5180,15 +5185,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     private AffectedComponentEntity createAffectedComponentEntity(final InstantiatedVersionedComponent instance, final String componentTypeName, final String componentState) {
         final AffectedComponentEntity entity = new AffectedComponentEntity();
-        entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(instance.getInstanceId())));
-        entity.setId(instance.getInstanceId());
+        entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(instance.getInstanceIdentifier())));
+        entity.setId(instance.getInstanceIdentifier());
 
         final Authorizable authorizable = getAuthorizable(componentTypeName, instance);
         final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(authorizable);
         entity.setPermissions(permissionsDto);
 
         final AffectedComponentDTO dto = new AffectedComponentDTO();
-        dto.setId(instance.getInstanceId());
+        dto.setId(instance.getInstanceIdentifier());
         dto.setReferenceType(componentTypeName);
         dto.setProcessGroupId(instance.getInstanceGroupId());
         dto.setState(componentState);
@@ -5210,7 +5215,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private Authorizable getAuthorizable(final String componentTypeName, final InstantiatedVersionedComponent versionedComponent) {
-        final String componentId = versionedComponent.getInstanceId();
+        final String componentId = versionedComponent.getInstanceIdentifier();
 
         if (componentTypeName.equals(org.apache.nifi.flow.ComponentType.CONTROLLER_SERVICE.name())) {
             return authorizableLookup.getControllerService(componentId).getAuthorizable();

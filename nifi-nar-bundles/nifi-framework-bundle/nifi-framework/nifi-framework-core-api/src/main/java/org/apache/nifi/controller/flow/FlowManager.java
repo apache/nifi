@@ -33,7 +33,6 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
-import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 
 import java.net.URL;
 import java.util.Collection;
@@ -41,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public interface FlowManager {
     String ROOT_GROUP_ID_ALIAS = "root";
@@ -180,6 +180,8 @@ public interface FlowManager {
     void onProcessorAdded(ProcessorNode processor);
 
     void onProcessorRemoved(ProcessorNode processor);
+
+    Set<ProcessorNode> findAllProcessors(Predicate<ProcessorNode> processorNode);
 
 
     /**
@@ -339,12 +341,13 @@ public interface FlowManager {
      * @param id                The unique id
      * @param name              The ParameterContext name
      * @param parameters        The Parameters
-     * @param parameterContexts Optional inherited ParameterContexts
+     * @param inheritedContextIds The identifiers of any Parameter Contexts that the newly created Parameter Context should inherit from. The order of the identifiers in the List determines the
+     * order in which parameters with conflicting names are resolved. I.e., the Parameter Context whose ID comes first in the List is preferred.
      * @return The created ParameterContext
      * @throws IllegalStateException If <code>parameterContexts</code> is not empty and this method is called without being wrapped
      * by {@link FlowManager#withParameterContextResolution(Runnable)}
      */
-    ParameterContext createParameterContext(String id, String name, Map<String, Parameter> parameters, List<ParameterContextReferenceEntity> parameterContexts);
+    ParameterContext createParameterContext(String id, String name, Map<String, Parameter> parameters, List<String> inheritedContextIds);
 
     /**
      * Performs the given ParameterContext-related action, and then resolves all inherited ParameterContext references.

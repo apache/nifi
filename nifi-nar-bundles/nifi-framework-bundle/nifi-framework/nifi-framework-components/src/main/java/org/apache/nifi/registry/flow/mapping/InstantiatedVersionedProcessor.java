@@ -29,7 +29,7 @@ public class InstantiatedVersionedProcessor extends VersionedProcessor implement
     }
 
     @Override
-    public String getInstanceId() {
+    public String getInstanceIdentifier() {
         return instanceId;
     }
 
