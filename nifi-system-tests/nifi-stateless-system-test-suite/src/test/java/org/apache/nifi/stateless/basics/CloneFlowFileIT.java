@@ -92,7 +92,7 @@ public class CloneFlowFileIT extends StatelessSystemIT {
 
     private String readContentAsString(final TriggerResult result, final FlowFile flowFile) {
         try {
-            return new String(result.readContent(flowFile), StandardCharsets.UTF_8);
+            return new String(result.readContentAsByteArray(flowFile), StandardCharsets.UTF_8);
         } catch (final IOException e) {
             e.printStackTrace();
             Assert.fail("Could not read content");

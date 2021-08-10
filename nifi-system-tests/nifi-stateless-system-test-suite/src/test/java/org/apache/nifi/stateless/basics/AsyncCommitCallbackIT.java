@@ -132,7 +132,7 @@ public class AsyncCommitCallbackIT extends StatelessSystemIT {
 
             final byte[] outputContents;
             try {
-                outputContents = result.readContent(out);
+                outputContents = result.readContentAsByteArray(out);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

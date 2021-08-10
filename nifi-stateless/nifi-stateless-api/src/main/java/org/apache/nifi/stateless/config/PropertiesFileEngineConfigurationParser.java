@@ -120,7 +120,7 @@ public class PropertiesFileEngineConfigurationParser {
             }
 
             @Override
-            public Optional<File> getContentRepositoryStoragePath() {
+            public Optional<File> getContentRepositoryDirectory() {
                 return Optional.ofNullable(contentRepoDirectory);
             }
 

@@ -82,7 +82,7 @@ public class SplittingIT extends StatelessSystemIT {
             final String expected = expectedContent[i];
 
             final FlowFile flowFile = flowFiles.get(i);
-            final String outputContent = new String(result.readContent(flowFile));
+            final String outputContent = new String(result.readContentAsByteArray(flowFile));
             assertEquals(expected, outputContent);
         }
 

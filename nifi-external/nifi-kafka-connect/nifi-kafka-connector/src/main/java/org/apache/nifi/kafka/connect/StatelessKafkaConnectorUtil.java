@@ -277,7 +277,7 @@ public class StatelessKafkaConnectorUtil {
             }
 
             @Override
-            public Optional<File> getContentRepositoryStoragePath() {
+            public Optional<File> getContentRepositoryDirectory() {
                 return Optional.empty();
             }
 

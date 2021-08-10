@@ -36,7 +36,7 @@ public interface StatelessEngineConfiguration {
     /**
      * @return the directory to use for storing FlowFile Content, or an empty optional if content is to be stored in memory
      */
-    Optional<File> getContentRepositoryStoragePath();
+    Optional<File> getContentRepositoryDirectory();
 
     SslContextDefinition getSslContext();
 

@@ -34,13 +34,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
-public class TestStatelessFileSystemRepository {
+public class TestStatelessFileSystemContentRepository {
     private final File repoDirectory = new File("target/test-stateless-file-system-repository");
-    private StatelessFileSystemRepository repository;
+    private StatelessFileSystemContentRepository repository;
 
     @Before
     public void setup() throws IOException {
-        repository = new StatelessFileSystemRepository(repoDirectory);
+        repository = new StatelessFileSystemContentRepository(repoDirectory);
         repository.initialize(new StandardResourceClaimManager());
     }
 

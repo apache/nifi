@@ -24,6 +24,7 @@ import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.stateless.flow.FailurePortEncounteredException;
@@ -35,7 +36,6 @@ import org.apache.nifi.stream.io.StreamUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -149,7 +149,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
             }
 
             @Override
-            public byte[] readContent(final FlowFile flowFile) throws IOException {
+            public InputStream readContent(final FlowFile flowFile) throws IOException {
                 if (!(flowFile instanceof FlowFileRecord)) {
                     throw new IllegalArgumentException("FlowFile was not created by this flow");
                 }
@@ -157,23 +157,35 @@ public class StandardExecutionProgress implements ExecutionProgress {
                 final FlowFileRecord flowFileRecord = (FlowFileRecord) flowFile;
                 final ContentClaim contentClaim = flowFileRecord.getContentClaim();
 
-                if (contentClaim.getLength() > Integer.MAX_VALUE) {
-                    throw new IOException("Cannot return contents of " + flowFile + " as a byte array because the contents are too large: " + contentClaim.getLength() + " bytes");
-                }
-
-                final byte[] contentClaimContents = new byte[(int) contentClaim.getLength()];
-                try (final InputStream in = contentRepository.read(contentClaim)) {
-                    StreamUtils.fillBuffer(in, contentClaimContents);
-                }
-
+                final InputStream in = contentRepository.read(contentClaim);
                 final long offset = flowFileRecord.getContentClaimOffset();
-                final long size = flowFileRecord.getSize();
-
-                if (offset == 0 && size == contentClaimContents.length) {
-                    return contentClaimContents;
+                if (offset > 0) {
+                    StreamUtils.skip(in, offset);
                 }
 
-                final byte[] flowFileContents = Arrays.copyOfRange(contentClaimContents, (int) offset, (int) (size + offset));
+                return new LimitedInputStream(in, flowFile.getSize());
+            }
+
+            @Override
+            public byte[] readContentAsByteArray(final FlowFile flowFile) throws IOException {
+                if (!(flowFile instanceof FlowFileRecord)) {
+                    throw new IllegalArgumentException("FlowFile was not created by this flow");
+                }
+
+                if (flowFile.getSize() > Integer.MAX_VALUE) {
+                    throw new IOException("Cannot return contents of " + flowFile + " as a byte array because the contents exceed the maximum length supported for byte arrays ("
+                        + Integer.MAX_VALUE + " bytes)");
+                }
+
+                final FlowFileRecord flowFileRecord = (FlowFileRecord) flowFile;
+
+                final long size = flowFileRecord.getSize();
+                final byte[] flowFileContents = new byte[(int) size];
+
+                try (final InputStream in = readContent(flowFile)) {
+                    StreamUtils.fillBuffer(in, flowFileContents);
+                }
+
                 return flowFileContents;
             }
 

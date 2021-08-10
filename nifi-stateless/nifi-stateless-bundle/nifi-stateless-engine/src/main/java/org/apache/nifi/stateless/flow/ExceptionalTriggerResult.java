@@ -20,6 +20,8 @@ package org.apache.nifi.stateless.flow;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +60,12 @@ public class ExceptionalTriggerResult implements TriggerResult {
     }
 
     @Override
-    public byte[] readContent(final FlowFile flowFile) {
+    public InputStream readContent(final FlowFile flowFile) {
+        throw new IllegalArgumentException("Unknown FlowFile: " + flowFile);
+    }
+
+    @Override
+    public byte[] readContentAsByteArray(final FlowFile flowFile) throws IOException {
         throw new IllegalArgumentException("Unknown FlowFile: " + flowFile);
     }
 
@@ -68,6 +75,8 @@ public class ExceptionalTriggerResult implements TriggerResult {
 
     @Override
     public void abort(final Throwable cause) {
-        failureCause.addSuppressed(cause);
+        if (cause != null) {
+            failureCause.addSuppressed(cause);
+        }
     }
 }

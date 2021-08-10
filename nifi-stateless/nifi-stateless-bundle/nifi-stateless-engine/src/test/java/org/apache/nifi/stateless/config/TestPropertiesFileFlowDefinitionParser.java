@@ -99,7 +99,7 @@ public class TestPropertiesFileFlowDefinitionParser {
             }
 
             @Override
-            public Optional<File> getContentRepositoryStoragePath() {
+            public Optional<File> getContentRepositoryDirectory() {
                 return Optional.empty();
             }
 

@@ -72,7 +72,7 @@ public class MergingIT extends StatelessSystemIT {
         assertEquals(1, flowFiles.size());
 
         final FlowFile first = flowFiles.get(0);
-        final String outputContent = new String(result.readContent(first));
+        final String outputContent = new String(result.readContentAsByteArray(first));
         assertEquals("abc123xyz321abc123xyz321abc123xyz321", outputContent);
 
         result.acknowledge();

@@ -69,7 +69,7 @@ import org.apache.nifi.stateless.engine.StatelessProcessContextFactory;
 import org.apache.nifi.stateless.engine.StatelessProvenanceAuthorizableFactory;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
-import org.apache.nifi.stateless.repository.StatelessFileSystemRepository;
+import org.apache.nifi.stateless.repository.StatelessFileSystemContentRepository;
 import org.apache.nifi.stateless.repository.StatelessFlowFileRepository;
 import org.apache.nifi.stateless.repository.StatelessProvenanceRepository;
 import org.apache.nifi.stateless.repository.StatelessRepositoryContextFactory;
@@ -265,9 +265,9 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
     }
 
     private ContentRepository createContentRepository(final StatelessEngineConfiguration engineConfiguration) {
-        final Optional<File> contentRepoStorageDirectory = engineConfiguration.getContentRepositoryStoragePath();
+        final Optional<File> contentRepoStorageDirectory = engineConfiguration.getContentRepositoryDirectory();
         if (contentRepoStorageDirectory.isPresent()) {
-            return new StatelessFileSystemRepository(contentRepoStorageDirectory.get());
+            return new StatelessFileSystemContentRepository(contentRepoStorageDirectory.get());
         } else {
             return new ByteArrayContentRepository();
         }

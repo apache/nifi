@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,8 +51,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class StatelessFileSystemRepository implements ContentRepository {
-    private static final Logger logger = LoggerFactory.getLogger(StatelessFileSystemRepository.class);
+public class StatelessFileSystemContentRepository implements ContentRepository {
+    private static final Logger logger = LoggerFactory.getLogger(StatelessFileSystemContentRepository.class);
+    private static final String CONTENT_FILE_REGEX = "\\d+\\.nifi\\.bin";
 
     private static final String CONTAINER = "stateless";
     private static final String SECTION = "stateless";
@@ -62,7 +64,7 @@ public class StatelessFileSystemRepository implements ContentRepository {
     private final BlockingQueue<ResourceClaim> writableClaimQueue = new LinkedBlockingQueue<>();
     private ResourceClaimManager resourceClaimManager;
 
-    public StatelessFileSystemRepository(final File directory) {
+    public StatelessFileSystemContentRepository(final File directory) {
         this.directory = directory;
     }
 
@@ -74,7 +76,7 @@ public class StatelessFileSystemRepository implements ContentRepository {
         }
 
         // Check if there are any existing files and if so, purges them.
-        final File[] existingFiles = directory.listFiles(file -> file.getName().matches("\\d+\\.nifi\\.bin"));
+        final File[] existingFiles = directory.listFiles(file -> file.getName().matches(CONTENT_FILE_REGEX));
         if (existingFiles == null) {
             throw new IOException("Cannot initialize Content Repository because failed to list contents of directory " + directory.getAbsolutePath());
         }
@@ -267,11 +269,11 @@ public class StatelessFileSystemRepository implements ContentRepository {
 
     private void validateResourceClaim(final ResourceClaim resourceClaim) {
         if (!CONTAINER.equals(resourceClaim.getContainer())) {
-            throw new IllegalArgumentException("The given ResourceClaim does not belong to this Content Repository");
+            throwInvalidResourceClaim();
         }
 
         if (!SECTION.equals(resourceClaim.getSection())) {
-            throw new IllegalArgumentException("The given ResourceClaim does not belong to this Content Repository");
+            throwInvalidResourceClaim();
         }
     }
 
@@ -281,7 +283,7 @@ public class StatelessFileSystemRepository implements ContentRepository {
 
         final SynchronizedByteCountingOutputStream out = writableStreamMap.get(claim.getResourceClaim());
         if (out == null) {
-            throw new IllegalArgumentException("The given ResourceClaim does not belong to this Content Repository");
+            throwInvalidContentClaim();
         }
 
         final StandardContentClaim scc = (StandardContentClaim) claim;
@@ -290,12 +292,10 @@ public class StatelessFileSystemRepository implements ContentRepository {
     }
 
     private void validateContentClaimForWriting(final ContentClaim claim) throws IOException {
-        if (claim == null) {
-            throw new NullPointerException("ContentClaim cannot be null");
-        }
+        Objects.requireNonNull(claim, "ContentClaim cannot be null");
 
         if (!(claim instanceof StandardContentClaim)) {
-            throw new IllegalArgumentException("The given ResourceClaim does not belong to this Content Repository");
+            throwInvalidContentClaim();
         }
 
         validateResourceClaim(claim.getResourceClaim());
@@ -305,6 +305,13 @@ public class StatelessFileSystemRepository implements ContentRepository {
         }
     }
 
+    private void throwInvalidContentClaim() {
+        throw new IllegalArgumentException("The given ContentClaim does not belong to this Content Repository");
+    }
+
+    private void throwInvalidResourceClaim() {
+        throw new IllegalArgumentException("The given ResourceClaim does not belong to this Content Repository");
+    }
 
     @Override
     public void purge() {

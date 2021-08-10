@@ -95,7 +95,7 @@ public class StatelessSystemIT {
             }
 
             @Override
-            public Optional<File> getContentRepositoryStoragePath() {
+            public Optional<File> getContentRepositoryDirectory() {
                 return Optional.empty();
 
                 // Can be used to enable file-based content repository.
