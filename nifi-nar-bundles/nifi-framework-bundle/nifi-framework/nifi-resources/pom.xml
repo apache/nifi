@@ -38,6 +38,7 @@
         <nifi.queue.backpressure.size>1 GB</nifi.queue.backpressure.size>
 
         <nifi.flow.configuration.file>./conf/flow.xml.gz</nifi.flow.configuration.file>
+        <nifi.flow.configuration.json.file>./conf/flow.json.gz</nifi.flow.configuration.json.file>
         <nifi.flow.configuration.archive.enabled>true</nifi.flow.configuration.archive.enabled>
         <nifi.flow.configuration.archive.dir>./conf/archive/</nifi.flow.configuration.archive.dir>
         <nifi.flow.configuration.archive.max.time>30 days</nifi.flow.configuration.archive.max.time>

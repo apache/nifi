@@ -21,9 +21,7 @@ import javax.xml.bind.annotation.XmlTransient;
 
 public interface InstantiatedVersionedComponent {
 
-    // mark transient so fields are ignored when serializing all versioned component types
-    @XmlTransient
-    String getInstanceId();
+    String getInstanceIdentifier();
 
     @XmlTransient
     String getInstanceGroupId();

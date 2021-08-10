@@ -31,7 +31,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 
-public class JoinCluslterWithMissingConnectionWithData  extends NiFiSystemIT {
+public class JoinClusterWithMissingConnectionWithData extends NiFiSystemIT {
     private static final String GENERATE_UUID = "6be9a7e7-016e-1000-0000-00004700499d";
     private static final String CONNECTION_UUID = "6be9a991-016e-1000-ffff-fffffebf0217";
 

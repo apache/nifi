@@ -35,7 +35,7 @@ public class InstantiatedVersionedProcessGroup extends VersionedProcessGroup imp
     }
 
     @Override
-    public String getInstanceId() {
+    public String getInstanceIdentifier() {
         return instanceId;
     }
 

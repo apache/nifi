@@ -17,7 +17,13 @@
 
 package org.apache.nifi.cluster.coordination.flow;
 
-import static java.util.Objects.requireNonNull;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.nifi.cluster.protocol.DataFlow;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.serialization.StandardFlowSynchronizer;
+import org.apache.nifi.fingerprint.FingerprintFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -30,12 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import org.apache.nifi.cluster.protocol.DataFlow;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.controller.StandardFlowSynchronizer;
-import org.apache.nifi.fingerprint.FingerprintFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.util.Objects.requireNonNull;
 
 /**
  * <p>
@@ -141,7 +142,7 @@ public class PopularVoteFlowElection implements FlowElection {
     }
 
     private String fingerprint(final DataFlow dataFlow) {
-        final String flowFingerprint = fingerprintFactory.createFingerprint(dataFlow.getFlow());
+        final String flowFingerprint = DigestUtils.sha256Hex(dataFlow.getFlow());
         final String authFingerprint = dataFlow.getAuthorizerFingerprint() == null ? "" : new String(dataFlow.getAuthorizerFingerprint(), StandardCharsets.UTF_8);
         final String candidateFingerprint = flowFingerprint + authFingerprint;
 
@@ -244,7 +245,7 @@ public class PopularVoteFlowElection implements FlowElection {
         }
 
         public boolean isFlowEmpty() {
-            return StandardFlowSynchronizer.isEmpty(dataFlow);
+            return StandardFlowSynchronizer.isFlowEmpty(dataFlow);
         }
 
         public Set<NodeIdentifier> getNodes() {

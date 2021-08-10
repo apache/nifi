@@ -53,13 +53,24 @@ public class StandardFlowEncryptor implements FlowEncryptor {
             try (final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
                 reader.lines().forEach(line -> {
                     final Matcher matcher = ENCRYPTED_PATTERN.matcher(line);
-                    if (matcher.find()) {
+
+                    final StringBuffer sb = new StringBuffer();
+                    boolean matched = false;
+                    while (matcher.find()) {
                         final String outputEncrypted = getOutputEncrypted(matcher.group(FIRST_GROUP), inputEncryptor, outputEncryptor);
-                        final String outputLine = matcher.replaceFirst(outputEncrypted);
-                        writer.println(outputLine);
-                    } else {
-                        writer.println(line);
+                        matcher.appendReplacement(sb, outputEncrypted);
+                        matched = true;
                     }
+
+                    final String outputLine;
+                    if (matched) {
+                        matcher.appendTail(sb);
+                        outputLine = sb.toString();
+                    } else {
+                        outputLine = line;
+                    }
+
+                    writer.println(outputLine);
                 });
             }
         } catch (final IOException e) {

@@ -174,7 +174,7 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      * states such as STOPPING and STARTING.
      *
      * @return the physical state of this processor [DISABLED, STOPPED, RUNNING,
-     *         STARTIING, STOPIING]
+     *         STARTING, STOPIING]
      */
     public ScheduledState getPhysicalScheduledState() {
         return this.scheduledState.get();
