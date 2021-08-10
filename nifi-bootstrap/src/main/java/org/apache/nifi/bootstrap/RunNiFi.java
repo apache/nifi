@@ -175,7 +175,7 @@ public class RunNiFi {
         System.out.println("Status : Determine if there is a running instance of Apache NiFi");
         System.out.println("Dump : Write a Thread Dump to the file specified by [options], or to the log if no file is given");
         System.out.println("Diagnostics : Write diagnostic information to the file specified by [options], or to the log if no file is given. The --verbose flag may be provided as an option before " +
-                "the filename, which may result in additional diagnostic information being written.");
+            "the filename, which may result in additional diagnostic information being written.");
         System.out.println("Run : Start a new instance of Apache NiFi and monitor the Process, restarting if the instance dies");
         System.out.println();
     }
@@ -1217,7 +1217,7 @@ public class RunNiFi {
 
         final StringBuilder cmdBuilder = new StringBuilder();
         for (final String s : cmd) {
-            cmdBuilder.append(s).append(" ");
+          cmdBuilder.append(s).append(" ");
         }
 
         cmdLogger.info("Starting Apache NiFi...");
@@ -1338,14 +1338,14 @@ public class RunNiFi {
                             // We are expected to restart nifi, so send a notification that it died. If we are not restarting nifi,
                             // then this means that we are intentionally stopping the service.
                             serviceManager.notify(NotificationType.NIFI_DIED, "NiFi Died on Host " + hostname,
-                                    "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now + "; automatically restarting NiFi");
+                                "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now + "; automatically restarting NiFi");
                         } else {
                             defaultLogger.error("Apache NiFi does not appear to have started");
                             // We are expected to restart nifi, so send a notification that it died. If we are not restarting nifi,
                             // then this means that we are intentionally stopping the service.
                             serviceManager.notify(NotificationType.NIFI_DIED, "NiFi Died on Host " + hostname,
-                                    "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now +
-                                            ". Attempted to restart NiFi but the services does not appear to have restarted!");
+                                "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now +
+                                    ". Attempted to restart NiFi but the services does not appear to have restarted!");
                         }
                     } else {
                         return;
@@ -1362,7 +1362,7 @@ public class RunNiFi {
     }
 
     private Path createSensitiveKeyFile(File confDir) {
-        Path sensitiveKeyFile = Paths.get(confDir + "/sensitive.key");
+        Path sensitiveKeyFile = Paths.get(confDir+"/sensitive.key");
 
         final boolean isPosixSupported = FileSystems.getDefault().supportedFileAttributeViews().contains("posix");
         try {

@@ -4283,4 +4283,4 @@ The verbose switch is optional and can be used to control the level of diagnosti
 
 == Automatic diagnostics at shutdown/restart
 
-NiFi supports automatic diagnostics in the event of a shutdown. The feature is disabled by default. The settings can be found in the bootstrap.conf file and the feature can be enabled there also.
+NiFi supports automatic diagnostics in the event of a shutdown. The feature is disabled by default. The settings can be found in the nifi.properties file and the feature can be enabled there also.
