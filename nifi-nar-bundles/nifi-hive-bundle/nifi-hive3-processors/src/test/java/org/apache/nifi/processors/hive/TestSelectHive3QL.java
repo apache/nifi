@@ -134,7 +134,7 @@ public class TestSelectHive3QL {
         invokeOnTrigger(QUERY_WITH_EL, true, "Avro");
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        assertEquals(3, provenanceEvents.size());
+        assertEquals(4, provenanceEvents.size());
 
         final ProvenanceEventRecord provenance0 = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.FORK, provenance0.getEventType());
@@ -145,6 +145,9 @@ public class TestSelectHive3QL {
 
         final ProvenanceEventRecord provenance2 = provenanceEvents.get(2);
         assertEquals(ProvenanceEventType.FORK, provenance2.getEventType());
+
+        final ProvenanceEventRecord provenance3 = provenanceEvents.get(3);
+        assertEquals(ProvenanceEventType.DROP, provenance3.getEventType());
     }
 
 
