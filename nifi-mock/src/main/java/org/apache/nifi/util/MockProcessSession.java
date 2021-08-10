@@ -690,6 +690,9 @@ public class MockProcessSession implements ProcessSession {
             if (Objects.equals(ff.getId(), flowFile.getId())) {
                 penalizedItr.remove();
                 penalized.remove(ff);
+                if (originalVersions.get(ff.getId()) != null) {
+                    provenanceReporter.drop(ff, ff.getAttribute(CoreAttributes.DISCARD_REASON.key()));
+                }
                 break;
             }
         }
@@ -702,6 +705,9 @@ public class MockProcessSession implements ProcessSession {
                 beingProcessed.remove(ffId);
                 removedFlowFiles.add(flowFile.getId());
                 currentVersions.remove(ffId);
+                if (originalVersions.get(flowFile.getId()) != null) {
+                    provenanceReporter.drop(flowFile, flowFile.getAttribute(CoreAttributes.DISCARD_REASON.key()));
+                }
                 return;
             }
         }

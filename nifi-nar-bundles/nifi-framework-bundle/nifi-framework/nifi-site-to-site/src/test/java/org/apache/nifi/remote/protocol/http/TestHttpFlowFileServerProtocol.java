@@ -314,7 +314,8 @@ public class TestHttpFlowFileServerProtocol {
 
         // Assert provenance
         final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
-        assertEquals(1, provenanceEvents.size());
+        // Assert provenance (SEND and DROP)
+        assertEquals(2, provenanceEvents.size());
         final ProvenanceEventRecord provenanceEvent = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.SEND, provenanceEvent.getEventType());
         assertEquals(endpointUri, provenanceEvent.getTransitUri());
@@ -410,13 +411,16 @@ public class TestHttpFlowFileServerProtocol {
         final int flowFileSent = serverProtocol.commitTransferTransaction(peer, "3058746557");
         assertEquals(2, flowFileSent);
 
-        // Assert provenance
+        // Assert provenance (SEND and DROP)
         final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
-        assertEquals(2, provenanceEvents.size());
-        for (final ProvenanceEventRecord provenanceEvent : provenanceEvents) {
+        assertEquals(4, provenanceEvents.size());
+        for (int i = 0; i < provenanceEvents.size(); i += 2) {
+            ProvenanceEventRecord provenanceEvent = provenanceEvents.get(i);
             assertEquals(ProvenanceEventType.SEND, provenanceEvent.getEventType());
             assertEquals(endpointUri, provenanceEvent.getTransitUri());
             assertEquals("Remote Host=peer-host, Remote DN=unit-test", provenanceEvent.getDetails());
+            provenanceEvent = provenanceEvents.get(i + 1);
+            assertEquals(ProvenanceEventType.DROP, provenanceEvent.getEventType());
         }
 
     }
