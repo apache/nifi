@@ -69,7 +69,6 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
      */
     void verifyCanSetParameters(Map<String, Parameter> parameters);
 
-
     /**
      * Returns the Parameter with the given descriptor, considering this and all inherited
      * ParameterContexts.
@@ -78,6 +77,18 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
      * @return the Parameter with the given name, or <code>null</code> if no parameter exists with the given descriptor
      */
     Optional<Parameter> getParameter(ParameterDescriptor parameterDescriptor);
+
+    /**
+     * Checks whether this ParameterContext would still have an effective value for the given parameter if the
+     * parameter was removed from this or any inherited parameter context, no matter how indirect.  This allows
+     * the ParameterContext to be checked for validity: if it will still have an effective value, the parameter
+     * can be safely removed.
+     *
+     * @param parameterDescriptor parameter descriptor to check
+     * @return True if, when the parameter is removed, this ParameterContext would still have an effective value
+     * for the parameter.
+     */
+    boolean hasEffectiveValueIfRemoved(ParameterDescriptor parameterDescriptor);
 
     /**
      * Returns the Map of all Parameters in this context (not in any inherited ParameterContexts). Note that the Map that

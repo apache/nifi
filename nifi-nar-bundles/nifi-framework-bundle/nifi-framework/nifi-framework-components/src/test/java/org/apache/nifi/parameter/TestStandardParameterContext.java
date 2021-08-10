@@ -25,13 +25,11 @@ import org.junit.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -198,12 +196,10 @@ public class TestStandardParameterContext {
         parameters.clear();
         parameters.put("abc", new Parameter(abcDescriptor, "123"));
 
-        try {
-            context.setParameters(parameters);
-            Assert.fail("Was able to change parameter while referencing processor was running");
-        } catch (final IllegalStateException expected) {
-        }
+        // Cannot update parameters while running
+        Assert.assertThrows(IllegalStateException.class, () -> context.setParameters(parameters));
 
+        // This passes no parameters to update, so it should be fine
         context.setParameters(Collections.emptyMap());
 
         parameters.clear();
@@ -288,14 +284,20 @@ public class TestStandardParameterContext {
         }
         assertEquals(originalValue, a.getParameter(inheritedParamName).get().getValue());
 
-        // Finally, show that even if the effective value of 'def' doesn't change, we still prevent updating
+        // Show that if the effective value of 'def' doesn't change, we don't prevent updating
         // ParameterContext references that refer to 'def'
-        try {
-            a.setInheritedParameterContexts(Arrays.asList(b, c));
-            Assert.fail("Was able to change parameter while referencing processor was running");
-        } catch (final IllegalStateException expected) {
-            Assert.assertTrue(expected.getMessage().contains("def"));
-        }
+        a.setInheritedParameterContexts(Arrays.asList(b, c));
+        assertEquals(originalValue, a.getParameter(inheritedParamName).get().getValue());
+
+        stopProcessor(procNode);
+        removeParameter(b, inheritedParamName);
+        b.setInheritedParameterContexts(Collections.singletonList(c));
+        // Now a gets 'def' by inheriting through B and then C.
+
+        // Show that updating a value on a grandchild is prevented because the processor is running and
+        // references the parameter via the grandparent
+        startProcessor(procNode);
+        Assert.assertThrows(IllegalStateException.class, () -> removeParameter(c, inheritedParamName));
     }
 
     private static ProcessorNode getProcessorNode(String parameterName, HashMapParameterReferenceManager referenceManager) {
@@ -343,7 +345,7 @@ public class TestStandardParameterContext {
         final ParameterContext b = createParameterContext("b", parameterContextLookup, referenceManager);
         addParameter(b, inheritedParamName, originalValue);
 
-        final ProcessorNode procNode = getProcessorNode(inheritedParamName, referenceManager);
+        getProcessorNode(inheritedParamName, referenceManager);
 
         a.setInheritedParameterContexts(Arrays.asList(b));
 
@@ -354,6 +356,7 @@ public class TestStandardParameterContext {
     @Test
     public void testChangingNestedParameterForEnabledControllerService() {
         final String inheritedParamName = "def";
+        final String inheritedParamName2 = "ghi";
         final String originalValue = "123";
         final String changedValue = "321";
 
@@ -367,6 +370,9 @@ public class TestStandardParameterContext {
 
         a.setInheritedParameterContexts(Arrays.asList(b));
 
+        final ParameterContext c = createParameterContext("c", parameterContextLookup, referenceManager);
+        addParameter(c, "ghi", originalValue);
+
         // Structure is now:
         // Param context A
         //   Param abc
@@ -376,35 +382,26 @@ public class TestStandardParameterContext {
         enableControllerService(serviceNode);
 
         referenceManager.addControllerServiceReference(inheritedParamName, serviceNode);
+        referenceManager.addControllerServiceReference(inheritedParamName2, serviceNode);
 
         for (final ControllerServiceState state : EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.ENABLING, ControllerServiceState.DISABLING)) {
             setControllerServiceState(serviceNode, state);
 
-            try {
-                addParameter(b, inheritedParamName, changedValue);
-                Assert.fail("Was able to update parameter being referenced by Controller Service that is " + state);
-            } catch (final IllegalStateException expected) {
-            }
+            Assert.assertThrows(IllegalStateException.class, () -> addParameter(b, inheritedParamName, changedValue));
 
-            try {
-                b.setInheritedParameterContexts(Arrays.asList(b));
-                Assert.fail("Was able to update parameter being referenced by Controller Service that is " + state);
-            } catch (final IllegalStateException expected) {
-            }
+            Assert.assertThrows(IllegalStateException.class, () -> b.setInheritedParameterContexts(Collections.singletonList(c)));
 
             assertEquals(originalValue, a.getParameter(inheritedParamName).get().getValue());
         }
-        try {
-            removeParameter(b, inheritedParamName);
-            Assert.fail("Was able to remove parameter being referenced by Controller Service that is DISABLING");
-        } catch (final IllegalStateException expected) {
-        }
 
-        try {
-            b.setInheritedParameterContexts(Collections.emptyList());
-            Assert.fail("Was able to update parameter being referenced by Controller Service that is DISABLING");
-        } catch (final IllegalStateException expected) {
-        }
+        Assert.assertThrows(IllegalStateException.class, () -> removeParameter(b, inheritedParamName));
+        setControllerServiceState(serviceNode, ControllerServiceState.DISABLED);
+
+        b.setInheritedParameterContexts(Collections.singletonList(c));
+
+        setControllerServiceState(serviceNode, ControllerServiceState.DISABLING);
+
+        Assert.assertThrows(IllegalStateException.class, () -> b.setInheritedParameterContexts(Collections.emptyList()));
     }
 
     @Test
@@ -563,17 +560,38 @@ public class TestStandardParameterContext {
 
         Assert.assertEquals("d.grandchild", effectiveParameters.get(grandchild).getValue());
         Assert.assertEquals("d", effectiveParameters.get(grandchild).getParameterContextId());
+    }
 
-        // Now verify that the parameters are returned in the correct order
-        final List<ParameterDescriptor> orderedDescriptors = new ArrayList<>(effectiveParameters.keySet());
-        int i = 0;
-        // Direct children first, a-z
-        assertEquals("bar", orderedDescriptors.get(i++).getName());
-        assertEquals("foo", orderedDescriptors.get(i++).getName());
-        // Then all inherited parameters, a-z
-        assertEquals("child", orderedDescriptors.get(i++).getName());
-        assertEquals("grandchild", orderedDescriptors.get(i++).getName());
-        assertEquals("secondChild", orderedDescriptors.get(i++).getName());
+    @Test
+    public void testHasEffectiveValueIfRemoved() {
+        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
+        // Set up a hierarchy as follows:
+        //    a    (foo, bar, baz)
+        //    |
+        //    b    (foo, child)
+        //    |
+        //    c    (bar, grandchild)
+        //
+        // foo is in a/b; bar is in a/c; baz is only in a
+        final ParameterContext a = createParameterContext("a", parameterContextLookup);
+        final ParameterDescriptor foo = addParameter(a, "foo", "a.foo");
+        final ParameterDescriptor bar = addParameter(a, "bar", "a.bar");
+        final ParameterDescriptor baz = addParameter(a, "baz", "a.baz");
+
+        final ParameterContext b = createParameterContext("b", parameterContextLookup);
+        addParameter(b,"foo", "b.foo");
+        final ParameterDescriptor child = addParameter(b, "child", "b.child");
+
+        final ParameterContext c = createParameterContext("c", parameterContextLookup);
+        addParameter(c, "bar", "c.foo");
+        addParameter(c, "grandchild", "c.child");
+
+        a.setInheritedParameterContexts(Arrays.asList(b));
+        b.setInheritedParameterContexts(Arrays.asList(c));
+
+        assertTrue(a.hasEffectiveValueIfRemoved(foo));
+        assertTrue(a.hasEffectiveValueIfRemoved(bar));
+        assertFalse(a.hasEffectiveValueIfRemoved(baz));
     }
 
     @Test

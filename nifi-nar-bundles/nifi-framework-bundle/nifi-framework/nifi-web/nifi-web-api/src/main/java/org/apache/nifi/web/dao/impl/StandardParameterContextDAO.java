@@ -270,8 +270,21 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
                     }
 
                     if (active && (verifyComponentStates || parameterDeletion)) {
-                        throw new IllegalStateException("Cannot update Parameter Context " + contextName + " because it has Parameters that are being referenced by a " +
-                            activeExplanation + ".");
+                        if (parameterDeletion) {
+                            // First check if the actual parameter context is now missing the parameter: it may not be,
+                            // if the parameter is inherited from another context
+                            final ProcessGroup processGroup = flowManager.getGroup(component.getProcessGroupIdentifier());
+                            final ParameterContext parameterContext = processGroup.getParameterContext();
+                            final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
+                                    .name(parameterName).build();
+                            if (!parameterContext.hasEffectiveValueIfRemoved(parameterDescriptor)) {
+                                throw new IllegalStateException("Cannot update Parameter Context " + contextName + " because the " + parameterName + " Parameter is being referenced by a " +
+                                        activeExplanation + ".");
+                            }
+                        } else {
+                            throw new IllegalStateException("Cannot update Parameter Context " + contextName + " because it has Parameters that are being referenced by a " +
+                                    activeExplanation + ".");
+                        }
                     }
                 }
             }
