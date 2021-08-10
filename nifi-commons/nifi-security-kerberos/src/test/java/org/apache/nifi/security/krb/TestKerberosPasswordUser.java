@@ -16,31 +16,27 @@
  */
 package org.apache.nifi.security.krb;
 
-import org.apache.commons.lang3.Validate;
+import org.junit.Test;
 
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.Configuration;
+import javax.security.auth.login.AppConfigurationEntry;
 
-/**
- * KerberosUser that authenticates via username and password instead of keytab.
- */
-public class KerberosPasswordUser extends AbstractKerberosUser {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
-    private final String password;
+public class TestKerberosPasswordUser {
 
-    public KerberosPasswordUser(final String principal, final String password) {
-        super(principal);
-        this.password = Validate.notBlank(password);
-    }
+    @Test
+    public void testCreateKerberosPasswordUser() {
+        final String principal = "foo@NIFI.COM";
+        final String password = "password";
 
-    @Override
-    protected Configuration createConfiguration() {
-        return new PasswordConfiguration();
-    }
+        final KerberosUser kerberosUser = new KerberosPasswordUser(principal, password);
+        assertEquals(principal, kerberosUser.getPrincipal());
 
-    @Override
-    protected CallbackHandler createCallbackHandler() {
-        return new UsernamePasswordCallbackHandler(principal, password);
+        final AppConfigurationEntry entry = kerberosUser.getConfigurationEntry();
+        assertNotNull(entry);
+        assertEquals(ConfigurationUtil.SUN_KRB5_LOGIN_MODULE, entry.getLoginModuleName());
+        assertEquals(AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, entry.getControlFlag());
     }
 
 }

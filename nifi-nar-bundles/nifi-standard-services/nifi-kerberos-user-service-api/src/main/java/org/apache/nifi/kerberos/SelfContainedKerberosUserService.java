@@ -14,33 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.security.krb;
-
-import org.apache.commons.lang3.Validate;
-
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.Configuration;
+package org.apache.nifi.kerberos;
 
 /**
- * KerberosUser that authenticates via username and password instead of keytab.
+ * A KerberosUserService where calling getConfigurationEntry() on the returned KerberosUser will produce a self-contained
+ * JAAS AppConfigurationEntry that can be used to perform a login.
+ *
+ * As an example, keytab-based login with Krb5LoginModule is self-contained because the AppConfigurationEntry has the principal
+ * and keytab location which is all the information required to perform the login, whereas password-based login with Krb5LoginModule
+ * is not self-contained because a specific CallbackHandler must be configured to provide the username & password.
  */
-public class KerberosPasswordUser extends AbstractKerberosUser {
-
-    private final String password;
-
-    public KerberosPasswordUser(final String principal, final String password) {
-        super(principal);
-        this.password = Validate.notBlank(password);
-    }
-
-    @Override
-    protected Configuration createConfiguration() {
-        return new PasswordConfiguration();
-    }
-
-    @Override
-    protected CallbackHandler createCallbackHandler() {
-        return new UsernamePasswordCallbackHandler(principal, password);
-    }
+public interface SelfContainedKerberosUserService extends KerberosUserService {
 
 }

@@ -75,4 +75,8 @@ public class TicketCacheConfiguration extends Configuration {
         return principal;
     }
 
+    public String getTicketCache() {
+        return ticketCache;
+    }
+
 }

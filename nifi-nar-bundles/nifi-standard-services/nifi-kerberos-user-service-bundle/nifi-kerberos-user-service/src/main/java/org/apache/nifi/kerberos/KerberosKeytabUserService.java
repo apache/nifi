@@ -40,7 +40,7 @@ import java.util.List;
 @Restricted(restrictions = {
         @Restriction(requiredPermission = RequiredPermission.ACCESS_KEYTAB, explanation = "Allows user to define a Keytab and principal that can then be used by other components.")
 })
-public class KerberosKeytabUserService extends AbstractKerberosUserService {
+public class KerberosKeytabUserService extends AbstractKerberosUserService implements SelfContainedKerberosUserService {
 
     static final PropertyDescriptor KEYTAB = new PropertyDescriptor.Builder()
             .name("Kerberos Keytab")

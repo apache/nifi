@@ -41,7 +41,7 @@ import java.util.List;
         @Restriction(requiredPermission = RequiredPermission.ACCESS_TICKET_CACHE,
                 explanation = "Allows user to define a ticket cache and principal that can then be used by other components.")
 })
-public class KerberosTicketCacheUserService extends AbstractKerberosUserService {
+public class KerberosTicketCacheUserService extends AbstractKerberosUserService implements SelfContainedKerberosUserService {
 
     static final PropertyDescriptor TICKET_CACHE_FILE = new PropertyDescriptor.Builder()
             .name("Kerberos Ticket Cache File")
