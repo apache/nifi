@@ -98,8 +98,6 @@ public class HeadlessNiFiServer implements NiFiServer {
 
             // Enrich the flow xml using the Extension Manager mapping
             final FlowParser flowParser = new FlowParser();
-            final FlowEnricher flowEnricher = new FlowEnricher(this, flowParser, props);
-            flowEnricher.enrichFlowWithBundleInformation();
             logger.info("Loading Flow...");
 
             FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);

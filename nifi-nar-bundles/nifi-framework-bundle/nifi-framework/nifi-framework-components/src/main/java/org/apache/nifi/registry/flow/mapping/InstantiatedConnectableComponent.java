@@ -29,7 +29,7 @@ public class InstantiatedConnectableComponent extends ConnectableComponent imple
     }
 
     @Override
-    public String getInstanceId() {
+    public String getInstanceIdentifier() {
         return instanceId;
     }
 

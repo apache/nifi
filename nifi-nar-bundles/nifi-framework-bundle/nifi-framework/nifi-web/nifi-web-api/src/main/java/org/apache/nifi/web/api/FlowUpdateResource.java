@@ -28,10 +28,10 @@ import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.FlowRegistryUtils;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.ResumeFlowException;
@@ -49,8 +49,10 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.FlowUpdateRequestEntity;
+import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupDescriptorEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.util.AffectedComponentUtils;
 import org.apache.nifi.web.util.CancellableTimedPause;
 import org.apache.nifi.web.util.ComponentLifecycle;
@@ -85,7 +87,7 @@ import java.util.stream.Collectors;
  * @param <U>   Entity to capture the status and result of an update request
  */
 public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity, U extends FlowUpdateRequestEntity> extends ApplicationResource {
-
+    private static final String DISABLED_COMPONENT_STATE = "DISABLED";
     private static final Logger logger = LoggerFactory.getLogger(FlowUpdateResource.class);
 
     protected NiFiServiceFacade serviceFacade;
@@ -451,14 +453,37 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 for (final AffectedComponentEntity componentEntity : componentsToStart) {
                     final AffectedComponentDTO componentDto = componentEntity.getComponent();
                     final String referenceType = componentDto.getReferenceType();
-                    if (!AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT.equals(referenceType)
-                            && !AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT.equals(referenceType)) {
-                        continue;
-                    }
 
-                    boolean startComponent;
+                    boolean startComponent = true;
                     try {
-                        startComponent = serviceFacade.isRemoteGroupPortConnected(componentDto.getProcessGroupId(), componentDto.getId());
+                        switch (referenceType) {
+                            case AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT:
+                            case AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT: {
+                                startComponent = serviceFacade.isRemoteGroupPortConnected(componentDto.getProcessGroupId(), componentDto.getId());
+                                break;
+                            }
+                            case AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR: {
+                                final ProcessorEntity entity = serviceFacade.getProcessor(componentEntity.getId());
+                                if (entity == null || DISABLED_COMPONENT_STATE.equals(entity.getComponent().getState())) {
+                                    startComponent = false;
+                                }
+                                break;
+                            }
+                            case AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT: {
+                                final PortEntity entity = serviceFacade.getInputPort(componentEntity.getId());
+                                if (entity == null || DISABLED_COMPONENT_STATE.equals(entity.getComponent().getState())) {
+                                    startComponent = false;
+                                }
+                                break;
+                            }
+                            case AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT: {
+                                final PortEntity entity = serviceFacade.getOutputPort(componentEntity.getId());
+                                if (entity == null || DISABLED_COMPONENT_STATE.equals(entity.getComponent().getState())) {
+                                    startComponent = false;
+                                }
+                                break;
+                            }
+                        }
                     } catch (final ResourceNotFoundException rnfe) {
                         // Could occur if RPG is refreshed at just the right time.
                         startComponent = false;

@@ -17,10 +17,10 @@
 
 package org.apache.nifi.flow;
 
+import io.swagger.annotations.ApiModelProperty;
+
 import java.util.List;
 import java.util.Map;
-
-import io.swagger.annotations.ApiModelProperty;
 
 public class VersionedControllerService extends VersionedComponent
         implements VersionedConfigurableComponent, VersionedExtensionComponent {
@@ -32,7 +32,7 @@ public class VersionedControllerService extends VersionedComponent
     private Map<String, String> properties;
     private Map<String, VersionedPropertyDescriptor> propertyDescriptors;
     private String annotationData;
-
+    private ScheduledState scheduledState;
 
     @Override
     @ApiModelProperty(value = "The type of the controller service.")
@@ -46,7 +46,7 @@ public class VersionedControllerService extends VersionedComponent
     }
 
     @Override
-    @ApiModelProperty(value = "The details of the artifact that bundled this processor type.")
+    @ApiModelProperty(value = "The details of the artifact that bundled this controller service type.")
     public Bundle getBundle() {
         return bundle;
     }
@@ -77,7 +77,7 @@ public class VersionedControllerService extends VersionedComponent
     }
 
     @Override
-    @ApiModelProperty("The property descriptors for the processor.")
+    @ApiModelProperty("The property descriptors for the controller service.")
     public Map<String, VersionedPropertyDescriptor> getPropertyDescriptors() {
         return propertyDescriptors;
     }
@@ -99,5 +99,14 @@ public class VersionedControllerService extends VersionedComponent
     @Override
     public ComponentType getComponentType() {
         return ComponentType.CONTROLLER_SERVICE;
+    }
+
+    @ApiModelProperty("The ScheduledState denoting whether the Controller Service is ENABLED or DISABLED")
+    public ScheduledState getScheduledState() {
+        return scheduledState;
+    }
+
+    public void setScheduledState(final ScheduledState scheduledState) {
+        this.scheduledState = scheduledState;
     }
 }

@@ -17,10 +17,21 @@
 
 package org.apache.nifi.registry.flow.diff;
 
+import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedReportingTask;
+import org.apache.nifi.registry.flow.VersionedParameterContext;
+
+import java.util.Set;
 
 public interface ComparableDataFlow {
     String getName();
 
     VersionedProcessGroup getContents();
+
+    Set<VersionedControllerService> getControllerLevelServices();
+
+    Set<VersionedReportingTask> getReportingTasks();
+
+    Set<VersionedParameterContext> getParameterContexts();
 }

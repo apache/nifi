@@ -23,6 +23,7 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.AbstractComponentNode;
@@ -258,12 +259,10 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
             throw new IllegalStateException("Cannot start " + getReportingTask().getIdentifier() + " because it is currently disabled");
         }
 
-        if (isRunning()) {
-            throw new IllegalStateException("Cannot start " + getReportingTask().getIdentifier() + " because it is already running");
-        }
-
-        if (getValidationStatus() == ValidationStatus.INVALID) {
-            throw new IllegalStateException("Cannot start " + getReportingTask().getIdentifier() + " because it is in INVALID status");
+        final ValidationState validationState = getValidationState();
+        if (validationState.getStatus() == ValidationStatus.INVALID) {
+            throw new IllegalStateException("Cannot start " + getReportingTask().getIdentifier() +
+                " because it is invalid with the following validation errors: " + validationState.getValidationErrors());
         }
     }
 
