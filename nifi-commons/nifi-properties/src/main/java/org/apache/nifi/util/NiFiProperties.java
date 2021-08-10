@@ -303,6 +303,18 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String MONITOR_LONG_RUNNING_TASK_SCHEDULE = "nifi.monitor.long.running.task.schedule";
     public static final String MONITOR_LONG_RUNNING_TASK_THRESHOLD = "nifi.monitor.long.running.task.threshold";
 
+    // automatic diagnostic properties
+    public static final String AUTOMATIC_DIAGNOSTIC_ALLOWED = "nifi.auto.diag.allowed";
+    public static final String AUTOMATIC_DIAGNOSTIC_VERBOSE = "nifi.auto.diag.verbose";
+    public static final String AUTOMATIC_DIAGNOSTIC_DIRECTORY = "nifi.auto.diag.dir";
+    public static final String AUTOMATIC_DIAGNOSTIC_MAX_FILE_COUNT = "nifi.auto.diag.filecount.max";
+    public static final String AUTOMATIC_DIAGNOSTIC_MAX_DIR_SIZE_IN_BYTES = "nifi.auto.diag.dir.size.max.byte";
+
+    // automatic diagnostic defaults
+    public static final String DEFAULT_AUTOMATIC_DIAGNOSTIC_DIRECTORY = "./diagnostic";
+    public static final int DEFAULT_AUTOMATIC_DIAGNOSTIC_MAX_FILE_COUNT = 10;
+    public static final int DEFAULT_AUTOMATIC_DIAGNOSTIC_MAX_DIR_SIZE_IN_BYTES = Integer.MAX_VALUE;
+
     // defaults
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
     public static final String DEFAULT_AUTHORIZER_CONFIGURATION_FILE = "conf/authorizers.xml";
@@ -770,6 +782,7 @@ public class NiFiProperties extends ApplicationProperties {
 
     /**
      * Returns true if auto reload of the keystore and truststore is enabled.
+     *
      * @return true if auto reload of the keystore and truststore is enabled.
      */
     public boolean isSecurityAutoReloadEnabled() {
@@ -778,6 +791,7 @@ public class NiFiProperties extends ApplicationProperties {
 
     /**
      * Returns the auto reload interval of the keystore and truststore.
+     *
      * @return The interval over which the keystore and truststore should auto-reload.
      */
     public String getSecurityAutoReloadInterval() {
@@ -1076,13 +1090,44 @@ public class NiFiProperties extends ApplicationProperties {
             return Collections.emptyList();
         } else {
             List<String> fallbackClaims = Arrays.asList(rawProperty.split(","));
-            return fallbackClaims.stream().map(String::trim).filter(s->!s.isEmpty()).collect(Collectors.toList());
+            return fallbackClaims.stream().map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
         }
     }
 
     public boolean shouldSendServerVersion() {
         return Boolean.parseBoolean(getProperty(WEB_SHOULD_SEND_SERVER_VERSION, DEFAULT_WEB_SHOULD_SEND_SERVER_VERSION));
     }
+
+    // Automatic diagnostic getters
+
+    public boolean isAutomaticDiagnosticAllowed() {
+        return Boolean.parseBoolean(getProperty(AUTOMATIC_DIAGNOSTIC_ALLOWED));
+    }
+
+    public boolean isAutomaticDiagnosticVerbose() {
+        return Boolean.parseBoolean(getProperty(AUTOMATIC_DIAGNOSTIC_VERBOSE));
+    }
+
+    public String getAutomaticDiagnosticDirectory() {
+        return getProperty(AUTOMATIC_DIAGNOSTIC_DIRECTORY, DEFAULT_AUTOMATIC_DIAGNOSTIC_DIRECTORY);
+    }
+
+    public int getAutomaticDiagnosticMaxFileCount() {
+        try {
+            return Integer.parseInt(getProperty(AUTOMATIC_DIAGNOSTIC_MAX_FILE_COUNT));
+        } catch (NumberFormatException e) {
+            return DEFAULT_AUTOMATIC_DIAGNOSTIC_MAX_FILE_COUNT;
+        }
+    }
+
+    public int getAutomaticDiagnosticDirMaxSizeInBytes() {
+        try {
+            return Integer.parseInt(getProperty(AUTOMATIC_DIAGNOSTIC_MAX_DIR_SIZE_IN_BYTES));
+        } catch (NumberFormatException e) {
+            return DEFAULT_AUTOMATIC_DIAGNOSTIC_MAX_DIR_SIZE_IN_BYTES;
+        }
+    }
+
 
     /**
      * Returns whether Knox SSO is enabled.
@@ -1165,7 +1210,7 @@ public class NiFiProperties extends ApplicationProperties {
 
     /**
      * The name of an attribute in the SAML assertions that contains the user identity.
-     *
+     * <p>
      * If not specified, or missing, the NameID of the Subject will be used.
      *
      * @return the attribute name containing the user identity
@@ -1587,17 +1632,17 @@ public class NiFiProperties extends ApplicationProperties {
 
     public boolean isZooKeeperTlsConfigurationPresent() {
         return StringUtils.isNotBlank(getProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE))
-            && StringUtils.isNotBlank(getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE))
-            && getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD) != null
-            && StringUtils.isNotBlank(getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE))
-            && getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD) != null;
+                && StringUtils.isNotBlank(getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE))
+                && getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD) != null
+                && StringUtils.isNotBlank(getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE))
+                && getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD) != null;
     }
 
     public boolean isTlsConfigurationPresent() {
         return StringUtils.isNotBlank(getProperty(SECURITY_KEYSTORE))
-            && getProperty(SECURITY_KEYSTORE_PASSWD) != null
-            && StringUtils.isNotBlank(getProperty(SECURITY_TRUSTSTORE))
-            && getProperty(SECURITY_TRUSTSTORE_PASSWD) != null;
+                && getProperty(SECURITY_KEYSTORE_PASSWD) != null
+                && StringUtils.isNotBlank(getProperty(SECURITY_TRUSTSTORE))
+                && getProperty(SECURITY_TRUSTSTORE_PASSWD) != null;
     }
 
     public String getFlowFileRepoEncryptionKeyId() {
@@ -1915,7 +1960,6 @@ public class NiFiProperties extends ApplicationProperties {
      *
      * @param prefix The exact string the returned properties should start with. Dots are considered, thus prefix "item" will return both
      *               properties starting with "item." and "items". Properties with empty value will be included as well.
-     *
      * @return A map of properties starting with the prefix.
      */
     public Map<String, String> getPropertiesWithPrefix(final String prefix) {
@@ -1924,13 +1968,12 @@ public class NiFiProperties extends ApplicationProperties {
 
     /**
      * Returns with all the possible next "tokens" after the given prefix. An alphanumeric string between dots is considered as a "token".
-     *
+     * <p>
      * For example if there are "parent.sub1" and a "parent.sub2" properties are set, and the prefix is "parent", the method will return
      * with a set, consisting of "sub1" and "sub2. Only directly subsequent tokens are considered, so in case of "parent.sub1.subsub1", the
      * result will contain "sub1" as well.
      *
      * @param prefix The prefix of the request.
-     *
      * @return A set of direct subsequent tokens.
      */
     public Set<String> getDirectSubsequentTokens(final String prefix) {
@@ -1951,9 +1994,9 @@ public class NiFiProperties extends ApplicationProperties {
      * file specified cannot be found/read a runtime exception will be thrown.
      * If one is not specified an empty object will be returned.
      *
-     * @param propertiesFilePath   if provided properties will be loaded from
-     *                             given file; else will be loaded from System property.
-     *                             Can be null. Passing {@code ""} skips any attempt to load from the file system.
+     * @param propertiesFilePath if provided properties will be loaded from
+     *                           given file; else will be loaded from System property.
+     *                           Can be null. Passing {@code ""} skips any attempt to load from the file system.
      * @return NiFiProperties
      */
     public static NiFiProperties createBasicNiFiProperties(final String propertiesFilePath) {

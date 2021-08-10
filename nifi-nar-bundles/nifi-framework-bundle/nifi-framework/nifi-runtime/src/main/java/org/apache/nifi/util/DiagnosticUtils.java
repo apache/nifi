@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.bootstrap.diagnostic;
+package org.apache.nifi.util;
 
 import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;

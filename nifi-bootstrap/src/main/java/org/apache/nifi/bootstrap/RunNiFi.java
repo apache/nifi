@@ -17,9 +17,6 @@
 package org.apache.nifi.bootstrap;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.bootstrap.diagnostic.DiagnosticProperties;
-import org.apache.nifi.bootstrap.diagnostic.DiagnosticPropertiesFactory;
-import org.apache.nifi.bootstrap.diagnostic.DiagnosticUtils;
 import org.apache.nifi.bootstrap.notification.NotificationType;
 import org.apache.nifi.bootstrap.util.OSUtils;
 import org.apache.nifi.bootstrap.util.SecureNiFiConfigUtil;
@@ -53,7 +50,6 @@ import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -251,7 +247,6 @@ public class RunNiFi {
                 runNiFi.start(true);
                 break;
             case "stop":
-                runNiFi.runDiagnostics();
                 runNiFi.stop();
                 break;
             case "decommission":
@@ -268,7 +263,6 @@ public class RunNiFi {
                 }
                 break;
             case "restart":
-                runNiFi.runDiagnostics();
                 runNiFi.stop();
                 runNiFi.start(true);
                 break;
@@ -284,31 +278,6 @@ public class RunNiFi {
         }
         if (exitStatus != null) {
             System.exit(exitStatus);
-        }
-    }
-
-    private void runDiagnostics() throws IOException {
-        final Properties bootstrapProperties = loadProperties(defaultLogger);
-        final DiagnosticProperties diagnosticProperties = DiagnosticPropertiesFactory.create(bootstrapProperties);
-        final String diagnosticDirectoryPath = diagnosticProperties.getDirPath();
-        final boolean isCreated = DiagnosticUtils.createDiagnosticDirectory(diagnosticDirectoryPath);
-        if (isCreated) {
-            defaultLogger.debug("Diagnostic directory has successfully been created.");
-        } else {
-            defaultLogger.warn("Diagnostic directory could not be created.");
-        }
-        if (diagnosticProperties.isAllowed()) {
-            if (DiagnosticUtils.isFileCountExceeded(diagnosticDirectoryPath, diagnosticProperties.getMaxFileCount())) {
-                final Path oldestFile = DiagnosticUtils.getOldestFile(diagnosticDirectoryPath);
-                Files.delete(oldestFile);
-            }
-            diagnostics(new File(diagnosticDirectoryPath + "/diagnostic-" + LocalDateTime.now() + ".log"),
-                    diagnosticProperties.isVerbose());
-
-            while (DiagnosticUtils.isSizeExceeded(diagnosticDirectoryPath, diagnosticProperties.getMaxSizeInBytes())) {
-                final Path oldestFile = DiagnosticUtils.getOldestFile(diagnosticDirectoryPath);
-                Files.delete(oldestFile);
-            }
         }
     }
 
