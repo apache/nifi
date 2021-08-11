@@ -93,8 +93,8 @@ import static org.apache.nifi.util.StringUtils.isEmpty;
 public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
     private static final Pattern SAS_TOKEN_PATTERN = Pattern.compile("^\\?.*$");
-    private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_ACCOUNT_KEY = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
-    private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_SAS_TOKEN = "BlobEndpoint=https://%s.blob.core.windows.net/;SharedAccessSignature=%s";
+    private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_ACCOUNT_KEY = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s;EndpointSuffix=core.%s";
+    private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_SAS_TOKEN = "BlobEndpoint=https://%s.blob.core.%s/;SharedAccessSignature=%s";
 
     static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
             .name("event-hub-namespace")
@@ -112,7 +112,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
             .build();
-    // TODO: Do we need to support custom service endpoints as GetAzureEventHub does? Is it possible?
+    static final PropertyDescriptor SERVICE_BUS_ENDPOINT = AzureEventHubUtils.SERVICE_BUS_ENDPOINT;
     static final PropertyDescriptor ACCESS_POLICY_NAME = new PropertyDescriptor.Builder()
             .name("event-hub-shared-access-policy-name")
             .displayName("Shared Access Policy Name")
@@ -271,7 +271,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
     static {
         PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-                NAMESPACE, EVENT_HUB_NAME, ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, USE_MANAGED_IDENTITY, CONSUMER_GROUP, CONSUMER_HOSTNAME,
+                NAMESPACE, EVENT_HUB_NAME, SERVICE_BUS_ENDPOINT, ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, USE_MANAGED_IDENTITY, CONSUMER_GROUP, CONSUMER_HOSTNAME,
                 RECORD_READER, RECORD_WRITER,
                 INITIAL_OFFSET, PREFETCH_COUNT, BATCH_SIZE, RECEIVE_TIMEOUT,
                 STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_KEY, STORAGE_SAS_TOKEN, STORAGE_CONTAINER_NAME
@@ -293,6 +293,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     private volatile String namespaceName;
     private volatile boolean isRecordReaderSet = false;
     private volatile boolean isRecordWriterSet = false;
+    private volatile String serviceBusEndpoint;
 
     /**
      * For unit test.
@@ -320,6 +321,13 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
      */
     public void setWriterFactory(RecordSetWriterFactory writerFactory) {
         this.writerFactory = writerFactory;
+    }
+
+    /**
+     * For unit test.
+     */
+    public void setServiceBusEndpoint(String serviceBusEndpoint) {
+        this.serviceBusEndpoint = serviceBusEndpoint;
     }
 
     @Override
@@ -464,7 +472,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         private void transferTo(Relationship relationship, ProcessSession session, StopWatch stopWatch,
                                 String eventHubName, String partitionId, String consumerGroup, FlowFile flowFile) {
             session.transfer(flowFile, relationship);
-            final String transitUri = "amqps://" + namespaceName + ".servicebus.windows.net/" + eventHubName + "/ConsumerGroups/" + consumerGroup + "/Partitions/" + partitionId;
+            final String transitUri = String.format("amqps://%s%s/%s/ConsumerGroups/%s/Partitions/%s",
+                    namespaceName, serviceBusEndpoint, eventHubName, consumerGroup, partitionId);
             session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         }
 
@@ -652,13 +661,13 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final String connectionString;
         final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
         if(useManagedIdentity) {
-            connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespaceName, eventHubName);
+            connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespaceName, serviceBusEndpoint, eventHubName);
         } else {
             final String sasName = context.getProperty(ACCESS_POLICY_NAME).evaluateAttributeExpressions().getValue();
             validateRequiredProperty(ACCESS_POLICY_NAME, sasName);
             final String sasKey = context.getProperty(POLICY_PRIMARY_KEY).evaluateAttributeExpressions().getValue();
             validateRequiredProperty(POLICY_PRIMARY_KEY, sasKey);
-            connectionString = AzureEventHubUtils.getSharedAccessSignatureConnectionString(namespaceName, eventHubName, sasName, sasKey);
+            connectionString = AzureEventHubUtils.getSharedAccessSignatureConnectionString(namespaceName, serviceBusEndpoint, eventHubName, sasName, sasKey);
         }
 
         eventProcessorHost = EventProcessorHost.EventProcessorHostBuilder
@@ -680,13 +689,15 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final String storageAccountName = context.getProperty(STORAGE_ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
         validateRequiredProperty(STORAGE_ACCOUNT_NAME, storageAccountName);
 
+        serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
+        final String domainName = serviceBusEndpoint.replace(".servicebus.", "");
         final String storageAccountKey = context.getProperty(STORAGE_ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
         final String storageSasToken = context.getProperty(STORAGE_SAS_TOKEN).evaluateAttributeExpressions().getValue();
 
         if (storageAccountKey != null) {
-            return String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_ACCOUNT_KEY, storageAccountName, storageAccountKey);
+            return String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_ACCOUNT_KEY, storageAccountName, storageAccountKey, domainName);
         }
-        return String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_SAS_TOKEN, storageAccountName, storageSasToken);
+        return String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_SAS_TOKEN, storageAccountName, domainName, storageSasToken);
     }
 
     private String orDefault(String value, String defaultValue) {
