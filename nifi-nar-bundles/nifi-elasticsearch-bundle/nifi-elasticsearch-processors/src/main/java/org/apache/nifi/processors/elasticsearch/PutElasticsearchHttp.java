@@ -228,7 +228,7 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         List<FlowFile> flowFilesToTransfer = new LinkedList<>(flowFiles);
 
         final StringBuilder sb = new StringBuilder();
-        final String baseUrl = getESUrl();
+        final String baseUrl = getESUrl().trim();
         if (StringUtils.isEmpty(baseUrl)) {
             throw new ProcessException("Elasticsearch URL is empty or null, this indicates an invalid Expression (missing variables, e.g.)");
         }
