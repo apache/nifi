@@ -52,8 +52,8 @@ import java.util.Properties;
  *
  */
 
-public class AWSSensitivePropertyProviderIT {
-    private static final String SAMPLE_PLAINTEXT = "AWSSensitivePropertyProviderIT SAMPLE-PLAINTEXT";
+public class AWSKMSSensitivePropertyProviderIT {
+    private static final String SAMPLE_PLAINTEXT = "AWSKMSSensitivePropertyProviderIT SAMPLE-PLAINTEXT";
     private static final String ACCESS_KEY_PROPS_NAME = "aws.access.key.id";
     private static final String SECRET_KEY_PROPS_NAME = "aws.secret.access.key";
     private static final String REGION_KEY_PROPS_NAME = "aws.region";
@@ -63,13 +63,13 @@ public class AWSSensitivePropertyProviderIT {
 
     private static final String EMPTY_PROPERTY = "";
 
-    private static AWSSensitivePropertyProvider spp;
+    private static AWSKMSSensitivePropertyProvider spp;
 
     private static BootstrapProperties props;
 
     private static Path mockBootstrapConf, mockAWSBootstrapConf;
 
-    private static final Logger logger = LoggerFactory.getLogger(AWSSensitivePropertyProviderIT.class);
+    private static final Logger logger = LoggerFactory.getLogger(AWSKMSSensitivePropertyProviderIT.class);
 
     private static void initializeBootstrapProperties() throws IOException{
         mockBootstrapConf = Files.createTempFile("bootstrap", ".conf").toAbsolutePath();
@@ -100,7 +100,7 @@ public class AWSSensitivePropertyProviderIT {
     public static void initOnce() throws IOException {
         initializeBootstrapProperties();
         Assert.assertNotNull(props);
-        spp = new AWSSensitivePropertyProvider(props);
+        spp = new AWSKMSSensitivePropertyProvider(props);
         Assert.assertNotNull(spp);
     }
 

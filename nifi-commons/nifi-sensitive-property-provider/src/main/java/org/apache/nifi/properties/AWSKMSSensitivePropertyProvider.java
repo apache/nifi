@@ -44,8 +44,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Objects;
 
-public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvider {
-    private static final Logger logger = LoggerFactory.getLogger(AWSSensitivePropertyProvider.class);
+public class AWSKMSSensitivePropertyProvider extends AbstractSensitivePropertyProvider {
+    private static final Logger logger = LoggerFactory.getLogger(AWSKMSSensitivePropertyProvider.class);
 
     private static final String AWS_PREFIX = "aws";
     private static final String ACCESS_KEY_PROPS_NAME = "aws.access.key.id";
@@ -60,7 +60,7 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
     private String keyId;
 
 
-    AWSSensitivePropertyProvider(final BootstrapProperties bootstrapProperties) throws SensitivePropertyProtectionException {
+    AWSKMSSensitivePropertyProvider(final BootstrapProperties bootstrapProperties) throws SensitivePropertyProtectionException {
         super(bootstrapProperties);
         Objects.requireNonNull(bootstrapProperties, "The file bootstrap.conf provided to AWS SPP is null");
         awsBootstrapProperties = getAWSBootstrapProperties(bootstrapProperties);
