@@ -229,21 +229,21 @@ public class NiFi implements NiFiEntryPoint {
     }
 
     private void runAutomaticDiagnostics() throws IOException {
-        final String diagnosticDirectoryPath = properties.getAutomaticDiagnosticDirectory();
-        if (properties.isAutomaticDiagnosticAllowed()) {
+        final String diagnosticDirectoryPath = properties.getDiagnosticsOnShutdownDirectory();
+        if (properties.isDiagnosticsOnShutdownEnabled()) {
             final boolean isCreated = DiagnosticUtils.createDiagnosticDirectory(diagnosticDirectoryPath);
             if (isCreated) {
                 logger.debug("Diagnostic directory has successfully been created.");
             }
-            if (DiagnosticUtils.isFileCountExceeded(diagnosticDirectoryPath, properties.getAutomaticDiagnosticMaxFileCount())) {
+            if (DiagnosticUtils.isFileCountExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownMaxFileCount())) {
                 final Path oldestFile = DiagnosticUtils.getOldestFile(diagnosticDirectoryPath);
                 Files.delete(oldestFile);
             }
             final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
             final String fileName = String.format("%s/diagnostic-%s.log", diagnosticDirectoryPath, formatter.format(LocalDateTime.now()));
-            diagnose(new File(fileName), properties.isAutomaticDiagnosticVerbose());
+            diagnose(new File(fileName), properties.isDiagnosticsOnShutdownVerbose());
 
-            while (DiagnosticUtils.isSizeExceeded(diagnosticDirectoryPath, properties.getAutomaticDiagnosticDirMaxSizeInBytes())) {
+            while (DiagnosticUtils.isSizeExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownDirectoryMaxSizeInBytes())) {
                 final Path oldestFile = DiagnosticUtils.getOldestFile(diagnosticDirectoryPath);
                 Files.delete(oldestFile);
             }
