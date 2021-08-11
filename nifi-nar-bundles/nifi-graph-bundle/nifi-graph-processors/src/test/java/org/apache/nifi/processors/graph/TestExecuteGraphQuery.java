@@ -21,9 +21,9 @@ import org.apache.nifi.graph.GraphClientService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
@@ -41,9 +41,10 @@ import static org.junit.Assert.assertTrue;
 public class TestExecuteGraphQuery {
     protected TestRunner runner;
 
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Rule
+    public MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         MockCypherClientService service = new MockCypherClientService();
         runner = TestRunners.newTestRunner(ExecuteGraphQuery.class);
