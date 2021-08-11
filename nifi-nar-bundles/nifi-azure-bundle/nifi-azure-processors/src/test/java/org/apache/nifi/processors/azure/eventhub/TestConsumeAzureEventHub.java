@@ -78,6 +78,7 @@ public class TestConsumeAzureEventHub {
     private static final String storageAccountName = "test-sa";
     private static final String storageAccountKey = "test-sa-key";
     private static final String storageSasToken = "?test-sa-token";
+    private static final String serviceBusEndpoint = "endpoint";
 
     private ConsumeAzureEventHub.EventProcessor eventProcessor;
     private MockProcessSession processSession;
@@ -98,6 +99,7 @@ public class TestConsumeAzureEventHub {
         final ProcessSessionFactory processSessionFactory = Mockito.mock(ProcessSessionFactory.class);
         processor.setProcessSessionFactory(processSessionFactory);
         processor.setNamespaceName("namespace");
+        processor.setServiceBusEndpoint(serviceBusEndpoint);
 
         sharedState = new SharedSessionState(processor, new AtomicLong(0));
         processSession = new MockProcessSession(sharedState, processor);
@@ -130,7 +132,6 @@ public class TestConsumeAzureEventHub {
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, storageAccountName);
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, storageAccountKey);
         testRunner.assertNotValid();
-
         testRunner.setProperty(ConsumeAzureEventHub.USE_MANAGED_IDENTITY,"true");
         testRunner.assertValid();
     }
@@ -228,7 +229,7 @@ public class TestConsumeAzureEventHub {
         assertEquals(1, provenanceEvents.size());
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
+        assertEquals("amqps://namespace." + serviceBusEndpoint + "/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
     }
 
@@ -340,8 +341,8 @@ public class TestConsumeAzureEventHub {
             default:
                 final List<Record> recordList1 = addEndRecord.apply(recordList.subList(0, throwExceptionAt));
                 final List<Record> recordList2 = addEndRecord.apply(recordList.subList(throwExceptionAt + 1, recordList.size()));
-                final Record[] records1 = recordList1.toArray(new Record[0]);
-                final Record[] records2 = recordList2.toArray(new Record[0]);
+                final Record[] records1 = recordList1.toArray(new Record[recordList1.size()]);
+                final Record[] records2 = recordList2.toArray(new Record[recordList2.size()]);
                 when(reader.nextRecord())
                         .thenReturn(records1[0], Arrays.copyOfRange(records1, 1, records1.length))
                         .thenThrow(new MalformedRecordException("Simulating Record parse failure."))
@@ -374,7 +375,7 @@ public class TestConsumeAzureEventHub {
         assertEquals(1, provenanceEvents.size());
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
+        assertEquals("amqps://namespace." + serviceBusEndpoint + "/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
     }
 
@@ -413,12 +414,12 @@ public class TestConsumeAzureEventHub {
 
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
+        assertEquals("amqps://namespace." + serviceBusEndpoint + "/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
 
         final ProvenanceEventRecord provenanceEvent2 = provenanceEvents.get(1);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent2.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
+        assertEquals("amqps://namespace." + serviceBusEndpoint + "/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent2.getTransitUri());
     }
 
@@ -450,7 +451,7 @@ public class TestConsumeAzureEventHub {
 
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
+        assertEquals("amqps://namespace." + serviceBusEndpoint + "/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
     }
 
@@ -489,12 +490,12 @@ public class TestConsumeAzureEventHub {
 
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
+        assertEquals("amqps://namespace." + serviceBusEndpoint + "/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
 
         final ProvenanceEventRecord provenanceEvent2 = provenanceEvents.get(1);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent2.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
+        assertEquals("amqps://namespace." + serviceBusEndpoint + "/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent2.getTransitUri());
     }
 }

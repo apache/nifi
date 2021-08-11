@@ -323,6 +323,7 @@ public class PutAzureEventHubTest {
         @Override
         protected EventHubClient createEventHubClient(
                 final String namespace,
+                final String serviceBusEndpoint,
                 final String eventHubName,
                 final String policyName,
                 final String policyKey,
@@ -341,6 +342,7 @@ public class PutAzureEventHubTest {
         @Override
         protected EventHubClient createEventHubClient(
                 final String namespace,
+                final String serviceBusEndpoint,
                 final String eventHubName,
                 final String policyName,
                 final String policyKey,
@@ -350,7 +352,7 @@ public class PutAzureEventHubTest {
     }
     private static class BogusConnectionStringMockPutAzureEventHub extends PutAzureEventHub{
         @Override
-        protected String getConnectionString(final String namespace, final String eventHubName, final String policyName, final String policyKey){
+        protected String getConnectionString(final String namespace, final String serviceBusEndpoint, final String eventHubName, final String policyName, final String policyKey){
             return "Bogus Connection String";
         }
     }
@@ -366,6 +368,7 @@ public class PutAzureEventHubTest {
         @Override
         protected EventHubClient createEventHubClient(
                 final String namespace,
+                final String serviceBusEndpoint,
                 final String eventHubName,
                 final String policyName,
                 final String policyKey,

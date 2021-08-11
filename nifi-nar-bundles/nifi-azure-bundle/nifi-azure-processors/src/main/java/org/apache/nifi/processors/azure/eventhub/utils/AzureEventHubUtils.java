@@ -79,13 +79,15 @@ public final class AzureEventHubUtils {
         return retVal;
     }
 
-    public static String getManagedIdentityConnectionString(final String namespace, final String eventHubName){
-        return new ConnectionStringBuilder().setNamespaceName(namespace).setEventHubName(eventHubName)
+    public static String getManagedIdentityConnectionString(final String namespace, final String domainName, final String eventHubName){
+        return new ConnectionStringBuilder()
+                    .setEndpoint(namespace, removeStartingDotFrom(domainName))
+                    .setEventHubName(eventHubName)
                     .setAuthentication(MANAGED_IDENTITY_POLICY).toString();
     }
-    public static String getSharedAccessSignatureConnectionString(final String namespace, final String eventHubName, final String sasName, final String sasKey) {
+    public static String getSharedAccessSignatureConnectionString(final String namespace, final String domainName, final String eventHubName, final String sasName, final String sasKey) {
         return new ConnectionStringBuilder()
-                    .setNamespaceName(namespace)
+                    .setEndpoint(namespace, removeStartingDotFrom(domainName))
                     .setEventHubName(eventHubName)
                     .setSasKeyName(sasName)
                     .setSasKey(sasKey).toString();
@@ -103,4 +105,9 @@ public final class AzureEventHubUtils {
 
         return properties;
     }
+
+    private static String removeStartingDotFrom(final String domainName) {
+        return domainName.replaceFirst("^\\.", "");
+    }
+
 }

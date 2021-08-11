@@ -99,7 +99,7 @@ public class GetAzureEventHub extends AbstractProcessor {
             .description("To support namespaces in non-standard Host URIs ( not .servicebus.windows.net,  ie .servicebus.chinacloudapi.cn) select from the drop down acceptable options ")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(".servicebus.windows.net",".servicebus.chinacloudapi.cn")
+            .allowableValues(".servicebus.windows.net",".servicebus.chinacloudapi.cn", ".servicebus.cloudapi.de", ".servicebus.usgovcloudapi.net")
             .defaultValue(".servicebus.windows.net")
             .required(true)
             .build();
@@ -315,7 +315,7 @@ public class GetAzureEventHub extends AbstractProcessor {
         final String connectionString;
 
         if(useManagedIdentity){
-            connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespace,eventHubName);
+            connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespace, serviceBusEndpoint, eventHubName);
         } else {
             final String policyName = context.getProperty(ACCESS_POLICY).getValue();
             final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
@@ -394,7 +394,8 @@ public class GetAzureEventHub extends AbstractProcessor {
                     final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
                     final String consumerGroup = context.getProperty(CONSUMER_GROUP).getValue();
                     final String serviceBusEndPoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
-                    final String transitUri = "amqps://" + namespace + serviceBusEndPoint + "/" + eventHubName + "/ConsumerGroups/" + consumerGroup + "/Partitions/" + partitionId;
+                    final String transitUri = String.format("amqps://%s%s/%s/ConsumerGroups/%s/Partitions/%s",
+                            namespace, serviceBusEndPoint, eventHubName, consumerGroup, partitionId);
                     session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                 }
             }
