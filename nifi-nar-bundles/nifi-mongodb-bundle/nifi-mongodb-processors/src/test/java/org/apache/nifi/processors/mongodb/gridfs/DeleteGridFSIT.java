@@ -25,10 +25,10 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.types.ObjectId;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
@@ -38,13 +38,13 @@ public class DeleteGridFSIT extends GridFSITTestBase {
     private TestRunner runner;
     private static final String BUCKET = "delete_test_bucket";
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         runner = TestRunners.newTestRunner(DeleteGridFS.class);
         super.setup(runner, BUCKET, false);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         super.tearDown();
     }
@@ -83,13 +83,13 @@ public class DeleteGridFSIT extends GridFSITTestBase {
     private void testForQueryAttribute(String mustContain, String attrName) {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DeleteGridFS.REL_SUCCESS);
         String attribute = flowFiles.get(0).getAttribute(attrName);
-        Assert.assertTrue(attribute.contains(mustContain));
+        Assertions.assertTrue(attribute.contains(mustContain));
     }
 
     private String setupTestFile() {
         String fileName = "simple-delete-test.txt";
         ObjectId id = writeTestFile(fileName, "Hello, world!", BUCKET, new HashMap<>());
-        Assert.assertNotNull(id);
+        Assertions.assertNotNull(id);
 
         return fileName;
     }
@@ -105,6 +105,6 @@ public class DeleteGridFSIT extends GridFSITTestBase {
         runner.assertTransferCount(DeleteGridFS.REL_FAILURE, 0);
         runner.assertTransferCount(DeleteGridFS.REL_SUCCESS, 1);
 
-        Assert.assertFalse(String.format("File %s still exists.", fileName), fileExists(fileName, BUCKET));
+        Assertions.assertFalse(fileExists(fileName, BUCKET), String.format("File %s still exists.", fileName));
     }
 }

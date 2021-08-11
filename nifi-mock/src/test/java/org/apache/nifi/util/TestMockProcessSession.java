@@ -26,8 +26,7 @@ import org.apache.nifi.processor.exception.FlowFileHandlingException;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,9 +34,11 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestMockProcessSession {
 
@@ -54,7 +55,7 @@ public class TestMockProcessSession {
 
         try {
             session.commit();
-            Assert.fail("Was able to commit session without closing InputStream");
+            fail("Was able to commit session without closing InputStream");
         } catch (final FlowFileHandlingException | IllegalStateException e) {
             System.out.println(e.toString());
         }
@@ -73,7 +74,7 @@ public class TestMockProcessSession {
 
         try {
             session.commitAsync();
-            Assert.fail("Was able to commit session without closing InputStream");
+            fail("Was able to commit session without closing InputStream");
         } catch (final FlowFileHandlingException | IllegalStateException e) {
             System.out.println(e.toString());
         }
@@ -87,26 +88,26 @@ public class TestMockProcessSession {
         final Relationship fakeRel = new Relationship.Builder().name("FAKE").build();
         try {
             session.transfer(ff1, fakeRel);
-            Assert.fail("Should have thrown IllegalArgumentException");
+            fail("Should have thrown IllegalArgumentException");
         } catch (final IllegalArgumentException ie) {
 
         }
         try {
             session.transfer(Collections.singleton(ff1), fakeRel);
-            Assert.fail("Should have thrown IllegalArgumentException");
+            fail("Should have thrown IllegalArgumentException");
         } catch (final IllegalArgumentException ie) {
 
         }
 
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testRejectTransferNewlyCreatedFileToSelf() {
         final Processor processor = new PoorlyBehavedProcessor();
         final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
         final FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
         // this should throw an exception because we shouldn't allow a newly created flowfile to get routed back to self
-        session.transfer(ff1);
+        assertThrows(IllegalArgumentException.class, () -> session.transfer(ff1));
     }
 
     @Test

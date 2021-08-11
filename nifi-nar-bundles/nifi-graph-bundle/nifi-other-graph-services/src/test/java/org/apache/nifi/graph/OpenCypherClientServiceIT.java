@@ -23,10 +23,10 @@ import org.apache.nifi.util.TestRunners;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.StatementResult;
@@ -54,7 +54,7 @@ public class OpenCypherClientServiceIT {
     GraphClientService service;
     private Driver driver;
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         service = new OpenCypherClientService();
         runner = TestRunners.newTestRunner(MockProcessor.class);
@@ -64,7 +64,7 @@ public class OpenCypherClientServiceIT {
         runner.enableControllerService(service);
         runner.assertValid();
 
-        Assert.assertEquals("gremlin://localhost:8182/gremlin", service.getTransitUrl());
+        Assertions.assertEquals("gremlin://localhost:8182/gremlin", service.getTransitUrl());
 
         driver = GremlinDatabase.driver("//localhost:8182");
         executeSession("MATCH (n) detach delete n");
@@ -75,7 +75,7 @@ public class OpenCypherClientServiceIT {
                 "CREATE (rover)-[:chases]->(fido)");
     }
 
-    @After
+    @AfterEach
     public void after() {
         executeSession("MATCH (n) DETACH DELETE n");
     }

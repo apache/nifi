@@ -38,10 +38,10 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -52,19 +52,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class PutMongoRecordIT extends MongoWriteTestBase {
 
     private MockRecordParser recordReader;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setup(PutMongoRecord.class);
         recordReader = new MockRecordParser();
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         super.teardown();
     }
@@ -96,11 +96,11 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(3, results.size());
+        assertEquals(3, results.size());
         Iterator<ValidationResult> it = results.iterator();
-        Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
-        Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
-        Assert.assertTrue(it.next().toString().contains("is invalid because Record Reader is required"));
+        Assertions.assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
+        Assertions.assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
+        Assertions.assertTrue(it.next().toString().contains("is invalid because Record Reader is required"));
 
         // invalid write concern
         runner.setProperty(AbstractMongoProcessor.URI, MONGO_URI);
@@ -114,8 +114,8 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
-        Assert.assertTrue(results.iterator().next().toString().matches("'Write Concern' .* is invalid because Given value not found in allowed set .*"));
+        assertEquals(1, results.size());
+        Assertions.assertTrue(results.iterator().next().toString().matches("'Write Concern' .* is invalid because Given value not found in allowed set .*"));
 
         // valid write concern
         runner.setProperty(PutMongoRecord.WRITE_CONCERN, PutMongoRecord.WRITE_CONCERN_UNACKNOWLEDGED);
@@ -125,7 +125,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
     }
 
     @Test

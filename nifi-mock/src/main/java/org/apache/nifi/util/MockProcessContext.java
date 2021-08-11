@@ -34,7 +34,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.state.MockStateManager;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -412,7 +412,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         }
 
         if (failureCount > 0) {
-            Assert.fail("Processor has " + failureCount + " validation failures:\n" + sb.toString());
+            Assertions.fail("Processor has " + failureCount + " validation failures:\n" + sb.toString());
         }
     }
 
