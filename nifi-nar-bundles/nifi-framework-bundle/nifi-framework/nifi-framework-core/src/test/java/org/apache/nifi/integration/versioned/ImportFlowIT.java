@@ -64,6 +64,7 @@ import org.apache.nifi.util.FlowDifferenceFilters;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -426,15 +427,19 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         assertTrue(groupA.getProcessGroups().isEmpty());
         assertTrue(groupA.getProcessors().isEmpty());
         assertTrue(groupA.getConnections().isEmpty());
-        assertEquals(1L, groupA.getInputPorts().stream().filter(p -> p.getVersionedComponentId().get().equals(port.getVersionedComponentId().get())).count());
+        assertEquals(1, groupA.getInputPorts().size());
+        assertEquals(port.getVersionedComponentId(), groupA.getInputPorts().stream().findFirst().get().getVersionedComponentId());
 
         //Change Process Group A version to Version 2
         groupA.updateFlow(version2, null, false, true, true);
 
         //Process Group A should have a Process Group, a Processor and a Connection and no Input Ports
-        assertEquals(1L, groupA.getProcessGroups().stream().filter(pg -> pg.getVersionedComponentId().get().equals(groupB.getVersionedComponentId().get())).count());
-        assertEquals(1L, groupA.getProcessors().stream().filter(pr -> pr.getVersionedComponentId().get().equals(processor.getVersionedComponentId().get())).count());
-        assertEquals(1L, groupA.getConnections().stream().filter(c -> c.getVersionedComponentId().get().equals(connection.getVersionedComponentId().get())).count());
+        assertEquals(1, groupA.getProcessGroups().size());
+        assertEquals(groupB.getVersionedComponentId(), groupA.getProcessGroups().stream().findFirst().get().getVersionedComponentId());
+        assertEquals(1, groupA.getProcessors().size());
+        assertEquals(processor.getVersionedComponentId(), groupA.getProcessors().stream().findFirst().get().getVersionedComponentId());
+        assertEquals(1, groupA.getConnections().size());
+        assertEquals(connection.getVersionedComponentId(), groupA.getConnections().stream().findFirst().get().getVersionedComponentId());
         assertTrue(groupA.getInputPorts().isEmpty());
     }
 
@@ -501,17 +506,17 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
             connections = Collections.EMPTY_LIST;
             versionedProcessGroups = Collections.EMPTY_SET;
         } else {
-            processorNodes = group.getProcessors().stream().collect(Collectors.toList());
-            controllerServiceNodes = group.getControllerServices(false).stream().collect(Collectors.toList());
-            inputPorts = group.getInputPorts().stream().collect(Collectors.toList());
-            connections = group.getConnections().stream().collect(Collectors.toList());
-            processGroups = group.getProcessGroups().stream().collect(Collectors.toList());
+            processorNodes = new ArrayList<>(group.getProcessors());
+            controllerServiceNodes = new ArrayList<>(group.getControllerServices(false));
+            inputPorts = new ArrayList<>(group.getInputPorts());
+            connections = new ArrayList<>(group.getConnections());
+            processGroups = new ArrayList<>(group.getProcessGroups());
 
             final VersionedProcessGroup versionedGroup = flowMapper.mapProcessGroup(group, getFlowController().getControllerServiceProvider(),getFlowController().getFlowRegistryClient(),true);
             processGroups.forEach(processGroup->
                 versionedGroup.getProcessGroups().stream().filter(versionedProcessGroup -> versionedProcessGroup.getName().equals(processGroup.getName()))
                         .forEach(filteredProcessGroup -> processGroup.setVersionedComponentId(filteredProcessGroup.getIdentifier())));
-            versionedProcessGroups = versionedGroup.getProcessGroups().stream().collect(Collectors.toSet());
+            versionedProcessGroups = new HashSet<>(versionedGroup.getProcessGroups());
         }
 
         final Set<VersionedProcessor> versionedProcessors = new HashSet<>();
