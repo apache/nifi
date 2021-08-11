@@ -4282,6 +4282,27 @@ public final class StandardProcessGroup implements ProcessGroup {
             rpgsRemoved.remove(proposedRpg.getIdentifier());
         }
 
+        //Remove deletable Input and Output Ports.
+        //addConnection method may link the ports incorrectly, for example:
+        //Current flow: PGA IP1         ProcessGroupA has an Input Port IP1
+        //New flow: PGA P1-C1           ProcessGroupA has a new connection C1, its source is a new Processor P1
+        //            |     |           and its destination pointing to the moved Input Port IP1 under a new child ProcessGroup PGB
+        //          PGB    IP1
+        //As Input Port (IP1) originally belonged to PGA the new connection would be incorrectly linked to the old Input Port
+        //instead of the one being in PGB, so it needs to be removed first before updating the connections.
+
+        for (final String removedVersionedId : inputPortsRemoved) {
+            final Port port = inputPortsByVersionedId.get(removedVersionedId);
+            LOG.info("Removing {} from {}", port, group);
+            group.removeInputPort(port);
+        }
+
+        for (final String removedVersionedId : outputPortsRemoved) {
+            final Port port = outputPortsByVersionedId.get(removedVersionedId);
+            LOG.info("Removing {} from {}", port, group);
+            group.removeOutputPort(port);
+        }
+
         // Add and update Connections
         for (final VersionedConnection proposedConnection : proposed.getConnections()) {
             final Connection connection = connectionsByVersionedId.get(proposedConnection.getIdentifier());
@@ -4318,18 +4339,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Funnel funnel = funnelsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", funnel, group);
             group.removeFunnel(funnel);
-        }
-
-        for (final String removedVersionedId : inputPortsRemoved) {
-            final Port port = inputPortsByVersionedId.get(removedVersionedId);
-            LOG.info("Removing {} from {}", port, group);
-            group.removeInputPort(port);
-        }
-
-        for (final String removedVersionedId : outputPortsRemoved) {
-            final Port port = outputPortsByVersionedId.get(removedVersionedId);
-            LOG.info("Removing {} from {}", port, group);
-            group.removeOutputPort(port);
         }
 
         // Now that all input/output ports have been removed, we should be able to update

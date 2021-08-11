@@ -29,6 +29,7 @@ import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.StandardConnection;
 import org.apache.nifi.controller.ControllerService;
@@ -388,11 +389,19 @@ public class FrameworkIntegrationTest {
         return createProcessorNode(processorType.getName());
     }
 
+    protected final ProcessorNode createProcessorNode(final Class<? extends Processor> processorType, final ProcessGroup destination) {
+        return createProcessorNode(processorType.getName(), destination);
+    }
+
     protected final ProcessorNode createProcessorNode(final String processorType) {
+        return createProcessorNode(processorType, rootProcessGroup);
+    }
+
+    protected final ProcessorNode createProcessorNode(final String processorType, final ProcessGroup destination) {
         final String uuid = getSimpleTypeName(processorType) + "-" + UUID.randomUUID().toString();
         final BundleCoordinate bundleCoordinate = SystemBundle.SYSTEM_BUNDLE_COORDINATE;
         final ProcessorNode procNode = flowController.getFlowManager().createProcessor(processorType, uuid, bundleCoordinate, Collections.emptySet(), true, true);
-        rootProcessGroup.addProcessor(procNode);
+        destination.addProcessor(procNode);
 
         return procNode;
     }
@@ -465,15 +474,15 @@ public class FrameworkIntegrationTest {
         return processorNode;
     }
 
-    protected final Connection connect(final ProcessorNode source, final ProcessorNode destination, final Relationship relationship) {
+    protected final Connection connect(final Connectable source, final Connectable destination, final Relationship relationship) {
         return connect(source, destination, Collections.singleton(relationship));
     }
 
-    protected final Connection connect(final ProcessorNode source, final ProcessorNode destination, final Collection<Relationship> relationships) {
+    protected final Connection connect(final Connectable source, final Connectable destination, final Collection<Relationship> relationships) {
         return connect(rootProcessGroup, source, destination, relationships);
     }
 
-    protected final Connection connect(ProcessGroup processGroup, final ProcessorNode source, final ProcessorNode destination, final Collection<Relationship> relationships) {
+    protected final Connection connect(ProcessGroup processGroup, final Connectable source, final Connectable destination, final Collection<Relationship> relationships) {
         final String id = UUID.randomUUID().toString();
         final Connection connection = new StandardConnection.Builder(processScheduler)
                 .source(source)
