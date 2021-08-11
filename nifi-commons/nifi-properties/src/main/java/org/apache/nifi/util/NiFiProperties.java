@@ -304,16 +304,16 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String MONITOR_LONG_RUNNING_TASK_THRESHOLD = "nifi.monitor.long.running.task.threshold";
 
     // automatic diagnostic properties
-    public static final String AUTOMATIC_DIAGNOSTIC_ALLOWED = "nifi.auto.diag.allowed";
-    public static final String AUTOMATIC_DIAGNOSTIC_VERBOSE = "nifi.auto.diag.verbose";
-    public static final String AUTOMATIC_DIAGNOSTIC_DIRECTORY = "nifi.auto.diag.dir";
-    public static final String AUTOMATIC_DIAGNOSTIC_MAX_FILE_COUNT = "nifi.auto.diag.filecount.max";
-    public static final String AUTOMATIC_DIAGNOSTIC_MAX_DIR_SIZE_IN_BYTES = "nifi.auto.diag.dir.size.max.byte";
+    public static final String DIAGNOSTICS_ON_SHUTDOWN_ENABLED = "nifi.diagnostics.on.shutdown.enabled";
+    public static final String DIAGNOSTICS_ON_SHUTDOWN_VERBOSE = "nifi.diagnostics.on.shutdown.verbose";
+    public static final String DIAGNOSTICS_ON_SHUTDOWN_DIRECTORY = "nifi.diagnostics.on.shutdown.directory";
+    public static final String DIAGNOSTICS_ON_SHUTDOWN_MAX_FILE_COUNT = "nifi.diagnostics.on.shutdown.max.filecount";
+    public static final String DIAGNOSTICS_ON_SHUTDOWN_MAX_DIRECTORY_SIZE_IN_BYTES = "nifi.diagnostics.on.shutdown.max.directory.size.in.bytes";
 
     // automatic diagnostic defaults
-    public static final String DEFAULT_AUTOMATIC_DIAGNOSTIC_DIRECTORY = "./diagnostic";
-    public static final int DEFAULT_AUTOMATIC_DIAGNOSTIC_MAX_FILE_COUNT = 10;
-    public static final int DEFAULT_AUTOMATIC_DIAGNOSTIC_MAX_DIR_SIZE_IN_BYTES = Integer.MAX_VALUE;
+    public static final String DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_DIRECTORY = "./diagnostic";
+    public static final int DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_MAX_FILE_COUNT = 10;
+    public static final int DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_MAX_DIRECTORY_SIZE_IN_BYTES = Integer.MAX_VALUE;
 
     // defaults
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
@@ -1100,31 +1100,31 @@ public class NiFiProperties extends ApplicationProperties {
 
     // Automatic diagnostic getters
 
-    public boolean isAutomaticDiagnosticAllowed() {
-        return Boolean.parseBoolean(getProperty(AUTOMATIC_DIAGNOSTIC_ALLOWED));
+    public boolean isDiagnosticsOnShutdownEnabled() {
+        return Boolean.parseBoolean(getProperty(DIAGNOSTICS_ON_SHUTDOWN_ENABLED));
     }
 
-    public boolean isAutomaticDiagnosticVerbose() {
-        return Boolean.parseBoolean(getProperty(AUTOMATIC_DIAGNOSTIC_VERBOSE));
+    public boolean isDiagnosticsOnShutdownVerbose() {
+        return Boolean.parseBoolean(getProperty(DIAGNOSTICS_ON_SHUTDOWN_VERBOSE));
     }
 
-    public String getAutomaticDiagnosticDirectory() {
-        return getProperty(AUTOMATIC_DIAGNOSTIC_DIRECTORY, DEFAULT_AUTOMATIC_DIAGNOSTIC_DIRECTORY);
+    public String getDiagnosticsOnShutdownDirectory() {
+        return getProperty(DIAGNOSTICS_ON_SHUTDOWN_DIRECTORY, DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_DIRECTORY);
     }
 
-    public int getAutomaticDiagnosticMaxFileCount() {
+    public int getDiagnosticsOnShutdownMaxFileCount() {
         try {
-            return Integer.parseInt(getProperty(AUTOMATIC_DIAGNOSTIC_MAX_FILE_COUNT));
+            return Integer.parseInt(getProperty(DIAGNOSTICS_ON_SHUTDOWN_MAX_FILE_COUNT));
         } catch (NumberFormatException e) {
-            return DEFAULT_AUTOMATIC_DIAGNOSTIC_MAX_FILE_COUNT;
+            return DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_MAX_FILE_COUNT;
         }
     }
 
-    public int getAutomaticDiagnosticDirMaxSizeInBytes() {
+    public int getDiagnosticsOnShutdownDirectoryMaxSizeInBytes() {
         try {
-            return Integer.parseInt(getProperty(AUTOMATIC_DIAGNOSTIC_MAX_DIR_SIZE_IN_BYTES));
+            return Integer.parseInt(getProperty(DIAGNOSTICS_ON_SHUTDOWN_MAX_DIRECTORY_SIZE_IN_BYTES));
         } catch (NumberFormatException e) {
-            return DEFAULT_AUTOMATIC_DIAGNOSTIC_MAX_DIR_SIZE_IN_BYTES;
+            return DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_MAX_DIRECTORY_SIZE_IN_BYTES;
         }
     }
 

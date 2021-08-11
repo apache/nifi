@@ -4284,3 +4284,4 @@ The verbose switch is optional and can be used to control the level of diagnosti
 == Automatic diagnostics at shutdown/restart
 
 NiFi supports automatic diagnostics in the event of a shutdown. The feature is disabled by default. The settings can be found in the nifi.properties file and the feature can be enabled there also.
+In the case of a lengthy diagnostic, NiFi may terminate before the diagnostic is completed. In this case, the graceful.shutdown.seconds property should be set to a higher value in the bootstrap.conf.
