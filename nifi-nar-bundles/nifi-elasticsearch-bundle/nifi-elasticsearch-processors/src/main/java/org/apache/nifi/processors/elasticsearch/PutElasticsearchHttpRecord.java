@@ -359,7 +359,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         OkHttpClient okHttpClient = getClient();
         final ComponentLog logger = getLogger();
 
-        final String baseUrl = context.getProperty(ES_URL).evaluateAttributeExpressions().getValue().trim();
+        final String baseUrl = getESUrl().trim();
         if (StringUtils.isEmpty(baseUrl)) {
             throw new ProcessException("Elasticsearch URL is empty or null, this indicates an invalid Expression (missing variables, e.g.)");
         }

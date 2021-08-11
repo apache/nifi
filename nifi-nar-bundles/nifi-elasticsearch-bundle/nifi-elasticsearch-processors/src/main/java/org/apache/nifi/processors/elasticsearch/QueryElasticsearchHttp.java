@@ -332,7 +332,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
             final long startNanos = System.nanoTime();
             // read the url property from the context
-            final String urlstr = StringUtils.trimToEmpty(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue());
+            final String urlstr = StringUtils.trimToEmpty(getESUrl());
 
             boolean hitLimit = false;
             do {

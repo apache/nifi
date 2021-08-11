@@ -48,6 +48,7 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
@@ -127,6 +128,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    private final AtomicReference<Iterator<String>> esUrlsIteratorAtomicReference = new AtomicReference<>();
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
 
     @Override
@@ -233,6 +235,10 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         return results;
     }
 
+    protected String getESUrl() {
+        return esUrlsIteratorAtomicReference.get().next().trim();
+    }
+
     protected OkHttpClient getClient() {
         return okHttpClientAtomicReference.get();
     }
@@ -281,6 +287,14 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         final ObjectMapper mapper = new ObjectMapper();
         return mapper.readTree(in);
     }
+
+    @OnScheduled
+    public void setup(ProcessContext context) {
+        esUrlsIteratorAtomicReference.set(Iterables.cycle(Array.asList(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue().split(","))).iterator());
+        super.setup(context);
+    }
+
+    
 
     protected void buildBulkCommand(StringBuilder sb, String index, String docType, String indexOp, String id, String jsonString) {
         if (indexOp.equalsIgnoreCase("index") || indexOp.equalsIgnoreCase("create")) {

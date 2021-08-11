@@ -214,7 +214,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             logger.debug("Fetching {}/{}/{} from Elasticsearch", new Object[]{index, docType, docId});
 
             // read the url property from the context
-            final String urlstr = StringUtils.trimToEmpty(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue());
+            final String urlstr = StringUtils.trimToEmpty(getESUrl());
             final URL url = buildRequestURL(urlstr, docId, index, docType, fields, context);
             final long startNanos = System.nanoTime();
 

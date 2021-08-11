@@ -255,8 +255,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             String scrollId = loadScrollId(session);
 
             // read the url property from the context
-            final String urlstr = StringUtils.trimToEmpty(context.getProperty(ES_URL).evaluateAttributeExpressions()
-                    .getValue());
+            final String urlstr = StringUtils.trimToEmpty(getESUrl());
             if (scrollId != null) {
                 final URL scrollurl = buildRequestURL(urlstr, query, index, docType, fields, sort,
                         scrollId, pageSize, scroll, context);
