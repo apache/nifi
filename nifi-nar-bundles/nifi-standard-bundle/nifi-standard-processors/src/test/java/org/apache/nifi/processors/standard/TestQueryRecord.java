@@ -21,7 +21,6 @@ import org.apache.nifi.csv.CSVReader;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -45,7 +44,10 @@ import org.junit.Test;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
-import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -53,7 +55,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -70,10 +71,16 @@ public class TestQueryRecord {
 
     private static final String REL_NAME = "success";
 
+    private static final String ISO_DATE = "2018-02-04";
+    private static final String INSTANT_FORMATTED = String.format("%sT10:20:55Z", ISO_DATE);
+    private static final Instant INSTANT = Instant.parse(INSTANT_FORMATTED);
+    private static final Date INSTANT_DATE = Date.from(INSTANT);
+    private static final long INSTANT_EPOCH_MILLIS = INSTANT.toEpochMilli();
+
     public TestRunner getRunner() {
         TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
 
-        /**
+        /*
          * we have to disable validation of expression language because the scope of the evaluation
          * depends of the value of another property: if we are caching the schema/queries or not. If
          * we don't disable the validation, it'll throw an error saying that the scope is incorrect.
@@ -129,7 +136,11 @@ public class TestQueryRecord {
         assertEquals(30, output.getValue("ageObj"));
         assertArrayEquals(new String[] { "red", "green"}, (Object[]) output.getValue("colors"));
         assertArrayEquals(new String[] { "John Doe", "Jane Doe"}, (Object[]) output.getValue("names"));
-        assertEquals("1517702400000", output.getAsString("joinTime"));
+
+        final LocalDate localDate = LocalDate.parse(ISO_DATE);
+        final ZonedDateTime zonedDateTime = ZonedDateTime.of(localDate.atStartOfDay(), ZoneOffset.systemDefault());
+        final long epochMillis = zonedDateTime.toInstant().toEpochMilli();
+        assertEquals(Long.toString(epochMillis), output.getAsString("joinTime"));
         assertEquals(Double.valueOf(180.8D), output.getAsDouble("weight"));
     }
 
@@ -679,14 +690,14 @@ public class TestQueryRecord {
         favorites.put("roses", "raindrops");
         favorites.put("kittens", "whiskers");
 
-        final long ts = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(365 * 30);
+
         final Map<String, Object> map = new HashMap<>();
         map.put("name", "John Doe");
         map.put("age", 30);
         map.put("favoriteColors", new String[] { "red", "green" });
-        map.put("dob", new Date(ts));
-        map.put("dobTimestamp", ts);
-        map.put("joinTimestamp", "2018-02-04 10:20:55.802");
+        map.put("dob", INSTANT_DATE);
+        map.put("dobTimestamp", INSTANT_EPOCH_MILLIS);
+        map.put("joinTimestamp", INSTANT_FORMATTED);
         map.put("weight", 180.8D);
         map.put("height", 60.5);
         map.put("mother", mother);
@@ -696,8 +707,7 @@ public class TestQueryRecord {
         personValues.put("person", person);
         personValues.put("favoriteThings", favorites);
 
-        final Record record = new MapRecord(recordSchema, personValues);
-        return record;
+        return new MapRecord(recordSchema, personValues);
     }
 
 
@@ -722,8 +732,7 @@ public class TestQueryRecord {
         map.put("id", id);
         map.put("tags", Arrays.asList(tags));
 
-        final Record record = new MapRecord(recordSchema, map);
-        return record;
+        return new MapRecord(recordSchema, map);
     }
 
     /**
@@ -800,9 +809,7 @@ public class TestQueryRecord {
         map.put("height", 60.5);
         map.put("title", "Software Engineer");
         map.put("addresses", new Record[] {homeAddress, workAddress});
-        final Record person = new MapRecord(personSchema, map);
-
-        return person;
+        return new MapRecord(personSchema, map);
     }
 
 
@@ -834,7 +841,7 @@ public class TestQueryRecord {
     }
 
     @Test
-    public void testSimple() throws InitializationException, IOException, SQLException {
+    public void testSimple() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("age", RecordFieldType.INT);
@@ -867,7 +874,7 @@ public class TestQueryRecord {
     }
 
     @Test
-    public void testNullable() throws InitializationException, IOException, SQLException {
+    public void testNullable() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("name", RecordFieldType.STRING, true);
         parser.addSchemaField("age", RecordFieldType.INT, true);
@@ -902,7 +909,7 @@ public class TestQueryRecord {
     }
 
     @Test
-    public void testParseFailure() throws InitializationException, IOException, SQLException {
+    public void testParseFailure() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("age", RecordFieldType.INT);
@@ -935,7 +942,7 @@ public class TestQueryRecord {
     }
 
     @Test
-    public void testNoRecordsInput() throws InitializationException, IOException, SQLException {
+    public void testNoRecordsInput() throws InitializationException {
         TestRunner runner = getRunner();
 
         CSVReader csvReader = new CSVReader();
@@ -964,7 +971,7 @@ public class TestQueryRecord {
 
 
     @Test
-    public void testTransformCalc() throws InitializationException, IOException, SQLException {
+    public void testTransformCalc() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("ID", RecordFieldType.INT);
         parser.addSchemaField("AMOUNT1", RecordFieldType.FLOAT);
@@ -1029,7 +1036,7 @@ public class TestQueryRecord {
     }
 
     @Test
-    public void testAggregateFunction() throws InitializationException, IOException {
+    public void testAggregateFunction() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("points", RecordFieldType.INT);
@@ -1058,7 +1065,7 @@ public class TestQueryRecord {
     }
 
     @Test
-    public void testNullValueInSingleField() throws InitializationException, IOException {
+    public void testNullValueInSingleField() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("points", RecordFieldType.INT);
@@ -1134,7 +1141,7 @@ public class TestQueryRecord {
         }
 
         @Override
-        public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+        public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) {
             final List<RecordField> recordFields = columnNames.stream()
                 .map(name -> new RecordField(name, RecordFieldType.STRING.getDataType()))
                 .collect(Collectors.toList());
@@ -1178,7 +1185,7 @@ public class TestQueryRecord {
                 }
 
                 @Override
-                public WriteResult write(Record record) throws IOException {
+                public WriteResult write(Record record) {
                     return null;
                 }
 
@@ -1188,11 +1195,11 @@ public class TestQueryRecord {
                 }
 
                 @Override
-                public void beginRecordSet() throws IOException {
+                public void beginRecordSet() {
                 }
 
                 @Override
-                public WriteResult finishRecordSet() throws IOException {
+                public WriteResult finishRecordSet() {
                     return WriteResult.EMPTY;
                 }
             };

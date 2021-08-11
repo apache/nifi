@@ -48,7 +48,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -58,16 +57,13 @@ import static org.junit.Assert.assertTrue;
 public class TestListS3 {
 
     private TestRunner runner = null;
-    private ListS3 mockListS3 = null;
-    private AmazonS3Client actualS3Client = null;
     private AmazonS3Client mockS3Client = null;
 
     @Before
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
-        mockListS3 = new ListS3() {
+        final ListS3 mockListS3 = new ListS3() {
             protected AmazonS3Client getClient() {
-                actualS3Client = client;
                 return mockS3Client;
             }
         };
@@ -161,7 +157,6 @@ public class TestListS3 {
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
 
         final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         final String lastModifiedString = dateFormat.format(lastModified);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS).get(0);
@@ -370,7 +365,7 @@ public class TestListS3 {
         runner.setProperty(ListS3.BUCKET, "test-bucket");
 
         Calendar calendar = Calendar.getInstance();
-        calendar.set(2017, 5, 2);
+        calendar.set(2017, Calendar.JUNE, 2);
         Date objectLastModified = calendar.getTime();
         long stateCurrentTimestamp = objectLastModified.getTime();
 
