@@ -636,7 +636,8 @@ not the first value that is encountered in the Record itself.
 
 === format
 
-Converts a Date to a String in the given format with the given time zone(optional, default time zone is GMT).
+Converts a Date to a String in the given format with an optional time zone. The function defaults to the system local
+time zone when the second argument is not provided.
 
 The first argument to this function must be a Date or a Number, and the second argument must be a format String that
 follows the Java SimpleDateFormat, and the third argument, optional, must be a format String that

@@ -46,7 +46,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 import static org.apache.nifi.record.NullSuppression.ALWAYS_SUPPRESS;
 import static org.apache.nifi.record.NullSuppression.NEVER_SUPPRESS;
@@ -171,7 +170,6 @@ public class TestWriteXMLResult {
         final RecordSchema schema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_RECORD);
 
         final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-        df.setTimeZone(TimeZone.getTimeZone("gmt"));
         final long time = df.parse("2017/01/01 17:00:00.000").getTime();
         final String date = "2017-01-01";
 

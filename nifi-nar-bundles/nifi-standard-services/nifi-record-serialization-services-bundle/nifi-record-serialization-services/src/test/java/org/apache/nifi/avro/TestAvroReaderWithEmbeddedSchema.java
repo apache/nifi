@@ -38,7 +38,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
@@ -78,7 +77,6 @@ public class TestAvroReaderWithEmbeddedSchema {
         final int epochDay = 17260;
         final String expectedTime = "2017-04-04 14:20:33.000";
         final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        df.setTimeZone(TimeZone.getTimeZone("gmt"));
         final long timeLong = df.parse(expectedTime).getTime();
 
         final long secondsSinceMidnight = 33 + (20 * 60) + (14 * 60 * 60);
@@ -342,7 +340,7 @@ public class TestAvroReaderWithEmbeddedSchema {
         return array;
     }
 
-    public static enum Status {
+    public enum Status {
         GOOD, BAD;
     }
 }
