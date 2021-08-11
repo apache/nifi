@@ -45,7 +45,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -204,7 +203,6 @@ public class TestCSVRecordReader {
     public void testTimeNoCoersionExpectedFormat() throws IOException, MalformedRecordException, ParseException {
         final String timeFormat = "HH!mm!ss";
         DateFormat dateFmt = new SimpleDateFormat(timeFormat);
-        dateFmt.setTimeZone(TimeZone.getTimeZone("gmt"));
         final String timeVal = "19!02!03";
         final String text = "time\n" + timeVal;
 
@@ -278,7 +276,6 @@ public class TestCSVRecordReader {
     public void testTimestampNoCoersionExpectedFormat() throws IOException, MalformedRecordException, ParseException {
         final String timeFormat = "HH!mm!ss";
         DateFormat dateFmt = new SimpleDateFormat(timeFormat);
-        dateFmt.setTimeZone(TimeZone.getTimeZone("gmt"));
         final String timeVal = "19!02!03";
         final String text = "timestamp\n" + timeVal;
 

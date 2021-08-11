@@ -35,6 +35,10 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -1417,7 +1421,7 @@ public class TestRecordPath {
     }
 
     @Test
-    public void testFormatDateFromString() throws ParseException {
+    public void testFormatDateFromString() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
@@ -1426,70 +1430,84 @@ public class TestRecordPath {
 
         final Map<String, Object> values = new HashMap<>();
         values.put("id", 48);
-        values.put("date", "2017-10-20T11:00:00Z");
+
+        final String localDateFormatted = "2017-10-20";
+        final String localDateTimeFormatted = String.format("%sT12:45:30", localDateFormatted);
+        final LocalDateTime localDateTime = LocalDateTime.parse(localDateTimeFormatted);
+        final int offsetHours = 6;
+        final String timeZone = String.format("GMT+%d:00", offsetHours);
+
+        values.put("date", localDateTimeFormatted);
         final Record record = new MapRecord(schema, values);
 
-        final FieldValue fieldValue = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("2017-10-20", fieldValue.getValue());
-        final FieldValue fieldValue2 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd' , 'GMT+8:00')")
+        final FieldValue fieldValue = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals(localDateFormatted, fieldValue.getValue());
+        final FieldValue fieldValue2 = RecordPath.compile(String.format("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'yyyy-MM-dd' , '%s')", timeZone))
             .evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("2017-10-20", fieldValue2.getValue());
+        assertEquals(localDateFormatted, fieldValue2.getValue());
 
-        final FieldValue fieldValue3 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd HH:mm', 'GMT+8:00')")
+        final FieldValue fieldValue3 = RecordPath.compile(String.format("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), \"yyyy-MM-dd'T'HH:mm:ss\", '%s')", timeZone))
             .evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("2017-10-20 19:00", fieldValue3.getValue());
 
-        final FieldValue fieldValueUnchanged = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(DataTypeUtils.getDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").parse("2017-10-20T11:00:00Z"), fieldValueUnchanged.getValue());
-        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'INVALID' , 'INVALID')")
+        final ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime, ZoneOffset.systemDefault());
+        final ZonedDateTime adjustedZoneDateTime = zonedDateTime.withZoneSameInstant(ZoneOffset.ofHours(offsetHours));
+        final LocalDateTime adjustedLocalDateTime = adjustedZoneDateTime.toLocalDateTime();
+        final String adjustedDateTime = adjustedLocalDateTime.toString();
+        assertEquals(adjustedDateTime, fieldValue3.getValue());
+
+        final FieldValue fieldValueUnchanged = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals(localDateFormatted, fieldValueUnchanged.getValue().toString());
+        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'INVALID' , 'INVALID')")
             .evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(DataTypeUtils.getDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").parse("2017-10-20T11:00:00Z"), fieldValueUnchanged2.getValue());
+        assertEquals(localDateFormatted, fieldValueUnchanged2.getValue().toString());
     }
 
     @Test
-    public void testFormatDateFromLong() throws ParseException {
+    public void testFormatDateFromLong() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("date", RecordFieldType.LONG.getDataType()));
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final DateFormat dateFormat = DataTypeUtils.getDateFormat("yyyy-MM-dd");
-        final long dateValue = dateFormat.parse("2017-10-20").getTime();
+        final String localDate = "2017-10-20";
+        final String instantFormatted = String.format("%sT12:30:45Z", localDate);
+        final long epochMillis = Instant.parse(instantFormatted).toEpochMilli();
 
         final Map<String, Object> values = new HashMap<>();
         values.put("id", 48);
-        values.put("date", dateValue);
+        values.put("date", epochMillis);
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("2017-10-20", RecordPath.compile("format(/date, 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("2017-10-20 08:00:00", RecordPath.compile("format(/date, 'yyyy-MM-dd HH:mm:ss', 'GMT+8:00' )").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(localDate, RecordPath.compile("format(/date, 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(instantFormatted, RecordPath.compile("format(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')").evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         final FieldValue fieldValueUnchanged = RecordPath.compile("format(/date, 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(dateValue, fieldValueUnchanged.getValue());
+        assertEquals(epochMillis, fieldValueUnchanged.getValue());
         final FieldValue fieldValueUnchanged2 = RecordPath.compile("format(/date, 'INVALID', 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(dateValue, fieldValueUnchanged2.getValue());
+        assertEquals(epochMillis, fieldValueUnchanged2.getValue());
     }
 
     @Test
-    public void testFormatDateFromDate() throws ParseException {
+    public void testFormatDateFromDate() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final DateFormat dateFormat = DataTypeUtils.getDateFormat("yyyy-MM-dd");
-        final java.util.Date utilDate = dateFormat.parse("2017-10-20");
-        final Date dateValue = new Date(utilDate.getTime());
+        final String localDate = "2017-10-20";
+        final String instantFormatted = String.format("%sT12:30:45Z", localDate);
+        final Instant instant = Instant.parse(instantFormatted);
+        final Date dateValue = new Date(instant.toEpochMilli());
 
         final Map<String, Object> values = new HashMap<>();
         values.put("id", 48);
         values.put("date", dateValue);
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("2017-10-20", RecordPath.compile("format(/date, 'yyyy-MM-dd')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("2017-10-20 08:00:00", RecordPath.compile("format(/date, 'yyyy-MM-dd HH:mm:ss', 'GMT+8:00')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(localDate, RecordPath.compile("format(/date, 'yyyy-MM-dd')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(instantFormatted, RecordPath.compile("format(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')").evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         final FieldValue fieldValueUnchanged = RecordPath.compile("format(/date, 'INVALID')").evaluate(record).getSelectedFields().findFirst().get();
         assertEquals(dateValue, fieldValueUnchanged.getValue());
@@ -1922,8 +1940,7 @@ public class TestRecordPath {
         accountFields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         accountFields.add(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
 
-        final RecordSchema accountSchema = new SimpleRecordSchema(accountFields);
-        return accountSchema;
+        return new SimpleRecordSchema(accountFields);
     }
 
     private Record createSimpleRecord() {
@@ -1937,8 +1954,7 @@ public class TestRecordPath {
         final Map<String, Object> values = new HashMap<>();
         values.put("id", 48);
         values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-        return record;
+        return new MapRecord(schema, values);
     }
 
 }
