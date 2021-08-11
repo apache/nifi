@@ -35,10 +35,10 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -70,7 +70,7 @@ public class GetMongoIT {
     private TestRunner runner;
     private MongoClient mongoClient;
 
-    @Before
+    @BeforeEach
     public void setup() {
         runner = TestRunners.newTestRunner(GetMongo.class);
         runner.setVariable("uri", MONGO_URI);
@@ -88,7 +88,7 @@ public class GetMongoIT {
         collection.insertMany(DOCUMENTS);
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         runner = null;
 
@@ -109,10 +109,10 @@ public class GetMongoIT {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(2, results.size());
+        Assertions.assertEquals(2, results.size());
         Iterator<ValidationResult> it = results.iterator();
-        Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
-        Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
+        Assertions.assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
+        Assertions.assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
 
         // missing query - is ok
         runner.setProperty(AbstractMongoProcessor.URI, MONGO_URI);
@@ -124,7 +124,7 @@ public class GetMongoIT {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(0, results.size());
+        Assertions.assertEquals(0, results.size());
 
         // invalid query
         runner.setProperty(GetMongo.QUERY, "{a: x,y,z}");
@@ -134,8 +134,8 @@ public class GetMongoIT {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
-        Assert.assertTrue(results.iterator().next().toString().contains("is invalid because"));
+        Assertions.assertEquals(1, results.size());
+        Assertions.assertTrue(results.iterator().next().toString().contains("is invalid because"));
 
         // invalid projection
         runner.setVariable("projection", "{a: x,y,z}");
@@ -147,8 +147,8 @@ public class GetMongoIT {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
-        Assert.assertTrue(results.iterator().next().toString().contains("is invalid"));
+        Assertions.assertEquals(1, results.size());
+        Assertions.assertTrue(results.iterator().next().toString().contains("is invalid"));
 
         // invalid sort
         runner.removeProperty(GetMongo.PROJECTION);
@@ -159,8 +159,8 @@ public class GetMongoIT {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
-        Assert.assertTrue(results.iterator().next().toString().contains("is invalid"));
+        Assertions.assertEquals(1, results.size());
+        Assertions.assertTrue(results.iterator().next().toString().contains("is invalid"));
     }
 
     @Test
@@ -177,8 +177,8 @@ public class GetMongoIT {
         Map<String, Object> parsed = mapper.readValue(raw, Map.class);
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
 
-        Assert.assertTrue(parsed.get("date_field").getClass() == String.class);
-        Assert.assertTrue(((String)parsed.get("date_field")).startsWith(format.format(CAL.getTime())));
+        Assertions.assertTrue(parsed.get("date_field").getClass() == String.class);
+        Assertions.assertTrue(((String)parsed.get("date_field")).startsWith(format.format(CAL.getTime())));
     }
 
     @Test
@@ -252,8 +252,8 @@ public class GetMongoIT {
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 2);
         runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
-        Assert.assertTrue("Flowfile was empty", results.get(0).getSize() > 0);
-        Assert.assertEquals("Wrong mime type", results.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()), "application/json");
+        Assertions.assertTrue(results.get(0).getSize() > 0, "Flowfile was empty");
+        Assertions.assertEquals(results.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()), "application/json", "Wrong mime type");
     }
 
     @Test
@@ -267,8 +267,8 @@ public class GetMongoIT {
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 2);
         runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
-        Assert.assertTrue("Flowfile was empty", results.get(0).getSize() > 0);
-        Assert.assertEquals("Wrong mime type", results.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()), "application/json");
+        Assertions.assertTrue(results.get(0).getSize() > 0, "Flowfile was empty");
+        Assertions.assertEquals(results.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()), "application/json", "Wrong mime type");
     }
 
     @Test
@@ -283,7 +283,7 @@ public class GetMongoIT {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         byte[] raw = runner.getContentAsByteArray(flowFiles.get(0));
         String json = new String(raw);
-        Assert.assertTrue("JSON did not have new lines.", json.contains("\n"));
+        Assertions.assertTrue(json.contains("\n"), "JSON did not have new lines.");
         runner.clearTransferState();
         runner.setProperty(GetMongo.USE_PRETTY_PRINTING, GetMongo.NO_PP);
         runner.enqueue("{}");
@@ -293,15 +293,15 @@ public class GetMongoIT {
         flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         raw = runner.getContentAsByteArray(flowFiles.get(0));
         json = new String(raw);
-        Assert.assertFalse("New lines detected", json.contains("\n"));
+        Assertions.assertFalse(json.contains("\n"), "New lines detected");
     }
 
     private void testQueryAttribute(String attr, String expected) {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         for (MockFlowFile mff : flowFiles) {
             String val = mff.getAttribute(attr);
-            Assert.assertNotNull("Missing query attribute", val);
-            Assert.assertEquals("Value was wrong", expected, val);
+            Assertions.assertNotNull(val, "Missing query attribute");
+            Assertions.assertEquals(expected, val, "Value was wrong");
         }
     }
 
@@ -426,7 +426,7 @@ public class GetMongoIT {
             ex = pe;
         }
 
-        Assert.assertNull("An exception was thrown!", ex);
+        Assertions.assertNull(ex, "An exception was thrown!");
         runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
         runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
@@ -467,7 +467,7 @@ public class GetMongoIT {
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS).get(0);
-        Assert.assertTrue(flowFile.getAttributes().containsKey("property.1"));
+        Assertions.assertTrue(flowFile.getAttributes().containsKey("property.1"));
         flowFile.assertAttributeEquals("property.1", "value-1");
     }
     /*
@@ -536,8 +536,8 @@ public class GetMongoIT {
                 tmpRunner.run();
             } catch (Throwable ex) {
                 Throwable cause = ex.getCause();
-                Assert.assertTrue(cause instanceof ProcessException);
-                Assert.assertTrue(entry.getKey(), ex.getMessage().contains(entry.getKey()));
+                Assertions.assertTrue(cause instanceof ProcessException);
+                Assertions.assertTrue(ex.getMessage().contains(entry.getKey()), entry.getKey());
             }
             tmpRunner.clearTransferState();
 
@@ -553,10 +553,10 @@ public class GetMongoIT {
         for (MockFlowFile ff : ffs) {
             String db = ff.getAttribute(GetMongo.DB_NAME);
             String col = ff.getAttribute(GetMongo.COL_NAME);
-            Assert.assertNotNull(db);
-            Assert.assertNotNull(col);
-            Assert.assertEquals(DB_NAME, db);
-            Assert.assertEquals(COLLECTION_NAME, col);
+            Assertions.assertNotNull(db);
+            Assertions.assertNotNull(col);
+            Assertions.assertEquals(DB_NAME, db);
+            Assertions.assertEquals(COLLECTION_NAME, col);
         }
     }
 
@@ -578,8 +578,8 @@ public class GetMongoIT {
 
         Pattern format = Pattern.compile("([\\d]{4})-([\\d]{2})-([\\d]{2})");
 
-        Assert.assertTrue(result.containsKey("date_field"));
-        Assert.assertTrue(format.matcher((String) result.get("date_field")).matches());
+        Assertions.assertTrue(result.containsKey("date_field"));
+        Assertions.assertTrue(format.matcher((String) result.get("date_field")).matches());
     }
 
     @Test
@@ -667,6 +667,6 @@ public class GetMongoIT {
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         MockFlowFile flowFile = flowFiles.get(0);
-        Assert.assertEquals(0, flowFile.getSize());
+        Assertions.assertEquals(0, flowFile.getSize());
     }
 }

@@ -43,7 +43,7 @@
         <flyway.version>6.5.7</flyway.version>
         <flyway.tests.version>6.4.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
-        <testcontainers.version>1.15.1</testcontainers.version>
+        <testcontainers.version>1.16.0</testcontainers.version>
 	    <h2.version>1.4.199</h2.version>
         <groovy.eclipse.compiler.version>3.4.0-01</groovy.eclipse.compiler.version>
         <jaxb.version>2.3.2</jaxb.version>
