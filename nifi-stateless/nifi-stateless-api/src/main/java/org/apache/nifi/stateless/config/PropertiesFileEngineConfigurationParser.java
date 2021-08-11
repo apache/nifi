@@ -87,8 +87,8 @@ public class PropertiesFileEngineConfigurationParser {
             throw new StatelessConfigurationException("Extensions Directory " + narDirectory.getAbsolutePath() + " specified in properties file does not exist and could not be created");
         }
 
-        final String contentRepoDirectoryFilename = properties.getProperty(CONTENT_REPO_DIRECTORY);
-        final File contentRepoDirectory = contentRepoDirectoryFilename == null ? null : new File(contentRepoDirectoryFilename);
+        final String contentRepoDirectoryFilename = properties.getProperty(CONTENT_REPO_DIRECTORY, "");
+        final File contentRepoDirectory = contentRepoDirectoryFilename.isEmpty() ? null : new File(contentRepoDirectoryFilename);
 
         final String krb5Filename = properties.getProperty(KRB5_FILE, DEFAULT_KRB5_FILENAME);
         final File krb5File = new File(krb5Filename);
