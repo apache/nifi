@@ -246,28 +246,8 @@ public class MongoDBLookupServiceIT {
         Map<String, Object> criteria = new HashMap<>();
         criteria.put("uuid", "x-y-z");
 
-//        boolean error = false;
-//        try {
-//            service.lookup(criteria);
-//        } catch(Exception ex) {
-//            error = true;
-//        }
-
-//        Assertions.assertFalse(error, "An error was thrown when no error should have been thrown.");
-
         assertDoesNotThrow(() -> service.lookup(criteria));
 
-//        error = false;
-
         assertThrows(LookupFailureException.class, () -> service.lookup(new HashMap<>()));
-
-//        try {
-//            service.lookup(new HashMap());
-//        } catch (Exception ex) {
-//            error = true;
-//            Assertions.assertTrue(ex instanceof LookupFailureException, "The exception was the wrong type");
-//        }
-//
-//        Assertions.assertTrue(error, "An error was not thrown when the input was empty");
     }
 }
