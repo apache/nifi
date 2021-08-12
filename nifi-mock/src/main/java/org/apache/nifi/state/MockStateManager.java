@@ -240,7 +240,7 @@ public class MockStateManager implements StateManager {
      * @param scope the scope
      */
     public void assertStateSet(final String key, final Scope scope) {
-        Assertions.assertNotNull("Expected state to be set for key " + key + " and scope " + scope + ", but it was not set", getValue(key, scope));
+        Assertions.assertNotNull(getValue(key, scope), "Expected state to be set for key " + key + " and scope " + scope + ", but it was not set");
     }
 
     /**
