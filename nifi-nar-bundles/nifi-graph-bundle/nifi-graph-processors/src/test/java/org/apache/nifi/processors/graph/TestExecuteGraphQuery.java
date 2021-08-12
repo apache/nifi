@@ -41,9 +41,6 @@ import static org.junit.Assert.assertTrue;
 public class TestExecuteGraphQuery {
     protected TestRunner runner;
 
-    @Rule
-    public MockitoRule mockitoRule = MockitoJUnit.rule();
-
     @BeforeEach
     public void setUp() throws Exception {
         MockCypherClientService service = new MockCypherClientService();
