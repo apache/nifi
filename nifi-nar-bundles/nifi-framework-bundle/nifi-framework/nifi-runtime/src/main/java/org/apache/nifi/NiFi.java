@@ -65,6 +65,8 @@ import java.util.stream.Stream;
 public class NiFi implements NiFiEntryPoint {
 
     public static final String BOOTSTRAP_PORT_PROPERTY = "nifi.bootstrap.listen.port";
+    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+
     private static final Logger logger = LoggerFactory.getLogger(NiFi.class);
     private static final String KEY_FILE_FLAG = "-K";
 
@@ -239,11 +241,10 @@ public class NiFi implements NiFiEntryPoint {
                 final Path oldestFile = DiagnosticUtils.getOldestFile(diagnosticDirectoryPath);
                 Files.delete(oldestFile);
             }
-            final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
-            final String fileName = String.format("%s/diagnostic-%s.log", diagnosticDirectoryPath, formatter.format(LocalDateTime.now()));
+            final String fileName = String.format("%s/diagnostic-%s.log", diagnosticDirectoryPath, DATE_TIME_FORMATTER.format(LocalDateTime.now()));
             diagnose(new File(fileName), properties.isDiagnosticsOnShutdownVerbose());
 
-            while (DiagnosticUtils.isSizeExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownDirectoryMaxSizeInBytes())) {
+            while (DiagnosticUtils.isSizeExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownDirectoryMaxSize())) {
                 final Path oldestFile = DiagnosticUtils.getOldestFile(diagnosticDirectoryPath);
                 Files.delete(oldestFile);
             }

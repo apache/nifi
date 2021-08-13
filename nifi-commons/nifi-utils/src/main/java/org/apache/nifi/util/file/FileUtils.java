@@ -600,7 +600,7 @@ public class FileUtils {
                     .sum();
 
         } catch (IOException e) {
-            logger.error("IO exception occured while tried to get the size of the directory {}", path, e);
+            logger.error("Directory [{}] size calculation failed", path, e);
         }
         return size;
     }
