@@ -18,35 +18,23 @@ package org.apache.nifi.security.util.crypto
 
 import at.favre.lib.crypto.bcrypt.Radix64Encoder
 import org.bouncycastle.util.encoders.Hex
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.nio.charset.StandardCharsets
 
-@RunWith(JUnit4.class)
 class BcryptSecureHasherTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(BcryptSecureHasher)
 
-    @BeforeClass
+    @BeforeAll
     static void setupOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     @Test
@@ -263,7 +251,7 @@ class BcryptSecureHasherTest extends GroovyTestCase {
      * This test can have the minimum time threshold updated to determine if the performance
      * is still sufficient compared to the existing threat model.
      */
-    @Ignore("Long running test")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     @Test
     void testDefaultCostParamsShouldBeSufficient() {
         // Arrange

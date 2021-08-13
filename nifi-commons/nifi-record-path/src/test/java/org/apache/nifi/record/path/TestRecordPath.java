@@ -28,9 +28,9 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.uuid5.Uuid5Util;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
@@ -57,8 +57,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class TestRecordPath {
 
@@ -72,12 +72,12 @@ public class TestRecordPath {
 
     private static final String TEST_TIMEZONE_OFFSET = String.format("GMT+0%d:00", TEST_OFFSET_HOURS);
 
-    @BeforeClass
+    @BeforeAll
     public static void setTestTimezone() {
         System.setProperty(USER_TIMEZONE_PROPERTY, TEST_TIMEZONE);
     }
 
-    @AfterClass
+    @AfterAll
     public static void setSystemTimezone() {
         System.setProperty(USER_TIMEZONE_PROPERTY, SYSTEM_TIMEZONE);
     }
@@ -93,12 +93,7 @@ public class TestRecordPath {
         RecordPath.compile("/name[contains(., 'hello')]");
 
         // substring is not a filter function so cannot be used as a predicate
-        try {
-            RecordPath.compile("/name[substring(., 1, 2)]");
-            fail("Expected RecordPathException");
-        } catch (final RecordPathException e) {
-            // expected
-        }
+        assertThrows(RecordPathException.class, () -> RecordPath.compile("/name[substring(., 1, 2)]"));
 
         // substring is not a filter function so can be used as *part* of a predicate but not as the entire predicate
         RecordPath.compile("/name[substring(., 1, 2) = 'e']");
@@ -1568,7 +1563,7 @@ public class TestRecordPath {
         assertEquals("Hello World!", RecordPath.compile("toString(/bytes, \"UTF-16\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
-    @Test(expected = IllegalCharsetNameException.class)
+    @Test
     public void testToStringBadCharset() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
@@ -1581,7 +1576,9 @@ public class TestRecordPath {
         values.put("bytes", "Hello World!".getBytes(StandardCharsets.UTF_16));
         final Record record = new MapRecord(schema, values);
 
-        RecordPath.compile("toString(/bytes, \"NOT A REAL CHARSET\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
+        assertThrows(IllegalCharsetNameException.class, () ->
+                RecordPath.compile("toString(/bytes, \"NOT A REAL CHARSET\")").evaluate(record)
+                        .getSelectedFields().findFirst().get().getValue());
     }
 
     @Test
@@ -1601,7 +1598,7 @@ public class TestRecordPath {
                 (byte[]) RecordPath.compile("toBytes(/s, \"UTF-16LE\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
-    @Test(expected = IllegalCharsetNameException.class)
+    @Test
     public void testToBytesBadCharset() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
@@ -1614,7 +1611,8 @@ public class TestRecordPath {
         values.put("s", "Hello World!");
         final Record record = new MapRecord(schema, values);
 
-        RecordPath.compile("toBytes(/s, \"NOT A REAL CHARSET\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
+        assertThrows(IllegalCharsetNameException.class, () -> RecordPath.compile("toBytes(/s, \"NOT A REAL CHARSET\")").evaluate(record)
+                .getSelectedFields().findFirst().get().getValue());
     }
 
     @Test
@@ -1796,21 +1794,20 @@ public class TestRecordPath {
 
         // test invalid JSON
         final Record recordInvalidJson = new MapRecord(schema, Collections.singletonMap("json_str", "{\"invalid\": \"json"));
-        try {
-            RecordPath.compile("unescapeJson(/json_str)").evaluate(recordInvalidJson).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue();
-            fail("Expected a RecordPathException for invalid JSON");
-        } catch (RecordPathException rpe) {
-            assertEquals("Unable to deserialise JSON String into Record Path value", rpe.getMessage());
-        }
+
+        RecordPathException rpe = assertThrows(RecordPathException.class,
+                () -> RecordPath.compile("unescapeJson(/json_str)")
+                        .evaluate(recordInvalidJson).getSelectedFields()
+                        .findFirst().orElseThrow(IllegalStateException::new).getValue());
+        assertEquals("Unable to deserialise JSON String into Record Path value", rpe.getMessage());
 
         // test not String
         final Record recordNotString = new MapRecord(schema, Collections.singletonMap("person", new MapRecord(person, Collections.singletonMap("age", 30))));
-        try {
-            RecordPath.compile("unescapeJson(/person/age)").evaluate(recordNotString).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue();
-            fail("Expected IllegalArgumentException for non-String input");
-        } catch (IllegalArgumentException iae) {
-            assertEquals("Argument supplied to unescapeJson must be a String", iae.getMessage());
-        }
+        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                () -> RecordPath.compile("unescapeJson(/person/age)")
+                        .evaluate(recordNotString).getSelectedFields()
+                        .findFirst().orElseThrow(IllegalStateException::new).getValue());
+        assertEquals("Argument supplied to unescapeJson must be a String", iae.getMessage());
     }
 
     @Test
@@ -1820,10 +1817,11 @@ public class TestRecordPath {
         assertEquals("5753a498f025464d72e088a9d5d6e872592d5f91", RecordPath.compile("hash(/firstName, 'SHA-1')").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
-    @Test(expected = RecordPathException.class)
+    @Test
     public void testHashFailure() {
         final Record record = getCaseTestRecord();
-        assertEquals("61409aa1fd47d4a5332de23cbf59a36f", RecordPath.compile("hash(/firstName, 'NOT_A_ALGO')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertThrows(RecordPathException.class, () -> RecordPath.compile("hash(/firstName, 'NOT_A_ALGO')").evaluate(record)
+                .getSelectedFields().findFirst().get().getValue());
     }
 
     @Test

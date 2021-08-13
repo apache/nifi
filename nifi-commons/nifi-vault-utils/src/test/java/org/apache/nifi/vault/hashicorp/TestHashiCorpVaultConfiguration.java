@@ -19,11 +19,10 @@ package org.apache.nifi.vault.hashicorp;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultConfiguration;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultPropertySource;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.vault.authentication.ClientAuthentication;
 import org.springframework.vault.client.VaultEndpoint;
 import org.springframework.vault.support.SslConfiguration;
@@ -38,6 +37,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestHashiCorpVaultConfiguration {
     public static final String VAULT_AUTHENTICATION = "vault.authentication";
@@ -61,21 +64,21 @@ public class TestHashiCorpVaultConfiguration {
 
     private HashiCorpVaultConfiguration config;
 
-    @BeforeClass
+    @BeforeAll
     public static void initClass() throws IOException {
         keystoreFile = Files.createTempFile("test", ".jks");
         truststoreFile = Files.createTempFile("test", ".jks");
         authProps = writeBasicVaultAuthProperties();
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanUpClass() throws IOException {
         Files.deleteIfExists(keystoreFile);
         Files.deleteIfExists(truststoreFile);
         Files.deleteIfExists(authProps.toPath());
     }
 
-    @Before
+    @BeforeEach
     public void init() throws IOException {
         propertiesBuilder = new HashiCorpVaultProperties.HashiCorpVaultPropertiesBuilder()
                 .setUri(URI_VALUE)
@@ -118,12 +121,12 @@ public class TestHashiCorpVaultConfiguration {
         config = new HashiCorpVaultConfiguration(new HashiCorpVaultPropertySource(propertiesBuilder.build()));
 
         VaultEndpoint endpoint = config.vaultEndpoint();
-        Assert.assertEquals("localhost", endpoint.getHost());
-        Assert.assertEquals(8200, endpoint.getPort());
-        Assert.assertEquals(expectedScheme, endpoint.getScheme());
+        assertEquals("localhost", endpoint.getHost());
+        assertEquals(8200, endpoint.getPort());
+        assertEquals(expectedScheme, endpoint.getScheme());
 
         ClientAuthentication clientAuthentication = config.clientAuthentication();
-        Assert.assertNotNull(clientAuthentication);
+        assertNotNull(clientAuthentication);
     }
 
     @Test
@@ -146,20 +149,20 @@ public class TestHashiCorpVaultConfiguration {
         this.runTest("https");
 
         SslConfiguration sslConfiguration = config.sslConfiguration();
-        Assert.assertEquals(keystoreFile.toFile().getAbsolutePath(), sslConfiguration.getKeyStoreConfiguration().getResource().getFile().getAbsolutePath());
-        Assert.assertEquals(KEYSTORE_PASSWORD_VALUE, new String(sslConfiguration.getKeyStoreConfiguration().getStorePassword()));
-        Assert.assertEquals(KEYSTORE_TYPE_VALUE, sslConfiguration.getKeyStoreConfiguration().getStoreType());
-        Assert.assertEquals(truststoreFile.toFile().getAbsolutePath(), sslConfiguration.getTrustStoreConfiguration().getResource().getFile().getAbsolutePath());
-        Assert.assertEquals(TRUSTSTORE_PASSWORD_VALUE, new String(sslConfiguration.getTrustStoreConfiguration().getStorePassword()));
-        Assert.assertEquals(TRUSTSTORE_TYPE_VALUE, sslConfiguration.getTrustStoreConfiguration().getStoreType());
-        Assert.assertEquals(Arrays.asList(TLS_V_1_3_VALUE), sslConfiguration.getEnabledProtocols());
-        Assert.assertEquals(Arrays.asList(TEST_CIPHER_SUITE_VALUE), sslConfiguration.getEnabledCipherSuites());
+        assertEquals(keystoreFile.toFile().getAbsolutePath(), sslConfiguration.getKeyStoreConfiguration().getResource().getFile().getAbsolutePath());
+        assertEquals(KEYSTORE_PASSWORD_VALUE, new String(sslConfiguration.getKeyStoreConfiguration().getStorePassword()));
+        assertEquals(KEYSTORE_TYPE_VALUE, sslConfiguration.getKeyStoreConfiguration().getStoreType());
+        assertEquals(truststoreFile.toFile().getAbsolutePath(), sslConfiguration.getTrustStoreConfiguration().getResource().getFile().getAbsolutePath());
+        assertEquals(TRUSTSTORE_PASSWORD_VALUE, new String(sslConfiguration.getTrustStoreConfiguration().getStorePassword()));
+        assertEquals(TRUSTSTORE_TYPE_VALUE, sslConfiguration.getTrustStoreConfiguration().getStoreType());
+        assertEquals(Arrays.asList(TLS_V_1_3_VALUE), sslConfiguration.getEnabledProtocols());
+        assertEquals(Arrays.asList(TEST_CIPHER_SUITE_VALUE), sslConfiguration.getEnabledCipherSuites());
     }
 
     @Test
     public void testInvalidTLS() {
         propertiesBuilder.setUri(URI_VALUE.replace("http", "https"));
-        Assert.assertThrows(NullPointerException.class, () -> this.runTest("https"));
+        assertThrows(NullPointerException.class, () -> this.runTest("https"));
     }
 
     @Test
@@ -171,7 +174,7 @@ public class TestHashiCorpVaultConfiguration {
             authProperties = writeVaultAuthProperties(props);
             propertiesBuilder.setAuthPropertiesFilename(authProperties.getAbsolutePath());
 
-            Assert.assertThrows(IllegalArgumentException.class, () -> this.runTest("http"));
+            assertThrows(IllegalArgumentException.class, () -> this.runTest("http"));
         } finally {
             if (authProperties != null) {
                 Files.deleteIfExists(authProperties.toPath());
@@ -187,7 +190,7 @@ public class TestHashiCorpVaultConfiguration {
             authProperties = writeVaultAuthProperties(props);
             propertiesBuilder.setAuthPropertiesFilename(authProperties.getAbsolutePath());
 
-            Assert.assertThrows(IllegalArgumentException.class, () -> this.runTest("http"));
+            assertThrows(IllegalArgumentException.class, () -> this.runTest("http"));
         } finally {
             if (authProperties != null) {
                 Files.deleteIfExists(authProperties.toPath());

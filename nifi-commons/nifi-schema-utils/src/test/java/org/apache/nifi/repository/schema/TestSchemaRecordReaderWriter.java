@@ -17,11 +17,8 @@
 
 package org.apache.nifi.repository.schema;
 
-import static org.apache.nifi.repository.schema.SchemaRecordWriter.MAX_ALLOWED_UTF_LENGTH;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -35,8 +32,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
-import org.junit.Test;
+import static org.apache.nifi.repository.schema.SchemaRecordWriter.MAX_ALLOWED_UTF_LENGTH;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSchemaRecordReaderWriter {
 
@@ -237,69 +237,69 @@ public class TestSchemaRecordReaderWriter {
     @Test
     public void testSingleCharUTF8Lengths() {
         // verify handling of single characters mapping to utf8 byte strings
-        assertEquals("test 1 char string truncated to 0 utf bytes should be 0", 0, SchemaRecordWriter.getCharsInUTF8Limit(utfStringOneByte, 0));
-        assertEquals("test 2 char string truncated to 0 utf bytes should be 0", 0, SchemaRecordWriter.getCharsInUTF8Limit(utfStringTwoByte, 0));
-        assertEquals("test 3 char string truncated to 0 utf bytes should be 0", 0, SchemaRecordWriter.getCharsInUTF8Limit(utfStringThreeByte, 0));
-        assertEquals("test 1 char string truncated to 1 utf bytes should be 1", 1, SchemaRecordWriter.getCharsInUTF8Limit(utfStringOneByte, 1));
-        assertEquals("test 2 char string truncated to 1 utf bytes should be 0", 0, SchemaRecordWriter.getCharsInUTF8Limit(utfStringTwoByte, 1));
-        assertEquals("test 3 char string truncated to 1 utf bytes should be 0", 0, SchemaRecordWriter.getCharsInUTF8Limit(utfStringThreeByte, 1));
-        assertEquals("test 1 char string truncated to 2 utf bytes should be 1", 1, SchemaRecordWriter.getCharsInUTF8Limit(utfStringOneByte, 2));
-        assertEquals("test 2 char string truncated to 2 utf bytes should be 2", 1, SchemaRecordWriter.getCharsInUTF8Limit(utfStringTwoByte, 2));
-        assertEquals("test 3 char string truncated to 2 utf bytes should be 0", 0, SchemaRecordWriter.getCharsInUTF8Limit(utfStringThreeByte, 2));
-        assertEquals("test 1 char string truncated to 3 utf bytes should be 1", 1, SchemaRecordWriter.getCharsInUTF8Limit(utfStringOneByte, 3));
-        assertEquals("test 2 char string truncated to 3 utf bytes should be 2", 1, SchemaRecordWriter.getCharsInUTF8Limit(utfStringTwoByte, 3));
-        assertEquals("test 3 char string truncated to 3 utf bytes should be 3", 1, SchemaRecordWriter.getCharsInUTF8Limit(utfStringThreeByte, 3));
+        assertEquals(0, SchemaRecordWriter.getCharsInUTF8Limit(utfStringOneByte, 0), "test 1 char string truncated to 0 utf bytes should be 0");
+        assertEquals(0, SchemaRecordWriter.getCharsInUTF8Limit(utfStringTwoByte, 0), "test 2 char string truncated to 0 utf bytes should be 0");
+        assertEquals(0, SchemaRecordWriter.getCharsInUTF8Limit(utfStringThreeByte, 0), "test 3 char string truncated to 0 utf bytes should be 0");
+        assertEquals(1, SchemaRecordWriter.getCharsInUTF8Limit(utfStringOneByte, 1), "test 1 char string truncated to 1 utf bytes should be 1");
+        assertEquals(0, SchemaRecordWriter.getCharsInUTF8Limit(utfStringTwoByte, 1), "test 2 char string truncated to 1 utf bytes should be 0");
+        assertEquals(0, SchemaRecordWriter.getCharsInUTF8Limit(utfStringThreeByte, 1), "test 3 char string truncated to 1 utf bytes should be 0");
+        assertEquals(1, SchemaRecordWriter.getCharsInUTF8Limit(utfStringOneByte, 2), "test 1 char string truncated to 2 utf bytes should be 1");
+        assertEquals(1, SchemaRecordWriter.getCharsInUTF8Limit(utfStringTwoByte, 2), "test 2 char string truncated to 2 utf bytes should be 2");
+        assertEquals(0, SchemaRecordWriter.getCharsInUTF8Limit(utfStringThreeByte, 2), "test 3 char string truncated to 2 utf bytes should be 0");
+        assertEquals(1, SchemaRecordWriter.getCharsInUTF8Limit(utfStringOneByte, 3), "test 1 char string truncated to 3 utf bytes should be 1");
+        assertEquals(1, SchemaRecordWriter.getCharsInUTF8Limit(utfStringTwoByte, 3), "test 2 char string truncated to 3 utf bytes should be 2");
+        assertEquals(1, SchemaRecordWriter.getCharsInUTF8Limit(utfStringThreeByte, 3), "test 3 char string truncated to 3 utf bytes should be 3");
     }
 
     @Test
     public void testMultiCharUTFLengths() {
         // test boundary conditions as 1, 2, and 3 UTF byte chars are included into utf limit                                                  positions used by strings
         final String testString1 = utfStringOneByte + utfStringTwoByte + utfStringThreeByte;                                                // char 'abc' utf 'abbccc'
-        assertEquals("test 6 char string truncated to 0 utf bytes should be 0", 0, SchemaRecordWriter.getCharsInUTF8Limit(testString1, 0)); //            utf ''
-        assertEquals("test 6 char string truncated to 1 utf bytes should be 1", 1, SchemaRecordWriter.getCharsInUTF8Limit(testString1, 1)); //            utf 'a'
-        assertEquals("test 6 char string truncated to 2 utf bytes should be 1", 1, SchemaRecordWriter.getCharsInUTF8Limit(testString1, 2)); //            utf 'a'
-        assertEquals("test 6 char string truncated to 3 utf bytes should be 2", 2, SchemaRecordWriter.getCharsInUTF8Limit(testString1, 3)); //            utf 'abb'
-        assertEquals("test 6 char string truncated to 4 utf bytes should be 2", 2, SchemaRecordWriter.getCharsInUTF8Limit(testString1, 4)); //            utf 'abb'
-        assertEquals("test 6 char string truncated to 5 utf bytes should be 2", 2, SchemaRecordWriter.getCharsInUTF8Limit(testString1, 5)); //            utf 'abb'
-        assertEquals("test 6 char string truncated to 6 utf bytes should be 3", 3, SchemaRecordWriter.getCharsInUTF8Limit(testString1, 6)); //            utf 'abbccc'
+        assertEquals(0, SchemaRecordWriter.getCharsInUTF8Limit(testString1, 0), "test 6 char string truncated to 0 utf bytes should be 0"); //            utf ''
+        assertEquals(1, SchemaRecordWriter.getCharsInUTF8Limit(testString1, 1), "test 6 char string truncated to 1 utf bytes should be 1"); //            utf 'a'
+        assertEquals(1, SchemaRecordWriter.getCharsInUTF8Limit(testString1, 2), "test 6 char string truncated to 2 utf bytes should be 1"); //            utf 'a'
+        assertEquals(2, SchemaRecordWriter.getCharsInUTF8Limit(testString1, 3), "test 6 char string truncated to 3 utf bytes should be 2"); //            utf 'abb'
+        assertEquals(2, SchemaRecordWriter.getCharsInUTF8Limit(testString1, 4), "test 6 char string truncated to 4 utf bytes should be 2"); //            utf 'abb'
+        assertEquals(2, SchemaRecordWriter.getCharsInUTF8Limit(testString1, 5), "test 6 char string truncated to 5 utf bytes should be 2"); //            utf 'abb'
+        assertEquals(3, SchemaRecordWriter.getCharsInUTF8Limit(testString1, 6), "test 6 char string truncated to 6 utf bytes should be 3"); //            utf 'abbccc'
     }
 
     @Test
     public void testSmallCharUTFLengths() throws UnsupportedEncodingException {
         final String string12b = StringUtils.repeat(utfStringOneByte + utfStringTwoByte + utfStringThreeByte, 2);
 
-        assertEquals("test multi-char string truncated to  0 utf bytes should be 0", 0, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  0));
-        assertEquals("test multi-char string truncated to  1 utf bytes should be 0", 1, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  1));
-        assertEquals("test multi-char string truncated to  2 utf bytes should be 0", 1, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  2));
-        assertEquals("test multi-char string truncated to  3 utf bytes should be 0", 2, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  3));
-        assertEquals("test multi-char string truncated to  4 utf bytes should be 0", 2, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  4));
-        assertEquals("test multi-char string truncated to  5 utf bytes should be 0", 2, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  5));
-        assertEquals("test multi-char string truncated to  6 utf bytes should be 0", 3, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  6));
-        assertEquals("test multi-char string truncated to  7 utf bytes should be 0", 4, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  7));
-        assertEquals("test multi-char string truncated to  8 utf bytes should be 0", 4, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  8));
-        assertEquals("test multi-char string truncated to  9 utf bytes should be 0", 5, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  9));
-        assertEquals("test multi-char string truncated to 10 utf bytes should be 0", 5, SchemaRecordWriter.getCharsInUTF8Limit(string12b, 10));
-        assertEquals("test multi-char string truncated to 11 utf bytes should be 0", 5, SchemaRecordWriter.getCharsInUTF8Limit(string12b, 11));
-        assertEquals("test multi-char string truncated to 12 utf bytes should be 0", 6, SchemaRecordWriter.getCharsInUTF8Limit(string12b, 12));
+        assertEquals(0, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  0), "test multi-char string truncated to  0 utf bytes should be 0");
+        assertEquals(1, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  1), "test multi-char string truncated to  1 utf bytes should be 0");
+        assertEquals(1, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  2), "test multi-char string truncated to  2 utf bytes should be 0");
+        assertEquals(2, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  3), "test multi-char string truncated to  3 utf bytes should be 0");
+        assertEquals(2, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  4), "test multi-char string truncated to  4 utf bytes should be 0");
+        assertEquals(2, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  5), "test multi-char string truncated to  5 utf bytes should be 0");
+        assertEquals(3, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  6), "test multi-char string truncated to  6 utf bytes should be 0");
+        assertEquals(4, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  7), "test multi-char string truncated to  7 utf bytes should be 0");
+        assertEquals(4, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  8), "test multi-char string truncated to  8 utf bytes should be 0");
+        assertEquals(5, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  9), "test multi-char string truncated to  9 utf bytes should be 0");
+        assertEquals(5, SchemaRecordWriter.getCharsInUTF8Limit(string12b, 10), "test multi-char string truncated to 10 utf bytes should be 0");
+        assertEquals(5, SchemaRecordWriter.getCharsInUTF8Limit(string12b, 11), "test multi-char string truncated to 11 utf bytes should be 0");
+        assertEquals(6, SchemaRecordWriter.getCharsInUTF8Limit(string12b, 12), "test multi-char string truncated to 12 utf bytes should be 0");
     }
 
     @Test
     public void testLargeCharUTFLengths() {
         final String string64k = StringUtils.repeat(utfStringOneByte + utfStringTwoByte + utfStringThreeByte, 21845);
 
-        assertEquals("test 64k char string should be 64k chars long", 65535, string64k.length());
+        assertEquals(65535, string64k.length(), "test 64k char string should be 64k chars long");
 
         // drop half the chars going to utf of 64k bytes -- (1+1+1) * 21845 = 65535 chars which converts to (1+2+3) * 21845 = 131070 utf bytes so 1/2 is truncated
-        assertEquals("test 64k char string truncated to 65,535 utf bytes should be 32768", 32768, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65535));
+        assertEquals(32768, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65535), "test 64k char string truncated to 65,535 utf bytes should be 32768");
 
         // dropping bytes off the end of utf length
-        assertEquals("test 64k char string truncated to 65,534 utf bytes should be 32767", 32767, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65534)); // lost 2 byte char
-        assertEquals("test 64k char string truncated to 65,533 utf bytes should be 32767", 32767, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65533));
-        assertEquals("test 64k char string truncated to 65,532 utf bytes should be 32766", 32766, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65532)); // lost 1 byte char
-        assertEquals("test 64k char string truncated to 65,531 utf bytes should be 32765", 32765, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65531)); // lost 3 byte char
-        assertEquals("test 64k char string truncated to 65,530 utf bytes should be 32765", 32765, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65530));
-        assertEquals("test 64k char string truncated to 65,529 utf bytes should be 32765", 32765, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65529));
-        assertEquals("test 64k char string truncated to 65,528 utf bytes should be 32764", 32764, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65528)); // lost 2 byte char (again)
+        assertEquals(32767, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65534), "test 64k char string truncated to 65,534 utf bytes should be 32767"); // lost 2 byte char
+        assertEquals(32767, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65533), "test 64k char string truncated to 65,533 utf bytes should be 32767");
+        assertEquals(32766, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65532), "test 64k char string truncated to 65,532 utf bytes should be 32766"); // lost 1 byte char
+        assertEquals(32765, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65531), "test 64k char string truncated to 65,531 utf bytes should be 32765"); // lost 3 byte char
+        assertEquals(32765, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65530), "test 64k char string truncated to 65,530 utf bytes should be 32765");
+        assertEquals(32765, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65529), "test 64k char string truncated to 65,529 utf bytes should be 32765");
+        assertEquals(32764, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65528), "test 64k char string truncated to 65,528 utf bytes should be 32764"); // lost 2 byte char (again)
     }
 
     private SimpleRecordField createField(final String fieldName, final FieldType type) {

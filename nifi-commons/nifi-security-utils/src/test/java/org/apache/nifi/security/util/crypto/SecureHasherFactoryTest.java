@@ -16,18 +16,13 @@
  */
 package org.apache.nifi.security.util.crypto;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.Assert.assertEquals;
 
 public class SecureHasherFactoryTest {
 
     private static final Argon2SecureHasher DEFAULT_HASHER = new Argon2SecureHasher();
-
-    @Rule
-    public ExpectedException exceptionRule = ExpectedException.none();
 
     @Test
     public void testSecureHasherFactoryArgon2() {

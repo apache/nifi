@@ -20,21 +20,21 @@ import org.apache.nifi.components.ValidationContext
 import org.apache.nifi.components.ValidationResult
 import org.apache.nifi.components.Validator
 import org.apache.nifi.processor.util.JsonValidator
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
+import static groovy.json.JsonOutput.prettyPrint
+import static groovy.json.JsonOutput.toJson
 import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertTrue
 import static org.mockito.Mockito.mock
-
-import static groovy.json.JsonOutput.*
 
 class TestStandardValidators {
     final String DUMMY_JSON_PROPERTY = "JSONProperty"
     Validator validator
     ValidationContext context
 
-    @Before
+    @BeforeEach
     void setup() {
         validator = JsonValidator.INSTANCE
         context = mock(ValidationContext.class)

@@ -18,18 +18,26 @@ package org.apache.nifi.security.util.crypto
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
-import org.junit.*
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import java.nio.charset.StandardCharsets
 import java.security.Security
 
-@RunWith(JUnit4.class)
 class PBKDF2SecureHasherTest extends GroovyTestCase {
-    @BeforeClass
+    private static final Logger logger = LoggerFactory.getLogger(PBKDF2SecureHasherTest)
+
+    @BeforeAll
     static void setupOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
+
+        logger.metaClass.methodMissing = { String name, args ->
+            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
+        }
     }
 
     @Test
@@ -242,7 +250,7 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
      * This test can have the minimum time threshold updated to determine if the performance
      * is still sufficient compared to the existing threat model.
      */
-    @Ignore("Long running test")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     @Test
     void testDefaultCostParamsShouldBeSufficient() {
         // Arrange

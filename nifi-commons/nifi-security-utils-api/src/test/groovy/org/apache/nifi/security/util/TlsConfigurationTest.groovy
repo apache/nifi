@@ -16,34 +16,30 @@
  */
 package org.apache.nifi.security.util
 
-
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-@RunWith(JUnit4.class)
 class TlsConfigurationTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(TlsConfigurationTest.class)
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
     }
 
-    @Before
+    @BeforeEach
     void setUp() {
         super.setUp()
 
     }
 
-    @After
+    @AfterEach
     void tearDown() {
 
     }
