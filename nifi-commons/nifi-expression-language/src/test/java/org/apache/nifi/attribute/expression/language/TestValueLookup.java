@@ -18,7 +18,7 @@ package org.apache.nifi.attribute.expression.language;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.registry.VariableRegistry;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;

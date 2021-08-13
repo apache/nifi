@@ -17,7 +17,7 @@
 package org.apache.nifi.processor;
 
 import org.apache.nifi.util.FormatUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.text.DecimalFormatSymbols;
 import java.util.concurrent.TimeUnit;

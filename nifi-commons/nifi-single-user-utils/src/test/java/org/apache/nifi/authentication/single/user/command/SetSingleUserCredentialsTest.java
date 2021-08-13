@@ -17,8 +17,8 @@
 package org.apache.nifi.authentication.single.user.command;
 
 import org.apache.commons.io.FilenameUtils;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,14 +34,14 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SetSingleUserCredentialsTest {
     private static final Pattern BCRYPT_PATTERN = Pattern.compile("\\$2b\\$12\\$.+");
 
     private static final String PROPERTIES_PATH = "/conf/login.nifi.properties";
 
-    @After
+    @AfterEach
     public void clearProperties() {
         System.clearProperty(SetSingleUserCredentials.PROPERTIES_FILE_PATH);
     }
@@ -66,8 +66,8 @@ public class SetSingleUserCredentialsTest {
     private void assertProvidersUpdated(final Path providersConfigurationPath, final String username) throws IOException {
         final String providersConfiguration = new String(Files.readAllBytes(providersConfigurationPath), StandardCharsets.UTF_8);
 
-        assertTrue("Username not found", providersConfiguration.contains(username));
-        assertTrue("Encoded Password not found", BCRYPT_PATTERN.matcher(providersConfiguration).find());
+        assertTrue(providersConfiguration.contains(username), "Username not found");
+        assertTrue(BCRYPT_PATTERN.matcher(providersConfiguration).find(), "Encoded Password not found");
     }
 
     private Path getNiFiProperties(final Path providersPath) throws IOException, URISyntaxException {

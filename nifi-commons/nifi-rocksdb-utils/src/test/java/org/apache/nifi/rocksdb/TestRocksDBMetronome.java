@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.rocksdb;
 
-import org.apache.commons.lang3.SystemUtils;
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.io.TempDir;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksIterator;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -42,12 +43,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@DisabledOnOs(OS.WINDOWS)
 public class TestRocksDBMetronome {
-
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private static final byte[] KEY = "key".getBytes(StandardCharsets.UTF_8);
     private static final byte[] VALUE = "value".getBytes(StandardCharsets.UTF_8);
@@ -56,17 +55,12 @@ public class TestRocksDBMetronome {
 
     private ExecutorService executor;
 
-    @BeforeClass
-    public static void setupClass() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-    }
-
-    @Before
+    @BeforeEach
     public void before() {
         executor = Executors.newSingleThreadExecutor();
     }
 
-    @After
+    @AfterEach
     public void after() {
         executor.shutdownNow();
     }
@@ -98,10 +92,16 @@ public class TestRocksDBMetronome {
         }
     }
 
+    private Path newFolder(Path parent) {
+        File newFolder = parent.resolve("temp-" + System.currentTimeMillis()).toFile();
+        newFolder.mkdirs();
+        return newFolder.toPath();
+    }
+
     @Test
-    public void testPutGetDelete() throws Exception {
+    public void testPutGetDelete(@TempDir Path temporaryFolder) throws Exception {
         try (RocksDBMetronome db = new RocksDBMetronome.Builder()
-                .setStoragePath(temporaryFolder.newFolder().toPath())
+                .setStoragePath(newFolder(temporaryFolder))
                 .build()) {
             db.initialize();
 
@@ -122,9 +122,9 @@ public class TestRocksDBMetronome {
     }
 
     @Test
-    public void testPutGetConfiguration() throws Exception {
+    public void testPutGetConfiguration(@TempDir Path temporaryFolder) throws Exception {
         try (RocksDBMetronome db = new RocksDBMetronome.Builder()
-                .setStoragePath(temporaryFolder.newFolder().toPath())
+                .setStoragePath(newFolder(temporaryFolder))
                 .build()) {
             db.initialize();
 
@@ -136,32 +136,36 @@ public class TestRocksDBMetronome {
         }
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testPutBeforeInit() throws Exception {
-        try (RocksDBMetronome db = new RocksDBMetronome.Builder()
-                .setStoragePath(temporaryFolder.newFolder().toPath())
+    @Test
+    public void testPutBeforeInit(@TempDir Path temporaryFolder) throws Exception {
+        assertThrows(IllegalStateException.class, () -> {
+            try (RocksDBMetronome db = new RocksDBMetronome.Builder()
+                .setStoragePath(newFolder(temporaryFolder))
                 .build()) {
-            db.put(KEY, VALUE);
-        }
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testPutClosed() throws Exception {
-        try (RocksDBMetronome db = new RocksDBMetronome.Builder()
-                .setStoragePath(temporaryFolder.newFolder().toPath())
-                .build()) {
-            db.initialize();
-
-            db.close();
-            db.put(KEY_2, VALUE_2);
-        }
+                db.put(KEY, VALUE);
+            }
+        });
     }
 
     @Test
-    public void testColumnFamilies() throws Exception {
+    public void testPutClosed(@TempDir Path temporaryFolder) {
+        assertThrows(IllegalStateException.class, () -> {
+            try (RocksDBMetronome db = new RocksDBMetronome.Builder()
+                    .setStoragePath(newFolder(temporaryFolder))
+                    .build()) {
+                db.initialize();
+
+                db.close();
+                db.put(KEY_2, VALUE_2);
+            }
+        });
+    }
+
+    @Test
+    public void testColumnFamilies(@TempDir Path temporaryFolder) throws Exception {
         String secondFamilyName = "second family";
         try (RocksDBMetronome db = new RocksDBMetronome.Builder()
-                .setStoragePath(temporaryFolder.newFolder().toPath())
+                .setStoragePath(newFolder(temporaryFolder))
                 .addColumnFamily(secondFamilyName)
                 .build()) {
             db.initialize();
@@ -210,9 +214,9 @@ public class TestRocksDBMetronome {
     }
 
     @Test
-    public void testIterator() throws Exception {
+    public void testIterator(@TempDir Path temporaryFolder) throws Exception {
         try (RocksDBMetronome db = new RocksDBMetronome.Builder()
-                .setStoragePath(temporaryFolder.newFolder().toPath())
+                .setStoragePath(newFolder(temporaryFolder))
                 .build()) {
             db.initialize();
 
@@ -236,9 +240,9 @@ public class TestRocksDBMetronome {
     }
 
     @Test
-    public void testCounterIncrement() throws Exception {
+    public void testCounterIncrement(@TempDir Path temporaryFolder) throws Exception {
         try (RocksDBMetronome db = new RocksDBMetronome.Builder()
-                .setStoragePath(temporaryFolder.newFolder().toPath())
+                .setStoragePath(newFolder(temporaryFolder))
                 .setSyncMillis(Long.MAX_VALUE) // effectively disable the auto-sync
                 .build()) {
             db.initialize();
@@ -254,10 +258,11 @@ public class TestRocksDBMetronome {
         }
     }
 
-    @Test(timeout = 10_000)
-    public void testWaitForSync() throws Exception {
+    @Test
+    @Timeout(unit = TimeUnit.MILLISECONDS, value = 10_000)
+    public void testWaitForSync(@TempDir Path temporaryFolder) throws Exception {
         try (RocksDBMetronome db = new RocksDBMetronome.Builder()
-                .setStoragePath(temporaryFolder.newFolder().toPath())
+                .setStoragePath(newFolder(temporaryFolder))
                 .setSyncMillis(Long.MAX_VALUE) // effectively disable the auto-sync
                 .build()) {
             db.initialize();
@@ -285,10 +290,11 @@ public class TestRocksDBMetronome {
         }
     }
 
-    @Test(timeout = 10_000)
-    public void testWaitForSyncWithValue() throws Exception {
+    @Test
+    @Timeout(unit = TimeUnit.MILLISECONDS, value = 10_000)
+    public void testWaitForSyncWithValue(@TempDir Path temporaryFolder) throws Exception {
         try (RocksDBMetronome db = new RocksDBMetronome.Builder()
-                .setStoragePath(temporaryFolder.newFolder().toPath())
+                .setStoragePath(newFolder(temporaryFolder))
                 .setSyncMillis(Long.MAX_VALUE) // effectively disable the auto-sync
                 .build()) {
             db.initialize();
@@ -312,15 +318,11 @@ public class TestRocksDBMetronome {
         }
     }
 
-    private void assertBlocks(RocksDBMetronome db, int counterValue) throws InterruptedException, java.util.concurrent.ExecutionException {
+    private void assertBlocks(RocksDBMetronome db, int counterValue) {
         Future<Boolean> future = getWaitForSyncFuture(db, counterValue);
 
-        try {
-            future.get(1, TimeUnit.SECONDS);
-            fail();
-        } catch (TimeoutException expected) {
-            assertFalse(future.isDone());
-        }
+        assertThrows(TimeoutException.class, () -> future.get(1, TimeUnit.SECONDS));
+        assertFalse(future.isDone());
         future.cancel(true);
     }
 

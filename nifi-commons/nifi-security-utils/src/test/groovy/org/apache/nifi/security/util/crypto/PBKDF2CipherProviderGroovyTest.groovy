@@ -19,9 +19,9 @@ package org.apache.nifi.security.util.crypto
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.*
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -30,8 +30,8 @@ import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
 import static org.junit.Assert.assertTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 
-@RunWith(JUnit4.class)
 class PBKDF2CipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(PBKDF2CipherProviderGroovyTest.class)
 
@@ -47,7 +47,7 @@ class PBKDF2CipherProviderGroovyTest {
     private final String IV_HEX = "01" * 16
     private static ArrayList<Integer> AES_KEY_LENGTHS
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -62,15 +62,6 @@ class PBKDF2CipherProviderGroovyTest {
         } else {
             AES_KEY_LENGTHS = [128]
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
-
     }
 
     @Test
@@ -164,8 +155,8 @@ class PBKDF2CipherProviderGroovyTest {
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                CipherUtility.isUnlimitedStrengthCryptoSupported())
+        assumeTrue(CipherUtility.isUnlimitedStrengthCryptoSupported(),
+                "Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.")
 
         RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT)
 
@@ -468,7 +459,7 @@ class PBKDF2CipherProviderGroovyTest {
         }
     }
 
-    @Ignore("This test can be run on a specific machine to evaluate if the default iteration count is sufficient")
+    @Disabled("This test can be run on a specific machine to evaluate if the default iteration count is sufficient")
     @Test
     void testDefaultConstructorShouldProvideStrongIterationCount() {
         // Arrange

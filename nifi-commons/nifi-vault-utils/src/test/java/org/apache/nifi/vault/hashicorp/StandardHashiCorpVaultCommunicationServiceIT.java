@@ -17,12 +17,12 @@
 package org.apache.nifi.vault.hashicorp;
 
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * The simplest way to run this test is by installing Vault locally, then running:
@@ -44,7 +44,7 @@ public class StandardHashiCorpVaultCommunicationServiceIT {
 
     private HashiCorpVaultCommunicationService vcs;
 
-    @Before
+    @BeforeEach
     public void init() {
         vcs = new StandardHashiCorpVaultCommunicationService(new HashiCorpVaultProperties.HashiCorpVaultPropertiesBuilder()
                 .setAuthPropertiesFilename(System.getProperty("vault.auth.properties"))

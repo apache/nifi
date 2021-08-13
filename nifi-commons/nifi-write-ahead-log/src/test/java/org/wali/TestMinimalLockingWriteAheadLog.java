@@ -16,9 +16,10 @@
  */
 package org.wali;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
@@ -48,11 +49,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SuppressWarnings("deprecation")
 public class TestMinimalLockingWriteAheadLog {
@@ -140,7 +142,7 @@ public class TestMinimalLockingWriteAheadLog {
     }
 
     @Test
-    @Ignore("For manual performance testing")
+    @Disabled("For manual performance testing")
     public void testUpdatePerformance() throws IOException, InterruptedException {
         final int numPartitions = 16;
 
@@ -164,25 +166,17 @@ public class TestMinimalLockingWriteAheadLog {
 
         for (int j = 0; j < 2; j++) {
             for (int i = 0; i < numThreads; i++) {
-                final Thread t = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        final List<DummyRecord> batch = new ArrayList<>();
+                final Thread t = new Thread(() -> {
+                    final List<DummyRecord> batch = new ArrayList<>();
 
-                        for (int i = 0; i < updateCountPerThread / batchSize; i++) {
-                            batch.clear();
-                            for (int j = 0; j < batchSize; j++) {
-                                final DummyRecord record = new DummyRecord(String.valueOf(i), UpdateType.CREATE);
-                                batch.add(record);
-                            }
-
-                            try {
-                                repo.update(batch, false);
-                            } catch (Throwable t) {
-                                t.printStackTrace();
-                                Assert.fail(t.toString());
-                            }
+                    for (int i1 = 0; i1 < updateCountPerThread / batchSize; i1++) {
+                        batch.clear();
+                        for (int j1 = 0; j1 < batchSize; j1++) {
+                            final DummyRecord record = new DummyRecord(String.valueOf(i1), UpdateType.CREATE);
+                            batch.add(record);
                         }
+
+                        assertDoesNotThrow(() -> repo.update(batch, false));
                     }
                 });
 
@@ -253,34 +247,20 @@ public class TestMinimalLockingWriteAheadLog {
 
             long expectedSize = sizeOf(path.toFile());
             for (int i = 0; i < 1000; i++) {
-                try {
-                    final DummyRecord record = new DummyRecord(String.valueOf(i), UpdateType.CREATE);
-                    repo.update(Collections.singleton(record), false);
-                    Assert.fail("Expected IOE but it didn't happen");
-                } catch (final IOException ioe) {
-                    // will get IOException because all Partitions have been blacklisted
-                }
+                final DummyRecord record = new DummyRecord(String.valueOf(i), UpdateType.CREATE);
+                assertThrows(IOException.class, () -> repo.update(Collections.singleton(record), false));
             }
 
             long newSize = sizeOf(path.toFile());
             assertEquals(expectedSize, newSize);
 
-            try {
-                repo.checkpoint();
-                Assert.fail("Expected OOME but it didn't happen");
-            } catch (final OutOfMemoryError oome) {
-            }
+            assertThrows(OutOfMemoryError.class, () -> repo.checkpoint());
 
             expectedSize = sizeOf(path.toFile());
 
             for (int i = 0; i < 100000; i++) {
-                try {
-                    final DummyRecord record = new DummyRecord(String.valueOf(i), UpdateType.CREATE);
-                    repo.update(Collections.singleton(record), false);
-                    Assert.fail("Expected IOE but it didn't happen");
-                } catch (final IOException ioe) {
-                    // will get IOException because all Partitions have been blacklisted
-                }
+                final DummyRecord record = new DummyRecord(String.valueOf(i), UpdateType.CREATE);
+                assertThrows(IOException.class, () -> repo.update(Collections.singleton(record), false));
             }
 
             newSize = sizeOf(path.toFile());
@@ -300,7 +280,7 @@ public class TestMinimalLockingWriteAheadLog {
      * @throws InterruptedException if a thread is interrupted
      */
     @Test
-    @Ignore
+    @Disabled
     public void tryToCauseThreadingIssue() throws IOException, InterruptedException {
         System.setProperty("org.slf4j.simpleLogger.log.org.wali", "INFO");
 
@@ -314,28 +294,20 @@ public class TestMinimalLockingWriteAheadLog {
         final AtomicReference<WriteAheadRepository<DummyRecord>> writeRepoRef = new AtomicReference<>();
         final AtomicBoolean checkpointing = new AtomicBoolean(false);
 
-        final Thread bgThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true) {
-                    checkpointing.set(true);
+        final Thread bgThread = new Thread(() -> {
+            while (true) {
+                checkpointing.set(true);
 
-                    final WriteAheadRepository<DummyRecord> repo = writeRepoRef.get();
-                    if (repo != null) {
-                        try {
-                            repo.checkpoint();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            Assert.fail();
-                        }
-                    }
+                final WriteAheadRepository<DummyRecord> repo = writeRepoRef.get();
+                if (repo != null) {
+                    assertDoesNotThrow(() -> repo.checkpoint());
+                }
 
-                    checkpointing.set(false);
+                checkpointing.set(false);
 
-                    try {
-                        TimeUnit.SECONDS.sleep(5);
-                    } catch (InterruptedException e) {
-                    }
+                try {
+                    TimeUnit.SECONDS.sleep(5);
+                } catch (InterruptedException e) {
                 }
             }
         });
@@ -453,12 +425,7 @@ public class TestMinimalLockingWriteAheadLog {
 
         repo.update(firstTransaction, true);
         repo.update(secondTransaction, true);
-        try {
-            repo.update(thirdTransaction, true);
-            Assert.fail("Did not throw IOException on third transaction");
-        } catch (final IOException e) {
-            // expected behavior.
-        }
+        assertThrows(IOException.class, () -> repo.update(thirdTransaction, true));
 
         repo.shutdown();
 
@@ -667,33 +634,18 @@ public class TestMinimalLockingWriteAheadLog {
 
         repo.update(firstTransaction, true);
 
-        try {
-            repo.update(secondTransaction, true);
-            Assert.fail("Did not throw IOException on second transaction");
-        } catch (final IOException e) {
-            // expected behavior.
-        }
+        assertThrows(IOException.class, () -> repo.update(secondTransaction, true));
 
         for (int i = 0; i < 4; i++) {
-            try {
-                repo.update(thirdTransaction, true);
-                Assert.fail("Did not throw IOException on third transaction");
-            } catch (final IOException e) {
-                // expected behavior.
-            }
+            assertThrows(IOException.class, () -> repo.update(thirdTransaction, true));
         }
 
         serde.setThrowIOEAfterNSerializeEdits(-1);
         final List<DummyRecord> fourthTransaction = new ArrayList<>();
         fourthTransaction.add(new DummyRecord("1", UpdateType.DELETE));
 
-        try {
-            repo.update(fourthTransaction, true);
-            Assert.fail("Successfully updated repo for 4th transaction");
-        } catch (final IOException e) {
-            // expected behavior
-            assertTrue(e.getMessage().contains("All Partitions have been blacklisted"));
-        }
+        IOException e = assertThrows(IOException.class, () -> repo.update(fourthTransaction, true));
+        assertTrue(e.getMessage().contains("All Partitions have been blacklisted"));
 
         repo.shutdown();
         serde.setThrowIOEAfterNSerializeEdits(-1);
@@ -817,14 +769,10 @@ public class TestMinimalLockingWriteAheadLog {
 
         writeRepo.update(Collections.singleton(new SimpleRecord(1L, 1L)), false);
         writeRepo.update(Collections.singleton(new SimpleRecord(2L, 2L)), false);
-        try {
-            // Use a size of 8194 because the BufferedOutputStream has a buffer size of 8192 and we want
-            // to exceed this for testing purposes.
-            writeRepo.update(Collections.singleton(new SimpleRecord(3L, 8194L)), false);
-            Assert.fail("Expected IOException but did not get it");
-        } catch (final IOException ioe) {
-            // expected behavior
-        }
+        // Use a size of 8194 because the BufferedOutputStream has a buffer size of 8192 and we want
+        // to exceed this for testing purposes.
+        assertThrows(IOException.class,
+                () -> writeRepo.update(Collections.singleton(new SimpleRecord(3L, 8194L)), false));
 
         final Path partitionDir = path.resolve("partition-0");
         final File journalFile = partitionDir.toFile().listFiles()[0];
@@ -835,7 +783,7 @@ public class TestMinimalLockingWriteAheadLog {
 
         // Ensure that calling shutdown() didn't write anything to the journal file
         final long newJournalSize = journalFile.length();
-        assertEquals("Calling Shutdown wrote " + (newJournalSize - journalFileSize) + " bytes to the journal file", newJournalSize, journalFile.length());
+        assertEquals(newJournalSize, journalFile.length(), "Calling Shutdown wrote " + (newJournalSize - journalFileSize) + " bytes to the journal file");
     }
 
     private void verifyBlacklistedJournalContents(final File journalFile, final SerDe<?> serde) throws IOException {
@@ -940,15 +888,10 @@ public class TestMinimalLockingWriteAheadLog {
 
         @Override
         public void run() {
-            try {
-                int counter = 0;
-                for (final List<DummyRecord> list : records) {
-                    final boolean forceSync = (++counter == records.size());
-                    repo.update(list, forceSync);
-                }
-            } catch (IOException e) {
-                Assert.fail("Failed to update: " + e.toString());
-                e.printStackTrace();
+            int counter = 0;
+            for (final List<DummyRecord> list : records) {
+                final boolean forceSync = (++counter == records.size());
+                assertDoesNotThrow(() -> repo.update(list, forceSync));
             }
         }
     }

@@ -20,9 +20,9 @@ import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultSslProperties;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -40,7 +40,7 @@ public class TestStandardHashiCorpVaultCommunicationService {
     private HashiCorpVaultSslProperties sslProperties;
     private File authProps;
 
-    @Before
+    @BeforeEach
     public void init() throws IOException {
         authProps = TestHashiCorpVaultConfiguration.writeBasicVaultAuthProperties();
 
@@ -52,7 +52,7 @@ public class TestStandardHashiCorpVaultCommunicationService {
         Mockito.when(properties.getSsl()).thenReturn(sslProperties);
     }
 
-    @After
+    @AfterEach
     public void cleanUp() throws IOException {
         Files.deleteIfExists(authProps.toPath());
     }

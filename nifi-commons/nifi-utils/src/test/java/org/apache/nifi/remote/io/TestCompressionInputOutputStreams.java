@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.remote.io;
 
-import static org.junit.Assert.assertTrue;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -24,10 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-import org.apache.nifi.remote.io.CompressionInputStream;
-import org.apache.nifi.remote.io.CompressionOutputStream;
-
-import org.junit.Test;
+import static org.junit.Assert.assertTrue;
 
 public class TestCompressionInputOutputStreams {
 

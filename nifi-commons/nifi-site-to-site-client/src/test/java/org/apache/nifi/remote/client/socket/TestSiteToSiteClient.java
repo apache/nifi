@@ -27,9 +27,8 @@ import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.util.StandardDataPacket;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
@@ -41,10 +40,14 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
 public class TestSiteToSiteClient {
 
     @Test
-    @Ignore("For local testing only; not really a unit test but a manual test")
+    @Disabled("For local testing only; not really a unit test but a manual test")
     public void testReceive() throws IOException {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "DEBUG");
 
@@ -57,7 +60,7 @@ public class TestSiteToSiteClient {
         try {
             for (int i = 0; i < 1000; i++) {
                 final Transaction transaction = client.createTransaction(TransferDirection.RECEIVE);
-                Assert.assertNotNull(transaction);
+                assertNotNull(transaction);
 
                 DataPacket packet;
                 while (true) {
@@ -82,7 +85,7 @@ public class TestSiteToSiteClient {
     }
 
     @Test
-    @Ignore("For local testing only; not really a unit test but a manual test")
+    @Disabled("For local testing only; not really a unit test but a manual test")
     public void testSend() throws IOException {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "DEBUG");
 
@@ -93,7 +96,7 @@ public class TestSiteToSiteClient {
 
         try {
             final Transaction transaction = client.createTransaction(TransferDirection.SEND);
-            Assert.assertNotNull(transaction);
+            assertNotNull(transaction);
 
             final Map<String, String> attrs = new HashMap<>();
             attrs.put("site-to-site", "yes, please!");
@@ -132,7 +135,7 @@ public class TestSiteToSiteClient {
 
         try {
             SiteToSiteClientConfig clientConfig2 = kryo.readObject(input, SiteToSiteClient.StandardSiteToSiteClientConfig.class);
-            Assert.assertEquals(clientConfig.getUrls(), clientConfig2.getUrls());
+            assertEquals(clientConfig.getUrls(), clientConfig2.getUrls());
         } finally {
             input.close();
         }
@@ -163,10 +166,10 @@ public class TestSiteToSiteClient {
 
         try {
             SiteToSiteClientConfig clientConfig2 = kryo.readObject(input, SiteToSiteClient.StandardSiteToSiteClientConfig.class);
-            Assert.assertEquals(clientConfig.getUrls(), clientConfig2.getUrls());
+            assertEquals(clientConfig.getUrls(), clientConfig2.getUrls());
             // Serialization works, but the state manager is not serialized.
-            Assert.assertNotNull(clientConfig.getStateManager());
-            Assert.assertNull(clientConfig2.getStateManager());
+            assertNotNull(clientConfig.getStateManager());
+            assertNull(clientConfig2.getStateManager());
         } finally {
             input.close();
         }
@@ -181,8 +184,8 @@ public class TestSiteToSiteClient {
                 .urls(urls)
                 .buildConfig();
 
-        Assert.assertEquals("http://node1:8080/nifi", config.getUrl());
-        Assert.assertEquals(urls, config.getUrls());
+        assertEquals("http://node1:8080/nifi", config.getUrl());
+        assertEquals(urls, config.getUrls());
     }
 
 }

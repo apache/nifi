@@ -19,13 +19,15 @@ package org.apache.nifi.serialization.record;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.DecimalDataType;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
 import java.sql.Array;
@@ -54,7 +56,8 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class ResultSetRecordSetTest {
 
     private static final String COLUMN_NAME_VARCHAR = "varchar";
@@ -105,7 +108,7 @@ public class ResultSetRecordSetTest {
     @Mock
     private ResultSetMetaData resultSetMetaData;
 
-    @Before
+    @BeforeEach
     public void setUp() throws SQLException {
         setUpMocks(COLUMNS, resultSetMetaData, resultSet);
     }

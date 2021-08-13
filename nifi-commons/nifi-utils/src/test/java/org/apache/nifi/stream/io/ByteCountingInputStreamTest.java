@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.stream.io;
 
+import org.junit.jupiter.api.Test;
+
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import junit.framework.TestCase;
 
-public class ByteCountingInputStreamTest extends TestCase {
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+public class ByteCountingInputStreamTest {
+    @Test
     public void testReset() throws Exception {
 
         final ByteArrayInputStream reader = new ByteArrayInputStream("abcdefghijklmnopqrstuvwxyz".getBytes(StandardCharsets.UTF_8));
@@ -53,6 +56,7 @@ public class ByteCountingInputStreamTest extends TestCase {
         assertEquals(bytesAtMark, bcis.getBytesRead());
     }
 
+    @Test
     public void testAvailableShouldReturnCorrectCount() throws Exception {
         // Arrange
         final String ALPHABET = "abcdefghijklmnopqrstuvwxyz";

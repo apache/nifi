@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.io.nio.example;
 
+import org.apache.nifi.io.nio.consumer.AbstractStreamConsumer;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
-import org.apache.nifi.io.nio.consumer.AbstractStreamConsumer;
 
 /**
  *
