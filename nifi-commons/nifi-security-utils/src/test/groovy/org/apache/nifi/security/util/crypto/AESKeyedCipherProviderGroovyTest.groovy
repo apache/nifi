@@ -19,13 +19,8 @@ package org.apache.nifi.security.util.crypto
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -36,8 +31,8 @@ import java.security.SecureRandom
 import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 
-@RunWith(JUnit4.class)
 class AESKeyedCipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(AESKeyedCipherProviderGroovyTest.class)
 
@@ -49,21 +44,13 @@ class AESKeyedCipherProviderGroovyTest {
 
     private static final SecretKey key = new SecretKeySpec(Hex.decodeHex(KEY_HEX as char[]), "AES")
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     private static boolean isUnlimitedStrengthCryptoAvailable() {
@@ -127,7 +114,7 @@ class AESKeyedCipherProviderGroovyTest {
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.", isUnlimitedStrengthCryptoAvailable())
+        assumeTrue(isUnlimitedStrengthCryptoAvailable(), "Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.")
 
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
         final List<Integer> LONG_KEY_LENGTHS = [192, 256]

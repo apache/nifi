@@ -23,19 +23,16 @@ import org.apache.nifi.remote.TransferDirection
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol
 import org.apache.nifi.remote.util.PeerStatusCache
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.security.Security
 import java.util.concurrent.ArrayBlockingQueue
 
-@RunWith(JUnit4.class)
 class PeerSelectorTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(PeerSelectorTest.class)
 
@@ -51,7 +48,7 @@ class PeerSelectorTest extends GroovyTestCase {
     private static mockPP
 
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -60,14 +57,14 @@ class PeerSelectorTest extends GroovyTestCase {
         }
     }
 
-    @Before
+    @BeforeEach
     void setUp() {
         // Mock collaborators
         mockPSP = mockPeerStatusProvider()
         mockPP = mockPeerPersistence()
     }
 
-    @After
+    @AfterEach
     void tearDown() {
 
     }

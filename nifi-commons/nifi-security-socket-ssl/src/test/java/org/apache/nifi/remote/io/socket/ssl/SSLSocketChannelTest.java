@@ -170,12 +170,14 @@ public class SSLSocketChannelTest {
     }
 
     @Test
+    @Timeout(value = CHANNEL_TIMEOUT, unit = TimeUnit.MILLISECONDS)
     public void testServerReadWriteTls12() throws Exception {
         assertServerChannelConnectedReadClosed(TLS_1_2);
     }
 
     @EnabledIf(TLS_1_3_SUPPORTED)
     @Test
+    @Timeout(value = CHANNEL_TIMEOUT, unit = TimeUnit.MILLISECONDS)
     public void testServerReadWriteTls13() throws Exception {
         assertServerChannelConnectedReadClosed(TLS_1_3);
     }

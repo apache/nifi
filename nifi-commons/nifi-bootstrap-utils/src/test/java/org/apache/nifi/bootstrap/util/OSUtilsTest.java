@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.bootstrap.util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class OSUtilsTest {
 
@@ -34,7 +34,7 @@ public class OSUtilsTest {
         final Logger logger = LoggerFactory.getLogger("testing");
         final Long pid = OSUtils.getProcessId(process, logger);
         process.destroy();
-        assertNotNull("Process ID not found", pid);
+        assertNotNull(pid, "Process ID not found");
     }
 
     @Test

@@ -20,8 +20,8 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.crypto.PBECipherProvider;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -46,7 +46,7 @@ public class PasswordBasedCipherPropertyEncryptorTest {
 
     private PasswordBasedCipherPropertyEncryptor encryptor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         encryptor = new PasswordBasedCipherPropertyEncryptor(CIPHER_PROVIDER, ENCRYPTION_METHOD, PASSWORD);
     }

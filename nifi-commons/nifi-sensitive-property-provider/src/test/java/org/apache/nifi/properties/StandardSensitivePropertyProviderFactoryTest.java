@@ -19,9 +19,9 @@ package org.apache.nifi.properties;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.internal.util.io.IOUtil;
 
 import java.io.FileOutputStream;
@@ -35,12 +35,12 @@ import java.security.Security;
 import java.util.Properties;
 import java.util.function.Supplier;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StandardSensitivePropertyProviderFactoryTest {
 
@@ -56,7 +56,9 @@ public class StandardSensitivePropertyProviderFactoryTest {
     private static Path nifiProperties;
     private static String defaultBootstrapContents;
 
-    @BeforeClass
+    private static NiFiProperties niFiProperties;
+
+    @BeforeAll
     public static void initOnce() throws IOException {
         Security.addProvider(new BouncyCastleProvider());
         tempConfDir = Files.createTempDirectory("conf");
@@ -86,7 +88,7 @@ public class StandardSensitivePropertyProviderFactoryTest {
         return bootstrapConf;
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownOnce() throws IOException {
         Files.deleteIfExists(bootstrapConf);
         Files.deleteIfExists(hashicorpVaultBootstrapConf);

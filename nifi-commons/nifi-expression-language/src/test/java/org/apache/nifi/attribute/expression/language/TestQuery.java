@@ -29,9 +29,8 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.VariableRegistry;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.BufferedInputStream;
@@ -55,10 +54,11 @@ import static java.lang.Double.NaN;
 import static java.lang.Double.POSITIVE_INFINITY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestQuery {
 
@@ -138,20 +138,11 @@ public class TestQuery {
     }
 
     private void assertValid(final String query) {
-        try {
-            Query.compile(query);
-        } catch (final Exception e) {
-            e.printStackTrace();
-            Assert.fail("Expected query to be valid, but it failed to compile due to " + e);
-        }
+        assertDoesNotThrow(() -> Query.compile(query));
     }
 
     private void assertInvalid(final String query) {
-        try {
-            Query.compile(query);
-            Assert.fail("Expected query to be invalid, but it did compile");
-        } catch (final Exception e) {
-        }
+        assertThrows(Exception.class, () -> Query.compile(query));
     }
 
     @Test
@@ -159,11 +150,7 @@ public class TestQuery {
         Query.validateExpression("${abc:substring(${xyz:length()})}", false);
         Query.isValidExpression("${now():format('yyyy-MM-dd')}");
 
-        try {
-            Query.validateExpression("$${attr}", false);
-            Assert.fail("invalid query validated");
-        } catch (final AttributeExpressionLanguageParsingException e) {
-        }
+        assertThrows(AttributeExpressionLanguageParsingException.class, () -> Query.validateExpression("$${attr}", false));
 
         Query.validateExpression("$${attr}", true);
 
@@ -311,7 +298,7 @@ public class TestQuery {
     }
 
     @Test
-    @Ignore("Requires specific locale")
+    @Disabled("Requires specific locale")
     public void implicitDateConversion() {
         final Date date = new Date();
         final Query query = Query.compile("${dateTime:format('yyyy/MM/dd HH:mm:ss.SSS')}");
@@ -376,22 +363,15 @@ public class TestQuery {
             ADDRESS_BOOK_JSON_PATH_EMPTY,
             "", "${json:jsonPathDelete('$.missingpath')}", "");
         verifyEquals("${json:jsonPath('$.missingpath')}", attributes, "");
-        try {
-            verifyEquals("${json:jsonPath('$..')}", attributes, "");
-            Assert.fail("Did not detect bad JSON path expression");
-        } catch (final AttributeExpressionLanguageException e) {
-        }
-        try {
-            verifyEquals("${missing:jsonPath('$.firstName')}", attributes, "");
-            Assert.fail("Did not detect empty JSON document");
-        } catch (AttributeExpressionLanguageException e) {
-        }
+
+        assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${json:jsonPath('$..')}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${missing:jsonPath('$.firstName')}", attributes, ""));
+
         attributes.put("invalid", "[}");
-        try {
-            verifyEquals("${invlaid:jsonPath('$.firstName')}", attributes, "John");
-            Assert.fail("Did not detect invalid JSON document");
-        } catch (AttributeExpressionLanguageException e) {
-        }
+        assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${invlaid:jsonPath('$.firstName')}", attributes, "John"));
     }
 
     private void verifyAddressBookAttributes(String originalAddressBook, Map<String,String> attributes, String updatedAttribute, Object updatedValue) {
@@ -526,13 +506,12 @@ public class TestQuery {
        verifyEquals("${json:jsonPath('$.missing-path')}", attributes, "");
     }
 
-    @Test(expected=IllegalArgumentException.class)
     public void testJsonPathAddNicknameJimmyAtNonArray() throws IOException {
-        Map<String,String> attributes = verifyJsonPathExpressions(
+        assertThrows(IllegalArgumentException.class, () -> verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_EMPTY,
                 "",
                 "${json:jsonPathAdd('$.firstName', 'Jimmy')}",
-                "");
+                ""));
     }
 
     @Test
@@ -601,9 +580,9 @@ public class TestQuery {
         verifyEquals("${allAttributes( 'x', 'y' ):join(',')}", attributes, ",");
     }
 
-    @Test(expected = AttributeExpressionLanguageException.class)
+    @Test
     public void testCannotCombineWithNonReducingFunction() {
-        Query.compile("${allAttributes( 'a.1' ):plus(1)}");
+        assertThrows(AttributeExpressionLanguageException.class, () -> Query.compile("${allAttributes( 'a.1' ):plus(1)}"));
     }
 
     @Test
@@ -1128,32 +1107,25 @@ public class TestQuery {
         attributes.put("negativeDecimal", "-64.1");
 
         // Test that errors relating to not finding methods are properly handled
-        try {
-            verifyEquals("${math('rand'):toNumber()}", attributes, 0L);
-            fail();
-        } catch (AttributeExpressionLanguageException expected) {
-            assertEquals("Cannot evaluate 'math' function because no subjectless method was found with the name:'rand'", expected.getMessage());
-        }
-        try {
-            verifyEquals("${negativeDecimal:math('absolute')}", attributes, 0L);
-            fail();
-        } catch (AttributeExpressionLanguageException expected) {
-            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'absolute', one argument of type: 'double'", expected.getMessage());
-        }
-        try {
-            verifyEquals("${oneDecimal:math('power', ${two:toDecimal()})}", attributes, 0L);
-            fail();
-        } catch (AttributeExpressionLanguageException expected) {
-            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
-                    "first argument type: 'double', second argument type:  'double'", expected.getMessage());
-        }
-        try {
-            verifyEquals("${oneDecimal:math('power', ${two})}", attributes, 0L);
-            fail();
-        } catch (AttributeExpressionLanguageException expected) {
-            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
-                    "first argument type: 'double', second argument type:  'long'", expected.getMessage());
-        }
+
+        AttributeExpressionLanguageException expected = assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${math('rand'):toNumber()}", attributes, 0L));
+        assertEquals("Cannot evaluate 'math' function because no subjectless method was found with the name:'rand'", expected.getMessage());
+
+        expected = assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${negativeDecimal:math('absolute')}", attributes, 0L));
+        assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'absolute', one argument of type: 'double'", expected.getMessage());
+
+        expected = assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${oneDecimal:math('power', ${two:toDecimal()})}", attributes, 0L));
+        assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
+                "first argument type: 'double', second argument type:  'double'", expected.getMessage());
+
+        expected = assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${oneDecimal:math('power', ${two})}", attributes, 0L));
+        assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
+                "first argument type: 'double', second argument type:  'long'", expected.getMessage());
+
 
         // Can only verify that it runs. ToNumber() will verify that it produced a number greater than or equal to 0.0 and less than 1.0
         verifyEquals("${math('random'):toNumber()}", attributes, 0L);
@@ -1363,12 +1335,7 @@ public class TestQuery {
         verifyEquals("${allAttributes('abc', 'xyz'):length():equals(4)}", attributes, true);
         verifyEquals("${allAttributes('abc', 'xyz', 'other'):isNull()}", attributes, false);
 
-        try {
-            Query.compile("${allAttributes('#ah'):equals('hello')");
-            Assert.fail("Was able to compile with allAttributes and an invalid attribute name");
-        } catch (final AttributeExpressionLanguageParsingException e) {
-            // expected behavior
-        }
+        assertThrows(AttributeExpressionLanguageParsingException.class, () -> Query.compile("${allAttributes('#ah'):equals('hello')"));
     }
 
     @Test
@@ -1925,7 +1892,7 @@ public class TestQuery {
         for (int i = 0; i < results.size(); i++) {
             long result = (Long) getResult("${random()}", attrs).getValue();
             assertThat("random", result, greaterThan(negOne));
-            assertEquals("duplicate random", true, results.add(result));
+            assertEquals(true, results.add(result), "duplicate random");
         }
     }
 
@@ -2108,10 +2075,11 @@ public class TestQuery {
         verifyEquals("${nbr_attr:hash('MD5')}", attributes, "d3d9446802a44259755d38e6d163e820");
     }
 
-    @Test(expected = AttributeExpressionLanguageException.class)
+    @Test
     public void testHashFailure() {
         final Map<String, String> attributes = new HashMap<>();
-        verifyEquals("${literal('john'):hash('NOT_A_ALGO')}", attributes, "527bd5b5d689e2c32ae974c6229ff785");
+        assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${literal('john'):hash('NOT_A_ALGO')}", attributes, "527bd5b5d689e2c32ae974c6229ff785"));
     }
 
     @Test
@@ -2177,24 +2145,9 @@ public class TestQuery {
         assertTrue(multipleResultExpectedResults.contains(actualResult));
 
         verifyEquals("${str:repeat(4)}", attributes, "abcabcabcabc");
-        try {
-            verifyEquals("${str:repeat(-1)}", attributes, "");
-            fail("Should have failed on numRepeats < 0");
-        } catch(AttributeExpressionLanguageException aele) {
-            // Do nothing, it is expected
-        }
-        try {
-            verifyEquals("${str:repeat(0)}", attributes, "");
-            fail("Should have failed on numRepeats = 0");
-        } catch(AttributeExpressionLanguageException aele) {
-            // Do nothing, it is expected
-        }
-        try {
-            verifyEquals("${str:repeat(2,1)}", attributes, "");
-            fail("Should have failed on minRepeats > maxRepeats");
-        } catch(AttributeExpressionLanguageException aele) {
-            // Do nothing, it is expected
-        }
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${str:repeat(-1)}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${str:repeat(0)}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${str:repeat(2,1)}", attributes, ""));
     }
 
     @Test

@@ -16,12 +16,8 @@
  */
 package org.apache.nifi.security.xml
 
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.xml.sax.SAXParseException
@@ -38,25 +34,14 @@ import javax.xml.stream.XMLStreamReader
 
 import static groovy.test.GroovyAssert.shouldFail
 
-@RunWith(JUnit4.class)
 class XmlUtilsTest {
     private static final Logger logger = LoggerFactory.getLogger(XmlUtilsTest.class)
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-
-    }
-
-    @After
-    void tearDown() throws Exception {
-
     }
 
     @Test

@@ -17,8 +17,8 @@
 package org.apache.nifi.flow.encryptor.command;
 
 import org.apache.nifi.stream.io.GZIPOutputStream;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -39,7 +39,7 @@ import static org.junit.Assert.assertTrue;
 public class SetSensitivePropertiesKeyTest {
     private static final String FLOW_CONTENTS = "<property><value>PROPERTY</value></property>";
 
-    @After
+    @AfterEach
     public void clearProperties() {
         System.clearProperty(SetSensitivePropertiesKey.PROPERTIES_FILE_PATH);
     }

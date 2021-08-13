@@ -21,14 +21,9 @@ import at.favre.lib.crypto.bcrypt.Radix64Encoder
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -41,8 +36,8 @@ import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
 import static org.junit.Assert.assertTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 
-@RunWith(JUnit4.class)
 class BcryptCipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(BcryptCipherProviderGroovyTest.class)
 
@@ -54,7 +49,7 @@ class BcryptCipherProviderGroovyTest {
     public static final String MICROBENCHMARK = "microbenchmark"
     private static ArrayList<Integer> AES_KEY_LENGTHS
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -69,15 +64,6 @@ class BcryptCipherProviderGroovyTest {
         } else {
             AES_KEY_LENGTHS = [128]
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
-
     }
 
     @Test
@@ -143,8 +129,8 @@ class BcryptCipherProviderGroovyTest {
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                CipherUtility.isUnlimitedStrengthCryptoSupported())
+        assumeTrue(CipherUtility.isUnlimitedStrengthCryptoSupported(),
+                "Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.")
 
         RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(4)
 
@@ -610,7 +596,7 @@ class BcryptCipherProviderGroovyTest {
         assert decryptMsg =~ "The salt must be of the format"
     }
 
-    @Ignore("This test can be run on a specific machine to evaluate if the default work factor is sufficient")
+    @Disabled("This test can be run on a specific machine to evaluate if the default work factor is sufficient")
     @Test
     void testDefaultConstructorShouldProvideStrongWorkFactor() {
         // Arrange

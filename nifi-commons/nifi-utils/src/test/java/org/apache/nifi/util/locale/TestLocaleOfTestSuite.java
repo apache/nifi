@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.util.locale;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.Locale;
 import java.util.regex.Pattern;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Testing of the test suite environment {@link java.util.Locale}.  The locales specified
@@ -37,14 +38,14 @@ public class TestLocaleOfTestSuite {
     @Test
     public void testLocaleCI_EN_AU() {
         final Locale locale = Locale.getDefault();
-        Assume.assumeTrue(locale.toLanguageTag().equals("en-AU"));
+        assumeTrue(locale.toLanguageTag().equals("en-AU"));
 
         final String runtimeJavaVersion = System.getProperty("java.version");
         final boolean isJava8 = Pattern.compile("1\\.8.+").matcher(runtimeJavaVersion).matches();
         final String expected = (isJava8 ? "E" : "e");  // tested in Java 8 and Java 11
 
-        Assert.assertEquals(expected, DecimalFormatSymbols.getInstance(locale).getExponentSeparator());
-        Assert.assertEquals("1,000", NumberFormat.getInstance(locale).format(1000));
+        assertEquals(expected, DecimalFormatSymbols.getInstance(locale).getExponentSeparator());
+        assertEquals("1,000", NumberFormat.getInstance(locale).format(1000));
     }
 
     /**
@@ -53,10 +54,10 @@ public class TestLocaleOfTestSuite {
     @Test
     public void testLocaleCI_JA_JP() {
         final Locale locale = Locale.getDefault();
-        Assume.assumeTrue(locale.toLanguageTag().equals("ja-JP"));
+        assumeTrue(locale.toLanguageTag().equals("ja-JP"));
 
-        Assert.assertEquals("E", DecimalFormatSymbols.getInstance(locale).getExponentSeparator());
-        Assert.assertEquals("1,000", NumberFormat.getInstance(locale).format(1000));
+        assertEquals("E", DecimalFormatSymbols.getInstance(locale).getExponentSeparator());
+        assertEquals("1,000", NumberFormat.getInstance(locale).format(1000));
     }
 
     /**
@@ -65,9 +66,9 @@ public class TestLocaleOfTestSuite {
     @Test
     public void testLocaleCI_FR_FR() {
         final Locale locale = Locale.getDefault();
-        Assume.assumeTrue(locale.toLanguageTag().equals("fr-FR"));
+        assumeTrue(locale.toLanguageTag().equals("fr-FR"));
 
-        Assert.assertEquals("E", DecimalFormatSymbols.getInstance(locale).getExponentSeparator());
-        Assert.assertEquals("1\u00a0000", NumberFormat.getInstance(locale).format(1000));
+        assertEquals("E", DecimalFormatSymbols.getInstance(locale).getExponentSeparator());
+        assertEquals("1\u00a0000", NumberFormat.getInstance(locale).format(1000));
     }
 }

@@ -20,18 +20,13 @@ import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.KeyDerivationFunction
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.security.Security
 
-@RunWith(JUnit4.class)
 class CipherUtilityGroovyTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(CipherUtilityGroovyTest.class)
 
@@ -76,7 +71,7 @@ class CipherUtilityGroovyTest extends GroovyTestCase {
                     "AES/GCM/NoPadding"]
     ]
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -85,16 +80,6 @@ class CipherUtilityGroovyTest extends GroovyTestCase {
         ALGORITHMS_MAPPED_BY_CIPHER.put("DESede", tripleDESAlgorithms)
 
         logger.info("Mapped algorithms: ${ALGORITHMS_MAPPED_BY_CIPHER}")
-    }
-
-    @Before
-    void setUp() throws Exception {
-
-    }
-
-    @After
-    void tearDown() throws Exception {
-
     }
 
     @Test

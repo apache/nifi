@@ -17,7 +17,7 @@
 package org.apache.nifi.security.kms;
 
 import org.apache.nifi.security.kms.util.SecretKeyUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.crypto.SecretKey;
 import java.security.KeyManagementException;
@@ -25,9 +25,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StaticKeyProviderTest {
     private static final String KEY_ID = UUID.randomUUID().toString();

@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.util;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.net.InetSocketAddress;
@@ -29,10 +28,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -54,9 +55,9 @@ public class NiFiPropertiesTest {
             directories.add(narLibDir.toString());
         }
 
-        Assert.assertEquals("Did not have the anticipated number of directories", expectedDirectories.size(), directories.size());
+        assertEquals(expectedDirectories.size(), directories.size(), "Did not have the anticipated number of directories");
         for (File expectedDirectory : expectedDirectories) {
-            Assert.assertTrue("Listed directories did not contain expected directory", directories.contains(expectedDirectory.getPath()));
+            assertTrue(directories.contains(expectedDirectory.getPath()), "Listed directories did not contain expected directory");
         }
     }
 
@@ -95,43 +96,31 @@ public class NiFiPropertiesTest {
         additionalProperties.put(NiFiProperties.REMOTE_INPUT_HOST, "localhost");
         NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
-        try {
-            properties.validate();
-        } catch (Throwable t) {
-            Assert.fail("unexpected exception: " + t.getMessage());
-        }
+        assertGoodProperties(properties);
 
         // expect no error to be thrown
         additionalProperties.put(NiFiProperties.REMOTE_INPUT_HOST, "");
         properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
-        try {
-            properties.validate();
-        } catch (Throwable t) {
-            Assert.fail("unexpected exception: " + t.getMessage());
-        }
+        assertGoodProperties(properties);
 
         // expect no error to be thrown
         additionalProperties.remove(NiFiProperties.REMOTE_INPUT_HOST);
         properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
-        try {
-            properties.validate();
-        } catch (Throwable t) {
-            Assert.fail("unexpected exception: " + t.getMessage());
-        }
+        assertGoodProperties(properties);
 
         // expected error
         additionalProperties = new HashMap<>();
         additionalProperties.put(NiFiProperties.REMOTE_INPUT_HOST, "http://localhost");
         properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
-        try {
-            properties.validate();
-            Assert.fail("Validation should throw an exception");
-        } catch (Throwable t) {
-            // nothing to do
-        }
+        final NiFiProperties test = properties;
+        assertThrows(Throwable.class, () -> test.validate());
+    }
+
+    private void assertGoodProperties(final NiFiProperties properties) {
+        assertDoesNotThrow(() -> properties.validate());
     }
 
     @Test
@@ -187,7 +176,7 @@ public class NiFiPropertiesTest {
         assertEquals(Integer.parseInt(portValue), clusterProtocolPort.intValue());
     }
 
-    @Test(expected = NumberFormatException.class)
+    @Test
     public void testShouldVerifyExceptionThrownWhenInValidFormatPortValue() {
         // Testing with CLUSTER_NODE_PROTOCOL_PORT
 
@@ -200,10 +189,7 @@ public class NiFiPropertiesTest {
 
         // Act
         Integer clusterProtocolPort = properties.getClusterNodeProtocolPort();
-
-        // Assert
-        // Expect NumberFormatException thrown
-        assertEquals(Integer.parseInt(portValue), clusterProtocolPort.intValue());
+        assertThrows(NumberFormatException.class, () -> Integer.parseInt(portValue));
     }
 
     @Test
@@ -225,7 +211,7 @@ public class NiFiPropertiesTest {
         assertEquals(Integer.parseInt(portValue), clusterProtocolAddress.getPort());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testShouldVerifyExceptionThrownWhenInvalidPortValue() {
         // Testing with CLUSTER_NODE_ADDRESS
 
@@ -238,15 +224,10 @@ public class NiFiPropertiesTest {
         additionalProperties.put(NiFiProperties.CLUSTER_NODE_ADDRESS, addressValue);
         NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
-        // Act
-        InetSocketAddress clusterProtocolAddress = properties.getClusterNodeProtocolAddress();
-
-        // Assert
-        // Expect RuntimeException thrown
-        assertEquals(Integer.parseInt(portValue), clusterProtocolAddress.getPort());
+        assertThrows(RuntimeException.class, () -> properties.getClusterNodeProtocolAddress());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testShouldVerifyExceptionThrownWhenPortValueIsZero() {
         // Arrange
         String portValue = "0";
@@ -256,12 +237,7 @@ public class NiFiPropertiesTest {
         additionalProperties.put(NiFiProperties.CLUSTER_NODE_ADDRESS, addressValue);
         NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
-        // Act
-        InetSocketAddress clusterProtocolAddress = properties.getClusterNodeProtocolAddress();
-
-        // Assert
-        // Expect RuntimeException thrown
-        assertEquals(Integer.parseInt(portValue), clusterProtocolAddress.getPort());
+        assertThrows(RuntimeException.class, () -> properties.getClusterNodeProtocolAddress());
     }
 
     @Test
@@ -384,9 +360,9 @@ public class NiFiPropertiesTest {
         final Map<String, String> result = testSubject.getPropertiesWithPrefix("nifi.web.http");
 
         // then
-        Assert.assertEquals(4, result.size());
-        Assert.assertTrue(result.containsKey("nifi.web.http.host"));
-        Assert.assertTrue(result.containsKey("nifi.web.https.host"));
+        assertEquals(4, result.size());
+        assertTrue(result.containsKey("nifi.web.http.host"));
+        assertTrue(result.containsKey("nifi.web.https.host"));
     }
 
     @Test
@@ -398,9 +374,9 @@ public class NiFiPropertiesTest {
         final Map<String, String> result = testSubject.getPropertiesWithPrefix("nifi.web.http.");
 
         // then
-        Assert.assertEquals(2, result.size());
-        Assert.assertTrue(result.containsKey("nifi.web.http.host"));
-        Assert.assertFalse(result.containsKey("nifi.web.https.host"));
+        assertEquals(2, result.size());
+        assertTrue(result.containsKey("nifi.web.http.host"));
+        assertFalse(result.containsKey("nifi.web.https.host"));
     }
 
     @Test
@@ -412,7 +388,7 @@ public class NiFiPropertiesTest {
         final Map<String, String> result = testSubject.getPropertiesWithPrefix("invalid.property");
 
         // then
-        Assert.assertTrue(result.isEmpty());
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -424,9 +400,9 @@ public class NiFiPropertiesTest {
         final Set<String> result = testSubject.getDirectSubsequentTokens("nifi.web.http");
 
         // then
-        Assert.assertEquals(2, result.size());
-        Assert.assertTrue(result.contains("host"));
-        Assert.assertTrue(result.contains("port"));
+        assertEquals(2, result.size());
+        assertTrue(result.contains("host"));
+        assertTrue(result.contains("port"));
     }
 
     @Test
@@ -438,9 +414,9 @@ public class NiFiPropertiesTest {
         final Set<String> result = testSubject.getDirectSubsequentTokens("nifi.web.http.");
 
         // then
-        Assert.assertEquals(2, result.size());
-        Assert.assertTrue(result.contains("host"));
-        Assert.assertTrue(result.contains("port"));
+        assertEquals(2, result.size());
+        assertTrue(result.contains("host"));
+        assertTrue(result.contains("port"));
     }
 
     @Test
@@ -452,7 +428,7 @@ public class NiFiPropertiesTest {
         final Set<String> result = testSubject.getDirectSubsequentTokens("lorem.ipsum");
 
         // then
-        Assert.assertTrue(result.isEmpty());
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -464,10 +440,10 @@ public class NiFiPropertiesTest {
         final Set<String> result = testSubject.getDirectSubsequentTokens("nifi.web");
 
         // then
-        Assert.assertEquals(4, result.size());
-        Assert.assertTrue(result.contains("http"));
-        Assert.assertTrue(result.contains("https"));
-        Assert.assertTrue(result.contains("war"));
-        Assert.assertTrue(result.contains("jetty"));
+        assertEquals(4, result.size());
+        assertTrue(result.contains("http"));
+        assertTrue(result.contains("https"));
+        assertTrue(result.contains("war"));
+        assertTrue(result.contains("jetty"));
     }
 }

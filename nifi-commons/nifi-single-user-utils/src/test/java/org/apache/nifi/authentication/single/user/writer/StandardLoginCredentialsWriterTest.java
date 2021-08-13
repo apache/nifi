@@ -17,7 +17,7 @@
 package org.apache.nifi.authentication.single.user.writer;
 
 import org.apache.nifi.authentication.single.user.SingleUserCredentials;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -27,7 +27,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StandardLoginCredentialsWriterTest {
     private static final String BLANK_PROVIDERS = "/conf/login-identity-providers.xml";
@@ -64,7 +64,7 @@ public class StandardLoginCredentialsWriterTest {
         writer.writeLoginCredentials(credentials);
 
         final String configuration = new String(Files.readAllBytes(configuredProvidersPath));
-        assertTrue("Username not found", configuration.contains(username));
-        assertTrue("Password not found", configuration.contains(password));
+        assertTrue(configuration.contains(username), "Username not found");
+        assertTrue(configuration.contains(password), "Password not found");
     }
 }

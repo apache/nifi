@@ -19,7 +19,7 @@ package org.apache.nifi.encrypt;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
 

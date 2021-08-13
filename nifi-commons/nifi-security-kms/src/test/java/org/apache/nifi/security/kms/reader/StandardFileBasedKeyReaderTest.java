@@ -17,7 +17,7 @@
 package org.apache.nifi.security.kms.reader;
 
 import org.apache.nifi.security.kms.util.SecretKeyUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.crypto.SecretKey;
 import java.io.FileOutputStream;
@@ -28,7 +28,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class StandardFileBasedKeyReaderTest {
     private static final String KEYS_EXTENSION = ".keys";
@@ -45,7 +45,7 @@ public class StandardFileBasedKeyReaderTest {
         final Path path = getSecretKeysPath(ROOT_KEY, Collections.singletonMap(keyId, secretKey));
         final Map<String, SecretKey> secretKeys = reader.readSecretKeys(path, ROOT_KEY);
         final SecretKey readSecretKey = secretKeys.get(keyId);
-        assertEquals("Secret Key not matched", secretKey, readSecretKey);
+        assertEquals(secretKey, readSecretKey, "Secret Key not matched");
     }
 
     private Path getSecretKeysPath(final SecretKey rootKey, final Map<String, SecretKey> secretKeys) throws Exception {

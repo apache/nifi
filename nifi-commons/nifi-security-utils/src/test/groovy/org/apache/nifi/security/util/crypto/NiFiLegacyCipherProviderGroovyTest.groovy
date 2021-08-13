@@ -19,14 +19,9 @@ package org.apache.nifi.security.util.crypto
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -38,8 +33,8 @@ import javax.crypto.spec.PBEParameterSpec
 import java.security.Security
 
 import static org.junit.Assert.fail
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 
-@RunWith(JUnit4.class)
 class NiFiLegacyCipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(NiFiLegacyCipherProviderGroovyTest.class)
 
@@ -51,21 +46,12 @@ class NiFiLegacyCipherProviderGroovyTest {
 
     private static final byte[] SALT_16_BYTES = Hex.decodeHex("aabbccddeeff00112233445566778899".toCharArray())
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         pbeEncryptionMethods = EncryptionMethod.values().findAll { it.algorithm.toUpperCase().startsWith("PBE") }
         limitedStrengthPbeEncryptionMethods = pbeEncryptionMethods.findAll { !it.isUnlimitedStrength() }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
-
     }
 
     private static Cipher getLegacyCipher(String password, byte[] salt, String algorithm) {
@@ -123,9 +109,6 @@ class NiFiLegacyCipherProviderGroovyTest {
 
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
-        // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                CipherUtility.isUnlimitedStrengthCryptoSupported())
 
         NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider()
 
@@ -260,7 +243,7 @@ class NiFiLegacyCipherProviderGroovyTest {
      * from the password using a long digest result at the time of key length checking.
      * @throws IOException
      */
-    @Ignore("Only needed once to determine max supported password lengths")
+    @EnabledIfSystemProperty(named = "legacyCipherTest", matches = "true", disabledReason = "Only needed once to determine max supported password lengths")
     @Test
     void testShouldDetermineDependenceOnUnlimitedStrengthCrypto() throws IOException {
         def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }

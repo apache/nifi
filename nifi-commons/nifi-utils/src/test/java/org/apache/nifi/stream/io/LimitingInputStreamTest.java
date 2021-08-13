@@ -16,15 +16,21 @@
  */
 package org.apache.nifi.stream.io;
 
+import org.junit.jupiter.api.Test;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import junit.framework.TestCase;
 
-public class LimitingInputStreamTest extends TestCase {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+public class LimitingInputStreamTest {
 
     private final static byte[] TEST_BUFFER = new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
+    @Test
     public void testReadLimitNotReached() throws IOException {
         final LimitingInputStream is = new LimitingInputStream(new ByteArrayInputStream(TEST_BUFFER), 50);
         long bytesRead = StreamUtils.copy(is, new ByteArrayOutputStream());
@@ -32,6 +38,7 @@ public class LimitingInputStreamTest extends TestCase {
         assertFalse(is.hasReachedLimit());
     }
 
+    @Test
     public void testReadLimitMatched() throws IOException {
         final LimitingInputStream is = new LimitingInputStream(new ByteArrayInputStream(TEST_BUFFER), 10);
         long bytesRead = StreamUtils.copy(is, new ByteArrayOutputStream());
@@ -39,11 +46,11 @@ public class LimitingInputStreamTest extends TestCase {
         assertTrue(is.hasReachedLimit());
     }
 
+    @Test
     public void testReadLimitExceeded() throws IOException {
         final LimitingInputStream is = new LimitingInputStream(new ByteArrayInputStream(TEST_BUFFER), 9);
         final long bytesRead = StreamUtils.copy(is, new ByteArrayOutputStream());
         assertEquals(bytesRead, 9);
         assertTrue(is.hasReachedLimit());
     }
-
 }

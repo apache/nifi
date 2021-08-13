@@ -22,7 +22,7 @@ import org.apache.nifi.security.kms.configuration.KeyProviderConfiguration;
 import org.apache.nifi.security.kms.configuration.KeyStoreKeyProviderConfiguration;
 import org.apache.nifi.security.kms.configuration.StaticKeyProviderConfiguration;
 import org.apache.nifi.security.kms.util.SecretKeyUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.crypto.SecretKey;
 import java.io.File;
@@ -32,8 +32,8 @@ import java.security.KeyStore;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class KeyProviderFactoryTest {
 

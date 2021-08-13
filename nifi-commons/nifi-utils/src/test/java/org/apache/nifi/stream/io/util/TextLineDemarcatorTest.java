@@ -16,32 +16,33 @@
  */
 package org.apache.nifi.stream.io.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
+import org.apache.nifi.stream.io.util.TextLineDemarcator.OffsetInfo;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-import org.apache.nifi.stream.io.util.TextLineDemarcator.OffsetInfo;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
 @SuppressWarnings("resource")
 public class TextLineDemarcatorTest {
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void nullStream() {
-        new TextLineDemarcator(null);
+        assertThrows(IllegalArgumentException.class, () -> new TextLineDemarcator(null));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void illegalBufferSize() {
-        new TextLineDemarcator(mock(InputStream.class), -234);
+        assertThrows(IllegalArgumentException.class, () -> new TextLineDemarcator(mock(InputStream.class), -234));
     }
 
     @Test

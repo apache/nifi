@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.encrypt;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.crypto.SecretKey;
 
@@ -31,7 +31,7 @@ public class StandardPropertySecretKeyProviderTest {
 
     private StandardPropertySecretKeyProvider provider;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         provider = new StandardPropertySecretKeyProvider();
     }

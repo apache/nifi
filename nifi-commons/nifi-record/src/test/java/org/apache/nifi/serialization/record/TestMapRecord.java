@@ -17,8 +17,8 @@
 
 package org.apache.nifi.serialization.record;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,9 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestMapRecord {
 
@@ -71,12 +71,7 @@ public class TestMapRecord {
         new RecordField("hello", RecordFieldType.INT.getDataType(), 84);
         new RecordField("hello", RecordFieldType.INT.getDataType(), (Object) null);
 
-        try {
-            new RecordField("hello", RecordFieldType.INT.getDataType(), "foo");
-            Assert.fail("Was able to set a default value of \"foo\" for INT type");
-        } catch (final IllegalArgumentException expected) {
-            // expected
-        }
+        assertThrows(IllegalArgumentException.class, () -> new RecordField("hello", RecordFieldType.INT.getDataType(), "foo"));
     }
 
     private Set<String> set(final String... values) {

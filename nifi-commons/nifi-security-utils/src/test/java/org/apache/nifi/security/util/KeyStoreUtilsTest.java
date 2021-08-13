@@ -17,6 +17,12 @@
 
 package org.apache.nifi.security.util;
 
+import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -31,13 +37,6 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.UUID;
-
-import org.apache.commons.lang3.StringUtils;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -60,7 +59,7 @@ public class KeyStoreUtilsTest {
     private static X509Certificate certificate;
     private static SecretKey secretKey;
 
-    @BeforeClass
+    @BeforeAll
     public static void generateKeysAndCertificates() throws NoSuchAlgorithmException, CertificateException {
         keyPair = KeyPairGenerator.getInstance(KEY_ALGORITHM).generateKeyPair();
         certificate = CertificateUtils.generateSelfSignedX509Certificate(keyPair, SUBJECT_DN, SIGNING_ALGORITHM, DURATION_DAYS);

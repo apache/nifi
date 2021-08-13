@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.authentication.single.user.encoder;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.regex.Pattern;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BCryptPasswordEncoderTest {
 
@@ -31,8 +31,8 @@ public class BCryptPasswordEncoderTest {
     public void testEncode() {
         final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         final String encoded = encoder.encode(String.class.getSimpleName().toCharArray());
-        assertNotNull("Encoded Password not found", encoded);
-        assertTrue("Encoded Password bcrypt hash not found", BCRYPT_PATTERN.matcher(encoded).matches());
+        assertNotNull(encoded, "Encoded Password not found");
+        assertTrue(BCRYPT_PATTERN.matcher(encoded).matches(), "Encoded Password bcrypt hash not found");
     }
 
     @Test
@@ -40,6 +40,6 @@ public class BCryptPasswordEncoderTest {
         final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         final char[] password = String.class.getSimpleName().toCharArray();
         final String encoded = encoder.encode(password);
-        assertTrue("Encoded Password not matched", encoder.matches(password, encoded));
+        assertTrue(encoder.matches(password, encoded), "Encoded Password not matched");
     }
 }

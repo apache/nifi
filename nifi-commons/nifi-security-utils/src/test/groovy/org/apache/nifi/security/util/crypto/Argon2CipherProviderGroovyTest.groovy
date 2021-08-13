@@ -20,13 +20,10 @@ import org.apache.commons.codec.binary.Base64
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.Assumptions
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -38,7 +35,6 @@ import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
 
-@RunWith(JUnit4.class)
 class Argon2CipherProviderGroovyTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(Argon2CipherProviderGroovyTest.class)
 
@@ -53,7 +49,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
     RandomIVPBECipherProvider cipherProvider
     private final IntRange FULL_SALT_LENGTH_RANGE= (49..53)
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -70,15 +66,10 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         }
     }
 
-    @Before
+    @BeforeEach
     void setUp() throws Exception {
         // Very fast parameters to test for correctness rather than production values
         cipherProvider = new Argon2CipherProvider(1024, 1, 3)
-    }
-
-    @After
-    void tearDown() throws Exception {
-
     }
 
     @Test
@@ -234,8 +225,8 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                CipherUtility.isUnlimitedStrengthCryptoSupported())
+        Assumptions.assumeTrue(CipherUtility.isUnlimitedStrengthCryptoSupported(),
+                "Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.")
 
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()

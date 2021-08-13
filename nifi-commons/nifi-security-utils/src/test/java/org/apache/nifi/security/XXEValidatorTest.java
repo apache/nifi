@@ -16,22 +16,17 @@
  */
 package org.apache.nifi.security;
 
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.security.xml.XXEValidator;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.security.xml.XXEValidator;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
-@RunWith(JUnit4.class)
 public class XXEValidatorTest {
     private String simpleXMLFile = "src/test/resources/no_xxe.xml";
     private String remoteXXEFile = "src/test/resources/remote_xxe_file.xml";
@@ -41,19 +36,9 @@ public class XXEValidatorTest {
     private String configurationKey = "Configuration Name";
     private ValidationContext validationContext;
 
-    @BeforeClass
-    public static void setUpOnce() throws Exception {
-
-    }
-
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         validationContext = mock(ValidationContext.class);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-
     }
 
     @Test

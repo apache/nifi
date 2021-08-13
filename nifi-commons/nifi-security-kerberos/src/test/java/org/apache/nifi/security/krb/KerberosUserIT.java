@@ -18,10 +18,9 @@ package org.apache.nifi.security.krb;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
 import javax.security.auth.Subject;
@@ -29,6 +28,7 @@ import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.login.LoginException;
 import java.io.File;
+import java.nio.file.Path;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.Principal;
@@ -41,13 +41,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class KerberosUserIT {
-
-    @ClassRule
-    public static TemporaryFolder tmpDir = new TemporaryFolder();
-
     private static KDCServer kdc;
 
     private static KerberosPrincipal principal1;
@@ -59,18 +55,21 @@ public class KerberosUserIT {
     private static KerberosPrincipal principal3;
     private static final String principal3Password = "changeme";
 
-    @BeforeClass
-    public static void setupClass() throws Exception {
-        kdc = new KDCServer(tmpDir.newFolder("mini-kdc_"));
+    @BeforeAll
+    public static void setupClass(@TempDir Path tmpDir) throws Exception {
+        File kdcFolder = tmpDir.resolve("mini-kdc_").toFile();
+        kdcFolder.mkdirs();
+
+        kdc = new KDCServer(kdcFolder);
         kdc.setMaxTicketLifetime("15"); // set ticket lifetime to 15 seconds so we can test relogin
         kdc.start();
 
         principal1 = new KerberosPrincipal("user1@" + kdc.getRealm());
-        principal1KeytabFile = tmpDir.newFile("user1.keytab");
+        principal1KeytabFile = tmpDir.resolve("user1.keytab").toFile();
         kdc.createKeytabPrincipal(principal1KeytabFile, "user1");
 
         principal2 = new KerberosPrincipal("user2@" + kdc.getRealm());
-        principal2KeytabFile = tmpDir.newFile("user2.keytab");
+        principal2KeytabFile = tmpDir.resolve("user2.keytab").toFile();
         kdc.createKeytabPrincipal(principal2KeytabFile, "user2");
 
         principal3 = new KerberosPrincipal("user3@" + kdc.getRealm());
@@ -113,16 +112,10 @@ public class KerberosUserIT {
     }
 
     @Test
-    public void testKeytabLoginWithUnknownPrincipal() throws LoginException {
+    public void testKeytabLoginWithUnknownPrincipal() {
         final String unknownPrincipal = "doesnotexist@" + kdc.getRealm();
         final KerberosUser user1 = new KerberosKeytabUser(unknownPrincipal, principal1KeytabFile.getAbsolutePath());
-        try {
-            user1.login();
-            fail("Login should have failed");
-        } catch (Exception e) {
-            // exception is expected here
-            //e.printStackTrace();
-        }
+        assertThrows(Exception.class, () -> user1.login());
     }
 
     @Test
@@ -147,11 +140,11 @@ public class KerberosUserIT {
         assertEquals(0, userSubject.getPrincipals().size());
     }
 
-    @Test(expected = LoginException.class)
-    public void testPasswordUserLoginWithInvalidPassword() throws LoginException {
+    @Test
+    public void testPasswordUserLoginWithInvalidPassword() {
         // perform login for user
         final KerberosUser user = new KerberosPasswordUser("user3", "NOT THE PASSWORD");
-        user.login();
+        assertThrows(LoginException.class, () -> user.login());
     }
 
     @Test
