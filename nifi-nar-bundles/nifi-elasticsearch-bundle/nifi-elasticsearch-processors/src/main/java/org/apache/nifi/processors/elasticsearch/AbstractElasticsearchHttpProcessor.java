@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.Iterator;
+import java.util.Arrays;
 import com.google.common.collect.Iterables;
 import okhttp3.Authenticator;
 import okhttp3.Credentials;
@@ -292,7 +293,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
 
     @OnScheduled
     public void setup(ProcessContext context) {
-        esUrlsIteratorAtomicReference.set(Iterables.cycle(Array.asList(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue().split(","))).iterator());
+        esUrlsIteratorAtomicReference.set(Iterables.cycle(Arrays.asList(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue().split(","))).iterator());
         super.setup(context);
     }
 
