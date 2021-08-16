@@ -25,6 +25,7 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
@@ -46,6 +47,7 @@ import org.apache.nifi.controller.exception.ControllerServiceInstantiationExcept
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
@@ -418,9 +420,28 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             if (controllerService instanceof VerifiableControllerService) {
                 LOG.debug("{} is a VerifiableControllerService. Will perform full verification of configuration.", this);
 
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, controllerService.getClass(), getIdentifier())) {
-                    final VerifiableControllerService verifiable = (VerifiableControllerService) controllerService;
-                    results.addAll(verifiable.verify(context, logger, variables));
+                final VerifiableControllerService verifiable = (VerifiableControllerService) controllerService;
+
+                // Check if the given configuration requires a different classloader than the current configuration
+                final boolean classpathDifferent = isClasspathDifferent(context.getProperties());
+
+                if (classpathDifferent) {
+                    // Create a classloader for the given configuration and use that to verify the component's configuration
+                    final Bundle bundle = extensionManager.getBundle(getBundleCoordinate());
+                    final Set<URL> classpathUrls = getAdditionalClasspathResources(context.getProperties().keySet(), descriptor -> context.getProperty(descriptor).getValue());
+
+                    final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false)) {
+                        Thread.currentThread().setContextClassLoader(detectedClassLoader);
+                        results.addAll(verifiable.verify(context, logger, variables));
+                    } finally {
+                        Thread.currentThread().setContextClassLoader(currentClassLoader);
+                    }
+                } else {
+                    // Verify the configuration, using the component's classloader
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, controllerService.getClass(), getIdentifier())) {
+                        results.addAll(verifiable.verify(context, logger, variables));
+                    }
                 }
 
                 final long validationNanos = validationComplete - startNanos;

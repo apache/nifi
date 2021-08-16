@@ -169,14 +169,17 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return getAdditionalClasspathResources((Collection<PropertyDescriptor>) propertyDescriptors);
     }
 
-    private Set<URL> getAdditionalClasspathResources(final Collection<PropertyDescriptor> propertyDescriptors) {
+    protected Set<URL> getAdditionalClasspathResources(final Collection<PropertyDescriptor> propertyDescriptors) {
+        return getAdditionalClasspathResources(propertyDescriptors, this::getEffectivePropertyValue);
+    }
+
+    protected Set<URL> getAdditionalClasspathResources(final Collection<PropertyDescriptor> propertyDescriptors, final Function<PropertyDescriptor, String> effectiveValueLookup) {
         final Set<URL> additionalUrls = new LinkedHashSet<>();
         final ResourceReferenceFactory resourceReferenceFactory = new StandardResourceReferenceFactory();
 
         for (final PropertyDescriptor descriptor : propertyDescriptors) {
             if (descriptor.isDynamicClasspathModifier()) {
-                final PropertyConfiguration propertyConfiguration = getProperty(descriptor);
-                final String value = propertyConfiguration == null ? null : propertyConfiguration.getEffectiveValue(getParameterContext());
+                final String value = effectiveValueLookup.apply(descriptor);
 
                 if (!StringUtils.isEmpty(value)) {
                     final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);
@@ -190,6 +193,36 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return additionalUrls;
     }
 
+    /**
+     * Determines if the given set of properties will result in a different classpath than the currently configured set of properties
+     * @param properties the properties to analyze
+     * @return <code>true</code> if the given set of properties will require a different classpath (and therefore a different classloader) than the currently
+     *         configured set of properties
+     */
+    protected boolean isClasspathDifferent(final Map<PropertyDescriptor, String> properties) {
+        // If any property in the given map modifies classpath and is different than the currently configured value,
+        // the given properties will require a different classpath.
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            final String value = entry.getValue();
+            final String currentlyConfiguredValue = getEffectivePropertyValue(descriptor);
+
+            if (descriptor.isDynamicClasspathModifier() && !Objects.equals(value, currentlyConfiguredValue)) {
+                return true;
+            }
+        }
+
+        // If any property in the currently configured properties modifies classpath and is not in the given set of properties,
+        // the given properties will require a different classpath.
+        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : getProperties().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.isDynamicClasspathModifier() && !properties.containsKey(descriptor)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     @Override
     public void setProperties(final Map<String, String> properties, final boolean allowRemovalOfRequiredProperties) {

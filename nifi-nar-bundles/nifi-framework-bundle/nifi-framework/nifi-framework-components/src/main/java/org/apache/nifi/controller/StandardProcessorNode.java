@@ -33,6 +33,7 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
@@ -57,6 +58,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
@@ -1086,10 +1088,28 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             final Processor processor = getProcessor();
             if (processor instanceof VerifiableProcessor) {
                 LOG.debug("{} is a VerifiableProcessor. Will perform full verification of configuration.", this);
+                final VerifiableProcessor verifiable = (VerifiableProcessor) getProcessor();
 
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, processor.getClass(), getIdentifier())) {
-                    final VerifiableProcessor verifiable = (VerifiableProcessor) getProcessor();
-                    results.addAll(verifiable.verify(context, logger, attributes));
+                // Check if the given configuration requires a different classloader than the current configuration
+                final boolean classpathDifferent = isClasspathDifferent(context.getProperties());
+
+                if (classpathDifferent) {
+                    // Create a classloader for the given configuration and use that to verify the component's configuration
+                    final Bundle bundle = extensionManager.getBundle(getBundleCoordinate());
+                    final Set<URL> classpathUrls = getAdditionalClasspathResources(context.getProperties().keySet(), descriptor -> context.getProperty(descriptor).getValue());
+
+                    final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false)) {
+                        Thread.currentThread().setContextClassLoader(detectedClassLoader);
+                        results.addAll(verifiable.verify(context, logger, attributes));
+                    } finally {
+                        Thread.currentThread().setContextClassLoader(currentClassLoader);
+                    }
+                } else {
+                    // Verify the configuration, using the component's classloader
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, processor.getClass(), getIdentifier())) {
+                        results.addAll(verifiable.verify(context, logger, attributes));
+                    }
                 }
 
                 final long validationNanos = validationComplete - startNanos;

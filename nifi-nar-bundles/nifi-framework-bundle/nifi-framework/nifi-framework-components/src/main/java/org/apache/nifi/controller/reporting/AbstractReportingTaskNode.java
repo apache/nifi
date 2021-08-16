@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.reporting;
 
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
@@ -39,6 +40,7 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.ComponentVariableRegistry;
@@ -351,10 +353,28 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
             final ReportingTask reportingTask = getReportingTask();
             if (reportingTask instanceof VerifiableReportingTask) {
                 logger.debug("{} is a VerifiableReportingTask. Will perform full verification of configuration.", this);
+                final VerifiableReportingTask verifiable = (VerifiableReportingTask) reportingTask;
 
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, reportingTask.getClass(), getIdentifier())) {
-                    final VerifiableReportingTask verifiable = (VerifiableReportingTask) reportingTask;
-                    results.addAll(verifiable.verify(context, logger));
+                // Check if the given configuration requires a different classloader than the current configuration
+                final boolean classpathDifferent = isClasspathDifferent(context.getProperties());
+
+                if (classpathDifferent) {
+                    // Create a classloader for the given configuration and use that to verify the component's configuration
+                    final Bundle bundle = extensionManager.getBundle(getBundleCoordinate());
+                    final Set<URL> classpathUrls = getAdditionalClasspathResources(context.getProperties().keySet(), descriptor -> context.getProperty(descriptor).getValue());
+
+                    final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false)) {
+                        Thread.currentThread().setContextClassLoader(detectedClassLoader);
+                        results.addAll(verifiable.verify(context, logger));
+                    } finally {
+                        Thread.currentThread().setContextClassLoader(currentClassLoader);
+                    }
+                } else {
+                    // Verify the configuration, using the component's classloader
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, reportingTask.getClass(), getIdentifier())) {
+                        results.addAll(verifiable.verify(context, logger));
+                    }
                 }
 
                 final long validationNanos = validationComplete - startNanos;
