@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.elasticsearch.SearchResponse;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.elasticsearch.api.PaginatedJsonQueryParameters;
 
@@ -67,24 +68,24 @@ public class PaginatedJsonQueryElasticsearch extends AbstractPaginatedJsonQueryE
 
     @Override
     void finishQuery(final FlowFile input, final PaginatedJsonQueryParameters paginatedQueryJsonParameters,
-                     final ProcessSession session, final SearchResponse response) {
+                     final ProcessSession session, final ProcessContext context, final SearchResponse response) {
         session.transfer(input, REL_ORIGINAL);
     }
 
     @Override
-    boolean isExpired(final PaginatedJsonQueryParameters paginatedQueryJsonParameters,
-                      final ProcessSession session, final SearchResponse response) {
+    boolean isExpired(final PaginatedJsonQueryParameters paginatedQueryJsonParameters, final ProcessContext context,
+                      final SearchResponse response) {
         // queries using input FlowFiles don't expire, they run until completion
         return false;
     }
 
     @Override
-    String getScrollId(final ProcessSession session, final SearchResponse response) {
+    String getScrollId(final ProcessContext context, final SearchResponse response) {
         return response != null ? response.getScrollId() : null;
     }
 
     @Override
-    String getPitId(final ProcessSession session, final SearchResponse response) {
+    String getPitId(final ProcessContext context, final SearchResponse response) {
         return response != null ? response.getPitId() : null;
     }
 }

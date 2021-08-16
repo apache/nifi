@@ -234,10 +234,14 @@ class ElasticSearchClientService_IT {
         Assert.assertNotEquals("Same results", scrollResponse.hits, response.hits)
 
         // delete the scroll
-        final DeleteOperationResponse deleteResponse = service.deleteScroll(scrollResponse.scrollId)
+        DeleteOperationResponse deleteResponse = service.deleteScroll(scrollResponse.scrollId)
         Assert.assertNotNull("Delete Response was null", deleteResponse)
-
         Assert.assertTrue(deleteResponse.took > 0)
+
+        // delete scroll again (should now be unknown but the 404 caught and ignored)
+        deleteResponse = service.deleteScroll(scrollResponse.scrollId)
+        Assert.assertNotNull("Delete Response was null", deleteResponse)
+        Assert.assertEquals(0L, deleteResponse.took)
     }
 
     @Test
@@ -290,6 +294,7 @@ class ElasticSearchClientService_IT {
 
     @Test
     void testPointInTime() {
+        // Point in Time only available in 7.10+ with XPack enabled
         Assume.assumeTrue("Requires version 7.10+", VERSION >= ES_7_10)
         Assume.assumeThat("Requires XPack features", FLAVOUR, is(DEFAULT))
 
@@ -343,10 +348,14 @@ class ElasticSearchClientService_IT {
         Assert.assertNotEquals("Same results", secondResponse.hits, response.hits)
 
         // delete pitId
-        final DeleteOperationResponse deleteResponse = service.deletePointInTime(pitId)
+        DeleteOperationResponse deleteResponse = service.deletePointInTime(pitId)
         Assert.assertNotNull("Delete Response was null", deleteResponse)
-
         Assert.assertTrue(deleteResponse.took > 0)
+
+        // delete pitId again (should now be unknown but the 404 caught and ignored)
+        deleteResponse = service.deletePointInTime(pitId)
+        Assert.assertNotNull("Delete Response was null", deleteResponse)
+        Assert.assertEquals(0L, deleteResponse.took)
     }
 
     @Test

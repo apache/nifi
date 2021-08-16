@@ -128,11 +128,12 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
 
     @Override
     SearchResponse doQuery(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, List<FlowFile> hitsFlowFiles,
-                           final ProcessSession session, final FlowFile input, final StopWatch stopWatch) throws IOException {
+                           final ProcessSession session, final ProcessContext context, final FlowFile input,
+                           final StopWatch stopWatch) throws IOException {
         SearchResponse response = null;
         do {
             // check any previously started query hasn't expired
-            final boolean expiredQuery = isExpired(paginatedJsonQueryParameters, session, response);
+            final boolean expiredQuery = isExpired(paginatedJsonQueryParameters, context, response);
             final boolean newQuery = StringUtils.isBlank(paginatedJsonQueryParameters.getPageExpirationTimestamp()) || expiredQuery;
 
             // execute query/scroll
@@ -168,8 +169,8 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
         } while (!response.getHits().isEmpty() && (input != null || FLOWFILE_PER_QUERY.getValue().equals(splitUpHits)));
 
         if (response.getHits().isEmpty()) {
-            getLogger().debug("No more results for paginated query, resetting local state for future queries");
-            clearElasticsearchState(session, response);
+            getLogger().debug("No more results for paginated query, clearing Elasticsearch resources");
+            clearElasticsearchState(context, response);
         }
 
         return response;
@@ -185,12 +186,12 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
         return paginatedJsonQueryParameters;
     }
 
-    abstract boolean isExpired(final PaginatedJsonQueryParameters paginatedQueryParameters,
-                               final ProcessSession session, final SearchResponse response) throws IOException;
+    abstract boolean isExpired(final PaginatedJsonQueryParameters paginatedQueryParameters, final ProcessContext context,
+                               final SearchResponse response) throws IOException;
 
-    abstract String getScrollId(final ProcessSession session, final SearchResponse response) throws IOException;
+    abstract String getScrollId(final ProcessContext context, final SearchResponse response) throws IOException;
 
-    abstract String getPitId(final ProcessSession session, final SearchResponse response) throws IOException;
+    abstract String getPitId(final ProcessContext context, final SearchResponse response) throws IOException;
 
     private void prepareNextPageQuery(final ObjectNode queryJson, final PaginatedJsonQueryParameters paginatedJsonQueryParameters) throws IOException {
         // prepare to get next page of results (depending on pagination type)
@@ -307,23 +308,23 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
         );
     }
 
-    void clearElasticsearchState(final ProcessSession session, final SearchResponse response) {
+    void clearElasticsearchState(final ProcessContext context, final SearchResponse response) {
         try {
             if (PAGINATION_SCROLL.getValue().equals(paginationType)) {
-                final String scrollId = getScrollId(session, response);
+                final String scrollId = getScrollId(context, response);
 
                 if (StringUtils.isNotBlank(scrollId)) {
                     clientService.get().deleteScroll(scrollId);
                 }
             } else if (PAGINATION_POINT_IN_TIME.getValue().equals(paginationType)) {
-                final String pitId = getPitId(session, response);
+                final String pitId = getPitId(context, response);
 
                 if (StringUtils.isNotBlank(pitId)) {
                     clientService.get().deletePointInTime(pitId);
                 }
             }
         } catch (Exception ex) {
-            getLogger().warn("Error while cleaning up Elasticsearch pagination resources", ex);
+            getLogger().warn("Error while cleaning up Elasticsearch pagination resources, ignoring", ex);
         }
     }
 }

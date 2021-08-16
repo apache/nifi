@@ -153,9 +153,9 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
 
             List<FlowFile> hitsFlowFiles = new ArrayList<>();
             final StopWatch stopWatch = new StopWatch(true);
-            final SearchResponse response = doQuery(queryJsonParameters, hitsFlowFiles, session, input, stopWatch);
+            final SearchResponse response = doQuery(queryJsonParameters, hitsFlowFiles, session, context, input, stopWatch);
 
-            finishQuery(input, queryJsonParameters, session, response);
+            finishQuery(input, queryJsonParameters, session, context, response);
         } catch (Exception ex) {
             getLogger().error("Error processing flowfile.", ex);
             if (input != null) {
@@ -183,9 +183,9 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
     }
 
     abstract SearchResponse doQuery(final Q queryJsonParameters, final List<FlowFile> hitsFlowFiles, final ProcessSession session,
-                                    final FlowFile input, final StopWatch stopWatch) throws IOException;
+                                    final ProcessContext context, final FlowFile input, final StopWatch stopWatch) throws IOException;
 
-    abstract void finishQuery(final FlowFile input, final Q queryParameters, final ProcessSession session,
+    abstract void finishQuery(final FlowFile input, final Q queryParameters, final ProcessSession session, final ProcessContext context,
                               final SearchResponse response) throws IOException;
 
     FlowFile createChildFlowFile(final ProcessSession session, final FlowFile parent) {

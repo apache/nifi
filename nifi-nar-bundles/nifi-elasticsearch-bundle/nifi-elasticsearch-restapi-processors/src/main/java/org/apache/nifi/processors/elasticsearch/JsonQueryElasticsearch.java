@@ -58,7 +58,8 @@ public class JsonQueryElasticsearch extends AbstractJsonQueryElasticsearch<JsonQ
 
     @Override
     SearchResponse doQuery(final JsonQueryParameters queryJsonParameters, final List<FlowFile> hitsFlowFiles,
-                           final ProcessSession session, final FlowFile input, final StopWatch stopWatch) throws IOException {
+                           final ProcessSession session, final ProcessContext context, final FlowFile input,
+                           final StopWatch stopWatch) throws IOException {
         final SearchResponse response = clientService.get().search(
                 queryJsonParameters.getQuery(),
                 queryJsonParameters.getIndex(),
@@ -79,7 +80,8 @@ public class JsonQueryElasticsearch extends AbstractJsonQueryElasticsearch<JsonQ
     }
 
     @Override
-    void finishQuery(final FlowFile input, final JsonQueryParameters jsonQueryParameters, final ProcessSession session, final SearchResponse response) {
+    void finishQuery(final FlowFile input, final JsonQueryParameters jsonQueryParameters, final ProcessSession session,
+                     final ProcessContext context, final SearchResponse response) {
         if (input != null) {
             session.transfer(input, REL_ORIGINAL);
         }

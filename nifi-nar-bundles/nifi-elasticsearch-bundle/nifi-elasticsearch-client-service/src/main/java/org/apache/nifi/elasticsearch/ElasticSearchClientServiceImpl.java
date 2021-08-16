@@ -42,6 +42,7 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import org.elasticsearch.client.Response;
+import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 
@@ -445,8 +446,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         try {
             final HttpEntity pitEntity = new NStringEntity(String.format("{\"id\": \"%s\"}", pitId), ContentType.APPLICATION_JSON);
 
-            final StopWatch watch = new StopWatch();
-            watch.start();
+            final StopWatch watch = new StopWatch(true);
             final Response response = client.performRequest("DELETE", "/_pit", Collections.emptyMap(), pitEntity);
             watch.stop();
 
@@ -458,6 +458,13 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
             parseResponseWarningHeaders(response);
             return new DeleteOperationResponse(watch.getDuration(TimeUnit.MILLISECONDS));
+        } catch (final ResponseException re) {
+            if (404 == re.getResponse().getStatusLine().getStatusCode()) {
+                getLogger().debug("Point in Time {} not found in Elasticsearch for deletion, ignoring", pitId);
+                return new DeleteOperationResponse(0);
+            } else {
+                throw new RuntimeException(re);
+            }
         } catch (final Exception ex) {
             throw new RuntimeException(ex);
         }
@@ -468,8 +475,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         try {
             final HttpEntity scrollBody = new NStringEntity(String.format("{\"scroll_id\": \"%s\"}", scrollId), ContentType.APPLICATION_JSON);
 
-            final StopWatch watch = new StopWatch();
-            watch.start();
+            final StopWatch watch = new StopWatch(true);
             final Response response = client.performRequest("DELETE", "/_search/scroll", Collections.emptyMap(), scrollBody);
             watch.stop();
 
@@ -481,6 +487,13 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
             parseResponseWarningHeaders(response);
             return new DeleteOperationResponse(watch.getDuration(TimeUnit.MILLISECONDS));
+        } catch (final ResponseException re) {
+            if (404 == re.getResponse().getStatusLine().getStatusCode()) {
+                getLogger().debug("Scroll Id {} not found in Elasticsearch for deletion, ignoring", scrollId);
+                return new DeleteOperationResponse(0);
+            } else {
+                throw new RuntimeException(re);
+            }
         } catch (final Exception ex) {
             throw new RuntimeException(ex);
         }
