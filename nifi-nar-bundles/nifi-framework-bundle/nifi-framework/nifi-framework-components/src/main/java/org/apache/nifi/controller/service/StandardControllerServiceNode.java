@@ -26,10 +26,10 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
@@ -38,10 +38,10 @@ import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.LoggableComponent;
-import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.ValidationContextFactory;
+import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
@@ -49,10 +49,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.components.ConfigVerificationResult;
-import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.processor.SimpleProcessLogger;
-import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
@@ -67,7 +64,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -408,56 +404,15 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             verifyCanPerformVerification();
 
             final long startNanos = System.nanoTime();
-
-            final Map<PropertyDescriptor, PropertyConfiguration> descriptorToConfigMap = new LinkedHashMap<>();
-            for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-                final PropertyDescriptor descriptor = entry.getKey();
-                final String rawValue = entry.getValue();
-                final String propertyValue = rawValue == null ? descriptor.getDefaultValue() : rawValue;
-
-                final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList());
-                descriptorToConfigMap.put(descriptor, propertyConfiguration);
-            }
-
-            final ValidationContext validationContext = getValidationContextFactory().newValidationContext(descriptorToConfigMap, context.getAnnotationData(),
-                getProcessGroupIdentifier(), getIdentifier(), getProcessGroup().getParameterContext(), false);
-
-            final ValidationState validationState = performValidation(validationContext);
-            final ValidationStatus validationStatus = validationState.getStatus();
-
-            if (validationStatus == ValidationStatus.INVALID) {
-                for (final ValidationResult result : validationState.getValidationErrors()) {
-                    if (result.isValid()) {
-                        continue;
-                    }
-
-                    results.add(new ConfigVerificationResult.Builder()
-                        .outcome(Outcome.FAILED)
-                        .explanation("Controller Service is invalid: " + result.toString())
-                        .verificationStepName("Perform Validation")
-                        .build());
-                }
-
-                if (results.isEmpty()) {
-                    results.add(new ConfigVerificationResult.Builder()
-                        .outcome(Outcome.FAILED)
-                        .explanation("Controller Service is invalid but provided no Validation Results to indicate why")
-                        .verificationStepName("Perform Validation")
-                        .build());
-                }
-
-                LOG.debug("{} is not valid with the given configuration. Will not attempt to perform any additional verification of configuration. Validation took {}. Reason not valid: {}",
-                    this, results, FormatUtils.formatNanos(System.nanoTime() - startNanos, false));
-                return results;
-            }
-
+            // Call super's verifyConfig, which will perform component validation
+            results.addAll(super.verifyConfig(context.getProperties(), context.getAnnotationData(), getProcessGroup() == null ? null : getProcessGroup().getParameterContext()));
             final long validationComplete = System.nanoTime();
 
-            results.add(new ConfigVerificationResult.Builder()
-                .outcome(Outcome.SUCCESSFUL)
-                .verificationStepName("Perform Validation")
-                .explanation("Controller Service Validation passed")
-                .build());
+            // If any invalid outcomes from validation, we do not want to perform additional verification, because we only run additional verification when the component is valid.
+            // This is done in order to make it much simpler to develop these verifications, since the developer doesn't have to worry about whether or not the given values are valid.
+            if (!results.isEmpty() && results.stream().anyMatch(result -> result.getOutcome() == Outcome.FAILED)) {
+                return results;
+            }
 
             final ControllerService controllerService = getControllerServiceImplementation();
             if (controllerService instanceof VerifiableControllerService) {

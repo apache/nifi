@@ -57,6 +57,7 @@ public interface VerifiableProcessor {
      * @param context the ProcessContext that contains the necessary configuration
      * @param verificationLogger a logger that can be used during verification. While the typical logger can be used, doing so may result
      * in producing bulletins, which can be confusing.
+     * @param attributes a mapping of values that can be used as FlowFile attributes for the purpose of evaluating Expression Language for resolving property values
      * @return a List of ConfigVerificationResults, each illustrating one step of the verification process that was completed
      */
     List<ConfigVerificationResult> verify(ProcessContext context, ComponentLog verificationLogger, Map<String, String> attributes);

@@ -21,6 +21,8 @@ import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -53,6 +55,7 @@ import org.apache.nifi.parameter.ParameterTokenList;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
+import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +83,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class AbstractComponentNode implements ComponentNode {
+    private static final String PERFORM_VALIDATION_STEP_NAME = "Perform Validation";
     private static final Logger logger = LoggerFactory.getLogger(AbstractComponentNode.class);
 
     private final String id;
@@ -312,6 +316,72 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 }
             }
         }
+    }
+
+    protected List<ConfigVerificationResult> verifyConfig(final Map<PropertyDescriptor, String> propertyValues, final String annotationData, final ParameterContext parameterContext) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+
+        try {
+            final long startNanos = System.nanoTime();
+
+            final Map<PropertyDescriptor, PropertyConfiguration> descriptorToConfigMap = new LinkedHashMap<>();
+            for (final Map.Entry<PropertyDescriptor, String> entry : propertyValues.entrySet()) {
+                final PropertyDescriptor descriptor = entry.getKey();
+                final String rawValue = entry.getValue();
+                final String propertyValue = rawValue == null ? descriptor.getDefaultValue() : rawValue;
+
+                final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList());
+                descriptorToConfigMap.put(descriptor, propertyConfiguration);
+            }
+
+            final ValidationContext validationContext = getValidationContextFactory().newValidationContext(descriptorToConfigMap, annotationData,
+                getProcessGroupIdentifier(), getIdentifier(), parameterContext, false);
+
+            final ValidationState validationState = performValidation(validationContext);
+            final ValidationStatus validationStatus = validationState.getStatus();
+
+            if (validationStatus == ValidationStatus.INVALID) {
+                for (final ValidationResult result : validationState.getValidationErrors()) {
+                    if (result.isValid()) {
+                        continue;
+                    }
+
+                    results.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName(PERFORM_VALIDATION_STEP_NAME)
+                        .outcome(Outcome.FAILED)
+                        .explanation("Component is invalid: " + result.toString())
+                        .build());
+                }
+
+                if (results.isEmpty()) {
+                    results.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName(PERFORM_VALIDATION_STEP_NAME)
+                        .outcome(Outcome.FAILED)
+                        .explanation("Component is invalid but provided no Validation Results to indicate why")
+                        .build());
+                }
+
+                logger.debug("{} is not valid with the given configuration. Will not attempt to perform any additional verification of configuration. Validation took {}. Reason not valid: {}",
+                    this, results, FormatUtils.formatNanos(System.nanoTime() - startNanos, false));
+                return results;
+            }
+
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName(PERFORM_VALIDATION_STEP_NAME)
+                .outcome(Outcome.SUCCESSFUL)
+                .explanation("Component Validation passed")
+                .build());
+        } catch (final Throwable t) {
+            logger.error("Failed to perform verification of component's configuration for {}", this, t);
+
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName(PERFORM_VALIDATION_STEP_NAME)
+                .outcome(Outcome.FAILED)
+                .explanation("Encountered unexpected failure when attempting to perform verification: " + t)
+                .build());
+        }
+
+        return results;
     }
 
     @Override

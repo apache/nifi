@@ -27,6 +27,7 @@ import org.apache.nifi.components.resource.StandardResourceContext;
 import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
@@ -65,15 +66,31 @@ public class StandardProcessContext implements ProcessContext, ControllerService
 
     public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor propertyEncryptor,
                                   final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
+
+        this(processorNode, controllerServiceProvider, propertyEncryptor, stateManager, taskTermination, nodeTypeProvider,
+            processorNode.getEffectivePropertyValues(), processorNode.getAnnotationData());
+    }
+
+    public StandardProcessContext(final ProcessorNode processorNode, final Map<String, String> propertiesOverride, final String annotationDataOverride, final ParameterLookup parameterLookup,
+                                  final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor propertyEncryptor,
+                                  final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
+
+        this(processorNode, controllerServiceProvider, propertyEncryptor, stateManager, taskTermination, nodeTypeProvider,
+            resolvePropertyValues(processorNode, parameterLookup, propertiesOverride), annotationDataOverride);
+    }
+
+    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor propertyEncryptor,
+                                  final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider,
+                                  final Map<PropertyDescriptor, String> propertyValues, final String annotationData) {
         this.procNode = processorNode;
         this.controllerServiceProvider = controllerServiceProvider;
         this.propertyEncryptor = propertyEncryptor;
         this.stateManager = stateManager;
         this.taskTermination = taskTermination;
         this.nodeTypeProvider = nodeTypeProvider;
-        this.annotationData = processorNode.getAnnotationData();
+        this.annotationData = annotationData;
 
-        properties = Collections.unmodifiableMap(processorNode.getEffectivePropertyValues());
+        properties = Collections.unmodifiableMap(propertyValues);
 
         preparedQueries = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
@@ -90,24 +107,15 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         }
     }
 
-    public StandardProcessContext(final ProcessorNode processorNode, final Map<String, String> propertiesOverride, final String annotationDataOverride, final ParameterLookup parameterLookup,
-                                  final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor propertyEncryptor,
-                                  final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
-        this.procNode = processorNode;
-        this.controllerServiceProvider = controllerServiceProvider;
-        this.propertyEncryptor = propertyEncryptor;
-        this.stateManager = stateManager;
-        this.taskTermination = taskTermination;
-        this.nodeTypeProvider = nodeTypeProvider;
-        this.annotationData = annotationDataOverride;
 
+    private static Map<PropertyDescriptor, String> resolvePropertyValues(final ComponentNode component, final ParameterLookup parameterLookup, final Map<String, String> propertyValues) {
+        final Map<PropertyDescriptor, String> resolvedProperties = new LinkedHashMap<>(component.getEffectivePropertyValues());
         final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();
-        final Map<PropertyDescriptor, String> resolvedProperties = new LinkedHashMap<>(processorNode.getEffectivePropertyValues());
 
-        for (final Map.Entry<String, String> entry : propertiesOverride.entrySet()) {
+        for (final Map.Entry<String, String> entry : propertyValues.entrySet()) {
             final String propertyName = entry.getKey();
             final String propertyValue = entry.getValue();
-            final PropertyDescriptor propertyDescriptor = processorNode.getPropertyDescriptor(propertyName);
+            final PropertyDescriptor propertyDescriptor = component.getPropertyDescriptor(propertyName);
             if (propertyValue == null) {
                 resolvedProperties.remove(propertyDescriptor);
             } else {
@@ -117,23 +125,8 @@ public class StandardProcessContext implements ProcessContext, ControllerService
             }
         }
 
-        properties = Collections.unmodifiableMap(resolvedProperties);
-
-        preparedQueries = new HashMap<>();
-        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
-            final PropertyDescriptor desc = entry.getKey();
-            String value = entry.getValue();
-            if (value == null) {
-                value = desc.getDefaultValue();
-            }
-
-            if (value != null) {
-                final PreparedQuery pq = Query.prepareWithParametersPreEvaluated(value);
-                preparedQueries.put(desc, pq);
-            }
-        }
+        return resolvedProperties;
     }
-
 
     private void verifyTaskActive() {
         if (taskTermination.isTerminated()) {

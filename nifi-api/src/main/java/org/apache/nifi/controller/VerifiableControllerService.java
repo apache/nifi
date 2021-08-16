@@ -53,7 +53,7 @@ import java.util.Map;
 public interface VerifiableControllerService {
 
     /**
-     * Verifies that the configuration defined by the given ProcessContext is valid.
+     * Verifies that the configuration defined by the given ConfigurationContext is valid.
      * @param context the ProcessContext that contains the necessary configuration
      * @param verificationLogger a logger that can be used during verification. While the typical logger can be used, doing so may result
      * in producing bulletins, which can be confusing.

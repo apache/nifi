@@ -28,7 +28,6 @@ import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CanonicalGrantee;
 import com.amazonaws.services.s3.model.EmailAddressGrantee;
 import com.amazonaws.services.s3.model.Grantee;
-import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.Owner;
 import com.amazonaws.services.s3.model.Permission;
 import org.apache.commons.lang3.StringUtils;
@@ -36,20 +35,15 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.components.ConfigVerificationResult;
-import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
-public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> implements VerifiableProcessor {
+public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> {
 
     public static final PropertyDescriptor FULL_CONTROL_USER_LIST = new PropertyDescriptor.Builder()
             .name("FullControl User List")
@@ -337,48 +331,5 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         }
 
         return cannedAcl;
-    }
-
-    @Override
-    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog logger, final Map<String, String> attributes) {
-        final AmazonS3Client client = createClient(context, getCredentials(context), createConfiguration(context));
-        initializeRegionAndEndpoint(context, client);
-
-        final List<ConfigVerificationResult> results = new ArrayList<>();
-        final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
-
-        if (bucketName == null || bucketName.trim().isEmpty()) {
-            results.add(new ConfigVerificationResult.Builder()
-                .verificationStepName("Perform Listing")
-                .outcome(Outcome.FAILED)
-                .explanation("Bucket Name must be specified")
-                .build());
-
-            return results;
-        }
-
-        // Attempt to perform a listing of objects in the S3 bucket
-        try {
-            final ObjectListing listing = client.listObjects(bucketName);
-            final int count = listing.getObjectSummaries().size();
-
-            results.add(new ConfigVerificationResult.Builder()
-                .verificationStepName("Perform Listing")
-                .outcome(Outcome.SUCCESSFUL)
-                .explanation("Successfully listed contents of bucket '" + bucketName + "', finding " + count + " objects")
-                .build());
-
-            logger.info("Successfully verified configuration");
-        } catch (final Exception e) {
-            logger.warn("Failed to verify configuration. Could not list contents of bucket '{}'", bucketName, e);
-
-            results.add(new ConfigVerificationResult.Builder()
-                .verificationStepName("Perform Listing")
-                .outcome(Outcome.FAILED)
-                .explanation("Failed to list contents of bucket '" + bucketName + "': " + e.getMessage())
-                .build());
-        }
-
-        return results;
     }
 }

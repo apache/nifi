@@ -79,7 +79,7 @@ public class StandardPreparedQuery implements PreparedQuery {
 
     @Override
     public Set<String> getExplicitlyReferencedAttributes() {
-        final Set<String> variables = new HashSet<>();
+        final Set<String> attributes = new HashSet<>();
 
         for (final Expression expression : expressions) {
             if (!(expression instanceof CompiledExpression)) {
@@ -94,34 +94,34 @@ public class StandardPreparedQuery implements PreparedQuery {
 
                     if (nameEval instanceof StringLiteralEvaluator) {
                         final String referencedVar = nameEval.evaluate(new StandardEvaluationContext(Collections.emptyMap())).getValue();
-                        variables.add(referencedVar);
+                        attributes.add(referencedVar);
                     }
                 } else if (evaluator instanceof AllAttributesEvaluator) {
                     final AllAttributesEvaluator allAttrsEval = (AllAttributesEvaluator) evaluator;
                     final MultiAttributeEvaluator iteratingEval = allAttrsEval.getVariableIteratingEvaluator();
 
                     if (iteratingEval instanceof MultiNamedAttributeEvaluator) {
-                        variables.addAll(((MultiNamedAttributeEvaluator) iteratingEval).getAttributeNames());
+                        attributes.addAll(((MultiNamedAttributeEvaluator) iteratingEval).getAttributeNames());
                     }
                 } else if (evaluator instanceof AnyAttributeEvaluator) {
                     final AnyAttributeEvaluator allAttrsEval = (AnyAttributeEvaluator) evaluator;
                     final MultiAttributeEvaluator iteratingEval = allAttrsEval.getVariableIteratingEvaluator();
 
                     if (iteratingEval instanceof MultiNamedAttributeEvaluator) {
-                        variables.addAll(((MultiNamedAttributeEvaluator) iteratingEval).getAttributeNames());
+                        attributes.addAll(((MultiNamedAttributeEvaluator) iteratingEval).getAttributeNames());
                     }
                 } else if (evaluator instanceof MappingEvaluator) {
                     final MappingEvaluator<?> allAttrsEval = (MappingEvaluator<?>) evaluator;
                     final MultiAttributeEvaluator iteratingEval = allAttrsEval.getVariableIteratingEvaluator();
 
                     if (iteratingEval instanceof MultiNamedAttributeEvaluator) {
-                        variables.addAll(((MultiNamedAttributeEvaluator) iteratingEval).getAttributeNames());
+                        attributes.addAll(((MultiNamedAttributeEvaluator) iteratingEval).getAttributeNames());
                     }
                 }
             }
         }
 
-        return variables;
+        return attributes;
     }
 
     @Override

@@ -52,12 +52,22 @@ public class StandardConfigurationContext implements ConfigurationContext {
 
     public StandardConfigurationContext(final ComponentNode component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod,
                                         final VariableRegistry variableRegistry) {
+        this(component, serviceLookup, schedulingPeriod, variableRegistry, component.getEffectivePropertyValues(), component.getAnnotationData());
+    }
+
+    public StandardConfigurationContext(final ComponentNode component, final Map<String, String> propertyOverrides, final String annotationDataOverride, final ParameterLookup parameterLookup,
+                                        final ControllerServiceLookup serviceLookup, final String schedulingPeriod, final VariableRegistry variableRegistry) {
+        this(component, serviceLookup, schedulingPeriod, variableRegistry, resolvePropertyValues(component, parameterLookup, propertyOverrides), annotationDataOverride);
+    }
+
+    public StandardConfigurationContext(final ComponentNode component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod,
+                                        final VariableRegistry variableRegistry, final Map<PropertyDescriptor, String> propertyValues, final String annotationData) {
         this.component = component;
         this.serviceLookup = serviceLookup;
         this.schedulingPeriod = schedulingPeriod;
         this.variableRegistry = variableRegistry;
-        this.properties = Collections.unmodifiableMap(component.getEffectivePropertyValues());
-        this.annotationData = component.getAnnotationData();
+        this.properties = Collections.unmodifiableMap(propertyValues);
+        this.annotationData = annotationData;
 
         if (schedulingPeriod == null) {
             schedulingNanos = null;
@@ -70,7 +80,7 @@ public class StandardConfigurationContext implements ConfigurationContext {
         }
 
         preparedQueries = new HashMap<>();
-        for (final Map.Entry<PropertyDescriptor, String> entry : component.getEffectivePropertyValues().entrySet()) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : propertyValues.entrySet()) {
             final PropertyDescriptor desc = entry.getKey();
             String value = entry.getValue();
             if (value == null) {
@@ -82,26 +92,9 @@ public class StandardConfigurationContext implements ConfigurationContext {
         }
     }
 
-    public StandardConfigurationContext(final ComponentNode component, final Map<String, String> propertyOverrides, final String annotationDataOverride, final ParameterLookup parameterLookup,
-                                        final ControllerServiceLookup serviceLookup, final String schedulingPeriod, final VariableRegistry variableRegistry) {
-        this.component = component;
-        this.serviceLookup = serviceLookup;
-        this.schedulingPeriod = schedulingPeriod;
-        this.variableRegistry = variableRegistry;
-        this.annotationData = annotationDataOverride;
-
-        if (schedulingPeriod == null) {
-            schedulingNanos = null;
-        } else {
-            if (FormatUtils.TIME_DURATION_PATTERN.matcher(schedulingPeriod).matches()) {
-                schedulingNanos = FormatUtils.getTimeDuration(schedulingPeriod, TimeUnit.NANOSECONDS);
-            } else {
-                schedulingNanos = null;
-            }
-        }
-
-        final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();
+    private static Map<PropertyDescriptor, String> resolvePropertyValues(final ComponentNode component, final ParameterLookup parameterLookup, final Map<String, String> propertyOverrides) {
         final Map<PropertyDescriptor, String> resolvedProperties = new LinkedHashMap<>(component.getEffectivePropertyValues());
+        final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();
 
         for (final Map.Entry<String, String> entry : propertyOverrides.entrySet()) {
             final String propertyName = entry.getKey();
@@ -116,19 +109,7 @@ public class StandardConfigurationContext implements ConfigurationContext {
             }
         }
 
-        properties = Collections.unmodifiableMap(resolvedProperties);
-
-        preparedQueries = new HashMap<>();
-        for (final Map.Entry<PropertyDescriptor, String> entry : resolvedProperties.entrySet()) {
-            final PropertyDescriptor desc = entry.getKey();
-            String value = entry.getValue();
-            if (value == null) {
-                value = desc.getDefaultValue();
-            }
-
-            final PreparedQuery pq = Query.prepareWithParametersPreEvaluated(value);
-            preparedQueries.put(desc, pq);
-        }
+        return resolvedProperties;
     }
 
     @Override
