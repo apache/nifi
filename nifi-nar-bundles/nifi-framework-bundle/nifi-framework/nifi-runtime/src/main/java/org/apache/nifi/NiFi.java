@@ -223,31 +223,27 @@ public class NiFi implements NiFiEntryPoint {
 
     public void shutdownHook(final boolean isReload) {
         try {
-            runAutomaticDiagnostics();
+            runDiagnosticsOnShutdown();
             shutdown();
         } catch (final Throwable t) {
             logger.warn("Problem occurred ensuring Jetty web server was properly terminated due to ", t);
         }
     }
 
-    private void runAutomaticDiagnostics() throws IOException {
-        final String diagnosticDirectoryPath = properties.getDiagnosticsOnShutdownDirectory();
+    private void runDiagnosticsOnShutdown() throws IOException {
         if (properties.isDiagnosticsOnShutdownEnabled()) {
+            final String diagnosticDirectoryPath = properties.getDiagnosticsOnShutdownDirectory();
             final boolean isCreated = DiagnosticUtils.createDiagnosticDirectory(diagnosticDirectoryPath);
             if (isCreated) {
                 logger.debug("Diagnostic directory has successfully been created.");
             }
-            if (DiagnosticUtils.isFileCountExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownMaxFileCount())) {
+            while (DiagnosticUtils.isFileCountExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownMaxFileCount()) ||
+                    DiagnosticUtils.isSizeExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownDirectoryMaxSize())) {
                 final Path oldestFile = DiagnosticUtils.getOldestFile(diagnosticDirectoryPath);
                 Files.delete(oldestFile);
             }
             final String fileName = String.format("%s/diagnostic-%s.log", diagnosticDirectoryPath, DATE_TIME_FORMATTER.format(LocalDateTime.now()));
             diagnose(new File(fileName), properties.isDiagnosticsOnShutdownVerbose());
-
-            while (DiagnosticUtils.isSizeExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownDirectoryMaxSize())) {
-                final Path oldestFile = DiagnosticUtils.getOldestFile(diagnosticDirectoryPath);
-                Files.delete(oldestFile);
-            }
         }
     }
 
