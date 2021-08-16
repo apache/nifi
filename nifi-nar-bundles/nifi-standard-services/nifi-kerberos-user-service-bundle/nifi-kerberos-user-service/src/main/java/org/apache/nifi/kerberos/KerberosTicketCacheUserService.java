@@ -59,7 +59,7 @@ public class KerberosTicketCacheUserService extends AbstractKerberosUserService 
     }
 
     @Override
-    protected void setAdditionalConfiguredValues(ConfigurationContext context) {
+    protected void setAdditionalConfiguredValues(final ConfigurationContext context) {
         this.ticketCache = context.getProperty(TICKET_CACHE_FILE).evaluateAttributeExpressions().getValue();
     }
 

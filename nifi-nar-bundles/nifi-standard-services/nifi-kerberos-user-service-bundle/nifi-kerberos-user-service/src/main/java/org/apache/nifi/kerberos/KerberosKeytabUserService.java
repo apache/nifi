@@ -58,7 +58,7 @@ public class KerberosKeytabUserService extends AbstractKerberosUserService imple
     }
 
     @Override
-    protected void setAdditionalConfiguredValues(ConfigurationContext context) {
+    protected void setAdditionalConfiguredValues(final ConfigurationContext context) {
         this.keytab = context.getProperty(KEYTAB).evaluateAttributeExpressions().getValue();
     }
 

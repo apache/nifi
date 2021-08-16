@@ -48,7 +48,7 @@ public class KerberosPasswordUserService extends AbstractKerberosUserService {
     }
 
     @Override
-    protected void setAdditionalConfiguredValues(ConfigurationContext context) {
+    protected void setAdditionalConfiguredValues(final ConfigurationContext context) {
         this.password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
     }
 

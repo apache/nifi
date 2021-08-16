@@ -200,7 +200,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
         }
 
         if (tgt != null && System.currentTimeMillis() < getRefreshTime(tgt)) {
-            LOGGER.debug("TGT for {} was found , but has not reached expiration window", principal);
+            LOGGER.debug("TGT for {} was found, but has not reached expiration window", principal);
             return false;
         }
 
@@ -208,7 +208,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
             tgt.refresh();
             LOGGER.debug("TGT for {} was refreshed", principal);
             return true;
-        } catch (RefreshFailedException e) {
+        } catch (final RefreshFailedException e) {
             LOGGER.debug("TGT for {} could not be refreshed", principal);
             LOGGER.trace("", e);
             LOGGER.debug("Performing logout/login for {}", principal);
