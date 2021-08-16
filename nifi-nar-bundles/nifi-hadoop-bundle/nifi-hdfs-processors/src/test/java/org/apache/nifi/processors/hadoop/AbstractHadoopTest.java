@@ -46,6 +46,7 @@ import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
@@ -124,7 +125,8 @@ public class AbstractHadoopTest {
             final File brokenCoreSite = new File("src/test/resources/core-site-broken.xml");
             final ResourceReference brokenCoreSiteReference = new FileResourceReference(brokenCoreSite);
             final ResourceReferences references = new StandardResourceReferences(Collections.singletonList(brokenCoreSiteReference));
-            processor.resetHDFSResources(references, runner.getProcessContext());
+            final List<String> locations = references.asLocations();
+            processor.resetHDFSResources(locations, runner.getProcessContext());
             Assert.fail("Should have thrown SocketTimeoutException");
         } catch (IOException e) {
         }
