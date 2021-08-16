@@ -33,6 +33,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hadoop.KerberosProperties;
@@ -134,7 +135,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .dynamicallyModifiesClasspath(true)
             .build();
 
-    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
             .name("kerberos-credentials-service")
             .displayName("Kerberos Credentials Service")
             .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
@@ -187,7 +188,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final ResourceReferences configResources = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().asResources();
         final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
         final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
         final String explicitPassword = validationContext.getProperty(kerberosProperties.getKerberosPassword()).getValue();
@@ -204,36 +204,18 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         }
 
         final List<ValidationResult> results = new ArrayList<>();
+        final List<String> locations = getConfigLocations(validationContext);
 
-        if (configResources.getCount() == 0) {
+        if (locations.isEmpty()) {
             return results;
         }
 
         try {
-            ValidationResources resources = validationResourceHolder.get();
-
-            // if no resources in the holder, or if the holder has different resources loaded,
-            // then load the Configuration and set the new resources in the holder
-            if (resources == null || !configResources.equals(resources.getConfigResources())) {
-                getLogger().debug("Reloading validation resources");
-                final Configuration config = new ExtendedConfiguration(getLogger());
-                config.setClassLoader(Thread.currentThread().getContextClassLoader());
-                resources = new ValidationResources(configResources, getConfigurationFromResources(config, configResources));
-                validationResourceHolder.set(resources);
-            }
-
-            final Configuration conf = resources.getConfiguration();
+            final Configuration conf = getHadoopConfigurationForValidation(locations);
             results.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(
-                this.getClass().getSimpleName(), conf, resolvedPrincipal, resolvedKeytab, explicitPassword, getLogger()));
+                    this.getClass().getSimpleName(), conf, resolvedPrincipal, resolvedKeytab, explicitPassword, getLogger()));
 
-            final URI fileSystemUri = FileSystem.getDefaultUri(conf);
-            if (isFileSystemAccessDenied(fileSystemUri)) {
-                results.add(new ValidationResult.Builder()
-                        .valid(false)
-                        .subject("Hadoop File System")
-                        .explanation(DENY_LFS_EXPLANATION)
-                        .build());
-            }
+            results.addAll(validateFileSystem(conf));
         } catch (final IOException e) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
@@ -262,6 +244,36 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         return results;
     }
 
+    protected Collection<ValidationResult> validateFileSystem(final Configuration configuration) {
+        final List<ValidationResult> results = new ArrayList<>();
+
+        if (isFileSystemAccessDenied(FileSystem.getDefaultUri(configuration))) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject("Hadoop File System")
+                    .explanation(DENY_LFS_EXPLANATION)
+                    .build());
+        }
+
+        return results;
+    }
+
+    protected Configuration getHadoopConfigurationForValidation(final List<String> locations) throws IOException {
+        ValidationResources resources = validationResourceHolder.get();
+
+        // if no resources in the holder, or if the holder has different resources loaded,
+        // then load the Configuration and set the new resources in the holder
+        if (resources == null || !locations.equals(resources.getConfigLocations())) {
+            getLogger().debug("Reloading validation resources");
+            final Configuration config = new ExtendedConfiguration(getLogger());
+            config.setClassLoader(Thread.currentThread().getContextClassLoader());
+            resources = new ValidationResources(locations, getConfigurationFromResources(config, locations));
+            validationResourceHolder.set(resources);
+        }
+
+        return resources.getConfiguration();
+    }
+
     /**
      * If your subclass also has an @OnScheduled annotated method and you need hdfsResources in that method, then be sure to call super.abstractOnScheduled(context)
      */
@@ -272,15 +284,20 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             // properties this processor sets. TODO: re-work ListHDFS to utilize Kerberos
             HdfsResources resources = hdfsResources.get();
             if (resources.getConfiguration() == null) {
-                final ResourceReferences configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().asResources();
-                resources = resetHDFSResources(configResources, context);
+                resources = resetHDFSResources(getConfigLocations(context), context);
                 hdfsResources.set(resources);
             }
         } catch (Exception ex) {
-            getLogger().error("HDFS Configuration error - {}", new Object[] { ex });
+            getLogger().error("HDFS Configuration error - {}", new Object[]{ex});
             hdfsResources.set(EMPTY_HDFS_RESOURCES);
             throw ex;
         }
+    }
+
+    protected List<String> getConfigLocations(PropertyContext context) {
+            final ResourceReferences configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().asResources();
+            final List<String> locations = configResources.asLocations();
+            return locations;
     }
 
     @OnStopped
@@ -345,10 +362,10 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         }
     }
 
-    private static Configuration getConfigurationFromResources(final Configuration config, final ResourceReferences resourceReferences) throws IOException {
-        boolean foundResources = resourceReferences.getCount() > 0;
+    private static Configuration getConfigurationFromResources(final Configuration config, final List<String> locations) throws IOException {
+        boolean foundResources = !locations.isEmpty();
+
         if (foundResources) {
-            final List<String> locations = resourceReferences.asLocations();
             for (String resource : locations) {
                 config.addResource(new Path(resource.trim()));
             }
@@ -372,11 +389,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     /*
      * Reset Hadoop Configuration and FileSystem based on the supplied configuration resources.
      */
-    HdfsResources resetHDFSResources(final ResourceReferences resourceReferences, ProcessContext context) throws IOException {
+    HdfsResources resetHDFSResources(final List<String> resourceLocations, ProcessContext context) throws IOException {
         Configuration config = new ExtendedConfiguration(getLogger());
         config.setClassLoader(Thread.currentThread().getContextClassLoader());
 
-        getConfigurationFromResources(config, resourceReferences);
+        getConfigurationFromResources(config, resourceLocations);
 
         // give sub-classes a chance to process configuration
         preProcessConfiguration(config, context);
@@ -559,7 +576,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 kerberosUser.checkTGTAndRelogin();
             } catch (LoginException e) {
                 throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
-                }
+            }
         } else {
             getLogger().debug("kerberosUser was null, will not refresh TGT with KerberosUser");
         }
@@ -577,7 +594,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         return Boolean.parseBoolean(System.getenv(DENY_LFS_ACCESS));
     }
 
-    private boolean isFileSystemAccessDenied(final URI fileSystemUri) {
+    protected boolean isFileSystemAccessDenied(final URI fileSystemUri) {
         boolean accessDenied;
 
         if (isLocalFileSystemAccessDenied()) {
@@ -590,16 +607,16 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     static protected class ValidationResources {
-        private final ResourceReferences configResources;
+        private final List<String> configLocations;
         private final Configuration configuration;
 
-        public ValidationResources(final ResourceReferences configResources, Configuration configuration) {
-            this.configResources = configResources;
+        public ValidationResources(final List<String> configLocations, final Configuration configuration) {
+            this.configLocations = configLocations;
             this.configuration = configuration;
         }
 
-        public ResourceReferences getConfigResources() {
-            return configResources;
+        public List<String> getConfigLocations() {
+            return configLocations;
         }
 
         public Configuration getConfiguration() {
@@ -611,7 +628,25 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         return getNormalizedPath(context, property, null);
     }
 
-    protected Path getNormalizedPath(ProcessContext context, PropertyDescriptor property, FlowFile flowFile) {
+    protected Path getNormalizedPath(final String rawPath) {
+        final Path path = new Path(rawPath);
+        final URI uri = path.toUri();
+
+        final URI fileSystemUri = getFileSystem().getUri();
+
+        if (uri.getScheme() != null) {
+            if (!uri.getScheme().equals(fileSystemUri.getScheme()) || !uri.getAuthority().equals(fileSystemUri.getAuthority())) {
+                getLogger().warn("The filesystem component of the URI configured ({}) does not match the filesystem URI from the Hadoop configuration file ({}) " +
+                        "and will be ignored.", uri, fileSystemUri);
+            }
+
+            return new Path(uri.getPath());
+        } else {
+            return path;
+        }
+    }
+
+    protected Path getNormalizedPath(final ProcessContext context, final PropertyDescriptor property, final FlowFile flowFile) {
         final String propertyValue = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
         final Path path = new Path(propertyValue);
         final URI uri = path.toUri();

@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -121,16 +121,16 @@ public class FetchHDFS extends AbstractHadoopProcessor {
 
         final FileSystem hdfs = getFileSystem();
         final UserGroupInformation ugi = getUserGroupInformation();
-        final String filenameValue = context.getProperty(FILENAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String filenameValue = getPath(context, flowFile);
 
         final Path path;
         try {
-            path = getNormalizedPath(context, FILENAME, flowFile);
+            path = getNormalizedPath(getPath(context, flowFile));
         } catch (IllegalArgumentException e) {
             getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {filenameValue, flowFile, e});
-            flowFile = session.putAttribute(flowFile, "hdfs.failure.reason", e.getMessage());
+            flowFile = session.putAttribute(flowFile, getAttributePrefix() + ".failure.reason", e.getMessage());
             flowFile = session.penalize(flowFile);
-            session.transfer(flowFile, REL_FAILURE);
+            session.transfer(flowFile, getFailureRelationship());
             return;
         }
 
@@ -144,7 +144,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
                 CompressionCodec codec = null;
                 Configuration conf = getConfiguration();
                 final CompressionCodecFactory compressionCodecFactory = new CompressionCodecFactory(conf);
-                final CompressionType compressionType = CompressionType.valueOf(context.getProperty(COMPRESSION_CODEC).toString());
+                final CompressionType compressionType = getCompressionType(context);
                 final boolean inferCompressionCodec = compressionType == CompressionType.AUTOMATIC;
 
                 if(inferCompressionCodec) {
@@ -174,16 +174,16 @@ public class FetchHDFS extends AbstractHadoopProcessor {
                     stopWatch.stop();
                     getLogger().info("Successfully received content from {} for {} in {}", new Object[] {qualifiedPath, flowFile, stopWatch.getDuration()});
                     session.getProvenanceReporter().fetch(flowFile, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
-                    session.transfer(flowFile, REL_SUCCESS);
+                    session.transfer(flowFile, getSuccessRelationship());
                 } catch (final FileNotFoundException | AccessControlException e) {
                     getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {qualifiedPath, flowFile, e});
-                    flowFile = session.putAttribute(flowFile, "hdfs.failure.reason", e.getMessage());
+                    flowFile = session.putAttribute(flowFile, getAttributePrefix() + ".failure.reason", e.getMessage());
                     flowFile = session.penalize(flowFile);
-                    session.transfer(flowFile, REL_FAILURE);
+                    session.transfer(flowFile, getFailureRelationship());
                 } catch (final IOException e) {
                     getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to comms.failure", new Object[] {qualifiedPath, flowFile, e});
                     flowFile = session.penalize(flowFile);
-                    session.transfer(flowFile, REL_COMMS_FAILURE);
+                    session.transfer(flowFile, getCommsFailureRelationship());
                 } finally {
                     IOUtils.closeQuietly(stream);
                 }
@@ -191,7 +191,29 @@ public class FetchHDFS extends AbstractHadoopProcessor {
                 return null;
             }
         });
-
     }
 
+    protected Relationship getSuccessRelationship() {
+        return REL_SUCCESS;
+    }
+
+    protected Relationship getFailureRelationship() {
+        return REL_FAILURE;
+    }
+
+    protected Relationship getCommsFailureRelationship() {
+        return REL_COMMS_FAILURE;
+    }
+
+    protected String getPath(final ProcessContext context, final FlowFile flowFile) {
+        return context.getProperty(FILENAME).evaluateAttributeExpressions(flowFile).getValue();
+    }
+
+    protected String getAttributePrefix() {
+        return "hdfs";
+    }
+
+    protected CompressionType getCompressionType(final ProcessContext context) {
+        return CompressionType.valueOf(context.getProperty(COMPRESSION_CODEC).toString());
+    }
 }

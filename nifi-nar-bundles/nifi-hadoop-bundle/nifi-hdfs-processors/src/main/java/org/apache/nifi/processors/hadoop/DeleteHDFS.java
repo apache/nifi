@@ -144,9 +144,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
 
         // We need a FlowFile to report provenance correctly.
         final FlowFile finalFlowFile = originalFlowFile != null ? originalFlowFile : session.create();
-
-        final String fileOrDirectoryName = getNormalizedPath(context, FILE_OR_DIRECTORY, finalFlowFile).toString();
-
+        final String fileOrDirectoryName = getPath(context, session, finalFlowFile);
         final FileSystem fileSystem = getFileSystem();
         final UserGroupInformation ugi = getUserGroupInformation();
 
@@ -171,11 +169,11 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                     if (fileSystem.exists(path)) {
                         try {
                             Map<String, String> attributes = Maps.newHashMapWithExpectedSize(2);
-                            attributes.put("hdfs.filename", path.getName());
-                            attributes.put("hdfs.path", path.getParent().toString());
+                            attributes.put(getAttributePrefix() + ".filename", path.getName());
+                            attributes.put(getAttributePrefix() + ".path", path.getParent().toString());
                             flowFile = session.putAllAttributes(flowFile, attributes);
 
-                            fileSystem.delete(path, context.getProperty(RECURSIVE).asBoolean());
+                            fileSystem.delete(path, isRecursive(context, session));
                             getLogger().debug("For flowfile {} Deleted file at path {} with name {}", new Object[]{originalFlowFile, path.getParent().toString(), path.getName()});
                             final Path qualifiedPath = path.makeQualified(fileSystem.getUri(), fileSystem.getWorkingDirectory());
                             session.getProvenanceReporter().invokeRemoteProcess(flowFile, qualifiedPath.toString());
@@ -186,27 +184,47 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
 
                             Map<String, String> attributes = Maps.newHashMapWithExpectedSize(1);
                             // The error message is helpful in understanding at a flowfile level what caused the IOException (which ACL is denying the operation, e.g.)
-                            attributes.put("hdfs.error.message", ioe.getMessage());
+                            attributes.put(getAttributePrefix() + ".error.message", ioe.getMessage());
 
-                            session.transfer(session.putAllAttributes(session.clone(flowFile), attributes), REL_FAILURE);
+                            session.transfer(session.putAllAttributes(session.clone(flowFile), attributes), getFailureRelationship());
                             failedPath++;
                         }
                     }
                 }
 
                 if (failedPath == 0) {
-                    session.transfer(flowFile, DeleteHDFS.REL_SUCCESS);
+                    session.transfer(flowFile, getSuccessRelationship());
                 } else {
                     // If any path has been failed to be deleted, remove the FlowFile as it's been cloned and sent to failure.
                     session.remove(flowFile);
                 }
             } catch (IOException e) {
                 getLogger().error("Error processing delete for flowfile {} due to {}", new Object[]{flowFile, e.getMessage()}, e);
-                session.transfer(flowFile, DeleteHDFS.REL_FAILURE);
+                session.transfer(flowFile, getFailureRelationship());
             }
 
             return null;
         });
 
+    }
+
+    protected Relationship getSuccessRelationship() {
+        return REL_SUCCESS;
+    }
+
+    protected Relationship getFailureRelationship() {
+        return REL_FAILURE;
+    }
+
+    protected boolean isRecursive(final ProcessContext context, final ProcessSession session) {
+        return context.getProperty(RECURSIVE).asBoolean();
+    }
+
+    protected String getPath(final ProcessContext context, final ProcessSession session, final FlowFile finalFlowFile) {
+        return getNormalizedPath(context, FILE_OR_DIRECTORY, finalFlowFile).toString();
+    }
+
+    protected String getAttributePrefix() {
+        return "hdfs";
     }
 }
