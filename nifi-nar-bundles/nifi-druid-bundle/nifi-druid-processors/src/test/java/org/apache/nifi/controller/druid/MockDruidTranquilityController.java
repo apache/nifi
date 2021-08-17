@@ -31,6 +31,7 @@ import com.twitter.util.Try;
 import io.druid.data.input.impl.TimestampSpec;
 import io.druid.query.aggregation.AggregatorFactory;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.nifi.ssl.SSLContextService;
 import scala.Function1;
 import scala.Option;
 import scala.runtime.BoxedUnit;
@@ -139,7 +140,8 @@ public class MockDruidTranquilityController extends DruidTranquilityController {
     @Override
     Beam<Map<String, Object>> buildBeam(String dataSource, String indexService, String discoveryPath, int clusterPartitions, int clusterReplication,
                                         String segmentGranularity, String queryGranularity, String windowPeriod, String firehoseGracePeriod, String indexRetryPeriod, DruidDimensions dimensions,
-                                        List<AggregatorFactory> aggregator, Timestamper<Map<String, Object>> timestamper, TimestampSpec timestampSpec) {
+                                        List<AggregatorFactory> aggregator, Timestamper<Map<String, Object>> timestamper, TimestampSpec timestampSpec,
+                                        SSLContextService sslContextService, String basicAuthUsername, String basicAuthPassword) {
         return mock(Beam.class);
     }
 
