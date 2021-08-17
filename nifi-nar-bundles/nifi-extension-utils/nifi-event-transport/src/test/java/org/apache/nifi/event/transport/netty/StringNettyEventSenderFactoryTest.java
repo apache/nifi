@@ -36,6 +36,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.net.ssl.SSLContext;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -50,7 +52,7 @@ import static org.junit.Assert.assertThrows;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StringNettyEventSenderFactoryTest {
-    private static final String ADDRESS = "127.0.0.1";
+    private static final InetAddress ADDRESS;
 
     private static final int MAX_FRAME_LENGTH = 1024;
 
@@ -65,6 +67,14 @@ public class StringNettyEventSenderFactoryTest {
     private static final String DELIMITER = "\n";
 
     private static final int SINGLE_THREAD = 1;
+
+    static {
+        try {
+            ADDRESS = InetAddress.getByName("127.0.0.1");
+        } catch (final UnknownHostException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
 
     @Mock
     private ComponentLog log;
@@ -130,12 +140,12 @@ public class StringNettyEventSenderFactoryTest {
         assertNotNull("Message not received", messageReceived);
         final String eventReceived = new String(messageReceived.getMessage(), CHARSET);
         assertEquals("Message not matched", MESSAGE, eventReceived);
-        assertEquals("Sender not matched", ADDRESS, messageReceived.getSender());
+        assertEquals("Sender not matched", ADDRESS.getHostAddress(), messageReceived.getSender());
     }
 
     private NettyEventSenderFactory<String> getEventSenderFactory(final int port) {
         final StringNettyEventSenderFactory senderFactory = new StringNettyEventSenderFactory(log,
-                ADDRESS, port, TransportProtocol.TCP, CHARSET, LineEnding.UNIX);
+                ADDRESS.getHostAddress(), port, TransportProtocol.TCP, CHARSET, LineEnding.UNIX);
         senderFactory.setTimeout(DEFAULT_TIMEOUT);
         senderFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         senderFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
