@@ -200,8 +200,8 @@ public final class KafkaProcessorUtils {
             .name("aws.session.name")
             .displayName("AWS Role Session Name")
             .description("specifies the session name that this particular client should use while assuming the IAM role. If the same IAM Role "
-            		+ "is used in multiple contexts, the session names can be used to differentiate between the different contexts. "
-            		+ "The awsRoleSessionName is optional")
+                + "is used in multiple contexts, the session names can be used to differentiate between the different contexts. "
+                + "The awsRoleSessionName is optional")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -512,7 +512,7 @@ public final class KafkaProcessorUtils {
                 setScramJaasConfig(mapToPopulate, context);
                 break;
             case AWS_MSK_IAM_VALUE:
-            	setIamJaasConfig(mapToPopulate, context);
+                setIamJaasConfig(mapToPopulate, context);
                 break;
             default:
                 throw new IllegalStateException("Unknown " + SASL_MECHANISM.getDisplayName() + ": " + saslMechanism);
@@ -579,19 +579,19 @@ public final class KafkaProcessorUtils {
         final String awsSessionName = context.getProperty(AWS_SESSION_NAME).evaluateAttributeExpressions().getValue();
 
         final StringBuilder builder = new StringBuilder("software.amazon.msk.auth.iam.IAMLoginModule required ");
-		if (awsProfileName != null && !StringUtils.isBlank(awsProfileName)) {
-			builder.append("awsProfileName=\"" + awsProfileName + "\"");
-		} else if (awsRoleArn != null && !StringUtils.isBlank(awsRoleArn)) {
-			builder.append("awsRoleArn=\"" + awsRoleArn + "\"");
-			if (awsSessionName != null && !StringUtils.isBlank(awsSessionName)) {
-				builder.append(" awsRoleSessionName=\"" + awsSessionName + "\"");
-			}
-		}
-		
+        if (awsProfileName != null && !StringUtils.isBlank(awsProfileName)) {
+            builder.append("awsProfileName=\"" + awsProfileName + "\"");
+        } else if (awsRoleArn != null && !StringUtils.isBlank(awsRoleArn)) {
+            builder.append("awsRoleArn=\"" + awsRoleArn + "\"");
+            if (awsSessionName != null && !StringUtils.isBlank(awsSessionName)) {
+                builder.append(" awsRoleSessionName=\"" + awsSessionName + "\"");
+            }
+        }
+        
         builder.append(";");
         mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, builder.toString());
-        // This callback handler is key for this Authentication mechanism. AWS callback handler JAR should be placed in
-        // the NIFI libraries CLASSPATH.
+        // This callback handler is key for this Authentication mechanism. 
+        // AWS callback handler JAR should be placed in the NIFI libraries CLASSPATH.
         mapToPopulate.put(SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS, "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
     }
 
