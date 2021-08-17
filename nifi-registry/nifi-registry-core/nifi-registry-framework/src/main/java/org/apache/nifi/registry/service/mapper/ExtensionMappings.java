@@ -210,12 +210,10 @@ public class ExtensionMappings {
             entity.setProvidedServiceApis(Collections.emptySet());
         }
 
-        if (extension.getRestricted() != null) {
-            if (extension.getRestricted().getRestrictions() != null) {
-                entity.setRestrictions(extension.getRestricted().getRestrictions().stream()
-                        .map(r -> map(r))
-                        .collect(Collectors.toSet()));
-            }
+        if (extension.getRestricted() != null && extension.getRestricted().getRestrictions() != null) {
+            entity.setRestrictions(extension.getRestricted().getRestrictions().stream()
+                    .map(r -> map(r))
+                    .collect(Collectors.toSet()));
         } else {
             entity.setRestrictions(Collections.emptySet());
         }
