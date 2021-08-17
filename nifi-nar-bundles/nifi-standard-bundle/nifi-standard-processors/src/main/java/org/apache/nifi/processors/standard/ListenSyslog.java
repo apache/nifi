@@ -54,6 +54,7 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -194,7 +195,6 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
     protected static final String RECEIVED_COUNTER = "Messages Received";
     protected static final String SUCCESS_COUNTER = "FlowFiles Transferred to Success";
-    private static final String DEFAULT_ADDRESS = "127.0.0.1";
     private static final String DEFAULT_MIME_TYPE = "text/plain";
 
     private Set<Relationship> relationships;
@@ -282,15 +282,9 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         parser = new SyslogParser(charset);
         syslogEvents = new LinkedBlockingQueue<>(maxMessageQueueSize);
 
-        String address = DEFAULT_ADDRESS;
-        if (StringUtils.isNotEmpty(networkInterfaceName)) {
-            final NetworkInterface networkInterface = NetworkInterface.getByName(networkInterfaceName);
-            final InetAddress interfaceAddress = networkInterface.getInetAddresses().nextElement();
-            address = interfaceAddress.getHostName();
-        }
-
+        final InetAddress address = getListenAddress(networkInterfaceName);
         final ByteArrayMessageNettyEventServerFactory factory = new ByteArrayMessageNettyEventServerFactory(getLogger(),
-                address,port, protocol, messageDemarcatorBytes, receiveBufferSize, syslogEvents);
+                address, port, protocol, messageDemarcatorBytes, receiveBufferSize, syslogEvents);
         factory.setThreadNamePrefix(String.format("%s[%s]", ListenSyslog.class.getSimpleName(), getIdentifier()));
         final int maxConnections = context.getProperty(MAX_CONNECTIONS).asLong().intValue();
         factory.setWorkerThreads(maxConnections);
@@ -400,6 +394,15 @@ public class ListenSyslog extends AbstractSyslogProcessor {
             final String transitUri = getTransitUri(flowFile);
             session.getProvenanceReporter().receive(flowFile, transitUri);
         }
+    }
+
+    private InetAddress getListenAddress(final String networkInterfaceName) throws SocketException {
+        InetAddress listenAddress = null;
+        if (StringUtils.isNotEmpty(networkInterfaceName)) {
+            final NetworkInterface networkInterface = NetworkInterface.getByName(networkInterfaceName);
+            listenAddress = networkInterface.getInetAddresses().nextElement();
+        }
+        return listenAddress;
     }
 
     private SyslogEvent parseSyslogEvent(final ByteArrayMessage rawSyslogEvent) {

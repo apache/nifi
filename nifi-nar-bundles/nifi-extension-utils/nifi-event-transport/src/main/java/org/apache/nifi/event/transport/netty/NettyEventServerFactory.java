@@ -37,6 +37,7 @@ import org.apache.nifi.event.transport.netty.channel.ssl.ServerSslHandlerChannel
 import org.apache.nifi.security.util.ClientAuth;
 
 import javax.net.ssl.SSLContext;
+import java.net.InetAddress;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -47,7 +48,7 @@ import java.util.function.Supplier;
  * Netty Event Server Factory
  */
 public class NettyEventServerFactory extends EventLoopGroupFactory implements EventServerFactory {
-    private final String address;
+    private final InetAddress address;
 
     private final int port;
 
@@ -65,7 +66,7 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
 
     private Duration shutdownTimeout = ShutdownTimeout.DEFAULT.getDuration();
 
-    public NettyEventServerFactory(final String address, final int port, final TransportProtocol protocol) {
+    public NettyEventServerFactory(final InetAddress address, final int port, final TransportProtocol protocol) {
         this.address = address;
         this.port = port;
         this.protocol = protocol;

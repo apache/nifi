@@ -31,6 +31,8 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -74,12 +76,15 @@ public class TestPutSyslog {
 
     private TestRunner runner;
 
-    private TransportProtocol protocol = TransportProtocol.UDP;
+    private final TransportProtocol protocol = TransportProtocol.UDP;
+
+    private InetAddress address;
 
     private int port;
 
     @Before
-    public void setRunner() {
+    public void setRunner() throws UnknownHostException {
+        address = InetAddress.getByName(ADDRESS);
         port = NetworkUtils.getAvailableUdpPort();
         runner = TestRunners.newTestRunner(PutSyslog.class);
         runner.setProperty(PutSyslog.HOSTNAME, ADDRESS);
@@ -132,7 +137,7 @@ public class TestPutSyslog {
     private void assertSyslogMessageSuccess(final String expectedSyslogMessage, final Map<String, String> attributes) throws InterruptedException {
         final BlockingQueue<ByteArrayMessage> messages = new LinkedBlockingQueue<>();
         final byte[] delimiter = DELIMITER.getBytes(CHARSET);
-        final NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), ADDRESS, port, protocol, delimiter, MAX_FRAME_LENGTH, messages);
+        final NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), address, port, protocol, delimiter, MAX_FRAME_LENGTH, messages);
         serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         final EventServer eventServer = serverFactory.getEventServer();
