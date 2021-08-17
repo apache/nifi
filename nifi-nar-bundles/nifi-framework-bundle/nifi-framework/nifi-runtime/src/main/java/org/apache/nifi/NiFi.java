@@ -237,8 +237,8 @@ public class NiFi implements NiFiEntryPoint {
             if (isCreated) {
                 logger.debug("Diagnostic directory has successfully been created.");
             }
-            while (DiagnosticUtils.isFileCountExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownMaxFileCount()) ||
-                    DiagnosticUtils.isSizeExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownDirectoryMaxSize())) {
+            while (DiagnosticUtils.isFileCountExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownMaxFileCount())
+                    || DiagnosticUtils.isSizeExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownDirectoryMaxSize())) {
                 final Path oldestFile = DiagnosticUtils.getOldestFile(diagnosticDirectoryPath);
                 Files.delete(oldestFile);
             }
