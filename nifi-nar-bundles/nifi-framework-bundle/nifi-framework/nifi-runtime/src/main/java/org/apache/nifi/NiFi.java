@@ -67,7 +67,7 @@ public class NiFi implements NiFiEntryPoint {
     public static final String BOOTSTRAP_PORT_PROPERTY = "nifi.bootstrap.listen.port";
     public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
-    private static final Logger logger = LoggerFactory.getLogger(NiFi.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(NiFi.class);
     private static final String KEY_FILE_FLAG = "-K";
 
     private final NiFiServer nifiServer;
@@ -91,7 +91,7 @@ public class NiFi implements NiFiEntryPoint {
         final File kerberosConfigFile = properties.getKerberosConfigurationFile();
         if (kerberosConfigFile != null) {
             final String kerberosConfigFilePath = kerberosConfigFile.getAbsolutePath();
-            logger.info("Setting java.security.krb5.conf to {}", kerberosConfigFilePath);
+            LOGGER.info("Setting java.security.krb5.conf to {}", kerberosConfigFilePath);
             System.setProperty("java.security.krb5.conf", kerberosConfigFilePath);
         }
 
@@ -115,7 +115,7 @@ public class NiFi implements NiFiEntryPoint {
                 throw new RuntimeException("Failed to start NiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
             }
         } else {
-            logger.info("NiFi started without Bootstrap Port information provided; will not listen for requests from Bootstrap");
+            LOGGER.info("NiFi started without Bootstrap Port information provided; will not listen for requests from Bootstrap");
             bootstrapListener = null;
         }
 
@@ -125,8 +125,8 @@ public class NiFi implements NiFiEntryPoint {
         // the working directory, we can be assured that it will attempt to extract the
         // war every time the application starts.
         File webWorkingDir = properties.getWebWorkingDirectory();
-        FileUtils.deleteFilesInDirectory(webWorkingDir, null, logger, true, true);
-        FileUtils.deleteFile(webWorkingDir, logger, 3);
+        FileUtils.deleteFilesInDirectory(webWorkingDir, null, LOGGER, true, true);
+        FileUtils.deleteFile(webWorkingDir, LOGGER, 3);
 
         detectTimingIssues();
 
@@ -165,7 +165,7 @@ public class NiFi implements NiFiEntryPoint {
                 extensionMapping);
 
         if (shutdown) {
-            logger.info("NiFi has been shutdown via NiFi Bootstrap. Will not start Controller");
+            LOGGER.info("NiFi has been shutdown via NiFi Bootstrap. Will not start Controller");
         } else {
             nifiServer.start();
 
@@ -175,7 +175,7 @@ public class NiFi implements NiFiEntryPoint {
             }
 
             final long duration = System.nanoTime() - startTime;
-            logger.info("Controller initialization took {} nanoseconds ( {}  seconds).",
+            LOGGER.info("Controller initialization took {} nanoseconds ( {}  seconds).",
                     duration, (int) TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS));
         }
     }
@@ -186,8 +186,8 @@ public class NiFi implements NiFiEntryPoint {
 
     protected void setDefaultUncaughtExceptionHandler() {
         Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> {
-            logger.error("An Unknown Error Occurred in Thread {}: {}", thread, exception.toString());
-            logger.error("", exception);
+            LOGGER.error("An Unknown Error Occurred in Thread {}: {}", thread, exception.toString());
+            LOGGER.error("", exception);
         });
     }
 
@@ -211,11 +211,11 @@ public class NiFi implements NiFiEntryPoint {
                 try {
                     urls.add(p.toUri().toURL());
                 } catch (final MalformedURLException mef) {
-                    logger.warn("Unable to load " + p.getFileName() + " due to " + mef, mef);
+                    LOGGER.warn("Unable to load " + p.getFileName() + " due to " + mef, mef);
                 }
             });
         } catch (IOException ioe) {
-            logger.warn("Unable to access lib/bootstrap to create bootstrap classloader", ioe);
+            LOGGER.warn("Unable to access lib/bootstrap to create bootstrap classloader", ioe);
         }
         //Create the bootstrap classloader
         return new URLClassLoader(urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
@@ -226,7 +226,7 @@ public class NiFi implements NiFiEntryPoint {
             runDiagnosticsOnShutdown();
             shutdown();
         } catch (final Throwable t) {
-            logger.warn("Problem occurred ensuring Jetty web server was properly terminated due to ", t);
+            LOGGER.warn("Problem occurred ensuring Jetty web server was properly terminated due to ", t);
         }
     }
 
@@ -235,7 +235,7 @@ public class NiFi implements NiFiEntryPoint {
             final String diagnosticDirectoryPath = properties.getDiagnosticsOnShutdownDirectory();
             final boolean isCreated = DiagnosticUtils.createDiagnosticDirectory(diagnosticDirectoryPath);
             if (isCreated) {
-                logger.debug("Diagnostic directory has successfully been created.");
+                LOGGER.debug("Diagnostic directory has successfully been created.");
             }
             while (DiagnosticUtils.isFileCountExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownMaxFileCount())
                     || DiagnosticUtils.isSizeExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownDirectoryMaxSize())) {
@@ -258,14 +258,14 @@ public class NiFi implements NiFiEntryPoint {
     protected void shutdown() {
         this.shutdown = true;
 
-        logger.info("Initiating shutdown of Jetty web server...");
+        LOGGER.info("Initiating shutdown of Jetty web server...");
         if (nifiServer != null) {
             nifiServer.stop();
         }
         if (bootstrapListener != null) {
             bootstrapListener.stop();
         }
-        logger.info("Jetty web server shutdown completed (nicely or otherwise).");
+        LOGGER.info("Jetty web server shutdown completed (nicely or otherwise).");
     }
 
     /**
@@ -310,7 +310,7 @@ public class NiFi implements NiFiEntryPoint {
                 service.shutdownNow();
 
                 if (occurrences.get() < minRequiredOccurrences || occurrencesOutOfRange.get() > maxOccurrencesOutOfRange) {
-                    logger.warn("NiFi has detected that this box is not responding within the expected timing interval, which may cause "
+                    LOGGER.warn("NiFi has detected that this box is not responding within the expected timing interval, which may cause "
                             + "Processors to be scheduled erratically. Please see the NiFi documentation for more information.");
                 }
             }
@@ -325,12 +325,12 @@ public class NiFi implements NiFiEntryPoint {
      * @param args things which are ignored
      */
     public static void main(String[] args) {
-        logger.info("Launching NiFi...");
+        LOGGER.info("Launching NiFi...");
         try {
             NiFiProperties properties = convertArgumentsToValidatedNiFiProperties(args);
             new NiFi(properties);
         } catch (final Throwable t) {
-            logger.error("Failure to launch NiFi due to " + t, t);
+            LOGGER.error("Failure to launch NiFi due to " + t, t);
         }
     }
 
@@ -367,7 +367,7 @@ public class NiFi implements NiFiEntryPoint {
             final Object loaderInstance = withKeyMethod.invoke(null, key);
             final Method getMethod = propsLoaderClass.getMethod("get");
             final NiFiProperties properties = (NiFiProperties) getMethod.invoke(loaderInstance);
-            logger.info("Loaded {} properties", properties.size());
+            LOGGER.info("Loaded {} properties", properties.size());
             return properties;
         } catch (InvocationTargetException wrappedException) {
             final String msg = "There was an issue decrypting protected properties";
@@ -405,10 +405,10 @@ public class NiFi implements NiFiEntryPoint {
 
     private static String getKeyFromKeyFileAndPrune(List<String> parsedArgs) {
         String key = null;
-        logger.debug("The bootstrap process provided the " + KEY_FILE_FLAG + " flag");
+        LOGGER.debug("The bootstrap process provided the " + KEY_FILE_FLAG + " flag");
         int i = parsedArgs.indexOf(KEY_FILE_FLAG);
         if (parsedArgs.size() <= i + 1) {
-            logger.error("The bootstrap process passed the {} flag without a filename", KEY_FILE_FLAG);
+            LOGGER.error("The bootstrap process passed the {} flag without a filename", KEY_FILE_FLAG);
             throw new IllegalArgumentException("The bootstrap process provided the " + KEY_FILE_FLAG + " flag but no key");
         }
         try {
@@ -419,7 +419,7 @@ public class NiFi implements NiFiEntryPoint {
             if (0 == key.length())
                 throw new IllegalArgumentException("Key in keyfile " + passwordfilePath + " yielded an empty key");
 
-            logger.info("Now overwriting file in {}", passwordfilePath);
+            LOGGER.info("Now overwriting file in {}", passwordfilePath);
 
             // Overwrite the contents of the file (to avoid littering file system
             // unlinked with key material):
@@ -434,19 +434,19 @@ public class NiFi implements NiFiEntryPoint {
                 sb.append(Integer.toHexString(random.nextInt()));
             }
             String pad = sb.toString();
-            logger.info("Overwriting key material with pad: {}", pad);
+            LOGGER.info("Overwriting key material with pad: {}", pad);
             overwriter.write(pad);
             overwriter.close();
 
-            logger.info("Removing/unlinking file: {}", passwordfilePath);
+            LOGGER.info("Removing/unlinking file: {}", passwordfilePath);
             passwordFile.delete();
 
         } catch (IOException e) {
-            logger.error("Caught IOException while retrieving the {} -passed keyfile; aborting: {}", KEY_FILE_FLAG, e.toString());
+            LOGGER.error("Caught IOException while retrieving the {} -passed keyfile; aborting: {}", KEY_FILE_FLAG, e.toString());
             System.exit(1);
         }
 
-        logger.info("Read property protection key from key file provided by bootstrap process");
+        LOGGER.info("Read property protection key from key file provided by bootstrap process");
         return key;
     }
 
