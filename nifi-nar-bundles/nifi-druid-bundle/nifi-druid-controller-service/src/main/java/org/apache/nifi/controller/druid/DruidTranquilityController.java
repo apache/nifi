@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
@@ -53,6 +54,7 @@ import org.apache.nifi.controller.api.druid.DruidTranquilityService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.SSLContextService;
 
 import com.metamx.common.Granularity;
 import com.metamx.tranquility.beam.Beam;
@@ -318,6 +320,33 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("druid-cs-ssl-context-service")
+            .displayName("SSL Context Service")
+            .description("Specifies the SSL Context Service to use for communicating with Druid.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
+
+    public static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
+            .name("druid-cs-basic-auth-username")
+            .displayName("Username")
+            .description("Username for authentication to Druid.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
+            .build();
+
+    public static final PropertyDescriptor PROP_BASIC_AUTH_PASSWORD = new PropertyDescriptor.Builder()
+            .name("druid-cs-basic-auth-password")
+            .displayName("Password")
+            .description("Password for authentication to Druid.")
+            .required(false)
+            .sensitive(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
+            .build();
+
     private static final List<PropertyDescriptor> properties;
 
     private volatile CuratorFramework curator;
@@ -347,6 +376,9 @@ public class DruidTranquilityController extends AbstractControllerService implem
         props.add(MAX_BATCH_SIZE);
         props.add(MAX_PENDING_BATCHES);
         props.add(LINGER_MILLIS);
+        props.add(SSL_CONTEXT_SERVICE);
+        props.add(PROP_BASIC_AUTH_USERNAME);
+        props.add(PROP_BASIC_AUTH_PASSWORD);
 
         properties = Collections.unmodifiableList(props);
     }
@@ -361,11 +393,24 @@ public class DruidTranquilityController extends AbstractControllerService implem
         Set<ValidationResult> results = new HashSet<>();
         final String segmentGranularity = validationContext.getProperty(SEGMENT_GRANULARITY).getValue();
         final String queryGranularity = validationContext.getProperty(QUERY_GRANULARITY).getValue();
+        final String basicAuthUsername = validationContext.getProperty(PROP_BASIC_AUTH_USERNAME).getValue();
+        final String basicAuthPassword = validationContext.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue();
 
         // Verify that segment granularity is as least as large as query granularity
         if (TIME_ORDINALS.indexOf(segmentGranularity) < TIME_ORDINALS.indexOf(queryGranularity)) {
             results.add(new ValidationResult.Builder().valid(false).explanation(
                     "Segment Granularity must be at least as large as Query Granularity").build());
+        }
+
+        // Verify that username and password are both absent or both set
+        if (StringUtils.isNotBlank(basicAuthUsername) && StringUtils.isBlank(basicAuthPassword)) {
+            results.add(new ValidationResult.Builder().subject(PROP_BASIC_AUTH_PASSWORD.getDisplayName())
+                    .explanation("it is required when '" + PROP_BASIC_AUTH_USERNAME.getDisplayName() + "' is set").build()
+            );
+        } else if (StringUtils.isBlank(basicAuthUsername) && StringUtils.isNotBlank(basicAuthPassword)) {
+            results.add(new ValidationResult.Builder().subject(PROP_BASIC_AUTH_USERNAME.getDisplayName())
+                    .explanation("it is required when '" + PROP_BASIC_AUTH_PASSWORD.getDisplayName() + "' is set").build()
+            );
         }
 
         return results;
@@ -396,6 +441,9 @@ public class DruidTranquilityController extends AbstractControllerService implem
         final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         final int maxPendingBatches = context.getProperty(MAX_PENDING_BATCHES).evaluateAttributeExpressions().asInteger();
         final int lingerMillis = context.getProperty(LINGER_MILLIS).evaluateAttributeExpressions().asInteger();
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final String basicAuthUsername = context.getProperty(PROP_BASIC_AUTH_USERNAME).evaluateAttributeExpressions().getValue();
+        final String basicAuthPassword = context.getProperty(PROP_BASIC_AUTH_PASSWORD).evaluateAttributeExpressions().getValue();
 
         transitUri = String.format(FIREHOSE_PATTERN, dataSource) + ";indexServicePath=" + indexService;
 
@@ -428,7 +476,8 @@ public class DruidTranquilityController extends AbstractControllerService implem
         final TimestampSpec timestampSpec = new TimestampSpec(timestampField, "auto", null);
 
         final Beam<Map<String, Object>> beam = buildBeam(dataSource, indexService, discoveryPath, clusterPartitions, clusterReplication,
-                segmentGranularity, queryGranularity, windowPeriod, firehoseGracePeriod, indexRetryPeriod, dimensions, aggregator, timestamper, timestampSpec);
+                segmentGranularity, queryGranularity, windowPeriod, firehoseGracePeriod, indexRetryPeriod, dimensions, aggregator, timestamper, timestampSpec,
+                sslContextService, basicAuthUsername, basicAuthPassword);
 
         tranquilizer = buildTranquilizer(maxBatchSize, maxPendingBatches, lingerMillis, beam);
 
@@ -446,13 +495,14 @@ public class DruidTranquilityController extends AbstractControllerService implem
 
     Beam<Map<String, Object>> buildBeam(String dataSource, String indexService, String discoveryPath, int clusterPartitions, int clusterReplication,
                                         String segmentGranularity, String queryGranularity, String windowPeriod, String firehoseGracePeriod, String indexRetryPeriod, DruidDimensions dimensions,
-                                        List<AggregatorFactory> aggregator, Timestamper<Map<String, Object>> timestamper, TimestampSpec timestampSpec) {
-        return DruidBeams.builder(timestamper)
+                                        List<AggregatorFactory> aggregator, Timestamper<Map<String, Object>> timestamper, TimestampSpec timestampSpec,
+                                        SSLContextService sslContextService, String basicAuthUsername, String basicAuthPassword) {
+        DruidBeams.Builder<Map<String, Object>, Map<String, Object>> builder = DruidBeams.builder(timestamper)
                 .curator(curator)
                 .discoveryPath(discoveryPath)
                 .location(DruidLocation.create(DruidEnvironment.create(indexService, FIREHOSE_PATTERN), dataSource))
                 .timestampSpec(timestampSpec)
-                .rollup(DruidRollup.create(dimensions, aggregator, QueryGranularity.fromString(queryGranularity)))
+                .rollup(DruidRollup.create(dimensions, aggregator, QueryGranularity.fromString(queryGranularity), true))
                 .tuning(
                         ClusteredBeamTuning
                                 .builder()
@@ -461,14 +511,42 @@ public class DruidTranquilityController extends AbstractControllerService implem
                                 .partitions(clusterPartitions)
                                 .replicants(clusterReplication)
                                 .build()
-                )
-                .druidBeamConfig(
-                        DruidBeamConfig
-                                .builder()
-                                .indexRetryPeriod(new Period(indexRetryPeriod))
-                                .firehoseGracePeriod(new Period(firehoseGracePeriod))
-                                .build())
-                .buildBeam();
+                );
+
+        if (sslContextService != null && sslContextService.isTrustStoreConfigured()) {
+            builder = builder
+                    .tlsEnable(true)
+                    .tlsProtocol(sslContextService.getSslAlgorithm())
+                    .tlsTrustStorePassword(sslContextService.getTrustStorePassword())
+                    .tlsTrustStorePath(sslContextService.getTrustStoreFile())
+                    .tlsTrustStoreType(sslContextService.getTrustStoreType());
+        }
+
+        if (StringUtils.isNotBlank(basicAuthUsername) && StringUtils.isNotBlank(basicAuthPassword)) {
+            builder = builder
+                    .druidBeamConfig(
+                            DruidBeamConfig
+                                    .builder()
+                                    .indexRetryPeriod(new Period(indexRetryPeriod))
+                                    .firehoseGracePeriod(new Period(firehoseGracePeriod))
+                                    .basicAuthUser(basicAuthUsername)
+                                    .basicAuthPass(basicAuthPassword)
+                                    .build()
+                    )
+                    .basicAuthUser(basicAuthUsername)
+                    .basicAuthPass(basicAuthPassword);
+        } else {
+            builder = builder
+                    .druidBeamConfig(
+                            DruidBeamConfig
+                                    .builder()
+                                    .indexRetryPeriod(new Period(indexRetryPeriod))
+                                    .firehoseGracePeriod(new Period(firehoseGracePeriod))
+                                    .build()
+                    );
+        }
+
+        return builder.buildBeam();
     }
 
     @OnDisabled

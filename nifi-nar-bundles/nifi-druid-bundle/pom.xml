@@ -27,7 +27,7 @@
 
     <properties>
         <druid.version>0.9.1</druid.version>
-        <tranquility.version>0.8.2</tranquility.version>
+        <tranquility.version>0.8.3</tranquility.version>
     </properties>
 
     <dependencyManagement>
@@ -62,6 +62,12 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <!-- Override jackson 2.4.5 from tranquility -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-scala_2.11</artifactId>
                 <version>${jackson.version}</version>
             </dependency>
             <!-- Override snakeyaml:1.11 from druid -->
