@@ -34,7 +34,7 @@ public class CSVValidators {
 
     public static final Validator SINGLE_CHAR_VALIDATOR = createSingleCharValidator(false);
 
-    public static final Validator EMPTY_AND_SINGLE_CHAR_VALIDATOR = createSingleCharValidator(true);
+    public static final Validator EMPTY_OR_SINGLE_CHAR_VALIDATOR = createSingleCharValidator(true);
 
     public static final Validator UNESCAPED_SINGLE_CHAR_VALIDATOR = new Validator() {
         @Override

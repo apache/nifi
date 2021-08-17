@@ -108,7 +108,7 @@ public class CSVUtils {
         .description("The character that is used to escape characters that would otherwise have a specific meaning to the CSV Parser. If the property has been specified via Expression Language " +
                 "but the expression gets evaluated to an invalid Escape Character at runtime, then it will be skipped and the default Escape Character will be used. " +
                 "Setting it to an empty string means no escape character should be used.")
-        .addValidator(CSVValidators.EMPTY_AND_SINGLE_CHAR_VALIDATOR)
+        .addValidator(CSVValidators.EMPTY_OR_SINGLE_CHAR_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue("\\")
         .required(true)
