@@ -52,7 +52,6 @@ import org.apache.nifi.stateless.engine.ExecutionProgress.CompletionAction;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.engine.StandardExecutionProgress;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
-import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.stateless.session.AsynchronousCommitTracker;
 import org.apache.nifi.util.Connectables;
@@ -405,7 +404,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         final BlockingQueue<TriggerResult> resultQueue = new LinkedBlockingQueue<>();
 
         final ExecutionProgress executionProgress = new StandardExecutionProgress(rootGroup, internalFlowFileQueues, resultQueue,
-            (ByteArrayContentRepository) repositoryContextFactory.getContentRepository(), dataflowDefinition.getFailurePortNames(), tracker,
+            repositoryContextFactory.getContentRepository(), dataflowDefinition.getFailurePortNames(), tracker,
             stateManagerProvider);
 
         final AtomicReference<Future<?>> processFuture = new AtomicReference<>();

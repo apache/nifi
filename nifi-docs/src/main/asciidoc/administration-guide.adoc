@@ -671,8 +671,8 @@ NOTE: The identities configured in the Initial Admin Identity, the Node Identity
 NOTE: Any users in the legacy users file must be found in the configured User Group Provider.
 
 NOTE: Any identity mapping rules specified in _nifi.properties_ will also be applied to the node identities,
-            so the values should be the unmapped identities (i.e. full DN from a certificate). This identity must be found
-            in the configured User Group Provider.
+so the values should be the unmapped identities (i.e. full DN from a certificate). This identity must be found
+in the configured User Group Provider.
 
 ==== StandardManagedAuthorizer
 
@@ -1456,7 +1456,7 @@ To allow User2 to connect GenerateFlowFile to LogAttribute, as User1:
 1. Select the root process group. The Operate palette is updated with details for the root process group.
 2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
 3. Select "modify the component” from the policy drop-down.
-  image:process-group-modify-policy.png["Process Group Modify Policy"]
+image:process-group-modify-policy.png["Process Group Modify Policy"]
 [start=4]
 4. Select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 and select OK.
 
@@ -1492,7 +1492,7 @@ To allow User2 to connect GenerateFlowFile to ReplaceText, as User1:
 1. Select the root process group. The Operate palette is updated with details for the root process group.
 2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]).
 3. Select "view the component” from the policy drop-down.
-  image:process-group-view-policy.png["Process Group View Policy"]
+image:process-group-view-policy.png["Process Group View Policy"]
 [start=4]
 4. Select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 and select OK.
 
@@ -1817,7 +1817,7 @@ Following are the configuration properties available inside the `bootstrap-hashi
 |===
 
 === AWS KMS provider
-This provider uses AWS Key Management Service (https://aws.amazon.com/kms/) for decryption. AWS KMS configuration properties can be stored in the `bootstrap-aws.conf` file, as referenced in `bootstrap.conf`. If the configuration properties are not specified in `bootstrap-aws.conf`, then the provider will attempt to use the AWS default credentials provider, which checks standard environment variables and system properties.
+This provider uses https://aws.amazon.com/kms/[AWS Key Management Service] for decryption. AWS KMS configuration properties can be stored in the `bootstrap-aws.conf` file, as referenced in `bootstrap.conf`. If the configuration properties are not specified in `bootstrap-aws.conf`, then the provider will attempt to use the AWS default credentials provider, which checks standard environment variables and system properties.
 
 ==== Required properties
 [options="header,footer"]
@@ -1834,6 +1834,17 @@ This provider uses AWS Key Management Service (https://aws.amazon.com/kms/) for 
 |`aws.region`|The AWS region used to configure the AWS KMS Client.|_none_
 |`aws.access.key.id`|The access key ID credential used to access AWS KMS.|_none_
 |`aws.secret.access.key`|The secret access key used to access AWS KMS.|_none_
+|===
+
+=== Azure Key Vault Key provider
+This protection scheme uses keys managed by https://docs.microsoft.com/en-us/azure/key-vault/keys/about-keys[Azure Key Vault Keys] for encryption and decryption. Azure Key Vault configuration properties can be stored in the `bootstrap-azure.conf` file, as referenced in the `bootstrap.conf` of NiFi or NiFi Registry. The provider will use the Azure default credentials provider chain as described in the https://docs.microsoft.com/en-us/java/api/overview/azure/security-keyvault-keys-readme?view=azure-java-stable[Azure Key Vault Key client library for Java] documentation.
+
+==== Required properties
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`azure.keyvault.key.id`|The identifier of the key that the Azure Key Vault client uses for encryption and decryption.|_none_
+|`azure.keyvault.encryption.algorithm`|The encryption algorithm that the Azure Key Vault client uses for encryption and decryption.|_none_
 |===
 
 === Property Context Mapping
@@ -2081,37 +2092,37 @@ they must be set the same on every instance in the cluster.
 For each Node, the minimum properties to configure are as follows:
 
 * Under the _Web Properties_ section, set either the HTTP or HTTPS port that you want the Node to run on.
-  Also, consider whether you need to set the HTTP or HTTPS host property. All nodes in the cluster should use the same protocol setting.
+Also, consider whether you need to set the HTTP or HTTPS host property. All nodes in the cluster should use the same protocol setting.
 * Under the _State Management section_, set the `nifi.state.management.provider.cluster` property
-  to the identifier of the Cluster State Provider. Ensure that the Cluster State Provider has been
-  configured in the _state-management.xml_ file. See <<state_providers>> for more information.
+to the identifier of the Cluster State Provider. Ensure that the Cluster State Provider has been
+configured in the _state-management.xml_ file. See <<state_providers>> for more information.
 * Under _Cluster Node Properties_, set the following:
 ** `nifi.cluster.is.node` - Set this to _true_.
 ** `nifi.cluster.node.address` - Set this to the fully qualified hostname of the node. If left blank, it defaults to `localhost`.
 ** `nifi.cluster.node.protocol.port` - Set this to an open port that is higher than 1024 (anything lower requires root).
 ** `nifi.cluster.node.protocol.threads` - The number of threads that should be used to communicate with other nodes in the cluster. This property
-   defaults to `10`. A thread pool is used for replicating requests to all nodes, and the
-   thread pool will never have fewer than this number of threads. It will grow as needed up to the maximum value set by the `nifi.cluster.node.protocol.max.threads`
-   property.
+defaults to `10`. A thread pool is used for replicating requests to all nodes, and the
+thread pool will never have fewer than this number of threads. It will grow as needed up to the maximum value set by the `nifi.cluster.node.protocol.max.threads`
+property.
 ** `nifi.cluster.node.protocol.max.threads` - The maximum number of threads that should be used to communicate with other nodes in the cluster. This property
-	defaults to `50`. A thread pool is used for replication requests to all nodes, and the thread pool will have a "core" size that is configured by the
-	`nifi.cluster.node.protocol.threads` property. However, if necessary, the thread pool will increase the number of active threads to the limit
-	set by this property.
+defaults to `50`. A thread pool is used for replication requests to all nodes, and the thread pool will have a "core" size that is configured by the
+`nifi.cluster.node.protocol.threads` property. However, if necessary, the thread pool will increase the number of active threads to the limit
+set by this property.
 ** `nifi.zookeeper.connect.string` - The Connect String that is needed to connect to Apache ZooKeeper. This is a comma-separated list
-   of hostname:port pairs. For example, `localhost:2181,localhost:2182,localhost:2183`. This should contain a list of all ZooKeeper
-   instances in the ZooKeeper quorum.
+of hostname:port pairs. For example, `localhost:2181,localhost:2182,localhost:2183`. This should contain a list of all ZooKeeper
+instances in the ZooKeeper quorum.
 ** `nifi.zookeeper.root.node` - The root ZNode that should be used in ZooKeeper. ZooKeeper provides a directory-like structure
-   for storing data. Each 'directory' in this structure is referred to as a ZNode. This denotes the root ZNode, or 'directory',
-   that should be used for storing data. The default value is `/root`. This is important to set correctly, as which cluster
-   the NiFi instance attempts to join is determined by which ZooKeeper instance it connects to and the ZooKeeper Root Node
-   that is specified.
+for storing data. Each 'directory' in this structure is referred to as a ZNode. This denotes the root ZNode, or 'directory',
+that should be used for storing data. The default value is `/root`. This is important to set correctly, as which cluster
+the NiFi instance attempts to join is determined by which ZooKeeper instance it connects to and the ZooKeeper Root Node
+that is specified.
 ** `nifi.cluster.flow.election.max.wait.time` - Specifies the amount of time to wait before electing a Flow as the "correct" Flow.
-   If the number of Nodes that have voted is equal to the number specified by the `nifi.cluster.flow.election.max.candidates`
-   property, the cluster will not wait this long. The default value is `5 mins`. Note that the time starts as soon as the first vote
-   is cast.
+If the number of Nodes that have voted is equal to the number specified by the `nifi.cluster.flow.election.max.candidates`
+property, the cluster will not wait this long. The default value is `5 mins`. Note that the time starts as soon as the first vote
+is cast.
 ** `nifi.cluster.flow.election.max.candidates` - Specifies the number of Nodes required in the cluster to cause early election
-   of Flows. This allows the Nodes in the cluster to avoid having to wait a long time before starting processing if we reach
-   at least this number of nodes in the cluster.
+of Flows. This allows the Nodes in the cluster to avoid having to wait a long time before starting processing if we reach
+at least this number of nodes in the cluster.
 
 Now, it is possible to start up the cluster. It does not matter which order the instances start up. Navigate to the URL for
 one of the nodes, and the User Interface should look similar to the following:
@@ -2468,9 +2479,9 @@ Now, when we start NiFi, it will use Kerberos to authentication as the `nifi` us
 When using Kerberos, it is import to use fully-qualified domain names and not use _localhost_. Please ensure that the fully qualified hostname of each server is used
 in the following locations:
 
-	- _conf/zookeeper.properties_ file should use FQDN for `server.1`, `server.2`, ..., `server.N` values.
-	- The `Connect String` property of the ZooKeeperStateProvider
-	- The _/etc/hosts_ file should also resolve the FQDN to an IP address that is *not* `127.0.0.1`.
+- _conf/zookeeper.properties_ file should use FQDN for `server.1`, `server.2`, ..., `server.N` values.
+- The `Connect String` property of the ZooKeeperStateProvider
+- The _/etc/hosts_ file should also resolve the FQDN to an IP address that is *not* `127.0.0.1`.
 
 Failure to do so, may result in errors similar to the following:
 
@@ -2605,32 +2616,32 @@ take effect only after NiFi has been stopped and restarted.
 |*Property*|*Description*
 |`java`|Specifies the fully qualified java command to run. By default, it is simply `java` but could be changed to an absolute path or a reference an environment variable, such as `$JAVA_HOME/bin/java`
 |`run.as`|The username to run NiFi as. For instance, if NiFi should be run as the `nifi` user, setting this value to `nifi` will cause the NiFi Process to be run as the `nifi` user.
-        This property is ignored on Windows. For Linux, the specified user may require sudo permissions.
+This property is ignored on Windows. For Linux, the specified user may require sudo permissions.
 |`preserve.environment`|Whether or not to preserve shell environment while using `run.as` (see "sudo -E" man page). By default, this is set to false.
 |`lib.dir`|The _lib_ directory to use for NiFi. By default, this is set to `./lib`
 |`conf.dir`|The _conf_ directory to use for NiFi. By default, this is set to `./conf`
 |`graceful.shutdown.seconds`|When NiFi is instructed to shutdown, the Bootstrap will wait this number of seconds for the process to shutdown cleanly. At this amount of time,
-                           if the service is still running, the Bootstrap will `kill` the process, or terminate it abruptly.
+if the service is still running, the Bootstrap will `kill` the process, or terminate it abruptly.
 |`java.arg.N`|Any number of JVM arguments can be passed to the NiFi JVM when the process is started. These arguments are defined by adding properties to _bootstrap.conf_ that
-            begin with `java.arg.`. The rest of the property name is not relevant, other than to differentiate property names, and will be ignored. The default includes
-            properties for minimum and maximum Java Heap size, the garbage collector to use, Java IO temporary directory, etc.
+begin with `java.arg.`. The rest of the property name is not relevant, other than to differentiate property names, and will be ignored. The default includes
+properties for minimum and maximum Java Heap size, the garbage collector to use, Java IO temporary directory, etc.
 |`nifi.bootstrap.sensitive.key`|The root key (in hexadecimal format) for encrypted sensitive configuration values. When NiFi is started, this root key is used to decrypt sensitive values from the _nifi.properties_ file into memory for later use.
 
 The Encrypt-Config Tool can be used to specify the root key, encrypt sensitive values in _nifi.properties_ and update _bootstrap.conf_. See the <<toolkit-guide.adoc#encrypt_config_tool,NiFi Toolkit Guide>> for an example.
 |`notification.services.file`|When NiFi is started, or stopped, or when the Bootstrap detects that NiFi has died, the Bootstrap is able to send notifications of these events
-                            to interested parties. This is configured by specifying an XML file that defines which notification services can be used. More about this
-                            file can be found in the <<notification_services>> section.
+to interested parties. This is configured by specifying an XML file that defines which notification services can be used. More about this
+file can be found in the <<notification_services>> section.
 |`notification.max.attempts`|If a notification service is configured but is unable to perform its function, it will try again up to a maximum number of attempts. This property
-                           configures what that maximum number of attempts is. The default value is `5`.
+configures what that maximum number of attempts is. The default value is `5`.
 |`nifi.start.notification.services`|This property is a comma-separated list of Notification Service identifiers that correspond to the Notification Services
-                                  defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
-                                  configured recipients whenever NiFi is started.
+defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
+configured recipients whenever NiFi is started.
 |`nifi.stop.notification.services`|This property is a comma-separated list of Notification Service identifiers that correspond to the Notification Services
-                                 defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
-                                 configured recipients whenever NiFi is stopped.
+defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
+configured recipients whenever NiFi is stopped.
 |`nifi.died.notification.services`|This property is a comma-separated list of Notification Service identifiers that correspond to the Notification Services
-                                 defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
-                                 configured recipients if the bootstrap determines that NiFi has unexpectedly died.
+defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
+configured recipients if the bootstrap determines that NiFi has unexpectedly died.
 |====
 
 [[notification_services]]
@@ -2678,7 +2689,7 @@ It has the following properties available:
 |`SMTP X-Mailer Header`||X-Mailer used in the header of the outgoing email
 |`Content Type`||Mime Type used to interpret the contents of the email, such as `text/plain` or `text/html`
 |`From`|true|Specifies the Email address to use as the sender. Otherwise, a "friendly name" can be used as the From address, but the value
-           must be enclosed in double-quotes.
+must be enclosed in double-quotes.
 |`To`||The recipients to include in the To-Line of the email
 |`CC`||The recipients to include in the CC-Line of the email
 |`BCC`||The recipients to include in the BCC-Line of the email
@@ -3165,14 +3176,14 @@ FlowFile Repository, if also on that disk, could become corrupt. To avoid this s
 |`nifi.content.repository.implementation`|The Content Repository implementation. The default value is `org.apache.nifi.controller.repository.FileSystemRepository` and should only be changed with caution. To store flowfile content in memory instead of on disk (at the risk of data loss in the event of power/machine failure), set this property to `org.apache.nifi.controller.repository.VolatileContentRepository`.
 |`nifi.content.claim.max.appendable.size`|The maximum size for a content claim. The default value is `1 MB`.
 |`nifi.content.repository.directory.default`*|The location of the Content Repository. The default value is `./content_repository`. +
- +
++
 *NOTE*: Multiple content repositories can be specified by using the `nifi.content.repository.directory.` prefix with unique suffixes and separate paths as values. +
- +
++
 For example, to provide two additional locations to act as part of the content repository, a user could also specify additional properties with keys of: +
- +
++
 `nifi.content.repository.directory.content1=/repos/content1` +
 `nifi.content.repository.directory.content2=/repos/content2` +
- +
++
 Providing three total locations, including  `nifi.content.repository.directory.default`.
 |`nifi.content.repository.archive.max.retention.period`|If archiving is enabled (see `nifi.content.repository.archive.enabled` below), then
 this property specifies the maximum amount of time to keep the archived data. The default value is `12 hours`.
@@ -3189,12 +3200,12 @@ All of the properties defined above (see <<file-system-content-repository-proper
 
 |====
 |*Property*|*Description*
- |`nifi.content.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the content claims. There are currently three implementations: `StaticKeyProvider` which reads a key directly from _nifi.properties_, `FileBasedKeyProvider` which reads keys from an encrypted file, and `KeyStoreKeyProvider` which reads keys from a standard `java.security.KeyStore`.
- |`nifi.content.repository.encryption.key.provider.location`|The path to the key definition resource (empty for `StaticKeyProvider`, `./keys.nkp` or similar path for `FileBasedKeyProvider`). For future providers like an HSM, this may be a connection string or URL.
- |`nifi.content.repository.encryption.key.provider.password`|The password used for decrypting the key definition resource, such as the keystore for `KeyStoreKeyProvider`.
- |`nifi.content.repository.encryption.key.id`|The active key ID to use for encryption (e.g. `Key1`).
- |`nifi.content.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
- |`nifi.content.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.content.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
+|`nifi.content.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the content claims. There are currently three implementations: `StaticKeyProvider` which reads a key directly from _nifi.properties_, `FileBasedKeyProvider` which reads keys from an encrypted file, and `KeyStoreKeyProvider` which reads keys from a standard `java.security.KeyStore`.
+|`nifi.content.repository.encryption.key.provider.location`|The path to the key definition resource (empty for `StaticKeyProvider`, `./keys.nkp` or similar path for `FileBasedKeyProvider`). For future providers like an HSM, this may be a connection string or URL.
+|`nifi.content.repository.encryption.key.provider.password`|The password used for decrypting the key definition resource, such as the keystore for `KeyStoreKeyProvider`.
+|`nifi.content.repository.encryption.key.id`|The active key ID to use for encryption (e.g. `Key1`).
+|`nifi.content.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
+|`nifi.content.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.content.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
 |====
 
 The simplest configuration is below:
@@ -3252,43 +3263,43 @@ the `WriteAheadProvenanceRepository`, it cannot be changed back to the `Persiste
 |====
 |*Property*|*Description*
 |`nifi.provenance.repository.directory.default`*|The location of the Provenance Repository. The default value is `./provenance_repository`. +
- +
-	*NOTE*: Multiple provenance repositories can be specified by using the `nifi.provenance.repository.directory.` prefix with unique suffixes and separate paths as values. +
- +
-	For example, to provide two additional locations to act as part of the provenance repository, a user could also specify additional properties with keys of: +
- +
-	`nifi.provenance.repository.directory.provenance1=/repos/provenance1` +
-	`nifi.provenance.repository.directory.provenance2=/repos/provenance2` +
- +
-	Providing three total locations, including `nifi.provenance.repository.directory.default`.
++
+*NOTE*: Multiple provenance repositories can be specified by using the `nifi.provenance.repository.directory.` prefix with unique suffixes and separate paths as values. +
++
+For example, to provide two additional locations to act as part of the provenance repository, a user could also specify additional properties with keys of: +
++
+`nifi.provenance.repository.directory.provenance1=/repos/provenance1` +
+`nifi.provenance.repository.directory.provenance2=/repos/provenance2` +
++
+Providing three total locations, including `nifi.provenance.repository.directory.default`.
 |`nifi.provenance.repository.max.storage.time`|The maximum amount of time to keep data provenance information. The default value is `24 hours`.
 |`nifi.provenance.repository.max.storage.size`|The maximum amount of data provenance information to store at a time.
-	The default value is `10 GB`. The Data Provenance capability can consume a great deal of storage space because so much data is kept.
-	For production environments, values of 1-2 TB or more is not uncommon. The repository will write to a single "event file" (or set of
-	"event files" if multiple storage locations are defined, as described above) until the event file reaches the size defined in the `nifi.provenance.repository.rollover.size` property. It will then "roll over" and begin writing new events to a new file. Data is always aged off one file at a time, so it is not advisable to write a tremendous amount of data to a single "event file," as it will prevent old data from aging off as smoothly.
+The default value is `10 GB`. The Data Provenance capability can consume a great deal of storage space because so much data is kept.
+For production environments, values of 1-2 TB or more is not uncommon. The repository will write to a single "event file" (or set of
+"event files" if multiple storage locations are defined, as described above) until the event file reaches the size defined in the `nifi.provenance.repository.rollover.size` property. It will then "roll over" and begin writing new events to a new file. Data is always aged off one file at a time, so it is not advisable to write a tremendous amount of data to a single "event file," as it will prevent old data from aging off as smoothly.
 |`nifi.provenance.repository.rollover.size`|The amount of data to write to a single "event file." The default value is `100 MB`. For production
-	environments where a very large amount of Data Provenance is generated, a value of `1 GB` is also very reasonable.
+environments where a very large amount of Data Provenance is generated, a value of `1 GB` is also very reasonable.
 |`nifi.provenance.repository.query.threads`|The number of threads to use for Provenance Repository queries. The default value is `2`.
 |`nifi.provenance.repository.index.threads`|The number of threads to use for indexing Provenance events so that they are searchable. The default value is `2`.
-	For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this happens, increasing the
-	value of this property may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput.
-	It is advisable to use at least 1 thread per storage location (i.e., if there are 3 storage locations, at least 3 threads should be used). For high
-	throughput environments, where more CPU and disk I/O is available, it may make sense to increase this value significantly. Typically going beyond
-	2-4 threads per storage location is not valuable. However, this can be tuned depending on the CPU resources available compared to the I/O resources.
+For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this happens, increasing the
+value of this property may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput.
+It is advisable to use at least 1 thread per storage location (i.e., if there are 3 storage locations, at least 3 threads should be used). For high
+throughput environments, where more CPU and disk I/O is available, it may make sense to increase this value significantly. Typically going beyond
+2-4 threads per storage location is not valuable. However, this can be tuned depending on the CPU resources available compared to the I/O resources.
 |`nifi.provenance.repository.compress.on.rollover`|Indicates whether to compress the provenance information when an "event file" is rolled over. The default value is `true`.
 |`nifi.provenance.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system
-	not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data
-	loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
+not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data
+loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
 |`nifi.provenance.repository.indexed.fields`|This is a comma-separated list of the fields that should be indexed and made searchable.
-	Fields that are not indexed will not be searchable. Valid fields are: `EventType`, `FlowFileUUID`, `Filename`, `TransitURI`, `ProcessorID`,
-	`AlternateIdentifierURI`, `Relationship`, `Details`. The default value is: `EventType, FlowFileUUID, Filename, ProcessorID`.
+Fields that are not indexed will not be searchable. Valid fields are: `EventType`, `FlowFileUUID`, `Filename`, `TransitURI`, `ProcessorID`,
+`AlternateIdentifierURI`, `Relationship`, `Details`. The default value is: `EventType, FlowFileUUID, Filename, ProcessorID`.
 |`nifi.provenance.repository.indexed.attributes`|This is a comma-separated list of FlowFile Attributes that should be indexed and made searchable. It is blank by default.
-	But some good examples to consider are `filename` and `mime.type` as well as any custom attributes you might use which are valuable for your use case.
+But some good examples to consider are `filename` and `mime.type` as well as any custom attributes you might use which are valuable for your use case.
 |`nifi.provenance.repository.index.shard.size`|The repository uses Apache Lucene to performing indexing and searching capabilities. This value indicates how large a Lucene Index should
-	become before the Repository starts writing to a new Index. Large values for the shard size will result in more Java heap usage when searching the Provenance Repository but should
-	provide better performance. The default value is `500 MB`. However, this is due to the fact that defaults are tuned for very small environments where most users begin to use NiFi.
-	For production environments, it is advisable to change this value to `4` to `8 GB`. Once all Provenance Events in the index have been aged off from the "event files," the index
-	will be destroyed as well.
+become before the Repository starts writing to a new Index. Large values for the shard size will result in more Java heap usage when searching the Provenance Repository but should
+provide better performance. The default value is `500 MB`. However, this is due to the fact that defaults are tuned for very small environments where most users begin to use NiFi.
+For production environments, it is advisable to change this value to `4` to `8 GB`. Once all Provenance Events in the index have been aged off from the "event files," the index
+will be destroyed as well.
 
   *NOTE:* This value should be smaller than (no more than half of) the `nifi.provenance.repository.max.storage.size` property.
 |`nifi.provenance.repository.max.attribute.length`|Indicates the maximum length that a FlowFile attribute can be when retrieving a Provenance Event from the repository.
@@ -3316,12 +3327,12 @@ All of the properties defined above (see <<write-ahead-provenance-repository-pro
 
 |====
 |*Property*|*Description*
- |`nifi.provenance.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the provenance events. There are currently three implementations: `StaticKeyProvider` which reads a key directly from _nifi.properties_, `FileBasedKeyProvider` which reads keys from an encrypted file, and `KeyStoreKeyProvider` which reads keys from a standard `java.security.KeyStore`.
- |`nifi.provenance.repository.encryption.key.provider.location`|The path to the key definition resource (empty for `StaticKeyProvider`, `./keys.nkp` or similar path for `FileBasedKeyProvider`). For future providers like an HSM, this may be a connection string or URL.
- |`nifi.provenance.repository.encryption.key.provider.password`|The password used for decrypting the key definition resource, such as the keystore for `KeyStoreKeyProvider`.
- |`nifi.provenance.repository.encryption.key.id`|The active key ID to use for encryption (e.g. `Key1`).
- |`nifi.provenance.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
- |`nifi.provenance.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.provenance.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
+|`nifi.provenance.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the provenance events. There are currently three implementations: `StaticKeyProvider` which reads a key directly from _nifi.properties_, `FileBasedKeyProvider` which reads keys from an encrypted file, and `KeyStoreKeyProvider` which reads keys from a standard `java.security.KeyStore`.
+|`nifi.provenance.repository.encryption.key.provider.location`|The path to the key definition resource (empty for `StaticKeyProvider`, `./keys.nkp` or similar path for `FileBasedKeyProvider`). For future providers like an HSM, this may be a connection string or URL.
+|`nifi.provenance.repository.encryption.key.provider.password`|The password used for decrypting the key definition resource, such as the keystore for `KeyStoreKeyProvider`.
+|`nifi.provenance.repository.encryption.key.id`|The active key ID to use for encryption (e.g. `Key1`).
+|`nifi.provenance.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
+|`nifi.provenance.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.provenance.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
 |====
 
 The simplest configuration is below:
@@ -3340,14 +3351,14 @@ nifi.provenance.repository.encryption.key=0123456789ABCDEFFEDCBA9876543210012345
 |====
 |*Property*|*Description*
 |`nifi.provenance.repository.directory.default`*|The location of the Provenance Repository. The default value is `./provenance_repository`. +
- +
++
 *NOTE*: Multiple provenance repositories can be specified by using the `nifi.provenance.repository.directory.` prefix with unique suffixes and separate paths as values. +
- +
++
 For example, to provide two additional locations to act as part of the provenance repository, a user could also specify additional properties with keys of: +
- +
++
 `nifi.provenance.repository.directory.provenance1=/repos/provenance1` +
 `nifi.provenance.repository.directory.provenance2=/repos/provenance2` +
- +
++
 Providing three total locations, including `nifi.provenance.repository.directory.default`.
 |`nifi.provenance.repository.max.storage.time`|The maximum amount of time to keep data provenance information. The default value is `24 hours`.
 |`nifi.provenance.repository.max.storage.size`|The maximum amount of data provenance information to store at a time. The default value is `10 GB`.
@@ -3355,9 +3366,9 @@ Providing three total locations, including `nifi.provenance.repository.directory
 |`nifi.provenance.repository.rollover.size`|The amount of information to roll over at a time. The default value is `100 MB`.
 |`nifi.provenance.repository.query.threads`|The number of threads to use for Provenance Repository queries. The default value is `2`.
 |`nifi.provenance.repository.index.threads`|The number of threads to use for indexing Provenance events so that they are searchable. The default value is `2`.
-	For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this is the case, a bulletin will appear, indicating that
-	"The rate of the dataflow is exceeding the provenance recording rate. Slowing down flow to accommodate." If this happens, increasing the value of this property
-	may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput.
+For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this is the case, a bulletin will appear, indicating that
+"The rate of the dataflow is exceeding the provenance recording rate. Slowing down flow to accommodate." If this happens, increasing the value of this property
+may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput.
 |`nifi.provenance.repository.compress.on.rollover`|Indicates whether to compress the provenance information when rolling it over. The default value is `true`.
 |`nifi.provenance.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
 |`nifi.provenance.repository.journal.count`|The number of journal files that should be used to serialize Provenance Event data. Increasing this value will allow more tasks to simultaneously update the repository but will result in more expensive merging of the journal files later. This value should ideally be equal to the number of threads that are expected to update the repository simultaneously, but 16 tends to work well in must environments. The default value is `16`.
@@ -3700,14 +3711,14 @@ These properties pertain to the web-based User Interface.
 |`nifi.web.http.port`|The HTTP port. The default value is blank.
 |`nifi.web.http.port.forwarding`|The port which forwards incoming HTTP requests to `nifi.web.http.host`. This property is designed to be used with 'port forwarding', when NiFi has to be started by a non-root user for better security, yet it needs to be accessed via low port to go through a firewall. For example, to expose NiFi via HTTP protocol on port 80, but actually listening on port 8080, you need to configure OS level port forwarding such as `iptables` (Linux/Unix) or `pfctl` (macOS) that redirects requests from 80 to 8080. Then set `nifi.web.http.port` as 8080, and `nifi.web.http.port.forwarding` as 80. It is blank by default.
 |`nifi.web.http.network.interface`*|The name of the network interface to which NiFi should bind for HTTP requests. It is blank by default. +
- +
++
 *NOTE*: Multiple network interfaces can be specified by using the `nifi.web.http.network.interface.` prefix with unique suffixes and separate network interface names as values. +
- +
++
 For example, to provide two additional network interfaces, a user could also specify additional properties with keys of: +
- +
++
 `nifi.web.http.network.interface.eth0=eth0` +
 `nifi.web.http.network.interface.eth1=eth1` +
- +
++
 Providing three total network interfaces, including  `nifi.web.http.network.interface.default`.
 |`nifi.web.https.host`|The HTTPS host. The default value is `127.0.0.1`.
 |`nifi.web.https.port`|The HTTPS port. The default value is `8443`.
@@ -3721,14 +3732,14 @@ In Firefox, the SSL cipher negotiated with Jetty may be examined in the 'Secure 
 
 
 |`nifi.web.https.network.interface`*|The name of the network interface to which NiFi should bind for HTTPS requests. It is blank by default. +
- +
++
 *NOTE*: Multiple network interfaces can be specified by using the `nifi.web.https.network.interface.` prefix with unique suffixes and separate network interface names as values. +
- +
++
 For example, to provide two additional network interfaces, a user could also specify additional properties with keys of: +
- +
++
 `nifi.web.https.network.interface.eth0=eth0` +
 `nifi.web.https.network.interface.eth1=eth1` +
- +
++
 Providing three total network interfaces, including  `nifi.web.https.network.interface.default`.
 |`nifi.web.jetty.working.directory`|The location of the Jetty working directory. The default value is `./work/jetty`.
 |`nifi.web.jetty.threads`|The number of Jetty threads. The default value is `200`.
@@ -3840,7 +3851,7 @@ from the remote node before considering the communication with the node a failur
 |`nifi.cluster.firewall.file`|The location of the node firewall file. This is a file that may be used to list all the nodes that are allowed to connect
 to the cluster. It provides an additional layer of security. This value is blank by default, meaning that no firewall file is to be used. See <<cluster_firewall_configuration>> for file format details.
 |`nifi.cluster.flow.election.max.wait.time`|Specifies the amount of time to wait before electing a Flow as the "correct" Flow. If the number of Nodes that have voted is equal to the number specified
- by the `nifi.cluster.flow.election.max.candidates` property, the cluster will not wait this long. The default value is `5 mins`. Note that the time starts as soon as the first vote is cast.
+by the `nifi.cluster.flow.election.max.candidates` property, the cluster will not wait this long. The default value is `5 mins`. Note that the time starts as soon as the first vote is cast.
 |`nifi.cluster.flow.election.max.candidates`|Specifies the number of Nodes required in the cluster to cause early election of Flows. This allows the Nodes in the cluster to avoid having to wait a
 long time before starting processing if we reach at least this number of nodes in the cluster.
 |`nifi.cluster.load.balance.port`|Specifies the port to listen on for incoming connections for load balancing data across the cluster. The default value is `6342`.
@@ -3885,17 +3896,17 @@ that is specified.
 |====
 |*Property*|*Description*
 |`nifi.kerberos.krb5.file`*|The location of the krb5 file, if used. It is blank by default. At this time, only a single krb5 file is allowed to
-    be specified per NiFi instance, so this property is configured here to support SPNEGO and service principals rather than in individual Processors.
-    If necessary the krb5 file can support multiple realms.
-    Example: `/etc/krb5.conf`
+be specified per NiFi instance, so this property is configured here to support SPNEGO and service principals rather than in individual Processors.
+If necessary the krb5 file can support multiple realms.
+Example: `/etc/krb5.conf`
 |`nifi.kerberos.service.principal`*|The name of the NiFi Kerberos service principal, if used. It is blank by default. Note that this property is for NiFi to authenticate as a client other systems.
-   Example: `nifi/nifi.example.com` or `nifi/nifi.example.com@EXAMPLE.COM`
+Example: `nifi/nifi.example.com` or `nifi/nifi.example.com@EXAMPLE.COM`
 |`nifi.kerberos.service.keytab.location`*|The file path of the NiFi Kerberos keytab, if used. It is blank by default. Note that this property is for NiFi to authenticate as a client other systems.
-  Example: `/etc/nifi.keytab`
+Example: `/etc/nifi.keytab`
 |`nifi.kerberos.spnego.principal`*|The name of the NiFi Kerberos service principal, if used. It is blank by default. Note that this property is used to authenticate NiFi users.
-   Example: `HTTP/nifi.example.com` or `HTTP/nifi.example.com@EXAMPLE.COM`
+Example: `HTTP/nifi.example.com` or `HTTP/nifi.example.com@EXAMPLE.COM`
 |`nifi.kerberos.spnego.keytab.location`*|The file path of the NiFi Kerberos keytab, if used. It is blank by default. Note that this property is used to authenticate NiFi users.
-  Example: `/etc/http-nifi.keytab`
+Example: `/etc/http-nifi.keytab`
 |`nifi.kerberos.spengo.authentication.expiration`*|The expiration duration of a successful Kerberos user authentication, if used. The default value is `12 hours`.
 |====
 
@@ -4117,12 +4128,12 @@ $ ./nifi-toolkit-1.10.0/bin/encrypt-config.sh -f /path/to/nifi/nifi-1.9.2/conf/f
 
 where:
 
-    * `-f` specifies the source _flow.xml.gz_ (nifi-1.9.2)
-    * `-g` specifies the destination _flow.xml.gz_ (nifi-1.10.0)
-    * `-s` specifies the new sensitive properties key (`new_password`)
-    * `-n` specifies the source _nifi.properties_ (nifi-1.9.2)
-    * `-o` specifies the destination _nifi.properties_ (nifi-1.10.0)
-    * `-x` tells Encrypt-Config to only process the sensitive properties
+* `-f` specifies the source _flow.xml.gz_ (nifi-1.9.2)
+* `-g` specifies the destination _flow.xml.gz_ (nifi-1.10.0)
+* `-s` specifies the new sensitive properties key (`new_password`)
+* `-n` specifies the source _nifi.properties_ (nifi-1.9.2)
+* `-o` specifies the destination _nifi.properties_ (nifi-1.10.0)
+* `-x` tells Encrypt-Config to only process the sensitive properties
 
 For more information see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the NiFi Toolkit Guide.
 
@@ -4144,8 +4155,8 @@ In your new NiFi installation:
 
 1. Start each of your new NiFi instances.
 2. Verify that:
-   * All your dataflows have returned to a running state. Some processors may have new properties that need to be configured, in which case they will be stopped and marked Invalid (image:iconAlert.png["Invalid"]).
-   * All your expected controller services and reporting tasks are running again. Address any controller services or reporting tasks that are marked Invalid (image:iconAlert.png["Invalid"]).
+* All your dataflows have returned to a running state. Some processors may have new properties that need to be configured, in which case they will be stopped and marked Invalid (image:iconAlert.png["Invalid"]).
+* All your expected controller services and reporting tasks are running again. Address any controller services or reporting tasks that are marked Invalid (image:iconAlert.png["Invalid"]).
 3. After confirming your new NiFi instances are stable and working as expected, the old installation can be removed.
 
 NOTE:  If the original NiFi was setup to run as a service, update any symlinks or service scripts to point to the new NiFi version executables.

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.dbcp.hive;
 
-import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hive.jdbc.HiveDriver;
@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
@@ -33,6 +34,7 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.dbcp.DBCPValidator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
@@ -71,6 +73,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @CapabilityDescription("Provides Database Connection Pooling Service for Apache Hive. Connections can be asked from pool and returned after usage.")
 public class HiveConnectionPool extends AbstractControllerService implements HiveDBCPService {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
+
+    private static final String DEFAULT_MAX_CONN_LIFETIME = "-1";
 
     public static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
             .name("hive-db-connect-url")
@@ -137,6 +141,18 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    public static final PropertyDescriptor MAX_CONN_LIFETIME = new PropertyDescriptor.Builder()
+            .displayName("Max Connection Lifetime")
+            .name("hive-max-conn-lifetime")
+            .description("The maximum lifetime in milliseconds of a connection. After this time is exceeded the " +
+                    "connection pool will invalidate the connection. A value of zero or -1 " +
+                    "means the connection has an infinite lifetime.")
+            .defaultValue(DEFAULT_MAX_CONN_LIFETIME)
+            .required(true)
+            .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     public static final PropertyDescriptor VALIDATION_QUERY = new PropertyDescriptor.Builder()
             .name("Validation-query")
             .displayName("Validation query")
@@ -181,6 +197,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         props.add(DB_PASSWORD);
         props.add(MAX_WAIT_TIME);
         props.add(MAX_TOTAL_CONNECTIONS);
+        props.add(MAX_CONN_LIFETIME);
         props.add(VALIDATION_QUERY);
         props.add(KERBEROS_CREDENTIALS_SERVICE);
 
@@ -335,14 +352,16 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
         final Long maxWaitMillis = context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
+        final long maxConnectionLifetimeMillis = extractMillisWithInfinite(context.getProperty(MAX_CONN_LIFETIME).evaluateAttributeExpressions());
 
         dataSource = new BasicDataSource();
         dataSource.setDriverClassName(drv);
 
         connectionUrl = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
 
-        dataSource.setMaxWait(maxWaitMillis);
-        dataSource.setMaxActive(maxTotal);
+        dataSource.setMaxWaitMillis(maxWaitMillis);
+        dataSource.setMaxTotal(maxTotal);
+        dataSource.setMaxConnLifetimeMillis(maxConnectionLifetimeMillis);
 
         if (validationQuery != null && !validationQuery.isEmpty()) {
             dataSource.setValidationQuery(validationQuery);
@@ -426,4 +445,13 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
     boolean isAllowExplicitKeytab() {
         return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
     }
+
+    private long extractMillisWithInfinite(PropertyValue prop) {
+        if (prop.getValue() == null || DEFAULT_MAX_CONN_LIFETIME.equals(prop.getValue())) {
+            return -1;
+        } else {
+            return prop.asTimePeriod(TimeUnit.MILLISECONDS);
+        }
+    }
+
 }

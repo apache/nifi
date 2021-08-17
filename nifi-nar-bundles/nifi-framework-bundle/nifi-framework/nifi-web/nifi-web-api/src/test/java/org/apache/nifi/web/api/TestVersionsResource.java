@@ -19,7 +19,7 @@ package org.apache.nifi.web.api;
 import com.google.common.collect.Sets;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.junit.Test;
 import org.junit.runner.RunWith;

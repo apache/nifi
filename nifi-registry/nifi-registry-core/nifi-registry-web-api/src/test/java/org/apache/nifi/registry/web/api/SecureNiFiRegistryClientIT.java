@@ -36,7 +36,7 @@ import org.apache.nifi.registry.client.impl.request.ProxiedEntityRequestConfig;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
 import org.junit.After;
 import org.junit.Assert;
