@@ -534,6 +534,7 @@ public final class KafkaProcessorUtils {
         }
 
         mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, jaasConfig);
+        mapToPopulate.put(SaslConfigs.SASL_LOGIN_CLASS, CustomKerberosLogin.class);
     }
 
     private static String createGssApiJaasConfig(final ProcessContext context) {
