@@ -43,6 +43,10 @@ env:
     -pl -minifi/minifi-assembly
     -pl -nifi-system-tests
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ubuntu-build-en:
     timeout-minutes: 120
