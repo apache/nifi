@@ -115,7 +115,7 @@ public class AttributesToJSON extends AbstractProcessor {
 
     public static final PropertyDescriptor NULL_VALUE_FOR_EMPTY_STRING = new PropertyDescriptor.Builder()
             .name(("Null Value"))
-            .description("If true a non existing or empty attribute will be NULL in the resulting JSON. If false an empty " +
+            .description("If true a non existing selected attribute will be NULL in the resulting JSON. If false an empty " +
                     "string will be placed in the JSON")
             .required(true)
             .allowableValues("true", "false")
