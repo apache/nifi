@@ -23,6 +23,7 @@ import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.DiagnosticUtils;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -238,7 +239,7 @@ public class NiFi implements NiFiEntryPoint {
                 LOGGER.debug("Diagnostic directory has successfully been created.");
             }
             while (DiagnosticUtils.isFileCountExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownMaxFileCount())
-                    || DiagnosticUtils.isSizeExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownDirectoryMaxSize())) {
+                    || DiagnosticUtils.isSizeExceeded(diagnosticDirectoryPath, DataUnit.parseDataSize(properties.getDiagnosticsOnShutdownDirectoryMaxSize(), DataUnit.B).longValue())) {
                 final Path oldestFile = DiagnosticUtils.getOldestFile(diagnosticDirectoryPath);
                 Files.delete(oldestFile);
             }

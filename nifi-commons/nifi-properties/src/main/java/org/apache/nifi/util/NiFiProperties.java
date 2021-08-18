@@ -313,7 +313,7 @@ public class NiFiProperties extends ApplicationProperties {
     // automatic diagnostic defaults
     public static final String DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_DIRECTORY = "./diagnostics";
     public static final int DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_MAX_FILE_COUNT = 10;
-    public static final int DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_MAX_DIRECTORY_SIZE = 100_000_000;
+    public static final String DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_MAX_DIRECTORY_SIZE = "10 MB";
 
     // defaults
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
@@ -1120,14 +1120,9 @@ public class NiFiProperties extends ApplicationProperties {
         }
     }
 
-    public int getDiagnosticsOnShutdownDirectoryMaxSize() {
-        try {
-            return Integer.parseInt(getProperty(DIAGNOSTICS_ON_SHUTDOWN_MAX_DIRECTORY_SIZE));
-        } catch (NumberFormatException e) {
-            return DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_MAX_DIRECTORY_SIZE;
-        }
+    public String getDiagnosticsOnShutdownDirectoryMaxSize() {
+        return getProperty(DIAGNOSTICS_ON_SHUTDOWN_MAX_DIRECTORY_SIZE, DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_MAX_DIRECTORY_SIZE);
     }
-
 
     /**
      * Returns whether Knox SSO is enabled.

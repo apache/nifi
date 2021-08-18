@@ -61,7 +61,7 @@ public final class DiagnosticUtils {
         return fileNames.length >= maxFileCount;
     }
 
-    public static boolean isSizeExceeded(final String diagnosticDirectoryPath, final int maxSizeInBytes) {
+    public static boolean isSizeExceeded(final String diagnosticDirectoryPath, final long maxSizeInBytes) {
         return FileUtils.getDirectorySize(Paths.get(diagnosticDirectoryPath), logger) >= maxSizeInBytes;
     }
 
