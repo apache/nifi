@@ -45,7 +45,7 @@ env:
 
 
 concurrency:
-  group: "${{ github.head_ref }}"
+  group: "${{ github.ref }}"
   cancel-in-progress: true
 
 jobs:
