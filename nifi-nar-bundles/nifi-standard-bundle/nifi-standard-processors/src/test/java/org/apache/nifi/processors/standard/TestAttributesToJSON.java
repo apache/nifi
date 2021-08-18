@@ -310,6 +310,35 @@ public class TestAttributesToJSON {
         ObjectMapper mapper = new ObjectMapper();
         Map<String, String> val = mapper.readValue(json, HashMap.class);
         assertEquals(TEST_ATTRIBUTE_VALUE, val.get(TEST_ATTRIBUTE_KEY));
+        assertEquals(TEST_ATTRIBUTE_VALUE, val.get(CoreAttributes.PATH.key()));
+        assertEquals(2, val.size());
+    }
+
+    @Test
+    public void testAttribute_noIncludeCoreAttributesRegex() throws IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
+        testRunner.setProperty(AttributesToJSON.ATTRIBUTES_REGEX, CoreAttributes.PATH.key() + ".*");
+        testRunner.setProperty(AttributesToJSON.INCLUDE_CORE_ATTRIBUTES, "false");
+
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+        ff = session.putAttribute(ff, TEST_ATTRIBUTE_KEY, TEST_ATTRIBUTE_VALUE);
+        ff = session.putAttribute(ff, CoreAttributes.PATH.key(), TEST_ATTRIBUTE_VALUE);
+
+        testRunner.enqueue(ff);
+        testRunner.run();
+
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+                .assertAttributeExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+        testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
+
+        String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
+                .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, String> val = mapper.readValue(json, HashMap.class);
+        assertEquals(TEST_ATTRIBUTE_VALUE, val.get(CoreAttributes.PATH.key()));
         assertEquals(1, val.size());
     }
 
