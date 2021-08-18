@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.Optional;
+import java.util.function.ToLongFunction;
 import java.util.stream.Stream;
 
 public final class DiagnosticUtils {
@@ -62,7 +62,7 @@ public final class DiagnosticUtils {
     }
 
     public static boolean isSizeExceeded(final String diagnosticDirectoryPath, final long maxSizeInBytes) {
-        return FileUtils.getDirectorySize(Paths.get(diagnosticDirectoryPath), logger) >= maxSizeInBytes;
+        return getDirectorySize(Paths.get(diagnosticDirectoryPath)) >= maxSizeInBytes;
     }
 
 
@@ -71,4 +71,28 @@ public final class DiagnosticUtils {
         return file.mkdir();
     }
 
+    private static long getDirectorySize(Path path) {
+        long size = 0;
+        try (Stream<Path> walk = Files.walk(path)) {
+            size = walk
+                    .filter(Files::isRegularFile)
+                    .mapToLong(getFileSizeByPathFunction())
+                    .sum();
+
+        } catch (IOException e) {
+            logger.error("Directory [{}] size calculation failed", path, e);
+        }
+        return size;
+    }
+
+    private static ToLongFunction<Path> getFileSizeByPathFunction() {
+        return path -> {
+            try {
+                return Files.size(path);
+            } catch (IOException e) {
+                logger.error("Failed to get size of file {}", path, e);
+                return 0L;
+            }
+        };
+    }
 }

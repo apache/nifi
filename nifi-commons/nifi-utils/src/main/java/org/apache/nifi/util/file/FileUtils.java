@@ -36,11 +36,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
-import java.util.function.ToLongFunction;
-import java.util.stream.Stream;
 
 /**
  * A utility class containing a few useful static methods to do typical IO operations.
+ *
  */
 public class FileUtils {
 
@@ -567,7 +566,6 @@ public class FileUtils {
 
     /**
      * Returns the capacity for a given path
-     *
      * @param path path
      * @return total space
      */
@@ -577,43 +575,11 @@ public class FileUtils {
 
     /**
      * Returns the free capacity for a given path
-     *
      * @param path path
      * @return usable space
      */
     public static long getContainerUsableSpace(final Path path) {
         return path.toFile().getUsableSpace();
-    }
-
-    /**
-     * Returns the size for a given directory.
-     * @param path directory path
-     * @param logger logger
-     * @return the size in bytes
-     */
-    public static long getDirectorySize(Path path, final Logger logger) {
-        long size = 0;
-        try (Stream<Path> walk = Files.walk(path)) {
-            size = walk
-                    .filter(Files::isRegularFile)
-                    .mapToLong(getFileSizeByPathFunction(logger))
-                    .sum();
-
-        } catch (IOException e) {
-            logger.error("Directory [{}] size calculation failed", path, e);
-        }
-        return size;
-    }
-
-    private static ToLongFunction<Path> getFileSizeByPathFunction(final Logger logger) {
-        return path -> {
-            try {
-                return Files.size(path);
-            } catch (IOException e) {
-                logger.error("Failed to get size of file {}", path, e);
-                return 0L;
-            }
-        };
     }
 
 }

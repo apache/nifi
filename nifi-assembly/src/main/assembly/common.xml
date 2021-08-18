@@ -29,7 +29,6 @@
                 <include>slf4j-api</include>
                 <include>logback-classic</include>
                 <include>nifi-api</include>
-                <include>nifi-utils</include>
             </includes>
         </dependencySet>
 
