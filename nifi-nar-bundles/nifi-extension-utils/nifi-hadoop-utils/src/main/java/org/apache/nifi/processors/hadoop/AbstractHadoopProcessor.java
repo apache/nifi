@@ -476,7 +476,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         return new HdfsResources(config, fs, ugi, kerberosUser);
     }
 
-    private KerberosUser getKerberosUser(final ProcessContext context) throws IOException {
+    private KerberosUser getKerberosUser(final ProcessContext context) {
         // Check Kerberos User Service first, if present then get the KerberosUser from the service
         // The customValidate method ensures that KerberosUserService can't be set at the same time as the credentials service or explicit properties
         final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
@@ -502,7 +502,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         } else if (password != null) {
             return new KerberosPasswordUser(principal, password);
         } else {
-            throw new IOException("Unable to authenticate with Kerberos, no keytab or password was provided");
+            throw new IllegalStateException("Unable to authenticate with Kerberos, no keytab or password was provided");
         }
     }
 
