@@ -51,7 +51,7 @@ public class KerberosTicketCacheUserService extends AbstractKerberosUserService 
             .required(true)
             .build();
 
-    private volatile String ticketCache;
+    private volatile String ticketCacheFile;
 
     @Override
     protected List<PropertyDescriptor> getAdditionalProperties() {
@@ -60,12 +60,12 @@ public class KerberosTicketCacheUserService extends AbstractKerberosUserService 
 
     @Override
     protected void setAdditionalConfiguredValues(final ConfigurationContext context) {
-        this.ticketCache = context.getProperty(TICKET_CACHE_FILE).evaluateAttributeExpressions().getValue();
+        this.ticketCacheFile = context.getProperty(TICKET_CACHE_FILE).evaluateAttributeExpressions().getValue();
     }
 
     @Override
     public KerberosUser createKerberosUser() {
-        return new KerberosTicketCacheUser(getPrincipal(), ticketCache);
+        return new KerberosTicketCacheUser(getPrincipal(), ticketCacheFile);
     }
 
 }

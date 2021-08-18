@@ -230,7 +230,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             } else {
                 final boolean securityEnabled = SecurityUtil.isSecurityEnabled(conf);
                 if (!securityEnabled) {
-                    getLogger().warn("Configuration does not have security enabled, KerberosUserService will be ignored");
+                    getLogger().warn("Hadoop Configuration does not have security enabled, KerberosUserService will be ignored");
                 }
             }
 
@@ -263,7 +263,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             results.add(new ValidationResult.Builder()
                     .subject("Kerberos User")
                     .valid(false)
-                    .explanation("Cannot specify a Kerberos User Service while also specifying a Kerberos Credential Service")
+                    .explanation("Cannot specify a Kerberos User Service while also specifying a Kerberos Credentials Service")
                     .build());
         }
 
@@ -361,7 +361,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 try {
                     kerberosUser.logout();
                 } catch (LoginException e) {
-                    getLogger().warn("Error logging out KerberosUser: " + e.getMessage(), e);
+                    getLogger().warn("Error logging out KerberosUser: {}", e.getMessage(), e);
                 }
             }
 

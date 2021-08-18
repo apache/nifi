@@ -131,7 +131,7 @@ public class TestConsumeKafka_2_6 {
         runner.assertValid();
 
         final KerberosUserService kerberosUserService = enableKerberosUserService(runner);
-        runner.setProperty(KafkaProcessorUtils.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        runner.setProperty(KafkaProcessorUtils.SELF_CONTAINED_KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
         runner.assertNotValid();
 
         runner.removeProperty(KafkaProcessorUtils.USER_PRINCIPAL);
@@ -142,7 +142,7 @@ public class TestConsumeKafka_2_6 {
         runner.setProperty(KafkaProcessorUtils.KERBEROS_CREDENTIALS_SERVICE, kerberosCredentialsService.getIdentifier());
         runner.assertNotValid();
 
-        runner.removeProperty(KafkaProcessorUtils.KERBEROS_USER_SERVICE);
+        runner.removeProperty(KafkaProcessorUtils.SELF_CONTAINED_KERBEROS_USER_SERVICE);
         runner.assertValid();
     }
 

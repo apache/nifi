@@ -21,6 +21,4 @@
         <version>1.15.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-security-kerberos-api</artifactId>
-    <dependencies>
-    </dependencies>
 </project>

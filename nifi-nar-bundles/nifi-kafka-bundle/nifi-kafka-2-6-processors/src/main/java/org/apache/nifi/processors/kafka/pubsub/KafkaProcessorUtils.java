@@ -203,7 +203,7 @@ public final class KafkaProcessorUtils {
         .identifiesControllerService(KerberosCredentialsService.class)
         .required(false)
         .build();
-    public static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SELF_CONTAINED_KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
             .name("kerberos-user-service")
             .displayName("Kerberos User Service")
             .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
@@ -220,6 +220,8 @@ public final class KafkaProcessorUtils {
         .defaultValue(FAILURE_STRATEGY_FAILURE_RELATIONSHIP.getValue())
         .build();
 
+    public static final String JAVA_SECURITY_AUTH_LOGIN_CONFIG = "java.security.auth.login.config";
+
     static List<PropertyDescriptor> getCommonPropertyDescriptors() {
         return Arrays.asList(
                 BOOTSTRAP_SERVERS,
@@ -227,7 +229,7 @@ public final class KafkaProcessorUtils {
                 SASL_MECHANISM,
                 JAAS_SERVICE_NAME,
                 KERBEROS_CREDENTIALS_SERVICE,
-                KERBEROS_USER_SERVICE,
+                SELF_CONTAINED_KERBEROS_USER_SERVICE,
                 USER_PRINCIPAL,
                 USER_KEYTAB,
                 USERNAME,
@@ -243,7 +245,7 @@ public final class KafkaProcessorUtils {
         final String securityProtocol = validationContext.getProperty(SECURITY_PROTOCOL).getValue();
         final String saslMechanism = validationContext.getProperty(SASL_MECHANISM).getValue();
 
-        final KerberosUserService kerberosUserService = validationContext.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+        final KerberosUserService kerberosUserService = validationContext.getProperty(SELF_CONTAINED_KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
 
         final String explicitPrincipal = validationContext.getProperty(USER_PRINCIPAL).evaluateAttributeExpressions().getValue();
         final String explicitKeytab = validationContext.getProperty(USER_KEYTAB).evaluateAttributeExpressions().getValue();
@@ -315,7 +317,7 @@ public final class KafkaProcessorUtils {
                     .build());
             }
 
-            final String jvmJaasConfigFile = System.getProperty("java.security.auth.login.config");
+            final String jvmJaasConfigFile = System.getProperty(JAVA_SECURITY_AUTH_LOGIN_CONFIG);
             if (kerberosUserService == null && resolvedPrincipal == null && resolvedKeytab == null && StringUtils.isBlank(jvmJaasConfigFile)) {
                 results.add(new ValidationResult.Builder()
                         .subject("Kerberos Credentials")
@@ -524,7 +526,7 @@ public final class KafkaProcessorUtils {
     }
 
     private static void setGssApiJaasConfig(final Map<String, Object> mapToPopulate, final ProcessContext context) {
-        final SelfContainedKerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(SelfContainedKerberosUserService.class);
+        final SelfContainedKerberosUserService kerberosUserService = context.getProperty(SELF_CONTAINED_KERBEROS_USER_SERVICE).asControllerService(SelfContainedKerberosUserService.class);
 
         final String jaasConfig;
         if (kerberosUserService == null) {

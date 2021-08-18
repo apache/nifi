@@ -56,6 +56,11 @@ public abstract class AbstractKerberosUser implements KerberosUser {
      */
     static final float TICKET_RENEW_WINDOW = 0.80f;
 
+    /**
+     * The name of the configuration entry to use from the Configuration instance.
+     */
+    static final String KERBEROS_USER_CONFIG_ENTRY = "KerberosUser";
+
     protected final String principal;
     protected final AtomicBoolean loggedIn = new AtomicBoolean(false);
 
@@ -89,7 +94,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
                 }
 
                 // the Configuration implementations have only one config entry and always return it regardless of the passed in name
-                this.loginContext = new LoginContext("KerberosUser", subject, createCallbackHandler(), createConfiguration());
+                this.loginContext = new LoginContext(KERBEROS_USER_CONFIG_ENTRY, subject, createCallbackHandler(), createConfiguration());
             }
 
             loginContext.login();
@@ -258,9 +263,9 @@ public abstract class AbstractKerberosUser implements KerberosUser {
     }
 
     private long getRefreshTime(final KerberosTicket tgt) {
-        long start = tgt.getStartTime().getTime();
-        long end = tgt.getEndTime().getTime();
-        long renewUntil = tgt.getRenewTill().getTime();
+        final long start = tgt.getStartTime().getTime();
+        final long end = tgt.getEndTime().getTime();
+        final long renewUntil = tgt.getRenewTill().getTime();
 
         if (LOGGER.isTraceEnabled()) {
             final SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);

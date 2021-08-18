@@ -53,7 +53,7 @@ import java.util.Set;
 public class CustomKerberosLogin extends AbstractLogin {
     private static final Logger log = LoggerFactory.getLogger(CustomKerberosLogin.class);
 
-    private Thread t;
+    private Thread refreshThread;
     private boolean isKrbTicket;
 
     private String principal;
@@ -99,13 +99,13 @@ public class CustomKerberosLogin extends AbstractLogin {
 
         if (!isKrbTicket) {
             log.debug("[Principal={}]: It is not a Kerberos ticket", principal);
-            t = null;
+            refreshThread = null;
             // if no TGT, do not bother with ticket management.
             return loginContext;
         }
         log.debug("[Principal={}]: It is a Kerberos ticket", principal);
 
-        t = KafkaThread.daemon(String.format("kafka-kerberos-refresh-thread-%s", principal), () -> {
+        refreshThread = KafkaThread.daemon(String.format("kafka-kerberos-refresh-thread-%s", principal), () -> {
             log.info("[Principal={}]: TGT refresh thread started, minTimeBeforeRelogin = {}", principal, minTimeBeforeRelogin);
             while (true) {
                 try {
@@ -121,16 +121,16 @@ public class CustomKerberosLogin extends AbstractLogin {
                 }
             }
         });
-        t.start();
+        refreshThread.start();
         return loginContext;
     }
 
     @Override
     public void close() {
-        if ((t != null) && (t.isAlive())) {
-            t.interrupt();
+        if ((refreshThread != null) && (refreshThread.isAlive())) {
+            refreshThread.interrupt();
             try {
-                t.join();
+                refreshThread.join();
             } catch (InterruptedException e) {
                 log.warn("[Principal={}]: Error while waiting for Login thread to shutdown.", principal, e);
                 Thread.currentThread().interrupt();
@@ -182,10 +182,12 @@ public class CustomKerberosLogin extends AbstractLogin {
             throw new IllegalArgumentException(message);
         }
 
-        if (jaasServiceName != null)
+        if (jaasServiceName != null) {
             return jaasServiceName;
-        if (configServiceName != null)
+        }
+        if (configServiceName != null) {
             return configServiceName;
+        }
 
         throw new IllegalArgumentException("No serviceName defined in either JAAS or Kafka config");
     }
@@ -206,7 +208,8 @@ public class CustomKerberosLogin extends AbstractLogin {
         Set<KerberosTicket> tickets = subject.getPrivateCredentials(KerberosTicket.class);
         for (KerberosTicket ticket : tickets) {
             KerberosPrincipal server = ticket.getServer();
-            if (server.getName().equals("krbtgt/" + server.getRealm() + "@" + server.getRealm())) {
+            final String expectedServerName = String.format("krbtgt/%s@%s", server.getRealm(), server.getRealm());
+            if (server.getName().equals(expectedServerName)) {
                 log.debug("Found TGT with client principal '{}' and server principal '{}'.", ticket.getClient().getName(),
                         ticket.getServer().getName());
                 return ticket;
