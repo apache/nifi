@@ -212,10 +212,7 @@ public class AttributesToJSON extends AbstractProcessor {
             if (ats != null) {
                 Set<String> result = new HashSet<>(ats.length);
                 for (String str : ats) {
-                    String trim = str.trim();
-                    if (!atrsToExclude.contains(trim)) {
-                        result.add(trim);
-                    }
+                    result.add(str.trim());
                 }
                 return result;
             }
