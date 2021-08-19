@@ -1423,7 +1423,38 @@ public class DataTypeUtils {
             }
         }
 
+        if ("oracle.sql.TIMESTAMP".equals(value.getClass().getName())) {
+            return toTimestampForOracle(value.toString(), fieldName);
+        }
+
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Timestamp for field " + fieldName);
+    }
+
+    public static Timestamp toTimestampForOracle(String orcTimestamp, final String fieldName) {
+        // support Oracle TIMESTAMP, maybe loss accuracy
+        String orcFormat = "yyyy-MM-dd HH:mm:ss.SSS";
+        DateFormat dateFormat = getDateFormat(orcFormat);
+        if (orcTimestamp.length() > orcFormat.length()) {
+            orcTimestamp = orcTimestamp.substring(0, orcTimestamp.indexOf(".") + 4);
+        }
+        if (orcTimestamp.length() < orcFormat.length()) {
+            if (orcTimestamp.length() == 19) {
+                orcTimestamp += ".";
+            }
+            int supplement = orcFormat.length() - orcTimestamp.length();
+            while (supplement > 0) {
+                orcTimestamp += '0';
+                supplement -- ;
+            }
+        }
+        try {
+            final java.util.Date utilDate = dateFormat.parse(orcTimestamp);
+            return new Timestamp(utilDate.getTime());
+        } catch (ParseException e) {
+            throw new IllegalTypeConversionException("Could not convert value [" + orcTimestamp
+                    + "] of Oracle DB to Timestamp for field " + fieldName + " because the value is not in the expected date format: "
+                    + orcFormat);
+        }
     }
 
     public static boolean isTimestampTypeCompatible(final Object value, final String format) {
