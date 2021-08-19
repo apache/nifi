@@ -43,7 +43,7 @@
                 <exclude>swagger-annotations</exclude>
                 <exclude>aspectjweaver</exclude>
                 <exclude>h2</exclude>
-                <exclude>jaxb-impl</exclude>
+                <exclude>jaxb-runtime</exclude>
                 <exclude>mail</exclude>
                 <exclude>log4j</exclude>
                 <exclude>lucene-queryparser</exclude>
