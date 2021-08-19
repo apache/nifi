@@ -333,10 +333,12 @@ public class StandardExtensionService implements ExtensionService {
             extensionEntity.setId(UUID.randomUUID().toString());
             extensionEntity.setBundleVersionId(versionEntity.getId());
 
-            extensionEntity.getRestrictions().forEach(r -> {
-                r.setId(UUID.randomUUID().toString());
-                r.setExtensionId(extensionEntity.getId());
-            });
+            if (extensionEntity.getRestrictions() != null) {
+                extensionEntity.getRestrictions().forEach(r -> {
+                    r.setId(UUID.randomUUID().toString());
+                    r.setExtensionId(extensionEntity.getId());
+                });
+            }
 
             extensionEntity.getProvidedServiceApis().forEach(p -> {
                 p.setId(UUID.randomUUID().toString());
