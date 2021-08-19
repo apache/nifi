@@ -17,6 +17,10 @@
 
 if (record.getValue("first") == 1) {
    return "partition1";
-} else {
+} else if (record.getValue("first") == 2) {
    return "partition2";
+} else if (record.getValue("first") == 3) {
+   return 3;
+} else {
+   return null;
 }

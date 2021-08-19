@@ -122,12 +122,6 @@ public class ScriptedPartitionRecord extends ScriptedRecordProcessor {
         }
 
         final ScriptRunner scriptRunner = pollScriptRunner();
-        if (scriptRunner == null) {
-            // This shouldn't happen. But just in case.
-            session.rollback();
-            return;
-        }
-
         boolean success = false;
 
         try {
@@ -182,24 +176,20 @@ public class ScriptedPartitionRecord extends ScriptedRecordProcessor {
                             final Object evaluatedValue = evaluator.evaluate(record, index++);
                             getLogger().debug("Evaluated scripted against {} (index {}), producing result of {}", record, index - 1, evaluatedValue);
 
-                            if (evaluatedValue != null && evaluatedValue instanceof String) {
-                                final String partition = (String) evaluatedValue;
+                            final String partition = (evaluatedValue == null) ? null : evaluatedValue.toString();
+                            RecordSetWriter writer = recordSetWriters.get(partition);
 
-                                if (!outgoingFlowFiles.containsKey(partition)) {
-                                    final FlowFile outgoingFlowFile = session.create(incomingFlowFile);
-                                    final OutputStream out = session.write(outgoingFlowFile);
-                                    final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, outgoingFlowFile);
+                            if (writer == null) {
+                                final FlowFile outgoingFlowFile = session.create(incomingFlowFile);
+                                final OutputStream out = session.write(outgoingFlowFile);
+                                writer = writerFactory.createWriter(getLogger(), schema, out, outgoingFlowFile);
 
-                                    writer.beginRecordSet();
-                                    outgoingFlowFiles.put(partition, outgoingFlowFile);
-                                    recordSetWriters.put(partition, writer);
-                                }
-
-                                recordSetWriters.get(partition).write(record);
-                            } else {
-                                throw new ProcessException("Script returned a value of " + evaluatedValue
-                                        + " but this Processor requires that the object returned be an instance of String");
+                                writer.beginRecordSet();
+                                outgoingFlowFiles.put(partition, outgoingFlowFile);
+                                recordSetWriters.put(partition, writer);
                             }
+
+                            writer.write(record);
                         }
 
                         // Sending outgoing flow files
@@ -238,7 +228,7 @@ public class ScriptedPartitionRecord extends ScriptedRecordProcessor {
 
             return true;
         } catch (final Exception e) {
-            getLogger().error("Error during routing records", e);
+            getLogger().error("Failed to route records for {}", incomingFlowFile, e);
             return false;
         }
     }

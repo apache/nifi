@@ -22,16 +22,22 @@ import org.apache.nifi.util.MockFlowFile;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class TestScriptedPartitionRecord extends TestScriptedRouterProcessor {
+    private static final String PARTITION_ATTRIBUTE = "partition";
     private static final Object[] PARTITION_1_RECORD_1 = new Object[] {1, "lorem"};
     private static final Object[] PARTITION_1_RECORD_2 = new Object[] {1, "ipsum"};
     private static final Object[] PARTITION_2_RECORD_1 = new Object[] {2, "lorem"};
+    private static final Object[] PARTITION_3_RECORD_1 = new Object[] {3, "lorem"};
+    private static final Object[] PARTITION_4_RECORD_1 = new Object[] {4, "lorem"};
     private static final String PARTITION_1 = "partition1";
     private static final String PARTITION_2 = "partition2";
+    private static final Integer PARTITION_3 = 3;
+    private static final String PARTITION_4 = null;
 
     @Test
     public void testIncomingFlowFileContainsNoRecords() {
@@ -89,6 +95,34 @@ public class TestScriptedPartitionRecord extends TestScriptedRouterProcessor {
         thenPartitionContains(PARTITION_1, 1, 2, PARTITION_1_RECORD_1, PARTITION_1_RECORD_2);
     }
 
+    @Test
+    public void testWhenPartitionIsNotString() {
+        // given
+        recordReader.addRecord(PARTITION_4_RECORD_1);
+
+        // when
+        whenTriggerProcessor();
+        thenIncomingFlowFileIsRoutedToOriginal();
+
+        // then
+        thenTheFollowingPartitionsExists(PARTITION_4);
+        thenPartitionContains(PARTITION_4, 0, 1, PARTITION_4_RECORD_1);
+    }
+
+    @Test
+    public void testWhenPartitionIsNull() {
+        // given
+        recordReader.addRecord(PARTITION_3_RECORD_1);
+
+        // when
+        whenTriggerProcessor();
+        thenIncomingFlowFileIsRoutedToOriginal();
+
+        // then
+        thenTheFollowingPartitionsExists(PARTITION_3.toString());
+        thenPartitionContains(PARTITION_3.toString(), 0, 1, PARTITION_3_RECORD_1);
+    }
+
     private void thenNoPartitionExists() {
         Assert.assertEquals(0, testRunner.getFlowFilesForRelationship(ScriptedPartitionRecord.RELATIONSHIP_SUCCESS).size());
     }
@@ -98,7 +132,7 @@ public class TestScriptedPartitionRecord extends TestScriptedRouterProcessor {
 
         Assert.assertEquals(partitions.length, outgoingFlowFiles.size());
 
-        final Set<String> outgoingPartitions = outgoingFlowFiles.stream().map(ff -> ff.getAttribute("partition")).collect(Collectors.toSet());
+        final Set<String> outgoingPartitions = outgoingFlowFiles.stream().map(ff -> ff.getAttribute(PARTITION_ATTRIBUTE)).collect(Collectors.toSet());
 
         for (final String partition : partitions) {
             Assert.assertTrue(outgoingPartitions.contains(partition));
@@ -106,8 +140,18 @@ public class TestScriptedPartitionRecord extends TestScriptedRouterProcessor {
     }
 
     private void thenPartitionContains(final String partition, int index, int count, final Object[]... records) {
-        final Set<MockFlowFile> outgoingFlowFiles = testRunner.getFlowFilesForRelationship(ScriptedPartitionRecord.RELATIONSHIP_SUCCESS)
-                .stream().filter(ff -> ff.getAttribute("partition").equals(partition)).collect(Collectors.toSet());
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ScriptedPartitionRecord.RELATIONSHIP_SUCCESS);
+        Set<MockFlowFile> outgoingFlowFiles = new HashSet<>();
+
+        for (final MockFlowFile flowFile : flowFiles) {
+            // If the partition is deliberately <code>null</code>, we also check if the attribute is added to the collection of attributes.
+            // This is in order to differentiate from the situation where the "partition" attribute is not added at all.
+            if (partition == null && flowFile.getAttributes().containsKey(PARTITION_ATTRIBUTE) && flowFile.getAttribute(PARTITION_ATTRIBUTE) == null) {
+                outgoingFlowFiles.add(flowFile);
+            } else if (flowFile.getAttribute(PARTITION_ATTRIBUTE).equals(partition)) {
+                outgoingFlowFiles.add(flowFile);
+            }
+        }
 
         Assert.assertEquals(1, outgoingFlowFiles.size());
         final MockFlowFile resultFlowFile = outgoingFlowFiles.iterator().next();

@@ -111,11 +111,6 @@ public class ScriptedTransformRecord extends ScriptedRecordProcessor {
         }
 
         final ScriptRunner scriptRunner = pollScriptRunner();
-        if (scriptRunner == null) {
-            // This shouldn't happen. But just in case.
-            session.rollback();
-            return;
-        }
 
         try {
             final ScriptEvaluator evaluator;

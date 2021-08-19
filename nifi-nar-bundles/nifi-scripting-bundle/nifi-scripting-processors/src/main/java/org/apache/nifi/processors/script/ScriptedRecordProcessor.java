@@ -24,6 +24,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.search.SearchContext;
@@ -159,7 +160,14 @@ abstract class ScriptedRecordProcessor extends AbstractProcessor implements Sear
     }
 
     protected ScriptRunner pollScriptRunner() {
-        return scriptingComponentHelper.scriptRunnerQ.poll();
+        final ScriptRunner scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
+
+        // This shouldn't happen. But just in case.
+        if (scriptRunner == null) {
+            throw new ProcessException("Could not acquire script runner!");
+        }
+
+        return scriptRunner;
     }
 
     protected void offerScriptRunner(ScriptRunner scriptRunner) {

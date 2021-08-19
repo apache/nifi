@@ -90,12 +90,6 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedRecordProcessor
         }
 
         final ScriptRunner scriptRunner = pollScriptRunner();
-        if (scriptRunner == null) {
-            // This shouldn't happen. But just in case.
-            session.rollback();
-            return;
-        }
-
         boolean success = false;
 
         try {
@@ -204,7 +198,7 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedRecordProcessor
 
             return true;
         } catch (final Exception e) {
-            getLogger().error("Error during routing records", e);
+            getLogger().error("Failed to route records for {}", incomingFlowFile, e);
             return false;
         }
     }
