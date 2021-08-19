@@ -73,13 +73,11 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         searchValueDto.setInverse(false);
 
         final Map<SearchableField, ProvenanceSearchValueDTO> searchTerms = Collections.singletonMap(SearchableFields.ComponentID, searchValueDto);
-        ProvenanceEntity provenanceEntity = getClientUtil().queryProvenance(searchTerms, null, null);
-        assertEquals(0, provenanceEntity.getProvenance().getResults().getProvenanceEvents().size());
 
         // Wait for there to be at least 1 event.
         waitForEventCountAtLeast(searchTerms, 1);
 
-        provenanceEntity = getClientUtil().queryProvenance(searchTerms, null, null);
+        ProvenanceEntity provenanceEntity = getClientUtil().queryProvenance(searchTerms, null, null);
 
         final List<ProvenanceEventDTO> events = provenanceEntity.getProvenance().getResults().getProvenanceEvents();
         assertEquals(1, events.size());
