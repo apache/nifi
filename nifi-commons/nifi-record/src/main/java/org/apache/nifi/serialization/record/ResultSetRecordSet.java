@@ -136,10 +136,17 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
 
         for (final RecordField field : schema.getFields()) {
             final String fieldName = field.getFieldName();
-
-            final Object value;
+            RecordFieldType fieldType = field.getDataType().getFieldType();
+            Object value;
             if (rsColumnNames.contains(fieldName)) {
-                value = normalizeValue(rs.getObject(fieldName));
+                switch (fieldType) {
+                    case TIMESTAMP:
+                        value = rs.getTimestamp(fieldName);
+                        break;
+                    default:
+                        value = rs.getObject(fieldName);
+                }
+                value = normalizeValue(value);
             } else {
                 value = null;
             }
