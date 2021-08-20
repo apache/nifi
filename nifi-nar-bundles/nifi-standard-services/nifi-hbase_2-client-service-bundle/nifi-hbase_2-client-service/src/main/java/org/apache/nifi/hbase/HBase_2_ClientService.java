@@ -63,6 +63,7 @@ import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
@@ -104,6 +105,14 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         .identifiesControllerService(KerberosCredentialsService.class)
         .required(false)
         .build();
+
+    static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
+            .name("kerberos-user-service")
+            .displayName("Kerberos User Service")
+            .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
+            .identifiesControllerService(KerberosUserService.class)
+            .required(false)
+            .build();
 
     static final PropertyDescriptor HADOOP_CONF_FILES = new PropertyDescriptor.Builder()
         .name("Hadoop Configuration Files")
@@ -184,6 +193,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
 
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(HADOOP_CONF_FILES);
+        props.add(KERBEROS_USER_SERVICE);
         props.add(KERBEROS_CREDENTIALS_SERVICE);
         props.add(kerberosProperties.getKerberosPrincipal());
         props.add(kerberosProperties.getKerberosKeytab());
@@ -232,6 +242,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
         final String explicitPassword = validationContext.getProperty(kerberosProperties.getKerberosPassword()).getValue();
         final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        final KerberosUserService kerberosUserService = validationContext.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
 
         final String resolvedPrincipal;
         final String resolvedKeytab;
@@ -267,9 +278,15 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
             }
 
             final Configuration hbaseConfig = resources.getConfiguration();
-
-            problems.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(getClass().getSimpleName(), hbaseConfig,
-                    resolvedPrincipal, resolvedKeytab, explicitPassword, getLogger()));
+            if (kerberosUserService == null) {
+                problems.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(getClass().getSimpleName(), hbaseConfig,
+                        resolvedPrincipal, resolvedKeytab, explicitPassword, getLogger()));
+            } else {
+                final boolean securityEnabled = SecurityUtil.isSecurityEnabled(hbaseConfig);
+                if (!securityEnabled) {
+                    getLogger().warn("Hadoop Configuration does not have security enabled, KerberosUserService will be ignored");
+                }
+            }
         }
 
         if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null || explicitPassword != null)) {
@@ -278,6 +295,22 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
                 .valid(false)
                 .explanation("Cannot specify a Kerberos Credentials Service while also specifying a Kerberos Principal, Kerberos Keytab, or Kerberos Password")
                 .build());
+        }
+
+        if (kerberosUserService != null && (explicitPrincipal != null || explicitKeytab != null || explicitPassword != null)) {
+            problems.add(new ValidationResult.Builder()
+                    .subject("Kerberos User")
+                    .valid(false)
+                    .explanation("Cannot specify a Kerberos User Service while also specifying a Kerberos Principal, Kerberos Keytab, or Kerberos Password")
+                    .build());
+        }
+
+        if (kerberosUserService != null && credentialsService != null) {
+            problems.add(new ValidationResult.Builder()
+                    .subject("Kerberos User")
+                    .valid(false)
+                    .explanation("Cannot specify a Kerberos User Service while also specifying a Kerberos Credentials Service")
+                    .build());
         }
 
         if (!isAllowExplicitKeytab() && explicitKeytab != null) {
@@ -359,43 +392,45 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         }
 
         if (SecurityUtil.isSecurityEnabled(hbaseConfig)) {
-            String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
-            String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
-            String password = context.getProperty(kerberosProperties.getKerberosPassword()).getValue();
-
-            // If the Kerberos Credentials Service is specified, we need to use its configuration, not the explicit properties for principal/keytab.
-            // The customValidate method ensures that only one can be set, so we know that the principal & keytab above are null.
-            final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-            if (credentialsService != null) {
-                principal = credentialsService.getPrincipal();
-                keyTab = credentialsService.getKeytab();
-            }
-
-            if (keyTab != null) {
-                kerberosUserReference.set(new KerberosKeytabUser(principal, keyTab));
-                getLogger().info("HBase Security Enabled, logging in as principal {} with keytab {}", new Object[] {principal, keyTab});
-            } else if (password != null) {
-                kerberosUserReference.set(new KerberosPasswordUser(principal, password));
-                getLogger().info("HBase Security Enabled, logging in as principal {} with password", new Object[] {principal});
-            } else {
-                throw new IOException("Unable to authenticate with Kerberos, no keytab or password was provided");
-            }
-
-            ugi = SecurityUtil.getUgiForKerberosUser(hbaseConfig, kerberosUserReference.get());
-            getLogger().info("Successfully logged in as principal " + principal);
-
-            return getUgi().doAs(new PrivilegedExceptionAction<Connection>() {
-                @Override
-                public Connection run() throws Exception {
-                    return ConnectionFactory.createConnection(hbaseConfig);
-                }
-            });
-
+            getLogger().debug("HBase Security Enabled, creating KerberosUser");
+            final KerberosUser kerberosUser = createKerberosUser(context);
+            ugi = SecurityUtil.getUgiForKerberosUser(hbaseConfig, kerberosUser);
+            kerberosUserReference.set(kerberosUser);
+            getLogger().info("Successfully logged in as principal {}", kerberosUser.getPrincipal());
+            return getUgi().doAs((PrivilegedExceptionAction<Connection>)() ->  ConnectionFactory.createConnection(hbaseConfig));
         } else {
-            getLogger().info("Simple Authentication");
+            getLogger().debug("Simple Authentication");
             return ConnectionFactory.createConnection(hbaseConfig);
         }
+    }
 
+    protected KerberosUser createKerberosUser(final ConfigurationContext context) {
+        // Check Kerberos User Service first, if present then get the KerberosUser from the service
+        // The customValidate method ensures that KerberosUserService can't be set at the same time as the credentials service or explicit properties
+        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+        if (kerberosUserService != null) {
+            return kerberosUserService.createKerberosUser();
+        }
+
+        String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+        String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+        String password = context.getProperty(kerberosProperties.getKerberosPassword()).getValue();
+
+        // If the Kerberos Credentials Service is specified, we need to use its configuration, not the explicit properties for principal/keytab.
+        // The customValidate method ensures that only one can be set, so we know that the principal & keytab above are null.
+        final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        if (credentialsService != null) {
+            principal = credentialsService.getPrincipal();
+            keyTab = credentialsService.getKeytab();
+        }
+
+        if (keyTab != null) {
+            return new KerberosKeytabUser(principal, keyTab);
+        } else if (password != null) {
+            return new KerberosPasswordUser(principal, password);
+        } else {
+            throw new IllegalStateException("Unable to authenticate with Kerberos, no keytab or password was provided");
+        }
     }
 
     protected Configuration getConfigurationFromFiles(final String configFiles) {
@@ -413,8 +448,20 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         if (connection != null) {
             try {
                 connection.close();
-            } catch (final IOException ioe) {
-                getLogger().warn("Failed to close connection to HBase due to {}", new Object[]{ioe});
+            } catch (final Exception e) {
+                getLogger().warn("HBase connection close failed", e);
+            }
+        }
+
+        final KerberosUser kerberosUser = kerberosUserReference.get();
+        if (kerberosUser != null) {
+            try {
+                kerberosUser.logout();
+            } catch (final Exception e) {
+                getLogger().warn("KeberosUser Logout Failed", e);
+            } finally {
+                ugi = null;
+                kerberosUserReference.set(null);
             }
         }
     }
@@ -891,6 +938,8 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
     }
 
     UserGroupInformation getUgi() throws IOException {
+        getLogger().trace("getting UGI instance");
+        // if there is a KerberosUser associated with UGI, call checkTGTAndRelogin to ensure UGI's underlying Subject has a valid ticket
         SecurityUtil.checkTGTAndRelogin(getLogger(), kerberosUserReference.get());
         return ugi;
     }

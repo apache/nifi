@@ -32,6 +32,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.krb.KerberosLoginException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -221,9 +222,11 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             try {
                 clientService.put(entry.getKey(), entry.getValue());
                 successes.addAll(entry.getValue());
-            } catch (Exception e) {
+            } catch (final KerberosLoginException kle) {
+                getLogger().error("Failed to connect to HBase due to {}: Rolling back session, and penalizing flow files", kle, kle);
+                session.rollback(true);
+            } catch (final Exception e) {
                 getLogger().error(e.getMessage(), e);
-
                 for (PutFlowFile putFlowFile : entry.getValue()) {
                     getLogger().error("Failed to send {} to HBase due to {}; routing to failure", new Object[]{putFlowFile.getFlowFile(), e});
                     final FlowFile failure = session.penalize(putFlowFile.getFlowFile());
@@ -240,7 +243,6 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             final String details = "Put " + putFlowFile.getColumns().size() + " cells to HBase";
             session.getProvenanceReporter().send(putFlowFile.getFlowFile(), getTransitUri(putFlowFile), details, sendMillis);
         }
-
     }
 
     protected String getTransitUri(PutFlowFile putFlowFile) {

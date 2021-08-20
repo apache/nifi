@@ -59,6 +59,7 @@ import org.apache.nifi.processor.util.pattern.DiscontinuedException;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processors.hadoop.exception.RecordReaderFactoryException;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.RecordReader;
@@ -69,7 +70,6 @@ import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
 import org.apache.nifi.util.hive.ValidationResources;
 
-import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedAction;
@@ -684,7 +684,7 @@ public class PutHive3Streaming extends AbstractProcessor {
             try {
                 getLogger().debug("checking TGT on kerberosUser [{}]", new Object[]{kerberosUser});
                 kerberosUser.checkTGTAndRelogin();
-            } catch (LoginException e) {
+            } catch (final KerberosLoginException e) {
                 throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
             }
         } else {

@@ -17,7 +17,6 @@
 package org.apache.nifi.security.krb;
 
 import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.LoginException;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -30,16 +29,16 @@ public interface KerberosUser {
     /**
      * Performs a login for the given user.
      *
-     * @throws LoginException if the login fails
+     * @throws KerberosLoginException if the login fails
      */
-    void login() throws LoginException;
+    void login();
 
     /**
      * Performs a logout for the given user.
      *
-     * @throws LoginException if the logout fails
+     * @throws KerberosLoginException if the logout fails
      */
-    void logout() throws LoginException;
+    void logout();
 
     /**
      * Executes the given action as the given user.
@@ -107,9 +106,9 @@ public interface KerberosUser {
      * Performs a re-login if the TGT is close to expiration.
      *
      * @return true if a relogin was performed, false otherwise
-     * @throws LoginException if the relogin fails
+     * @throws KerberosLoginException if the relogin fails
      */
-    boolean checkTGTAndRelogin() throws LoginException;
+    boolean checkTGTAndRelogin();
 
     /**
      * @return true if this user is currently logged in, false otherwise

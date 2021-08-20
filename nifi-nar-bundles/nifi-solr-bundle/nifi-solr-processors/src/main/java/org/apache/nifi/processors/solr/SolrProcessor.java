@@ -29,13 +29,13 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.krb.KerberosAction;
+import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.solr.client.solrj.SolrClient;
 
-import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -113,7 +113,7 @@ public abstract class SolrProcessor extends AbstractProcessor {
             try {
                 kerberosUser.logout();
                 kerberosUser = null;
-            } catch (LoginException e) {
+            } catch (final KerberosLoginException e) {
                 getLogger().debug("Error logging out keytab user", e);
             }
         }

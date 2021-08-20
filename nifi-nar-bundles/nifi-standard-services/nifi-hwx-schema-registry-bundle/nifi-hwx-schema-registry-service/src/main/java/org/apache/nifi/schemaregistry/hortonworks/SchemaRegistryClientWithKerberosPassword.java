@@ -18,6 +18,7 @@ package org.apache.nifi.schemaregistry.hortonworks;
 
 import com.hortonworks.registries.schemaregistry.client.SchemaRegistryClient;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.slf4j.Logger;
@@ -70,7 +71,7 @@ public class SchemaRegistryClientWithKerberosPassword extends SchemaRegistryClie
 
         try {
             login.login();
-        } catch (LoginException e) {
+        } catch (final KerberosLoginException | LoginException e) {
             LOGGER.error("Failed to login as principal `{}`", new Object[]{principal}, e);
         }
     }

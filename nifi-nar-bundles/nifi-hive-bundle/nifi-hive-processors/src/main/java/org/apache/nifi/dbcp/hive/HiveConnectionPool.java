@@ -44,13 +44,13 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.ValidationResources;
 
-import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
@@ -401,7 +401,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
                     try {
                         getLogger().debug("checking TGT on kerberosUser [{}]", new Object[]{kerberosUser});
                         kerberosUser.checkTGTAndRelogin();
-                    } catch (LoginException e) {
+                    } catch (final KerberosLoginException e) {
                         throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
                     }
                 } else {

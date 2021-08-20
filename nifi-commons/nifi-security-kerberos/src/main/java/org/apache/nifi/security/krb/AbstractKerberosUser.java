@@ -75,10 +75,10 @@ public abstract class AbstractKerberosUser implements KerberosUser {
     /**
      * Performs a login using the specified principal and keytab.
      *
-     * @throws LoginException if the login fails
+     * @throws KerberosLoginException if the login fails
      */
     @Override
-    public synchronized void login() throws LoginException {
+    public synchronized void login() {
         if (isLoggedIn()) {
             return;
         }
@@ -100,10 +100,8 @@ public abstract class AbstractKerberosUser implements KerberosUser {
             loginContext.login();
             loggedIn.set(true);
             LOGGER.debug("Successful login for {}", new Object[]{principal});
-        } catch (LoginException le) {
-            LoginException loginException = new LoginException("Unable to login with " + principal + " due to: " + le.getMessage());
-            loginException.setStackTrace(le.getStackTrace());
-            throw loginException;
+        } catch (final LoginException le) {
+            throw new KerberosLoginException("Unable to login with " + principal + " due to: " + le.getMessage(), le);
         }
     }
 
@@ -134,10 +132,10 @@ public abstract class AbstractKerberosUser implements KerberosUser {
     /**
      * Performs a logout of the current user.
      *
-     * @throws LoginException if the logout fails
+     * @throws KerberosLoginException if the logout fails
      */
     @Override
-    public synchronized void logout() throws LoginException {
+    public synchronized void logout() {
         if (!isLoggedIn()) {
             return;
         }
@@ -148,8 +146,8 @@ public abstract class AbstractKerberosUser implements KerberosUser {
             LOGGER.debug("Successful logout for {}", new Object[]{principal});
 
             loginContext = null;
-        } catch (LoginException e) {
-            throw new LoginException("Logout failed due to: " + e.getMessage());
+        } catch (final LoginException e) {
+            throw new KerberosLoginException("Logout failed due to: " + e.getMessage(), e);
         }
     }
 
@@ -195,7 +193,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
      * @throws LoginException if an error happens performing the re-login
      */
     @Override
-    public synchronized boolean checkTGTAndRelogin() throws LoginException {
+    public synchronized boolean checkTGTAndRelogin()  {
         final KerberosTicket tgt = getTGT();
         if (tgt == null) {
             LOGGER.debug("TGT for {} was not found, performing logout/login", principal);
