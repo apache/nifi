@@ -271,6 +271,7 @@
     </bean>
     <bean id="parameterContextDAO" class="org.apache.nifi.web.dao.impl.StandardParameterContextDAO">
         <property name="flowController" ref="flowController" />
+        <property name="authorizer" ref="authorizer" />
     </bean>
     <bean id="controllerSearchService" class="org.apache.nifi.web.controller.ControllerSearchService">
         <property name="flowController" ref="flowController" />

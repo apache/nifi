@@ -174,7 +174,8 @@ public class ParameterContextResource extends ApplicationResource {
         value = "Create a Parameter Context",
         response = ParameterContextEntity.class,
         authorizations = {
-            @Authorization(value = "Write - /parameter-contexts")
+            @Authorization(value = "Write - /parameter-contexts"),
+            @Authorization(value = "Read - for every inherited parameter context")
         })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -318,7 +319,9 @@ public class ParameterContextResource extends ApplicationResource {
             @Authorization(value = "Read - /parameter-contexts/{parameterContextId}"),
             @Authorization(value = "Write - /parameter-contexts/{parameterContextId}"),
             @Authorization(value = "Read - for every component that is affected by the update"),
-            @Authorization(value = "Write - for every component that is affected by the update")
+            @Authorization(value = "Write - for every component that is affected by the update"),
+            @Authorization(value = "Read - for every currently inherited parameter context"),
+            @Authorization(value = "Read - for any new inherited parameter context")
         })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),

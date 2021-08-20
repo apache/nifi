@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowController;
@@ -45,10 +49,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class StandardParameterContextDAO implements ParameterContextDAO {
     private FlowManager flowManager;
+    private Authorizer authorizer;
 
     @Override
     public boolean hasParameterContext(final String parameterContextId) {
@@ -58,15 +64,19 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
     @Override
     public void verifyCreate(final ParameterContextDTO parameterContextDto) {
         verifyNoNamingConflict(parameterContextDto.getName());
-        verifyInheritedParameterContextRefs(parameterContextDto.getInheritedParameterContexts());
+        verifyInheritedParameterContextRefs(parameterContextDto);
     }
 
-    private void verifyInheritedParameterContextRefs(final List<ParameterContextReferenceEntity> inheritedParameterContexts) {
+    private void verifyInheritedParameterContextRefs(final ParameterContextDTO parameterContextDto) {
+        final List<ParameterContextReferenceEntity> inheritedParameterContexts = parameterContextDto.getInheritedParameterContexts();
+
         if (inheritedParameterContexts != null) {
+            resolveInheritedParameterContexts(parameterContextDto);
             // This will throw an exception if one is not found
             inheritedParameterContexts.stream().forEach(entity -> flowManager.getParameterContextManager()
                     .getParameterContext(entity.getComponent().getId()));
         }
+        authorizeReferences(parameterContextDto);
     }
 
     @Override
@@ -75,12 +85,26 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
         resolveInheritedParameterContexts(parameterContextDto);
 
-        final ParameterContext parameterContext = flowManager.createParameterContext(parameterContextDto.getId(), parameterContextDto.getName(),
-                parameters, parameterContextDto.getInheritedParameterContexts());
-        if (parameterContextDto.getDescription() != null) {
-            parameterContext.setDescription(parameterContextDto.getDescription());
+        final AtomicReference<ParameterContext> parameterContextReference = new AtomicReference<>();
+        flowManager.withParameterContextResolution(() -> {
+            final ParameterContext parameterContext = flowManager.createParameterContext(parameterContextDto.getId(), parameterContextDto.getName(),
+                    parameters, parameterContextDto.getInheritedParameterContexts());
+            if (parameterContextDto.getDescription() != null) {
+                parameterContext.setDescription(parameterContextDto.getDescription());
+            }
+            parameterContextReference.set(parameterContext);
+        });
+        return parameterContextReference.get();
+    }
+
+    private void authorizeReferences(final ParameterContextDTO parameterContextDto) {
+        final NiFiUser nifiUser = NiFiUserUtils.getNiFiUser();
+        if (parameterContextDto.getInheritedParameterContexts() != null) {
+            for (final ParameterContextReferenceEntity ref : parameterContextDto.getInheritedParameterContexts()) {
+                final ParameterContext parameterContext = getParameterContext(ref.getComponent().getId());
+                parameterContext.authorize(authorizer, RequestAction.READ, nifiUser);
+            }
         }
-        return parameterContext;
     }
 
     private void resolveInheritedParameterContexts(final ParameterContextDTO parameterContextDto) {
@@ -216,7 +240,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
     @Override
     public void verifyUpdate(final ParameterContextDTO parameterContextDto, final boolean verifyComponentStates) {
         verifyNoNamingConflict(parameterContextDto.getName(), parameterContextDto.getId());
-        verifyInheritedParameterContextRefs(parameterContextDto.getInheritedParameterContexts());
+        verifyInheritedParameterContextRefs(parameterContextDto);
 
         final ParameterContext currentContext = getParameterContext(parameterContextDto.getId());
         for (final ParameterEntity parameterEntity : parameterContextDto.getParameters()) {
@@ -370,5 +394,9 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
     private List<ProcessGroup> getBoundProcessGroups(final String parameterContextId) {
         final ProcessGroup rootGroup = flowManager.getRootGroup();
         return rootGroup.findAllProcessGroups(group -> group.getParameterContext() != null && group.getParameterContext().getIdentifier().equals(parameterContextId));
+    }
+
+    public void setAuthorizer(final Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }
