@@ -20,7 +20,6 @@ import org.apache.commons.lang3.Validate;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 
-import javax.security.auth.login.LoginException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
@@ -60,7 +59,7 @@ public class KerberosAction<T> {
             try {
                 kerberosUser.login();
                 logger.info("Successful login for {}", new Object[]{kerberosUser.getPrincipal()});
-            } catch (LoginException e) {
+            } catch (final KerberosLoginException e) {
                 throw new ProcessException("Login failed due to: " + e.getMessage(), e);
             }
         }
@@ -68,7 +67,7 @@ public class KerberosAction<T> {
         // check if we need to re-login, will only happen if re-login window is reached (80% of TGT life)
         try {
             kerberosUser.checkTGTAndRelogin();
-        } catch (LoginException e) {
+        } catch (final KerberosLoginException e) {
             throw new ProcessException("Relogin check failed due to: " + e.getMessage(), e);
         }
 
@@ -79,7 +78,7 @@ public class KerberosAction<T> {
             } else {
                 result = kerberosUser.doAs(action, contextClassLoader);
             }
-        } catch (SecurityException se) {
+        } catch (final SecurityException se) {
             logger.info("Privileged action failed, attempting relogin and retrying...");
             logger.debug("", se);
 
@@ -90,7 +89,7 @@ public class KerberosAction<T> {
             } catch (Exception e) {
                 throw new ProcessException("Retrying privileged action failed due to: " + e.getMessage(), e);
             }
-        } catch (PrivilegedActionException pae) {
+        } catch (final PrivilegedActionException pae) {
             final Exception cause = pae.getException();
             throw new ProcessException("Privileged action failed due to: " + cause.getMessage(), cause);
         }

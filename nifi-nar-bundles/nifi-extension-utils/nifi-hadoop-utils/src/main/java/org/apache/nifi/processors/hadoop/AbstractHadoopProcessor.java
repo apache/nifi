@@ -43,14 +43,12 @@ import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 
 import javax.net.SocketFactory;
-import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -360,7 +358,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             if (kerberosUser != null) {
                 try {
                     kerberosUser.logout();
-                } catch (LoginException e) {
+                } catch (final Exception e) {
                     getLogger().warn("Error logging out KerberosUser: {}", e.getMessage(), e);
                 }
             }
@@ -623,19 +621,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     protected UserGroupInformation getUserGroupInformation() {
         getLogger().trace("getting UGI instance");
-        if (hdfsResources.get().getKerberosUser() != null) {
-            // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
-            KerberosUser kerberosUser = hdfsResources.get().getKerberosUser();
-            getLogger().debug("kerberosUser is " + kerberosUser);
-            try {
-                getLogger().debug("checking TGT on kerberosUser " + kerberosUser);
-                kerberosUser.checkTGTAndRelogin();
-            } catch (LoginException e) {
-                throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
-            }
-        } else {
-            getLogger().debug("kerberosUser was null, will not refresh TGT with KerberosUser");
-        }
+        // if there is a KerberosUser associated with UGI, call checkTGTAndRelogin to ensure UGI's underlying Subject has a valid ticket
+        SecurityUtil.checkTGTAndRelogin(getLogger(), hdfsResources.get().getKerberosUser());
         return hdfsResources.get().getUserGroupInformation();
     }
 
