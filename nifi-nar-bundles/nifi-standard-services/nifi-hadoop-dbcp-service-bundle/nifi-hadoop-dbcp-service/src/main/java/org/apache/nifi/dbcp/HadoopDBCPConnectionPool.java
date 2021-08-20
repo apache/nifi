@@ -44,6 +44,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 
@@ -529,7 +530,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
      * no exception while closing open connections
      */
     @OnDisabled
-    public void shutdown() throws SQLException, LoginException {
+    public void shutdown() throws SQLException {
         try {
             if (kerberosUser != null) {
                 kerberosUser.logout();
@@ -562,7 +563,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
                     try {
                         getLogger().debug("checking TGT on kerberosUser " + kerberosUser);
                         kerberosUser.checkTGTAndRelogin();
-                    } catch (LoginException e) {
+                    } catch (final KerberosLoginException e) {
                         throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
                     }
                 } else {
