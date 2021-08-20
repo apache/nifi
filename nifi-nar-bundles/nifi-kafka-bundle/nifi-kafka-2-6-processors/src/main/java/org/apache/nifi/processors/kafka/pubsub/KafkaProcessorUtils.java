@@ -96,7 +96,7 @@ public final class KafkaProcessorUtils {
     static final String SCRAM_SHA512_VALUE = "SCRAM-SHA-512";
     static final AllowableValue SASL_MECHANISM_SCRAM_SHA512 = new AllowableValue(SCRAM_SHA512_VALUE, SCRAM_SHA512_VALUE,"The Salted Challenge Response Authentication Mechanism using SHA-512. " +
             "The username and password properties must be set when using this mechanism.");
-    
+
     static final String AWS_MSK_IAM_VALUE = "AWS_MSK_IAM";
     static final AllowableValue SASL_MECHANISM_AWS_MSK_IAM = new AllowableValue(AWS_MSK_IAM_VALUE, AWS_MSK_IAM_VALUE,"IAM role based authentication mechanism for AWS MSK. " +
             "AWS Credentials should be configured on the NiFi Instance");
@@ -569,7 +569,7 @@ public final class KafkaProcessorUtils {
         builder.append(";");
         mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, builder.toString());
     }
-    
+
     /**
      * New function created to support IAM JASS configuration.
      */
@@ -587,11 +587,9 @@ public final class KafkaProcessorUtils {
                 builder.append(" awsRoleSessionName=\"" + awsSessionName + "\"");
             }
         }
-        
         builder.append(";");
         mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, builder.toString());
-        // This callback handler is key for this Authentication mechanism. 
-        // AWS callback handler JAR should be placed in the NIFI libraries CLASSPATH.
+        // This callback handler is key for this Authentication mechanism. AWS callback handler JAR should be placed in the NIFI libraries CLASSPATH.
         mapToPopulate.put(SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS, "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
     }
 
