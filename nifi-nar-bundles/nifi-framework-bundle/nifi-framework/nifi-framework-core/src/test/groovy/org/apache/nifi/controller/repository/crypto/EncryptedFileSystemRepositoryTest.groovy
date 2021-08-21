@@ -97,12 +97,11 @@ class EncryptedFileSystemRepositoryTest {
     static void setUpOnce() throws Exception {
         Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
         ORIGINAL_LOG_LEVEL = System.getProperty(LOG_PACKAGE)
-        System.setProperty(LOG_PACKAGE, "DEBUG")
 
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
+            logger.debug("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
 
         mockCipherProvider = [
