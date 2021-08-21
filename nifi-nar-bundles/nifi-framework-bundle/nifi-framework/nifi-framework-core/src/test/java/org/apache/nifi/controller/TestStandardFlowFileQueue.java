@@ -72,7 +72,7 @@ public class TestStandardFlowFileQueue {
 
     @BeforeClass
     public static void setupLogging() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "INFO");
     }
 
     @Before

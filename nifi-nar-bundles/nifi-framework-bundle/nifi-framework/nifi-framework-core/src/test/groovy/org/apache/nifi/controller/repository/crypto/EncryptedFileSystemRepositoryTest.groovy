@@ -102,7 +102,7 @@ class EncryptedFileSystemRepositoryTest {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
+            logger.debug("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
 
         mockCipherProvider = [
