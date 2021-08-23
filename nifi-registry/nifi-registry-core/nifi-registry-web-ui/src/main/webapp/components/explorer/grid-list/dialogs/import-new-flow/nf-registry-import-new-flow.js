@@ -44,6 +44,7 @@ function NfRegistryImportNewFlow(nfRegistryApi, fdsSnackBarService, matDialogRef
     this.fileName = null;
     this.name = '';
     this.description = '';
+    this.comments = '';
     this.selectedBucket = {};
     this.hoverValidity = '';
     this.extensions = 'application/json';
@@ -135,13 +136,14 @@ NfRegistryImportNewFlow.prototype = {
         var self = this;
         self.name = this.name;
         self.description = this.description;
+        self.comments = this.comments;
         self.activeBucket = this.activeBucket;
 
         self.selectedBucket = this.writableBuckets.find(function (b) {
             return b.identifier === self.activeBucket;
         });
 
-        this.nfRegistryApi.uploadFlow(self.selectedBucket.link.href, self.fileToUpload, self.name, self.description).subscribe(function (response) {
+        this.nfRegistryApi.uploadFlow(self.selectedBucket.link.href, self.fileToUpload, self.name, self.description, self.comments).subscribe(function (response) {
             if (!response.status || response.status === 201) {
                 self.snackBarService.openCoaster({
                     title: 'Success',

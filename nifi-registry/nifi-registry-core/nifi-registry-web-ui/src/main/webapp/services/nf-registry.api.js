@@ -158,13 +158,17 @@ NfRegistryApi.prototype = {
      * @param file                     The file to be uploaded.
      * @param {string} name            The flow name.
      * @param {string} description     The optional description.
+     * @param {string} comments        The optional comments.
      * @returns {*}
      */
-    uploadFlow: function (bucketUri, file, name, description) {
+    uploadFlow: function (bucketUri, file, name, description, comments) {
         var self = this;
 
         var url = '../nifi-registry-api/' + bucketUri + '/flows';
         var flow = { 'name': name, 'description': description };
+        var versionHeaders = new HttpHeaders()
+            .set('Content-Type', 'application/json')
+            .set('Comments', comments);
 
         // first, create Flow version 0
         return self.http.post(url, flow, headers).pipe(
@@ -174,7 +178,7 @@ NfRegistryApi.prototype = {
                 var importVersionUrl = '../nifi-registry-api/' + flowUri + '/versions/import';
 
                 // then, import file as Flow version 1
-                return self.http.post(importVersionUrl, file, headers).pipe(
+                return self.http.post(importVersionUrl, file, { 'headers': versionHeaders }).pipe(
                     map(function (snapshot) {
                         return snapshot;
                     }),

@@ -95,6 +95,7 @@ input#upload-versioned-flow-file-field {
     display: none;
 }
 
+#new-flow-version-comments,
 #flow-version-comments {
     padding-bottom: 26px;
 
@@ -120,6 +121,7 @@ input#upload-versioned-flow-file-field {
     }
 }
 
+#new-flow-version-comments,
 #flow-version-comments,
 #new-flow-description {
     textarea:focus {
