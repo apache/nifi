@@ -50,21 +50,20 @@ import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.cookie.ApplicationCookieName;
+import org.apache.nifi.web.api.cookie.ApplicationCookieService;
+import org.apache.nifi.web.api.cookie.StandardApplicationCookieService;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.apache.nifi.web.security.http.SecurityCookieName;
 import org.apache.nifi.web.security.util.CacheKey;
 import org.apache.nifi.web.util.WebUtils;
-import org.eclipse.jetty.http.HttpCookie;
-import org.eclipse.jetty.http.HttpHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.CacheControl;
@@ -114,11 +113,12 @@ public abstract class ApplicationResource {
     public static final String DISCONNECTED_NODE_ACKNOWLEDGED = "disconnectedNodeAcknowledged";
     static final String LOGIN_ERROR_TITLE = "Unable to continue login sequence";
     static final String LOGOUT_ERROR_TITLE = "Unable to continue logout sequence";
-    private static final int VALID_FOR_SESSION_ONLY = -1;
 
     protected static final String NON_GUARANTEED_ENDPOINT = "Note: This endpoint is subject to change as NiFi and it's REST API evolve.";
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicationResource.class);
+
+    private static final String ROOT_PATH = "/";
 
     public static final String NODEWISE = "false";
 
@@ -128,6 +128,7 @@ public abstract class ApplicationResource {
     @Context
     protected UriInfo uriInfo;
 
+    protected ApplicationCookieService applicationCookieService = new StandardApplicationCookieService();
     protected NiFiProperties properties;
     private RequestReplicator requestReplicator;
     private ClusterCoordinator clusterCoordinator;
@@ -164,14 +165,23 @@ public abstract class ApplicationResource {
         return uri.toString();
     }
 
+    /**
+     * Get Resource URI used for Cookie Domain and Path properties
+     *
+     * @return Cookie Resource URI
+     */
+    protected URI getCookieResourceUri() {
+        final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
+        return buildResourceUri(uriBuilder.replacePath(ROOT_PATH).build());
+    }
+
     private URI buildResourceUri(final String... path) {
         final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
-        uriBuilder.segment(path);
-        URI uri = uriBuilder.build();
+        return buildResourceUri(uriBuilder.segment(path).build());
+    }
+
+    private URI buildResourceUri(final URI uri) {
         try {
-
-            // check for proxy settings
-
             final String scheme = getFirstHeaderValue(PROXY_SCHEME_HTTP_HEADER, FORWARDED_PROTO_HTTP_HEADER);
             final String hostHeaderValue = getFirstHeaderValue(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
             final String portHeaderValue = getFirstHeaderValue(PROXY_PORT_HTTP_HEADER, FORWARDED_PORT_HTTP_HEADER);
@@ -180,25 +190,20 @@ public abstract class ApplicationResource {
             final String port = WebUtils.determineProxiedPort(hostHeaderValue, portHeaderValue);
 
             // Catch header poisoning
-            String allowedContextPaths = properties.getAllowedContextPaths();
-            String resourcePath = WebUtils.getResourcePath(uri, httpServletRequest, allowedContextPaths);
+            final String allowedContextPaths = properties.getAllowedContextPaths();
+            final String resourcePath = WebUtils.getResourcePath(uri, httpServletRequest, allowedContextPaths);
 
             // determine the port uri
             int uriPort = uri.getPort();
-            if (port != null) {
-                if (StringUtils.isWhitespace(port)) {
-                    uriPort = -1;
-                } else {
-                    try {
-                        uriPort = Integer.parseInt(port);
-                    } catch (final NumberFormatException nfe) {
-                        logger.warn(String.format("Unable to parse proxy port HTTP header '%s'. Using port from request URI '%s'.", port, uriPort));
-                    }
+            if (StringUtils.isNumeric(port)) {
+                try {
+                    uriPort = Integer.parseInt(port);
+                } catch (final NumberFormatException nfe) {
+                    logger.warn("Parsing Proxy Port [{}] Failed: Using URI Port [{}]", port, uriPort);
                 }
             }
 
-            // construct the URI
-            uri = new URI(
+            return new URI(
                     (StringUtils.isBlank(scheme)) ? uri.getScheme() : scheme,
                     uri.getUserInfo(),
                     (StringUtils.isBlank(host)) ? uri.getHost() : host,
@@ -206,11 +211,9 @@ public abstract class ApplicationResource {
                     resourcePath,
                     uri.getQuery(),
                     uri.getFragment());
-
         } catch (final URISyntaxException use) {
             throw new UriBuilderException(use);
         }
-        return uri;
     }
 
     /**
@@ -314,7 +317,7 @@ public abstract class ApplicationResource {
     }
 
     protected MultivaluedMap<String, String> getRequestParameters() {
-        final MultivaluedMap<String, String> entity = new MultivaluedHashMap();
+        final MultivaluedMap<String, String> entity = new MultivaluedHashMap<>();
 
         for (final Map.Entry<String, String[]> entry : httpServletRequest.getParameterMap().entrySet()) {
             if (entry.getValue() == null) {
@@ -330,7 +333,7 @@ public abstract class ApplicationResource {
     }
 
     protected Map<String, String> getHeaders() {
-        return getHeaders(new HashMap<String, String>());
+        return getHeaders(new HashMap<>());
     }
 
     protected Map<String, String> getHeaders(final Map<String, String> overriddenHeaders) {
@@ -818,7 +821,7 @@ public abstract class ApplicationResource {
         }
     }
 
-    private final class Request<T extends Entity> {
+    private static final class Request<T extends Entity> {
         final String userChain;
         final String uri;
         final Revision revision;
@@ -1283,19 +1286,14 @@ public abstract class ApplicationResource {
 
     }
 
-    protected Response generateTokenResponse(ResponseBuilder builder, String token) {
-        // currently there is no way to use javax.servlet-api to set SameSite=Strict, so we do this using Jetty
-        HttpCookie jwtCookie = new HttpCookie(SecurityCookieName.AUTHORIZATION_BEARER.getName(), token, null, "/", VALID_FOR_SESSION_ONLY, true, true, null, 0, HttpCookie.SameSite.STRICT);
-        return builder.header(HttpHeader.SET_COOKIE.asString(), jwtCookie.getRFC6265SetCookie()).build();
-    }
-
-    protected void removeCookie(final HttpServletResponse httpServletResponse, final String cookieName) {
-        final Cookie cookie = new Cookie(cookieName, null);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setMaxAge(0);
-        cookie.setSecure(true);
-        httpServletResponse.addCookie(cookie);
+    /**
+     * Set Bearer Token as HTTP Session Cookie using standard Cookie Name
+     *
+     * @param response HTTP Servlet Response
+     * @param bearerToken JSON Web Token
+     */
+    protected void setBearerToken(final HttpServletResponse response, final String bearerToken) {
+        applicationCookieService.addSessionCookie(getCookieResourceUri(), response, ApplicationCookieName.AUTHORIZATION_BEARER, bearerToken);
     }
 
     protected String getNiFiUri() {
