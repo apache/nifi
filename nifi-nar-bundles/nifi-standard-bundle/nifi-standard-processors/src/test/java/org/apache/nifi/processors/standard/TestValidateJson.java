@@ -42,7 +42,6 @@ public class TestValidateJson {
         testingJson = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateJson/simple-example.json")), "UTF-8");
     }
 
-    
     @Test
     public void passSchema() throws IOException {
 
@@ -80,7 +79,7 @@ public class TestValidateJson {
         List<MockFlowFile> failure = testRunner.getFlowFilesForRelationship(ValidateJson.REL_FAILURE);
         List<MockFlowFile> valid = testRunner.getFlowFilesForRelationship(ValidateJson.REL_VALID);
         List<MockFlowFile> invalid = testRunner.getFlowFilesForRelationship(ValidateJson.REL_INVALID);
-        
+
         Assert.assertEquals(0, failure.size());
         Assert.assertEquals(0, valid.size());
         Assert.assertEquals(1, invalid.size());
@@ -93,7 +92,7 @@ public class TestValidateJson {
     public void failOnMissingRequiredValue() throws IOException {
 
         String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateJson/schema-simple-example-missing-required.json")), "UTF-8");
-        
+
         testRunner.setProperty(ValidateJson.SCHEMA_TEXT, schema);
         testRunner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.SCHEMA_VERSION_7);
 
