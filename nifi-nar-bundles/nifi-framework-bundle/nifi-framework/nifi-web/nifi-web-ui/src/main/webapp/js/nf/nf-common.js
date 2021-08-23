@@ -110,9 +110,9 @@
         // handle home
         $('#user-home').on('click', function () {
             if (top !== window) {
-                parent.window.location = '../nifi';
+                parent.window.location = '../nifi/';
             } else {
-                window.location = '../nifi';
+                window.location = '../nifi/';
             }
         });
     });

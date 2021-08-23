@@ -39,17 +39,15 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.nifi.authentication.exception.AuthenticationNotSupportedException;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.http.SecurityCookieName;
+import org.apache.nifi.web.api.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.oidc.OIDCEndpoints;
 import org.apache.nifi.web.security.oidc.OidcService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.util.WebUtils;
 
 import javax.annotation.PreDestroy;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
@@ -65,6 +63,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -78,7 +77,6 @@ import java.util.regex.Pattern;
 public class OIDCAccessResource extends AccessResource {
 
     private static final Logger logger = LoggerFactory.getLogger(OIDCAccessResource.class);
-    private static final String OIDC_REQUEST_IDENTIFIER = "oidc-request-identifier";
     private static final String OIDC_ID_TOKEN_AUTHN_ERROR = "Unable to exchange authorization for ID token: ";
     private static final String OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG = "OpenId Connect support is not configured";
     private static final String REVOKE_ACCESS_TOKEN_LOGOUT = "oidc_access_token_logout";
@@ -144,12 +142,12 @@ public class OIDCAccessResource extends AccessResource {
     )
     public void oidcCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         final AuthenticationResponse oidcResponse = parseOidcResponse(httpServletRequest, httpServletResponse, LOGGING_IN);
+        final Optional<String> requestIdentifier = getOidcRequestIdentifier();
 
-        final String oidcRequestIdentifier = WebUtils.getCookie(httpServletRequest, OIDC_REQUEST_IDENTIFIER).getValue();
-
-        if (oidcResponse != null && oidcResponse.indicatesSuccess()) {
+        if (requestIdentifier.isPresent() && oidcResponse != null && oidcResponse.indicatesSuccess()) {
             final AuthenticationSuccessResponse successfulOidcResponse = (AuthenticationSuccessResponse) oidcResponse;
 
+            final String oidcRequestIdentifier = requestIdentifier.get();
             checkOidcState(httpServletResponse, oidcRequestIdentifier, successfulOidcResponse, LOGGING_IN);
 
             try {
@@ -210,8 +208,8 @@ public class OIDCAccessResource extends AccessResource {
             return Response.status(Response.Status.CONFLICT).entity(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG).build();
         }
 
-        final String oidcRequestIdentifier = WebUtils.getCookie(httpServletRequest, OIDC_REQUEST_IDENTIFIER).getValue();
-        if (oidcRequestIdentifier == null) {
+        final Optional<String> requestIdentifier = getOidcRequestIdentifier();
+        if (!requestIdentifier.isPresent()) {
             final String message = "The login request identifier was not found in the request. Unable to continue.";
             logger.warn(message);
             return Response.status(Response.Status.BAD_REQUEST).entity(message).build();
@@ -221,12 +219,13 @@ public class OIDCAccessResource extends AccessResource {
         removeOidcRequestCookie(httpServletResponse);
 
         // get the jwt
-        final String jwt = oidcService.getJwt(oidcRequestIdentifier);
+        final String jwt = oidcService.getJwt(requestIdentifier.get());
         if (jwt == null) {
             throw new IllegalArgumentException("A JWT for this login request identifier could not be found. Unable to continue.");
         }
 
-        return generateTokenResponse(generateOkResponse(jwt), jwt);
+        setBearerToken(httpServletResponse, jwt);
+        return generateOkResponse(jwt).build();
     }
 
     @GET
@@ -247,7 +246,7 @@ public class OIDCAccessResource extends AccessResource {
         }
 
         final String mappedUserIdentity = NiFiUserUtils.getNiFiUserIdentity();
-        removeCookie(httpServletResponse, SecurityCookieName.AUTHORIZATION_BEARER.getName());
+        applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.AUTHORIZATION_BEARER);
         logger.debug("Invalidated JWT for user [{}]", mappedUserIdentity);
 
         // Get the oidc discovery url
@@ -291,13 +290,13 @@ public class OIDCAccessResource extends AccessResource {
     )
     public void oidcLogoutCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         final AuthenticationResponse oidcResponse = parseOidcResponse(httpServletRequest, httpServletResponse, !LOGGING_IN);
+        final Optional<String> requestIdentifier = getOidcRequestIdentifier();
 
-        final String oidcRequestIdentifier = WebUtils.getCookie(httpServletRequest, OIDC_REQUEST_IDENTIFIER).getValue();
-
-        if (oidcResponse != null && oidcResponse.indicatesSuccess()) {
+        if (requestIdentifier.isPresent() && oidcResponse != null && oidcResponse.indicatesSuccess()) {
             final AuthenticationSuccessResponse successfulOidcResponse = (AuthenticationSuccessResponse) oidcResponse;
 
             // confirm state
+            final String oidcRequestIdentifier = requestIdentifier.get();
             checkOidcState(httpServletResponse, oidcRequestIdentifier, successfulOidcResponse, false);
 
             // Get the oidc discovery url
@@ -404,31 +403,16 @@ public class OIDCAccessResource extends AccessResource {
      * @return the authorization URI
      */
     private URI oidcRequestAuthorizationCode(@Context HttpServletResponse httpServletResponse, String callback) {
-
         final String oidcRequestIdentifier = UUID.randomUUID().toString();
-
-        // generate a cookie to associate this login sequence
-        final Cookie cookie = new Cookie(OIDC_REQUEST_IDENTIFIER, oidcRequestIdentifier);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setMaxAge(60);
-        cookie.setSecure(true);
-        httpServletResponse.addCookie(cookie);
-
-        // get the state for this request
+        applicationCookieService.addCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.OIDC_REQUEST_IDENTIFIER, oidcRequestIdentifier);
         final State state = oidcService.createState(oidcRequestIdentifier);
-
-        // build the authorization uri
-        final URI authorizationUri = UriBuilder.fromUri(oidcService.getAuthorizationEndpoint())
+        return UriBuilder.fromUri(oidcService.getAuthorizationEndpoint())
                 .queryParam("client_id", oidcService.getClientId())
                 .queryParam("response_type", "code")
                 .queryParam("scope", oidcService.getScope().toString())
                 .queryParam("state", state.getValue())
                 .queryParam("redirect_uri", callback)
                 .build();
-
-        // return Authorization URI
-        return authorizationUri;
     }
 
     private String determineLogoutMethod(String oidcDiscoveryUrl) {
@@ -475,7 +459,7 @@ public class OIDCAccessResource extends AccessResource {
     }
 
     @PreDestroy
-    private final void closeClient() throws IOException {
+    public void closeClient() throws IOException {
         httpClient.close();
     }
 
@@ -494,8 +478,8 @@ public class OIDCAccessResource extends AccessResource {
             return null;
         }
 
-        final String oidcRequestIdentifier = WebUtils.getCookie(httpServletRequest, OIDC_REQUEST_IDENTIFIER).getValue();
-        if (oidcRequestIdentifier == null) {
+        final Optional<String> requestIdentifier = getOidcRequestIdentifier();
+        if (!requestIdentifier.isPresent()) {
             forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle,"The request identifier was " +
                     "not found in the request. Unable to continue.");
             return null;
@@ -522,16 +506,12 @@ public class OIDCAccessResource extends AccessResource {
         // confirm state
         final State state = successfulOidcResponse.getState();
         if (state == null || !oidcService.isStateValid(oidcRequestIdentifier, state)) {
-            logger.error("The state value returned by the OpenId Connect Provider does not match the stored " +
-                    "state. Unable to continue login/logout process.");
+            logger.error("OIDC Request [{}] State [{}] not valid", oidcRequestIdentifier, state);
 
-            // remove the oidc request cookie
             removeOidcRequestCookie(httpServletResponse);
 
-            // forward to the error page
             forwardToMessagePage(httpServletRequest, httpServletResponse, getForwardPageTitle(isLogin), "Purposed state does not match " +
                     "the stored state. Unable to continue login/logout process.");
-            return;
         }
     }
 
@@ -552,7 +532,11 @@ public class OIDCAccessResource extends AccessResource {
     }
 
     private void removeOidcRequestCookie(final HttpServletResponse httpServletResponse) {
-        removeCookie(httpServletResponse, OIDC_REQUEST_IDENTIFIER);
+        applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.OIDC_REQUEST_IDENTIFIER);
+    }
+
+    private Optional<String> getOidcRequestIdentifier() {
+        return applicationCookieService.getCookieValue(httpServletRequest, ApplicationCookieName.OIDC_REQUEST_IDENTIFIER);
     }
 
     public void setOidcService(OidcService oidcService) {

@@ -14,22 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.http;
+package org.apache.nifi.web.api.cookie;
+
+import org.apache.nifi.web.security.http.SecurityCookieName;
 
 /**
- * Enumeration of HTTP Cookie Names for Security
+ * Application Cookie Names
  */
-public enum SecurityCookieName {
-    /** See IETF Cookie Prefixes Draft Section 3.1 related to Secure prefix handling */
-    AUTHORIZATION_BEARER("__Secure-Authorization-Bearer");
+public enum ApplicationCookieName {
+    AUTHORIZATION_BEARER(SecurityCookieName.AUTHORIZATION_BEARER.getName()),
 
-    private String name;
+    LOGOUT_REQUEST_IDENTIFIER("nifi-logout-request-identifier"),
 
-    SecurityCookieName(final String name) {
-        this.name = name;
+    OIDC_REQUEST_IDENTIFIER("nifi-oidc-request-identifier"),
+
+    SAML_REQUEST_IDENTIFIER("nifi-saml-request-identifier");
+
+    private final String cookieName;
+
+    ApplicationCookieName(final String cookieName) {
+        this.cookieName = cookieName;
     }
 
-    public String getName() {
-        return name;
+    public String getCookieName() {
+        return cookieName;
     }
 }

@@ -32,8 +32,6 @@ import javax.ws.rs.core.UriBuilderException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
 
 /**
@@ -42,8 +40,6 @@ import java.util.stream.Stream;
 public final class WebUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(WebUtils.class);
-
-    final static ReadWriteLock lock = new ReentrantReadWriteLock();
 
     public static final String PROXY_SCHEME_HTTP_HEADER = "X-ProxyScheme";
     public static final String PROXY_HOST_HTTP_HEADER = "X-ProxyHost";
@@ -56,6 +52,8 @@ public final class WebUtils {
     public static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
     public static final String FORWARDED_CONTEXT_HTTP_HEADER = "X-Forwarded-Context";
     public static final String FORWARDED_PREFIX_HTTP_HEADER = "X-Forwarded-Prefix";
+
+    private static final String EMPTY = "";
 
     private WebUtils() {
     }
@@ -207,7 +205,7 @@ public final class WebUtils {
             return contextPath;
         } catch (UriBuilderException e) {
             logger.error("Error determining context path on " + jspDisplayName + ": " + e.getMessage());
-            return "";
+            return EMPTY;
         }
     }
 
@@ -218,27 +216,18 @@ public final class WebUtils {
      * @param request the HTTP request
      * @return the provided context path or an empty string
      */
-    public static String determineContextPath(HttpServletRequest request) {
-        String contextPath = request.getContextPath();
-        String proxyContextPath = request.getHeader(PROXY_CONTEXT_PATH_HTTP_HEADER);
-        String forwardedContext = request.getHeader(FORWARDED_CONTEXT_HTTP_HEADER);
-        String prefix = request.getHeader(FORWARDED_PREFIX_HTTP_HEADER);
+    public static String determineContextPath(final HttpServletRequest request) {
+        final String proxyContextPath = request.getHeader(PROXY_CONTEXT_PATH_HTTP_HEADER);
+        final String forwardedContext = request.getHeader(FORWARDED_CONTEXT_HTTP_HEADER);
+        final String prefix = request.getHeader(FORWARDED_PREFIX_HTTP_HEADER);
 
-        logger.debug("Context path: " + contextPath);
-        String determinedContextPath = "";
-
-        // If a context path header is set, log each
+        String determinedContextPath = EMPTY;
         if (anyNotBlank(proxyContextPath, forwardedContext, prefix)) {
-            logger.debug(String.format("On the request, the following context paths were parsed" +
-                            " from headers:\n\t X-ProxyContextPath: %s\n\tX-Forwarded-Context: %s\n\tX-Forwarded-Prefix: %s",
-                    proxyContextPath, forwardedContext, prefix));
-
             // Implementing preferred order here: PCP, FC, FP
             determinedContextPath = Stream.of(proxyContextPath, forwardedContext, prefix)
-                    .filter(StringUtils::isNotBlank).findFirst().orElse("");
+                    .filter(StringUtils::isNotBlank).findFirst().orElse(EMPTY);
         }
 
-        logger.debug("Determined context path: " + determinedContextPath);
         return determinedContextPath;
     }
 
@@ -366,7 +355,7 @@ public final class WebUtils {
             portFromHostHeader = null;
         }
         if (StringUtils.isNotBlank(portFromHostHeader) && StringUtils.isNotBlank(portHeaderValue)) {
-            logger.warn(String.format("The proxied host header contained a port, but was overridden by the proxied port header"));
+            logger.warn("Forwarded Host Port [{}] replaced with Forwarded Port [{}]", portFromHostHeader, portHeaderValue);
         }
         port = StringUtils.isNotBlank(portHeaderValue) ? portHeaderValue : (StringUtils.isNotBlank(portFromHostHeader) ? portFromHostHeader : null);
         return port;
