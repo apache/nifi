@@ -34,6 +34,7 @@ import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.web.api.cookie.ApplicationCookieName;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 import org.apache.nifi.web.api.dto.AccessStatusDTO;
 import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
@@ -42,7 +43,6 @@ import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.LogoutException;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
-import org.apache.nifi.web.security.http.SecurityCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.jwt.revocation.JwtLogoutListener;
 import org.apache.nifi.web.security.kerberos.KerberosService;
@@ -62,9 +62,7 @@ import org.springframework.security.oauth2.server.resource.BearerTokenAuthentica
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
-import org.springframework.web.util.WebUtils;
 
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
@@ -81,6 +79,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.net.URI;
 import java.security.cert.X509Certificate;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -96,7 +95,6 @@ public class AccessResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(AccessResource.class);
     protected static final String AUTHENTICATION_NOT_ENABLED_MSG = "User authentication/authorization is only supported when running over HTTPS.";
-    static final String LOGOUT_REQUEST_IDENTIFIER = "nifi-logout-request-identifier";
 
     private X509CertificateExtractor certificateExtractor;
     private X509AuthenticationProvider x509AuthenticationProvider;
@@ -259,7 +257,7 @@ public class AccessResource extends ApplicationResource {
                     accessStatus.setStatus(AccessStatusDTO.Status.UNKNOWN.name());
                     accessStatus.setMessage("Access Unknown: Authorization Header not found.");
                     // Remove Session Cookie when Authorization Header not found
-                    removeCookie(httpServletResponse, SecurityCookieName.AUTHORIZATION_BEARER.getName());
+                    applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.AUTHORIZATION_BEARER);
                 } else {
                     try {
                         // authenticate the token
@@ -275,10 +273,7 @@ public class AccessResource extends ApplicationResource {
                         accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
                         accessStatus.setMessage("You are already logged in.");
                     } catch (final AuthenticationException iae) {
-                        if (WebUtils.getCookie(httpServletRequest, SecurityCookieName.AUTHORIZATION_BEARER.getName()) != null) {
-                            removeCookie(httpServletResponse, SecurityCookieName.AUTHORIZATION_BEARER.getName());
-                        }
-
+                        applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.AUTHORIZATION_BEARER);
                         throw iae;
                     }
                 }
@@ -343,7 +338,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(code = 500, message = "Unable to create access token because an unexpected error occurred.")
             }
     )
-    public Response createAccessTokenFromTicket(@Context HttpServletRequest httpServletRequest) {
+    public Response createAccessTokenFromTicket(@Context final HttpServletRequest httpServletRequest, @Context final HttpServletResponse httpServletResponse) {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
@@ -379,7 +374,8 @@ public class AccessResource extends ApplicationResource {
                 final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, "KerberosService");
                 final String token = bearerTokenProvider.getBearerToken(loginAuthenticationToken);
                 final URI uri = URI.create(generateResourceUri("access", "kerberos"));
-                return generateTokenResponse(generateCreatedResponse(uri, token), token);
+                setBearerToken(httpServletResponse, token);
+                return generateCreatedResponse(uri, token).build();
             } catch (final AuthenticationException e) {
                 throw new AccessDeniedException(e.getMessage(), e);
             }
@@ -414,9 +410,10 @@ public class AccessResource extends ApplicationResource {
             }
     )
     public Response createAccessToken(
-            @Context HttpServletRequest httpServletRequest,
-            @FormParam("username") String username,
-            @FormParam("password") String password) {
+            @Context final HttpServletRequest httpServletRequest,
+            @Context final HttpServletResponse httpServletResponse,
+            @FormParam("username") final String username,
+            @FormParam("password") final String password) {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
@@ -450,9 +447,10 @@ public class AccessResource extends ApplicationResource {
             throw new AdministrationException(iae.getMessage(), iae);
         }
 
-        final String token = bearerTokenProvider.getBearerToken(loginAuthenticationToken);
+        final String bearerToken = bearerTokenProvider.getBearerToken(loginAuthenticationToken);
         final URI uri = URI.create(generateResourceUri("access", "token"));
-        return generateTokenResponse(generateCreatedResponse(uri, token), token);
+        setBearerToken(httpServletResponse, bearerToken);
+        return generateCreatedResponse(uri, bearerToken).build();
     }
 
     @DELETE
@@ -484,7 +482,7 @@ public class AccessResource extends ApplicationResource {
         try {
             logger.info("Logout Started [{}]", mappedUserIdentity);
             logger.debug("Removing Authorization Cookie [{}]", mappedUserIdentity);
-            removeCookie(httpServletResponse, SecurityCookieName.AUTHORIZATION_BEARER.getName());
+            applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.AUTHORIZATION_BEARER);
 
             final String bearerToken = bearerTokenResolver.resolve(httpServletRequest);
             jwtLogoutListener.logout(bearerToken);
@@ -493,14 +491,7 @@ public class AccessResource extends ApplicationResource {
             final LogoutRequest logoutRequest = new LogoutRequest(UUID.randomUUID().toString(), mappedUserIdentity);
             logoutRequestManager.start(logoutRequest);
 
-            // generate a cookie to store the logout request identifier
-            final Cookie cookie = new Cookie(LOGOUT_REQUEST_IDENTIFIER, logoutRequest.getRequestIdentifier());
-            cookie.setPath("/");
-            cookie.setHttpOnly(true);
-            cookie.setMaxAge(60);
-            cookie.setSecure(true);
-            httpServletResponse.addCookie(cookie);
-
+            applicationCookieService.addCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER, logoutRequest.getRequestIdentifier());
             return generateOkResponse().build();
         } catch (final LogoutException e) {
             logger.error("Logout Failed Identity [{}]", mappedUserIdentity, e);
@@ -538,22 +529,16 @@ public class AccessResource extends ApplicationResource {
     LogoutRequest completeLogoutRequest(final HttpServletResponse httpServletResponse) {
         LogoutRequest logoutRequest = null;
 
-        // check if a logout request identifier is present and if so complete the request
-        final Cookie cookie = WebUtils.getCookie(httpServletRequest, LOGOUT_REQUEST_IDENTIFIER);
-        final String logoutRequestIdentifier = cookie == null ? null : cookie.getValue();
-        if (logoutRequestIdentifier != null) {
+        final Optional<String> cookieValue = getLogoutRequestIdentifier();
+        if (cookieValue.isPresent()) {
+            final String logoutRequestIdentifier = cookieValue.get();
             logoutRequest = logoutRequestManager.complete(logoutRequestIdentifier);
-        }
-
-        if (logoutRequest == null) {
-            logger.warn("Logout Request [{}] not found", logoutRequestIdentifier);
-        } else {
             logger.info("Logout Request [{}] Completed [{}]", logoutRequestIdentifier, logoutRequest.getMappedUserIdentity());
+        } else {
+            logger.warn("Logout Request Cookie [{}] not found", ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER.getCookieName());
         }
 
-        // remove the cookie if it existed
         removeLogoutRequestCookie(httpServletResponse);
-
         return logoutRequest;
     }
 
@@ -578,8 +563,22 @@ public class AccessResource extends ApplicationResource {
         return getNiFiUri() + "logout-complete";
     }
 
-    void removeLogoutRequestCookie(final HttpServletResponse httpServletResponse) {
-        removeCookie(httpServletResponse, LOGOUT_REQUEST_IDENTIFIER);
+    /**
+     * Send Set-Cookie header to remove Logout Request Identifier cookie from client
+     *
+     * @param httpServletResponse HTTP Servlet Response
+     */
+    protected void removeLogoutRequestCookie(final HttpServletResponse httpServletResponse) {
+        applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER);
+    }
+
+    /**
+     * Get Logout Request Identifier from current HTTP Request Cookie header
+     *
+     * @return Optional Logout Request Identifier
+     */
+    protected Optional<String> getLogoutRequestIdentifier() {
+        return applicationCookieService.getCookieValue(httpServletRequest, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER);
     }
 
     // setters

@@ -147,6 +147,7 @@ public class TestDataTransferResource {
         final URI locationUri = new URI(locationUriStr);
         doReturn(uriBuilder).when(uriInfo).getBaseUriBuilder();
         doReturn(uriBuilder).when(uriBuilder).path(any(String.class));
+        doReturn(uriBuilder).when(uriBuilder).segment(any(String.class));
         doReturn(locationUri).when(uriBuilder).build();
         return uriInfo;
     }

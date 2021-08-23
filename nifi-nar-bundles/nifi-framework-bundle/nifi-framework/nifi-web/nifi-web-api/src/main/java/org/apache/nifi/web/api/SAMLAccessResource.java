@@ -25,19 +25,17 @@ import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.idp.IdpType;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.api.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.logout.LogoutRequest;
 import org.apache.nifi.web.security.saml.SAMLCredentialStore;
 import org.apache.nifi.web.security.saml.SAMLEndpoints;
 import org.apache.nifi.web.security.saml.SAMLService;
 import org.apache.nifi.web.security.saml.SAMLStateManager;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.saml.SAMLCredential;
-import org.springframework.web.util.WebUtils;
 
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
@@ -53,6 +51,7 @@ import javax.ws.rs.core.UriInfo;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -65,7 +64,6 @@ import java.util.stream.Collectors;
 public class SAMLAccessResource extends AccessResource {
 
     private static final Logger logger = LoggerFactory.getLogger(SAMLAccessResource.class);
-    private static final String SAML_REQUEST_IDENTIFIER = "saml-request-identifier";
     private static final String SAML_METADATA_MEDIA_TYPE = "application/samlmetadata+xml";
     private static final String LOGOUT_REQUEST_IDENTIFIER_NOT_FOUND = "The logout request identifier was not found in the request. Unable to continue.";
     private static final String LOGOUT_REQUEST_NOT_FOUND_FOR_GIVEN_IDENTIFIER = "No logout request was found for the given identifier. Unable to continue.";
@@ -84,7 +82,7 @@ public class SAMLAccessResource extends AccessResource {
             value = "Retrieves the service provider metadata.",
             notes = NON_GUARANTEED_ENDPOINT
     )
-    public Response samlMetadata(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+    public Response samlMetadata(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
             throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
@@ -122,12 +120,7 @@ public class SAMLAccessResource extends AccessResource {
         final String samlRequestIdentifier = UUID.randomUUID().toString();
 
         // generate a cookie to associate this login sequence
-        final Cookie cookie = new Cookie(SAML_REQUEST_IDENTIFIER, samlRequestIdentifier);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setMaxAge(60);
-        cookie.setSecure(true);
-        httpServletResponse.addCookie(cookie);
+        applicationCookieService.addCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.SAML_REQUEST_IDENTIFIER, samlRequestIdentifier);
 
         // get the state for this request
         final String relayState = samlStateManager.createState(samlRequestIdentifier);
@@ -137,7 +130,6 @@ public class SAMLAccessResource extends AccessResource {
             samlService.initiateLogin(httpServletRequest, httpServletResponse, relayState);
         } catch (Exception e) {
             forwardToLoginMessagePage(httpServletRequest, httpServletResponse, e.getMessage());
-            return;
         }
     }
 
@@ -184,8 +176,8 @@ public class SAMLAccessResource extends AccessResource {
         initializeSamlServiceProvider();
 
         // ensure the request has the cookie with the request id
-        final String samlRequestIdentifier = WebUtils.getCookie(httpServletRequest, SAML_REQUEST_IDENTIFIER).getValue();
-        if (samlRequestIdentifier == null) {
+        final Optional<String> requestIdentifier = getSamlRequestIdentifier();
+        if (!requestIdentifier.isPresent()) {
             forwardToLoginMessagePage(httpServletRequest, httpServletResponse, "The login request identifier was not found in the request. Unable to continue.");
             return;
         }
@@ -199,6 +191,7 @@ public class SAMLAccessResource extends AccessResource {
         }
 
         // ensure the RelayState value in the request matches the store state
+        final String samlRequestIdentifier = requestIdentifier.get();
         if (!samlStateManager.isStateValid(samlRequestIdentifier, requestState)) {
             logger.error("The RelayState value returned by the SAML IDP does not match the stored state. Unable to continue login process.");
             removeSamlRequestCookie(httpServletResponse);
@@ -258,7 +251,7 @@ public class SAMLAccessResource extends AccessResource {
             notes = NON_GUARANTEED_ENDPOINT
     )
     public Response samlLoginExchange(@Context HttpServletRequest httpServletRequest,
-                                      @Context HttpServletResponse httpServletResponse) throws Exception {
+                                      @Context HttpServletResponse httpServletResponse) {
 
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
@@ -271,30 +264,26 @@ public class SAMLAccessResource extends AccessResource {
             return Response.status(Response.Status.CONFLICT).entity(SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED).build();
         }
 
-        logger.info("Attempting to exchange SAML login request for a NiFi JWT...");
-
         // ensure saml service provider is initialized
         initializeSamlServiceProvider();
 
         // ensure the request has the cookie with the request identifier
-        final String samlRequestIdentifier = WebUtils.getCookie(httpServletRequest, SAML_REQUEST_IDENTIFIER).getValue();
-        if (samlRequestIdentifier == null) {
+        final Optional<String> requestIdentifier = getSamlRequestIdentifier();
+        if (!requestIdentifier.isPresent()) {
             final String message = "The login request identifier was not found in the request. Unable to continue.";
             logger.warn(message);
             return Response.status(Response.Status.BAD_REQUEST).entity(message).build();
         }
 
-        // remove the saml request cookie
         removeSamlRequestCookie(httpServletResponse);
-
-        // get the jwt
+        final String samlRequestIdentifier = requestIdentifier.get();
         final String jwt = samlStateManager.getJwt(samlRequestIdentifier);
         if (jwt == null) {
             throw new IllegalArgumentException("A JWT for this login request identifier could not be found. Unable to continue.");
         }
 
-        // generate the response
-        logger.info("SAML login exchange complete");
+        logger.info("SAML Login Request [{}] Completed", samlRequestIdentifier);
+        setBearerToken(httpServletResponse, jwt);
         return generateOkResponse(jwt).build();
     }
 
@@ -312,13 +301,14 @@ public class SAMLAccessResource extends AccessResource {
         assert(isSamlEnabled(httpServletRequest, httpServletResponse, !LOGGING_IN));
 
         // ensure the logout request identifier is present
-        final String logoutRequestIdentifier = WebUtils.getCookie(httpServletRequest, LOGOUT_REQUEST_IDENTIFIER).getValue();
-        if (StringUtils.isBlank(logoutRequestIdentifier)) {
+        final Optional<String> cookieValue = getLogoutRequestIdentifier();
+        if (!cookieValue.isPresent()) {
             forwardToLogoutMessagePage(httpServletRequest, httpServletResponse, LOGOUT_REQUEST_IDENTIFIER_NOT_FOUND);
             return;
         }
 
         // ensure there is a logout request in progress for the given identifier
+        final String logoutRequestIdentifier = cookieValue.get();
         final LogoutRequest logoutRequest = logoutRequestManager.get(logoutRequestIdentifier);
         if (logoutRequest == null) {
             forwardToLogoutMessagePage(httpServletRequest, httpServletResponse, LOGOUT_REQUEST_NOT_FOUND_FOR_GIVEN_IDENTIFIER);
@@ -341,9 +331,8 @@ public class SAMLAccessResource extends AccessResource {
         try {
             logger.info("Initiating SAML Single Logout with IDP...");
             samlService.initiateLogout(httpServletRequest, httpServletResponse, samlCredential);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             forwardToLogoutMessagePage(httpServletRequest, httpServletResponse, e.getMessage());
-            return;
         }
     }
 
@@ -400,13 +389,14 @@ public class SAMLAccessResource extends AccessResource {
         initializeSamlServiceProvider();
 
         // ensure the logout request identifier is present
-        final String logoutRequestIdentifier = WebUtils.getCookie(httpServletRequest, LOGOUT_REQUEST_IDENTIFIER).getValue();
-        if (StringUtils.isBlank(logoutRequestIdentifier)) {
+        final Optional<String> requestIdentifier = getLogoutRequestIdentifier();
+        if (!requestIdentifier.isPresent()) {
             forwardToLogoutMessagePage(httpServletRequest, httpServletResponse, LOGOUT_REQUEST_IDENTIFIER_NOT_FOUND);
             return;
         }
 
         // ensure there is a logout request in progress for the given identifier
+        final String logoutRequestIdentifier = requestIdentifier.get();
         final LogoutRequest logoutRequest = logoutRequestManager.get(logoutRequestIdentifier);
         if (logoutRequest == null) {
             forwardToLogoutMessagePage(httpServletRequest, httpServletResponse, LOGOUT_REQUEST_NOT_FOUND_FOR_GIVEN_IDENTIFIER);
@@ -473,7 +463,7 @@ public class SAMLAccessResource extends AccessResource {
         httpServletResponse.sendRedirect(getNiFiLogoutCompleteUri());
     }
 
-    private void initializeSamlServiceProvider() throws MetadataProviderException {
+    private void initializeSamlServiceProvider() {
         if (!samlService.isServiceProviderInitialized()) {
             final String samlMetadataUri = generateResourceUri("saml", "metadata");
             final String baseUri = samlMetadataUri.replace("/saml/metadata", "");
@@ -490,7 +480,7 @@ public class SAMLAccessResource extends AccessResource {
     }
 
     private void removeSamlRequestCookie(final HttpServletResponse httpServletResponse) {
-        removeCookie(httpServletResponse, SAML_REQUEST_IDENTIFIER);
+        applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.SAML_REQUEST_IDENTIFIER);
     }
 
     private boolean isSamlEnabled(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, boolean isLogin) throws Exception {
@@ -512,6 +502,10 @@ public class SAMLAccessResource extends AccessResource {
 
     private String getForwardPageTitle(boolean isLogin) {
         return isLogin ? ApplicationResource.LOGIN_ERROR_TITLE : ApplicationResource.LOGOUT_ERROR_TITLE;
+    }
+
+    private Optional<String> getSamlRequestIdentifier() {
+        return applicationCookieService.getCookieValue(httpServletRequest, ApplicationCookieName.SAML_REQUEST_IDENTIFIER);
     }
 
     public void setSamlService(SAMLService samlService) {
