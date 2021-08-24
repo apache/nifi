@@ -18,10 +18,10 @@
 package org.apache.nifi.stateless.bootstrap;
 
 import org.apache.nifi.stateless.config.ParameterOverride;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static junit.framework.TestCase.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestBootstrapConfiguration {
 
@@ -55,10 +55,6 @@ public class TestBootstrapConfiguration {
     }
 
     private void testParseFailure(final BootstrapConfiguration configuration, final String argument) {
-        try {
-            configuration.parseOverride(argument);
-            Assert.fail("Expected an IllegalArgumentException");
-        } catch (final IllegalArgumentException expected) {
-        }
+        assertThrows(IllegalArgumentException.class, () -> configuration.parseOverride(argument));
     }
 }

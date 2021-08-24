@@ -20,19 +20,18 @@ import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 
 /**
@@ -46,10 +45,7 @@ public class TestPropertyDescriptor {
     private static Builder validDescriptorBuilder;
     private static String DEFAULT_VALUE = "Default Value";
 
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-
-    @BeforeClass
+    @BeforeAll
     public static void setUp() {
         validDescriptorBuilder = new PropertyDescriptor.Builder().name("").allowableValues("Allowable Value", "Another Allowable Value").defaultValue("Allowable Value");
         invalidDescriptorBuilder = new PropertyDescriptor.Builder().name("").allowableValues("Allowable Value", "Another Allowable Value").defaultValue(DEFAULT_VALUE);
@@ -57,10 +53,8 @@ public class TestPropertyDescriptor {
 
     @Test
     public void testExceptionThrownByDescriptorWithInvalidDefaultValue() {
-        thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("[" + DEFAULT_VALUE + "]");
-
-        invalidDescriptorBuilder.build();
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> invalidDescriptorBuilder.build());
+        assertTrue(exception.getMessage().contains("[" + DEFAULT_VALUE + "]") );
     }
 
     @Test

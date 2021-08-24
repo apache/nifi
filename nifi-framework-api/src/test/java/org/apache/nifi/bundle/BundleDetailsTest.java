@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.bundle;
 
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class BundleDetailsTest {
 
@@ -63,7 +64,7 @@ public class BundleDetailsTest {
         assertEquals(builtBy, bundleDetails.getBuiltBy());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testWorkingDirRequired() {
         final BundleCoordinate coordinate = new BundleCoordinate("org.apache.nifi", "nifi-hadoop-nar", "1.0.0");
         final BundleCoordinate dependencyCoordinate = new BundleCoordinate("org.apache.nifi", "nifi-hadoop-libraries-nar", "1.0.0");
@@ -75,7 +76,7 @@ public class BundleDetailsTest {
         final String buildJdk = "JDK8";
         final String builtBy = "bbende";
 
-        new BundleDetails.Builder()
+        assertThrows(IllegalStateException.class, () -> new BundleDetails.Builder()
                 .workingDir(null)
                 .coordinate(coordinate)
                 .dependencyCoordinate(dependencyCoordinate)
@@ -85,10 +86,10 @@ public class BundleDetailsTest {
                 .buildTimestamp(buildTimestamp)
                 .buildJdk(buildJdk)
                 .builtBy(builtBy)
-                .build();
+                .build());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testCoordinateRequired() {
         final File workingDirectory = new File("src/test/resources");
         final BundleCoordinate dependencyCoordinate = new BundleCoordinate("org.apache.nifi", "nifi-hadoop-libraries-nar", "1.0.0");
@@ -100,7 +101,7 @@ public class BundleDetailsTest {
         final String buildJdk = "JDK8";
         final String builtBy = "bbende";
 
-        new BundleDetails.Builder()
+        assertThrows(IllegalStateException.class, () -> new BundleDetails.Builder()
                 .workingDir(workingDirectory)
                 .coordinate(null)
                 .dependencyCoordinate(dependencyCoordinate)
@@ -110,7 +111,7 @@ public class BundleDetailsTest {
                 .buildTimestamp(buildTimestamp)
                 .buildJdk(buildJdk)
                 .builtBy(builtBy)
-                .build();
+                .build());
     }
 
     @Test
