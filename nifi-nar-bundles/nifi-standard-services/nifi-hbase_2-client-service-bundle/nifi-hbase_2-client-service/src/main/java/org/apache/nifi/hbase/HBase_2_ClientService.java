@@ -458,7 +458,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
             try {
                 kerberosUser.logout();
             } catch (final Exception e) {
-                getLogger().warn("Error logging out KerberosUser: {}", e.getMessage(), e);
+                getLogger().warn("KeberosUser Logout Failed", e);
             } finally {
                 ugi = null;
                 kerberosUserReference.set(null);
