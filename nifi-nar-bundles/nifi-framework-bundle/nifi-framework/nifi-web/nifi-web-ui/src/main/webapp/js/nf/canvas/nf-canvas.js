@@ -28,6 +28,7 @@
                 'nf.ng.Bridge',
                 'nf.ClusterSummary',
                 'nf.ErrorHandler',
+                'nf.AuthorizationStorage',
                 'nf.Storage',
                 'nf.CanvasUtils',
                 'nf.Birdseye',
@@ -35,8 +36,8 @@
                 'nf.Actions',
                 'nf.ProcessGroup',
                 'nf.ParameterContexts'],
-            function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts) {
-                return (nf.Canvas = factory($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts));
+            function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfAuthorizationStorage, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts) {
+                return (nf.Canvas = factory($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfAuthorizationStorage, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Canvas =
@@ -49,6 +50,7 @@
                 require('nf.ng.Bridge'),
                 require('nf.ClusterSummary'),
                 require('nf.ErrorHandler'),
+                require('nf.AuthorizationStorage'),
                 require('nf.Storage'),
                 require('nf.CanvasUtils'),
                 require('nf.Birdseye'),
@@ -66,6 +68,7 @@
             root.nf.ng.Bridge,
             root.nf.ClusterSummary,
             root.nf.ErrorHandler,
+            root.nf.AuthorizationStorage,
             root.nf.Storage,
             root.nf.CanvasUtils,
             root.nf.Birdseye,
@@ -74,7 +77,7 @@
             root.nf.ProcessGroup,
             root.nf.ParameterContexts);
     }
-}(this, function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts) {
+}(this, function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfAuthorizationStorage, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts) {
     'use strict';
 
     var SCALE = 1;
@@ -105,6 +108,7 @@
     var config = {
         urls: {
             api: '../nifi-api',
+            accessStatus: '../nifi-api/access',
             currentUser: '../nifi-api/flow/current-user',
             controllerBulletins: '../nifi-api/flow/controller/bulletins',
             kerberos: '../nifi-api/access/kerberos',
@@ -858,15 +862,12 @@
         init: function () {
             // attempt kerberos/oidc/saml authentication
             var ticketExchange = $.Deferred(function (deferred) {
-                var successfulAuthentication = function (jwt) {
-                    // get the payload and store the token with the appropriate expiration
-                    var token = nfCommon.getJwtPayload(jwt);
-                    var expiration = parseInt(token['exp'], 10) * nfCommon.MILLIS_PER_SECOND;
-                    nfStorage.setItem('jwt', jwt, expiration);
+                var successfulAuthentication = function (token) {
+                    nfAuthorizationStorage.setToken(token)
                     deferred.resolve();
                 };
 
-                if (nfStorage.hasItem('jwt')) {
+                if (nfAuthorizationStorage.hasToken()) {
                     deferred.resolve();
                 } else {
                     $.ajax({
@@ -907,8 +908,22 @@
                             $('#current-user').text(currentUser.identity).show();
 
                             // render the logout button if there is a token locally
-                            if (nfStorage.getItem('jwt') !== null) {
+                            if (nfAuthorizationStorage.hasToken()) {
                                 $('#logout-link-container').show();
+                            } else {
+                                // Check Access Status when Token not found to remove Session Cookie if needed
+                                $.ajax({
+                                    type: 'GET',
+                                    url: config.urls.accessStatus,
+                                    dataType: 'json'
+                                }).done(function (response) {
+                                    var accessStatus = response.accessStatus;
+                                    if (accessStatus.status === 'UNKNOWN') {
+                                        window.location = '../nifi/login';
+                                    }
+                                }).fail(function () {
+                                    window.location = '../nifi/login';
+                                });
                             }
                         } else {
                             // set the anonymous user label
@@ -918,7 +933,7 @@
                     }).fail(function (xhr, status, error) {
                         // there is no anonymous access and we don't know this user - open the login page which handles login/registration/etc
                         if (xhr.status === 401) {
-                            nfStorage.removeItem('jwt');
+                            nfAuthorizationStorage.removeToken();
                             window.location = '../nifi/login';
                         } else {
                             deferred.reject(xhr, status, error);

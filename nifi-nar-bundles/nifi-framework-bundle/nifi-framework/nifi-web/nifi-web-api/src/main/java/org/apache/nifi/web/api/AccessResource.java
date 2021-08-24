@@ -75,6 +75,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
@@ -253,7 +254,12 @@ public class AccessResource extends ApplicationResource {
                 // if there is no authorization header, we don't know the user
                 if (bearerToken == null) {
                     accessStatus.setStatus(AccessStatusDTO.Status.UNKNOWN.name());
-                    accessStatus.setMessage("No credentials supplied, unknown user.");
+                    accessStatus.setMessage("Access Unknown: Token not found.");
+                } else if (httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION) == null) {
+                    accessStatus.setStatus(AccessStatusDTO.Status.UNKNOWN.name());
+                    accessStatus.setMessage("Access Unknown: Authorization Header not found.");
+                    // Remove Session Cookie when Authorization Header not found
+                    removeCookie(httpServletResponse, SecurityCookieName.AUTHORIZATION_BEARER.getName());
                 } else {
                     try {
                         // authenticate the token
