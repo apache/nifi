@@ -233,6 +233,7 @@
         <nifi.zookeeper.session.timeout>10 secs</nifi.zookeeper.session.timeout>
         <nifi.zookeeper.root.node>/nifi</nifi.zookeeper.root.node>
         <nifi.zookeeper.client.secure>false</nifi.zookeeper.client.secure>
+        <nifi.zookeeper.jute.maxbuffer />
         <nifi.zookeeper.security.keystore />
         <nifi.zookeeper.security.keystoreType />
         <nifi.zookeeper.security.keystorePasswd />

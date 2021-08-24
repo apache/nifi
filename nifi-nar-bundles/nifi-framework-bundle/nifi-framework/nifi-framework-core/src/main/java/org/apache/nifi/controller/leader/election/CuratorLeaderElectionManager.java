@@ -43,6 +43,7 @@ import org.apache.zookeeper.client.ZKClientConfig;
 import org.apache.zookeeper.common.ClientX509Util;
 import org.apache.zookeeper.common.PathUtils;
 import org.apache.zookeeper.common.X509Util;
+import org.apache.zookeeper.common.ZKConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -374,7 +375,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                 }
 
                 @Override
-                public void takeLeadership(CuratorFramework client) throws Exception {
+                public void takeLeadership(CuratorFramework client) {
                 }
             };
 
@@ -645,7 +646,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         public static final String NETTY_CLIENT_CNXN_SOCKET =
             org.apache.zookeeper.ClientCnxnSocketNetty.class.getName();
 
-        private ZKClientConfig zkSecureClientConfig;
+        private final ZKClientConfig zkSecureClientConfig;
 
         public SecureClientZooKeeperFactory(final ZooKeeperClientConfig zkConfig) {
             this.zkSecureClientConfig = new ZKClientConfig();
@@ -653,7 +654,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             // Netty is required for the secure client config.
             final String cnxnSocket = zkConfig.getConnectionSocket();
             if (!NETTY_CLIENT_CNXN_SOCKET.equals(cnxnSocket)) {
-                throw new IllegalArgumentException(String.format("connection factory set to '%s', %s required", String.valueOf(cnxnSocket), NETTY_CLIENT_CNXN_SOCKET));
+                throw new IllegalArgumentException(String.format("connection factory set to '%s', %s required", cnxnSocket, NETTY_CLIENT_CNXN_SOCKET));
             }
             zkSecureClientConfig.setProperty(ZKClientConfig.ZOOKEEPER_CLIENT_CNXN_SOCKET, cnxnSocket);
 
@@ -671,6 +672,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             zkSecureClientConfig.setProperty(clientX509util.getSslTruststoreLocationProperty(), zkConfig.getTrustStore());
             zkSecureClientConfig.setProperty(clientX509util.getSslTruststoreTypeProperty(), zkConfig.getTrustStoreType());
             zkSecureClientConfig.setProperty(clientX509util.getSslTruststorePasswdProperty(), zkConfig.getTrustStorePassword());
+            zkSecureClientConfig.setProperty(ZKConfig.JUTE_MAXBUFFER, Integer.toString(zkConfig.getJuteMaxbuffer()));
         }
 
         @Override
