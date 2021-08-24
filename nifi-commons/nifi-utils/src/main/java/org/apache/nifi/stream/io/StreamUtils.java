@@ -89,7 +89,7 @@ public class StreamUtils {
             len = source.read(destination, bytesRead, destination.length - bytesRead);
             if (len < 0) {
                 if (ensureCapacity) {
-                    throw new EOFException();
+                    throw new EOFException("Expected to read " + destination.length + " bytes but encountered EOF after " + bytesRead + " bytes");
                 } else {
                     break;
                 }

@@ -52,5 +52,7 @@
         <module>nifi-record-sink-api</module>
         <module>nifi-record-sink-service-bundle</module>
         <module>nifi-hadoop-dbcp-service-bundle</module>
+        <module>nifi-kerberos-user-service-api</module>
+        <module>nifi-kerberos-user-service-bundle</module>
     </modules>
 </project>

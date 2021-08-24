@@ -211,7 +211,7 @@ public interface TestRunner {
     /**
      * Updates the value of the property with the given PropertyDescriptor to
      * the specified value IF and ONLY IF the value is valid according to the
-     * descriptor's validator. Otherwise, Assert.fail() is called, causing the
+     * descriptor's validator. Otherwise, Assertions.fail() is called, causing the
      * unit test to fail
      *
      * @param propertyName name
@@ -223,7 +223,7 @@ public interface TestRunner {
     /**
      * Updates the value of the property with the given PropertyDescriptor to
      * the specified value IF and ONLY IF the value is valid according to the
-     * descriptor's validator. Otherwise, Assert.fail() is called, causing the
+     * descriptor's validator. Otherwise, Assertions.fail() is called, causing the
      * unit test to fail
      *
      * @param descriptor descriptor
@@ -235,7 +235,7 @@ public interface TestRunner {
     /**
      * Updates the value of the property with the given PropertyDescriptor to
      * the specified value IF and ONLY IF the value is valid according to the
-     * descriptor's validator. Otherwise, Assert.fail() is called, causing the
+     * descriptor's validator. Otherwise, Assertions.fail() is called, causing the
      * unit test to fail
      *
      * @param descriptor descriptor

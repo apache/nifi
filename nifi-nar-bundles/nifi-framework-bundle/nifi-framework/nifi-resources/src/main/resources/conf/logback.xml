@@ -61,8 +61,8 @@
         <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-bootstrap.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!--
-              For daily rollover, use 'user_%d.log'.
-              For hourly rollover, use 'user_%d{yyyy-MM-dd_HH}.log'.
+              For daily rollover, use 'bootstrap_%d.log'.
+              For hourly rollover, use 'bootstrap_%d{yyyy-MM-dd_HH}.log'.
               To GZIP rolled files, replace '.log' with '.log.gz'.
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
@@ -130,6 +130,9 @@
 
     <!-- Suppress non-error messages from AWS KCL which was emitting large amounts of INFO logs by default -->
     <logger name="com.amazonaws.services.kinesis" level="WARN" />
+
+    <!-- Suppress non-error messages from Apache Atlas which was emitting large amounts of INFO logs by default -->
+    <logger name="org.apache.atlas" level="WARN"/>
 
     <!-- These log messages would normally go to the USER_FILE log, but they belong in the APP_FILE -->
     <logger name="org.apache.nifi.web.security.requests" level="INFO" additivity="false">

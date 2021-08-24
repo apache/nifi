@@ -17,7 +17,7 @@
 
 package org.apache.nifi.stateless.performance;
 
-import org.apache.nifi.registry.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.flow.DataflowTrigger;

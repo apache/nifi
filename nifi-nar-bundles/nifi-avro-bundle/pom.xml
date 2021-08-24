@@ -32,4 +32,14 @@
         <module>nifi-avro-nar</module>
     </modules>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

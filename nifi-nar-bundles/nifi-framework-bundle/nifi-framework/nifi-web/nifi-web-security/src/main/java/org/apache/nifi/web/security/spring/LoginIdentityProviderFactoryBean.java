@@ -32,13 +32,9 @@ import org.apache.nifi.authentication.generated.Provider;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.properties.PropertyProtectionScheme;
-import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProviderFactoryAware;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.xml.sax.SAXException;
@@ -67,7 +63,6 @@ import java.util.Map;
 public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderFactoryAware
         implements FactoryBean, DisposableBean, LoginIdentityProviderLookup {
 
-    private static final Logger logger = LoggerFactory.getLogger(LoginIdentityProviderFactoryBean.class);
     private static final String LOGIN_IDENTITY_PROVIDERS_XSD = "/login-identity-providers.xsd";
     private static final String JAXB_GENERATED_PATH = "org.apache.nifi.authentication.generated";
     private static final JAXBContext JAXB_CONTEXT = initializeJaxbContext();
@@ -209,7 +204,8 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderF
 
         for (final Property property : provider.getProperty()) {
             if (!StringUtils.isBlank(property.getEncryption())) {
-                String decryptedValue = decryptValue(property.getValue(), property.getEncryption());
+                String decryptedValue = decryptValue(property.getValue(), property.getEncryption(), property.getName(), provider
+                        .getIdentifier());
                 providerProperties.put(property.getName(), decryptedValue);
             } else {
                 providerProperties.put(property.getName(), property.getValue());
@@ -217,11 +213,6 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderF
         }
 
         return new StandardLoginIdentityProviderConfigurationContext(provider.getIdentifier(), providerProperties);
-    }
-
-    private String decryptValue(final String cipherText, final String protectionScheme) throws SensitivePropertyProtectionException {
-        return getSensitivePropertyProviderFactory().getProvider(PropertyProtectionScheme.fromIdentifier(protectionScheme))
-                .unprotect(cipherText);
     }
 
     private void performMethodInjection(final LoginIdentityProvider instance, final Class loginIdentityProviderClass)

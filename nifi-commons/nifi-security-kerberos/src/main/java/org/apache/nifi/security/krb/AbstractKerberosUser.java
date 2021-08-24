@@ -20,9 +20,13 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.security.auth.RefreshFailedException;
 import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.kerberos.KerberosTicket;
+import javax.security.auth.login.AppConfigurationEntry;
+import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import java.security.PrivilegedAction;
@@ -33,6 +37,14 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Base class for implementations of KerberosUser.
+ *
+ * Generally implementations must provide the specific Configuration instance for performing the login,
+ * along with an optional CallbackHandler.
+ *
+ * Some functionality in this class is adapted from Hadoop's UserGroupInformation.
+ */
 public abstract class AbstractKerberosUser implements KerberosUser {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractKerberosUser.class);
@@ -43,6 +55,11 @@ public abstract class AbstractKerberosUser implements KerberosUser {
      * Percentage of the ticket window to use before we renew the TGT.
      */
     static final float TICKET_RENEW_WINDOW = 0.80f;
+
+    /**
+     * The name of the configuration entry to use from the Configuration instance.
+     */
+    static final String KERBEROS_USER_CONFIG_ENTRY = "KerberosUser";
 
     protected final String principal;
     protected final AtomicBoolean loggedIn = new AtomicBoolean(false);
@@ -75,7 +92,9 @@ public abstract class AbstractKerberosUser implements KerberosUser {
                     // other classes may be referencing an existing subject and replacing it may break functionality of those other classes after relogin
                     this.subject = new Subject();
                 }
-                this.loginContext = createLoginContext(subject);
+
+                // the Configuration implementations have only one config entry and always return it regardless of the passed in name
+                this.loginContext = new LoginContext(KERBEROS_USER_CONFIG_ENTRY, subject, createCallbackHandler(), createConfiguration());
             }
 
             loginContext.login();
@@ -88,7 +107,29 @@ public abstract class AbstractKerberosUser implements KerberosUser {
         }
     }
 
-    protected abstract LoginContext createLoginContext(final Subject subject) throws LoginException;
+    /**
+     * Allow sub-classes to provide the Configuration instance.
+     *
+     * @return the Configuration instance
+     */
+    protected abstract Configuration createConfiguration();
+
+    /**
+     * Allow sub-classes to provide an optional CallbackHandler.
+     *
+     * @return the CallbackHandler instance, or null
+     */
+    protected abstract CallbackHandler createCallbackHandler();
+
+    @Override
+    public AppConfigurationEntry getConfigurationEntry() {
+        final Configuration configuration = createConfiguration();
+        final AppConfigurationEntry[] configurationEntries = configuration.getAppConfigurationEntry("KerberosUser");
+        if (configurationEntries == null || configurationEntries.length != 1) {
+            throw new IllegalStateException("Configuration must return one entry");
+        }
+        return configurationEntries[0];
+    }
 
     /**
      * Performs a logout of the current user.
@@ -157,18 +198,30 @@ public abstract class AbstractKerberosUser implements KerberosUser {
     public synchronized boolean checkTGTAndRelogin() throws LoginException {
         final KerberosTicket tgt = getTGT();
         if (tgt == null) {
-            LOGGER.debug("TGT was not found");
+            LOGGER.debug("TGT for {} was not found, performing logout/login", principal);
+            logout();
+            login();
+            return true;
         }
 
         if (tgt != null && System.currentTimeMillis() < getRefreshTime(tgt)) {
-            LOGGER.debug("TGT was found, but has not reached expiration window");
+            LOGGER.debug("TGT for {} was found, but has not reached expiration window", principal);
             return false;
         }
 
-        LOGGER.debug("Performing relogin for {}", new Object[]{principal});
-        logout();
-        login();
-        return true;
+        try {
+            tgt.refresh();
+            LOGGER.debug("TGT for {} was refreshed", principal);
+            return true;
+        } catch (final RefreshFailedException e) {
+            LOGGER.debug("TGT for {} could not be refreshed", principal);
+            LOGGER.trace("", e);
+            LOGGER.debug("Performing logout/login for {}", principal);
+            logout();
+            login();
+            return true;
+        }
+
     }
 
     /**
@@ -201,7 +254,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
 
         if (principal.getName().equals("krbtgt/" + principal.getRealm() + "@" + principal.getRealm())) {
             if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("Found TGT principal: " + principal.getName());
+                LOGGER.trace("Found TGS principal: " + principal.getName());
             }
             return true;
         }
@@ -210,15 +263,18 @@ public abstract class AbstractKerberosUser implements KerberosUser {
     }
 
     private long getRefreshTime(final KerberosTicket tgt) {
-        long start = tgt.getStartTime().getTime();
-        long end = tgt.getEndTime().getTime();
+        final long start = tgt.getStartTime().getTime();
+        final long end = tgt.getEndTime().getTime();
+        final long renewUntil = tgt.getRenewTill().getTime();
 
         if (LOGGER.isTraceEnabled()) {
             final SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
             final String startDate = dateFormat.format(new Date(start));
             final String endDate = dateFormat.format(new Date(end));
-            LOGGER.trace("TGT valid starting at: " + startDate);
-            LOGGER.trace("TGT expires at: " + endDate);
+            final String renewUntilDate = dateFormat.format(new Date(renewUntil));
+            LOGGER.trace("TGT for {} is valid starting at [{}]", principal, startDate);
+            LOGGER.trace("TGT for {} expires at [{}]", principal, endDate);
+            LOGGER.trace("TGT for {} renews until [{}]", principal, renewUntilDate);
         }
 
         return start + (long) ((end - start) * TICKET_RENEW_WINDOW);
