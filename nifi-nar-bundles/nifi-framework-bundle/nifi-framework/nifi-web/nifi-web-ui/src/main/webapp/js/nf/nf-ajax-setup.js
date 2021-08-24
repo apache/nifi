@@ -20,18 +20,18 @@
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
-                'nf.Storage'],
-            function ($, nfStorage) {
-                return (nf.AjaxSetup = factory($, nfStorage));
+                'nf.AuthorizationStorage'],
+            function ($, nfAuthorizationStorage) {
+                return (nf.AjaxSetup = factory($, nfAuthorizationStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.AjaxSetup = factory(require('jquery'),
-            require('nf.Storage')));
+            require('nf.AuthorizationStorage')));
     } else {
         nf.AjaxSetup = factory(root.$,
-            root.nf.Storage);
+            root.nf.AuthorizationStorage);
     }
-}(this, function ($, nfStorage) {
+}(this, function ($, nfAuthorizationStorage) {
     /**
      * Performs ajax setup for use within NiFi.
      */
@@ -39,10 +39,10 @@
         // include jwt when possible
         $.ajaxSetup({
             'beforeSend': function (xhr) {
-                var hadToken = nfStorage.hasItem('jwt');
+                var hadToken = nfAuthorizationStorage.hasToken();
 
                 // get the token to include in all requests
-                var token = nfStorage.getItem('jwt');
+                var token = nfAuthorizationStorage.getToken();
                 if (token !== null) {
                     xhr.setRequestHeader('Authorization', 'Bearer ' + token);
                 } else {
