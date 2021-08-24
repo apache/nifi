@@ -330,6 +330,62 @@ public class TestWriteCSVResult {
         assertEquals("id,name,dob\n1,,1/1/1970\n", output);
     }
 
+    @Test
+    public void testEscapeCharInValueWriteRecord() throws IOException {
+        final CSVFormat csvFormat = CSVFormat.DEFAULT.withEscape('\\').withQuote("\"".charAt(0)).withRecordSeparator("\n");
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new LinkedHashMap<>();
+        values.put("id", "1\\");
+        values.put("name", "John Doe");
+        final Record record = new MapRecord(schema, values);
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final String output;
+        try (final WriteCSVResult writer = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
+
+            writer.beginRecordSet();
+            writer.write(record);
+            writer.finishRecordSet();
+            writer.flush();
+            output = baos.toString();
+        }
+
+        assertEquals("id,name\n\"1\\\\\",John Doe\n", output);
+    }
+
+    @Test
+    public void testEmptyEscapeCharWriteRecord() throws IOException {
+        final CSVFormat csvFormat = CSVFormat.DEFAULT.withEscape(null).withQuote("\"".charAt(0)).withRecordSeparator("\n");
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new LinkedHashMap<>();
+        values.put("id", "1\\");
+        values.put("name", "John Doe");
+        final Record record = new MapRecord(schema, values);
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final String output;
+        try (final WriteCSVResult writer = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
+
+            writer.beginRecordSet();
+            writer.write(record);
+            writer.finishRecordSet();
+            writer.flush();
+            output = baos.toString();
+        }
+
+        assertEquals("id,name\n1\\,John Doe\n", output);
+    }
+
 
     private DateFormat getDateFormat(final String format) {
         final DateFormat df = new SimpleDateFormat(format);
