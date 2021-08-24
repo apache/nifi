@@ -223,7 +223,7 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
                 clientService.put(entry.getKey(), entry.getValue());
                 successes.addAll(entry.getValue());
             } catch (final KerberosLoginException kle) {
-                getLogger().error("Failed to connect to HBase due to {}. Rolling back session, and penalizing flow files.", new Object[]{kle}, kle);
+                getLogger().error("Failed to connect to HBase due to {}: Rolling back session, and penalizing flow files", kle, kle);
                 session.rollback(true);
             } catch (final Exception e) {
                 getLogger().error(e.getMessage(), e);
