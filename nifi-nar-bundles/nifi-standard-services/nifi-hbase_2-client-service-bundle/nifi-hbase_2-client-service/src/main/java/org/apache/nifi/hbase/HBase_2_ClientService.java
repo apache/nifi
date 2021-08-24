@@ -392,14 +392,14 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         }
 
         if (SecurityUtil.isSecurityEnabled(hbaseConfig)) {
-            getLogger().info("HBase Security Enabled, creating KerberosUser");
+            getLogger().debug("HBase Security Enabled, creating KerberosUser");
             final KerberosUser kerberosUser = createKerberosUser(context);
             ugi = SecurityUtil.getUgiForKerberosUser(hbaseConfig, kerberosUser);
             kerberosUserReference.set(kerberosUser);
             getLogger().info("Successfully logged in as principal {}", kerberosUser.getPrincipal());
             return getUgi().doAs((PrivilegedExceptionAction<Connection>)() ->  ConnectionFactory.createConnection(hbaseConfig));
         } else {
-            getLogger().info("Simple Authentication");
+            getLogger().debug("Simple Authentication");
             return ConnectionFactory.createConnection(hbaseConfig);
         }
     }
