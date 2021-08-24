@@ -37,6 +37,8 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TestPutSplunkHTTP {
@@ -107,7 +109,7 @@ public class TestPutSplunkHTTP {
     public void testHappyPathWithCustomQueryParameters() throws Exception {
         // given
         testRunner.setProperty(PutSplunkHTTP.SOURCE, "test_source");
-        testRunner.setProperty(PutSplunkHTTP.SOURCE_TYPE, "test_source_type");
+        testRunner.setProperty(PutSplunkHTTP.SOURCE_TYPE, "test?source?type");
         givenSplunkReturnsWithSuccess();
 
         // when
@@ -116,7 +118,30 @@ public class TestPutSplunkHTTP {
 
         // then
         testRunner.assertAllFlowFilesTransferred(PutSplunkHTTP.RELATIONSHIP_SUCCESS, 1);
-        Assert.assertEquals("%2Fservices%2Fcollector%2Fraw%3Fsourcetype%3Dtest_source_type%26source%3Dtest_source", path.getValue());
+        Assert.assertEquals("/services/collector/raw?sourcetype=test%3Fsource%3Ftype&source=test_source", path.getValue());
+    }
+
+    @Test
+    public void testHappyPathWithCustomQueryParametersFromFlowFile() throws Exception {
+        // given
+        testRunner.setProperty(PutSplunkHTTP.SOURCE, "${ff_source}");
+        testRunner.setProperty(PutSplunkHTTP.SOURCE_TYPE, "${ff_source_type}");
+        givenSplunkReturnsWithSuccess();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("ff_source", "test_source");
+        attributes.put("ff_source_type", "test?source?type");
+
+        final MockFlowFile incomingFlowFile = new MockFlowFile(1);
+        incomingFlowFile.putAttributes(attributes);
+
+        // when
+        testRunner.enqueue(incomingFlowFile);
+        testRunner.run();
+
+        // then
+        testRunner.assertAllFlowFilesTransferred(PutSplunkHTTP.RELATIONSHIP_SUCCESS, 1);
+        Assert.assertEquals("/services/collector/raw?sourcetype=test%3Fsource%3Ftype&source=test_source", path.getValue());
     }
 
     @Test
