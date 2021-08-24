@@ -22,26 +22,26 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'd3',
-                'nf.Storage',
+                'nf.AuthorizationStorage',
                 'lodash-core',
                 'moment'],
-            function ($, d3, nfStorage, _, moment) {
-                return (nf.Common = factory($, d3, nfStorage, _, moment));
+            function ($, d3, nfAuthorizationStorage, _, moment) {
+                return (nf.Common = factory($, d3, nfAuthorizationStorage, _, moment));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Common = factory(require('jquery'),
             require('d3'),
-            require('nf.Storage'),
+            require('nf.AuthorizationStorage'),
             require('lodash-core'),
             require('moment')));
     } else {
         nf.Common = factory(root.$,
             root.d3,
-            root.nf.Storage,
+            root.nf.AuthorizationStorage,
             root._,
             root.moment);
     }
-}(this, function ($, d3, nfStorage, _, moment) {
+}(this, function ($, d3, nfAuthorizationStorage, _, moment) {
     'use strict';
 
     $(document).ready(function () {
@@ -91,7 +91,7 @@
         });
 
         // shows the logout link in the message-pane when appropriate and schedule token refresh
-        if (nfStorage.getItem('jwt') !== null) {
+        if (nfAuthorizationStorage.hasToken()) {
             $('#user-logout-container').css('display', 'block');
             nfCommon.scheduleTokenRefresh();
         }
@@ -102,7 +102,7 @@
                 type: 'DELETE',
                 url: '../nifi-api/access/logout',
             }).done(function () {
-                nfStorage.removeItem("jwt");
+                nfAuthorizationStorage.removeToken();
                 window.location = '../nifi/logout';
             }).fail(nfErrorHandler.handleAjaxError);
         });
@@ -505,10 +505,13 @@
             var interval = nfCommon.MILLIS_PER_MINUTE;
 
             var checkExpiration = function () {
-                var expiration = nfStorage.getItemExpiration('jwt');
+                var token = nfAuthorizationStorage.getToken();
 
                 // ensure there is an expiration and token present
-                if (expiration !== null) {
+                if (token !== null) {
+                    var jsonWebToken = nfCommon.getJwtPayload(token);
+                    var expiration = parseInt(jsonWebToken['exp'], 10) * nfCommon.MILLIS_PER_SECOND;
+
                     var expirationDate = new Date(expiration);
                     var now = new Date();
 
@@ -853,7 +856,7 @@
          * Shows the logout link if appropriate.
          */
         updateLogoutLink: function () {
-            if (nfStorage.getItem('jwt') !== null) {
+            if (nfAuthorizationStorage.hasToken()) {
                 $('#user-logout-container').css('display', 'block');
             } else {
                 $('#user-logout-container').css('display', 'none');

@@ -19,8 +19,8 @@
 
 var AppRun =  function($rootScope,$state,$http){
 
-    if (nf.Storage.hasItem('jwt')) {
-        var token = nf.Storage.getItem('jwt');
+    if (nf.AuthorizationStorage.hasToken()) {
+        var token = nf.AuthorizationStorage.getToken();
         $http.defaults.headers.common.Authorization = 'Bearer ' + token;
     }
 

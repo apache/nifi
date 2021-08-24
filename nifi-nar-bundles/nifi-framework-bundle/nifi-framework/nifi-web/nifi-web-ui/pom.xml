@@ -486,6 +486,7 @@
                                                 <include>${staging.dir}/js/nf/nf-ng-bridge.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
                                                 <include>${staging.dir}/js/nf/nf-cluster-summary.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
@@ -568,6 +569,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/history/nf-history-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -584,6 +586,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/provenance/nf-provenance-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -602,6 +605,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/summary/nf-summary-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -629,6 +633,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/counters/nf-counters-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -644,6 +649,7 @@
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-client.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -658,6 +664,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/templates/nf-templates-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -672,6 +679,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/cluster/nf-cluster-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -686,6 +694,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/bulletin-board/nf-bulletin-board-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -703,6 +712,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/login/nf-login-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -925,6 +935,8 @@
                                 js/nf/canvas/nf-ng-canvas-namespace.js.gz,
                                 js/nf/nf-universal-capture.js,
                                 js/nf/nf-universal-capture.js.gz,
+                                js/nf/nf-authorization-storage.js,
+                                js/nf/nf-authorization-storage.js.gz,
                                 js/nf/nf-storage.js,
                                 js/nf/nf-storage.js.gz,
                                 js/nf/nf-ajax-setup.js,

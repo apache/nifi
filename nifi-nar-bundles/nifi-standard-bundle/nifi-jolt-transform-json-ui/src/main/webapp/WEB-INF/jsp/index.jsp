@@ -35,6 +35,7 @@
 <script type="text/javascript" src="../nifi/js/codemirror/addon/lint/lint.js"></script>
 <script type="text/javascript" src="../nifi/js/codemirror/addon/lint/json-lint.js"></script>
 <script type="text/javascript" src="../nifi/js/nf/nf-namespace.js"></script>
+<script type="text/javascript" src="../nifi/js/nf/nf-authorization-storage.js"></script>
 <script type="text/javascript" src="../nifi/js/nf/nf-storage.js"></script>
 <script type="text/javascript" src="../nifi/assets/angular/angular.min.js"></script>
 <script type="text/javascript" src="../nifi/assets/angular-animate/angular-animate.min.js"></script>
