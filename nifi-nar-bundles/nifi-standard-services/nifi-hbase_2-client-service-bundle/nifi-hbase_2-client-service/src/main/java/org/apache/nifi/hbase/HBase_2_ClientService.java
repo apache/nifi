@@ -449,7 +449,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
             try {
                 connection.close();
             } catch (final Exception e) {
-                getLogger().warn("Failed to close connection to HBase due to {}", new Object[]{e});
+                getLogger().warn("HBase connection close failed", e);
             }
         }
 
