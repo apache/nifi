@@ -21,18 +21,6 @@
         </encoder>
     </appender>
 
-    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>./target/log</file>
-        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
-        </encoder>
-    </appender>
-
-
-    <logger name="org.apache.nifi" level="INFO"/>
-    <logger name="org.apache.nifi.remote.client" level="INFO"/>
-    <logger name="org.apache.nifi.remote.client.PeerSelectorTest" level="DEBUG"/>
-
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
