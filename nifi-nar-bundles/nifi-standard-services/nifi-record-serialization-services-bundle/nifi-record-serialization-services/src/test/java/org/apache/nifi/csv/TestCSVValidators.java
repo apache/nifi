@@ -33,7 +33,7 @@ public class TestCSVValidators {
     /*** SingleCharValidator **/
     @Test
     public void testSingleCharNullValue() {
-        CSVValidators.SingleCharacterValidator validator = new CSVValidators.SingleCharacterValidator();
+        Validator validator = CSVValidators.SINGLE_CHAR_VALIDATOR;
         ValidationContext mockContext = Mockito.mock(ValidationContext.class);
         ValidationResult result = validator.validate("EscapeChar", null, mockContext);
         assertEquals("Input is null for this property", result.getExplanation());
@@ -41,8 +41,17 @@ public class TestCSVValidators {
     }
 
     @Test
+    public void testSingleCharEmptyValue() {
+        Validator validator = CSVValidators.SINGLE_CHAR_VALIDATOR;
+        ValidationContext mockContext = Mockito.mock(ValidationContext.class);
+        ValidationResult result = validator.validate("EscapeChar", "", mockContext);
+        assertEquals("Value must be exactly 1 character but was 0 in length", result.getExplanation());
+        assertFalse(result.isValid());
+    }
+
+    @Test
     public void testSingleCharTab() {
-        CSVValidators.SingleCharacterValidator validator = new CSVValidators.SingleCharacterValidator();
+        Validator validator = CSVValidators.SINGLE_CHAR_VALIDATOR;
         ValidationContext mockContext = Mockito.mock(ValidationContext.class);
         ValidationResult result = validator.validate("EscapeChar", "\\t", mockContext);
         assertTrue(result.isValid());
@@ -50,7 +59,7 @@ public class TestCSVValidators {
 
     @Test
     public void testSingleCharIllegalChar() {
-        CSVValidators.SingleCharacterValidator validator = new CSVValidators.SingleCharacterValidator();
+        Validator validator = CSVValidators.SINGLE_CHAR_VALIDATOR;
         ValidationContext mockContext = Mockito.mock(ValidationContext.class);
         ValidationResult result = validator.validate("EscapeChar", "\\r", mockContext);
         assertEquals("\\r is not a valid character for this property", result.getExplanation());
@@ -58,16 +67,8 @@ public class TestCSVValidators {
     }
 
     @Test
-    public void testSingleCharGoodChar() {
-        CSVValidators.SingleCharacterValidator validator = new CSVValidators.SingleCharacterValidator();
-        ValidationContext mockContext = Mockito.mock(ValidationContext.class);
-        ValidationResult result = validator.validate("EscapeChar", "'", mockContext);
-        assertTrue(result.isValid());
-    }
-
-    @Test
     public void testSingleCharExpressionLanguage() {
-        CSVValidators.SingleCharacterValidator validator = new CSVValidators.SingleCharacterValidator();
+        Validator validator = CSVValidators.SINGLE_CHAR_VALIDATOR;
         ValidationContext mockContext = Mockito.mock(ValidationContext.class);
         Mockito.when(mockContext.isExpressionLanguageSupported(Mockito.any())).thenReturn(true);
         Mockito.when(mockContext.isExpressionLanguagePresent(Mockito.any())).thenReturn(true);
@@ -75,6 +76,66 @@ public class TestCSVValidators {
         assertTrue(result.isValid());
     }
 
+    @Test
+    public void testSingleCharGoodChar() {
+        Validator validator = CSVValidators.SINGLE_CHAR_VALIDATOR;
+        ValidationContext mockContext = Mockito.mock(ValidationContext.class);
+        ValidationResult result = validator.validate("EscapeChar", "'", mockContext);
+        assertTrue(result.isValid());
+    }
+
+    /*** Empty Or SingleCharValidator **/
+    @Test
+    public void testEmptySingleCharNullValue() {
+        Validator validator = CSVValidators.EMPTY_OR_SINGLE_CHAR_VALIDATOR;
+        ValidationContext mockContext = Mockito.mock(ValidationContext.class);
+        ValidationResult result = validator.validate("EscapeChar", null, mockContext);
+        assertEquals("Input is null for this property", result.getExplanation());
+        assertFalse(result.isValid());
+    }
+
+    @Test
+    public void testEmptySingleCharTab() {
+        Validator validator = CSVValidators.EMPTY_OR_SINGLE_CHAR_VALIDATOR;
+        ValidationContext mockContext = Mockito.mock(ValidationContext.class);
+        ValidationResult result = validator.validate("EscapeChar", "\\t", mockContext);
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void testEmptySingleCharIllegalChar() {
+        Validator validator = CSVValidators.EMPTY_OR_SINGLE_CHAR_VALIDATOR;
+        ValidationContext mockContext = Mockito.mock(ValidationContext.class);
+        ValidationResult result = validator.validate("EscapeChar", "\\r", mockContext);
+        assertEquals("\\r is not a valid character for this property", result.getExplanation());
+        assertFalse(result.isValid());
+    }
+
+    @Test
+    public void testEmptySingleCharExpressionLanguage() {
+        Validator validator = CSVValidators.EMPTY_OR_SINGLE_CHAR_VALIDATOR;
+        ValidationContext mockContext = Mockito.mock(ValidationContext.class);
+        Mockito.when(mockContext.isExpressionLanguageSupported(Mockito.any())).thenReturn(true);
+        Mockito.when(mockContext.isExpressionLanguagePresent(Mockito.any())).thenReturn(true);
+        ValidationResult result = validator.validate("EscapeChar", "${csv.escape}", mockContext);
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void testEmptySingleCharGoodChar() {
+        Validator validator = CSVValidators.EMPTY_OR_SINGLE_CHAR_VALIDATOR;
+        ValidationContext mockContext = Mockito.mock(ValidationContext.class);
+        ValidationResult result = validator.validate("EscapeChar", "'", mockContext);
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void testEmptySingleCharEmptyChar() {
+        Validator validator = CSVValidators.EMPTY_OR_SINGLE_CHAR_VALIDATOR;
+        ValidationContext mockContext = Mockito.mock(ValidationContext.class);
+        ValidationResult result = validator.validate("EscapeChar", "", mockContext);
+        assertTrue(result.isValid());
+    }
 
     /*** Unescaped SingleCharValidator **/
 
