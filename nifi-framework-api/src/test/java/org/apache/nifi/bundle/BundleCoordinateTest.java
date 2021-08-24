@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.bundle;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class BundleCoordinateTest {
 
@@ -38,12 +39,12 @@ public class BundleCoordinateTest {
         assertEquals(coordinate, coordinate2);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testIdRequired() {
         final String group = "group1";
         final String id = null;
         final String version = "v1";
-        new BundleCoordinate(group, id, version);
+        assertThrows(IllegalStateException.class, () -> new BundleCoordinate(group, id, version));
     }
 
     @Test

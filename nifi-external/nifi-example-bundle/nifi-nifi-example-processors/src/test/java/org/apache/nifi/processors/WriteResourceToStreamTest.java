@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.processors;
 
-import org.junit.Assert;
-
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class WriteResourceToStreamTest {
 
     private TestRunner testRunner;
 
-    @Before
+    @BeforeEach
     public void init() {
         testRunner = TestRunners.newTestRunner(WriteResourceToStream.class);
     }
@@ -41,7 +41,7 @@ public class WriteResourceToStreamTest {
                 .getFlowFilesForRelationship(WriteResourceToStream.REL_SUCCESS).get(0)
                 .toByteArray();
         final String stringData = new String(data);
-        Assert.assertEquals("this came from a resource", stringData);
+        assertEquals("this came from a resource", stringData);
     }
 
 }

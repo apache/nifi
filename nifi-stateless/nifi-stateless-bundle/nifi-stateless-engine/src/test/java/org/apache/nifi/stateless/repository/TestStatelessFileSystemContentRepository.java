@@ -20,9 +20,9 @@ package org.apache.nifi.stateless.repository;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -30,21 +30,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestStatelessFileSystemContentRepository {
     private final File repoDirectory = new File("target/test-stateless-file-system-repository");
     private StatelessFileSystemContentRepository repository;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         repository = new StatelessFileSystemContentRepository(repoDirectory);
         repository.initialize(new StandardResourceClaimManager());
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         repository.cleanup();
     }
