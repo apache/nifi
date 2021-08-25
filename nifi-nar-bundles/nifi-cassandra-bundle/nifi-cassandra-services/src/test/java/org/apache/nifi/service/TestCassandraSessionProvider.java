@@ -20,20 +20,20 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCassandraSessionProvider {
 
     private static TestRunner runner;
     private static CassandraSessionProvider sessionProvider;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws InitializationException {
         MockCassandraProcessor mockCassandraProcessor = new MockCassandraProcessor();
         sessionProvider = new CassandraSessionProvider();
