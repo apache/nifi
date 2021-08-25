@@ -39,9 +39,9 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -57,9 +57,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -67,7 +68,7 @@ import static org.mockito.Mockito.when;
 public class TestPutElasticsearchHttpRecord {
     private TestRunner runner;
 
-    @After
+    @AfterEach
     public void teardown() {
         runner = null;
     }
@@ -716,7 +717,7 @@ public class TestPutElasticsearchHttpRecord {
      * Tests basic ES functionality against a local or test ES cluster
      */
     @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
+    @Disabled("Comment this out if you want to run against local or test ES")
     public void testPutElasticSearchBasic() throws InitializationException {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
@@ -746,7 +747,7 @@ public class TestPutElasticsearchHttpRecord {
     }
 
     @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
+    @Disabled("Comment this out if you want to run against local or test ES")
     public void testPutElasticSearchBatch() throws InitializationException {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
@@ -777,21 +778,22 @@ public class TestPutElasticsearchHttpRecord {
         assertEquals(sb.toString(), content);
     }
 
-    @Test(expected = AssertionError.class)
-    public void testPutElasticSearchBadHostInEL() throws IOException {
+    @Test
+    public void testPutElasticSearchBadHostInEL() {
         final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
 
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
-        runner.assertValid();
+        assertThrows(AssertionError.class, () -> {
+            runner.assertValid();
+            runner.enqueue(new byte[0], new HashMap<String, String>() {{
+                put("doc_id", "1");
+            }});
 
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "1");
-        }});
-
-        runner.run();
+            runner.run();
+        });
     }
 
     private void generateTestData() throws IOException {

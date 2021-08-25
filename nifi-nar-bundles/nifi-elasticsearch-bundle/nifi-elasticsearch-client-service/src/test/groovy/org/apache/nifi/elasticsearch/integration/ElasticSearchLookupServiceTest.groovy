@@ -23,16 +23,16 @@ import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.serialization.record.MapRecord
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 class ElasticSearchLookupServiceTest {
     ElasticSearchClientService mockClientService
     ElasticSearchLookupService lookupService
     TestRunner runner
 
-    @Before
+    @BeforeEach
     void setup() throws Exception {
         mockClientService = new TestElasticSearchClientService()
         lookupService = new ElasticSearchLookupService()
@@ -58,12 +58,12 @@ class ElasticSearchLookupServiceTest {
 
         Optional<MapRecord> result = lookupService.lookup(coordinates)
 
-        Assert.assertNotNull(result)
-        Assert.assertTrue(result.isPresent())
+        Assertions.assertNotNull(result)
+        Assertions.assertTrue(result.isPresent())
         MapRecord record = result.get()
-        Assert.assertEquals("john.smith", record.getAsString("username"))
-        Assert.assertEquals("testing1234", record.getAsString("password"))
-        Assert.assertEquals("john.smith@test.com", record.getAsString("email"))
-        Assert.assertEquals("Software Engineer", record.getAsString("position"))
+        Assertions.assertEquals("john.smith", record.getAsString("username"))
+        Assertions.assertEquals("testing1234", record.getAsString("password"))
+        Assertions.assertEquals("john.smith@test.com", record.getAsString("email"))
+        Assertions.assertEquals("Software Engineer", record.getAsString("position"))
     }
 }

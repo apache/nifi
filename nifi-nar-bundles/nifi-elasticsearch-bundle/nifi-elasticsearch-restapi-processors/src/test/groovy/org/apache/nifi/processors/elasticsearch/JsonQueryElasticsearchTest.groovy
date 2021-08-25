@@ -20,10 +20,11 @@ package org.apache.nifi.processors.elasticsearch
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
-import java.util.List
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
+
 
 class JsonQueryElasticsearchTest {
     private static final String INDEX_NAME = "messages"
@@ -225,8 +226,8 @@ class JsonQueryElasticsearchTest {
 
         for (MockFlowFile mockFlowFile : flowFiles) {
             String attr = mockFlowFile.getAttribute(queryAttr)
-            Assert.assertNotNull("Missing query attribute", attr)
-            Assert.assertEquals("Query had wrong value.", query, attr)
+            assertNotNull(attr, "Missing query attribute")
+            assertEquals(query, attr, "Query had wrong value.")
         }
     }
 

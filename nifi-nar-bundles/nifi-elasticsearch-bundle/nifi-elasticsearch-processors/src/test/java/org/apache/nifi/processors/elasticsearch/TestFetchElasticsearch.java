@@ -16,23 +16,6 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.util.HashMap;
-import java.util.concurrent.ExecutionException;
-
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -56,24 +39,42 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class TestFetchElasticsearch {
 
     private InputStream docExample;
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
         docExample = classloader.getResourceAsStream("DocumentExample.json");
 
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         runner = null;
     }
@@ -236,7 +237,7 @@ public class TestFetchElasticsearch {
         runner.assertTransferCount(FetchElasticsearch.REL_FAILURE, 1);
     }
 
-    @Test(expected = ProcessException.class)
+    @Test
     public void testCreateElasticsearchClientWithException() throws ProcessException {
         FetchElasticsearchTestProcessor processor = new FetchElasticsearchTestProcessor(true) {
             @Override
@@ -249,7 +250,7 @@ public class TestFetchElasticsearch {
 
         MockProcessContext context = new MockProcessContext(processor);
         processor.initialize(new MockProcessorInitializationContext(processor, context));
-        processor.callCreateElasticsearchClient(context);
+        assertThrows(ProcessException.class, () -> processor.callCreateElasticsearchClient(context));
     }
 
     @Test
@@ -369,7 +370,7 @@ public class TestFetchElasticsearch {
      * Tests basic ES functionality against a local or test ES cluster
      */
     @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
+    @Disabled("Comment this out if you want to run against local or test ES")
     public void testFetchElasticsearchBasic() {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
@@ -399,7 +400,7 @@ public class TestFetchElasticsearch {
     }
 
     @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
+    @Disabled("Comment this out if you want to run against local or test ES")
     public void testFetchElasticsearchBatch() throws IOException {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());

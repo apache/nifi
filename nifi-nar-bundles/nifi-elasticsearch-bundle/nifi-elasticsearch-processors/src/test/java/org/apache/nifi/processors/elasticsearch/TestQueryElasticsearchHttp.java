@@ -16,33 +16,6 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.mockito.stubbing.OngoingStubbing;
-
 import okhttp3.Call;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -50,12 +23,37 @@ import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.mockito.stubbing.Answer;
+import org.mockito.stubbing.OngoingStubbing;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestQueryElasticsearchHttp {
 
     private TestRunner runner;
 
-    @After
+    @AfterEach
     public void teardown() {
         runner = null;
     }
@@ -389,7 +387,7 @@ public class TestQueryElasticsearchHttp {
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Test
-    @Ignore("Un-authenticated proxy : Comment this out if you want to run against local proxied ES.")
+    @Disabled("Un-authenticated proxy : Comment this out if you want to run against local proxied ES.")
     public void testQueryElasticsearchBasicBehindProxy() {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
@@ -413,7 +411,7 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
-    @Ignore("Authenticated Proxy : Comment this out if you want to run against local proxied ES.")
+    @Disabled("Authenticated Proxy : Comment this out if you want to run against local proxied ES.")
     public void testQueryElasticsearchBasicBehindAuthenticatedProxy() {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
@@ -546,27 +544,23 @@ public class TestQueryElasticsearchHttp {
 
         private OngoingStubbing<Call> mockReturnDocument(OngoingStubbing<Call> stub,
                 final String document, int statusCode, String statusMessage) {
-            return stub.thenAnswer(new Answer<Call>() {
-
-                @Override
-                public Call answer(InvocationOnMock invocationOnMock) throws Throwable {
-                    Request realRequest = (Request) invocationOnMock.getArguments()[0];
-                    assertTrue((expectedParam == null) || (realRequest.url().toString().contains(expectedParam)));
-                    Response mockResponse = new Response.Builder()
-                            .request(realRequest)
-                            .protocol(Protocol.HTTP_1_1)
-                            .code(statusCode)
-                            .message(statusMessage)
-                            .body(ResponseBody.create(MediaType.parse("application/json"), document))
-                            .build();
-                    final Call call = mock(Call.class);
-                    if (exceptionToThrow != null) {
-                        when(call.execute()).thenThrow(exceptionToThrow);
-                    } else {
-                        when(call.execute()).thenReturn(mockResponse);
-                    }
-                    return call;
+            return stub.thenAnswer((Answer<Call>) invocationOnMock -> {
+                Request realRequest = (Request) invocationOnMock.getArguments()[0];
+                assertTrue((expectedParam == null) || (realRequest.url().toString().contains(expectedParam)));
+                Response mockResponse = new Response.Builder()
+                        .request(realRequest)
+                        .protocol(Protocol.HTTP_1_1)
+                        .code(statusCode)
+                        .message(statusMessage)
+                        .body(ResponseBody.create(MediaType.parse("application/json"), document))
+                        .build();
+                final Call call = mock(Call.class);
+                if (exceptionToThrow != null) {
+                    when(call.execute()).thenThrow(exceptionToThrow);
+                } else {
+                    when(call.execute()).thenReturn(mockResponse);
                 }
+                return call;
             });
         }
 

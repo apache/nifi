@@ -31,9 +31,9 @@ import org.apache.nifi.serialization.record.MockSchemaRegistry
 import org.apache.nifi.util.StringUtils
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
@@ -58,7 +58,7 @@ class PutElasticsearchRecordTest {
             [ msg: "Hi, back at ya!", from: "jane.doe" ]
     ]))
 
-    @Before
+    @BeforeEach
     void setup() {
         clientService = new MockBulkLoadClientService()
         registry = new MockSchemaRegistry()
@@ -151,17 +151,17 @@ class PutElasticsearchRecordTest {
             int empties = items.findAll { ("" == it.fields.get("msg")) }.size()
             int nulls = items.findAll { (null == it.fields.get("msg")) }.size()
             items.each {
-                Assert.assertNotNull(it.id)
-                Assert.assertTrue(it.id.startsWith("rec-"))
-                Assert.assertEquals("message", it.type)
+                Assertions.assertNotNull(it.id)
+                Assertions.assertTrue(it.id.startsWith("rec-"))
+                Assertions.assertEquals("message", it.type)
             }
-            Assert.assertEquals(3, a)
-            Assert.assertEquals(3, b)
-            Assert.assertEquals(5, index)
-            Assert.assertEquals(1, create)
-            Assert.assertEquals(4, msg)
-            Assert.assertEquals(1, empties)
-            Assert.assertEquals(1, nulls)
+            Assertions.assertEquals(3, a)
+            Assertions.assertEquals(3, b)
+            Assertions.assertEquals(5, index)
+            Assertions.assertEquals(1, create)
+            Assertions.assertEquals(4, msg)
+            Assertions.assertEquals(1, empties)
+            Assertions.assertEquals(1, nulls)
         }
 
         clientService.evalClosure = evalClosure
@@ -200,12 +200,12 @@ class PutElasticsearchRecordTest {
             def bulkIndexCount = items.findAll { it.index.startsWith("bulk_") }.size()
             def indexOperationCount = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
             def updateOperationCount = items.findAll { it.operation == IndexOperationRequest.Operation.Update }.size()
-            Assert.assertEquals(5, testTypeCount)
-            Assert.assertEquals(1, messageTypeCount)
-            Assert.assertEquals(5, testIndexCount)
-            Assert.assertEquals(1, bulkIndexCount)
-            Assert.assertEquals(5, indexOperationCount)
-            Assert.assertEquals(1, updateOperationCount)
+            Assertions.assertEquals(5, testTypeCount)
+            Assertions.assertEquals(1, messageTypeCount)
+            Assertions.assertEquals(5, testIndexCount)
+            Assertions.assertEquals(1, bulkIndexCount)
+            Assertions.assertEquals(5, indexOperationCount)
+            Assertions.assertEquals(1, updateOperationCount)
         }
 
         clientService.evalClosure = evalClosure
@@ -236,10 +236,10 @@ class PutElasticsearchRecordTest {
             def messageTypeCount = items.findAll { it.type == "message" }.size()
             def nullIdCount = items.findAll { it.id == null }.size()
             def recIdCount = items.findAll { StringUtils.startsWith(it.id, "rec-") }.size()
-            Assert.assertEquals("null type", 5, nullTypeCount)
-            Assert.assertEquals("message type", 1, messageTypeCount)
-            Assert.assertEquals("null id", 2, nullIdCount)
-            Assert.assertEquals("rec- id", 4, recIdCount)
+            Assertions.assertEquals(5, nullTypeCount, "null type")
+            Assertions.assertEquals( 1, messageTypeCount, "message type")
+            Assertions.assertEquals(2, nullIdCount, "null id")
+            Assertions.assertEquals(4, recIdCount, "rec- id")
         }
 
         clientService.evalClosure = evalClosure
@@ -271,11 +271,11 @@ class PutElasticsearchRecordTest {
             int update = items.findAll { it.operation == IndexOperationRequest.Operation.Update }.size()
             int upsert = items.findAll { it.operation == IndexOperationRequest.Operation.Upsert }.size()
             int delete = items.findAll { it.operation == IndexOperationRequest.Operation.Delete }.size()
-            Assert.assertEquals(1, index)
-            Assert.assertEquals(2, create)
-            Assert.assertEquals(1, update)
-            Assert.assertEquals(1, upsert)
-            Assert.assertEquals(1, delete)
+            Assertions.assertEquals(1, index)
+            Assertions.assertEquals(2, create)
+            Assertions.assertEquals(1, update)
+            Assertions.assertEquals(1, upsert)
+            Assertions.assertEquals(1, delete)
         }
 
         runner.enqueue(flowFileContents, [
@@ -291,8 +291,8 @@ class PutElasticsearchRecordTest {
     void testInvalidIndexOperation() {
         runner.setProperty(PutElasticsearchRecord.INDEX_OP, "not-valid")
         runner.assertNotValid()
-        final AssertionError ae = Assert.assertThrows(AssertionError.class, runner.&run)
-        Assert.assertEquals(String.format("Processor has 1 validation failures:\n'%s' validated against 'not-valid' is invalid because %s must be Expression Language or one of %s\n",
+        final AssertionError ae = Assertions.assertThrows(AssertionError.class, runner.&run)
+        Assertions.assertEquals(String.format("Processor has 1 validation failures:\n'%s' validated against 'not-valid' is invalid because %s must be Expression Language or one of %s\n",
                 PutElasticsearchRecord.INDEX_OP.getName(), PutElasticsearchRecord.INDEX_OP.getDisplayName(), PutElasticsearchRecord.ALLOWED_INDEX_OPERATIONS),
                 ae.getMessage()
         )

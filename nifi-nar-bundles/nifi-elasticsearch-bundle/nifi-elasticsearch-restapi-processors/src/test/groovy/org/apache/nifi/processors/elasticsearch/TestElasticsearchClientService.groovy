@@ -19,11 +19,7 @@ package org.apache.nifi.processors.elasticsearch
 
 import groovy.json.JsonSlurper
 import org.apache.nifi.controller.AbstractControllerService
-import org.apache.nifi.elasticsearch.DeleteOperationResponse
-import org.apache.nifi.elasticsearch.ElasticSearchClientService
-import org.apache.nifi.elasticsearch.IndexOperationRequest
-import org.apache.nifi.elasticsearch.IndexOperationResponse
-import org.apache.nifi.elasticsearch.SearchResponse
+import org.apache.nifi.elasticsearch.*
 
 class TestElasticsearchClientService extends AbstractControllerService implements ElasticSearchClientService {
     private boolean returnAggs

@@ -16,33 +16,6 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
 import okhttp3.Call;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -51,19 +24,45 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestFetchElasticsearchHttp {
 
     private InputStream docExample;
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
         docExample = classloader.getResourceAsStream("DocumentExample.json");
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         runner = null;
     }
@@ -149,9 +148,8 @@ public class TestFetchElasticsearchHttp {
         final MockFlowFile out = runner.getFlowFilesForRelationship(FetchElasticsearchHttp.REL_SUCCESS).get(0);
         assertNotNull(out);
         out.assertAttributeEquals("doc_id", DOC_ID);
-        assertEquals("URL doesn't match expected value when type is not supplied",
-                "http://127.0.0.1:9200" + "/doc/_all/" + DOC_ID,
-                processor.getURL().toString());
+        assertEquals("http://127.0.0.1:9200" + "/doc/_all/" + DOC_ID,
+                processor.getURL().toString(), "URL doesn't match expected value when type is not supplied");
     }
 
     @Test
@@ -437,7 +435,7 @@ public class TestFetchElasticsearchHttp {
      * Tests basic ES functionality against a local or test ES cluster
      */
     @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
+    @Disabled("Comment this out if you want to run against local or test ES")
     public void testFetchElasticsearchBasic() throws IOException {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
@@ -470,7 +468,7 @@ public class TestFetchElasticsearchHttp {
     }
 
     @Test
-    @Ignore("Un-authenticated proxy : Comment this out if you want to run against local proxied ES.")
+    @Disabled("Un-authenticated proxy : Comment this out if you want to run against local proxied ES.")
     public void testFetchElasticsearchBasicBehindProxy() {
         final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
         runner.setValidateExpressionUsage(true);
@@ -495,7 +493,7 @@ public class TestFetchElasticsearchHttp {
     }
 
     @Test
-    @Ignore("Authenticated Proxy : Comment this out if you want to run against local proxied ES.")
+    @Disabled("Authenticated Proxy : Comment this out if you want to run against local proxied ES.")
     public void testFetchElasticsearchBasicBehindAuthenticatedProxy() {
         final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
         runner.setValidateExpressionUsage(true);

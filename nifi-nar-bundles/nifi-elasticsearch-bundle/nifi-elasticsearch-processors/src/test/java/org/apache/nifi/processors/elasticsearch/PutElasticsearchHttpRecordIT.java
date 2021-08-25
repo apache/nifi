@@ -18,7 +18,6 @@
 package org.apache.nifi.processors.elasticsearch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -28,11 +27,11 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,7 +45,7 @@ public class PutElasticsearchHttpRecordIT {
     static TestRunner FETCH_RUNNER;
     ObjectMapper mapper = new ObjectMapper();
 
-    @BeforeClass
+    @BeforeAll
     public static void setupTests() throws Exception {
         final List<RecordField> personFields = new ArrayList<>();
         final RecordField nameField = new RecordField("name", RecordFieldType.STRING.getDataType());
@@ -65,7 +64,7 @@ public class PutElasticsearchHttpRecordIT {
         FETCH_RUNNER.assertValid();
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         recordReader = new MockRecordParser();
         recordReader.addSchemaField("id", RecordFieldType.INT);
@@ -83,7 +82,7 @@ public class PutElasticsearchHttpRecordIT {
         runner.assertValid();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         FETCH_RUNNER.clearTransferState();
     }
@@ -128,11 +127,11 @@ public class PutElasticsearchHttpRecordIT {
         String val = new String(raw);
 
         Map<String, Object> parsed = mapper.readValue(val, Map.class);
-        Assert.assertNotNull(parsed);
+        Assertions.assertNotNull(parsed);
         Map<String, Object> person = (Map)parsed.get("person");
-        Assert.assertNotNull(person);
-        Assert.assertTrue(person.containsKey("sport"));
-        Assert.assertNull(person.get("sport"));
+        Assertions.assertNotNull(person);
+        Assertions.assertTrue(person.containsKey("sport"));
+        Assertions.assertNull(person.get("sport"));
     }
 
     private void sharedSuppressTest(SharedPostTest spt) throws Exception {
@@ -152,12 +151,12 @@ public class PutElasticsearchHttpRecordIT {
         String ff2 = new String(FETCH_RUNNER.getContentAsByteArray(flowFiles.get(1)));
         Map<String, Object> ff1Map = mapper.readValue(ff1, Map.class);
         Map<String, Object> ff2Map = mapper.readValue(ff2, Map.class);
-        Assert.assertNotNull(ff1Map);
-        Assert.assertNotNull(ff2Map);
+        Assertions.assertNotNull(ff1Map);
+        Assertions.assertNotNull(ff2Map);
         Map<String, Object> p1 = (Map)ff1Map.get("person");
         Map<String, Object> p2 = (Map)ff2Map.get("person");
-        Assert.assertNotNull(p1);
-        Assert.assertNotNull(p2);
+        Assertions.assertNotNull(p1);
+        Assertions.assertNotNull(p2);
 
         spt.run(p1, p2);
     }
@@ -178,9 +177,9 @@ public class PutElasticsearchHttpRecordIT {
         runner.setProperty(PutElasticsearchHttpRecord.SUPPRESS_NULLS, PutElasticsearchHttpRecord.SUPPRESS_MISSING);
 
         sharedSuppressTest((p1, p2) -> {
-            Assert.assertFalse(p1.containsKey("sport"));
-            Assert.assertTrue(p2.containsKey("sport"));
-            Assert.assertNull(p2.get("sport"));
+            Assertions.assertFalse(p1.containsKey("sport"));
+            Assertions.assertTrue(p2.containsKey("sport"));
+            Assertions.assertNull(p2.get("sport"));
         });
     }
 
@@ -200,8 +199,8 @@ public class PutElasticsearchHttpRecordIT {
         runner.setProperty(PutElasticsearchHttpRecord.SUPPRESS_NULLS, PutElasticsearchHttpRecord.ALWAYS_SUPPRESS);
 
         sharedSuppressTest((p1, p2) -> {
-            Assert.assertFalse(p1.containsKey("sport"));
-            Assert.assertFalse(p2.containsKey("sport"));
+            Assertions.assertFalse(p1.containsKey("sport"));
+            Assertions.assertFalse(p2.containsKey("sport"));
         });
     }
 

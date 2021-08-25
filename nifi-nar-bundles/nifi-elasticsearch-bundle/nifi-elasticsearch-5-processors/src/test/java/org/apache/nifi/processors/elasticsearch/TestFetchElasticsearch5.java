@@ -41,10 +41,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,6 +56,7 @@ import java.util.concurrent.ExecutionException;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -68,14 +69,14 @@ public class TestFetchElasticsearch5 {
     private InputStream docExample;
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
         docExample = classloader.getResourceAsStream("DocumentExample.json");
 
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         runner = null;
     }
@@ -236,7 +237,7 @@ public class TestFetchElasticsearch5 {
         runner.assertTransferCount(FetchElasticsearch5.REL_FAILURE, 1);
     }
 
-    @Test(expected = ProcessException.class)
+    @Test
     public void testCreateElasticsearch5ClientWithException() throws ProcessException {
         FetchElasticsearch5TestProcessor processor = new FetchElasticsearch5TestProcessor(true) {
             @Override
@@ -250,7 +251,7 @@ public class TestFetchElasticsearch5 {
 
         MockProcessContext context = new MockProcessContext(processor);
         processor.initialize(new MockProcessorInitializationContext(processor, context));
-        processor.callCreateElasticsearchClient(context);
+        assertThrows(ProcessException.class, () -> processor.callCreateElasticsearchClient(context));
     }
 
     @Test
@@ -376,7 +377,7 @@ public class TestFetchElasticsearch5 {
      * Tests basic ES functionality against a local or test ES cluster
      */
     @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
+    @Disabled("Comment this out if you want to run against local or test ES")
     public void testFetchElasticsearch5Basic() {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
@@ -406,7 +407,7 @@ public class TestFetchElasticsearch5 {
     }
 
     @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
+    @Disabled("Comment this out if you want to run against local or test ES")
     public void testFetchElasticsearch5Batch() throws IOException {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());

@@ -20,8 +20,10 @@ package org.apache.nifi.processors.elasticsearch
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
-import org.junit.Test
+import org.junit.jupiter.api.Test
+
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
 
 class DeleteByQueryElasticsearchTest {
     private static final String INDEX = "test_idx"
@@ -45,10 +47,10 @@ class DeleteByQueryElasticsearchTest {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DeleteByQueryElasticsearch.REL_SUCCESS)
         String attr = flowFiles.get(0).getAttribute(DeleteByQueryElasticsearch.TOOK_ATTRIBUTE)
         String query = flowFiles.get(0).getAttribute(QUERY_ATTR)
-        Assert.assertNotNull(attr)
-        Assert.assertEquals(attr, "100")
-        Assert.assertNotNull(query)
-        Assert.assertEquals(queryParam, query)
+        assertNotNull(attr)
+        assertEquals(attr, "100")
+        assertNotNull(query)
+        assertEquals(queryParam, query)
     }
 
     @Test
@@ -125,7 +127,7 @@ class DeleteByQueryElasticsearchTest {
 
         MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(DeleteByQueryElasticsearch.REL_FAILURE).get(0)
         String attr = mockFlowFile.getAttribute(DeleteByQueryElasticsearch.ERROR_ATTRIBUTE)
-        Assert.assertNotNull(attr)
+        assertNotNull(attr)
     }
 
     @Test

@@ -16,24 +16,22 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
-
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.rest.RestStatus;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import java.io.InputStream;
+import java.util.HashMap;
 
 /**
  * Integration test for delete processor. Please set the hosts, cluster name, index and type etc before running the integrations.
  */
-@Ignore("Comment this out for es delete integration testing and set the appropriate cluster name, hosts, etc")
+@Disabled("Comment this out for es delete integration testing and set the appropriate cluster name, hosts, etc")
 public class ITDeleteElasticsearch5Test {
 
     private static final String TYPE1 = "type1";
@@ -44,16 +42,12 @@ public class ITDeleteElasticsearch5Test {
     protected String clusterName = "elasticsearch";
     private String documentId;
 
-    @Before
-    public void setUp() throws IOException {
+    @BeforeEach
+    public void setUp() {
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
         inputDocument = classloader.getResourceAsStream("DocumentExample.json");
         long currentTimeMillis = System.currentTimeMillis();
         documentId = String.valueOf(currentTimeMillis);
-    }
-
-    @After
-    public void teardown() {
     }
 
     @Test

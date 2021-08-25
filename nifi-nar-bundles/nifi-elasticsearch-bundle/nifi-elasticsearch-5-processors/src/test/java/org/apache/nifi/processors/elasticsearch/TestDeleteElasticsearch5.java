@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.concurrent.ExecutionException;
-
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -31,9 +24,14 @@ import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.delete.DeleteRequestBuilder;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.rest.RestStatus;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class TestDeleteElasticsearch5 {
 
@@ -46,8 +44,8 @@ public class TestDeleteElasticsearch5 {
     private DeleteElasticsearch5 mockDeleteProcessor;
     long currentTimeMillis;
 
-    @Before
-    public void setUp() throws IOException {
+    @BeforeEach
+    public void setUp() {
         currentTimeMillis = System.currentTimeMillis();
         documentId = String.valueOf(currentTimeMillis);
         mockDeleteProcessor = new DeleteElasticsearch5() {
@@ -58,8 +56,7 @@ public class TestDeleteElasticsearch5 {
             }
 
             @Override
-            protected DeleteResponse doDelete(DeleteRequestBuilder requestBuilder)
-                    throws InterruptedException, ExecutionException {
+            protected DeleteResponse doDelete(DeleteRequestBuilder requestBuilder) {
                 return deleteResponse;
             }
 
@@ -84,13 +81,13 @@ public class TestDeleteElasticsearch5 {
         runner.assertValid();
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         runner = null;
     }
 
     @Test
-    public void testDeleteWithNoDocumentId() throws IOException {
+    public void testDeleteWithNoDocumentId() {
 
         runner.enqueue(new byte [] {});
         runner.run(1, true, true);
@@ -102,7 +99,7 @@ public class TestDeleteElasticsearch5 {
     }
 
     @Test
-    public void testDeleteWithNoIndex() throws IOException {
+    public void testDeleteWithNoIndex() {
         runner.setProperty(DeleteElasticsearch5.INDEX, "${index}");
 
         runner.enqueue(new byte [] {});
@@ -115,7 +112,7 @@ public class TestDeleteElasticsearch5 {
     }
 
     @Test
-    public void testDeleteWithNoType() throws IOException {
+    public void testDeleteWithNoType() {
         runner.setProperty(DeleteElasticsearch5.TYPE, "${type}");
 
         runner.enqueue(new byte [] {});
@@ -128,7 +125,7 @@ public class TestDeleteElasticsearch5 {
     }
 
     @Test
-    public void testDeleteSuccessful() throws IOException {
+    public void testDeleteSuccessful() {
         restStatus = RestStatus.OK;
         deleteResponse = new DeleteResponse(null, TYPE1, documentId, 1, true) {
 
@@ -153,7 +150,7 @@ public class TestDeleteElasticsearch5 {
     }
 
     @Test
-    public void testDeleteNotFound() throws IOException {
+    public void testDeleteNotFound() {
         restStatus = RestStatus.NOT_FOUND;
         deleteResponse = new DeleteResponse(null, TYPE1, documentId, 1, true) {
 
@@ -179,7 +176,7 @@ public class TestDeleteElasticsearch5 {
     }
 
     @Test
-    public void testDeleteServerFailure() throws IOException {
+    public void testDeleteServerFailure() {
         restStatus = RestStatus.SERVICE_UNAVAILABLE;
         deleteResponse = new DeleteResponse(null, TYPE1, documentId, 1, true) {
 
@@ -205,7 +202,7 @@ public class TestDeleteElasticsearch5 {
     }
 
     @Test
-    public void testDeleteRetryableException() throws IOException {
+    public void testDeleteRetryableException() {
         mockDeleteProcessor = new DeleteElasticsearch5() {
 
             @Override
@@ -214,8 +211,7 @@ public class TestDeleteElasticsearch5 {
             }
 
             @Override
-            protected DeleteResponse doDelete(DeleteRequestBuilder requestBuilder)
-                    throws InterruptedException, ExecutionException {
+            protected DeleteResponse doDelete(DeleteRequestBuilder requestBuilder) {
                 throw new ElasticsearchTimeoutException("timeout");
             }
 
@@ -252,7 +248,7 @@ public class TestDeleteElasticsearch5 {
     }
 
     @Test
-    public void testDeleteNonRetryableException() throws IOException {
+    public void testDeleteNonRetryableException() {
         mockDeleteProcessor = new DeleteElasticsearch5() {
 
             @Override
@@ -262,7 +258,7 @@ public class TestDeleteElasticsearch5 {
 
             @Override
             protected DeleteResponse doDelete(DeleteRequestBuilder requestBuilder)
-                    throws InterruptedException, ExecutionException {
+                    throws InterruptedException {
                 throw new InterruptedException("exception");
             }
 
