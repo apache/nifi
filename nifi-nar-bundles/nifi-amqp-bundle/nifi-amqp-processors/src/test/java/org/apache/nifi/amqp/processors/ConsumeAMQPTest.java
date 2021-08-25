@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -35,10 +35,10 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
 
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.MessageProperties;
+import org.junit.jupiter.api.Test;
 
 public class ConsumeAMQPTest {
 
