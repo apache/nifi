@@ -31,8 +31,9 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
@@ -42,7 +43,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -56,7 +56,7 @@ public class PutCassandraRecordTest {
     private TestRunner testRunner;
     private MockRecordParser recordReader;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         MockPutCassandraRecord processor = new MockPutCassandraRecord();
         recordReader = new MockRecordParser();
@@ -544,7 +544,7 @@ public class PutCassandraRecordTest {
                 }
                 when(mockSession.getCluster()).thenReturn(mockCluster);
             } catch (Exception e) {
-                fail(e.getMessage());
+                Assertions.fail(e.getMessage());
             }
             return mockCluster;
         }

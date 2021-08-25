@@ -19,8 +19,9 @@ package org.apache.nifi.processors.cassandra;
 import com.datastax.driver.core.Statement;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.Tuple;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -30,8 +31,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 public class PutCassandraRecordUpdateTest {
@@ -40,7 +39,7 @@ public class PutCassandraRecordUpdateTest {
     @Mock
     private RecordSchema schema;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
 
@@ -272,7 +271,7 @@ public class PutCassandraRecordUpdateTest {
         when(schema.getFieldNames()).thenReturn(fieldNames);
         Statement actual = testSubject.generateUpdate(table, schema, updateKeys, updateMethod, recordContentMap);
 
-        assertEquals(expected, actual.toString());
+        Assertions.assertEquals(expected, actual.toString());
     }
 
     private <E extends Exception> void testGenerateUpdate(String table, String updateKeys, String updateMethod, List<Tuple<String, Object>> records, E expected) {
@@ -284,10 +283,10 @@ public class PutCassandraRecordUpdateTest {
         when(schema.getFieldNames()).thenReturn(fieldNames);
         try {
             testSubject.generateUpdate("keyspace.table", schema, updateKeys, updateMethod, recordContentMap);
-            fail();
+            Assertions.fail();
         } catch (Exception e) {
-            assertEquals(expected.getClass(), e.getClass());
-            assertEquals(expected.getMessage(), e.getMessage());
+            Assertions.assertEquals(expected.getClass(), e.getClass());
+            Assertions.assertEquals(expected.getMessage(), e.getMessage());
         }
     }
 }
