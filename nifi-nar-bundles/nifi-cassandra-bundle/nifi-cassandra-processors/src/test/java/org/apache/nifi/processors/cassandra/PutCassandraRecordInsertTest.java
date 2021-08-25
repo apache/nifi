@@ -20,8 +20,9 @@ import com.datastax.driver.core.querybuilder.Insert;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.Tuple;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -31,7 +32,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -41,7 +41,7 @@ public class PutCassandraRecordInsertTest {
     @Mock
     private RecordSchema schema;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
 
@@ -104,6 +104,6 @@ public class PutCassandraRecordInsertTest {
         // Codecs are normally registered in the onScheduled method
         testSubject.registerAdditionalCodecs();
 
-        assertEquals(expected, actual.getQueryString());
+        Assertions.assertEquals(expected, actual.getQueryString());
     }
 }
