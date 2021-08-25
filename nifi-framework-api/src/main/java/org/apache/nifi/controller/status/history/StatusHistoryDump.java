@@ -14,33 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi;
+package org.apache.nifi.controller.status.history;
 
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.controller.DecommissionTask;
-import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
-import org.apache.nifi.diagnostics.DiagnosticsFactory;
-import org.apache.nifi.nar.ExtensionMapping;
-import org.apache.nifi.util.NiFiProperties;
-
-import java.util.Set;
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
- *
+ * Container for status history data which is capable to write it in an implementation dependent format.
  */
-public interface NiFiServer {
+public interface StatusHistoryDump {
 
-    void start();
-
-    void initialize(NiFiProperties properties, Bundle systemBundle, Set<Bundle> bundles, ExtensionMapping extensionMapping);
-
-    void stop();
-
-    DiagnosticsFactory getDiagnosticsFactory();
-
-    DiagnosticsFactory getThreadDumpFactory();
-
-    DecommissionTask getDecommissionTask();
-
-    StatusHistoryDumpFactory getStatusHistoryDumpFactory();
+    /**
+     * Writes a status history dump to an output stream.
+     *
+     * @param out the output stream
+     * @throws IOException if cannot serialize
+     */
+    void writeTo(final OutputStream out) throws IOException;
 }

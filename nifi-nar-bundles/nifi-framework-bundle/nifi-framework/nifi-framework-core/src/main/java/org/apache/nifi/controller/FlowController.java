@@ -240,7 +240,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     public static final String DEFAULT_CONTENT_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.FileSystemRepository";
     public static final String DEFAULT_PROVENANCE_REPO_IMPLEMENTATION = "org.apache.nifi.provenance.VolatileProvenanceRepository";
     public static final String DEFAULT_SWAP_MANAGER_IMPLEMENTATION = "org.apache.nifi.controller.FileSystemSwapManager";
-    public static final String DEFAULT_COMPONENT_STATUS_REPO_IMPLEMENTATION = "org.apache.nifi.controller.status.history.VolatileComponentStatusRepository";
 
     private static final String ENCRYPTED_PROVENANCE_REPO_IMPLEMENTATION = "org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository";
     private static final String ENCRYPTED_CONTENT_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.crypto.EncryptedFileSystemRepository";
@@ -393,7 +392,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final BulletinRepository bulletinRepo,
             final VariableRegistry variableRegistry,
             final FlowRegistryClient flowRegistryClient,
-            final ExtensionManager extensionManager) {
+            final ExtensionManager extensionManager,
+            final StatusHistoryRepository statusHistoryRepository) {
 
         return new FlowController(
                 flowFileEventRepo,
@@ -410,7 +410,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 /* variable registry */ variableRegistry,
                 flowRegistryClient,
                 extensionManager,
-                null);
+                null,
+                statusHistoryRepository);
     }
 
     public static FlowController createClusteredInstance(
@@ -427,7 +428,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final VariableRegistry variableRegistry,
             final FlowRegistryClient flowRegistryClient,
             final ExtensionManager extensionManager,
-            final RevisionManager revisionManager) {
+            final RevisionManager revisionManager,
+            final StatusHistoryRepository statusHistoryRepository) {
 
         final FlowController flowController = new FlowController(
                 flowFileEventRepo,
@@ -444,7 +446,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 variableRegistry,
                 flowRegistryClient,
                 extensionManager,
-                revisionManager);
+                revisionManager,
+                statusHistoryRepository);
 
         return flowController;
     }
@@ -465,7 +468,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final VariableRegistry variableRegistry,
             final FlowRegistryClient flowRegistryClient,
             final ExtensionManager extensionManager,
-            final RevisionManager revisionManager) {
+            final RevisionManager revisionManager,
+            final StatusHistoryRepository statusHistoryRepository) {
 
         maxTimerDrivenThreads = new AtomicInteger(10);
         maxEventDrivenThreads = new AtomicInteger(1);
@@ -481,6 +485,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         this.configuredForClustering = configuredForClustering;
         this.flowRegistryClient = flowRegistryClient;
         this.revisionManager = revisionManager;
+        this.statusHistoryRepository = statusHistoryRepository;
 
         try {
             // Form the container object from the properties
@@ -637,8 +642,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         } else {
             zooKeeperStateServer = null;
         }
-
-        statusHistoryRepository = createStatusHistoryRepository();
 
         final boolean analyticsEnabled = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_ENABLED, NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_ENABLED));
 
@@ -1180,22 +1183,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         LOG.info("Creating Provenance Repository [{}]", implementationClassName);
         try {
             return NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, ProvenanceRepository.class, properties);
-        } catch (final Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private StatusHistoryRepository createStatusHistoryRepository() {
-        final String implementationClassName = nifiProperties.getProperty(NiFiProperties.COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION, DEFAULT_COMPONENT_STATUS_REPO_IMPLEMENTATION);
-        if (implementationClassName == null) {
-            throw new RuntimeException("Cannot create Status History Repository because the NiFi Properties is missing the following property: "
-                    + NiFiProperties.COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION);
-        }
-
-        try {
-            final StatusHistoryRepository repository = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, StatusHistoryRepository.class, nifiProperties);
-            repository.start();
-            return repository;
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }

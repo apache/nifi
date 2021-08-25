@@ -14,33 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi;
-
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.controller.DecommissionTask;
-import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
-import org.apache.nifi.diagnostics.DiagnosticsFactory;
-import org.apache.nifi.nar.ExtensionMapping;
-import org.apache.nifi.util.NiFiProperties;
-
-import java.util.Set;
+package org.apache.nifi.controller.status.history;
 
 /**
- *
+ * Factory class to create StatusHistoryDump instance.
  */
-public interface NiFiServer {
+public interface StatusHistoryDumpFactory {
 
-    void start();
-
-    void initialize(NiFiProperties properties, Bundle systemBundle, Set<Bundle> bundles, ExtensionMapping extensionMapping);
-
-    void stop();
-
-    DiagnosticsFactory getDiagnosticsFactory();
-
-    DiagnosticsFactory getThreadDumpFactory();
-
-    DecommissionTask getDecommissionTask();
-
-    StatusHistoryDumpFactory getStatusHistoryDumpFactory();
+    /**
+     * Creates a status history dump object.
+     *
+     * @param days number of backdating days
+     * @return the status history dump
+     */
+    StatusHistoryDump create(final int days);
 }
