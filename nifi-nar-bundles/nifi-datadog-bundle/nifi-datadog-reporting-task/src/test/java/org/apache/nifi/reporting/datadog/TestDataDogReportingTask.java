@@ -28,8 +28,8 @@ import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.datadog.metrics.MetricsService;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -61,7 +61,7 @@ public class TestDataDogReportingTask {
     private volatile JmxJvmMetrics virtualMachineMetrics;
     private Logger logger;
 
-    @Before
+    @BeforeEach
     public void setup() {
         initProcessGroupStatus();
         initProcessorStatuses();

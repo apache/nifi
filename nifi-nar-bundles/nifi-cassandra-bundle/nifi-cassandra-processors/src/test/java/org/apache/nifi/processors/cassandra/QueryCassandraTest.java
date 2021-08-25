@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.cassandra;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Configuration;
 import com.datastax.driver.core.ConsistencyLevel;
@@ -38,6 +28,17 @@ import com.datastax.driver.core.SniEndPoint;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.ReadTimeoutException;
+import org.apache.avro.Schema;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import javax.net.ssl.SSLContext;
 import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -50,16 +51,16 @@ import java.util.Optional;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import javax.net.ssl.SSLContext;
-import org.apache.avro.Schema;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.MockProcessContext;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.junit.Before;
-import org.junit.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 public class QueryCassandraTest {
@@ -67,7 +68,7 @@ public class QueryCassandraTest {
     private TestRunner testRunner;
     private MockQueryCassandra processor;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         processor = new MockQueryCassandra();
         testRunner = TestRunners.newTestRunner(processor);
@@ -150,7 +151,7 @@ public class QueryCassandraTest {
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
         List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
         assertNotNull(files);
-        assertEquals("One file should be transferred to success", 1, files.size());
+        assertEquals(1, files.size(), "One file should be transferred to success");
         assertEquals("{\"results\":[{\"user_id\":\"user1\",\"first_name\":\"Joe\",\"last_name\":\"Smith\","
                         + "\"emails\":[\"jsmith@notareal.com\"],\"top_places\":[\"New York, NY\",\"Santa Clara, CA\"],"
                         + "\"todo\":{\"2016-01-03 05:00:00+0000\":\"Set my alarm \\\"for\\\" a month from now\"},"
@@ -187,7 +188,7 @@ public class QueryCassandraTest {
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
         List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
         assertNotNull(files);
-        assertEquals("One file should be transferred to success", 1, files.size());
+        assertEquals(1, files.size(), "One file should be transferred to success");
         assertEquals("{\"results\":[{\"user_id\":\"user1\",\"first_name\":\"Joe\",\"last_name\":\"Smith\","
                         + "\"emails\":[\"jsmith@notareal.com\"],\"top_places\":[\"New York, NY\",\"Santa Clara, CA\"],"
                         + "\"todo\":{\"2016-01-03 05:00:00+0000\":\"Set my alarm \\\"for\\\" a month from now\"},"
@@ -211,7 +212,7 @@ public class QueryCassandraTest {
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
         List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
         assertNotNull(files);
-        assertEquals("One file should be transferred to success", 1, files.size());
+        assertEquals(1, files.size(), "One file should be transferred to success");
     }
 
     @Test

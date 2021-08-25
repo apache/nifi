@@ -16,20 +16,20 @@
  */
 package org.apache.nifi.processors.beats.frame;
 
-import java.nio.ByteBuffer;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.xml.bind.DatatypeConverter;
+import java.nio.ByteBuffer;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 
 public class TestBeatsEncoder {
     private BeatsEncoder encoder;
 
 
-    @Before
+    @BeforeEach
     public void setup() {
         this.encoder = new BeatsEncoder();
     }
@@ -44,6 +44,6 @@ public class TestBeatsEncoder {
 
         byte[] encoded = encoder.encode(frame);
 
-        Assert.assertArrayEquals(DatatypeConverter.parseHexBinary("31410000007B"), encoded);
+        assertArrayEquals(DatatypeConverter.parseHexBinary("31410000007B"), encoded);
     }
 }

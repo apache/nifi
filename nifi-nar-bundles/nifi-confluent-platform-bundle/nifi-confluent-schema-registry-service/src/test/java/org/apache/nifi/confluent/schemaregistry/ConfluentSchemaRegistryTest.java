@@ -21,8 +21,8 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class ConfluentSchemaRegistryTest {
@@ -33,7 +33,7 @@ public class ConfluentSchemaRegistryTest {
 
     private ConfluentSchemaRegistry registry;
 
-    @Before
+    @BeforeEach
     public void setUp() throws InitializationException {
         registry = new ConfluentSchemaRegistry();
         final Processor processor = Mockito.mock(Processor.class);
