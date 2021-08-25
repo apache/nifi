@@ -40,4 +40,6 @@ public interface NiFiServer {
     DiagnosticsFactory getThreadDumpFactory();
 
     DecommissionTask getDecommissionTask();
+
+    String getNodeStatusHistoryJson(final int days);
 }

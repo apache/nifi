@@ -119,6 +119,7 @@ public class RunNiFi {
     public static final String DUMP_CMD = "DUMP";
     public static final String DIAGNOSTICS_CMD = "DIAGNOSTICS";
     public static final String IS_LOADED_CMD = "IS_LOADED";
+    public static final String STATUS_HISTORY_CMD = "STATUS_HISTORY";
 
     private static final int UNINITIALIZED_CC_PORT = -1;
 
@@ -175,7 +176,8 @@ public class RunNiFi {
         System.out.println("Status : Determine if there is a running instance of Apache NiFi");
         System.out.println("Dump : Write a Thread Dump to the file specified by [options], or to the log if no file is given");
         System.out.println("Diagnostics : Write diagnostic information to the file specified by [options], or to the log if no file is given. The --verbose flag may be provided as an option before " +
-            "the filename, which may result in additional diagnostic information being written.");
+                "the filename, which may result in additional diagnostic information being written.");
+        System.out.println("Status-history : Save the status history to the file specified by [options], or to the log if no file is given");
         System.out.println("Run : Start a new instance of Apache NiFi and monitor the Process, restarting if the instance dies");
         System.out.println();
     }
@@ -185,13 +187,14 @@ public class RunNiFi {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        if (args.length < 1 || args.length > 3) {
+        if (args.length < 1 || args.length > 4) {
             printUsage();
             return;
         }
 
         File dumpFile = null;
         boolean verbose = false;
+        String statusHistoryDays = null;
 
         final String cmd = args[0];
         if (cmd.equalsIgnoreCase("dump")) {
@@ -216,6 +219,9 @@ public class RunNiFi {
                 dumpFile = null;
                 verbose = false;
             }
+        } else if (cmd.equalsIgnoreCase("status-history")) {
+            statusHistoryDays = args[2];
+            dumpFile = new File(args[3]);
         }
 
         switch (cmd.toLowerCase()) {
@@ -229,6 +235,7 @@ public class RunNiFi {
             case "diagnostics":
             case "restart":
             case "env":
+            case "status-history":
                 break;
             default:
                 printUsage();
@@ -274,6 +281,9 @@ public class RunNiFi {
                 break;
             case "env":
                 runNiFi.env();
+                break;
+            case "status-history":
+                runNiFi.statusHistory(dumpFile, statusHistoryDays);
                 break;
         }
         if (exitStatus != null) {
@@ -727,6 +737,15 @@ public class RunNiFi {
      */
     public void dump(final File dumpFile) throws IOException {
         makeRequest(DUMP_CMD, null, dumpFile, "thread dump");
+    }
+
+    /**
+     * Writes NiFi status history information to the given file; if file is null, logs at
+     * INFO level instead.
+     */
+    public void statusHistory(final File dumpFile, final String days) throws IOException {
+        ;
+        makeRequest(STATUS_HISTORY_CMD, days, dumpFile, "status history information");
     }
 
     private boolean isNiFiFullyLoaded() throws IOException, NiFiNotRunningException {
@@ -1217,7 +1236,7 @@ public class RunNiFi {
 
         final StringBuilder cmdBuilder = new StringBuilder();
         for (final String s : cmd) {
-          cmdBuilder.append(s).append(" ");
+            cmdBuilder.append(s).append(" ");
         }
 
         cmdLogger.info("Starting Apache NiFi...");
@@ -1338,14 +1357,14 @@ public class RunNiFi {
                             // We are expected to restart nifi, so send a notification that it died. If we are not restarting nifi,
                             // then this means that we are intentionally stopping the service.
                             serviceManager.notify(NotificationType.NIFI_DIED, "NiFi Died on Host " + hostname,
-                                "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now + "; automatically restarting NiFi");
+                                    "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now + "; automatically restarting NiFi");
                         } else {
                             defaultLogger.error("Apache NiFi does not appear to have started");
                             // We are expected to restart nifi, so send a notification that it died. If we are not restarting nifi,
                             // then this means that we are intentionally stopping the service.
                             serviceManager.notify(NotificationType.NIFI_DIED, "NiFi Died on Host " + hostname,
-                                "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now +
-                                    ". Attempted to restart NiFi but the services does not appear to have restarted!");
+                                    "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now +
+                                            ". Attempted to restart NiFi but the services does not appear to have restarted!");
                         }
                     } else {
                         return;
@@ -1362,7 +1381,7 @@ public class RunNiFi {
     }
 
     private Path createSensitiveKeyFile(File confDir) {
-        Path sensitiveKeyFile = Paths.get(confDir+"/sensitive.key");
+        Path sensitiveKeyFile = Paths.get(confDir + "/sensitive.key");
 
         final boolean isPosixSupported = FileSystems.getDefault().supportedFileAttributeViews().contains("posix");
         try {

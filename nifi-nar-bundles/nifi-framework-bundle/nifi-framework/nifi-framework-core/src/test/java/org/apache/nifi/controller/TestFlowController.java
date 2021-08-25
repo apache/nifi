@@ -44,6 +44,8 @@ import org.apache.nifi.controller.service.mock.DummyProcessor;
 import org.apache.nifi.controller.service.mock.DummyReportingTask;
 import org.apache.nifi.controller.service.mock.ServiceA;
 import org.apache.nifi.controller.service.mock.ServiceB;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
+import org.apache.nifi.controller.status.history.VolatileComponentStatusRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.groups.ProcessGroup;
@@ -124,6 +126,7 @@ public class TestFlowController {
     private BulletinRepository bulletinRepo;
     private VariableRegistry variableRegistry;
     private ExtensionDiscoveringManager extensionManager;
+    private StatusHistoryRepository statusHistoryRepository;
 
     @Before
     public void setup() {
@@ -142,6 +145,8 @@ public class TestFlowController {
         systemBundle = SystemBundle.create(nifiProperties);
         extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+
+        statusHistoryRepository = new VolatileComponentStatusRepository();
 
         User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
         User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();
@@ -184,7 +189,7 @@ public class TestFlowController {
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager);
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager, statusHistoryRepository);
     }
 
     @After
@@ -520,7 +525,7 @@ public class TestFlowController {
 
         controller.shutdown(true);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager);
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager, statusHistoryRepository);
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }

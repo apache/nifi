@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -72,7 +73,7 @@ public class BootstrapListener {
         listenThread.start();
 
         logger.debug("Notifying Bootstrap that local port is {}", localPort);
-        sendCommand("PORT", new String[] { String.valueOf(localPort), secretKey});
+        sendCommand("PORT", new String[]{String.valueOf(localPort), secretKey});
     }
 
     public void reload() throws IOException {
@@ -94,7 +95,7 @@ public class BootstrapListener {
 
     public void sendStartedStatus(boolean status) throws IOException {
         logger.debug("Notifying Bootstrap that the status of starting NiFi is {}", status);
-        sendCommand("STARTED", new String[]{ String.valueOf(status) });
+        sendCommand("STARTED", new String[]{String.valueOf(status)});
     }
 
     private void sendCommand(final String command, final String[] args) throws IOException {
@@ -244,6 +245,12 @@ public class BootstrapListener {
                                         sendAnswer(socket.getOutputStream(), answer);
                                         logger.debug("Responded to IS_LOADED request from Bootstrap with value: " + answer);
                                         break;
+                                    case STATUS_HISTORY:
+                                        logger.info("Received STATUS_HISTORY request from Bootstrap");
+                                        final String[] statusHistoryArgs = request.getArgs();
+                                        final int days = Integer.parseInt(statusHistoryArgs[0]);
+                                        writeStatusHistory(socket.getOutputStream(), days);
+                                        break;
                                 }
                             } catch (final Throwable t) {
                                 logger.error("Failed to process request from Bootstrap due to " + t.toString(), t);
@@ -280,6 +287,13 @@ public class BootstrapListener {
     private void writeDiagnostics(final OutputStream out, final boolean verbose) throws IOException {
         final DiagnosticsDump diagnosticsDump = nifi.getServer().getDiagnosticsFactory().create(verbose);
         diagnosticsDump.writeTo(out);
+    }
+
+    private void writeStatusHistory(final OutputStream out, final int days) {
+        final String nodeStatusHistory = nifi.getServer().getNodeStatusHistoryJson(days);
+        try (final PrintWriter printWriter = new PrintWriter(out)) {
+            printWriter.println(nodeStatusHistory);
+        }
     }
 
     private void sendAnswer(final OutputStream out, final String answer) throws IOException {
@@ -333,7 +347,8 @@ public class BootstrapListener {
             DIAGNOSTICS,
             DECOMMISSION,
             PING,
-            IS_LOADED
+            IS_LOADED,
+            STATUS_HISTORY
         }
 
         private final RequestType requestType;

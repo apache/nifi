@@ -60,4 +60,9 @@ public class NiFiServerStub implements NiFiServer {
     public DecommissionTask getDecommissionTask() {
         return null;
     }
+
+    @Override
+    public String getNodeStatusHistoryJson(int days) {
+        return null;
+    }
 }

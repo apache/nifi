@@ -25,6 +25,7 @@ import org.apache.curator.test.TestingServer;
 import org.apache.nifi.cluster.coordination.flow.FlowElection;
 import org.apache.nifi.cluster.coordination.flow.PopularVoteFlowElection;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.encrypt.SensitiveValueEncoder;
@@ -141,7 +142,6 @@ public class Cluster {
         final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager, sensitiveValueEncoder);
         final FlowElection flowElection = new PopularVoteFlowElection(flowElectionTimeoutMillis, TimeUnit.MILLISECONDS, flowElectionMaxNodes, fingerprintFactory);
-
         final Node node = new Node(nifiProperties, extensionManager, flowElection);
         node.start();
         nodes.add(node);

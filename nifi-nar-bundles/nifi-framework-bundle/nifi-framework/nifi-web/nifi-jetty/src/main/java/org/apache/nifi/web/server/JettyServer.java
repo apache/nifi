@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.web.server;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.util.DefaultIndenter;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections4.CollectionUtils;
@@ -27,6 +31,9 @@ import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+import org.apache.nifi.controller.status.history.StatusHistory;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryUtil;
 import org.apache.nifi.diagnostics.DiagnosticsDump;
 import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
@@ -53,6 +60,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.security.headers.ContentSecurityPolicyFilter;
 import org.apache.nifi.web.security.headers.StrictTransportSecurityFilter;
 import org.apache.nifi.web.security.headers.XContentTypeOptionsFilter;
@@ -110,8 +118,10 @@ import java.net.SocketException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -165,6 +175,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private DiagnosticsFactory diagnosticsFactory;
     private SslContextFactory.Server sslContextFactory;
     private DecommissionTask decommissionTask;
+    private StatusHistoryRepository statusHistoryRepository;
 
     private WebAppContext webApiContext;
     private WebAppContext webDocsContext;
@@ -631,7 +642,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                         XSSProtectionFilter.class,
                         XContentTypeOptionsFilter.class));
 
-        if(props.isHTTPSConfigured()) {
+        if (props.isHTTPSConfigured()) {
             filters.add(StrictTransportSecurityFilter.class);
         }
         filters.forEach((filter) -> addFilters(filter, webappContext));
@@ -708,7 +719,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
      * @param webAppContext context to which filters will be added
      * @param props         the {@link NiFiProperties}
      */
-    private static void addDenialOfServiceFilters(final  WebAppContext webAppContext, final NiFiProperties props) {
+    private static void addDenialOfServiceFilters(final WebAppContext webAppContext, final NiFiProperties props) {
         addWebRequestLimitingFilter(webAppContext, props.getMaxWebRequestsPerSecond(), getWebRequestTimeoutMs(props), props.getWebRequestIpWhitelist());
 
         // Only add the ContentLengthFilter if the property is explicitly set (empty by default)
@@ -737,10 +748,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
      * In order to allow clients to make more requests than the maximum rate, clients can be added to the {@code ipWhitelist}.
      * The {@code requestTimeoutInMilliseconds} value limits requests to the given request timeout amount, and will close connections that run longer than this time.
      *
-     * @param webAppContext Web Application Context where Filter will be added
+     * @param webAppContext     Web Application Context where Filter will be added
      * @param maxRequestsPerSec Maximum number of allowed requests per second
-     * @param maxRequestMs Maximum amount of time in milliseconds before a connection will be automatically closed
-     * @param allowed Comma-separated string of IP addresses that should not be rate limited. Does not apply to request timeout
+     * @param maxRequestMs      Maximum amount of time in milliseconds before a connection will be automatically closed
+     * @param allowed           Comma-separated string of IP addresses that should not be rate limited. Does not apply to request timeout
      */
     private static void addWebRequestLimitingFilter(final WebAppContext webAppContext, final int maxRequestsPerSec, final long maxRequestMs, final String allowed) {
         final FilterHolder holder = new FilterHolder(DoSFilter.class);
@@ -905,6 +916,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     /**
      * Configures a KeyStoreScanner and TrustStoreScanner at the configured reload intervals.  This will
      * reload the SSLContextFactory if any changes are detected to the keystore or truststore.
+     *
      * @param server The Jetty server
      */
     private void configureSslContextFactoryReloading(Server server) {
@@ -1185,6 +1197,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
                 diagnosticsFactory = webApplicationContext.getBean("diagnosticsFactory", DiagnosticsFactory.class);
                 decommissionTask = webApplicationContext.getBean("decommissionTask", DecommissionTask.class);
+                statusHistoryRepository = webApplicationContext.getBean("statusHistoryRepository", StatusHistoryRepository.class);
             }
 
             // ensure the web document war was loaded and provide the extension mapping
@@ -1261,6 +1274,29 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     @Override
     public DecommissionTask getDecommissionTask() {
         return decommissionTask;
+    }
+
+    @Override
+    public String getNodeStatusHistoryJson(final int days) {
+        final Date now = new Date();
+        final Calendar calendar = Calendar.getInstance();
+        calendar.setTime(now);
+        calendar.add(Calendar.DATE, days);
+        final Date daysBefore = calendar.getTime();
+        final StatusHistory nodeStatusHistory = statusHistoryRepository.getNodeStatusHistory(daysBefore, now);
+
+        final ObjectMapper objectMapper = new ObjectMapper();
+        final DefaultPrettyPrinter prettyPrinter = new DefaultPrettyPrinter();
+        prettyPrinter.indentArraysWith(DefaultIndenter.SYSTEM_LINEFEED_INSTANCE);
+
+        final StatusHistoryDTO statusHistoryDTO = StatusHistoryUtil.createStatusHistoryDTO(nodeStatusHistory);
+        try {
+            return objectMapper.writer(prettyPrinter).writeValueAsString(statusHistoryDTO);
+        } catch (JsonProcessingException e) {
+            final String errorMessage = "Could not serialize node status history to json.";
+            logger.error(errorMessage, e);
+            return String.format("%s %s", errorMessage, e.getMessage());
+        }
     }
 
     private void performInjectionForComponentUis(final Collection<WebAppContext> componentUiExtensionWebContexts,

@@ -35,6 +35,8 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
+import org.apache.nifi.controller.status.history.VolatileComponentStatusRepository;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
@@ -557,10 +559,12 @@ public class ProcessorLifecycleIT {
         final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
+        final StatusHistoryRepository statusHistoryRepository = new VolatileComponentStatusRepository();
+
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
             mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
             new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
-            mock(FlowRegistryClient.class), extensionManager);
+            mock(FlowRegistryClient.class), extensionManager, statusHistoryRepository);
 
         final FlowManager flowManager = flowController.getFlowManager();
         this.processScheduler = flowController.getProcessScheduler();
