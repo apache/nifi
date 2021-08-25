@@ -16,22 +16,19 @@
  */
 package org.apache.nifi.processors.rethinkdb;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import com.rethinkdb.RethinkDB;
+import net.minidev.json.JSONObject;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import com.rethinkdb.RethinkDB;
-
-import net.minidev.json.JSONObject;
 
 /**
  * Integration test for deleting documents from RethinkDB. Please ensure that the RethinkDB is running
@@ -39,10 +36,10 @@ import net.minidev.json.JSONObject;
  * <code>admin</code> with password <code>admin</code> before running the integration tests or set the attributes in the
  * test accordingly.
  */
-@Ignore("Comment this out for running tests against a real instance of RethinkDB")
+@Disabled("Comment this out for running tests against a real instance of RethinkDB")
 public class ITDeleteRethinkDBTest extends ITAbstractRethinkDBTest {
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(DeleteRethinkDB.class);
         super.setUp();
@@ -52,10 +49,10 @@ public class ITDeleteRethinkDBTest extends ITAbstractRethinkDBTest {
         connection = RethinkDB.r.connection().user(user, password).db(dbName).hostname(dbHost).port(Integer.parseInt(dbPort)).connect();
         RethinkDB.r.db(dbName).table(table).delete().run(connection);
         long count = RethinkDB.r.db(dbName).table(table).count().run(connection);
-        assertEquals("Count should be same", 0L, count);
+        Assertions.assertEquals(0L, count, "Count should be same");
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         super.tearDown();
     }
@@ -68,7 +65,7 @@ public class ITDeleteRethinkDBTest extends ITAbstractRethinkDBTest {
         RethinkDB.r.db(dbName).table(table).insert(message).run(connection);
 
         long count = RethinkDB.r.db(dbName).table(table).count().run(connection);
-        assertEquals("Count should be same", 1L, count);
+        Assertions.assertEquals(1L, count, "Count should be same");
 
         runner.setProperty(AbstractRethinkDBProcessor.RETHINKDB_DOCUMENT_ID, "${rethinkdb.id}");
 
@@ -82,19 +79,19 @@ public class ITDeleteRethinkDBTest extends ITAbstractRethinkDBTest {
         String changeMessage = ("{\"old_val\":" + message + "}");
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_SUCCESS);
-        assertEquals("Flow file count should be same", 1, flowFiles.size());
-        assertEquals("Error should be null",null, flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
-        assertEquals("Content should be same size", changeMessage.length(), flowFiles.get(0).getSize());
+        Assertions.assertEquals(1, flowFiles.size(), "Flow file count should be same");
+        Assertions.assertEquals(null, flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE), "Error should be null");
+        Assertions.assertEquals(changeMessage.length(), flowFiles.get(0).getSize(), "Content should be same size");
         flowFiles.get(0).assertContentEquals(changeMessage);
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_DELETED_KEY), "1");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_ERROR_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_INSERTED_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_REPLACED_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_SKIPPED_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_UNCHANGED_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_DELETED_KEY), "1");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_ERROR_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_INSERTED_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_REPLACED_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_SKIPPED_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_UNCHANGED_KEY),"0");
 
         Map<String,Object> document = RethinkDB.r.db(dbName).table(table).get("1").run(connection);
-        assertEquals("Document should be null", document, null);
+        Assertions.assertEquals(document, null, "Document should be null");
     }
 
     @Test
@@ -105,7 +102,7 @@ public class ITDeleteRethinkDBTest extends ITAbstractRethinkDBTest {
         RethinkDB.r.db(dbName).table(table).insert(message).run(connection);
 
         long count = RethinkDB.r.db(dbName).table(table).count().run(connection);
-        assertEquals("Count should be same", 1L, count);
+        Assertions.assertEquals(1L, count, "Count should be same");
 
         runner.setProperty(AbstractRethinkDBProcessor.RETHINKDB_DOCUMENT_ID, "${rethinkdb.id}");
         runner.setProperty(DeleteRethinkDB.RETURN_CHANGES, "false");
@@ -118,18 +115,18 @@ public class ITDeleteRethinkDBTest extends ITAbstractRethinkDBTest {
         runner.assertAllFlowFilesTransferred(AbstractRethinkDBProcessor.REL_SUCCESS, 1);
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_SUCCESS);
-        assertEquals("Flow file count should be same", 1, flowFiles.size());
-        assertEquals("Error should be null",null, flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_DELETED_KEY), "1");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_ERROR_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_INSERTED_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_REPLACED_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_SKIPPED_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_UNCHANGED_KEY),"0");
-        assertEquals(flowFiles.get(0).getSize(), 0);
+        Assertions.assertEquals(1, flowFiles.size(), "Flow file count should be same");
+        Assertions.assertEquals(null, flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE), "Error should be null");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_DELETED_KEY), "1");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_ERROR_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_INSERTED_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_REPLACED_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_SKIPPED_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_UNCHANGED_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getSize(), 0);
 
         Map<String,Object> document = RethinkDB.r.db(dbName).table(table).get("1").run(connection);
-        assertEquals("Document should be null", document, null);
+        Assertions.assertEquals(document, null, "Document should be null");
     }
 
     @Test
@@ -140,7 +137,7 @@ public class ITDeleteRethinkDBTest extends ITAbstractRethinkDBTest {
         RethinkDB.r.db(dbName).table(table).insert(message).run(connection);
 
         long count = RethinkDB.r.db(dbName).table(table).count().run(connection);
-        assertEquals("Count should be same", 1L, count);
+        Assertions.assertEquals(1L, count, "Count should be same");
 
         runner.setProperty(AbstractRethinkDBProcessor.RETHINKDB_DOCUMENT_ID, "${rethinkdb.id}");
 
@@ -152,19 +149,19 @@ public class ITDeleteRethinkDBTest extends ITAbstractRethinkDBTest {
         runner.assertAllFlowFilesTransferred(AbstractRethinkDBProcessor.REL_NOT_FOUND, 1);
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_NOT_FOUND);
-        assertEquals("Flow file count should be same", 1, flowFiles.size());
-        assertNotNull("Error should not be null", flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
-        assertEquals("Content should be same size", 0, flowFiles.get(0).getSize());
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_DELETED_KEY), "0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_ERROR_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_INSERTED_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_REPLACED_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_SKIPPED_KEY),"1");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_UNCHANGED_KEY),"0");
+        Assertions.assertEquals(1, flowFiles.size(), "Flow file count should be same");
+        Assertions.assertNotNull(flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE), "Error should not be null");
+        Assertions.assertEquals(0, flowFiles.get(0).getSize(), "Content should be same size");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_DELETED_KEY), "0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_ERROR_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_INSERTED_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_REPLACED_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_SKIPPED_KEY),"1");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_UNCHANGED_KEY),"0");
 
         Map<String,Object> document = RethinkDB.r.db(dbName).table(table).get("1").run(connection);
-        assertNotNull("Document should not be null", document);
-        assertEquals("id should be same", document.get("id"), "1");
+        Assertions.assertNotNull(document, "Document should not be null");
+        Assertions.assertEquals(document.get("id"), "1", "id should be same");
     }
 
     @Test
@@ -175,7 +172,7 @@ public class ITDeleteRethinkDBTest extends ITAbstractRethinkDBTest {
         RethinkDB.r.db(dbName).table(table).insert(message).run(connection);
 
         long count = RethinkDB.r.db(dbName).table(table).count().run(connection);
-        assertEquals("Count should be same", 1, count);
+        Assertions.assertEquals(1, count, "Count should be same");
 
         runner.setProperty(AbstractRethinkDBProcessor.RETHINKDB_DOCUMENT_ID, "2");
 
@@ -188,20 +185,20 @@ public class ITDeleteRethinkDBTest extends ITAbstractRethinkDBTest {
         String changeMessage = ("{\"old_val\":" + message + "}");
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_SUCCESS);
-        assertEquals("Flow file count should be same", 1, flowFiles.size());
-        assertEquals("Error should be null",null, flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
-        assertEquals("Content should be same size", changeMessage.length(), flowFiles.get(0).getSize());
+        Assertions.assertEquals(1, flowFiles.size(), "Flow file count should be same");
+        Assertions.assertEquals(null, flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE), "Error should be null");
+        Assertions.assertEquals(changeMessage.length(), flowFiles.get(0).getSize(), "Content should be same size");
         flowFiles.get(0).assertContentEquals(changeMessage);
 
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_DELETED_KEY), "1");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_ERROR_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_INSERTED_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_REPLACED_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_SKIPPED_KEY),"0");
-        assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_UNCHANGED_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_DELETED_KEY), "1");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_ERROR_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_INSERTED_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_REPLACED_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_SKIPPED_KEY),"0");
+        Assertions.assertEquals(flowFiles.get(0).getAttribute(DeleteRethinkDB.RETHINKDB_DELETE_RESULT_UNCHANGED_KEY),"0");
 
         Map<String,Object> document = RethinkDB.r.db(dbName).table(table).get("2").run(connection);
-        assertEquals("Document should be null", document, null);
+        Assertions.assertEquals(document, null, "Document should be null");
     }
 
 }
