@@ -15,19 +15,16 @@
  * limitations under the License.
  */
 package org.apache.nifi.rules.engine;
+
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.rules.Rule;
 import org.apache.nifi.rules.RulesFactory;
-import org.junit.Test;
-
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
 public class TestEasyRulesEngine {
 
@@ -40,8 +37,8 @@ public class TestEasyRulesEngine {
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",311111);
         Map<Rule, Boolean> checkedRules = service.checkRules(facts);
-        assertNotNull(checkedRules);
-        assertEquals(2,checkedRules.values().size());
+        Assertions.assertNotNull(checkedRules);
+        Assertions.assertEquals(2,checkedRules.values().size());
     }
 
     @Test
@@ -53,8 +50,8 @@ public class TestEasyRulesEngine {
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
-        assertNotNull(actions);
-        assertEquals(3,actions.size());
+        Assertions.assertNotNull(actions);
+        Assertions.assertEquals(3,actions.size());
     }
 
     @Test
@@ -67,7 +64,7 @@ public class TestEasyRulesEngine {
         facts.put("predictedTimeToBytesBackpressure",311111);
         try {
             service.fireRules(facts);
-            fail("Error condition exception was not thrown");
+            Assertions.fail("Error condition exception was not thrown");
         }catch (Exception ignored){
         }
 
@@ -81,7 +78,7 @@ public class TestEasyRulesEngine {
         Map<String, Object> facts = new HashMap<>();
         facts.put("predictedQueuedCount",60);
         Map<Rule, Boolean> checkedRules = service.checkRules(facts);
-        assertEquals(1, checkedRules.size());
+        Assertions.assertEquals(1, checkedRules.size());
     }
 
 }

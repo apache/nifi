@@ -16,13 +16,10 @@
  */
 package org.apache.nifi.rules;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.fail;
 
 public class TestRulesFactory {
     @Test
@@ -30,10 +27,10 @@ public class TestRulesFactory {
         try {
             String testYamlFile = "src/test/resources/test_nifi_rules.yml";
             List<Rule> rules = RulesFactory.createRulesFromFile(testYamlFile,"YAML", "NIFI");
-            assertEquals(2, rules.size());
+            Assertions.assertEquals(2, rules.size());
             assert confirmEntries(rules);
         }catch (Exception ex){
-            fail("Unexpected exception occurred: "+ex.getMessage());
+            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
         }
     }
 
@@ -42,11 +39,11 @@ public class TestRulesFactory {
         try {
             String testYamlFile = "src/test/resources/test_mvel_rules.yml";
             List<Rule> rules = RulesFactory.createRulesFromFile(testYamlFile,"YAML", "MVEL");
-            assertEquals(2, rules.size());
+            Assertions.assertEquals(2, rules.size());
             assert confirmEntries(rules);
-            assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
+            Assertions.assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
         }catch (Exception ex){
-            fail("Unexpected exception occurred: "+ex.getMessage());
+            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
         }
     }
 
@@ -55,10 +52,10 @@ public class TestRulesFactory {
         try {
             String testYamlFile = "src/test/resources/test_spel_rules.yml";
             List<Rule> rules = RulesFactory.createRulesFromFile(testYamlFile,"YAML", "SPEL");
-            assertEquals(2, rules.size());
-            assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
+            Assertions.assertEquals(2, rules.size());
+            Assertions.assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
         }catch (Exception ex){
-            fail("Unexpected exception occurred: "+ex.getMessage());
+            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
         }
     }
 
@@ -67,10 +64,10 @@ public class TestRulesFactory {
         try {
             String testJsonFile = "src/test/resources/test_nifi_rules.json";
             List<Rule> rules = RulesFactory.createRulesFromFile(testJsonFile,"JSON", "NIFI");
-            assertEquals(2, rules.size());
+            Assertions.assertEquals(2, rules.size());
             assert confirmEntries(rules);
         }catch (Exception ex){
-            fail("Unexpected exception occurred: "+ex.getMessage());
+            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
         }
     }
 
@@ -79,11 +76,11 @@ public class TestRulesFactory {
         try {
             String testJsonFile = "src/test/resources/test_mvel_rules.json";
             List<Rule> rules = RulesFactory.createRulesFromFile(testJsonFile,"JSON", "MVEL");
-            assertEquals(2, rules.size());
-            assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
+            Assertions.assertEquals(2, rules.size());
+            Assertions.assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
             assert confirmEntries(rules);
         }catch (Exception ex){
-            fail("Unexpected exception occurred: "+ex.getMessage());
+            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
         }
     }
 
@@ -92,10 +89,10 @@ public class TestRulesFactory {
         try {
             String testJsonFile = "src/test/resources/test_spel_rules.json";
             List<Rule> rules = RulesFactory.createRulesFromFile(testJsonFile,"JSON", "SPEL");
-            assertEquals(2, rules.size());
-            assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
+            Assertions.assertEquals(2, rules.size());
+            Assertions.assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
         }catch (Exception ex){
-            fail("Unexpected exception occurred: "+ex.getMessage());
+            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
         }
     }
 
@@ -119,10 +116,10 @@ public class TestRulesFactory {
                     "  }\n" +
                     "]";
             List<Rule> rules = RulesFactory.createRulesFromString(testJson,"JSON", "SPEL");
-            assertEquals(2, rules.size());
-            assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
+            Assertions.assertEquals(2, rules.size());
+            Assertions.assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
         }catch (Exception ex){
-            fail("Unexpected exception occurred: "+ex.getMessage());
+            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
         }
     }
 
@@ -144,10 +141,10 @@ public class TestRulesFactory {
                     "actions:\n" +
                     "  - \"System.out.println(\\\"Back Pressure prediction less than 5 minutes!\\\")\"";
             List<Rule> rules = RulesFactory.createRulesFromString(testYaml,"YAML", "SPEL");
-            assertEquals(2, rules.size());
-            assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
+            Assertions.assertEquals(2, rules.size());
+            Assertions.assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
         }catch (Exception ex){
-            fail("Unexpected exception occurred: "+ex.getMessage());
+            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
         }
     }
 
@@ -158,7 +155,7 @@ public class TestRulesFactory {
         }catch (Exception ex){
             return;
         }
-        fail("Exception should have been thrown for unexpected type");
+        Assertions.fail("Exception should have been thrown for unexpected type");
     }
 
     @Test
@@ -168,7 +165,7 @@ public class TestRulesFactory {
         }catch (Exception ex){
             return;
         }
-        fail("Exception should have been thrown for unexpected type");
+        Assertions.fail("Exception should have been thrown for unexpected type");
     }
 
 

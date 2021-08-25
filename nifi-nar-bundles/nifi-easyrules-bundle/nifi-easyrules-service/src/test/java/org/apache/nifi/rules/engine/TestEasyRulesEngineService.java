@@ -20,17 +20,14 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mvel2.PropertyAccessException;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
 public class TestEasyRulesEngineService {
 
@@ -48,8 +45,8 @@ public class TestEasyRulesEngineService {
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
-        assertNotNull(actions);
-        assertEquals(actions.size(), 3);
+        Assertions.assertNotNull(actions);
+        Assertions.assertEquals(actions.size(), 3);
     }
 
     @Test
@@ -66,8 +63,8 @@ public class TestEasyRulesEngineService {
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
-        assertNotNull(actions);
-        assertEquals(actions.size(), 2);
+        Assertions.assertNotNull(actions);
+        Assertions.assertEquals(actions.size(), 2);
     }
 
     @Test
@@ -84,8 +81,8 @@ public class TestEasyRulesEngineService {
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
-        assertNotNull(actions);
-        assertEquals(actions.size(), 2);
+        Assertions.assertNotNull(actions);
+        Assertions.assertEquals(actions.size(), 2);
     }
 
     @Test
@@ -102,8 +99,8 @@ public class TestEasyRulesEngineService {
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
-        assertNotNull(actions);
-        assertEquals(actions.size(), 2);
+        Assertions.assertNotNull(actions);
+        Assertions.assertEquals(actions.size(), 2);
     }
 
     @Test
@@ -120,8 +117,8 @@ public class TestEasyRulesEngineService {
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
-        assertNotNull(actions);
-        assertEquals(actions.size(), 2);
+        Assertions.assertNotNull(actions);
+        Assertions.assertEquals(actions.size(), 2);
     }
 
     @Test
@@ -138,8 +135,8 @@ public class TestEasyRulesEngineService {
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
-        assertNotNull(actions);
-        assertEquals(actions.size(), 2);
+        Assertions.assertNotNull(actions);
+        Assertions.assertEquals(actions.size(), 2);
     }
 
     @Test
@@ -172,8 +169,8 @@ public class TestEasyRulesEngineService {
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
-        assertNotNull(actions);
-        assertEquals(actions.size(), 2);
+        Assertions.assertNotNull(actions);
+        Assertions.assertEquals(actions.size(), 2);
     }
 
     @Test
@@ -205,8 +202,8 @@ public class TestEasyRulesEngineService {
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
-        assertNotNull(actions);
-        assertEquals(actions.size(), 2);
+        Assertions.assertNotNull(actions);
+        Assertions.assertEquals(actions.size(), 2);
     }
 
 
@@ -227,7 +224,7 @@ public class TestEasyRulesEngineService {
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         try {
             service.fireRules(facts);
-            fail("Expected exception to be thrown");
+            Assertions.fail("Expected exception to be thrown");
         }catch (Exception pae){
             assert true;
         }
@@ -249,10 +246,10 @@ public class TestEasyRulesEngineService {
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         try {
             List<Action> actions = service.fireRules(facts);
-            assertNotNull(actions);
-            assertEquals(actions.size(), 1);
+            Assertions.assertNotNull(actions);
+            Assertions.assertEquals(actions.size(), 1);
         }catch (PropertyAccessException pae){
-            fail();
+            Assertions.fail();
         }
     }
 
@@ -272,7 +269,7 @@ public class TestEasyRulesEngineService {
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         try {
             service.fireRules(facts);
-            fail("Expected exception to be thrown");
+            Assertions.fail("Expected exception to be thrown");
         }catch (Exception pae){
             assert true;
         }
@@ -294,10 +291,10 @@ public class TestEasyRulesEngineService {
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         try {
             List<Action> actions = service.fireRules(facts);
-            assertNotNull(actions);
-            assertEquals(actions.size(), 1);
+            Assertions.assertNotNull(actions);
+            Assertions.assertEquals(actions.size(), 1);
         }catch (PropertyAccessException pae){
-            fail();
+            Assertions.fail();
         }
     }
 
@@ -317,7 +314,7 @@ public class TestEasyRulesEngineService {
         facts.put("fakeMetric2",299999);
         try {
             service.fireRules(facts);
-            fail("Expected exception to be thrown");
+            Assertions.fail("Expected exception to be thrown");
         }catch (Exception pae){
             assert true;
         }
@@ -339,10 +336,10 @@ public class TestEasyRulesEngineService {
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         try {
             List<Action> actions = service.fireRules(facts);
-            assertNotNull(actions);
-            assertEquals(actions.size(), 1);
+            Assertions.assertNotNull(actions);
+            Assertions.assertEquals(actions.size(), 1);
         }catch (Exception pae){
-            fail();
+            Assertions.fail();
         }
     }
 
@@ -360,8 +357,8 @@ public class TestEasyRulesEngineService {
         Map<String, Object> facts = new HashMap<>();
         facts.put("predictedQueuedCount",60);
         List<Action> actions = service.fireRules(facts);
-        assertNotNull(actions);
-        assertEquals(actions.size(), 1);
+        Assertions.assertNotNull(actions);
+        Assertions.assertEquals(actions.size(), 1);
     }
 
     private static class MockEasyRulesEngineService extends EasyRulesEngineService {

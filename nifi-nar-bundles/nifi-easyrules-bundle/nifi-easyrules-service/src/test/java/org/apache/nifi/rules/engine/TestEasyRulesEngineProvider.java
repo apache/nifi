@@ -20,15 +20,13 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class TestEasyRulesEngineProvider {
 
@@ -46,10 +44,10 @@ public class TestEasyRulesEngineProvider {
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         RulesEngine engine = service.getRulesEngine();
-        assertNotNull(engine);
+        Assertions.assertNotNull(engine);
         List<Action> actions = engine.fireRules(facts);
-        assertNotNull(actions);
-        assertEquals(actions.size(), 3);
+        Assertions.assertNotNull(actions);
+        Assertions.assertEquals(actions.size(), 3);
 
     }
 
