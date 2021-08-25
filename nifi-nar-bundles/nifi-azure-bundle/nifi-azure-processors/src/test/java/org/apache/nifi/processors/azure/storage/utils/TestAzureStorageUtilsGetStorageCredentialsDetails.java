@@ -26,14 +26,15 @@ import org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerS
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockProcessContext;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestAzureStorageUtilsGetStorageCredentialsDetails {
 
@@ -44,7 +45,7 @@ public class TestAzureStorageUtilsGetStorageCredentialsDetails {
 
     private MockProcessContext processContext;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         Processor processor = new ListAzureBlobStorage();
         processContext = new MockProcessContext(processor);
@@ -86,32 +87,32 @@ public class TestAzureStorageUtilsGetStorageCredentialsDetails {
         assertStorageCredentialsDetailsAccountNameAndSasToken(storageCredentialsDetails);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testAccountNameMissingConfiguredOnProcessor() {
         configureProcessorProperties(null, ACCOUNT_KEY_VALUE, null);
 
-        AzureStorageUtils.getStorageCredentialsDetails(processContext, null);
+        assertThrows(IllegalArgumentException.class, () -> AzureStorageUtils.getStorageCredentialsDetails(processContext, null));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testAccountKeyAndSasTokenMissingConfiguredOnProcessor() {
         configureProcessorProperties(ACCOUNT_NAME_VALUE, null, null);
 
-        AzureStorageUtils.getStorageCredentialsDetails(processContext, null);
+        assertThrows(IllegalArgumentException.class, () -> AzureStorageUtils.getStorageCredentialsDetails(processContext, null));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testAccountNameMissingConfiguredOnControllerService() {
         configureControllerService(null, ACCOUNT_KEY_VALUE, null);
 
-        AzureStorageUtils.getStorageCredentialsDetails(processContext, null);
+        assertThrows(IllegalArgumentException.class, () -> AzureStorageUtils.getStorageCredentialsDetails(processContext, null));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testAccountKeyAndSasTokenMissingConfiguredOnControllerService() {
         configureControllerService(ACCOUNT_NAME_VALUE, null, null);
 
-        AzureStorageUtils.getStorageCredentialsDetails(processContext, null);
+        assertThrows(IllegalArgumentException.class, () -> AzureStorageUtils.getStorageCredentialsDetails(processContext, null));
     }
 
     private void configureProcessorProperties(String accountName, String accountKey, String sasToken) {

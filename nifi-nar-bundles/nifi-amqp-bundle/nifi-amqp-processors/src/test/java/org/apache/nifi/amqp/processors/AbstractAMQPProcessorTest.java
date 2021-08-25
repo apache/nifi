@@ -20,8 +20,8 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -34,7 +34,7 @@ public class AbstractAMQPProcessorTest {
 
     private TestRunner testRunner;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         testRunner = TestRunners.newTestRunner(ConsumeAMQP.class);
 

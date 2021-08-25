@@ -27,8 +27,8 @@ import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsControllerService;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.ByteArrayInputStream;
 import java.util.UUID;
@@ -60,7 +60,7 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.ADLS_CREDENTIALS_SERVICE, "ADLSCredentials");
     }
 
-    @Before
+    @BeforeEach
     public void setUpAzureDataLakeStorageIT() {
         fileSystemName = String.format("%s-%s", FILESYSTEM_NAME_PREFIX, UUID.randomUUID());
 
@@ -70,7 +70,7 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
         fileSystemClient = storageClient.createFileSystem(fileSystemName);
     }
 
-    @After
+    @AfterEach
     public void tearDownAzureDataLakeStorageIT() {
         fileSystemClient.delete();
     }

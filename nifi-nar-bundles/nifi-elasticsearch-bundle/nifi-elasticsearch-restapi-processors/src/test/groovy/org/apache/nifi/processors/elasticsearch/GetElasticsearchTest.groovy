@@ -23,14 +23,15 @@ import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.hamcrest.MatcherAssert
-import org.junit.Assert
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 import static groovy.json.JsonOutput.toJson
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.hamcrest.CoreMatchers.is
 import static org.hamcrest.MatcherAssert.assertThat
-import static org.junit.Assert.assertThrows
+
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertThrows
 
 class GetElasticsearchTest {
     static final String INDEX_NAME = "messages"
@@ -198,9 +199,9 @@ class GetElasticsearchTest {
         runProcessor(runner)
 
         final TestElasticsearchClientService service = getService(runner)
-        Assert.assertEquals(2, service.getRequestParameters().size())
-        Assert.assertEquals("true", service.getRequestParameters().get("refresh"))
-        Assert.assertEquals("msg", service.getRequestParameters().get("_source"))
+        assertEquals(2, service.getRequestParameters().size())
+        assertEquals("true", service.getRequestParameters().get("refresh"))
+        assertEquals("msg", service.getRequestParameters().get("_source"))
     }
 
     private static void testCounts(final TestRunner runner, final int doc, final int failure, final int retry, final int notFound) {

@@ -20,12 +20,7 @@ package org.apache.nifi.graph;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.driver.v1.Driver;
@@ -37,6 +32,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /*
  * To run this, setup JanusGraph using just the BerkeleyJE configuration for the server.
@@ -64,7 +62,7 @@ public class OpenCypherClientServiceIT {
         runner.enableControllerService(service);
         runner.assertValid();
 
-        Assertions.assertEquals("gremlin://localhost:8182/gremlin", service.getTransitUrl());
+        assertEquals("gremlin://localhost:8182/gremlin", service.getTransitUrl());
 
         driver = GremlinDatabase.driver("//localhost:8182");
         executeSession("MATCH (n) detach delete n");

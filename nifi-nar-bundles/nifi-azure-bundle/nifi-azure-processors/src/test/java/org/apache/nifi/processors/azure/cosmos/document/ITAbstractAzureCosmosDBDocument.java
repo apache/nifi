@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.azure.cosmos.document;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Properties;
-import java.util.logging.Logger;
-
 import com.azure.cosmos.CosmosClient;
 import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.CosmosContainer;
@@ -38,15 +29,21 @@ import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.util.CosmosPagedIterable;
 import com.fasterxml.jackson.databind.JsonNode;
-
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.services.azure.cosmos.document.AzureCosmosDBClientService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+
+import java.io.FileInputStream;
+import java.util.Properties;
+import java.util.logging.Logger;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public abstract class ITAbstractAzureCosmosDBDocument {
     static Logger logger = Logger.getLogger(ITAbstractAzureCosmosDBDocument.class.getName());
@@ -62,20 +59,13 @@ public abstract class ITAbstractAzureCosmosDBDocument {
     protected static CosmosContainer container;
 
     static {
-        final FileInputStream fis;
+
         CONFIG = new Properties();
-        try {
-            fis = new FileInputStream(CREDENTIALS_FILE);
-            try {
-                CONFIG.load(fis);
-            } catch (IOException e) {
-                fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e.getLocalizedMessage());
-            } finally {
-                FileUtils.closeQuietly(fis);
-            }
-        } catch (FileNotFoundException e) {
-            fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e.getLocalizedMessage());
-        }
+        assertDoesNotThrow(() -> {
+            final FileInputStream fis = new FileInputStream(CREDENTIALS_FILE);
+            assertDoesNotThrow(() -> CONFIG.load(fis));
+            FileUtils.closeQuietly(fis);
+        });
     }
 
     protected static String getComosURI() {
@@ -88,7 +78,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
 
     protected TestRunner runner;
 
-    @BeforeClass
+    @BeforeAll
     public static void createTestDBContainerIfNeeded() throws CosmosException {
         final String testDBURI =  getComosURI();
         final String testDBContainer = getCosmosKey();
@@ -107,7 +97,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         assertNotNull(container);
     }
 
-    @AfterClass
+    @AfterAll
     public static void dropTestDBAndContainer() throws CosmosException {
         resetTestCosmosConnection();
         if (container != null) {
@@ -139,7 +129,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         }
     }
 
-    @Before
+    @BeforeEach
     public void setUpCosmosIT() {
         final String testDBURI =  getComosURI();
         final String testDBContainer = getCosmosKey();

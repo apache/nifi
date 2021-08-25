@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.processors.aws.kinesis.firehose;
 
-import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
-
-import java.util.List;
-
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
 
 // This integration test can be run against a mock Kenesis Firehose such as
 // https://github.com/localstack/localstack
@@ -34,7 +34,7 @@ public class ITPutKinesisFirehoseWithEndpointOverride {
 
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.ACCESS_KEY, "access key");
@@ -44,7 +44,7 @@ public class ITPutKinesisFirehoseWithEndpointOverride {
         runner.assertValid();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         runner = null;
 

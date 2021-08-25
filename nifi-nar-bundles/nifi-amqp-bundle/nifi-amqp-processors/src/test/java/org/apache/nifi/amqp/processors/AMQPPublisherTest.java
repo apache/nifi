@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -28,7 +29,7 @@ import java.util.Map;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.util.MockComponentLog;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
@@ -38,27 +39,31 @@ import com.rabbitmq.client.ReturnListener;
 public class AMQPPublisherTest {
 
     @SuppressWarnings("resource")
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void failOnNullConnection() {
-        new AMQPPublisher(null, null);
+        assertThrows(IllegalArgumentException.class, () -> new AMQPPublisher(null, null));
     }
 
-    @Test(expected = AMQPRollbackException.class)
-    public void failPublishIfChannelClosed() throws Exception {
-        Connection conn = new TestConnection(null, null);
-        try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {
-            conn.close();
-            sender.publish("oleg".getBytes(), null, "foo", "");
-        }
+    @Test
+    public void failPublishIfChannelClosed() {
+        assertThrows(AMQPRollbackException.class, () -> {
+            Connection conn = new TestConnection(null, null);
+            try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {
+                conn.close();
+                sender.publish("oleg".getBytes(), null, "foo", "");
+            }
+        });
     }
 
-    @Test(expected = AMQPException.class)
-    public void failPublishIfChannelFails() throws Exception {
-        TestConnection conn = new TestConnection(null, null);
-        try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {
-            ((TestChannel) conn.createChannel()).corruptChannel();
-            sender.publish("oleg".getBytes(), null, "foo", "");
-        }
+    @Test
+    public void failPublishIfChannelFails() {
+        assertThrows(AMQPException.class, () -> {
+            TestConnection conn = new TestConnection(null, null);
+            try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {
+                ((TestChannel) conn.createChannel()).corruptChannel();
+                sender.publish("oleg".getBytes(), null, "foo", "");
+            }
+        });
     }
 
     @Test
