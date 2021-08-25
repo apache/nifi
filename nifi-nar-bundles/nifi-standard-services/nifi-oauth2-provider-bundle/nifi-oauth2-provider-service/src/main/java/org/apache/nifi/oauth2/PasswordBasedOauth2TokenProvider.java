@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.oauth2;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -106,6 +108,10 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
         SSL_CONTEXT
     ));
 
+    public static final ObjectMapper ACCESS_DETAILS_MAPPER = new ObjectMapper()
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+
     private String authorizationServerUrl;
     private OkHttpClient httpClient;
 
@@ -114,7 +120,7 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
     private String clientId;
     private String clientSecret;
 
-    private volatile AccessDetails accessDetails;
+    private volatile AccessToken accessDetails;
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -147,9 +153,7 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
     }
 
     @Override
-    public String getAccessToken() {
-        String accessToken;
-
+    public AccessToken getAccessDetails() {
         if (this.accessDetails == null) {
             acquireAuthorizationDetails();
         } else if (this.accessDetails.isExpired()) {
@@ -161,9 +165,8 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
                 acquireAuthorizationDetails();
             }
         }
-        accessToken = accessDetails.getAccessToken();
 
-        return accessToken;
+        return accessDetails;
     }
 
     private void acquireAuthorizationDetails() {
@@ -207,7 +210,7 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
         this.accessDetails = getAccessDetails(refreshRequest);
     }
 
-    private AccessDetails getAccessDetails(Request newRequest) {
+    private AccessToken getAccessDetails(Request newRequest) {
         try {
             Response response = httpClient.newCall(newRequest).execute();
             String responseBody = response.body().string();
@@ -216,11 +219,7 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
                 throw new ProcessException(String.format("Got HTTP %d during oauth2 request.", response.code()));
             }
 
-            ObjectMapper mapper = new ObjectMapper()
-                .configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                .setPropertyNamingStrategy(com.fasterxml.jackson.databind.PropertyNamingStrategies.SNAKE_CASE);
-
-            AccessDetails accessDetails = mapper.readValue(responseBody, AccessDetails.class);
+            AccessToken accessDetails = ACCESS_DETAILS_MAPPER.readValue(responseBody, AccessToken.class);
 
             return accessDetails;
         } catch (IOException e) {

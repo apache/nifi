@@ -17,17 +17,31 @@
 
 package org.apache.nifi.oauth2;
 
-public class AccessDetails {
+import java.time.Duration;
+import java.time.Instant;
+
+public class AccessToken {
     private String accessToken;
     private String refreshToken;
     private String tokenType;
-    private Integer expiresIn;
+    private long expires;
     private String scopes;
 
-    private final Long fetchTime;
+    private final Instant fetchTime;
 
-    public AccessDetails() {
-        this.fetchTime = System.currentTimeMillis();
+    public static final int EXPIRY_MARGIN = 5000;
+
+    public AccessToken() {
+        this.fetchTime = Instant.now();
+    }
+
+    public AccessToken(String accessToken, String refreshToken, String tokenType, long expiresIn, String scopes) {
+        this();
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.tokenType = tokenType;
+        this.expires = expiresIn;
+        this.scopes = scopes;
     }
 
     public String getAccessToken() {
@@ -54,12 +68,12 @@ public class AccessDetails {
         this.tokenType = tokenType;
     }
 
-    public Integer getExpiresIn() {
-        return expiresIn;
+    public long getExpires() {
+        return expires;
     }
 
-    public void setExpiresIn(Integer expiresIn) {
-        this.expiresIn = expiresIn;
+    public void setExpires(long expires) {
+        this.expires = expires;
     }
 
     public String getScopes() {
@@ -70,11 +84,13 @@ public class AccessDetails {
         this.scopes = scopes;
     }
 
-    public Long getFetchTime() {
+    public Instant getFetchTime() {
         return fetchTime;
     }
 
     public boolean isExpired() {
-        return System.currentTimeMillis() >= ( fetchTime + (expiresIn * 1000) );
+        boolean expired = Duration.between(Instant.now(), fetchTime.plusSeconds(expires - EXPIRY_MARGIN)).isNegative();
+
+        return expired;
     }
 }

@@ -90,7 +90,7 @@ public class PasswordBasedOauth2TokenProviderTest {
         when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response1);
 
         // WHEN
-        String actual = testSubject.getAccessToken();
+        String actual = testSubject.getAccessDetails().getAccessToken();
 
         // THEN
         assertEquals(accessTokenValue, actual);
@@ -103,7 +103,7 @@ public class PasswordBasedOauth2TokenProviderTest {
             .url("http://unimportant_but_required")
             .build();
 
-        String accessTokenValue = "access_token_value1";
+        String accessTokenValue1 = "access_token_value1";
         String accessTokenValue2 = "access_token_value2";
 
         Response response1 = new Response.Builder()
@@ -112,7 +112,7 @@ public class PasswordBasedOauth2TokenProviderTest {
             .message("unimportant_but_required")
             .code(200)
             .body(ResponseBody.create(
-                ("{ \"access_token\":\"" + accessTokenValue + "\", \"expires_in\":\"0\", \"refresh_token\":\"not_checking_in_this_test\" }").getBytes(),
+                ("{ \"access_token\":\"" + accessTokenValue1 + "\", \"expires_in\":\"0\", \"refresh_token\":\"not_checking_in_this_test\" }").getBytes(),
                 MediaType.parse("application/json")))
             .build();
 
@@ -129,8 +129,8 @@ public class PasswordBasedOauth2TokenProviderTest {
         when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response1, response2);
 
         // WHEN
-        testSubject.getAccessToken();
-        String actual = testSubject.getAccessToken();
+        testSubject.getAccessDetails();
+        String actual = testSubject.getAccessDetails().getAccessToken();
 
         // THEN
         assertEquals(accessTokenValue2, actual);

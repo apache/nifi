@@ -42,6 +42,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -604,6 +605,8 @@ public class InvokeHTTP extends AbstractProcessor {
 
     private volatile boolean useChunked = false;
 
+    private volatile Optional<OAuth2AccessTokenProvider> oauth2AccessTokenProviderOptional;
+
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
 
     @Override
@@ -737,6 +740,19 @@ public class InvokeHTTP extends AbstractProcessor {
                     .build());
         }
 
+        boolean usingUserNamePasswordAuthorization = validationContext.getProperty(PROP_BASIC_AUTH_USERNAME).isSet()
+            || validationContext.getProperty(PROP_BASIC_AUTH_USERNAME).isSet();
+
+        boolean usingOAuth2Authorization = validationContext.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet();
+
+        if (usingUserNamePasswordAuthorization && usingOAuth2Authorization) {
+            results.add(new ValidationResult.Builder()
+                .subject("Authorization properties")
+                .valid(false)
+                .explanation("Can't use username+password and OAuth2 authorization at the same time")
+                .build());
+        }
+
         return results;
     }
 
@@ -813,6 +829,19 @@ public class InvokeHTTP extends AbstractProcessor {
         useChunked = context.getProperty(PROP_USE_CHUNKED_ENCODING).asBoolean();
 
         okHttpClientAtomicReference.set(okHttpClientBuilder.build());
+    }
+
+    @OnScheduled
+    public void initOauth2AccessTokenProvider(final ProcessContext context) {
+        if (context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
+            OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+
+            oauth2AccessTokenProvider.getAccessDetails();
+
+            oauth2AccessTokenProviderOptional = Optional.of(oauth2AccessTokenProvider);
+        } else {
+            oauth2AccessTokenProviderOptional = Optional.empty();
+        }
     }
 
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ProcessContext context) {
@@ -1043,11 +1072,17 @@ public class InvokeHTTP extends AbstractProcessor {
         final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
 
         // If the username/password properties are set then check if digest auth is being used
-        if (!authUser.isEmpty() && "false".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
-            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+        if ("false".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
+            if (!authUser.isEmpty()) {
+                final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
 
-            String credential = Credentials.basic(authUser, authPass);
-            requestBuilder.header("Authorization", credential);
+                String credential = Credentials.basic(authUser, authPass);
+                requestBuilder.header("Authorization", credential);
+            } else {
+                oauth2AccessTokenProviderOptional.ifPresent(oauth2AccessTokenProvider ->
+                    requestBuilder.addHeader("Authorization", "Bearer " + oauth2AccessTokenProvider.getAccessDetails().getAccessToken())
+                );
+            }
         }
 
         // set the request method
@@ -1153,11 +1188,6 @@ public class InvokeHTTP extends AbstractProcessor {
         if (context.getProperty(PROP_DATE_HEADER).asBoolean()) {
             final ZonedDateTime universalCoordinatedTimeNow = ZonedDateTime.now(ZoneOffset.UTC);
             requestBuilder.addHeader("Date", RFC_2616_DATE_TIME.format(universalCoordinatedTimeNow));
-        }
-
-        if (context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
-            OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
-            requestBuilder.addHeader("Authorization", "Bearer " + oauth2AccessTokenProvider.getAccessToken());
         }
 
         for (String headerKey : dynamicPropertyNames) {

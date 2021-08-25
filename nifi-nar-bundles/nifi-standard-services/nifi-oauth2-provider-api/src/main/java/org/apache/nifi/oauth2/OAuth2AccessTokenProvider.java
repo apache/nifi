@@ -19,12 +19,12 @@ package org.apache.nifi.oauth2;
 import org.apache.nifi.controller.ControllerService;
 
 /**
- * Controller service that provides OAuth2 tokens
+ * Controller service that provides OAuth2 access details
  */
 public interface OAuth2AccessTokenProvider extends ControllerService {
 
     /**
-     * @return A valid OAuth2 access token
+     * @return A valid access token and additional metadata (provided by the OAuth2 access server)
      */
-    String getAccessToken();
+    AccessToken getAccessDetails();
 }
