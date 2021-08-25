@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.beats.handler;
 
-import java.io.IOException;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
@@ -35,10 +25,20 @@ import org.apache.nifi.processors.beats.event.BeatsEvent;
 import org.apache.nifi.processors.beats.event.BeatsEventFactory;
 import org.apache.nifi.processors.beats.frame.BeatsEncoder;
 import org.apache.nifi.processors.beats.frame.BeatsFrame;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import java.io.IOException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 
 public class TestBeatsFrameHandler {
@@ -53,7 +53,7 @@ public class TestBeatsFrameHandler {
 
     private BeatsFrameHandler<BeatsEvent> frameHandler;
 
-    @Before
+    @BeforeEach
     public void setup() {
         this.charset = StandardCharsets.UTF_8;
         this.eventFactory = new BeatsEventFactory();
@@ -82,7 +82,7 @@ public class TestBeatsFrameHandler {
         frameHandler.handle(openFrame, responder, sender);
 
         // No response expected
-        Assert.assertEquals(0, responder.responded);
+        Assertions.assertEquals(0, responder.responded);
     }
 
     @Test
@@ -120,12 +120,12 @@ public class TestBeatsFrameHandler {
         frameHandler.handle(jsonFrame, responder, sender);
 
         // No response expected
-        Assert.assertEquals(0, responder.responded);
+        Assertions.assertEquals(0, responder.responded);
         // But events should contain one event
-        Assert.assertEquals(1, events.size());
+        Assertions.assertEquals(1, events.size());
 
         final BeatsEvent event = events.poll();
-        Assert.assertEquals("{\"message\": \"test-content\", \"field\": \"value\"}", new String(event.getData(), charset));
+        Assertions.assertEquals("{\"message\": \"test-content\", \"field\": \"value\"}", new String(event.getData(), charset));
     }
 
 

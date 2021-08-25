@@ -20,8 +20,9 @@ package org.apache.nifi.processors.beats.event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.processor.util.listen.response.socket.SocketChannelResponder;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,8 +46,8 @@ public class TestBeatsEventFactory {
 
         final BeatsEvent event = factory.create(data, metadata, responder);
 
-        Assert.assertEquals(sender, event.getSender());
-        Assert.assertEquals(seqNumber, event.getSeqNumber());
-        Assert.assertEquals(data, event.getData());
+        Assertions.assertEquals(sender, event.getSender());
+        Assertions.assertEquals(seqNumber, event.getSeqNumber());
+        Assertions.assertEquals(data, event.getData());
     }
 }

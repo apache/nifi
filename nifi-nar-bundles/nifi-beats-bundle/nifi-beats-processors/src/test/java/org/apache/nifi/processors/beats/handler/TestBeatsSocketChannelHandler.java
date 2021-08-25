@@ -16,21 +16,6 @@
  */
 package org.apache.nifi.processors.beats.handler;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import javax.net.ssl.SSLContext;
-import javax.xml.bind.DatatypeConverter;
-
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferPool;
@@ -42,10 +27,24 @@ import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.processors.beats.event.BeatsMetadata;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import javax.net.ssl.SSLContext;
+import javax.xml.bind.DatatypeConverter;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 
 
@@ -61,7 +60,7 @@ public class TestBeatsSocketChannelHandler {
     private Charset charset;
     private ChannelDispatcher dispatcher;
 
-    @Before
+    @BeforeEach
     public void setup() {
         eventFactory = new TestEventHolderFactory();
         channelHandlerFactory = new BeatsSocketChannelHandlerFactory<>();
@@ -90,17 +89,17 @@ public class TestBeatsSocketChannelHandler {
         run(messages);
 
         // Check for the 1 frames (from the hex string above) are back...
-        Assert.assertEquals(1, events.size());
+        Assertions.assertEquals(1, events.size());
 
         TestEvent event;
         while((event = events.poll()) != null) {
             Map<String, String> metadata = event.metadata;
-            Assert.assertTrue(metadata.containsKey(BeatsMetadata.SEQNUMBER_KEY));
+            Assertions.assertTrue(metadata.containsKey(BeatsMetadata.SEQNUMBER_KEY));
 
             final String seqNum = metadata.get(BeatsMetadata.SEQNUMBER_KEY);
             final String line = new String(event.getData());
-            Assert.assertTrue(seqNum.equals("1"));
-            Assert.assertEquals("{\"message\": \"test-content\", \"field\": \"value\"}", line);
+            Assertions.assertTrue(seqNum.equals("1"));
+            Assertions.assertEquals("{\"message\": \"test-content\", \"field\": \"value\"}", line);
         }
     }
 
@@ -121,7 +120,7 @@ public class TestBeatsSocketChannelHandler {
         run(messages);
 
         // Check for the 2 frames (from the hex string above) are back...
-        Assert.assertEquals(2, events.size());
+        Assertions.assertEquals(2, events.size());
 
         boolean found1 = false;
         boolean found2 = false;
@@ -130,7 +129,7 @@ public class TestBeatsSocketChannelHandler {
         TestEvent event;
         while((event = events.poll()) != null) {
             Map<String, String> metadata = event.metadata;
-            Assert.assertTrue(metadata.containsKey(BeatsMetadata.SEQNUMBER_KEY));
+            Assertions.assertTrue(metadata.containsKey(BeatsMetadata.SEQNUMBER_KEY));
 
             final String seqNum = metadata.get(BeatsMetadata.SEQNUMBER_KEY);
             final String line = new String(event.getData());
@@ -142,7 +141,7 @@ public class TestBeatsSocketChannelHandler {
                 found2 = true;
             }
         }
-        Assert.assertTrue(found1 && found2);
+        Assertions.assertTrue(found1 && found2);
     }
 
 
