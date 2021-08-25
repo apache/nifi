@@ -26,11 +26,14 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 
 public class TestStandardS3EncryptionService {
@@ -40,7 +43,7 @@ public class TestStandardS3EncryptionService {
     private String keyIdOrMaterial;
     private String kmsRegion;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         service = new StandardS3EncryptionService();
         context = Mockito.mock(ConfigurationContext.class);
@@ -57,13 +60,13 @@ public class TestStandardS3EncryptionService {
 
     @Test
     public void testServiceProperties() {
-        Assert.assertEquals(service.getKmsRegion(), kmsRegion);
-        Assert.assertEquals(service.getStrategyName(), strategyName);
+        assertEquals(service.getKmsRegion(), kmsRegion);
+        assertEquals(service.getStrategyName(), strategyName);
     }
 
     @Test
     public void testCreateClientReturnsNull() {
-        Assert.assertNull(service.createEncryptionClient(null, null));
+        assertNull(service.createEncryptionClient(null, null));
     }
 
     @Test
@@ -75,29 +78,29 @@ public class TestStandardS3EncryptionService {
         final UploadPartRequest uploadPartRequest = new UploadPartRequest();
 
         service.configureGetObjectRequest(getObjectRequest, metadata);
-        Assert.assertNull(getObjectRequest.getSSECustomerKey());
-        Assert.assertNull(metadata.getSSEAlgorithm());
+        assertNull(getObjectRequest.getSSECustomerKey());
+        assertNull(metadata.getSSEAlgorithm());
 
         service.configureUploadPartRequest(uploadPartRequest, metadata);
-        Assert.assertNull(uploadPartRequest.getSSECustomerKey());
-        Assert.assertNull(metadata.getSSEAlgorithm());
+        assertNull(uploadPartRequest.getSSECustomerKey());
+        assertNull(metadata.getSSEAlgorithm());
 
         service.configurePutObjectRequest(putObjectRequest, metadata);
-        Assert.assertNull(putObjectRequest.getSSECustomerKey());
-        Assert.assertNull(metadata.getSSEAlgorithm());
+        assertNull(putObjectRequest.getSSECustomerKey());
+        assertNull(metadata.getSSEAlgorithm());
 
         service.configureInitiateMultipartUploadRequest(initUploadRequest, metadata);
-        Assert.assertNull(initUploadRequest.getSSECustomerKey());
-        Assert.assertNull(metadata.getSSEAlgorithm());
+        assertNull(initUploadRequest.getSSECustomerKey());
+        assertNull(metadata.getSSEAlgorithm());
     }
 
     @Test
     public void testProperties() {
         List<PropertyDescriptor> properties = service.getSupportedPropertyDescriptors();
-        Assert.assertEquals(3, properties.size());
+        assertEquals(3, properties.size());
 
-        Assert.assertEquals(properties.get(0).getName(), StandardS3EncryptionService.ENCRYPTION_STRATEGY.getName());
-        Assert.assertEquals(properties.get(1).getName(), StandardS3EncryptionService.ENCRYPTION_VALUE.getName());
-        Assert.assertEquals(properties.get(2).getName(), StandardS3EncryptionService.KMS_REGION.getName());
+        assertEquals(properties.get(0).getName(), StandardS3EncryptionService.ENCRYPTION_STRATEGY.getName());
+        assertEquals(properties.get(1).getName(), StandardS3EncryptionService.ENCRYPTION_VALUE.getName());
+        assertEquals(properties.get(2).getName(), StandardS3EncryptionService.KMS_REGION.getName());
     }
 }

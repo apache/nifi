@@ -34,9 +34,8 @@ import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.StringUtils
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 import java.sql.Date
 import java.sql.Time
@@ -48,6 +47,7 @@ import java.time.format.DateTimeFormatter
 
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
+import static org.junit.jupiter.api.Assertions.*
 
 class PutElasticsearchRecordTest {
     private static final int DATE_YEAR = 2020
@@ -82,7 +82,7 @@ class PutElasticsearchRecordTest {
 
     static final String flowFileContents = prettyPrint(toJson(flowFileContentMaps))
 
-    @Before
+    @BeforeEach
     void setup() {
         clientService = new MockBulkLoadClientService()
         registry = new MockSchemaRegistry()
@@ -118,10 +118,10 @@ class PutElasticsearchRecordTest {
             int indexCount = items.findAll { it.index == "test_index" }.size()
             int typeCount = items.findAll { it.type == "test_type" }.size()
             int opCount = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
-            Assert.assertEquals(2, timestampDefaultCount)
-            Assert.assertEquals(2, indexCount)
-            Assert.assertEquals(2, typeCount)
-            Assert.assertEquals(2, opCount)
+            assertEquals(2, timestampDefaultCount)
+            assertEquals(2, indexCount)
+            assertEquals(2, typeCount)
+            assertEquals(2, opCount)
         }
 
         basicTest(failure, retry, success, evalClosure)
@@ -149,7 +149,7 @@ class PutElasticsearchRecordTest {
                 ff.assertAttributeEquals("elasticsearch.put.error.count", "0")
             })
 
-            Assert.assertEquals(success,
+            assertEquals(success,
                     runner.getProvenanceEvents().stream().filter({
                         e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [0 error(s), 0 success(es)]"
                     }).count()
@@ -160,7 +160,7 @@ class PutElasticsearchRecordTest {
     @Test
     void simpleTest() {
         def evalParametersClosure = { Map<String, String> params ->
-            Assert.assertTrue(params.isEmpty())
+            assertTrue(params.isEmpty())
         }
         clientService.evalParametersClosure = evalParametersClosure
 
@@ -171,7 +171,7 @@ class PutElasticsearchRecordTest {
     void simpleTestCoercedDefaultTimestamp() {
         def evalClosure = { List<IndexOperationRequest> items ->
             int timestampDefault = items.findAll { it.fields.get("@timestamp") == 100L }.size()
-            Assert.assertEquals(2, timestampDefault)
+            assertEquals(2, timestampDefault)
         }
 
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP, "100")
@@ -186,9 +186,9 @@ class PutElasticsearchRecordTest {
         runner.assertValid()
 
         def evalParametersClosure = { Map<String, String> params ->
-            Assert.assertEquals(2, params.size())
-            Assert.assertEquals("true", params.get("refresh"))
-            Assert.assertEquals("auto", params.get("slices"))
+            assertEquals(2, params.size())
+            assertEquals("true", params.get("refresh"))
+            assertEquals("auto", params.get("slices"))
         }
 
         clientService.evalParametersClosure = evalParametersClosure
@@ -203,9 +203,9 @@ class PutElasticsearchRecordTest {
         runner.assertValid()
 
         def evalParametersClosure = { Map<String, String> params ->
-            Assert.assertEquals(2, params.size())
-            Assert.assertEquals("true", params.get("refresh"))
-            Assert.assertEquals("auto", params.get("slices"))
+            assertEquals(2, params.size())
+            assertEquals("true", params.get("refresh"))
+            assertEquals("auto", params.get("slices"))
         }
 
         clientService.evalParametersClosure = evalParametersClosure
@@ -282,21 +282,22 @@ class PutElasticsearchRecordTest {
             int ts = items.findAll { it.fields.get("ts") != null }.size()
             int id = items.findAll { it.fields.get("id") != null }.size()
             items.each {
-                Assert.assertNotNull(it.id)
-                Assert.assertTrue(it.id.startsWith("rec-"))
-                Assert.assertEquals("message", it.type)
+                assertNotNull(it.id)
+                assertTrue(it.id.startsWith("rec-"))
+                assertEquals("message", it.type)
             }
-            Assert.assertEquals(3, a)
-            Assert.assertEquals(3, b)
-            Assert.assertEquals(5, index)
-            Assert.assertEquals(1, create)
-            Assert.assertEquals(4, msg)
-            Assert.assertEquals(1, empties)
-            Assert.assertEquals(1, nulls)
-            Assert.assertEquals(1, timestamp)
-            Assert.assertEquals(5, timestampDefault)
-            Assert.assertEquals(0, ts)
-            Assert.assertEquals(0, id)
+
+            assertEquals(3, a)
+            assertEquals(3, b)
+            assertEquals(5, index)
+            assertEquals(1, create)
+            assertEquals(4, msg)
+            assertEquals(1, empties)
+            assertEquals(1, nulls)
+            assertEquals(1, timestamp)
+            assertEquals(5, timestampDefault)
+            assertEquals(0, ts)
+            assertEquals(0, id)
         }
 
         clientService.evalClosure = evalClosure
@@ -344,16 +345,16 @@ class PutElasticsearchRecordTest {
             int dateCount = items.findAll { it.fields.get("date") != null }.size()
             def idCount = items.findAll { it.fields.get("id") != null }.size()
             def defaultCoercedTimestampCount = items.findAll { it.fields.get("@timestamp") == 100L }.size()
-            Assert.assertEquals(5, testTypeCount)
-            Assert.assertEquals(1, messageTypeCount)
-            Assert.assertEquals(5, testIndexCount)
-            Assert.assertEquals(1, bulkIndexCount)
-            Assert.assertEquals(5, indexOperationCount)
-            Assert.assertEquals(1, updateOperationCount)
-            Assert.assertEquals(1, timestampCount)
-            Assert.assertEquals(5, defaultCoercedTimestampCount)
-            Assert.assertEquals(1, dateCount)
-            Assert.assertEquals(6, idCount)
+            assertEquals(5, testTypeCount)
+            assertEquals(1, messageTypeCount)
+            assertEquals(5, testIndexCount)
+            assertEquals(1, bulkIndexCount)
+            assertEquals(5, indexOperationCount)
+            assertEquals(1, updateOperationCount)
+            assertEquals(1, timestampCount)
+            assertEquals(5, defaultCoercedTimestampCount)
+            assertEquals(1, dateCount)
+            assertEquals(6, idCount)
         }
 
         clientService.evalClosure = evalClosure
@@ -394,11 +395,11 @@ class PutElasticsearchRecordTest {
             def timestampCount = items.findAll { it.fields.get("@timestamp") ==
                     LOCAL_TIME.format(DateTimeFormatter.ofPattern(RecordFieldType.TIME.getDefaultFormat()))
             }.size()
-            Assert.assertEquals("null type", 5, nullTypeCount)
-            Assert.assertEquals("message type", 1, messageTypeCount)
-            Assert.assertEquals("null id", 2, nullIdCount)
-            Assert.assertEquals("rec- id", 4, recIdCount)
-            Assert.assertEquals("@timestamp", 1, timestampCount)
+            assertEquals(5, nullTypeCount, "null type")
+            assertEquals(1, messageTypeCount, "message type")
+            assertEquals(2, nullIdCount, "null id")
+            assertEquals(4, recIdCount, "rec- id",)
+            assertEquals(1, timestampCount, "@timestamp")
         }
 
         clientService.evalClosure = evalClosure
@@ -436,13 +437,13 @@ class PutElasticsearchRecordTest {
             int delete = items.findAll { it.operation == IndexOperationRequest.Operation.Delete }.size()
             def timestampCount = items.findAll { it.fields.get("@timestamp") == 101L }.size()
             def noTimestampCount = items.findAll { it.fields.get("@timestamp") == null }.size()
-            Assert.assertEquals(1, index)
-            Assert.assertEquals(2, create)
-            Assert.assertEquals(1, update)
-            Assert.assertEquals(1, upsert)
-            Assert.assertEquals(1, delete)
-            Assert.assertEquals(1, timestampCount)
-            Assert.assertEquals(5, noTimestampCount)
+            assertEquals(1, index)
+            assertEquals(2, create)
+            assertEquals(1, update)
+            assertEquals(1, upsert)
+            assertEquals(1, delete)
+            assertEquals(1, timestampCount)
+            assertEquals(5, noTimestampCount)
         }
 
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/code")
@@ -464,7 +465,7 @@ class PutElasticsearchRecordTest {
 
         clientService.evalClosure = { List<IndexOperationRequest> items ->
             def timestampCount = items.findAll { it.fields.get("@timestamp") == "Hello" }.size()
-            Assert.assertEquals(1, timestampCount)
+            assertEquals(1, timestampCount)
         }
 
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/msg")
@@ -526,17 +527,17 @@ class PutElasticsearchRecordTest {
             int dateNull = items.findAll { it.fields.get("date") == null }.size()
             int timeNull = items.findAll { it.fields.get("time") == null }.size()
             int choiceTsNull = items.findAll { it.fields.get("choice_ts") == null }.size()
-            Assert.assertEquals(5, msg)
-            Assert.assertEquals(2, timestamp)
-            Assert.assertEquals(2, date)
-            Assert.assertEquals(2, time)
-            Assert.assertEquals(1, choiceTs)
-            Assert.assertEquals(1, choiceNotTs)
-            Assert.assertEquals(3, tsNull)
-            Assert.assertEquals(3, dateNull)
-            Assert.assertEquals(3, timeNull)
-            Assert.assertEquals(3, choiceTsNull)
-            Assert.assertEquals(5, atTimestampDefault)
+            assertEquals(5, msg)
+            assertEquals(2, timestamp)
+            assertEquals(2, date)
+            assertEquals(2, time)
+            assertEquals(1, choiceTs)
+            assertEquals(1, choiceNotTs)
+            assertEquals(3, tsNull)
+            assertEquals(3, dateNull)
+            assertEquals(3, timeNull)
+            assertEquals(3, choiceTsNull)
+            assertEquals(5, atTimestampDefault)
         }
 
         clientService.evalClosure = evalClosure
@@ -575,18 +576,18 @@ class PutElasticsearchRecordTest {
             int dateNull = items.findAll { it.fields.get("date") == null }.size()
             int timeNull = items.findAll { it.fields.get("time") == null }.size()
             int choiceTsNull = items.findAll { it.fields.get("choice_ts") == null }.size()
-            Assert.assertEquals(5, msg)
-            Assert.assertEquals(2, timestamp)
-            Assert.assertEquals(2, date)
-            Assert.assertEquals(2, time)
-            Assert.assertEquals(1, choiceTs)
-            Assert.assertEquals(1, choiceNotTs)
-            Assert.assertEquals(3, tsNull)
-            Assert.assertEquals(3, dateNull)
-            Assert.assertEquals(3, timeNull)
-            Assert.assertEquals(3, choiceTsNull)
-            Assert.assertEquals(2, atTimestamp)
-            Assert.assertEquals(3, atTimestampDefault)
+            assertEquals(5, msg)
+            assertEquals(2, timestamp)
+            assertEquals(2, date)
+            assertEquals(2, time)
+            assertEquals(1, choiceTs)
+            assertEquals(1, choiceNotTs)
+            assertEquals(3, tsNull)
+            assertEquals(3, dateNull)
+            assertEquals(3, timeNull)
+            assertEquals(3, choiceTsNull)
+            assertEquals(2, atTimestamp)
+            assertEquals(3, atTimestampDefault)
         }
 
         clientService.evalClosure = evalClosure
@@ -613,8 +614,8 @@ class PutElasticsearchRecordTest {
     void testInvalidIndexOperation() {
         runner.setProperty(PutElasticsearchRecord.INDEX_OP, "not-valid")
         runner.assertNotValid()
-        final AssertionError ae = Assert.assertThrows(AssertionError.class, runner.&run)
-        Assert.assertEquals(String.format("Processor has 1 validation failures:\n'%s' validated against 'not-valid' is invalid because %s must be Expression Language or one of %s\n",
+        final AssertionError ae = assertThrows(AssertionError.class, runner.&run)
+        assertEquals(String.format("Processor has 1 validation failures:\n'%s' validated against 'not-valid' is invalid because %s must be Expression Language or one of %s\n",
                 PutElasticsearchRecord.INDEX_OP.getName(), PutElasticsearchRecord.INDEX_OP.getDisplayName(), PutElasticsearchRecord.ALLOWED_INDEX_OPERATIONS),
                 ae.getMessage()
         )
@@ -689,7 +690,7 @@ class PutElasticsearchRecordTest {
         runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS)[0]
                 .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "4")
 
-        Assert.assertEquals(1,
+        assertEquals(1,
                 runner.getProvenanceEvents().stream().filter({
                     e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [1 error(s), 4 success(es)]"
                 }).count()
@@ -715,7 +716,7 @@ class PutElasticsearchRecordTest {
         runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS)[0]
                 .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "3")
 
-        Assert.assertEquals(1,
+        assertEquals(1,
                 runner.getProvenanceEvents().stream().filter({
                     e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [2 error(s), 3 success(es)]"
                 }).count()
@@ -736,7 +737,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
 
-        Assert.assertEquals(1,
+        assertEquals(1,
                 runner.getProvenanceEvents().stream().filter({
                     e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [1 error(s), 4 success(es)]"
                 }).count()

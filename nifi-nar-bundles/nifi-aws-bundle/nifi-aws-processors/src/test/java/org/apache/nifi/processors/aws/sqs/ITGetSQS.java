@@ -16,18 +16,16 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import java.util.List;
-
 import org.apache.nifi.processors.aws.AbstractAWSProcessor;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.processors.aws.sns.PutSNS;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-@Ignore("For local testing only - interacts with S3 so the credentials file must be configured and all necessary buckets created")
+import java.util.List;
+
 public class ITGetSQS {
 
     private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";

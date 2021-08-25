@@ -17,8 +17,9 @@
 
 package org.apache.nifi.elasticsearch
 
-import org.junit.Assert
-import org.junit.Test
+import org.junit.jupiter.api.Test
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class SearchResponseTest {
     @Test
@@ -35,22 +36,22 @@ class SearchResponseTest {
         def response = new SearchResponse(results, aggs as Map<String, Object>, pitId, scrollId, searchAfter, num, took, timeout, warnings)
         def str = response.toString()
 
-        Assert.assertEquals(results, response.hits)
-        Assert.assertEquals(aggs, response.aggregations)
-        Assert.assertEquals(pitId, response.pitId)
-        Assert.assertEquals(scrollId, response.scrollId)
-        Assert.assertEquals(num, response.numberOfHits)
-        Assert.assertEquals(took, response.took)
-        Assert.assertEquals(timeout, response.timedOut)
-        Assert.assertEquals(warnings, response.warnings)
-        Assert.assertTrue(str.contains("aggregations"))
-        Assert.assertTrue(str.contains("hits"))
-        Assert.assertTrue(str.contains("pitId"))
-        Assert.assertTrue(str.contains("scrollId"))
-        Assert.assertTrue(str.contains("searchAfter"))
-        Assert.assertTrue(str.contains("numberOfHits"))
-        Assert.assertTrue(str.contains("took"))
-        Assert.assertTrue(str.contains("timedOut"))
-        Assert.assertTrue(str.contains("warnings"))
+        assertEquals(results, response.hits)
+        assertEquals(aggs, response.aggregations)
+        assertEquals(pitId, response.pitId)
+        assertEquals(scrollId, response.scrollId)
+        assertEquals(num, response.numberOfHits)
+        assertEquals(took, response.took)
+        assertEquals(timeout, response.timedOut)
+        assertEquals(warnings, response.warnings)
+        assertTrue(str.contains("aggregations"))
+        assertTrue(str.contains("hits"))
+        assertTrue(str.contains("pitId"))
+        assertTrue(str.contains("scrollId"))
+        assertTrue(str.contains("searchAfter"))
+        assertTrue(str.contains("numberOfHits"))
+        assertTrue(str.contains("took"))
+        assertTrue(str.contains("timedOut"))
+        assertTrue(str.contains("warnings"))
     }
 }

@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.processors.aws.sns;
 
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Provides integration level testing with actual AWS S3 resources for {@link PutSNS} and requires additional configuration and resources to work.

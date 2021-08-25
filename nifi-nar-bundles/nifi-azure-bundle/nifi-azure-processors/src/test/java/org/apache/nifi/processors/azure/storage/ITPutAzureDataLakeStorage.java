@@ -23,8 +23,8 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
 import java.util.Collections;
@@ -40,6 +40,7 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
@@ -61,7 +62,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         return PutAzureDataLakeStorage.class;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, DIRECTORY);
         runner.setProperty(PutAzureDataLakeStorage.FILE, FILE_NAME);
@@ -241,15 +242,17 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertFailure();
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testPutFileButFailedToAppend() {
         DataLakeFileClient fileClient = mock(DataLakeFileClient.class);
         InputStream stream = mock(InputStream.class);
         doThrow(NullPointerException.class).when(fileClient).append(any(InputStream.class), anyLong(), anyLong());
 
-        PutAzureDataLakeStorage.uploadContent(fileClient, stream, FILE_DATA.length);
+        assertThrows(NullPointerException.class, () -> {
+            PutAzureDataLakeStorage.uploadContent(fileClient, stream, FILE_DATA.length);
 
-        verify(fileClient).delete();
+            verify(fileClient).delete();
+        });
     }
 
     private Map<String, String> createAttributesMap() {

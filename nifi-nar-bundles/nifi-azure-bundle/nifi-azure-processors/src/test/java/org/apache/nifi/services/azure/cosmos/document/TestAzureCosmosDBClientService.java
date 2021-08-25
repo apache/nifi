@@ -21,8 +21,8 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestAzureCosmosDBClientService {
 
@@ -32,7 +32,7 @@ public class TestAzureCosmosDBClientService {
     private TestRunner runner;
     private AzureCosmosDBClientService service;
 
-    @Before
+    @BeforeEach
     public void setUp() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         service = new AzureCosmosDBClientService();

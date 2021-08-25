@@ -20,7 +20,7 @@ import com.amazonaws.auth.PropertiesFileCredentialsProvider;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
 
@@ -29,7 +29,7 @@ public class ITConsumeKinesisStreamConnectAWS extends ITConsumeKinesisStream {
     private final static String CREDENTIALS_FILE =
             System.getProperty("user.home") + "/aws-credentials.properties";
 
-    @Before
+    @BeforeEach
     public void setUp() throws InterruptedException {
         System.setProperty(AWS_CBOR_DISABLE_SYSTEM_PROPERTY, "true");
 

@@ -44,9 +44,9 @@ import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockPropertyValue;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
@@ -487,7 +487,7 @@ public class ITReportLineageToAtlas {
         }
     }
 
-    @Before
+    @BeforeEach
     public void startEmulator() throws Exception {
         if (useEmbeddedEmulator) {
             atlasAPIServer.start();
@@ -503,7 +503,7 @@ public class ITReportLineageToAtlas {
         }
     }
 
-    @After
+    @AfterEach
     public void stopEmulator() throws Exception {
         if (useEmbeddedEmulator) {
             atlasAPIServer.stop();
