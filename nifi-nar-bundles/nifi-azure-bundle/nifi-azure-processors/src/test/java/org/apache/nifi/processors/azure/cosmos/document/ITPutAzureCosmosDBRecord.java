@@ -16,17 +16,9 @@
  */
 package org.apache.nifi.processors.azure.cosmos.document;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.logging.Logger;
-
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.util.CosmosPagedIterable;
 import com.fasterxml.jackson.databind.JsonNode;
-
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -35,9 +27,15 @@ import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.logging.Logger;
 
 public class ITPutAzureCosmosDBRecord extends ITAbstractAzureCosmosDBDocument {
     static Logger logger = Logger.getLogger(ITPutAzureCosmosDBRecord.class.getName());
@@ -47,12 +45,12 @@ public class ITPutAzureCosmosDBRecord extends ITAbstractAzureCosmosDBDocument {
         return PutAzureCosmosDBRecord.class;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         resetTestCosmosConnection();
     }
 
-    @After
+    @AfterEach
     public void cleanupTestCase() {
         try{
             clearTestData();
@@ -136,7 +134,7 @@ public class ITPutAzureCosmosDBRecord extends ITAbstractAzureCosmosDBDocument {
         runner.enqueue("");
         runner.run();
         runner.assertAllFlowFilesTransferred(PutAzureCosmosDBRecord.REL_SUCCESS, 1);
-        assertEquals(4, getDataFromTestDB().size());
+        Assertions.assertEquals(4, getDataFromTestDB().size());
     }
 
     @Test
@@ -157,7 +155,7 @@ public class ITPutAzureCosmosDBRecord extends ITAbstractAzureCosmosDBDocument {
         runner.enqueue("");
         runner.run();
         runner.assertAllFlowFilesTransferred(PutAzureCosmosDBRecord.REL_SUCCESS, 1);
-        assertEquals(5, getDataFromTestDB().size());
+        Assertions.assertEquals(5, getDataFromTestDB().size());
     }
 
 

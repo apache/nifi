@@ -16,24 +16,21 @@
  */
 package org.apache.nifi.reporting.azure.loganalytics;
 
-import static org.junit.Assert.assertEquals;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import org.apache.nifi.reporting.InitializationException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
+import javax.json.Json;
+import javax.json.JsonBuilderFactory;
+import javax.json.JsonObjectBuilder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.json.Json;
-import javax.json.JsonBuilderFactory;
-import javax.json.JsonObjectBuilder;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-
-import org.apache.nifi.reporting.InitializationException;
-import org.junit.Test;
 
 public class TestAzureLogAnalyticsProvenanceReportingTask {
 
@@ -59,7 +56,7 @@ public class TestAzureLogAnalyticsProvenanceReportingTask {
                                         "\"TestKeyNull\": null" +
                                     "}";
         JsonObject expectedJson = new Gson().fromJson(expectedjsonString, JsonObject.class);
-        assertEquals(expectedJson.toString(), actualJson.toString());
+        Assertions.assertEquals(expectedJson.toString(), actualJson.toString());
     }
 
     @Test
@@ -75,7 +72,7 @@ public class TestAzureLogAnalyticsProvenanceReportingTask {
         javax.json.JsonObject actualJson = builder.build();
         String expectedjsonString = "{\"TestKeyString\":{\"TestKeyString2\":\"StringValue2\",\"TestKeyString1\":\"StringValue1\"}}";
         JsonObject expectedJson = new Gson().fromJson(expectedjsonString, JsonObject.class);
-        assertEquals(expectedJson.toString(), actualJson.toString());
+        Assertions.assertEquals(expectedJson.toString(), actualJson.toString());
     }
 
     @Test
@@ -91,6 +88,6 @@ public class TestAzureLogAnalyticsProvenanceReportingTask {
         javax.json.JsonObject actualJson = builder.build();
         String expectedjsonString = "{\"TestKeyString\":[\"TestValueString1\",\"TestValueString2\"]}";
         JsonObject expectedJson = new Gson().fromJson(expectedjsonString, JsonObject.class);
-        assertEquals(expectedJson.toString(), actualJson.toString());
+        Assertions.assertEquals(expectedJson.toString(), actualJson.toString());
     }
 }

@@ -18,10 +18,9 @@ package org.apache.nifi.processors.azure.storage;
 
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.nifi.processor.Processor;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ITDeleteAzureBlobStorage extends AbstractAzureBlobStorageIT {
 
@@ -30,7 +29,7 @@ public class ITDeleteAzureBlobStorage extends AbstractAzureBlobStorageIT {
         return DeleteAzureBlobStorage.class;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         runner.setProperty(DeleteAzureBlobStorage.BLOB, TEST_BLOB_NAME);
 
@@ -61,6 +60,6 @@ public class ITDeleteAzureBlobStorage extends AbstractAzureBlobStorageIT {
         runner.assertAllFlowFilesTransferred(DeleteAzureBlobStorage.REL_SUCCESS);
 
         Iterable<ListBlobItem> blobs = container.listBlobs(TEST_BLOB_NAME);
-        assertFalse(blobs.iterator().hasNext());
+        Assertions.assertFalse(blobs.iterator().hasNext());
     }
 }

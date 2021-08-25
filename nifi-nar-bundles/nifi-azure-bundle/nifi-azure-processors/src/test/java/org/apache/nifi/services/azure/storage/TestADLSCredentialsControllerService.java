@@ -22,16 +22,11 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class TestADLSCredentialsControllerService {
 
@@ -48,7 +43,7 @@ public class TestADLSCredentialsControllerService {
     private TestRunner runner;
     private ADLSCredentialsControllerService credentialsService;
 
-    @Before
+    @BeforeEach
     public void setUp() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         credentialsService = new ADLSCredentialsControllerService();
@@ -296,14 +291,14 @@ public class TestADLSCredentialsControllerService {
         ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
-        assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
-        assertEquals(ACCOUNT_KEY_VALUE, actual.getAccountKey());
-        assertNull(actual.getSasToken());
-        assertFalse(actual.getUseManagedIdentity());
-        assertNotNull(actual.getEndpointSuffix());
-        assertNull(actual.getServicePrincipalTenantId());
-        assertNull(actual.getServicePrincipalClientId());
-        assertNull(actual.getServicePrincipalClientSecret());
+        Assertions.assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
+        Assertions.assertEquals(ACCOUNT_KEY_VALUE, actual.getAccountKey());
+        Assertions.assertNull(actual.getSasToken());
+        Assertions.assertFalse(actual.getUseManagedIdentity());
+        Assertions.assertNotNull(actual.getEndpointSuffix());
+        Assertions.assertNull(actual.getServicePrincipalTenantId());
+        Assertions.assertNull(actual.getServicePrincipalClientId());
+        Assertions.assertNull(actual.getServicePrincipalClientSecret());
     }
 
     @Test
@@ -318,14 +313,14 @@ public class TestADLSCredentialsControllerService {
         ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
-        assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
-        assertEquals(ACCOUNT_KEY_VALUE, actual.getAccountKey());
-        assertNull(actual.getSasToken());
-        assertFalse(actual.getUseManagedIdentity());
-        assertNotNull(actual.getEndpointSuffix());
-        assertNull(actual.getServicePrincipalTenantId());
-        assertNull(actual.getServicePrincipalClientId());
-        assertNull(actual.getServicePrincipalClientSecret());
+        Assertions.assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
+        Assertions.assertEquals(ACCOUNT_KEY_VALUE, actual.getAccountKey());
+        Assertions.assertNull(actual.getSasToken());
+        Assertions.assertFalse(actual.getUseManagedIdentity());
+        Assertions.assertNotNull(actual.getEndpointSuffix());
+        Assertions.assertNull(actual.getServicePrincipalTenantId());
+        Assertions.assertNull(actual.getServicePrincipalClientId());
+        Assertions.assertNull(actual.getServicePrincipalClientSecret());
     }
 
     @Test
@@ -340,14 +335,14 @@ public class TestADLSCredentialsControllerService {
         ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
-        assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
-        assertEquals(SAS_TOKEN_VALUE, actual.getSasToken());
-        assertNull(actual.getAccountKey());
-        assertFalse(actual.getUseManagedIdentity());
-        assertNotNull(actual.getEndpointSuffix());
-        assertNull(actual.getServicePrincipalTenantId());
-        assertNull(actual.getServicePrincipalClientId());
-        assertNull(actual.getServicePrincipalClientSecret());
+        Assertions.assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
+        Assertions.assertEquals(SAS_TOKEN_VALUE, actual.getSasToken());
+        Assertions.assertNull(actual.getAccountKey());
+        Assertions.assertFalse(actual.getUseManagedIdentity());
+        Assertions.assertNotNull(actual.getEndpointSuffix());
+        Assertions.assertNull(actual.getServicePrincipalTenantId());
+        Assertions.assertNull(actual.getServicePrincipalClientId());
+        Assertions.assertNull(actual.getServicePrincipalClientSecret());
     }
 
     @Test
@@ -358,14 +353,14 @@ public class TestADLSCredentialsControllerService {
         runner.enableControllerService(credentialsService);
 
         ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
-        assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
-        assertEquals(SAS_TOKEN_VALUE, actual.getSasToken());
-        assertNull(actual.getAccountKey());
-        assertFalse(actual.getUseManagedIdentity());
-        assertNotNull(actual.getEndpointSuffix());
-        assertNull(actual.getServicePrincipalTenantId());
-        assertNull(actual.getServicePrincipalClientId());
-        assertNull(actual.getServicePrincipalClientSecret());
+        Assertions.assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
+        Assertions.assertEquals(SAS_TOKEN_VALUE, actual.getSasToken());
+        Assertions.assertNull(actual.getAccountKey());
+        Assertions.assertFalse(actual.getUseManagedIdentity());
+        Assertions.assertNotNull(actual.getEndpointSuffix());
+        Assertions.assertNull(actual.getServicePrincipalTenantId());
+        Assertions.assertNull(actual.getServicePrincipalClientId());
+        Assertions.assertNull(actual.getServicePrincipalClientSecret());
     }
 
     @Test
@@ -380,14 +375,14 @@ public class TestADLSCredentialsControllerService {
         ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
-        assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
-        assertTrue(actual.getUseManagedIdentity());
-        assertNull(actual.getAccountKey());
-        assertNull(actual.getSasToken());
-        assertNotNull(actual.getEndpointSuffix());
-        assertNull(actual.getServicePrincipalTenantId());
-        assertNull(actual.getServicePrincipalClientId());
-        assertNull(actual.getServicePrincipalClientSecret());
+        Assertions.assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
+        Assertions.assertTrue(actual.getUseManagedIdentity());
+        Assertions.assertNull(actual.getAccountKey());
+        Assertions.assertNull(actual.getSasToken());
+        Assertions.assertNotNull(actual.getEndpointSuffix());
+        Assertions.assertNull(actual.getServicePrincipalTenantId());
+        Assertions.assertNull(actual.getServicePrincipalClientId());
+        Assertions.assertNull(actual.getServicePrincipalClientSecret());
     }
 
     @Test
@@ -404,14 +399,14 @@ public class TestADLSCredentialsControllerService {
         ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
-        assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
-        assertNull(actual.getAccountKey());
-        assertNull(actual.getSasToken());
-        assertFalse(actual.getUseManagedIdentity());
-        assertNotNull(actual.getEndpointSuffix());
-        assertEquals(SERVICE_PRINCIPAL_TENANT_ID_VALUE, actual.getServicePrincipalTenantId());
-        assertEquals(SERVICE_PRINCIPAL_CLIENT_ID_VALUE, actual.getServicePrincipalClientId());
-        assertEquals(SERVICE_PRINCIPAL_CLIENT_SECRET_VALUE, actual.getServicePrincipalClientSecret());
+        Assertions.assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
+        Assertions.assertNull(actual.getAccountKey());
+        Assertions.assertNull(actual.getSasToken());
+        Assertions.assertFalse(actual.getUseManagedIdentity());
+        Assertions.assertNotNull(actual.getEndpointSuffix());
+        Assertions.assertEquals(SERVICE_PRINCIPAL_TENANT_ID_VALUE, actual.getServicePrincipalTenantId());
+        Assertions.assertEquals(SERVICE_PRINCIPAL_CLIENT_ID_VALUE, actual.getServicePrincipalClientId());
+        Assertions.assertEquals(SERVICE_PRINCIPAL_CLIENT_SECRET_VALUE, actual.getServicePrincipalClientSecret());
     }
 
     @Test
@@ -427,7 +422,7 @@ public class TestADLSCredentialsControllerService {
         ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
-        assertEquals(END_POINT_SUFFIX_VALUE, actual.getEndpointSuffix());
+        Assertions.assertEquals(END_POINT_SUFFIX_VALUE, actual.getEndpointSuffix());
     }
 
     @Test
@@ -443,7 +438,7 @@ public class TestADLSCredentialsControllerService {
         ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
-        assertEquals(END_POINT_SUFFIX_VALUE, actual.getEndpointSuffix());
+        Assertions.assertEquals(END_POINT_SUFFIX_VALUE, actual.getEndpointSuffix());
     }
 
     private void configureAccountName() {

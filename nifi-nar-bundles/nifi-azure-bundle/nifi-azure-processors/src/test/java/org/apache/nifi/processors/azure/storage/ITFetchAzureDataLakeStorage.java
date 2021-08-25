@@ -23,7 +23,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,8 +32,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static org.junit.Assert.assertEquals;
 
 public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
@@ -429,7 +428,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // THEN
         DataLakeStorageException e = (DataLakeStorageException)runner.getLogger().getErrorMessages().get(0).getThrowable();
-        assertEquals(416, e.getStatusCode());
+        Assertions.assertEquals(416, e.getStatusCode());
     }
 
     private void testSuccessfulFetch(String fileSystem, String directory, String filename, String inputFlowFileContent, String expectedFlowFileContent) {
@@ -472,7 +471,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // THEN
         DataLakeStorageException e = (DataLakeStorageException)runner.getLogger().getErrorMessages().get(0).getThrowable();
-        assertEquals(expectedErrorCode, e.getStatusCode());
+        Assertions.assertEquals(expectedErrorCode, e.getStatusCode());
 
         assertFailure(expectedFlowFileContent);
     }
@@ -491,7 +490,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // THEN
         Throwable exception = runner.getLogger().getErrorMessages().get(0).getThrowable();
-        assertEquals(ProcessException.class, exception.getClass());
+        Assertions.assertEquals(ProcessException.class, exception.getClass());
 
         assertFailure(expectedFlowFileContent);
     }
@@ -529,7 +528,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         Set<ProvenanceEventType> actualEventTypes = runner.getProvenanceEvents().stream()
                 .map(ProvenanceEventRecord::getEventType)
                 .collect(Collectors.toSet());
-        assertEquals(expectedEventTypes, actualEventTypes);
+        Assertions.assertEquals(expectedEventTypes, actualEventTypes);
     }
 
     private void assertFailure(String expectedFlowFileContent) {

@@ -26,14 +26,13 @@ import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.Before;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Properties;
-
-import static org.junit.Assert.fail;
 
 public abstract class AbstractAzureStorageIT {
 
@@ -48,12 +47,12 @@ public abstract class AbstractAzureStorageIT {
             try {
                 CONFIG.load(fis);
             } catch (IOException e) {
-                fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e.getLocalizedMessage());
+                Assertions.fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e.getLocalizedMessage());
             } finally {
                 FileUtils.closeQuietly(fis);
             }
         } catch (FileNotFoundException e) {
-            fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e.getLocalizedMessage());
+            Assertions.fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e.getLocalizedMessage());
         }
     }
 
@@ -67,7 +66,7 @@ public abstract class AbstractAzureStorageIT {
 
     protected TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setUpAzureStorageIT() throws Exception {
         runner = TestRunners.newTestRunner(getProcessorClass());
 

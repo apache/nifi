@@ -21,13 +21,11 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.PutAzureBlobStorage;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
-
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 
 public class TestAzureBlobClientSideEncryptionUtils {
     private static final String KEY_ID_VALUE = "key:id";
@@ -41,7 +39,7 @@ public class TestAzureBlobClientSideEncryptionUtils {
     private MockProcessContext processContext;
     private MockValidationContext validationContext;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         Processor processor = new PutAzureBlobStorage();
         processContext = new MockProcessContext(processor);
@@ -151,11 +149,11 @@ public class TestAzureBlobClientSideEncryptionUtils {
     }
 
     private void assertValid(Collection<ValidationResult> result) {
-        assertTrue("There should be no validation error", result.isEmpty());
+        Assertions.assertTrue(result.isEmpty(), "There should be no validation error");
     }
 
     private void assertNotValid(Collection<ValidationResult> result) {
-        assertFalse("There should be validation error", result.isEmpty());
+        Assertions.assertFalse(result.isEmpty(), "There should be validation error");
     }
 
 }

@@ -18,8 +18,8 @@ package org.apache.nifi.processors.azure.storage.queue;
 
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class PutAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
 
@@ -76,10 +76,10 @@ public class PutAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(PutAzureQueueStorage.REL_SUCCESS, 1);
-        Assert.assertEquals(1, getMessageCount());
+        Assertions.assertEquals(1, getMessageCount());
 
         Thread.sleep(2400);
-        Assert.assertEquals(0, getMessageCount());
+        Assertions.assertEquals(0, getMessageCount());
     }
 
     @Test
@@ -91,9 +91,9 @@ public class PutAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(PutAzureQueueStorage.REL_SUCCESS, 1);
-        Assert.assertEquals(0, getMessageCount());
+        Assertions.assertEquals(0, getMessageCount());
 
         Thread.sleep(2400);
-        Assert.assertEquals(1, getMessageCount());
+        Assertions.assertEquals(1, getMessageCount());
     }
 }

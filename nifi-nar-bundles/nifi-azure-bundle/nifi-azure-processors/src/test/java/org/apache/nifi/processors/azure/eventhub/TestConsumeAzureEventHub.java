@@ -33,6 +33,8 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -42,8 +44,9 @@ import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -60,15 +63,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import org.apache.nifi.serialization.record.MockRecordParser;
-import org.apache.nifi.serialization.record.MockRecordWriter;
 
 public class TestConsumeAzureEventHub {
     private static final String namespaceName = "nifi-azure-hub";
@@ -85,7 +85,7 @@ public class TestConsumeAzureEventHub {
     private PartitionContext partitionContext;
     private ConsumeAzureEventHub processor;
 
-    @Before
+    @BeforeEach
     public void setupProcessor() {
         processor = new ConsumeAzureEventHub();
         final ProcessorInitializationContext initContext = Mockito.mock(ProcessorInitializationContext.class);
@@ -205,7 +205,7 @@ public class TestConsumeAzureEventHub {
 
         processSession.assertCommitted();
         final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
-        assertEquals(1, flowFiles.size());
+        Assertions.assertEquals(1, flowFiles.size());
         final MockFlowFile msg1 = flowFiles.get(0);
         msg1.assertAttributeEquals("eventhub.property.event-sender", "Apache NiFi");
         msg1.assertAttributeEquals("eventhub.property.application", "TestApp");
@@ -218,17 +218,17 @@ public class TestConsumeAzureEventHub {
 
         processSession.assertCommitted();
         final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
-        assertEquals(1, flowFiles.size());
+        Assertions.assertEquals(1, flowFiles.size());
         final MockFlowFile msg1 = flowFiles.get(0);
         msg1.assertContentEquals("one");
         msg1.assertAttributeEquals("eventhub.name", "eventhub-name");
         msg1.assertAttributeEquals("eventhub.partition", "partition-id");
 
         final List<ProvenanceEventRecord> provenanceEvents = sharedState.getProvenanceEvents();
-        assertEquals(1, provenanceEvents.size());
+        Assertions.assertEquals(1, provenanceEvents.size());
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
-        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
+        Assertions.assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
+        Assertions.assertEquals("amqps://namespace.servicebus.windows.net/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
     }
 
@@ -242,14 +242,14 @@ public class TestConsumeAzureEventHub {
 
         processSession.assertCommitted();
         final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
-        assertEquals(2, flowFiles.size());
+        Assertions.assertEquals(2, flowFiles.size());
         final MockFlowFile msg1 = flowFiles.get(0);
         msg1.assertContentEquals("one");
         final MockFlowFile msg2 = flowFiles.get(1);
         msg2.assertContentEquals("two");
 
         final List<ProvenanceEventRecord> provenanceEvents = sharedState.getProvenanceEvents();
-        assertEquals(2, provenanceEvents.size());
+        Assertions.assertEquals(2, provenanceEvents.size());
     }
 
     @Test
@@ -264,14 +264,14 @@ public class TestConsumeAzureEventHub {
         // Even if it fails to create a checkpoint, these FlowFiles are already committed.
         processSession.assertCommitted();
         final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
-        assertEquals(2, flowFiles.size());
+        Assertions.assertEquals(2, flowFiles.size());
         final MockFlowFile msg1 = flowFiles.get(0);
         msg1.assertContentEquals("one");
         final MockFlowFile msg2 = flowFiles.get(1);
         msg2.assertContentEquals("two");
 
         final List<ProvenanceEventRecord> provenanceEvents = sharedState.getProvenanceEvents();
-        assertEquals(2, provenanceEvents.size());
+        Assertions.assertEquals(2, provenanceEvents.size());
     }
 
     private Record toRecord(String value) {
@@ -364,17 +364,17 @@ public class TestConsumeAzureEventHub {
 
         processSession.assertCommitted();
         final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
-        assertEquals(1, flowFiles.size());
+        Assertions.assertEquals(1, flowFiles.size());
         final MockFlowFile ff1 = flowFiles.get(0);
         ff1.assertContentEquals("onetwo");
         ff1.assertAttributeEquals("eventhub.name", "eventhub-name");
         ff1.assertAttributeEquals("eventhub.partition", "partition-id");
 
         final List<ProvenanceEventRecord> provenanceEvents = sharedState.getProvenanceEvents();
-        assertEquals(1, provenanceEvents.size());
+        Assertions.assertEquals(1, provenanceEvents.size());
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
-        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
+        Assertions.assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
+        Assertions.assertEquals("amqps://namespace.servicebus.windows.net/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
     }
 
@@ -395,30 +395,30 @@ public class TestConsumeAzureEventHub {
 
         processSession.assertCommitted();
         final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
-        assertEquals(1, flowFiles.size());
+        Assertions.assertEquals(1, flowFiles.size());
         final MockFlowFile ff1 = flowFiles.get(0);
         ff1.assertContentEquals("onetwofour");
         ff1.assertAttributeEquals("eventhub.name", "eventhub-name");
         ff1.assertAttributeEquals("eventhub.partition", "partition-id");
 
         final List<MockFlowFile> failedFFs = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
-        assertEquals(1, failedFFs.size());
+        Assertions.assertEquals(1, failedFFs.size());
         final MockFlowFile failed1 = failedFFs.get(0);
         failed1.assertContentEquals("three");
         failed1.assertAttributeEquals("eventhub.name", "eventhub-name");
         failed1.assertAttributeEquals("eventhub.partition", "partition-id");
 
         final List<ProvenanceEventRecord> provenanceEvents = sharedState.getProvenanceEvents();
-        assertEquals(2, provenanceEvents.size());
+        Assertions.assertEquals(2, provenanceEvents.size());
 
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
-        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
+        Assertions.assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
+        Assertions.assertEquals("amqps://namespace.servicebus.windows.net/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
 
         final ProvenanceEventRecord provenanceEvent2 = provenanceEvents.get(1);
-        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent2.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
+        Assertions.assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent2.getEventType());
+        Assertions.assertEquals("amqps://namespace.servicebus.windows.net/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent2.getTransitUri());
     }
 
@@ -436,21 +436,21 @@ public class TestConsumeAzureEventHub {
 
         processSession.assertCommitted();
         final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
-        assertEquals(0, flowFiles.size());
+        Assertions.assertEquals(0, flowFiles.size());
 
         final List<MockFlowFile> failedFFs = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
-        assertEquals(1, failedFFs.size());
+        Assertions.assertEquals(1, failedFFs.size());
         final MockFlowFile failed1 = failedFFs.get(0);
         failed1.assertContentEquals("one");
         failed1.assertAttributeEquals("eventhub.name", "eventhub-name");
         failed1.assertAttributeEquals("eventhub.partition", "partition-id");
 
         final List<ProvenanceEventRecord> provenanceEvents = sharedState.getProvenanceEvents();
-        assertEquals(1, provenanceEvents.size());
+        Assertions.assertEquals(1, provenanceEvents.size());
 
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
-        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
+        Assertions.assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
+        Assertions.assertEquals("amqps://namespace.servicebus.windows.net/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
     }
 
@@ -471,30 +471,30 @@ public class TestConsumeAzureEventHub {
 
         processSession.assertCommitted();
         final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
-        assertEquals(1, flowFiles.size());
+        Assertions.assertEquals(1, flowFiles.size());
         final MockFlowFile ff1 = flowFiles.get(0);
         ff1.assertContentEquals("onethreefour");
         ff1.assertAttributeEquals("eventhub.name", "eventhub-name");
         ff1.assertAttributeEquals("eventhub.partition", "partition-id");
 
         final List<MockFlowFile> failedFFs = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
-        assertEquals(1, failedFFs.size());
+        Assertions.assertEquals(1, failedFFs.size());
         final MockFlowFile failed1 = failedFFs.get(0);
         failed1.assertContentEquals("two");
         failed1.assertAttributeEquals("eventhub.name", "eventhub-name");
         failed1.assertAttributeEquals("eventhub.partition", "partition-id");
 
         final List<ProvenanceEventRecord> provenanceEvents = sharedState.getProvenanceEvents();
-        assertEquals(2, provenanceEvents.size());
+        Assertions.assertEquals(2, provenanceEvents.size());
 
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
-        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
+        Assertions.assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
+        Assertions.assertEquals("amqps://namespace.servicebus.windows.net/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
 
         final ProvenanceEventRecord provenanceEvent2 = provenanceEvents.get(1);
-        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent2.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
+        Assertions.assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent2.getEventType());
+        Assertions.assertEquals("amqps://namespace.servicebus.windows.net/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent2.getTransitUri());
     }
 }
