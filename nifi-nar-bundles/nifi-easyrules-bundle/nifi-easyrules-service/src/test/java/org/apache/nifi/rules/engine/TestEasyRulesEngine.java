@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 package org.apache.nifi.rules.engine;
+
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.rules.Rule;
 import org.apache.nifi.rules.RulesFactory;
-import org.junit.Test;
-
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestEasyRulesEngine {
 
@@ -65,12 +65,7 @@ public class TestEasyRulesEngine {
         Map<String, Object> facts = new HashMap<>();
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressure",311111);
-        try {
-            service.fireRules(facts);
-            fail("Error condition exception was not thrown");
-        }catch (Exception ignored){
-        }
-
+        assertThrows(Exception.class, () -> service.fireRules(facts));
     }
 
     @Test
