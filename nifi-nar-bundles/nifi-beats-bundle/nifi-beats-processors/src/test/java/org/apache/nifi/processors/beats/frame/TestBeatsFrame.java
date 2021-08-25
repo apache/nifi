@@ -16,23 +16,24 @@
  */
 package org.apache.nifi.processors.beats.frame;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestBeatsFrame {
 
-    @Test(expected = BeatsFrameException.class)
+    @Test
     public void testInvalidVersion() {
-        new BeatsFrame.Builder().seqNumber(1234).dataSize(3).build();
+        assertThrows(BeatsFrameException.class, () -> new BeatsFrame.Builder().seqNumber(1234).dataSize(3).build());
     }
 
-    @Test(expected = BeatsFrameException.class)
+    @Test
     public void testInvalidFrameType() {
-        new BeatsFrame.Builder().frameType((byte) 0x70).dataSize(5).build();
+        assertThrows(BeatsFrameException.class, () -> new BeatsFrame.Builder().frameType((byte) 0x70).dataSize(5).build());
     }
 
-    @Test(expected = BeatsFrameException.class)
+    @Test
     public void testBlankFrameType() {
-        new BeatsFrame.Builder().frameType(((byte) 0x00)).dataSize(5).build();
+        assertThrows(BeatsFrameException.class, () -> new BeatsFrame.Builder().frameType(((byte) 0x00)).dataSize(5).build());
     }
 }

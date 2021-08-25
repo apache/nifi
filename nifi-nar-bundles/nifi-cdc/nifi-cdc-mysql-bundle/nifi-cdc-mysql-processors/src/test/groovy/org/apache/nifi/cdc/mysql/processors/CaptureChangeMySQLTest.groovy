@@ -31,6 +31,10 @@ import com.github.shyiko.mysql.binlog.event.WriteRowsEventData
 import com.github.shyiko.mysql.binlog.network.SSLMode
 import groovy.json.JsonSlurper
 import org.apache.commons.io.output.WriterOutputStream
+import org.apache.nifi.cdc.event.ColumnDefinition
+import org.apache.nifi.cdc.event.TableInfo
+import org.apache.nifi.cdc.event.TableInfoCacheKey
+import org.apache.nifi.cdc.event.io.EventWriter
 import org.apache.nifi.cdc.mysql.MockBinlogClient
 import org.apache.nifi.cdc.mysql.event.BinlogEventInfo
 import org.apache.nifi.cdc.mysql.processors.ssl.BinaryLogSSLSocketFactory
@@ -43,11 +47,6 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService
 import org.apache.nifi.distributed.cache.client.Serializer
 import org.apache.nifi.flowfile.attributes.CoreAttributes
 import org.apache.nifi.logging.ComponentLog
-
-import org.apache.nifi.cdc.event.ColumnDefinition
-import org.apache.nifi.cdc.event.TableInfo
-import org.apache.nifi.cdc.event.TableInfoCacheKey
-import org.apache.nifi.cdc.event.io.EventWriter
 import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.reporting.InitializationException
@@ -57,9 +56,9 @@ import org.apache.nifi.util.MockComponentLog
 import org.apache.nifi.util.MockControllerServiceInitializationContext
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.After
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.function.Executable
 
 import javax.net.ssl.SSLContext
 import java.sql.Connection
@@ -70,9 +69,10 @@ import java.util.concurrent.TimeoutException
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertTrue
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertTrue
+import static org.junit.jupiter.api.Assertions.assertThrows
 import static org.mockito.ArgumentMatchers.anyString
 import static org.mockito.Mockito.doReturn
 import static org.mockito.Mockito.mock
@@ -89,16 +89,11 @@ class CaptureChangeMySQLTest {
     TestRunner testRunner
     MockBinlogClient client
 
-    @Before
+    @BeforeEach
     void setUp() throws Exception {
         processor = new MockCaptureChangeMySQL()
         testRunner = TestRunners.newTestRunner(processor)
         client = new MockBinlogClient('localhost', 3306, 'root', 'password')
-    }
-
-    @After
-    void tearDown() throws Exception {
-
     }
 
     @Test
@@ -148,10 +143,10 @@ class CaptureChangeMySQLTest {
         testRunner.assertValid()
 
         testRunner.run()
-        assertEquals("SSL Mode not matched", sslMode, client.getSSLMode())
+        assertEquals(sslMode, client.getSSLMode(), "SSL Mode not matched")
         def sslSocketFactory = client.sslSocketFactory
-        assertNotNull('Binary Log SSLSocketFactory not found', sslSocketFactory)
-        assertEquals('Binary Log SSLSocketFactory class not matched', BinaryLogSSLSocketFactory.class, sslSocketFactory.getClass())
+        assertNotNull(sslSocketFactory, 'Binary Log SSLSocketFactory not found')
+        assertEquals(BinaryLogSSLSocketFactory.class, sslSocketFactory.getClass(), 'Binary Log SSLSocketFactory class not matched')
     }
 
     @Test
@@ -348,7 +343,7 @@ class CaptureChangeMySQLTest {
         }
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     void testCommitWithoutBegin() throws Exception {
         testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
@@ -356,15 +351,14 @@ class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
 
-        testRunner.run(1, false, true)
+         testRunner.run(1, false, true)
 
         // COMMIT
         client.sendEvent(new Event(
                 [timestamp: new Date().time, eventType: EventType.XID, nextPosition: 12] as EventHeaderV4,
                 {} as EventData
         ))
-
-        testRunner.run(1, true, false)
+        assertThrows(AssertionError.class, { testRunner.run(1, true, false) } as Executable)
     }
 
     @Test
@@ -593,7 +587,7 @@ class CaptureChangeMySQLTest {
         assertEquals(5, resultFiles.size())
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     void testNoTableInformationAvailable() throws Exception {
         testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
@@ -634,7 +628,7 @@ class CaptureChangeMySQLTest {
                 {} as EventData
         ))
 
-        testRunner.run(1, true, false)
+        assertThrows(AssertionError.class, { testRunner.run(1, true, false) } as Executable)
     }
 
     @Test

@@ -33,8 +33,8 @@ import com.datastax.driver.core.exceptions.UnavailableException;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
@@ -43,7 +43,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -60,7 +60,7 @@ public class PutCassandraQLTest {
     private TestRunner testRunner;
     private MockPutCassandraQL processor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         processor = new MockPutCassandraQL();
         testRunner = TestRunners.newTestRunner(processor);

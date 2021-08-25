@@ -23,9 +23,10 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 public class TestCouchbaseClusterService {
@@ -40,8 +41,8 @@ public class TestCouchbaseClusterService {
         }
     }
 
-    @Before
-    public void init() throws Exception {
+    @BeforeEach
+    public void init() {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.couchbase.PutCouchbaseKey", "debug");
@@ -58,11 +59,6 @@ public class TestCouchbaseClusterService {
         CouchbaseClusterControllerService service = new CouchbaseClusterService();
         testRunner.addControllerService(SERVICE_ID, service);
         testRunner.setProperty(service, CouchbaseClusterService.CONNECTION_STRING, connectionString);
-        try {
-            testRunner.enableControllerService(service);
-            Assert.fail("The service shouldn't be enabled when it couldn't connect to a cluster.");
-        } catch (AssertionError e) {
-        }
+        assertThrows(AssertionError.class, () -> testRunner.enableControllerService(service));
     }
-
 }

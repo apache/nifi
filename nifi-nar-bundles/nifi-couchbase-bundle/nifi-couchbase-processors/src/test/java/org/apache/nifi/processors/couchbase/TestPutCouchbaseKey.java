@@ -16,30 +16,15 @@
  */
 package org.apache.nifi.processors.couchbase;
 
-import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.BUCKET_NAME;
-import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.COUCHBASE_CLUSTER_SERVICE;
-import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.DOCUMENT_TYPE;
-import static org.apache.nifi.processors.couchbase.CouchbaseAttributes.Exception;
-import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.DOC_ID;
-import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_FAILURE;
-import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_RETRY;
-import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_SUCCESS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-
+import com.couchbase.client.core.CouchbaseException;
+import com.couchbase.client.core.ServiceNotAvailableException;
 import com.couchbase.client.deps.io.netty.buffer.Unpooled;
+import com.couchbase.client.java.Bucket;
+import com.couchbase.client.java.PersistTo;
+import com.couchbase.client.java.ReplicateTo;
 import com.couchbase.client.java.document.ByteArrayDocument;
+import com.couchbase.client.java.document.RawJsonDocument;
+import com.couchbase.client.java.error.DurabilityException;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.couchbase.CouchbaseClusterControllerService;
 import org.apache.nifi.couchbase.DocumentType;
@@ -49,18 +34,32 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import com.couchbase.client.core.CouchbaseException;
-import com.couchbase.client.core.ServiceNotAvailableException;
-import com.couchbase.client.java.Bucket;
-import com.couchbase.client.java.PersistTo;
-import com.couchbase.client.java.ReplicateTo;
-import com.couchbase.client.java.document.RawJsonDocument;
-import com.couchbase.client.java.error.DurabilityException;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.BUCKET_NAME;
+import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.COUCHBASE_CLUSTER_SERVICE;
+import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.DOCUMENT_TYPE;
+import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.DOC_ID;
+import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_FAILURE;
+import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_RETRY;
+import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_SUCCESS;
+import static org.apache.nifi.processors.couchbase.CouchbaseAttributes.Exception;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 
 public class TestPutCouchbaseKey {
@@ -68,7 +67,7 @@ public class TestPutCouchbaseKey {
     private static final String SERVICE_ID = "couchbaseClusterService";
     private TestRunner testRunner;
 
-    @Before
+    @BeforeEach
     public void init() throws Exception {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
@@ -237,12 +236,9 @@ public class TestPutCouchbaseKey {
         Map<String, String> properties = new HashMap<>();
         properties.put("someProperty", somePropertyValue);
         testRunner.enqueue(inFileDataBytes, properties);
-        try {
-            testRunner.run();
-            fail("Exception should be thrown.");
-        } catch (AssertionError e){
-            Assert.assertTrue(e.getCause().getClass().equals(AttributeExpressionLanguageException.class));
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> testRunner.run());
+        assertTrue(e.getCause().getClass().equals(AttributeExpressionLanguageException.class));
 
         testRunner.assertTransferCount(REL_SUCCESS, 0);
         testRunner.assertTransferCount(REL_RETRY, 0);
@@ -294,12 +290,9 @@ public class TestPutCouchbaseKey {
         testRunner.enqueue(inFileDataBytes);
         testRunner.setProperty(DOC_ID, docId);
         testRunner.setProperty(PutCouchbaseKey.REPLICATE_TO, ReplicateTo.ONE.toString());
-        try {
-            testRunner.run();
-            fail("ProcessException should be thrown.");
-        } catch (AssertionError e){
-            Assert.assertTrue(e.getCause().getClass().equals(ProcessException.class));
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> testRunner.run());
+        assertTrue(e.getCause().getClass().equals(ProcessException.class));
 
         verify(bucket, times(1)).upsert(any(RawJsonDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.ONE));
 

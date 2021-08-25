@@ -16,17 +16,12 @@
  */
 package org.apache.nifi.processors.ccda;
 
-import java.io.IOException;
-import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openhealthtools.mdht.uml.cda.consol.ConsolFactory;
 import org.openhealthtools.mdht.uml.cda.consol.ContinuityOfCareDocument;
 import org.openhealthtools.mdht.uml.cda.consol.ProblemConcernAct;
@@ -38,17 +33,22 @@ import org.openhealthtools.mdht.uml.cda.consol.VitalSignsOrganizer;
 import org.openhealthtools.mdht.uml.cda.consol.VitalSignsSection;
 import org.openhealthtools.mdht.uml.cda.util.CDAUtil;
 
+import java.io.IOException;
+import java.io.StringWriter;
+import java.util.HashMap;
+import java.util.Map;
+
 
 public class TestExtractCCDAAttributes {
 
     private TestRunner runner;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "INFO");
     }
 
-    @Before
+    @BeforeEach
     public void init() {
         runner = TestRunners.newTestRunner(ExtractCCDAAttributes.class);
     }

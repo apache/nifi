@@ -27,13 +27,14 @@ import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class PutCassandraRecordIT {
 
@@ -48,7 +49,7 @@ public class PutCassandraRecordIT {
     private static final String HOST = "localhost";
     private static final int PORT = 9042;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws InitializationException {
         recordReader = new MockRecordParser();
         testRunner = TestRunners.newTestRunner(PutCassandraRecord.class);
@@ -88,7 +89,7 @@ public class PutCassandraRecordIT {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(PutCassandraRecord.REL_SUCCESS, 1);
-        Assert.assertEquals(5, getRecordsCount());
+        assertEquals(5, getRecordsCount());
     }
 
     private int getRecordsCount() {
@@ -109,7 +110,7 @@ public class PutCassandraRecordIT {
         session.execute(query);
     }
 
-    @AfterClass
+    @AfterAll
     public static void shutdown() {
         String dropKeyspace = "DROP KEYSPACE " + KEYSPACE;
         String dropTable = "DROP TABLE IF EXISTS " + KEYSPACE + "." + TABLE;
