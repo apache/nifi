@@ -38,9 +38,8 @@ import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -78,7 +77,7 @@ public abstract class AbstractS3IT {
     protected static AmazonS3Client client;
     protected static AWSKMS kmsClient;
 
-    @BeforeClass
+    @BeforeAll
     public static void oneTimeSetup() {
         // Creates a client and bucket for this test
 
@@ -117,7 +116,7 @@ public abstract class AbstractS3IT {
         }
     }
 
-    @AfterClass
+    @AfterAll
     public static void oneTimeTearDown() {
         // Empty the bucket before deleting it.
         try {
@@ -146,9 +145,8 @@ public abstract class AbstractS3IT {
         }
 
         if (client.doesBucketExist(BUCKET_NAME)) {
-            Assert.fail("Incomplete teardown, subsequent tests might fail");
+            fail("Incomplete teardown, subsequent tests might fail");
         }
-
     }
 
     protected void putTestFile(String key, File file) throws AmazonS3Exception {
@@ -185,7 +183,7 @@ public abstract class AbstractS3IT {
         try {
             path = Paths.get(getClass().getResource(resourceName).toURI());
         } catch (URISyntaxException e) {
-           Assert.fail("Resource: " + resourceName + " does not exist" + e.getLocalizedMessage());
+           fail("Resource: " + resourceName + " does not exist" + e.getLocalizedMessage());
         }
 
         return path;
@@ -196,7 +194,7 @@ public abstract class AbstractS3IT {
         try {
             uri = this.getClass().getResource(resourceName).toURI();
         } catch (URISyntaxException e) {
-            Assert.fail("Cannot proceed without File : " + resourceName);
+            fail("Cannot proceed without File : " + resourceName);
         }
 
         return new File(uri);

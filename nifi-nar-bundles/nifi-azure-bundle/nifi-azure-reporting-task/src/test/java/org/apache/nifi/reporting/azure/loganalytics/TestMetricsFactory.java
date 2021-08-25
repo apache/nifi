@@ -17,25 +17,24 @@
 
 package org.apache.nifi.reporting.azure.loganalytics;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.google.gson.Gson;
-import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
-import org.apache.nifi.metrics.jvm.JvmMetrics;
-
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.metrics.jvm.JvmMetrics;
 import org.apache.nifi.reporting.azure.loganalytics.api.AzureLogAnalyticsMetricsFactory;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class TestMetricsFactory {
 
     private ProcessGroupStatus status;
     private final Gson gson = new Gson();
 
-    @Before
+    @BeforeEach
     public void init() {
         status = new ProcessGroupStatus();
         status.setId("1234");

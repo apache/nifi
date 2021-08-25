@@ -20,22 +20,22 @@ import org.apache.nifi.processors.aws.AbstractAWSProcessor;
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AWSProcessorProxyTest {
 
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void testSetup() throws Throwable {
         runner = TestRunners.newTestRunner(FetchS3Object.class);
         runner.setProperty(FetchS3Object.BUCKET, "bucket");
         runner.assertValid();
     }
 
-    @After
+    @AfterEach
     public void testTearDown() throws Throwable {
         runner = null;
     }

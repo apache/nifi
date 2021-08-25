@@ -22,12 +22,12 @@ import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncrypt
 import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
 
@@ -46,7 +46,7 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
         return PutAzureBlobStorage.class;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         runner.setProperty(PutAzureBlobStorage.BLOB, TEST_BLOB_NAME);
     }

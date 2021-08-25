@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -37,12 +38,11 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.MessageProperties;
+import org.junit.jupiter.api.Test;
 
 public class ConsumeAMQPTest {
 
@@ -191,7 +191,7 @@ public class ConsumeAMQPTest {
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
             String headers = successFF.getAttribute("amqp$headers");
             Map<String, String> properties = convertStringToMap(headers.substring(1,headers.length()-1),"|");
-            Assert.assertEquals(headersMap,properties);
+            assertEquals(headersMap,properties);
         }
     }
     @Test
@@ -260,7 +260,7 @@ public class ConsumeAMQPTest {
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
             String headers = successFF.getAttribute("amqp$headers");
             Map<String, String> properties = convertStringToMap(headers,"|");
-            Assert.assertEquals(headersMap,properties);
+            assertEquals(headersMap,properties);
         }
     }
 
@@ -290,7 +290,7 @@ public class ConsumeAMQPTest {
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
             String headers = successFF.getAttribute("amqp$headers");
             Map<String, String> properties = convertStringToMap(headers.substring(1,headers.length()-1),",");
-            Assert.assertEquals(headersMap,properties);
+            assertEquals(headersMap,properties);
         }
     }
 
@@ -300,7 +300,7 @@ public class ConsumeAMQPTest {
         String[] pairs = map.split(Pattern.quote(String.valueOf(splitCharacter)));
         for (String pair : pairs) {
             String[] keyValue = pair.split("=", 2);
-            Assert.assertEquals(2,keyValue.length);
+            assertEquals(2,keyValue.length);
             headers.put(keyValue[0].trim(), keyValue[1].trim());
         }
         return headers;

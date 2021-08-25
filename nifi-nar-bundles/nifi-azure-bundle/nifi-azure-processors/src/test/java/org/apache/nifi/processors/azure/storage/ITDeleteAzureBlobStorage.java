@@ -18,10 +18,10 @@ package org.apache.nifi.processors.azure.storage;
 
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.nifi.processor.Processor;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class ITDeleteAzureBlobStorage extends AbstractAzureBlobStorageIT {
 
@@ -30,7 +30,7 @@ public class ITDeleteAzureBlobStorage extends AbstractAzureBlobStorageIT {
         return DeleteAzureBlobStorage.class;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         runner.setProperty(DeleteAzureBlobStorage.BLOB, TEST_BLOB_NAME);
 

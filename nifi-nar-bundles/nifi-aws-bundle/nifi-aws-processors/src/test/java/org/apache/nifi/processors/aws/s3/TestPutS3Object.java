@@ -16,25 +16,6 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import java.io.File;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.amazonaws.services.s3.model.StorageClass;
-import com.amazonaws.services.s3.model.Tag;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
@@ -45,15 +26,32 @@ import com.amazonaws.services.s3.model.MultipartUploadListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import com.amazonaws.services.s3.model.StorageClass;
+import com.amazonaws.services.s3.model.Tag;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class TestPutS3Object {
@@ -62,7 +60,7 @@ public class TestPutS3Object {
     private PutS3Object putS3Object;
     private AmazonS3Client mockS3Client;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
         putS3Object = new PutS3Object() {
@@ -125,11 +123,7 @@ public class TestPutS3Object {
             if (!signerType.equals(defaultSignerValue)) {
                 runner.setProperty(PutS3Object.SIGNER_OVERRIDE, signerType);
                 ProcessContext context = runner.getProcessContext();
-                try {
-                    processor.createClient(context, credentialsProvider, config);
-                } catch (IllegalArgumentException argEx) {
-                    Assert.fail(argEx.getMessage());
-                }
+                assertDoesNotThrow(() -> processor.createClient(context, credentialsProvider, config));
             }
         }
     }
@@ -247,7 +241,7 @@ public class TestPutS3Object {
     public void testGetPropertyDescriptors() {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 39, pd.size());
+        assertEquals(39, pd.size(), "size should be eq");
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));

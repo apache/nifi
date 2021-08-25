@@ -40,8 +40,8 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
@@ -55,9 +55,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class TestListS3 {
@@ -65,7 +65,7 @@ public class TestListS3 {
     private TestRunner runner = null;
     private AmazonS3Client mockS3Client = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
         final ListS3 mockListS3 = new ListS3() {

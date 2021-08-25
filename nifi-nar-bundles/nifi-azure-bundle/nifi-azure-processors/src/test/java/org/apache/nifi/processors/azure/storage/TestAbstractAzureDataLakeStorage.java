@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.ADLS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.DIRECTORY;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILE;
@@ -23,17 +29,11 @@ import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProce
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-
 public class TestAbstractAzureDataLakeStorage {
 
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         // test the property validation in the abstract class via the put processor
         runner = TestRunners.newTestRunner(PutAzureDataLakeStorage.class);

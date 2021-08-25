@@ -24,7 +24,7 @@ import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzerFactory;
 import org.apache.nifi.atlas.resolver.NamespaceResolvers;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_CLUSTER_NAME;
@@ -34,7 +34,7 @@ import static org.apache.nifi.atlas.NiFiTypes.ATTR_URI;
 import static org.apache.nifi.atlas.provenance.analyzer.HBaseTable.ATTR_NAMESPACE;
 import static org.apache.nifi.atlas.provenance.analyzer.HBaseTable.TYPE_HBASE_NAMESPACE;
 import static org.apache.nifi.atlas.provenance.analyzer.HBaseTable.TYPE_HBASE_TABLE;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.when;
 

@@ -23,16 +23,17 @@ import org.apache.nifi.processors.elasticsearch.mock.MockBulkLoadClientService
 import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
-
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
 
 import static org.hamcrest.CoreMatchers.containsString
 import static org.hamcrest.MatcherAssert.assertThat
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class PutElasticsearchJsonTest {
     MockBulkLoadClientService clientService
@@ -42,7 +43,7 @@ class PutElasticsearchJsonTest {
             [ msg: "Hello, world", from: "john.smith" ]
     ))
 
-    @Before
+    @BeforeEach
     void setup() {
         clientService = new MockBulkLoadClientService()
         runner   = TestRunners.newTestRunner(PutElasticsearchJson.class)
@@ -70,10 +71,10 @@ class PutElasticsearchJsonTest {
             int indexCount = items.findAll { it.index == "test_index" }.size()
             int typeCount = items.findAll { it.type == "test_type" }.size()
             int opCount = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
-            Assert.assertEquals(1, nullIdCount)
-            Assert.assertEquals(1, indexCount)
-            Assert.assertEquals(1, typeCount)
-            Assert.assertEquals(1, opCount)
+            assertEquals(1, nullIdCount)
+            assertEquals(1, indexCount)
+            assertEquals(1, typeCount)
+            assertEquals(1, opCount)
         }
 
         basicTest(failure, retry, success, evalClosure)
@@ -98,7 +99,7 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_SUCCESS, success)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 0)
 
-        Assert.assertEquals(success,
+        assertEquals(success,
                 runner.getProvenanceEvents().stream().filter({
                     e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == null
                 }).count()
@@ -108,7 +109,7 @@ class PutElasticsearchJsonTest {
     @Test
     void simpleTest() {
         def evalParametersClosure = { Map<String, String> params ->
-            Assert.assertTrue(params.isEmpty())
+            assertTrue(params.isEmpty())
         }
         clientService.evalParametersClosure = evalParametersClosure
 
@@ -123,9 +124,9 @@ class PutElasticsearchJsonTest {
         runner.assertValid()
 
         def evalParametersClosure = { Map<String, String> params ->
-            Assert.assertEquals(2, params.size())
-            Assert.assertEquals("true", params.get("refresh"))
-            Assert.assertEquals("auto", params.get("slices"))
+            assertEquals(2, params.size())
+            assertEquals("true", params.get("refresh"))
+            assertEquals("auto", params.get("slices"))
         }
 
         clientService.evalParametersClosure = evalParametersClosure
@@ -135,10 +136,10 @@ class PutElasticsearchJsonTest {
             int indexCount = items.findAll { it.index == "test_index" }.size()
             int typeCount = items.findAll { it.type == "test_type" }.size()
             int opCount = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
-            Assert.assertEquals(1, idCount)
-            Assert.assertEquals(1, indexCount)
-            Assert.assertEquals(1, typeCount)
-            Assert.assertEquals(1, opCount)
+            assertEquals(1, idCount)
+            assertEquals(1, indexCount)
+            assertEquals(1, typeCount)
+            assertEquals(1, opCount)
         }
 
         clientService.evalClosure = evalClosure
@@ -153,9 +154,9 @@ class PutElasticsearchJsonTest {
         runner.assertValid()
 
         def evalParametersClosure = { Map<String, String> params ->
-            Assert.assertEquals(2, params.size())
-            Assert.assertEquals("true", params.get("refresh"))
-            Assert.assertEquals("auto", params.get("slices"))
+            assertEquals(2, params.size())
+            assertEquals("true", params.get("refresh"))
+            assertEquals("auto", params.get("slices"))
         }
 
         clientService.evalParametersClosure = evalParametersClosure
@@ -179,8 +180,8 @@ class PutElasticsearchJsonTest {
     void testInvalidIndexOperation() {
         runner.setProperty(PutElasticsearchJson.INDEX_OP, "not-valid")
         runner.assertNotValid()
-        final AssertionError ae = Assert.assertThrows(AssertionError.class, runner.&run)
-        Assert.assertEquals(String.format("Processor has 1 validation failures:\n'%s' validated against 'not-valid' is invalid because %s must be Expression Language or one of %s\n",
+        final AssertionError ae = assertThrows(AssertionError.class, runner.&run)
+        assertEquals(String.format("Processor has 1 validation failures:\n'%s' validated against 'not-valid' is invalid because %s must be Expression Language or one of %s\n",
                 PutElasticsearchJson.INDEX_OP.getName(), PutElasticsearchJson.INDEX_OP.getDisplayName(), PutElasticsearchJson.ALLOWED_INDEX_OPERATIONS),
                 ae.getMessage()
         )
@@ -234,7 +235,7 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 1)
         assertThat(runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0].getContent(), containsString("20abcd"))
-        Assert.assertEquals(1,
+        assertEquals(1,
                 runner.getProvenanceEvents().stream().filter({
                     e -> ProvenanceEventType.SEND == e.getEventType() && "Elasticsearch _bulk operation error" == e.getDetails()
                 }).count()
@@ -258,7 +259,7 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 2)
         assertThat(runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0].getContent(), containsString("not_found"))
         assertThat(runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[1].getContent(), containsString("20abcd"))
-        Assert.assertEquals(2,
+        assertEquals(2,
                 runner.getProvenanceEvents().stream().filter({
                     e -> ProvenanceEventType.SEND == e.getEventType() && "Elasticsearch _bulk operation error" == e.getDetails()
                 }).count()

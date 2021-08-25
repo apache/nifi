@@ -22,12 +22,14 @@ import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestGetAzureQueueStorage {
 
@@ -47,7 +49,7 @@ public class TestGetAzureQueueStorage {
             results = ((MockProcessContext) processContext).validate();
         }
 
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
     }
 
     @Test
@@ -64,9 +66,8 @@ public class TestGetAzureQueueStorage {
             results = ((MockProcessContext) processContext).validate();
         }
 
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         Iterator<ValidationResult> iterator = results.iterator();
-        Assert.assertTrue(iterator.next().getExplanation().contains("should be greater than 0 secs"));
+        assertTrue(iterator.next().getExplanation().contains("should be greater than 0 secs"));
     }
-
 }

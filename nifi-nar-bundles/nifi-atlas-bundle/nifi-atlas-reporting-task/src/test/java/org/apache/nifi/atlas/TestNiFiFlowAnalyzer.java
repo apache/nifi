@@ -23,8 +23,8 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.util.Tuple;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 import java.util.function.Function;
@@ -32,7 +32,7 @@ import java.util.function.Function;
 import static org.apache.nifi.atlas.AtlasUtils.toQualifiedName;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_QUEUE;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Test {@link NiFiFlowAnalyzer} with simple mock code.
@@ -42,8 +42,8 @@ public class TestNiFiFlowAnalyzer {
 
     private int componentId = 0;
 
-    @Before
-    public void before() throws Exception {
+    @BeforeEach
+    public void before() {
         componentId = 0;
     }
 
@@ -57,7 +57,7 @@ public class TestNiFiFlowAnalyzer {
     }
 
     @Test
-    public void testEmptyFlow() throws Exception {
+    public void testEmptyFlow() {
         ProcessGroupStatus rootPG = createEmptyProcessGroupStatus();
 
         final NiFiFlowAnalyzer analyzer = new NiFiFlowAnalyzer();
@@ -145,7 +145,7 @@ public class TestNiFiFlowAnalyzer {
 
 
     @Test
-    public void testProcessorsWithinSinglePath() throws Exception {
+    public void testProcessorsWithinSinglePath() {
 
         ProcessGroupStatus rootPG = createEmptyProcessGroupStatus();
 
@@ -175,7 +175,7 @@ public class TestNiFiFlowAnalyzer {
     }
 
     @Test
-    public void testMultiPaths() throws Exception {
+    public void testMultiPaths() {
 
         ProcessGroupStatus rootPG = createEmptyProcessGroupStatus();
 
@@ -217,7 +217,7 @@ public class TestNiFiFlowAnalyzer {
     }
 
     @Test
-    public void testMultiPathsJoint() throws Exception {
+    public void testMultiPathsJoint() {
 
         ProcessGroupStatus rootPG = createEmptyProcessGroupStatus();
 

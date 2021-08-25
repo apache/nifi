@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.processors.azure.storage.queue;
 
-import java.util.List;
-
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.queue.CloudQueueMessage;
-
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class GetAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
 
@@ -35,7 +35,7 @@ public class GetAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
         return GetAzureQueueStorage.class;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws StorageException {
         cloudQueue.addMessage(new CloudQueueMessage("Dummy Message 1"), 604800, 0, null, null);
         cloudQueue.addMessage(new CloudQueueMessage("Dummy Message 2"), 604800, 0, null, null);
@@ -105,10 +105,10 @@ public class GetAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(GetAzureQueueStorage.REL_SUCCESS, 3);
-        Assert.assertEquals(0, getMessageCount());
+        assertEquals(0, getMessageCount());
 
         Thread.sleep(1500);
-        Assert.assertEquals(3, getMessageCount());
+        assertEquals(3, getMessageCount());
     }
 
     @Test
@@ -120,13 +120,13 @@ public class GetAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
 
         runner.assertAllFlowFilesTransferred(GetAzureQueueStorage.REL_SUCCESS, 2);
         cloudQueue.downloadAttributes();
-        Assert.assertEquals(1, cloudQueue.getApproximateMessageCount());
+        assertEquals(1, cloudQueue.getApproximateMessageCount());
 
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(GetAzureQueueStorage.REL_SUCCESS, 3);
         cloudQueue.downloadAttributes();
-        Assert.assertEquals(0, cloudQueue.getApproximateMessageCount());
+        assertEquals(0, cloudQueue.getApproximateMessageCount());
     }
 
     private void assertResult(int expectedMessageCountInQueue) throws Exception {
@@ -139,6 +139,6 @@ public class GetAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
         }
 
         cloudQueue.downloadAttributes();
-        Assert.assertEquals(expectedMessageCountInQueue, cloudQueue.getApproximateMessageCount());
+        assertEquals(expectedMessageCountInQueue, cloudQueue.getApproximateMessageCount());
     }
 }

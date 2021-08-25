@@ -16,21 +16,20 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
-
 import com.amazonaws.regions.Regions;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-@Ignore("For local testing only - interacts with SQS so the credentials file must be configured and all necessary queues created")
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class ITPutSQS {
 
     private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
@@ -46,7 +45,7 @@ public class ITPutSQS {
         runner.setProperty(PutSQS.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutSQS.REGION, REGION);
         runner.setProperty(PutSQS.QUEUE_URL, QUEUE_URL);
-        Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
+        assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "1.txt");

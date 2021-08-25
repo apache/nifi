@@ -16,21 +16,22 @@
  */
 package org.apache.nifi.services.azure.storage;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestAzureStorageCredentialsControllerServiceLookup {
 
@@ -40,7 +41,7 @@ public class TestAzureStorageCredentialsControllerServiceLookup {
     private AzureStorageCredentialsControllerServiceLookup lookupService;
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         serviceA = new MockAzureStorageCredentialsService(
                 new AzureStorageCredentialsDetails("Account_A", "core.windows.net", null));
@@ -88,18 +89,18 @@ public class TestAzureStorageCredentialsControllerServiceLookup {
         assertNull(storageCredentialsDetails.getStorageSuffix());
     }
 
-    @Test(expected = ProcessException.class)
+    @Test
     public void testLookupMissingCredentialsNameAttribute() {
         final Map<String, String> attributes = new HashMap<>();
-        lookupService.getStorageCredentialsDetails(attributes);
+        assertThrows(ProcessException.class, () -> lookupService.getStorageCredentialsDetails(attributes));
     }
 
-    @Test(expected = ProcessException.class)
+    @Test
     public void testLookupWithCredentialsNameThatDoesNotExist() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(AzureStorageCredentialsControllerServiceLookup.AZURE_STORAGE_CREDENTIALS_NAME_ATTRIBUTE,
                 "DOES-NOT-EXIST");
-        lookupService.getStorageCredentialsDetails(attributes);
+        assertThrows(ProcessException.class, () -> lookupService.getStorageCredentialsDetails(attributes));
     }
 
     @Test

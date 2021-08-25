@@ -17,29 +17,30 @@
 
 package org.apache.nifi.authorization.azure;
 
-import static org.junit.Assert.fail;
-
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.authorization.AuthorizerConfigurationContext;
 import org.apache.nifi.authorization.Group;
 import org.apache.nifi.authorization.UserAndGroups;
 import org.apache.nifi.authorization.UserGroupProviderInitializationContext;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AzureGraphUserGroupProviderIT {
     private static final Logger logger = LoggerFactory.getLogger(AzureGraphUserGroupProviderIT.class);
@@ -50,18 +51,11 @@ public class AzureGraphUserGroupProviderIT {
 
     static {
         CONFIG = new Properties();
-        try {
+        assertDoesNotThrow(() -> {
             final FileInputStream fis = new FileInputStream(CREDENTIALS_FILE);
-            try {
-                CONFIG.load(fis);
-            } catch (IOException e) {
-                fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e.getLocalizedMessage());
-            } finally {
-                FileUtils.closeQuietly(fis);
-            }
-        } catch (FileNotFoundException e) {
-            fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e.getLocalizedMessage());
-        }
+            assertDoesNotThrow(() -> CONFIG.load(fis));
+            FileUtils.closeQuietly(fis);
+        });
     }
 
     protected static String getAuthorityEndpoint() {
@@ -97,7 +91,7 @@ public class AzureGraphUserGroupProviderIT {
     private AzureGraphUserGroupProvider testingProvider;
     private UserGroupProviderInitializationContext initContext;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         authContext = Mockito.mock(AuthorizerConfigurationContext.class);
         initContext = Mockito.mock(UserGroupProviderInitializationContext.class);
@@ -126,7 +120,7 @@ public class AzureGraphUserGroupProviderIT {
     }
 
 
-    @After
+    @AfterEach
     public void tearDown() {
         testingProvider.preDestruction();
     }
@@ -138,11 +132,11 @@ public class AzureGraphUserGroupProviderIT {
 
         setupTestingProvider();
 
-        Assert.assertTrue(testingProvider.getGroups().size() > 0);
-        Assert.assertTrue(testingProvider.getUsers().size() > 0);
+        assertTrue(testingProvider.getGroups().size() > 0);
+        assertTrue(testingProvider.getUsers().size() > 0);
         UserAndGroups uag  = testingProvider.getUserAndGroups(getKnownTestUserName());
-        Assert.assertNotNull(uag.getUser());
-        Assert.assertTrue(uag.getGroups().size() > 0);
+        assertNotNull(uag.getUser());
+        assertTrue(uag.getGroups().size() > 0);
 
     }
 
@@ -155,15 +149,15 @@ public class AzureGraphUserGroupProviderIT {
 
         setupTestingProvider();
 
-        Assert.assertTrue(testingProvider.getGroups().size() > 0);
-        Assert.assertTrue(testingProvider.getUsers().size() > 0);
+        assertTrue(testingProvider.getGroups().size() > 0);
+        assertTrue(testingProvider.getUsers().size() > 0);
         UserAndGroups uag  = testingProvider.getUserAndGroups(getKnownTestUserName());
-        Assert.assertNotNull(uag.getUser());
-        Assert.assertTrue(uag.getGroups().size() > 0);
+        assertNotNull(uag.getUser());
+        assertTrue(uag.getGroups().size() > 0);
 
         String knownGroupName = getKnownTestGroupName();
         List<Group> search = testingProvider.getGroups().stream().filter(g-> g.getName().equals(knownGroupName)).collect(Collectors.toList());
-        Assert.assertTrue(search.size() > 0);
+        assertTrue(search.size() > 0);
     }
 
     @Test
@@ -175,9 +169,9 @@ public class AzureGraphUserGroupProviderIT {
         .thenReturn(new MockPropertyValue(prefix));
 
         setupTestingProvider();
-        Assert.assertTrue(testingProvider.getGroups().size() > 0);
+        assertTrue(testingProvider.getGroups().size() > 0);
         List<Group> search = testingProvider.getGroups().stream().filter(g-> g.getName().equals(knownGroupName)).collect(Collectors.toList());
-        Assert.assertTrue(search.size() > 0);
+        assertTrue(search.size() > 0);
     }
 
     @Test
@@ -189,9 +183,9 @@ public class AzureGraphUserGroupProviderIT {
             .thenReturn(new MockPropertyValue(suffix));
 
         setupTestingProvider();
-        Assert.assertTrue(testingProvider.getGroups().size() > 0);
+        assertTrue(testingProvider.getGroups().size() > 0);
         List<Group> search = testingProvider.getGroups().stream().filter(g-> g.getName().equals(knownGroupName)).collect(Collectors.toList());
-        Assert.assertTrue(search.size() > 0);
+        assertTrue(search.size() > 0);
     }
 
     @Test
@@ -203,9 +197,9 @@ public class AzureGraphUserGroupProviderIT {
             .thenReturn(new MockPropertyValue(substring));
 
         setupTestingProvider();
-        Assert.assertTrue(testingProvider.getGroups().size() > 0);
+        assertTrue(testingProvider.getGroups().size() > 0);
         List<Group> search = testingProvider.getGroups().stream().filter( g-> g.getName().equals(knownGroupName)).collect(Collectors.toList());
-        Assert.assertTrue(search.size() > 0);
+        assertTrue(search.size() > 0);
     }
 
     @Test
@@ -219,9 +213,9 @@ public class AzureGraphUserGroupProviderIT {
             .thenReturn(new MockPropertyValue(getGroupListInclusion()));
 
         setupTestingProvider();
-        Assert.assertTrue(testingProvider.getGroups().size() > 0);
+        assertTrue(testingProvider.getGroups().size() > 0);
         Set<Group> search = testingProvider.getGroups().stream().collect(Collectors.toSet());
         // check there is no duplicate group
-        Assert.assertEquals(search.size(), testingProvider.getGroups().size());
+        assertEquals(search.size(), testingProvider.getGroups().size());
     }
 }

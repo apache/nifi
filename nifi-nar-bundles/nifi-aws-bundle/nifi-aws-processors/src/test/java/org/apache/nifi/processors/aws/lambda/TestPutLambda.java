@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.processors.aws.lambda;
 
-import java.nio.ByteBuffer;
-import java.util.List;
-
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.lambda.AWSLambdaClient;
 import com.amazonaws.services.lambda.model.InvalidParameterValueException;
@@ -30,14 +23,19 @@ import com.amazonaws.services.lambda.model.InvokeRequest;
 import com.amazonaws.services.lambda.model.InvokeResult;
 import com.amazonaws.services.lambda.model.TooManyRequestsException;
 import com.amazonaws.util.Base64;
-
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import java.nio.ByteBuffer;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class TestPutLambda {
@@ -47,7 +45,7 @@ public class TestPutLambda {
     private AWSLambdaClient actualLambdaClient = null;
     private AWSLambdaClient mockLambdaClient = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockLambdaClient = Mockito.mock(AWSLambdaClient.class);
         mockPutLambda = new PutLambda() {

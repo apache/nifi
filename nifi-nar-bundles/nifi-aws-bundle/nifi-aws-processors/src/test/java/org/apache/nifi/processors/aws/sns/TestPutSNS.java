@@ -16,43 +16,39 @@
  */
 package org.apache.nifi.processors.aws.sns;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
-
 import com.amazonaws.services.sns.AmazonSNSClient;
 import com.amazonaws.services.sns.model.AmazonSNSException;
 import com.amazonaws.services.sns.model.PublishRequest;
 import com.amazonaws.services.sns.model.PublishResult;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class TestPutSNS {
 
     private TestRunner runner = null;
     private PutSNS mockPutSNS = null;
-    private AmazonSNSClient actualSNSClient = null;
     private AmazonSNSClient mockSNSClient = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockSNSClient = Mockito.mock(AmazonSNSClient.class);
         mockPutSNS = new PutSNS() {
             @Override
             protected AmazonSNSClient getClient() {
-                actualSNSClient = client;
                 return mockSNSClient;
             }
         };
@@ -60,7 +56,7 @@ public class TestPutSNS {
     }
 
     @Test
-    public void testPublish() throws IOException {
+    public void testPublish() {
         runner.setProperty(PutSNS.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
         runner.setProperty(PutSNS.ARN, "arn:aws:sns:us-west-2:123456789012:test-topic-1");
         runner.setProperty(PutSNS.SUBJECT, "${eval.subject}");
@@ -90,7 +86,7 @@ public class TestPutSNS {
     }
 
     @Test
-    public void testPublishFIFO() throws IOException {
+    public void testPublishFIFO() {
         runner.setProperty(PutSNS.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
         runner.setProperty(PutSNS.ARN, "arn:aws:sns:us-west-2:123456789012:test-topic-1.fifo");
         runner.setProperty(PutSNS.SUBJECT, "${eval.subject}");
@@ -125,7 +121,7 @@ public class TestPutSNS {
     }
 
     @Test
-    public void testPublishFailure() throws IOException {
+    public void testPublishFailure() {
         runner.setProperty(PutSNS.ARN, "arn:aws:sns:us-west-2:123456789012:test-topic-1");
         final Map<String, String> ffAttributes = new HashMap<>();
         ffAttributes.put("filename", "1.txt");
@@ -138,5 +134,4 @@ public class TestPutSNS {
         Mockito.verify(mockSNSClient, Mockito.times(1)).publish(captureRequest.capture());
         runner.assertAllFlowFilesTransferred(PutSNS.REL_FAILURE, 1);
     }
-
 }

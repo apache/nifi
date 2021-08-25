@@ -16,17 +16,6 @@
  */
 package org.apache.nifi.processors.azure.cosmos.document;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.mock;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosClient;
 import com.azure.cosmos.CosmosContainer;
@@ -35,7 +24,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-
+import net.minidev.json.JSONObject;
 import org.apache.avro.Schema;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.json.JsonTreeReader;
@@ -50,10 +39,20 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import net.minidev.json.JSONObject;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.mock;
+
 public class PutAzureCosmosDBRecordTest extends MockTestBase {
 
     private MockPutAzureCosmosDBRecord processor;
@@ -69,7 +68,7 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
 
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         processor = new MockPutAzureCosmosDBRecord();
         testRunner = TestRunners.newTestRunner(processor);
@@ -287,8 +286,4 @@ class MockPutAzureCosmosDBRecord extends PutAzureCosmosDBRecord {
     public CosmosContainer getMockConainer() {
         return mockContainer;
     }
-
-
-
-
 }

@@ -16,43 +16,38 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.proxy.ProxyConfigurationService;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.DeleteVersionRequest;
-
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.proxy.ProxyConfigurationService;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class TestDeleteS3Object {
 
     private TestRunner runner = null;
     private DeleteS3Object mockDeleteS3Object = null;
-    private AmazonS3Client actualS3Client = null;
     private AmazonS3Client mockS3Client = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
         mockDeleteS3Object = new DeleteS3Object() {
             protected AmazonS3Client getClient() {
-                actualS3Client = client;
                 return mockS3Client;
             }
         };
@@ -60,7 +55,7 @@ public class TestDeleteS3Object {
     }
 
     @Test
-    public void testDeleteObjectSimple() throws IOException {
+    public void testDeleteObjectSimple() {
         runner.setProperty(DeleteS3Object.REGION, "us-west-2");
         runner.setProperty(DeleteS3Object.BUCKET, "test-bucket");
         final Map<String, String> attrs = new HashMap<>();
@@ -139,10 +134,10 @@ public class TestDeleteS3Object {
     }
 
     @Test
-    public void testGetPropertyDescriptors() throws Exception {
+    public void testGetPropertyDescriptors() {
         DeleteS3Object processor = new DeleteS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 23, pd.size());
+        assertEquals(23, pd.size(), "size should be eq");
         assertTrue(pd.contains(processor.ACCESS_KEY));
         assertTrue(pd.contains(processor.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(processor.BUCKET));
