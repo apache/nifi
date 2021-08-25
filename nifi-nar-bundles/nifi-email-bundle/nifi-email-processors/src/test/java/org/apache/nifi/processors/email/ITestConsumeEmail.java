@@ -23,10 +23,10 @@ import com.icegreen.greenmail.util.ServerSetupTest;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.Assert;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.integration.mail.AbstractMailReceiver;
 
 import javax.mail.Message;
@@ -38,7 +38,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 public class ITestConsumeEmail {
@@ -49,7 +49,7 @@ public class ITestConsumeEmail {
     private GreenMailUser popUser;
 
     // Setup mock imap server
-    @Before
+    @BeforeEach
     public void setUp() {
         mockIMAP4Server = new GreenMail(ServerSetupTest.IMAP);
         mockIMAP4Server.start();
@@ -60,7 +60,7 @@ public class ITestConsumeEmail {
         popUser = mockPOP3Server.setUser("test@nifi.org", "nifiUserPop", "nifiPassword");
     }
 
-    @After
+    @AfterEach
     public void cleanUp() {
         mockIMAP4Server.stop();
         mockPOP3Server.stop();
@@ -99,13 +99,13 @@ public class ITestConsumeEmail {
         String result = new String(runner.getContentAsByteArray(messages.get(0)));
 
         // Verify body
-        Assert.assertTrue(result.contains("test test test chocolate"));
+        Assertions.assertTrue(result.contains("test test test chocolate"));
 
         // Verify sender
-        Assert.assertTrue(result.contains("alice@nifi.org"));
+        Assertions.assertTrue(result.contains("alice@nifi.org"));
 
         // Verify subject
-        Assert.assertTrue(result.contains("testConsumeImap1"));
+        Assertions.assertTrue(result.contains("testConsumeImap1"));
 
     }
 
@@ -130,13 +130,13 @@ public class ITestConsumeEmail {
         String result = new String(runner.getContentAsByteArray(messages.get(0)));
 
         // Verify body
-        Assert.assertTrue(result.contains("test test test chocolate"));
+        Assertions.assertTrue(result.contains("test test test chocolate"));
 
         // Verify sender
-        Assert.assertTrue(result.contains("alice@nifi.org"));
+        Assertions.assertTrue(result.contains("alice@nifi.org"));
 
         // Verify subject
-        Assert.assertTrue(result.contains("Pop1"));
+        Assertions.assertTrue(result.contains("Pop1"));
 
     }
 

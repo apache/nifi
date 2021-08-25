@@ -20,8 +20,8 @@ package org.apache.nifi.processors.email;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,7 +81,7 @@ public class TestExtractEmailAttachments {
             filenames.add(splits.get(a).getAttribute("filename").toString());
         }
 
-        Assert.assertTrue(filenames.containsAll(Arrays.asList("pom.xml1", "pom.xml" + amount)));
+        Assertions.assertTrue(filenames.containsAll(Arrays.asList("pom.xml1", "pom.xml" + amount)));
     }
 
     @Test
