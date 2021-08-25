@@ -17,9 +17,9 @@
 package org.apache.nifi.processors.druid;
 
 
+import org.apache.nifi.controller.api.druid.DruidTranquilityService;
 import org.apache.nifi.controller.druid.DruidTranquilityController;
 import org.apache.nifi.controller.druid.MockDruidTranquilityController;
-import org.apache.nifi.controller.api.druid.DruidTranquilityService;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -27,10 +27,9 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 
 public class PutDruidRecordTest {
@@ -40,7 +39,7 @@ public class PutDruidRecordTest {
     private MockRecordParser recordReader;
     private MockRecordWriter recordWriter;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(PutDruidRecord.class);
         druidTranquilityController = new MockDruidTranquilityController(2,3);
@@ -107,7 +106,7 @@ public class PutDruidRecordTest {
         flowFile.assertAttributeEquals(PutDruidRecord.RECORD_COUNT, "2");
 
         // Assert a single SEND event present for the successful flow file
-        assertEquals(1, runner.getProvenanceEvents().stream().filter((e) -> ProvenanceEventType.SEND.equals(e.getEventType())).count());
+        Assertions.assertEquals(1, runner.getProvenanceEvents().stream().filter((e) -> ProvenanceEventType.SEND.equals(e.getEventType())).count());
     }
 
 }
