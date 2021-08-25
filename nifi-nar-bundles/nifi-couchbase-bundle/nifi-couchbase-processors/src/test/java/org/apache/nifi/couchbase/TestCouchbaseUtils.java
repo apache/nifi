@@ -33,18 +33,15 @@ import com.couchbase.client.java.document.StringDocument;
 import com.couchbase.client.java.document.json.JsonArray;
 import com.couchbase.client.java.document.json.JsonObject;
 import com.couchbase.client.java.error.TranscodingException;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 public class TestCouchbaseUtils {
 
-    @Ignore("This test method requires a live Couchbase Server instance")
+    @Disabled("This test method requires a live Couchbase Server instance")
     @Test
     public void testDocumentTypesAndStringConversion() {
         final CouchbaseCluster cluster = CouchbaseCluster.fromConnectionString("couchbase://192.168.99.100:8091");
@@ -78,19 +75,19 @@ public class TestCouchbaseUtils {
 
         for (String[] expectation : expectations) {
             final LegacyDocument document = bucket.get(LegacyDocument.create(expectation[0]));
-            assertEquals(expectation[1], document.content().getClass().getSimpleName());
-            assertEquals(expectation[2], CouchbaseUtils.getStringContent(document.content()));
+            Assertions.assertEquals(expectation[1], document.content().getClass().getSimpleName());
+            Assertions.assertEquals(expectation[2], CouchbaseUtils.getStringContent(document.content()));
         }
 
         final BinaryDocument binaryDocument = bucket.get(BinaryDocument.create("BinaryDocument"));
         final String stringFromByteBuff = CouchbaseUtils.getStringContent(binaryDocument.content());
-        assertEquals("value", stringFromByteBuff);
+        Assertions.assertEquals("value", stringFromByteBuff);
 
         try {
             bucket.get(BinaryDocument.create("JsonDocument"));
-            fail("Getting a JSON document as a BinaryDocument fails");
+            Assertions.fail("Getting a JSON document as a BinaryDocument fails");
         } catch (TranscodingException e) {
-            assertTrue(e.getMessage().contains("Flags (0x2000000) indicate non-binary document for id JsonDocument"));
+            Assertions.assertTrue(e.getMessage().contains("Flags (0x2000000) indicate non-binary document for id JsonDocument"));
         }
 
     }

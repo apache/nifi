@@ -25,7 +25,8 @@ import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -33,7 +34,6 @@ import java.util.Map;
 
 import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.BUCKET_NAME;
 import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.COUCHBASE_CLUSTER_SERVICE;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -67,7 +67,7 @@ public class TestCouchbaseMapCacheClient {
         client.configure(context);
         final String cacheEntry = client.get("key", stringSerializer, stringDeserializer);
 
-        assertEquals("value", cacheEntry);
+        Assertions.assertEquals("value", cacheEntry);
     }
 
 }
