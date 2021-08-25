@@ -16,18 +16,17 @@
  */
 package org.apache.nifi.processors.aws.sns;
 
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
 
 /**
  * Provides integration level testing with actual AWS S3 resources for {@link PutSNS} and requires additional configuration and resources to work.
@@ -41,7 +40,7 @@ public class ITPutSNS {
         final TestRunner runner = TestRunners.newTestRunner(new PutSNS());
         runner.setProperty(PutSNS.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutSNS.ARN, "arn:aws:sns:us-west-2:100515378163:test-topic-1");
-        assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());
+        Assertions.assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "1.txt");
@@ -56,7 +55,7 @@ public class ITPutSNS {
         final TestRunner runner = TestRunners.newTestRunner(new PutSNS());
         String snsArn = "Add Sns arn here";
         runner.setProperty(PutSNS.ARN, snsArn);
-        assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());
+        Assertions.assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
 
         runner.addControllerService("awsCredentialsProvider", serviceImpl);

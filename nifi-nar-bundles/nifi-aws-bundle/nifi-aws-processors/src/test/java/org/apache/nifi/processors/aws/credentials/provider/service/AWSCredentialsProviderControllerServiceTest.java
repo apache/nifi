@@ -16,21 +16,18 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.service;
 
-import static org.junit.Assert.assertEquals;
-
-import org.apache.nifi.processors.aws.AbstractAWSProcessor;
-import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
-import org.apache.nifi.processors.aws.s3.FetchS3Object;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.auth.PropertiesFileCredentialsProvider;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.internal.StaticCredentialsProvider;
+import org.apache.nifi.processors.aws.AbstractAWSProcessor;
+import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
+import org.apache.nifi.processors.aws.s3.FetchS3Object;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class AWSCredentialsProviderControllerServiceTest {
 
@@ -45,11 +42,11 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.assertValid(serviceImpl);
         final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
-        Assert.assertNotNull(service);
+        Assertions.assertNotNull(service);
         final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
-        Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", DefaultAWSCredentialsProviderChain.class,
-                credentialsProvider.getClass());
+        Assertions.assertNotNull(credentialsProvider);
+        Assertions.assertEquals(DefaultAWSCredentialsProviderChain.class,
+                credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
     @Test
@@ -64,11 +61,11 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.assertValid(serviceImpl);
         final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
-        Assert.assertNotNull(service);
+        Assertions.assertNotNull(service);
         final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
-        Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", StaticCredentialsProvider.class,
-                credentialsProvider.getClass());
+        Assertions.assertNotNull(credentialsProvider);
+        Assertions.assertEquals(StaticCredentialsProvider.class,
+                credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
     @Test
@@ -85,11 +82,11 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.assertValid(serviceImpl);
         final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
-        Assert.assertNotNull(service);
+        Assertions.assertNotNull(service);
         final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
-        Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", STSAssumeRoleSessionCredentialsProvider.class,
-                credentialsProvider.getClass());
+        Assertions.assertNotNull(credentialsProvider);
+        Assertions.assertEquals(STSAssumeRoleSessionCredentialsProvider.class,
+                credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
     @Test
@@ -107,11 +104,11 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.assertValid(serviceImpl);
         final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
-        Assert.assertNotNull(service);
+        Assertions.assertNotNull(service);
         final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
-        Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", STSAssumeRoleSessionCredentialsProvider.class,
-                credentialsProvider.getClass());
+        Assertions.assertNotNull(credentialsProvider);
+        Assertions.assertEquals(STSAssumeRoleSessionCredentialsProvider.class,
+                credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
     @Test
@@ -208,11 +205,11 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.assertValid(serviceImpl);
         final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
-        Assert.assertNotNull(service);
+        Assertions.assertNotNull(service);
         final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
-        Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", STSAssumeRoleSessionCredentialsProvider.class,
-                credentialsProvider.getClass());
+        Assertions.assertNotNull(credentialsProvider);
+        Assertions.assertEquals(STSAssumeRoleSessionCredentialsProvider.class,
+                credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
     @Test
@@ -227,11 +224,11 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.assertValid(serviceImpl);
         final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
-        Assert.assertNotNull(service);
+        Assertions.assertNotNull(service);
         final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
-        Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", PropertiesFileCredentialsProvider.class,
-                credentialsProvider.getClass());
+        Assertions.assertNotNull(credentialsProvider);
+        Assertions.assertEquals(PropertiesFileCredentialsProvider.class,
+                credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
     @Test
@@ -316,9 +313,11 @@ public class AWSCredentialsProviderControllerServiceTest {
         final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
 
-        assertEquals("Expression language should be supported for " + CredentialPropertyDescriptors.ACCESS_KEY.getName(),
-                "awsAccessKey", service.getCredentialsProvider().getCredentials().getAWSAccessKeyId());
-        assertEquals("Expression language should be supported for " + CredentialPropertyDescriptors.SECRET_KEY.getName(),
-                "awsSecretKey", service.getCredentialsProvider().getCredentials().getAWSSecretKey());
+        Assertions.assertEquals(
+                "awsAccessKey", service.getCredentialsProvider().getCredentials().getAWSAccessKeyId(),
+                "Expression language should be supported for " + CredentialPropertyDescriptors.ACCESS_KEY.getName());
+        Assertions.assertEquals(
+                "awsSecretKey", service.getCredentialsProvider().getCredentials().getAWSSecretKey(),
+                "Expression language should be supported for " + CredentialPropertyDescriptors.SECRET_KEY.getName());
     }
 }

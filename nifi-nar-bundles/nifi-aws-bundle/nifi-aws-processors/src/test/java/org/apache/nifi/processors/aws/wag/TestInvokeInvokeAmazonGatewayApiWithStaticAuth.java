@@ -16,19 +16,20 @@
  */
 package org.apache.nifi.processors.aws.wag;
 
-import java.io.IOException;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.TestServer;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+
+import java.io.IOException;
 
 
 public class TestInvokeInvokeAmazonGatewayApiWithStaticAuth extends
                                                                    TestInvokeAWSGatewayApiCommon {
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() throws Exception {
         // useful for verbose logging output
         // don't commit this with this property enabled, or any 'mvn test' will be really verbose
@@ -42,12 +43,12 @@ public class TestInvokeInvokeAmazonGatewayApiWithStaticAuth extends
         url = server.getUrl();
     }
 
-    @AfterClass
+    @AfterAll
     public static void afterClass() throws Exception {
         server.shutdownServer();
     }
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         runner = TestRunners.newTestRunner(InvokeAWSGatewayApi.class);
         runner.setValidateExpressionUsage(false);
@@ -55,7 +56,7 @@ public class TestInvokeInvokeAmazonGatewayApiWithStaticAuth extends
         setupAuth();
     }
 
-    @After
+    @AfterEach
     public void after() {
         runner.shutdown();
     }

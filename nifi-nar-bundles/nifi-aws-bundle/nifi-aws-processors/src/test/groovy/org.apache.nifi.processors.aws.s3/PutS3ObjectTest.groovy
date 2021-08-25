@@ -17,40 +17,28 @@
 package org.apache.nifi.processors.aws.s3
 
 import com.amazonaws.services.s3.model.ObjectMetadata
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-@RunWith(JUnit4.class)
-class PutS3ObjectTest extends GroovyTestCase {
+class PutS3ObjectTest {
     private static final Logger logger = LoggerFactory.getLogger(PutS3ObjectTest.class);
 
     private static long mockFlowFileId = 0
     private PutS3Object putS3Object
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
     }
 
-    @Before
+    @BeforeEach
     void setUp() {
-        super.setUp()
-
         putS3Object = new PutS3Object()
-
-    }
-
-    @After
-    void tearDown() {
-
     }
 
     @Test

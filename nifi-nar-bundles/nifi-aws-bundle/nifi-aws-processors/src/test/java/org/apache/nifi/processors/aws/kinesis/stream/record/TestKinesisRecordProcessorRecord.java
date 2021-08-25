@@ -36,9 +36,10 @@ import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -57,7 +58,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -85,7 +85,7 @@ public class TestKinesisRecordProcessorRecord {
     @Mock
     private Record kinesisRecord;
 
-    @Before
+    @BeforeEach
     public void setUp() throws InitializationException {
         MockitoAnnotations.initMocks(this);
 
@@ -106,7 +106,7 @@ public class TestKinesisRecordProcessorRecord {
                 reader, writer);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         verifyNoMoreInteractions(checkpointer, kinesisRecord, processSessionFactory);
         reset(checkpointer, kinesisRecord, processSessionFactory);
@@ -236,7 +236,7 @@ public class TestKinesisRecordProcessorRecord {
         session.assertTransferCount(ConsumeKinesisStream.REL_PARSE_FAILURE, 0);
 
         // check the "poison pill" record was retried a 2nd time
-        assertNull(verify(kinesisRecord, times(2)).getData());
+        Assertions.assertNull(verify(kinesisRecord, times(2)).getData());
         verify(checkpointer, times(1)).checkpoint();
 
         // ERROR messages don't have their fields replaced in the MockComponentLog
@@ -294,10 +294,10 @@ public class TestKinesisRecordProcessorRecord {
         failureFlowFiles.get(0).assertAttributeExists("record.error.message");
 
         // check the invalid json record was *not* retried a 2nd time
-        assertNull(verify(kinesisRecord, times(1)).getPartitionKey());
-        assertNull(verify(kinesisRecord, times(1)).getSequenceNumber());
-        assertNull(verify(kinesisRecord, times(1)).getApproximateArrivalTimestamp());
-        assertNull(verify(kinesisRecord, times(2)).getData());
+        Assertions.assertNull(verify(kinesisRecord, times(1)).getPartitionKey());
+        Assertions.assertNull(verify(kinesisRecord, times(1)).getSequenceNumber());
+        Assertions.assertNull(verify(kinesisRecord, times(1)).getApproximateArrivalTimestamp());
+        Assertions.assertNull(verify(kinesisRecord, times(2)).getData());
         verify(checkpointer, times(1)).checkpoint();
 
         // ERROR messages don't have their fields replaced in the MockComponentLog

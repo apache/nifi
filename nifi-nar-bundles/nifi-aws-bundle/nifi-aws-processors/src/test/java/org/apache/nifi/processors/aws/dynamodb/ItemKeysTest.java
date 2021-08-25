@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class ItemKeysTest {
 
@@ -27,42 +25,42 @@ public class ItemKeysTest {
     public void testHashNullRangeNullEquals() {
         ItemKeys ik1 = new ItemKeys(null, null);
         ItemKeys ik2 = new ItemKeys(null, null);
-        assertEquals(ik1, ik2);
-        assertEquals(ik1.hashCode(), ik2.hashCode());
-        assertEquals(ik1.toString(), ik2.toString());
+        Assertions.assertEquals(ik1, ik2);
+        Assertions.assertEquals(ik1.hashCode(), ik2.hashCode());
+        Assertions.assertEquals(ik1.toString(), ik2.toString());
     }
 
     @Test
     public void testHashNotNullRangeNullEquals() {
         ItemKeys ik1 = new ItemKeys("abc", null);
         ItemKeys ik2 = new ItemKeys("abc", null);
-        assertEquals(ik1, ik2);
-        assertEquals(ik1.hashCode(), ik2.hashCode());
-        assertEquals(ik1.toString(), ik2.toString());
+        Assertions.assertEquals(ik1, ik2);
+        Assertions.assertEquals(ik1.hashCode(), ik2.hashCode());
+        Assertions.assertEquals(ik1.toString(), ik2.toString());
     }
 
     @Test
     public void testHashNullRangeNotNullEquals() {
         ItemKeys ik1 = new ItemKeys(null, "ab");
         ItemKeys ik2 = new ItemKeys(null, "ab");
-        assertEquals(ik1, ik2);
-        assertEquals(ik1.hashCode(), ik2.hashCode());
-        assertEquals(ik1.toString(), ik2.toString());
+        Assertions.assertEquals(ik1, ik2);
+        Assertions.assertEquals(ik1.hashCode(), ik2.hashCode());
+        Assertions.assertEquals(ik1.toString(), ik2.toString());
     }
 
     @Test
     public void testHashNotNullRangeNotNullEquals() {
         ItemKeys ik1 = new ItemKeys("abc", "pqr");
         ItemKeys ik2 = new ItemKeys("abc", "pqr");
-        assertEquals(ik1, ik2);
-        assertEquals(ik1.hashCode(), ik2.hashCode());
-        assertEquals(ik1.toString(), ik2.toString());
+        Assertions.assertEquals(ik1, ik2);
+        Assertions.assertEquals(ik1.hashCode(), ik2.hashCode());
+        Assertions.assertEquals(ik1.toString(), ik2.toString());
     }
 
     @Test
     public void testHashNotNullRangeNotNullForOtherNotEquals() {
         ItemKeys ik1 = new ItemKeys(null, "ab");
         ItemKeys ik2 = new ItemKeys("ab", null);
-        assertFalse(ik1.equals(ik2));
+        Assertions.assertFalse(ik1.equals(ik2));
     }
 }

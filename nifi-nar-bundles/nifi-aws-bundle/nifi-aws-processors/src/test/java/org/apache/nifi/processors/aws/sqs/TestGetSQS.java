@@ -16,25 +16,22 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import java.util.List;
-
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
-
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
+import java.util.List;
 
 
 public class TestGetSQS {
@@ -44,7 +41,7 @@ public class TestGetSQS {
     private AmazonSQSClient actualSQSClient = null;
     private AmazonSQSClient mockSQSClient = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockSQSClient = Mockito.mock(AmazonSQSClient.class);
         mockGetSQS = new GetSQS() {
@@ -79,7 +76,7 @@ public class TestGetSQS {
         ArgumentCaptor<ReceiveMessageRequest> captureRequest = ArgumentCaptor.forClass(ReceiveMessageRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).receiveMessage(captureRequest.capture());
         ReceiveMessageRequest request = captureRequest.getValue();
-        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.getQueueUrl());
+        Assertions.assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.getQueueUrl());
         Mockito.verify(mockSQSClient, Mockito.never()).deleteMessageBatch(Mockito.any(DeleteMessageBatchRequest.class));
 
         runner.assertAllFlowFilesTransferred(GetSQS.REL_SUCCESS, 1);
@@ -104,7 +101,7 @@ public class TestGetSQS {
         ArgumentCaptor<ReceiveMessageRequest> captureRequest = ArgumentCaptor.forClass(ReceiveMessageRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).receiveMessage(captureRequest.capture());
         ReceiveMessageRequest request = captureRequest.getValue();
-        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.getQueueUrl());
+        Assertions.assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.getQueueUrl());
 
         runner.assertAllFlowFilesTransferred(GetSQS.REL_SUCCESS, 0);
     }
@@ -131,14 +128,14 @@ public class TestGetSQS {
         ArgumentCaptor<ReceiveMessageRequest> captureReceiveRequest = ArgumentCaptor.forClass(ReceiveMessageRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).receiveMessage(captureReceiveRequest.capture());
         ReceiveMessageRequest receiveRequest = captureReceiveRequest.getValue();
-        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", receiveRequest.getQueueUrl());
+        Assertions.assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", receiveRequest.getQueueUrl());
 
         ArgumentCaptor<DeleteMessageBatchRequest> captureDeleteRequest = ArgumentCaptor.forClass(DeleteMessageBatchRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).deleteMessageBatch(captureDeleteRequest.capture());
         DeleteMessageBatchRequest deleteRequest = captureDeleteRequest.getValue();
-        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", deleteRequest.getQueueUrl());
-        assertEquals("test-message-id-1", deleteRequest.getEntries().get(0).getId());
-        assertEquals("test-message-id-2", deleteRequest.getEntries().get(1).getId());
+        Assertions.assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", deleteRequest.getQueueUrl());
+        Assertions.assertEquals("test-message-id-1", deleteRequest.getEntries().get(0).getId());
+        Assertions.assertEquals("test-message-id-2", deleteRequest.getEntries().get(1).getId());
 
         runner.assertAllFlowFilesTransferred(GetSQS.REL_SUCCESS, 2);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetSQS.REL_SUCCESS);

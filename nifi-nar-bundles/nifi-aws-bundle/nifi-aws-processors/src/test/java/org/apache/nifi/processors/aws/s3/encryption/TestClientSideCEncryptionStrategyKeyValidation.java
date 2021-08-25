@@ -17,18 +17,17 @@
 package org.apache.nifi.processors.aws.s3.encryption;
 
 import org.apache.nifi.components.ValidationResult;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.nifi.processors.aws.s3.encryption.S3EncryptionTestUtil.createKey;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class TestClientSideCEncryptionStrategyKeyValidation {
 
     private ClientSideCEncryptionStrategy strategy;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         strategy = new ClientSideCEncryptionStrategy();
     }
@@ -39,7 +38,7 @@ public class TestClientSideCEncryptionStrategyKeyValidation {
 
         ValidationResult result = strategy.validateKey(key);
 
-        assertTrue(result.isValid());
+        Assertions.assertTrue(result.isValid());
     }
 
     @Test
@@ -48,7 +47,7 @@ public class TestClientSideCEncryptionStrategyKeyValidation {
 
         ValidationResult result = strategy.validateKey(key);
 
-        assertTrue(result.isValid());
+        Assertions.assertTrue(result.isValid());
     }
 
     @Test
@@ -57,7 +56,7 @@ public class TestClientSideCEncryptionStrategyKeyValidation {
 
         ValidationResult result = strategy.validateKey(key);
 
-        assertTrue(result.isValid());
+        Assertions.assertTrue(result.isValid());
     }
 
     @Test
@@ -66,7 +65,7 @@ public class TestClientSideCEncryptionStrategyKeyValidation {
 
         ValidationResult result = strategy.validateKey(key);
 
-        assertFalse(result.isValid());
+        Assertions.assertFalse(result.isValid());
     }
 
     @Test
@@ -75,7 +74,7 @@ public class TestClientSideCEncryptionStrategyKeyValidation {
 
         ValidationResult result = strategy.validateKey(key);
 
-        assertFalse(result.isValid());
+        Assertions.assertFalse(result.isValid());
     }
 
     @Test
@@ -84,7 +83,7 @@ public class TestClientSideCEncryptionStrategyKeyValidation {
 
         ValidationResult result = strategy.validateKey(key);
 
-        assertFalse(result.isValid());
+        Assertions.assertFalse(result.isValid());
     }
 
     @Test
@@ -93,6 +92,6 @@ public class TestClientSideCEncryptionStrategyKeyValidation {
 
         ValidationResult result = strategy.validateKey(key);
 
-        assertFalse(result.isValid());
+        Assertions.assertFalse(result.isValid());
     }
 }

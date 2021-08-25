@@ -16,17 +16,9 @@
  */
 package org.apache.nifi.processors.aws.wag;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.times;
-
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.http.AmazonHttpClient;
 import com.amazonaws.http.apache.client.impl.SdkHttpClient;
-import java.io.ByteArrayInputStream;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpVersion;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -39,9 +31,18 @@ import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredential
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import java.io.ByteArrayInputStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.times;
 
 public class TestInvokeAmazonGatewayApiMock {
 
@@ -49,7 +50,7 @@ public class TestInvokeAmazonGatewayApiMock {
     private InvokeAWSGatewayApi mockGetApi = null;
     private SdkHttpClient mockSdkClient = null;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         mockSdkClient = Mockito.mock(SdkHttpClient.class);
         ClientConfiguration clientConfig = new ClientConfiguration();

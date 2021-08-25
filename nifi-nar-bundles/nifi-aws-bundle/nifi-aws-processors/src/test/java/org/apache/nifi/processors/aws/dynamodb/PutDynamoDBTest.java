@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
-import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
-
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.regions.Regions;
@@ -44,6 +26,22 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
 import com.amazonaws.services.dynamodbv2.model.PutRequest;
 import com.amazonaws.services.dynamodbv2.model.WriteRequest;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
+import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
 
 public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
@@ -51,7 +49,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     protected BatchWriteItemResult result = new BatchWriteItemResult();
     BatchWriteItemOutcome outcome;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         outcome = new BatchWriteItemOutcome(result);
         result.setUnprocessedItems(new HashMap<String, List<WriteRequest>>());
@@ -129,7 +127,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-            assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_HASH_KEY_VALUE_ERROR));
+            Assertions.assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_HASH_KEY_VALUE_ERROR));
         }
 
     }
@@ -154,7 +152,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-            assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR));
+            Assertions.assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR));
         }
 
     }
@@ -179,7 +177,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-            assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR));
+            Assertions.assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR));
         }
     }
 
@@ -206,7 +204,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
-            assertEquals(document, new String(flowFile.toByteArray()));
+            Assertions.assertEquals(document, new String(flowFile.toByteArray()));
         }
 
     }
@@ -240,13 +238,13 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         for (MockFlowFile flowFile : flowFilesFailed) {
             System.out.println(flowFile.getAttributes());
             flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
-            assertEquals(item.length,flowFile.getSize());
+            Assertions.assertEquals(item.length,flowFile.getSize());
         }
 
         List<MockFlowFile> flowFilesSuccessful = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFilesSuccessful) {
             System.out.println(flowFile.getAttributes());
-            assertEquals(document, new String(flowFile.toByteArray()));
+            Assertions.assertEquals(document, new String(flowFile.toByteArray()));
         }
     }
 
@@ -279,13 +277,13 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         for (MockFlowFile flowFile : flowFilesFailed) {
             System.out.println(flowFile.getAttributes());
             flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
-            assertEquals(item.length,flowFile.getSize());
+            Assertions.assertEquals(item.length,flowFile.getSize());
         }
 
         List<MockFlowFile> flowFilesSuccessful = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFilesSuccessful) {
             System.out.println(flowFile.getAttributes());
-            assertEquals(document, new String(flowFile.toByteArray()));
+            Assertions.assertEquals(document, new String(flowFile.toByteArray()));
         }
     }
 
@@ -314,11 +312,11 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.assertAllFlowFilesTransferred(AbstractWriteDynamoDBProcessor.REL_FAILURE, 1);
 
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_FAILURE);
-        assertEquals(1,flowFiles.size());
+        Assertions.assertEquals(1,flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
             flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
-            assertEquals(item.length,flowFile.getSize());
+            Assertions.assertEquals(item.length,flowFile.getSize());
         }
 
     }
@@ -357,7 +355,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-            assertEquals("serviceException (Service: null; Status Code: 0; Error Code: null; Request ID: null; Proxy: null)",
+            Assertions.assertEquals("serviceException (Service: null; Status Code: 0; Error Code: null; Request ID: null; Proxy: null)",
                     flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
         }
 
@@ -397,7 +395,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-            assertEquals("clientException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
+            Assertions.assertEquals("clientException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
         }
 
     }
@@ -436,7 +434,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
-            assertEquals("runtimeException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
+            Assertions.assertEquals("runtimeException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
         }
 
     }

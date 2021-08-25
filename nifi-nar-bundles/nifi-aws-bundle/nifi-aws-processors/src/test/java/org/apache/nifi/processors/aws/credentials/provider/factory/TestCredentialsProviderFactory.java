@@ -16,25 +16,22 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory;
 
-import java.util.Map;
-
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processors.aws.s3.FetchS3Object;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.auth.PropertiesFileCredentialsProvider;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.internal.StaticCredentialsProvider;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processors.aws.s3.FetchS3Object;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Assert;
-import org.junit.Test;
-import static org.junit.Assert.assertEquals;
+import java.util.Map;
 
 /**
  * Tests of the validation and credentials provider capabilities of CredentialsProviderFactory.
@@ -49,9 +46,9 @@ public class TestCredentialsProviderFactory {
         Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
         final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
-        Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", DefaultAWSCredentialsProviderChain.class,
-                credentialsProvider.getClass());
+        Assertions.assertNotNull(credentialsProvider);
+        Assertions.assertEquals(DefaultAWSCredentialsProviderChain.class,
+                credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
     @Test
@@ -63,9 +60,9 @@ public class TestCredentialsProviderFactory {
         Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
         final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
-        Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", DefaultAWSCredentialsProviderChain.class,
-                credentialsProvider.getClass());
+        Assertions.assertNotNull(credentialsProvider);
+        Assertions.assertEquals(DefaultAWSCredentialsProviderChain.class,
+                credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
     @Test
@@ -87,9 +84,9 @@ public class TestCredentialsProviderFactory {
         Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
         final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
-        Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", StaticCredentialsProvider.class,
-                credentialsProvider.getClass());
+        Assertions.assertNotNull(credentialsProvider);
+        Assertions.assertEquals(StaticCredentialsProvider.class,
+                credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
     @Test
@@ -115,9 +112,9 @@ public class TestCredentialsProviderFactory {
         Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
         final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
-        Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", PropertiesFileCredentialsProvider.class,
-                credentialsProvider.getClass());
+        Assertions.assertNotNull(credentialsProvider);
+        Assertions.assertEquals(PropertiesFileCredentialsProvider.class,
+                credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
     @Test
@@ -131,9 +128,9 @@ public class TestCredentialsProviderFactory {
         Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
         final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
-        Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", STSAssumeRoleSessionCredentialsProvider.class,
-                credentialsProvider.getClass());
+        Assertions.assertNotNull(credentialsProvider);
+        Assertions.assertEquals(STSAssumeRoleSessionCredentialsProvider.class,
+                credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
     @Test
@@ -179,9 +176,9 @@ public class TestCredentialsProviderFactory {
         Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
         final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
-        Assert.assertNotNull(credentialsProvider);
+        Assertions.assertNotNull(credentialsProvider);
         final AWSCredentials creds = credentialsProvider.getCredentials();
-        assertEquals("credentials should be equal", AnonymousAWSCredentials.class, creds.getClass());
+        Assertions.assertEquals(AnonymousAWSCredentials.class, creds.getClass(), "credentials should be equal");
     }
 
     @Test
@@ -202,9 +199,9 @@ public class TestCredentialsProviderFactory {
         Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
         final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
-        Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", ProfileCredentialsProvider.class,
-                credentialsProvider.getClass());
+        Assertions.assertNotNull(credentialsProvider);
+        Assertions.assertEquals(ProfileCredentialsProvider.class,
+                credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
     @Test
@@ -220,9 +217,9 @@ public class TestCredentialsProviderFactory {
         Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
         final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
-        Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", STSAssumeRoleSessionCredentialsProvider.class,
-                credentialsProvider.getClass());
+        Assertions.assertNotNull(credentialsProvider);
+        Assertions.assertEquals(STSAssumeRoleSessionCredentialsProvider.class,
+                credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
     @Test

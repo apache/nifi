@@ -17,18 +17,17 @@
 package org.apache.nifi.processors.aws.s3.encryption;
 
 import org.apache.nifi.components.ValidationResult;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.nifi.processors.aws.s3.encryption.S3EncryptionTestUtil.createKey;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class TestServerSideCEncryptionStrategyKeyValidation {
 
     private ServerSideCEncryptionStrategy strategy;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         strategy = new ServerSideCEncryptionStrategy();
     }
@@ -39,7 +38,7 @@ public class TestServerSideCEncryptionStrategyKeyValidation {
 
         ValidationResult result = strategy.validateKey(key);
 
-        assertTrue(result.isValid());
+        Assertions.assertTrue(result.isValid());
     }
 
     @Test
@@ -48,7 +47,7 @@ public class TestServerSideCEncryptionStrategyKeyValidation {
 
         ValidationResult result = strategy.validateKey(key);
 
-        assertFalse(result.isValid());
+        Assertions.assertFalse(result.isValid());
     }
 
     @Test
@@ -57,7 +56,7 @@ public class TestServerSideCEncryptionStrategyKeyValidation {
 
         ValidationResult result = strategy.validateKey(key);
 
-        assertFalse(result.isValid());
+        Assertions.assertFalse(result.isValid());
     }
 
     @Test
@@ -66,7 +65,7 @@ public class TestServerSideCEncryptionStrategyKeyValidation {
 
         ValidationResult result = strategy.validateKey(key);
 
-        assertFalse(result.isValid());
+        Assertions.assertFalse(result.isValid());
     }
 
     @Test
@@ -75,6 +74,6 @@ public class TestServerSideCEncryptionStrategyKeyValidation {
 
         ValidationResult result = strategy.validateKey(key);
 
-        assertFalse(result.isValid());
+        Assertions.assertFalse(result.isValid());
     }
 }

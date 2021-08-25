@@ -16,27 +16,24 @@
  */
 package org.apache.nifi.processors.aws.sns;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.model.AmazonSNSException;
+import com.amazonaws.services.sns.model.PublishRequest;
+import com.amazonaws.services.sns.model.PublishResult;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
-
-import com.amazonaws.services.sns.AmazonSNSClient;
-import com.amazonaws.services.sns.model.AmazonSNSException;
-import com.amazonaws.services.sns.model.PublishRequest;
-import com.amazonaws.services.sns.model.PublishResult;
 
 
 public class TestPutSNS {
@@ -46,7 +43,7 @@ public class TestPutSNS {
     private AmazonSNSClient actualSNSClient = null;
     private AmazonSNSClient mockSNSClient = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockSNSClient = Mockito.mock(AmazonSNSClient.class);
         mockPutSNS = new PutSNS() {
@@ -64,7 +61,7 @@ public class TestPutSNS {
         runner.setProperty(PutSNS.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
         runner.setProperty(PutSNS.ARN, "arn:aws:sns:us-west-2:123456789012:test-topic-1");
         runner.setProperty(PutSNS.SUBJECT, "${eval.subject}");
-        assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());
+        Assertions.assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());
         final Map<String, String> ffAttributes = new HashMap<>();
         ffAttributes.put("filename", "1.txt");
         ffAttributes.put("eval.subject", "test-subject");
@@ -78,10 +75,10 @@ public class TestPutSNS {
         ArgumentCaptor<PublishRequest> captureRequest = ArgumentCaptor.forClass(PublishRequest.class);
         Mockito.verify(mockSNSClient, Mockito.times(1)).publish(captureRequest.capture());
         PublishRequest request = captureRequest.getValue();
-        assertEquals("arn:aws:sns:us-west-2:123456789012:test-topic-1", request.getTopicArn());
-        assertEquals("Test Message Content", request.getMessage());
-        assertEquals("test-subject", request.getSubject());
-        assertEquals("hello!", request.getMessageAttributes().get("DynamicProperty").getStringValue());
+        Assertions.assertEquals("arn:aws:sns:us-west-2:123456789012:test-topic-1", request.getTopicArn());
+        Assertions.assertEquals("Test Message Content", request.getMessage());
+        Assertions.assertEquals("test-subject", request.getSubject());
+        Assertions.assertEquals("hello!", request.getMessageAttributes().get("DynamicProperty").getStringValue());
 
         runner.assertAllFlowFilesTransferred(PutSNS.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSNS.REL_SUCCESS);

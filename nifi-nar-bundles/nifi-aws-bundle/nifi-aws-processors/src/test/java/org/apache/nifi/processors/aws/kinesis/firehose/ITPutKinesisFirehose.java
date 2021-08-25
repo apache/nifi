@@ -16,18 +16,16 @@
  */
 package org.apache.nifi.processors.aws.kinesis.firehose;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.util.List;
-
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 /**
  * This test contains both unit and integration test (integration tests are ignored by default)
@@ -37,7 +35,7 @@ public class ITPutKinesisFirehose {
     private TestRunner runner;
     protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.ACCESS_KEY, "abcd");
@@ -46,7 +44,7 @@ public class ITPutKinesisFirehose {
         runner.assertValid();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         runner = null;
     }
@@ -106,7 +104,7 @@ public class ITPutKinesisFirehose {
 
         runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
-        assertEquals(1,flowFiles.size());
+        Assertions.assertEquals(1,flowFiles.size());
     }
 
     @Test
@@ -127,7 +125,7 @@ public class ITPutKinesisFirehose {
 
         runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_SUCCESS, 2);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
-        assertEquals(2,flowFiles.size());
+        Assertions.assertEquals(2,flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
         }
@@ -152,7 +150,7 @@ public class ITPutKinesisFirehose {
 
         runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_SUCCESS, 2);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
-        assertEquals(2,flowFiles.size());
+        Assertions.assertEquals(2,flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
         }
@@ -176,7 +174,7 @@ public class ITPutKinesisFirehose {
 
         runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_SUCCESS, 2);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
-        assertEquals(2,flowFiles.size());
+        Assertions.assertEquals(2,flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
         }
@@ -201,7 +199,7 @@ public class ITPutKinesisFirehose {
 
         runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_SUCCESS, 3);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
-        assertEquals(3,flowFiles.size());
+        Assertions.assertEquals(3,flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
         }
@@ -225,15 +223,15 @@ public class ITPutKinesisFirehose {
         runner.run(1, true, true);
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
-        assertEquals(2,flowFiles.size());
+        Assertions.assertEquals(2,flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
         }
 
         List<MockFlowFile> flowFilesFailed = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_FAILURE);
-        assertEquals(1,flowFilesFailed.size());
+        Assertions.assertEquals(1,flowFilesFailed.size());
         for (MockFlowFile flowFileFailed : flowFilesFailed) {
-            assertNotNull(flowFileFailed.getAttribute(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_ERROR_MESSAGE));
+            Assertions.assertNotNull(flowFileFailed.getAttribute(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_ERROR_MESSAGE));
         }
     }
 
@@ -254,16 +252,16 @@ public class ITPutKinesisFirehose {
         runner.run(1, true, true);
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
-        assertEquals(1,flowFiles.size());
+        Assertions.assertEquals(1,flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
             flowFile.assertContentEquals("hello".getBytes());
         }
 
         List<MockFlowFile> flowFilesFailed = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_FAILURE);
-        assertEquals(1,flowFilesFailed.size());
+        Assertions.assertEquals(1,flowFilesFailed.size());
         for (MockFlowFile flowFileFailed : flowFilesFailed) {
-            assertNotNull(flowFileFailed.getAttribute(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_ERROR_MESSAGE));
+            Assertions.assertNotNull(flowFileFailed.getAttribute(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_ERROR_MESSAGE));
         }
     }
 
@@ -284,16 +282,16 @@ public class ITPutKinesisFirehose {
         runner.run(1, true, true);
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
-        assertEquals(1,flowFiles.size());
+        Assertions.assertEquals(1,flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
             flowFile.assertContentEquals("HelloWorld".getBytes());
         }
 
         List<MockFlowFile> flowFilesFailed = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_FAILURE);
-        assertEquals(1,flowFilesFailed.size());
+        Assertions.assertEquals(1,flowFilesFailed.size());
         for (MockFlowFile flowFileFailed : flowFilesFailed) {
-            assertNotNull(flowFileFailed.getAttribute(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_ERROR_MESSAGE));
+            Assertions.assertNotNull(flowFileFailed.getAttribute(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_ERROR_MESSAGE));
         }
     }
 
@@ -310,7 +308,7 @@ public class ITPutKinesisFirehose {
         runner.run(1, true, true);
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
-        assertEquals(2,flowFiles.size());
+        Assertions.assertEquals(2,flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
         }
@@ -318,7 +316,7 @@ public class ITPutKinesisFirehose {
         flowFiles.get(1).assertContentEquals("World".getBytes());
 
         List<MockFlowFile> flowFilesFailed = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_FAILURE);
-        assertEquals(0,flowFilesFailed.size());
+        Assertions.assertEquals(0,flowFilesFailed.size());
     }
 
     @Test
@@ -340,7 +338,7 @@ public class ITPutKinesisFirehose {
 
         runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_SUCCESS, 2);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
-        assertEquals(2,flowFiles.size());
+        Assertions.assertEquals(2,flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
         }
@@ -367,7 +365,7 @@ public class ITPutKinesisFirehose {
 
         runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_SUCCESS, 5);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
-        assertEquals(5,flowFiles.size());
+        Assertions.assertEquals(5,flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
         }
@@ -394,7 +392,7 @@ public class ITPutKinesisFirehose {
 
         runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_SUCCESS, 2);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_SUCCESS);
-        assertEquals(2,flowFiles.size());
+        Assertions.assertEquals(2,flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             flowFile.assertAttributeExists(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_RECORD_ID);
         }

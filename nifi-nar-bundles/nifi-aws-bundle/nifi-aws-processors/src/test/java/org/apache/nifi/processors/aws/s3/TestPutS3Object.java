@@ -16,25 +16,6 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import java.io.File;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.amazonaws.services.s3.model.StorageClass;
-import com.amazonaws.services.s3.model.Tag;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
@@ -45,15 +26,29 @@ import com.amazonaws.services.s3.model.MultipartUploadListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import com.amazonaws.services.s3.model.StorageClass;
+import com.amazonaws.services.s3.model.Tag;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 public class TestPutS3Object {
@@ -62,7 +57,7 @@ public class TestPutS3Object {
     private PutS3Object putS3Object;
     private AmazonS3Client mockS3Client;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
         putS3Object = new PutS3Object() {
@@ -87,7 +82,7 @@ public class TestPutS3Object {
         ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
         PutObjectRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertEquals("test-bucket", request.getBucketName());
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
 
@@ -128,7 +123,7 @@ public class TestPutS3Object {
                 try {
                     processor.createClient(context, credentialsProvider, config);
                 } catch (IllegalArgumentException argEx) {
-                    Assert.fail(argEx.getMessage());
+                    Assertions.fail(argEx.getMessage());
                 }
             }
         }
@@ -148,9 +143,9 @@ public class TestPutS3Object {
 
         List<Tag> tagSet = request.getTagging().getTagSet();
 
-        assertEquals(1, tagSet.size());
-        assertEquals("tagS3PII", tagSet.get(0).getKey());
-        assertEquals("true", tagSet.get(0).getValue());
+        Assertions.assertEquals(1, tagSet.size());
+        Assertions.assertEquals("tagS3PII", tagSet.get(0).getKey());
+        Assertions.assertEquals("true", tagSet.get(0).getValue());
     }
 
     @Test
@@ -165,7 +160,7 @@ public class TestPutS3Object {
             Mockito.verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
             PutObjectRequest request = captureRequest.getValue();
 
-            assertEquals(storageClass.toString(), request.getStorageClass());
+            Assertions.assertEquals(storageClass.toString(), request.getStorageClass());
 
             Mockito.reset(mockS3Client);
         }
@@ -182,7 +177,7 @@ public class TestPutS3Object {
         PutObjectRequest request = captureRequest.getValue();
 
         ObjectMetadata objectMetadata = request.getMetadata();
-        assertEquals(URLEncoder.encode("Iñtërnâtiônàližætiøn.txt", "UTF-8"), objectMetadata.getContentDisposition());
+        Assertions.assertEquals(URLEncoder.encode("Iñtërnâtiônàližætiøn.txt", "UTF-8"), objectMetadata.getContentDisposition());
     }
 
     private void prepareTest() {
@@ -240,52 +235,52 @@ public class TestPutS3Object {
         runner.run(1);
         File file = putS3Object.getPersistenceFile();
 
-        assertEquals(expectedPath, file.getAbsolutePath());
+        Assertions.assertEquals(expectedPath, file.getAbsolutePath());
     }
 
     @Test
     public void testGetPropertyDescriptors() {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 39, pd.size());
-        assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
-        assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
-        assertTrue(pd.contains(PutS3Object.BUCKET));
-        assertTrue(pd.contains(PutS3Object.CANNED_ACL));
-        assertTrue(pd.contains(PutS3Object.CREDENTIALS_FILE));
-        assertTrue(pd.contains(PutS3Object.ENDPOINT_OVERRIDE));
-        assertTrue(pd.contains(PutS3Object.FULL_CONTROL_USER_LIST));
-        assertTrue(pd.contains(PutS3Object.KEY));
-        assertTrue(pd.contains(PutS3Object.OWNER));
-        assertTrue(pd.contains(PutS3Object.READ_ACL_LIST));
-        assertTrue(pd.contains(PutS3Object.READ_USER_LIST));
-        assertTrue(pd.contains(PutS3Object.REGION));
-        assertTrue(pd.contains(PutS3Object.SECRET_KEY));
-        assertTrue(pd.contains(PutS3Object.SIGNER_OVERRIDE));
-        assertTrue(pd.contains(PutS3Object.SSL_CONTEXT_SERVICE));
-        assertTrue(pd.contains(PutS3Object.TIMEOUT));
-        assertTrue(pd.contains(PutS3Object.EXPIRATION_RULE_ID));
-        assertTrue(pd.contains(PutS3Object.STORAGE_CLASS));
-        assertTrue(pd.contains(PutS3Object.WRITE_ACL_LIST));
-        assertTrue(pd.contains(PutS3Object.WRITE_USER_LIST));
-        assertTrue(pd.contains(PutS3Object.SERVER_SIDE_ENCRYPTION));
-        assertTrue(pd.contains(PutS3Object.ENCRYPTION_SERVICE));
-        assertTrue(pd.contains(PutS3Object.USE_CHUNKED_ENCODING));
-        assertTrue(pd.contains(PutS3Object.USE_PATH_STYLE_ACCESS));
-        assertTrue(pd.contains(PutS3Object.PROXY_CONFIGURATION_SERVICE));
-        assertTrue(pd.contains(PutS3Object.PROXY_HOST));
-        assertTrue(pd.contains(PutS3Object.PROXY_HOST_PORT));
-        assertTrue(pd.contains(PutS3Object.PROXY_USERNAME));
-        assertTrue(pd.contains(PutS3Object.PROXY_PASSWORD));
-        assertTrue(pd.contains(PutS3Object.OBJECT_TAGS_PREFIX));
-        assertTrue(pd.contains(PutS3Object.REMOVE_TAG_PREFIX));
-        assertTrue(pd.contains(PutS3Object.CONTENT_TYPE));
-        assertTrue(pd.contains(PutS3Object.CONTENT_DISPOSITION));
-        assertTrue(pd.contains(PutS3Object.CACHE_CONTROL));
-        assertTrue(pd.contains(PutS3Object.MULTIPART_THRESHOLD));
-        assertTrue(pd.contains(PutS3Object.MULTIPART_PART_SIZE));
-        assertTrue(pd.contains(PutS3Object.MULTIPART_S3_AGEOFF_INTERVAL));
-        assertTrue(pd.contains(PutS3Object.MULTIPART_S3_MAX_AGE));
-        assertTrue(pd.contains(PutS3Object.MULTIPART_TEMP_DIR));
+        Assertions.assertEquals(39, pd.size(), "size should be eq");
+        Assertions.assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
+        Assertions.assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
+        Assertions.assertTrue(pd.contains(PutS3Object.BUCKET));
+        Assertions.assertTrue(pd.contains(PutS3Object.CANNED_ACL));
+        Assertions.assertTrue(pd.contains(PutS3Object.CREDENTIALS_FILE));
+        Assertions.assertTrue(pd.contains(PutS3Object.ENDPOINT_OVERRIDE));
+        Assertions.assertTrue(pd.contains(PutS3Object.FULL_CONTROL_USER_LIST));
+        Assertions.assertTrue(pd.contains(PutS3Object.KEY));
+        Assertions.assertTrue(pd.contains(PutS3Object.OWNER));
+        Assertions.assertTrue(pd.contains(PutS3Object.READ_ACL_LIST));
+        Assertions.assertTrue(pd.contains(PutS3Object.READ_USER_LIST));
+        Assertions.assertTrue(pd.contains(PutS3Object.REGION));
+        Assertions.assertTrue(pd.contains(PutS3Object.SECRET_KEY));
+        Assertions.assertTrue(pd.contains(PutS3Object.SIGNER_OVERRIDE));
+        Assertions.assertTrue(pd.contains(PutS3Object.SSL_CONTEXT_SERVICE));
+        Assertions.assertTrue(pd.contains(PutS3Object.TIMEOUT));
+        Assertions.assertTrue(pd.contains(PutS3Object.EXPIRATION_RULE_ID));
+        Assertions.assertTrue(pd.contains(PutS3Object.STORAGE_CLASS));
+        Assertions.assertTrue(pd.contains(PutS3Object.WRITE_ACL_LIST));
+        Assertions.assertTrue(pd.contains(PutS3Object.WRITE_USER_LIST));
+        Assertions.assertTrue(pd.contains(PutS3Object.SERVER_SIDE_ENCRYPTION));
+        Assertions.assertTrue(pd.contains(PutS3Object.ENCRYPTION_SERVICE));
+        Assertions.assertTrue(pd.contains(PutS3Object.USE_CHUNKED_ENCODING));
+        Assertions.assertTrue(pd.contains(PutS3Object.USE_PATH_STYLE_ACCESS));
+        Assertions.assertTrue(pd.contains(PutS3Object.PROXY_CONFIGURATION_SERVICE));
+        Assertions.assertTrue(pd.contains(PutS3Object.PROXY_HOST));
+        Assertions.assertTrue(pd.contains(PutS3Object.PROXY_HOST_PORT));
+        Assertions.assertTrue(pd.contains(PutS3Object.PROXY_USERNAME));
+        Assertions.assertTrue(pd.contains(PutS3Object.PROXY_PASSWORD));
+        Assertions.assertTrue(pd.contains(PutS3Object.OBJECT_TAGS_PREFIX));
+        Assertions.assertTrue(pd.contains(PutS3Object.REMOVE_TAG_PREFIX));
+        Assertions.assertTrue(pd.contains(PutS3Object.CONTENT_TYPE));
+        Assertions.assertTrue(pd.contains(PutS3Object.CONTENT_DISPOSITION));
+        Assertions.assertTrue(pd.contains(PutS3Object.CACHE_CONTROL));
+        Assertions.assertTrue(pd.contains(PutS3Object.MULTIPART_THRESHOLD));
+        Assertions.assertTrue(pd.contains(PutS3Object.MULTIPART_PART_SIZE));
+        Assertions.assertTrue(pd.contains(PutS3Object.MULTIPART_S3_AGEOFF_INTERVAL));
+        Assertions.assertTrue(pd.contains(PutS3Object.MULTIPART_S3_MAX_AGE));
+        Assertions.assertTrue(pd.contains(PutS3Object.MULTIPART_TEMP_DIR));
     }
 }

@@ -26,8 +26,9 @@ import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
@@ -38,11 +39,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 
 public class TestTagS3Object {
 
@@ -51,7 +47,7 @@ public class TestTagS3Object {
     private AmazonS3Client actualS3Client = null;
     private AmazonS3Client mockS3Client = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
         mockTagS3Object = new TagS3Object() {
@@ -82,10 +78,10 @@ public class TestTagS3Object {
         ArgumentCaptor<SetObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(SetObjectTaggingRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).setObjectTagging(captureRequest.capture());
         SetObjectTaggingRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("object-key", request.getKey());
-        assertNull("test-version", request.getVersionId());
-        assertTrue("Expected tag not found in request", request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)));
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertEquals("object-key", request.getKey());
+        Assertions.assertNull(request.getVersionId(), "test-version");
+        Assertions.assertTrue(request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)), "Expected tag not found in request");
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
@@ -112,10 +108,10 @@ public class TestTagS3Object {
         ArgumentCaptor<SetObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(SetObjectTaggingRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).setObjectTagging(captureRequest.capture());
         SetObjectTaggingRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("object-key", request.getKey());
-        assertEquals("test-version", request.getVersionId());
-        assertTrue("Expected tag not found in request", request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)));
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertEquals("object-key", request.getKey());
+        Assertions.assertEquals("test-version", request.getVersionId());
+        Assertions.assertTrue(request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)), "Expected tag not found in request");
     }
 
     @Test
@@ -141,10 +137,10 @@ public class TestTagS3Object {
         ArgumentCaptor<SetObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(SetObjectTaggingRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).setObjectTagging(captureRequest.capture());
         SetObjectTaggingRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("object-key", request.getKey());
-        assertTrue("New tag not found in request", request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)));
-        assertTrue("Existing tag not found in request", request.getTagging().getTagSet().contains(currentTag));
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertEquals("object-key", request.getKey());
+        Assertions.assertTrue(request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)), "New tag not found in request");
+        Assertions.assertTrue(request.getTagging().getTagSet().contains(currentTag), "Existing tag not found in request");
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
@@ -175,11 +171,11 @@ public class TestTagS3Object {
         ArgumentCaptor<SetObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(SetObjectTaggingRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).setObjectTagging(captureRequest.capture());
         SetObjectTaggingRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("object-key", request.getKey());
-        assertTrue("New tag not found in request", request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)));
-        assertTrue("Existing tag not found in request", request.getTagging().getTagSet().contains(currentTag1));
-        assertFalse("Existing tag should be excluded from request", request.getTagging().getTagSet().contains(currentTag2));
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertEquals("object-key", request.getKey());
+        Assertions.assertTrue(request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)), "New tag not found in request");
+        Assertions.assertTrue(request.getTagging().getTagSet().contains(currentTag1), "Existing tag not found in request");
+        Assertions.assertFalse(request.getTagging().getTagSet().contains(currentTag2), "Existing tag should be excluded from request");
     }
 
     @Test
@@ -206,10 +202,10 @@ public class TestTagS3Object {
         ArgumentCaptor<SetObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(SetObjectTaggingRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).setObjectTagging(captureRequest.capture());
         SetObjectTaggingRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("object-key", request.getKey());
-        assertTrue("New tag not found in request", request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)));
-        assertFalse("Existing tag should be excluded from request", request.getTagging().getTagSet().contains(currentTag));
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertEquals("object-key", request.getKey());
+        Assertions.assertTrue(request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)), "New tag not found in request");
+        Assertions.assertFalse(request.getTagging().getTagSet().contains(currentTag), "Existing tag should be excluded from request");
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
@@ -244,27 +240,27 @@ public class TestTagS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         TagS3Object processor = new TagS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 20, pd.size());
-        assertTrue(pd.contains(TagS3Object.ACCESS_KEY));
-        assertTrue(pd.contains(TagS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
-        assertTrue(pd.contains(TagS3Object.BUCKET));
-        assertTrue(pd.contains(TagS3Object.CREDENTIALS_FILE));
-        assertTrue(pd.contains(TagS3Object.ENDPOINT_OVERRIDE));
-        assertTrue(pd.contains(TagS3Object.KEY));
-        assertTrue(pd.contains(TagS3Object.REGION));
-        assertTrue(pd.contains(TagS3Object.SECRET_KEY));
-        assertTrue(pd.contains(TagS3Object.SIGNER_OVERRIDE));
-        assertTrue(pd.contains(TagS3Object.SSL_CONTEXT_SERVICE));
-        assertTrue(pd.contains(TagS3Object.TIMEOUT));
-        assertTrue(pd.contains(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
-        assertTrue(pd.contains(TagS3Object.PROXY_HOST));
-        assertTrue(pd.contains(TagS3Object.PROXY_HOST_PORT));
-        assertTrue(pd.contains(TagS3Object.PROXY_USERNAME));
-        assertTrue(pd.contains(TagS3Object.PROXY_PASSWORD));
-        assertTrue(pd.contains(TagS3Object.TAG_KEY));
-        assertTrue(pd.contains(TagS3Object.TAG_VALUE));
-        assertTrue(pd.contains(TagS3Object.APPEND_TAG));
-        assertTrue(pd.contains(TagS3Object.VERSION_ID));
+        Assertions.assertEquals(20, pd.size(), "size should be eq");
+        Assertions.assertTrue(pd.contains(TagS3Object.ACCESS_KEY));
+        Assertions.assertTrue(pd.contains(TagS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
+        Assertions.assertTrue(pd.contains(TagS3Object.BUCKET));
+        Assertions.assertTrue(pd.contains(TagS3Object.CREDENTIALS_FILE));
+        Assertions.assertTrue(pd.contains(TagS3Object.ENDPOINT_OVERRIDE));
+        Assertions.assertTrue(pd.contains(TagS3Object.KEY));
+        Assertions.assertTrue(pd.contains(TagS3Object.REGION));
+        Assertions.assertTrue(pd.contains(TagS3Object.SECRET_KEY));
+        Assertions.assertTrue(pd.contains(TagS3Object.SIGNER_OVERRIDE));
+        Assertions.assertTrue(pd.contains(TagS3Object.SSL_CONTEXT_SERVICE));
+        Assertions.assertTrue(pd.contains(TagS3Object.TIMEOUT));
+        Assertions.assertTrue(pd.contains(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
+        Assertions.assertTrue(pd.contains(TagS3Object.PROXY_HOST));
+        Assertions.assertTrue(pd.contains(TagS3Object.PROXY_HOST_PORT));
+        Assertions.assertTrue(pd.contains(TagS3Object.PROXY_USERNAME));
+        Assertions.assertTrue(pd.contains(TagS3Object.PROXY_PASSWORD));
+        Assertions.assertTrue(pd.contains(TagS3Object.TAG_KEY));
+        Assertions.assertTrue(pd.contains(TagS3Object.TAG_VALUE));
+        Assertions.assertTrue(pd.contains(TagS3Object.APPEND_TAG));
+        Assertions.assertTrue(pd.contains(TagS3Object.VERSION_ID));
     }
 
     @Test

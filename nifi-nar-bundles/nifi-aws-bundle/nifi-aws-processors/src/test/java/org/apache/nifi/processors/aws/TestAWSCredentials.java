@@ -16,17 +16,6 @@
  */
 package org.apache.nifi.processors.aws;
 
-import java.util.Arrays;
-import java.util.List;
-
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -35,12 +24,19 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.internal.StaticCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3Client;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import java.util.Arrays;
+import java.util.List;
 
 
 /**
@@ -55,7 +51,7 @@ public class TestAWSCredentials {
     private AWSCredentialsProvider awsCredentialsProvider = null;
     private ClientConfiguration clientConfiguration = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockAwsProcessor = new AbstractAWSCredentialsProviderProcessor<AmazonS3Client>() {
 
@@ -97,8 +93,8 @@ public class TestAWSCredentials {
         runner.assertValid();
         runner.run(1);
 
-        assertEquals(AnonymousAWSCredentials.class, awsCredentials.getClass());
-        assertNull(awsCredentialsProvider);
+        Assertions.assertEquals(AnonymousAWSCredentials.class, awsCredentials.getClass());
+        Assertions.assertNull(awsCredentialsProvider);
     }
 
     @Test
@@ -109,8 +105,8 @@ public class TestAWSCredentials {
         runner.assertValid();
         runner.run(1);
 
-        assertEquals(BasicAWSCredentials.class, awsCredentials.getClass());
-        assertNull(awsCredentialsProvider);
+        Assertions.assertEquals(BasicAWSCredentials.class, awsCredentials.getClass());
+        Assertions.assertNull(awsCredentialsProvider);
     }
 
     @Test
@@ -120,8 +116,8 @@ public class TestAWSCredentials {
         runner.assertValid();
         runner.run(1);
 
-        assertEquals(PropertiesCredentials.class, awsCredentials.getClass());
-        assertNull(awsCredentialsProvider);
+        Assertions.assertEquals(PropertiesCredentials.class, awsCredentials.getClass());
+        Assertions.assertNull(awsCredentialsProvider);
     }
 
 
@@ -138,7 +134,7 @@ public class TestAWSCredentials {
         runner.assertValid();
         runner.run(1);
 
-        assertEquals(StaticCredentialsProvider.class, awsCredentialsProvider.getClass());
-        assertNull(awsCredentials);
+        Assertions.assertEquals(StaticCredentialsProvider.class, awsCredentialsProvider.getClass());
+        Assertions.assertNull(awsCredentials);
     }
 }

@@ -22,14 +22,12 @@ import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 
 /**
@@ -67,7 +65,7 @@ public class ITTagS3Object extends AbstractS3IT {
 
         // Verify tag exists on S3 object
         GetObjectTaggingResult res = client.getObjectTagging(new GetObjectTaggingRequest(BUCKET_NAME, objectKey));
-        assertTrue("Expected tag not found on S3 object", res.getTagSet().contains(new Tag(tagKey, tagValue)));
+        Assertions.assertTrue(res.getTagSet().contains(new Tag(tagKey, tagValue)), "Expected tag not found on S3 object");
     }
 
     @Test
@@ -101,8 +99,8 @@ public class ITTagS3Object extends AbstractS3IT {
 
         // Verify new tag and existing exist on S3 object
         GetObjectTaggingResult res = client.getObjectTagging(new GetObjectTaggingRequest(BUCKET_NAME, objectKey));
-        assertTrue("Expected new tag not found on S3 object", res.getTagSet().contains(new Tag(tagKey, tagValue)));
-        assertTrue("Expected existing tag not found on S3 object", res.getTagSet().contains(existingTag));
+        Assertions.assertTrue(res.getTagSet().contains(new Tag(tagKey, tagValue)), "Expected new tag not found on S3 object");
+        Assertions.assertTrue(res.getTagSet().contains(existingTag), "Expected existing tag not found on S3 object");
     }
 
     @Test
@@ -143,8 +141,8 @@ public class ITTagS3Object extends AbstractS3IT {
 
         // Verify new tag exists on S3 object and prior tag removed
         GetObjectTaggingResult res = client.getObjectTagging(new GetObjectTaggingRequest(BUCKET_NAME, objectKey));
-        assertTrue("Expected new tag not found on S3 object", res.getTagSet().contains(new Tag(tagKey, tagValue)));
-        assertFalse("Existing tag not replaced on S3 object", res.getTagSet().contains(existingTag));
+        Assertions.assertTrue(res.getTagSet().contains(new Tag(tagKey, tagValue)), "Expected new tag not found on S3 object");
+        Assertions.assertFalse(res.getTagSet().contains(existingTag), "Existing tag not replaced on S3 object");
     }
 }
 

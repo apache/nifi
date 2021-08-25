@@ -16,28 +16,24 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.proxy.ProxyConfigurationService;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.DeleteVersionRequest;
-
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.proxy.ProxyConfigurationService;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 public class TestDeleteS3Object {
@@ -47,7 +43,7 @@ public class TestDeleteS3Object {
     private AmazonS3Client actualS3Client = null;
     private AmazonS3Client mockS3Client = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
         mockDeleteS3Object = new DeleteS3Object() {
@@ -73,8 +69,8 @@ public class TestDeleteS3Object {
         ArgumentCaptor<DeleteObjectRequest> captureRequest = ArgumentCaptor.forClass(DeleteObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).deleteObject(captureRequest.capture());
         DeleteObjectRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("delete-key", request.getKey());
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertEquals("delete-key", request.getKey());
         Mockito.verify(mockS3Client, Mockito.never()).deleteVersion(Mockito.any(DeleteVersionRequest.class));
     }
 
@@ -109,9 +105,9 @@ public class TestDeleteS3Object {
         ArgumentCaptor<DeleteVersionRequest> captureRequest = ArgumentCaptor.forClass(DeleteVersionRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).deleteVersion(captureRequest.capture());
         DeleteVersionRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("test-key", request.getKey());
-        assertEquals("test-version", request.getVersionId());
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertEquals("test-key", request.getKey());
+        Assertions.assertEquals("test-version", request.getVersionId());
         Mockito.verify(mockS3Client, Mockito.never()).deleteObject(Mockito.any(DeleteObjectRequest.class));
     }
 
@@ -132,9 +128,9 @@ public class TestDeleteS3Object {
         ArgumentCaptor<DeleteVersionRequest> captureRequest = ArgumentCaptor.forClass(DeleteVersionRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).deleteVersion(captureRequest.capture());
         DeleteVersionRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("test-key", request.getKey());
-        assertEquals("test-version", request.getVersionId());
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertEquals("test-key", request.getKey());
+        Assertions.assertEquals("test-version", request.getVersionId());
         Mockito.verify(mockS3Client, Mockito.never()).deleteObject(Mockito.any(DeleteObjectRequest.class));
     }
 
@@ -142,29 +138,29 @@ public class TestDeleteS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         DeleteS3Object processor = new DeleteS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 23, pd.size());
-        assertTrue(pd.contains(processor.ACCESS_KEY));
-        assertTrue(pd.contains(processor.AWS_CREDENTIALS_PROVIDER_SERVICE));
-        assertTrue(pd.contains(processor.BUCKET));
-        assertTrue(pd.contains(processor.CREDENTIALS_FILE));
-        assertTrue(pd.contains(processor.ENDPOINT_OVERRIDE));
-        assertTrue(pd.contains(processor.FULL_CONTROL_USER_LIST));
-        assertTrue(pd.contains(processor.KEY));
-        assertTrue(pd.contains(processor.OWNER));
-        assertTrue(pd.contains(processor.READ_ACL_LIST));
-        assertTrue(pd.contains(processor.READ_USER_LIST));
-        assertTrue(pd.contains(processor.REGION));
-        assertTrue(pd.contains(processor.SECRET_KEY));
-        assertTrue(pd.contains(processor.SIGNER_OVERRIDE));
-        assertTrue(pd.contains(processor.SSL_CONTEXT_SERVICE));
-        assertTrue(pd.contains(processor.TIMEOUT));
-        assertTrue(pd.contains(processor.VERSION_ID));
-        assertTrue(pd.contains(processor.WRITE_ACL_LIST));
-        assertTrue(pd.contains(processor.WRITE_USER_LIST));
-        assertTrue(pd.contains(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
-        assertTrue(pd.contains(processor.PROXY_HOST));
-        assertTrue(pd.contains(processor.PROXY_HOST_PORT));
-        assertTrue(pd.contains(processor.PROXY_USERNAME));
-        assertTrue(pd.contains(processor.PROXY_PASSWORD));
+        Assertions.assertEquals(23, pd.size(), "size should be eq");
+        Assertions.assertTrue(pd.contains(processor.ACCESS_KEY));
+        Assertions.assertTrue(pd.contains(processor.AWS_CREDENTIALS_PROVIDER_SERVICE));
+        Assertions.assertTrue(pd.contains(processor.BUCKET));
+        Assertions.assertTrue(pd.contains(processor.CREDENTIALS_FILE));
+        Assertions.assertTrue(pd.contains(processor.ENDPOINT_OVERRIDE));
+        Assertions.assertTrue(pd.contains(processor.FULL_CONTROL_USER_LIST));
+        Assertions.assertTrue(pd.contains(processor.KEY));
+        Assertions.assertTrue(pd.contains(processor.OWNER));
+        Assertions.assertTrue(pd.contains(processor.READ_ACL_LIST));
+        Assertions.assertTrue(pd.contains(processor.READ_USER_LIST));
+        Assertions.assertTrue(pd.contains(processor.REGION));
+        Assertions.assertTrue(pd.contains(processor.SECRET_KEY));
+        Assertions.assertTrue(pd.contains(processor.SIGNER_OVERRIDE));
+        Assertions.assertTrue(pd.contains(processor.SSL_CONTEXT_SERVICE));
+        Assertions.assertTrue(pd.contains(processor.TIMEOUT));
+        Assertions.assertTrue(pd.contains(processor.VERSION_ID));
+        Assertions.assertTrue(pd.contains(processor.WRITE_ACL_LIST));
+        Assertions.assertTrue(pd.contains(processor.WRITE_USER_LIST));
+        Assertions.assertTrue(pd.contains(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
+        Assertions.assertTrue(pd.contains(processor.PROXY_HOST));
+        Assertions.assertTrue(pd.contains(processor.PROXY_HOST_PORT));
+        Assertions.assertTrue(pd.contains(processor.PROXY_USERNAME));
+        Assertions.assertTrue(pd.contains(processor.PROXY_PASSWORD));
     }
 }

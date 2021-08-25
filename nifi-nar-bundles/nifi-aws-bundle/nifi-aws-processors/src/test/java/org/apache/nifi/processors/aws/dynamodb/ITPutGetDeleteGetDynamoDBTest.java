@@ -16,19 +16,16 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import static org.junit.Assert.assertEquals;
-
-import static org.junit.Assert.assertTrue;
-
-import java.util.List;
-
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
-@Ignore
+import java.util.List;
+
+@Disabled
 public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
 
 
@@ -54,7 +51,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
-            assertEquals(document, new String(flowFile.toByteArray()));
+            Assertions.assertEquals(document, new String(flowFile.toByteArray()));
         }
 
         final TestRunner getRunner = TestRunners.newTestRunner(GetDynamoDB.class);
@@ -76,7 +73,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
-            assertEquals(document, new String(flowFile.toByteArray()));
+            Assertions.assertEquals(document, new String(flowFile.toByteArray()));
         }
 
         final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
@@ -97,7 +94,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         flowFiles = deleteRunner.getFlowFilesForRelationship(DeleteDynamoDB.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
-            assertEquals("", new String(flowFile.toByteArray()));
+            Assertions.assertEquals("", new String(flowFile.toByteArray()));
         }
 
         // Final check after delete
@@ -119,7 +116,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         flowFiles = getRunnerAfterDelete.getFlowFilesForRelationship(GetDynamoDB.REL_NOT_FOUND);
         for (MockFlowFile flowFile : flowFiles) {
             String error = flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND);
-            assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));
+            Assertions.assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));
         }
 
     }
@@ -146,7 +143,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
-            assertEquals(document, new String(flowFile.toByteArray()));
+            Assertions.assertEquals(document, new String(flowFile.toByteArray()));
         }
 
         final TestRunner getRunner = TestRunners.newTestRunner(GetDynamoDB.class);
@@ -168,7 +165,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
-            assertEquals(document, new String(flowFile.toByteArray()));
+            Assertions.assertEquals(document, new String(flowFile.toByteArray()));
         }
 
         final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
@@ -187,7 +184,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         flowFiles = deleteRunner.getFlowFilesForRelationship(DeleteDynamoDB.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
             validateServiceExceptionAttribute(flowFile);
-            assertEquals("", new String(flowFile.toByteArray()));
+            Assertions.assertEquals("", new String(flowFile.toByteArray()));
         }
 
     }
@@ -214,7 +211,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
-            assertEquals(document, new String(flowFile.toByteArray()));
+            Assertions.assertEquals(document, new String(flowFile.toByteArray()));
         }
 
         final TestRunner getRunner = TestRunners.newTestRunner(GetDynamoDB.class);
@@ -234,7 +231,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (MockFlowFile flowFile : flowFiles) {
             validateServiceExceptionAttribute(flowFile);
-            assertEquals("", new String(flowFile.toByteArray()));
+            Assertions.assertEquals("", new String(flowFile.toByteArray()));
         }
 
 
@@ -261,7 +258,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
-            assertEquals(document, new String(flowFile.toByteArray()));
+            Assertions.assertEquals(document, new String(flowFile.toByteArray()));
         }
 
         final TestRunner getRunner = TestRunners.newTestRunner(GetDynamoDB.class);
@@ -282,7 +279,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
-            assertEquals(document, new String(flowFile.toByteArray()));
+            Assertions.assertEquals(document, new String(flowFile.toByteArray()));
         }
 
         final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
@@ -302,7 +299,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         flowFiles = deleteRunner.getFlowFilesForRelationship(DeleteDynamoDB.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
-            assertEquals("", new String(flowFile.toByteArray()));
+            Assertions.assertEquals("", new String(flowFile.toByteArray()));
         }
 
         // Final check after delete
@@ -323,7 +320,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         flowFiles = getRunnerAfterDelete.getFlowFilesForRelationship(GetDynamoDB.REL_NOT_FOUND);
         for (MockFlowFile flowFile : flowFiles) {
             String error = flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND);
-            assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));
+            Assertions.assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));
         }
 
     }
@@ -351,7 +348,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
 
         List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractWriteDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFiles) {
-            assertEquals(document, new String(flowFile.toByteArray()));
+            Assertions.assertEquals(document, new String(flowFile.toByteArray()));
         }
 
         final TestRunner getRunner = TestRunners.newTestRunner(GetDynamoDB.class);
@@ -374,7 +371,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
 
         flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFiles) {
-            assertEquals(document, new String(flowFile.toByteArray()));
+            Assertions.assertEquals(document, new String(flowFile.toByteArray()));
         }
 
         final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
@@ -397,7 +394,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         flowFiles = deleteRunner.getFlowFilesForRelationship(DeleteDynamoDB.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile.getAttributes());
-            assertEquals("", new String(flowFile.toByteArray()));
+            Assertions.assertEquals("", new String(flowFile.toByteArray()));
         }
 
         // Final check after delete
@@ -421,7 +418,7 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
         flowFiles = getRunnerAfterDelete.getFlowFilesForRelationship(GetDynamoDB.REL_NOT_FOUND);
         for (MockFlowFile flowFile : flowFiles) {
             String error = flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND);
-            assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));
+            Assertions.assertTrue(error.startsWith(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE));
         }
 
     }

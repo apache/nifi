@@ -16,35 +16,29 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import java.io.IOException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.exception.FlowFileAccessException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.StringInputStream;
-
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import java.io.IOException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 public class TestFetchS3Object {
@@ -54,7 +48,7 @@ public class TestFetchS3Object {
     private AmazonS3Client actualS3Client = null;
     private AmazonS3Client mockS3Client = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
         mockFetchS3Object = new FetchS3Object() {
@@ -99,10 +93,10 @@ public class TestFetchS3Object {
         ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).getObject(captureRequest.capture());
         GetObjectRequest request = captureRequest.getValue();
-        assertEquals("request-bucket", request.getBucketName());
-        assertEquals("request-key", request.getKey());
-        assertFalse(request.isRequesterPays());
-        assertNull(request.getVersionId());
+        Assertions.assertEquals("request-bucket", request.getBucketName());
+        Assertions.assertEquals("request-key", request.getKey());
+        Assertions.assertFalse(request.isRequesterPays());
+        Assertions.assertNull(request.getVersionId());
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
@@ -157,10 +151,10 @@ public class TestFetchS3Object {
         ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).getObject(captureRequest.capture());
         GetObjectRequest request = captureRequest.getValue();
-        assertEquals("request-bucket", request.getBucketName());
-        assertEquals("request-key", request.getKey());
-        assertTrue(request.isRequesterPays());
-        assertNull(request.getVersionId());
+        Assertions.assertEquals("request-bucket", request.getBucketName());
+        Assertions.assertEquals("request-key", request.getKey());
+        Assertions.assertTrue(request.isRequesterPays());
+        Assertions.assertNull(request.getVersionId());
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
@@ -205,9 +199,9 @@ public class TestFetchS3Object {
         ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).getObject(captureRequest.capture());
         GetObjectRequest request = captureRequest.getValue();
-        assertEquals("request-bucket", request.getBucketName());
-        assertEquals("request-key", request.getKey());
-        assertEquals("request-version", request.getVersionId());
+        Assertions.assertEquals("request-bucket", request.getBucketName());
+        Assertions.assertEquals("request-key", request.getKey());
+        Assertions.assertEquals("request-version", request.getVersionId());
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
@@ -268,26 +262,26 @@ public class TestFetchS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         FetchS3Object processor = new FetchS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 21, pd.size());
-        assertTrue(pd.contains(FetchS3Object.ACCESS_KEY));
-        assertTrue(pd.contains(FetchS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
-        assertTrue(pd.contains(FetchS3Object.BUCKET));
-        assertTrue(pd.contains(FetchS3Object.CREDENTIALS_FILE));
-        assertTrue(pd.contains(FetchS3Object.ENDPOINT_OVERRIDE));
-        assertTrue(pd.contains(FetchS3Object.KEY));
-        assertTrue(pd.contains(FetchS3Object.REGION));
-        assertTrue(pd.contains(FetchS3Object.SECRET_KEY));
-        assertTrue(pd.contains(FetchS3Object.SIGNER_OVERRIDE));
-        assertTrue(pd.contains(FetchS3Object.SSL_CONTEXT_SERVICE));
-        assertTrue(pd.contains(FetchS3Object.TIMEOUT));
-        assertTrue(pd.contains(FetchS3Object.VERSION_ID));
-        assertTrue(pd.contains(FetchS3Object.ENCRYPTION_SERVICE));
-        assertTrue(pd.contains(FetchS3Object.PROXY_CONFIGURATION_SERVICE));
-        assertTrue(pd.contains(FetchS3Object.PROXY_HOST));
-        assertTrue(pd.contains(FetchS3Object.PROXY_HOST_PORT));
-        assertTrue(pd.contains(FetchS3Object.PROXY_USERNAME));
-        assertTrue(pd.contains(FetchS3Object.PROXY_PASSWORD));
-        assertTrue(pd.contains(FetchS3Object.REQUESTER_PAYS));
+        Assertions.assertEquals(21, pd.size(), "size should be eq");
+        Assertions.assertTrue(pd.contains(FetchS3Object.ACCESS_KEY));
+        Assertions.assertTrue(pd.contains(FetchS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
+        Assertions.assertTrue(pd.contains(FetchS3Object.BUCKET));
+        Assertions.assertTrue(pd.contains(FetchS3Object.CREDENTIALS_FILE));
+        Assertions.assertTrue(pd.contains(FetchS3Object.ENDPOINT_OVERRIDE));
+        Assertions.assertTrue(pd.contains(FetchS3Object.KEY));
+        Assertions.assertTrue(pd.contains(FetchS3Object.REGION));
+        Assertions.assertTrue(pd.contains(FetchS3Object.SECRET_KEY));
+        Assertions.assertTrue(pd.contains(FetchS3Object.SIGNER_OVERRIDE));
+        Assertions.assertTrue(pd.contains(FetchS3Object.SSL_CONTEXT_SERVICE));
+        Assertions.assertTrue(pd.contains(FetchS3Object.TIMEOUT));
+        Assertions.assertTrue(pd.contains(FetchS3Object.VERSION_ID));
+        Assertions.assertTrue(pd.contains(FetchS3Object.ENCRYPTION_SERVICE));
+        Assertions.assertTrue(pd.contains(FetchS3Object.PROXY_CONFIGURATION_SERVICE));
+        Assertions.assertTrue(pd.contains(FetchS3Object.PROXY_HOST));
+        Assertions.assertTrue(pd.contains(FetchS3Object.PROXY_HOST_PORT));
+        Assertions.assertTrue(pd.contains(FetchS3Object.PROXY_USERNAME));
+        Assertions.assertTrue(pd.contains(FetchS3Object.PROXY_PASSWORD));
+        Assertions.assertTrue(pd.contains(FetchS3Object.REQUESTER_PAYS));
 
     }
 }

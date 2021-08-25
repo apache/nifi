@@ -35,8 +35,9 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
@@ -50,10 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 
 public class TestListS3 {
 
@@ -62,7 +59,7 @@ public class TestListS3 {
     private AmazonS3Client actualS3Client = null;
     private AmazonS3Client mockS3Client = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
         mockListS3 = new ListS3() {
@@ -104,8 +101,8 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
         ListObjectsRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertFalse(request.isRequesterPays());
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertFalse(request.isRequesterPays());
         Mockito.verify(mockS3Client, Mockito.never()).listVersions(Mockito.any());
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 3);
@@ -154,8 +151,8 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
         ListObjectsRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertFalse(request.isRequesterPays());
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertFalse(request.isRequesterPays());
         Mockito.verify(mockS3Client, Mockito.never()).listVersions(Mockito.any());
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
@@ -201,8 +198,8 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
         ListObjectsRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertTrue(request.isRequesterPays());
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertTrue(request.isRequesterPays());
         Mockito.verify(mockS3Client, Mockito.never()).listVersions(Mockito.any());
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 3);
@@ -257,8 +254,8 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsV2Request> captureRequest = ArgumentCaptor.forClass(ListObjectsV2Request.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).listObjectsV2(captureRequest.capture());
         ListObjectsV2Request request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertFalse(request.isRequesterPays());
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertFalse(request.isRequesterPays());
         Mockito.verify(mockS3Client, Mockito.never()).listVersions(Mockito.any());
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 3);
@@ -304,8 +301,8 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsV2Request> captureRequest = ArgumentCaptor.forClass(ListObjectsV2Request.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).listObjectsV2(captureRequest.capture());
         ListObjectsV2Request request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertTrue(request.isRequesterPays());
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertTrue(request.isRequesterPays());
         Mockito.verify(mockS3Client, Mockito.never()).listVersions(Mockito.any());
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 3);
@@ -347,7 +344,7 @@ public class TestListS3 {
         ArgumentCaptor<ListVersionsRequest> captureRequest = ArgumentCaptor.forClass(ListVersionsRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).listVersions(captureRequest.capture());
         ListVersionsRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertEquals("test-bucket", request.getBucketName());
         Mockito.verify(mockS3Client, Mockito.never()).listObjects(Mockito.any(ListObjectsRequest.class));
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 2);
@@ -393,7 +390,7 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
         ListObjectsRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertEquals("test-bucket", request.getBucketName());
         Mockito.verify(mockS3Client, Mockito.never()).listVersions(Mockito.any());
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 0);
@@ -438,7 +435,7 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
         ListObjectsRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertEquals("test-bucket", request.getBucketName());
         Mockito.verify(mockS3Client, Mockito.never()).listVersions(Mockito.any());
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
@@ -473,8 +470,8 @@ public class TestListS3 {
         Mockito.verify(mockS3Client, Mockito.times(1)).getObjectTagging(captureRequest.capture());
         GetObjectTaggingRequest request = captureRequest.getValue();
 
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("a", request.getKey());
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertEquals("a", request.getKey());
         Mockito.verify(mockS3Client, Mockito.never()).listVersions(Mockito.any());
     }
 
@@ -500,8 +497,8 @@ public class TestListS3 {
         Mockito.verify(mockS3Client, Mockito.times(1)).getObjectMetadata(captureRequest.capture());
         GetObjectMetadataRequest request = captureRequest.getValue();
 
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("a", request.getKey());
+        Assertions.assertEquals("test-bucket", request.getBucketName());
+        Assertions.assertEquals("a", request.getKey());
 
         Mockito.verify(mockS3Client, Mockito.never()).listVersions(Mockito.any());
     }
