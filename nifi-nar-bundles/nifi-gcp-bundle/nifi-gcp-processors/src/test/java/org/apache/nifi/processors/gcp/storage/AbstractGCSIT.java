@@ -24,13 +24,11 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.testing.RemoteStorageHelper;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processors.gcp.GCPIntegrationTests;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.util.Arrays;
 
@@ -41,7 +39,6 @@ import static org.junit.Assert.fail;
  * Assumes use of <a href=https://developers.google.com/identity/protocols/application-default-credentials">Application Default</a>
  * credentials for running tests.
  */
-@Category(GCPIntegrationTests.class)
 public abstract class AbstractGCSIT {
     private static final String PROJECT_ID = System.getProperty("test.gcp.project.id", "nifi-test-gcp-project");
     protected static final String BUCKET = RemoteStorageHelper.generateBucketName();
@@ -51,7 +48,7 @@ public abstract class AbstractGCSIT {
     protected static RemoteStorageHelper helper;
     protected static Storage storage;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() {
         try {
             helper = RemoteStorageHelper.create();
@@ -73,7 +70,7 @@ public abstract class AbstractGCSIT {
         }
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDown() {
         try {
             // Empty the bucket before deleting it.

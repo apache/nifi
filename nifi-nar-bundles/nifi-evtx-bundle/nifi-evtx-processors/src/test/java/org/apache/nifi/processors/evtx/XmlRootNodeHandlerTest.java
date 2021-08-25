@@ -17,21 +17,22 @@
 
 package org.apache.nifi.processors.evtx;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import java.io.IOException;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class XmlRootNodeHandlerTest {
     @Mock
     XMLStreamWriter xmlStreamWriter;
@@ -41,7 +42,7 @@ public class XmlRootNodeHandlerTest {
 
     XmlRootNodeHandler xmlRootNodeHandler;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         xmlRootNodeHandler = new XmlRootNodeHandler(xmlStreamWriter, xmlBxmlNodeVisitorFactory);
     }
@@ -52,11 +53,11 @@ public class XmlRootNodeHandlerTest {
         verify(xmlStreamWriter).writeStartElement(XmlRootNodeHandler.EVENTS);
     }
 
-    @Test(expected = IOException.class)
-    public void testConstructorException() throws XMLStreamException, IOException {
+    @Test
+    public void testConstructorException() throws XMLStreamException {
         xmlStreamWriter = mock(XMLStreamWriter.class);
         doThrow(new XMLStreamException()).when(xmlStreamWriter).writeStartElement(XmlRootNodeHandler.EVENTS);
-        new XmlRootNodeHandler(xmlStreamWriter, xmlBxmlNodeVisitorFactory);
+        assertThrows(IOException.class, () -> new XmlRootNodeHandler(xmlStreamWriter, xmlBxmlNodeVisitorFactory));
     }
 
     @Test
@@ -66,9 +67,9 @@ public class XmlRootNodeHandlerTest {
         verify(xmlStreamWriter).close();
     }
 
-    @Test(expected = IOException.class)
-    public void testCloseException() throws IOException, XMLStreamException {
+    @Test
+    public void testCloseException() throws XMLStreamException {
         doThrow(new XMLStreamException()).when(xmlStreamWriter).close();
-        xmlRootNodeHandler.close();
+        assertThrows(IOException.class, () -> xmlRootNodeHandler.close());
     }
 }

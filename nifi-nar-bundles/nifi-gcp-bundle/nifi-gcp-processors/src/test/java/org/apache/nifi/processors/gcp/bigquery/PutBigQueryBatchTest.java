@@ -32,8 +32,8 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.util.TestRunner;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 
@@ -79,7 +79,7 @@ public class PutBigQueryBatchTest extends AbstractBQTest {
     @Mock
     TableDataWriteChannel tableDataWriteChannel;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setup();
         reset(bq);

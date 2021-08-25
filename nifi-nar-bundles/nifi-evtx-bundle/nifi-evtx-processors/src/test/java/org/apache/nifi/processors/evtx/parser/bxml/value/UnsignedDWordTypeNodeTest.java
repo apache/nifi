@@ -19,7 +19,7 @@ package org.apache.nifi.processors.evtx.parser.bxml.value;
 
 import com.google.common.primitives.UnsignedInteger;
 import org.apache.nifi.processors.evtx.parser.bxml.BxmlNodeTestBase;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
