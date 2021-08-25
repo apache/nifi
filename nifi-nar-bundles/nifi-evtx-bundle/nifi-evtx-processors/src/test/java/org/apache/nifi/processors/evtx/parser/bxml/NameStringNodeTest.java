@@ -20,7 +20,8 @@ package org.apache.nifi.processors.evtx.parser.bxml;
 import com.google.common.primitives.UnsignedInteger;
 import org.apache.nifi.processors.evtx.parser.BxmlNodeVisitor;
 import org.apache.nifi.processors.evtx.parser.TestBinaryReaderBuilder;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
@@ -44,6 +45,7 @@ public class NameStringNodeTest extends BxmlNodeTestBase {
     }
 
     @Override
+    @BeforeEach
     public void setup() throws IOException {
         super.setup();
         putNode(testBinaryReaderBuilder, nextOffset, hash, string);

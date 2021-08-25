@@ -19,14 +19,14 @@ package org.apache.nifi.processors.evtx.parser.bxml;
 
 import org.apache.nifi.processors.evtx.parser.ChunkHeader;
 import org.apache.nifi.processors.evtx.parser.TestBinaryReaderBuilder;
-import org.junit.Before;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public abstract class BxmlNodeTestBase {
     public TestBinaryReaderBuilder testBinaryReaderBuilder;
 
@@ -36,7 +36,7 @@ public abstract class BxmlNodeTestBase {
     @Mock
     public BxmlNode parent;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         testBinaryReaderBuilder = new TestBinaryReaderBuilder();
     }

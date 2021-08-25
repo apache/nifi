@@ -26,8 +26,8 @@ import org.apache.nifi.processors.evtx.parser.bxml.NameStringNodeTest;
 import org.apache.nifi.processors.evtx.parser.bxml.RootNode;
 import org.apache.nifi.processors.evtx.parser.bxml.TemplateNode;
 import org.apache.nifi.processors.evtx.parser.bxml.TemplateNodeTest;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -59,7 +59,7 @@ public class ChunkHeaderTest {
     private int dataChecksum = 1111;
     private List<String> guids;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         TestBinaryReaderBuilder testBinaryReaderBuilder = new TestBinaryReaderBuilder();
         testBinaryReaderBuilder.putString(ChunkHeader.ELF_CHNK);

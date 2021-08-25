@@ -20,7 +20,8 @@ package org.apache.nifi.processors.evtx.parser.bxml;
 import org.apache.nifi.processors.evtx.parser.BinaryReader;
 import org.apache.nifi.processors.evtx.parser.BxmlNodeVisitor;
 import org.apache.nifi.processors.evtx.parser.TestBinaryReaderBuilder;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
@@ -40,6 +41,7 @@ public class OpenStartElementNodeTest extends BxmlNodeWithTokenTestBase {
     private OpenStartElementNode openStartElementNode;
 
     @Override
+    @BeforeEach
     public void setup() throws IOException {
         super.setup();
         testBinaryReaderBuilder.putWord(unknown);

@@ -171,7 +171,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <groups>org.apache.nifi.processors.gcp.GCPIntegrationTests</groups>
                     <skipITs>${skipGCPIntegrationTests}</skipITs>
                 </configuration>
             </plugin>
@@ -179,7 +178,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <excludedGroups>org.apache.nifi.processors.gcp.GCPIntegrationTests</excludedGroups>
                     <environmentVariables>
                         <GOOGLE_APPLICATION_CREDENTIALS>${project.basedir}/src/test/resources/mock-gcp-application-default-credentials.json</GOOGLE_APPLICATION_CREDENTIALS>
                     </environmentVariables>

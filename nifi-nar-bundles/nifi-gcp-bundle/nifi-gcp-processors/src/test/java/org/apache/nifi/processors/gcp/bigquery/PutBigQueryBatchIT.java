@@ -17,21 +17,20 @@
 
 package org.apache.nifi.processors.gcp.bigquery;
 
+import com.google.cloud.bigquery.FormatOptions;
+import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
-import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.google.cloud.bigquery.FormatOptions;
 
 public class PutBigQueryBatchIT extends AbstractBigQueryIT {
 
@@ -56,7 +55,7 @@ public class PutBigQueryBatchIT extends AbstractBigQueryIT {
             "  }\n" +
             "]";
 
-    @Before
+    @BeforeEach
     public void setup() {
         runner = TestRunners.newTestRunner(PutBigQueryBatch.class);
         runner.setProperty(AbstractBigQueryProcessor.PROJECT_ID, PROJECT_ID);

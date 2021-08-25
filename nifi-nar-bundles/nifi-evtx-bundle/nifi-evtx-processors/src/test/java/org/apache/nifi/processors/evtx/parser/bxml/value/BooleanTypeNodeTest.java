@@ -18,12 +18,12 @@
 package org.apache.nifi.processors.evtx.parser.bxml.value;
 
 import org.apache.nifi.processors.evtx.parser.bxml.BxmlNodeTestBase;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BooleanTypeNodeTest extends BxmlNodeTestBase {
     @Test
