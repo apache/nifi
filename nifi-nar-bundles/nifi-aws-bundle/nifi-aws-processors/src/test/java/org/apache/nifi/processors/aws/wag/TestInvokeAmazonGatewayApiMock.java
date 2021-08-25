@@ -33,8 +33,8 @@ import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredential
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
@@ -52,7 +52,7 @@ public class TestInvokeAmazonGatewayApiMock {
     private TestRunner runner = null;
     private SdkHttpClient mockSdkClient = null;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         mockSdkClient = Mockito.mock(SdkHttpClient.class);
         ClientConfiguration clientConfig = new ClientConfiguration();

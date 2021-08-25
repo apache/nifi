@@ -25,7 +25,7 @@ import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzerFactory;
 import org.apache.nifi.atlas.resolver.NamespaceResolver;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
@@ -35,8 +35,8 @@ import static org.apache.nifi.atlas.provenance.analyzer.AzureADLSDirectory.ATTR_
 import static org.apache.nifi.atlas.provenance.analyzer.AzureADLSDirectory.TYPE_ACCOUNT;
 import static org.apache.nifi.atlas.provenance.analyzer.AzureADLSDirectory.TYPE_CONTAINER;
 import static org.apache.nifi.atlas.provenance.analyzer.AzureADLSDirectory.TYPE_DIRECTORY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 

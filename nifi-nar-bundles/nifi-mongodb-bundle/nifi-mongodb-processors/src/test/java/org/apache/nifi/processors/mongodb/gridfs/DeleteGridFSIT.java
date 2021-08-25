@@ -26,13 +26,16 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DeleteGridFSIT extends GridFSITTestBase {
     private TestRunner runner;
@@ -83,13 +86,13 @@ public class DeleteGridFSIT extends GridFSITTestBase {
     private void testForQueryAttribute(String mustContain, String attrName) {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DeleteGridFS.REL_SUCCESS);
         String attribute = flowFiles.get(0).getAttribute(attrName);
-        Assertions.assertTrue(attribute.contains(mustContain));
+        assertTrue(attribute.contains(mustContain));
     }
 
     private String setupTestFile() {
         String fileName = "simple-delete-test.txt";
         ObjectId id = writeTestFile(fileName, "Hello, world!", BUCKET, new HashMap<>());
-        Assertions.assertNotNull(id);
+        assertNotNull(id);
 
         return fileName;
     }
@@ -105,6 +108,6 @@ public class DeleteGridFSIT extends GridFSITTestBase {
         runner.assertTransferCount(DeleteGridFS.REL_FAILURE, 0);
         runner.assertTransferCount(DeleteGridFS.REL_SUCCESS, 1);
 
-        Assertions.assertFalse(fileExists(fileName, BUCKET), String.format("File %s still exists.", fileName));
+        assertFalse(fileExists(fileName, BUCKET), String.format("File %s still exists.", fileName));
     }
 }

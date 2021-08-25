@@ -16,32 +16,6 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.mockito.stubbing.OngoingStubbing;
-
 import okhttp3.Call;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -49,18 +23,43 @@ import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.stubbing.Answer;
+import org.mockito.stubbing.OngoingStubbing;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestQueryElasticsearchHttp {
 
     private TestRunner runner;
 
-    @After
+    @AfterEach
     public void teardown() {
         runner = null;
     }
 
     @Test
-    public void testQueryElasticsearchOnTrigger_withInput() throws IOException {
+    public void testQueryElasticsearchOnTrigger_withInput() {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
@@ -78,7 +77,7 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
-    public void testQueryElasticsearchOnTrigger_withInput_withQueryInAttrs() throws IOException {
+    public void testQueryElasticsearchOnTrigger_withInput_withQueryInAttrs() {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
@@ -97,7 +96,7 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
-    public void testQueryElasticsearchOnTrigger_withInput_EL() throws IOException {
+    public void testQueryElasticsearchOnTrigger_withInput_EL() {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
 
@@ -126,7 +125,7 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
-    public void testQueryElasticsearchOnTrigger_withInput_attributeTarget() throws IOException {
+    public void testQueryElasticsearchOnTrigger_withInput_attributeTarget() {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
@@ -152,7 +151,7 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
-    public void testQueryElasticsearchOnTrigger_withNoInput() throws IOException {
+    public void testQueryElasticsearchOnTrigger_withNoInput() {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
@@ -197,7 +196,7 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
-    public void testQueryElasticsearchOnTriggerWithFields() throws IOException {
+    public void testQueryElasticsearchOnTriggerWithFields() {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
@@ -216,7 +215,7 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
-    public void testQueryElasticsearchOnTriggerWithLimit() throws IOException {
+    public void testQueryElasticsearchOnTriggerWithLimit() {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
@@ -236,7 +235,7 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
-    public void testQueryElasticsearchOnTriggerWithServerErrorRetry() throws IOException {
+    public void testQueryElasticsearchOnTriggerWithServerErrorRetry() {
         QueryElasticsearchHttpTestProcessor processor = new QueryElasticsearchHttpTestProcessor();
         processor.setStatus(500, "Server error");
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
@@ -261,7 +260,7 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
-    public void testQueryElasticsearchOnTriggerWithServerFail() throws IOException {
+    public void testQueryElasticsearchOnTriggerWithServerFail() {
         QueryElasticsearchHttpTestProcessor processor = new QueryElasticsearchHttpTestProcessor();
         processor.setStatus(100, "Should fail");
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
@@ -286,7 +285,7 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
-    public void testQueryElasticsearchOnTriggerWithIOException() throws IOException {
+    public void testQueryElasticsearchOnTriggerWithIOException() {
         QueryElasticsearchHttpTestProcessor processor = new QueryElasticsearchHttpTestProcessor();
         processor.setExceptionToThrow(new IOException("Error reading from disk"));
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
@@ -311,7 +310,7 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
-    public void testQueryElasticsearchOnTriggerWithServerFailAfterSuccess() throws IOException {
+    public void testQueryElasticsearchOnTriggerWithServerFailAfterSuccess() {
         QueryElasticsearchHttpTestProcessor processor = new QueryElasticsearchHttpTestProcessor();
         processor.setStatus(100, "Should fail", 2);
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
@@ -337,7 +336,7 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
-    public void testQueryElasticsearchOnTriggerWithServerFailNoIncomingFlowFile() throws IOException {
+    public void testQueryElasticsearchOnTriggerWithServerFailNoIncomingFlowFile() {
         QueryElasticsearchHttpTestProcessor processor = new QueryElasticsearchHttpTestProcessor();
         processor.setStatus(100, "Should fail", 1);
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
@@ -395,7 +394,7 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
-    public void testQueryElasticsearchOnTrigger_sourceIncludes() throws IOException {
+    public void testQueryElasticsearchOnTrigger_sourceIncludes() {
         QueryElasticsearchHttpTestProcessor p = new QueryElasticsearchHttpTestProcessor();
         p.setExpectedParam("_source=test");
         runner = TestRunners.newTestRunner(p);
@@ -486,27 +485,23 @@ public class TestQueryElasticsearchHttp {
 
         private OngoingStubbing<Call> mockReturnDocument(OngoingStubbing<Call> stub,
                 final String document, int statusCode, String statusMessage) {
-            return stub.thenAnswer(new Answer<Call>() {
-
-                @Override
-                public Call answer(InvocationOnMock invocationOnMock) throws Throwable {
-                    Request realRequest = (Request) invocationOnMock.getArguments()[0];
-                    assertTrue((expectedParam == null) || (realRequest.url().toString().contains(expectedParam)));
-                    Response mockResponse = new Response.Builder()
-                            .request(realRequest)
-                            .protocol(Protocol.HTTP_1_1)
-                            .code(statusCode)
-                            .message(statusMessage)
-                            .body(ResponseBody.create(MediaType.parse("application/json"), document))
-                            .build();
-                    final Call call = mock(Call.class);
-                    if (exceptionToThrow != null) {
-                        when(call.execute()).thenThrow(exceptionToThrow);
-                    } else {
-                        when(call.execute()).thenReturn(mockResponse);
-                    }
-                    return call;
+            return stub.thenAnswer((Answer<Call>) invocationOnMock -> {
+                Request realRequest = (Request) invocationOnMock.getArguments()[0];
+                assertTrue((expectedParam == null) || (realRequest.url().toString().contains(expectedParam)));
+                Response mockResponse = new Response.Builder()
+                        .request(realRequest)
+                        .protocol(Protocol.HTTP_1_1)
+                        .code(statusCode)
+                        .message(statusMessage)
+                        .body(ResponseBody.create(MediaType.parse("application/json"), document))
+                        .build();
+                final Call call = mock(Call.class);
+                if (exceptionToThrow != null) {
+                    when(call.execute()).thenThrow(exceptionToThrow);
+                } else {
+                    when(call.execute()).thenReturn(mockResponse);
                 }
+                return call;
             });
         }
 

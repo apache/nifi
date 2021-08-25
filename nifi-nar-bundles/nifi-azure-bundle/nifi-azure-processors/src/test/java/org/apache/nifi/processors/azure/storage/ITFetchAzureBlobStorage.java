@@ -19,8 +19,8 @@ package org.apache.nifi.processors.azure.storage;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
@@ -31,7 +31,7 @@ public class ITFetchAzureBlobStorage extends AbstractAzureBlobStorageIT {
         return FetchAzureBlobStorage.class;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         runner.setProperty(FetchAzureBlobStorage.BLOB, TEST_BLOB_NAME);
 

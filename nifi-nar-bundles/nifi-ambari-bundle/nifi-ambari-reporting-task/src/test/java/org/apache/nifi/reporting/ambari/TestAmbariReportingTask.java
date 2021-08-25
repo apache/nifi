@@ -25,8 +25,8 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
@@ -44,7 +44,7 @@ public class TestAmbariReportingTask {
 
     private ProcessGroupStatus status;
 
-    @Before
+    @BeforeEach
     public void setup() {
         status = new ProcessGroupStatus();
         status.setId("1234");

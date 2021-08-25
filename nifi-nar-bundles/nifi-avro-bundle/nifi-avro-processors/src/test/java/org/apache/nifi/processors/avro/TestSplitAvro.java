@@ -16,19 +16,6 @@
  */
 package org.apache.nifi.processors.avro;
 
-import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
-import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
-import static org.junit.Assert.assertEquals;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.EOFException;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.stream.IntStream;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.file.DataFileWriter;
@@ -43,9 +30,25 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.stream.IntStream;
+
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSplitAvro {
 
@@ -60,7 +63,7 @@ public class TestSplitAvro {
     private Schema schema;
     private ByteArrayOutputStream users;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         this.users = new ByteArrayOutputStream();
         this.schema = new Schema.Parser().parse(new File("src/test/resources/user.avsc"));
@@ -185,9 +188,9 @@ public class TestSplitAvro {
         for (final MockFlowFile flowFile : flowFiles) {
             try (final ByteArrayInputStream in = new ByteArrayInputStream(flowFile.toByteArray());
                  final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
-                Assert.assertFalse(reader.getMetaKeys().contains(META_KEY1));
-                Assert.assertFalse(reader.getMetaKeys().contains(META_KEY2));
-                Assert.assertFalse(reader.getMetaKeys().contains(META_KEY3));
+                assertFalse(reader.getMetaKeys().contains(META_KEY1));
+                assertFalse(reader.getMetaKeys().contains(META_KEY2));
+                assertFalse(reader.getMetaKeys().contains(META_KEY3));
             }
         }
     }
@@ -249,9 +252,9 @@ public class TestSplitAvro {
         checkBareRecordsSplitSize(flowFiles, 20, false);
 
         for (final MockFlowFile flowFile : flowFiles) {
-            Assert.assertFalse(flowFile.getAttributes().containsKey(META_KEY1));
-            Assert.assertFalse(flowFile.getAttributes().containsKey(META_KEY2));
-            Assert.assertFalse(flowFile.getAttributes().containsKey(META_KEY3));
+            assertFalse(flowFile.getAttributes().containsKey(META_KEY1));
+            assertFalse(flowFile.getAttributes().containsKey(META_KEY2));
+            assertFalse(flowFile.getAttributes().containsKey(META_KEY3));
         }
     }
 
@@ -278,8 +281,8 @@ public class TestSplitAvro {
                 GenericRecord record = reader.read(null, decoder);
                 try {
                     while (record != null) {
-                        Assert.assertNotNull(record.get("name"));
-                        Assert.assertNotNull(record.get("favorite_number"));
+                        assertNotNull(record.get("name"));
+                        assertNotNull(record.get("favorite_number"));
                         count++;
                         record = reader.read(record, decoder);
                     }
@@ -290,9 +293,9 @@ public class TestSplitAvro {
             }
 
             if (checkMetadata) {
-                Assert.assertTrue(flowFile.getAttributes().containsKey(META_KEY1));
-                Assert.assertTrue(flowFile.getAttributes().containsKey(META_KEY2));
-                Assert.assertTrue(flowFile.getAttributes().containsKey(META_KEY3));
+                assertTrue(flowFile.getAttributes().containsKey(META_KEY1));
+                assertTrue(flowFile.getAttributes().containsKey(META_KEY2));
+                assertTrue(flowFile.getAttributes().containsKey(META_KEY3));
             }
         }
     }
@@ -306,8 +309,8 @@ public class TestSplitAvro {
                 GenericRecord record = null;
                 while (reader.hasNext()) {
                     record = reader.next(record);
-                    Assert.assertNotNull(record.get("name"));
-                    Assert.assertNotNull(record.get("favorite_number"));
+                    assertNotNull(record.get("name"));
+                    assertNotNull(record.get("favorite_number"));
                     count++;
                 }
                 assertEquals(expectedRecordsPerSplit, count);
@@ -330,8 +333,8 @@ public class TestSplitAvro {
                 GenericRecord record = null;
                 while (reader.hasNext()) {
                     record = reader.next(record);
-                    Assert.assertNotNull(record.get("name"));
-                    Assert.assertNotNull(record.get("favorite_number"));
+                    assertNotNull(record.get("name"));
+                    assertNotNull(record.get("favorite_number"));
                     count++;
                 }
             }

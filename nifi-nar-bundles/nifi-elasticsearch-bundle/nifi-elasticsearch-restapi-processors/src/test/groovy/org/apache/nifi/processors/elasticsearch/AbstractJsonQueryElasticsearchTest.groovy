@@ -23,15 +23,16 @@ import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.hamcrest.CoreMatchers.is
 import static org.hamcrest.MatcherAssert.assertThat
-import static org.junit.Assert.assertThrows
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertThrows
 
 abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryElasticsearch> {
     static final String INDEX_NAME = "messages"
@@ -292,8 +293,8 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
 
         for (final MockFlowFile mockFlowFile : flowFiles) {
             final String attr = mockFlowFile.getAttribute(queryAttr)
-            Assert.assertNotNull("Missing query attribute", attr)
-            Assert.assertEquals("Query had wrong value.", query, attr)
+            assertNotNull(attr, "Missing query attribute")
+            assertEquals(query, attr, "Query had wrong value.")
         }
     }
 
@@ -324,13 +325,13 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
 
         final TestElasticsearchClientService service = getService(runner)
         if (getProcessor() instanceof SearchElasticsearch || getProcessor() instanceof PaginatedJsonQueryElasticsearch) {
-            Assert.assertEquals(3, service.getRequestParameters().size())
-            Assert.assertEquals("600s", service.getRequestParameters().get("scroll"))
+            assertEquals(3, service.getRequestParameters().size())
+            assertEquals("600s", service.getRequestParameters().get("scroll"))
         } else {
-            Assert.assertEquals(2, service.getRequestParameters().size())
+            assertEquals(2, service.getRequestParameters().size())
         }
-        Assert.assertEquals("true", service.getRequestParameters().get("refresh"))
-        Assert.assertEquals("auto", service.getRequestParameters().get("slices"))
+        assertEquals("true", service.getRequestParameters().get("refresh"))
+        assertEquals("auto", service.getRequestParameters().get("slices"))
     }
 
     static void testCounts(TestRunner runner, int original, int hits, int failure, int aggregations) {

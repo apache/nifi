@@ -21,8 +21,8 @@ import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -36,8 +36,8 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILE_PATH;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LAST_MODIFIED;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
@@ -48,7 +48,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         return ListAzureDataLakeStorage.class;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         testFiles = new HashMap<>();
 
@@ -241,7 +241,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         for (MockFlowFile flowFile : flowFiles) {
             String filePath = flowFile.getAttribute("azure.filePath");
             TestFile testFile = expectedFiles.remove(filePath);
-            assertNotNull("File path not found in the expected map", testFile);
+            assertNotNull(testFile, "File path not found in the expected map");
             assertFlowFile(testFile, flowFile);
         }
     }
@@ -263,5 +263,4 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertFalse(runner.getLogger().getErrorMessages().isEmpty());
         runner.assertTransferCount(ListAzureDataLakeStorage.REL_SUCCESS, 0);
     }
-
 }

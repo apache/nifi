@@ -16,29 +16,24 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
+import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import com.amazonaws.auth.PropertiesCredentials;
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import static org.junit.Assert.assertEquals;
-
-
-@Ignore("For local testing only - interacts with S3 so the credentials file must be configured and all necessary queues created")
 public class ITDeleteSQS {
 
     private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
@@ -46,7 +41,7 @@ public class ITDeleteSQS {
     private final String TEST_REGION = "us-west-2";
     AmazonSQSClient sqsClient = null;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         PropertiesCredentials credentials = new PropertiesCredentials(new File(CREDENTIALS_FILE));
         sqsClient = new AmazonSQSClient(credentials);
@@ -54,7 +49,7 @@ public class ITDeleteSQS {
     }
 
     @Test
-    public void testSimpleDelete() throws IOException {
+    public void testSimpleDelete() {
         // Setup - put one message in queue
         SendMessageResult sendMessageResult = sqsClient.sendMessage(TEST_QUEUE_URL, "Test message");
         assertEquals(200, sendMessageResult.getSdkHttpMetadata().getHttpStatusCode());
@@ -79,5 +74,4 @@ public class ITDeleteSQS {
 
         runner.assertAllFlowFilesTransferred(DeleteSQS.REL_SUCCESS, 1);
     }
-
 }

@@ -29,19 +29,19 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ComparisonFailure;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 public class ITAzureBlobStorageE2E  {
 
@@ -53,13 +53,9 @@ public class ITAzureBlobStorageE2E  {
         CONFIG = new Properties();
         try {
             final FileInputStream fis = new FileInputStream(CREDENTIALS_FILE);
-            try {
-                CONFIG.load(fis);
-            } catch (IOException e) {
-                fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e.getLocalizedMessage());
-            } finally {
-                FileUtils.closeQuietly(fis);
-            }
+            assertDoesNotThrow(() -> CONFIG.load(fis),
+                    "Could not open credentials file " + CREDENTIALS_FILE);
+            FileUtils.closeQuietly(fis);
         } catch (FileNotFoundException e) {
             fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e.getLocalizedMessage());
         }
@@ -91,7 +87,7 @@ public class ITAzureBlobStorageE2E  {
 
     protected CloudBlobContainer container;
 
-    @Before
+    @BeforeEach
     public void setupRunners() throws Exception {
         putRunner = TestRunners.newTestRunner(new PutAzureBlobStorage());
         listRunner = TestRunners.newTestRunner(new ListAzureBlobStorage());
@@ -117,7 +113,7 @@ public class ITAzureBlobStorageE2E  {
         runner.setProperty(AzureStorageUtils.CONTAINER, containerName);
     }
 
-    @After
+    @AfterEach
     public void tearDownAzureContainer() throws Exception {
         container.deleteIfExists();
     }
@@ -188,15 +184,15 @@ public class ITAzureBlobStorageE2E  {
         );
     }
 
-    @Test(expected = ComparisonFailure.class)
-    public void AzureBlobStorageE2E128BCSENoDecryption() throws Exception {
-        testE2E(AzureBlobClientSideEncryptionMethod.SYMMETRIC.name(),
+    @Test
+    public void AzureBlobStorageE2E128BCSENoDecryption() {
+        assertThrows(Exception.class, () -> testE2E(AzureBlobClientSideEncryptionMethod.SYMMETRIC.name(),
                 KEY_ID_VALUE,
                 KEY_128B_VALUE,
                 AzureBlobClientSideEncryptionMethod.NONE.name(),
                 KEY_ID_VALUE,
                 KEY_128B_VALUE
-        );
+        ));
     }
 
     private void testE2E(String encryptionKeyType, String encryptionKeyId, String encryptionKeyHex, String decryptionKeyType, String decryptionKeyId, String decryptionKeyHex) throws Exception {

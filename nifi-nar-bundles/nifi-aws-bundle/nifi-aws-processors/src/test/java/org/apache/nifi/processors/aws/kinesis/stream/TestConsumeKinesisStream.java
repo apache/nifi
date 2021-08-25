@@ -36,8 +36,8 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -49,13 +49,13 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestConsumeKinesisStream {
     private final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
 
-    @Before
+    @BeforeEach
     public void setUp() throws InitializationException {
         runner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, "test-stream");
         runner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, "test-application");

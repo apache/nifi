@@ -16,20 +16,20 @@
  */
 package org.apache.nifi.processors.aws.cloudwatch;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
 import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.InvalidParameterValueException;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
-import org.junit.Test;
-import org.junit.Assert;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Unit tests for {@link PutCloudWatchMetric}.
@@ -52,11 +52,11 @@ public class TestPutCloudWatchMetric {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
-        Assert.assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
-        Assert.assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
+        assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
+        assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
         MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
-        Assert.assertEquals("TestMetric", datum.getMetricName());
-        Assert.assertEquals(1d, datum.getValue(), 0.0001d);
+        assertEquals("TestMetric", datum.getMetricName());
+        assertEquals(1d, datum.getValue(), 0.0001d);
     }
 
     @Test
@@ -143,11 +143,11 @@ public class TestPutCloudWatchMetric {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
-        Assert.assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
-        Assert.assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
+        assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
+        assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
         MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
-        Assert.assertEquals("TestMetric", datum.getMetricName());
-        Assert.assertEquals(1.23d, datum.getValue(), 0.0001d);
+        assertEquals("TestMetric", datum.getMetricName());
+        assertEquals(1.23d, datum.getValue(), 0.0001d);
     }
 
     @Test
@@ -172,14 +172,14 @@ public class TestPutCloudWatchMetric {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
-        Assert.assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
-        Assert.assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
+        assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
+        assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
         MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
-        Assert.assertEquals("TestMetric", datum.getMetricName());
-        Assert.assertEquals(1.0d, datum.getStatisticValues().getMinimum(), 0.0001d);
-        Assert.assertEquals(2.0d, datum.getStatisticValues().getMaximum(), 0.0001d);
-        Assert.assertEquals(3.0d, datum.getStatisticValues().getSum(), 0.0001d);
-        Assert.assertEquals(2.0d, datum.getStatisticValues().getSampleCount(), 0.0001d);
+        assertEquals("TestMetric", datum.getMetricName());
+        assertEquals(1.0d, datum.getStatisticValues().getMinimum(), 0.0001d);
+        assertEquals(2.0d, datum.getStatisticValues().getMaximum(), 0.0001d);
+        assertEquals(3.0d, datum.getStatisticValues().getSum(), 0.0001d);
+        assertEquals(2.0d, datum.getStatisticValues().getSampleCount(), 0.0001d);
     }
 
     @Test
@@ -202,19 +202,19 @@ public class TestPutCloudWatchMetric {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
-        Assert.assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
-        Assert.assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
+        assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
+        assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
         MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
-        Assert.assertEquals("TestMetric", datum.getMetricName());
-        Assert.assertEquals(1d, datum.getValue(), 0.0001d);
+        assertEquals("TestMetric", datum.getMetricName());
+        assertEquals(1d, datum.getValue(), 0.0001d);
 
         List<Dimension> dimensions = datum.getDimensions();
         Collections.sort(dimensions, (d1, d2) -> d1.getName().compareTo(d2.getName()));
-        Assert.assertEquals(2, dimensions.size());
-        Assert.assertEquals("dim1", dimensions.get(0).getName());
-        Assert.assertEquals("1", dimensions.get(0).getValue());
-        Assert.assertEquals("dim2", dimensions.get(1).getName());
-        Assert.assertEquals("val2", dimensions.get(1).getValue());
+        assertEquals(2, dimensions.size());
+        assertEquals("dim1", dimensions.get(0).getName());
+        assertEquals("1", dimensions.get(0).getValue());
+        assertEquals("dim2", dimensions.get(1).getName());
+        assertEquals("val2", dimensions.get(1).getValue());
     }
 
     @Test
@@ -264,7 +264,7 @@ public class TestPutCloudWatchMetric {
         runner.enqueue(new byte[] {}, attributes);
         runner.run();
 
-        Assert.assertEquals(0, mockPutCloudWatchMetric.putMetricDataCallCount);
+        assertEquals(0, mockPutCloudWatchMetric.putMetricDataCallCount);
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_FAILURE, 1);
     }
 
@@ -283,7 +283,7 @@ public class TestPutCloudWatchMetric {
         runner.enqueue(new byte[] {});
         runner.run();
 
-        Assert.assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
+        assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_FAILURE, 1);
     }
 
@@ -304,7 +304,7 @@ public class TestPutCloudWatchMetric {
         runner.enqueue(new byte[] {}, attributes);
         runner.run();
 
-        Assert.assertEquals(0, mockPutCloudWatchMetric.putMetricDataCallCount);
+        assertEquals(0, mockPutCloudWatchMetric.putMetricDataCallCount);
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_FAILURE, 1);
     }
 

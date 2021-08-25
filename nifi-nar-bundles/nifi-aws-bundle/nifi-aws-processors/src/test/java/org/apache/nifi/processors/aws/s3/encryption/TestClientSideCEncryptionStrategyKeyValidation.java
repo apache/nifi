@@ -17,18 +17,18 @@
 package org.apache.nifi.processors.aws.s3.encryption;
 
 import org.apache.nifi.components.ValidationResult;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.nifi.processors.aws.s3.encryption.S3EncryptionTestUtil.createKey;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestClientSideCEncryptionStrategyKeyValidation {
 
     private ClientSideCEncryptionStrategy strategy;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         strategy = new ClientSideCEncryptionStrategy();
     }

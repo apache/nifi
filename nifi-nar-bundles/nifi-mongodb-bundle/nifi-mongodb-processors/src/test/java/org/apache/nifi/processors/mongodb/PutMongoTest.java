@@ -21,11 +21,14 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.Iterator;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PutMongoTest {
 
@@ -50,10 +53,10 @@ public class PutMongoTest {
         if (runner.getProcessContext() instanceof MockProcessContext) {
             results = ((MockProcessContext) runner.getProcessContext()).validate();
         }
-        Assertions.assertNotNull(results);
-        Assertions.assertEquals(1, results.size());
+        assertNotNull(results);
+        assertEquals(1, results.size());
         Iterator<ValidationResult> it = results.iterator();
-        Assertions.assertTrue(it.next().toString().endsWith("Both update query key and update query cannot be set at the same time."));
+        assertTrue(it.next().toString().endsWith("Both update query key and update query cannot be set at the same time."));
 
         runner.removeProperty(PutMongo.UPDATE_QUERY);
         runner.removeProperty(PutMongo.UPDATE_QUERY_KEY);
@@ -65,9 +68,9 @@ public class PutMongoTest {
             results = ((MockProcessContext) runner.getProcessContext()).validate();
         }
 
-        Assertions.assertNotNull(results);
-        Assertions.assertEquals(1, results.size());
+        assertNotNull(results);
+        assertEquals(1, results.size());
         it = results.iterator();
-        Assertions.assertTrue(it.next().toString().endsWith("Either the update query key or the update query field must be set."));
+        assertTrue(it.next().toString().endsWith("Either the update query key or the update query field must be set."));
     }
 }

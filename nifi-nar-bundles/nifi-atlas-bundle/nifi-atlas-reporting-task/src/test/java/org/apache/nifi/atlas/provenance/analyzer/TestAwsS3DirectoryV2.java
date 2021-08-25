@@ -20,15 +20,15 @@ import org.apache.atlas.utils.AtlasPathExtractorUtil;
 import org.apache.atlas.v1.model.instance.Referenceable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 import static org.apache.nifi.atlas.provenance.analyzer.AwsS3Directory.ATTR_CONTAINER_V2;
 import static org.apache.nifi.atlas.provenance.analyzer.AwsS3Directory.ATTR_OBJECT_PREFIX_V2;
 import static org.apache.nifi.atlas.provenance.analyzer.AwsS3Directory.TYPE_BUCKET_V2;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestAwsS3DirectoryV2 extends AbstractTestAwsS3Directory {
 
