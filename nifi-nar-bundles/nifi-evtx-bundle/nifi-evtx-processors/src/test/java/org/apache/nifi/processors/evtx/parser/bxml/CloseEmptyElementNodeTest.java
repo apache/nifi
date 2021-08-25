@@ -18,7 +18,8 @@
 package org.apache.nifi.processors.evtx.parser.bxml;
 
 import org.apache.nifi.processors.evtx.parser.BxmlNodeVisitor;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
@@ -31,6 +32,7 @@ public class CloseEmptyElementNodeTest extends BxmlNodeWithTokenTestBase {
     private CloseEmptyElementNode closeEmptyElementNode;
 
     @Override
+    @BeforeEach
     public void setup() throws IOException {
         super.setup();
         closeEmptyElementNode = new CloseEmptyElementNode(testBinaryReaderBuilder.build(), chunkHeader, parent);

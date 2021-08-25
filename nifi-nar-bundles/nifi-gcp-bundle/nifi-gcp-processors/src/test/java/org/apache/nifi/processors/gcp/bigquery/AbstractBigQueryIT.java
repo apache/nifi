@@ -17,33 +17,29 @@
 
 package org.apache.nifi.processors.gcp.bigquery;
 
-import static org.junit.Assert.assertNull;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processors.gcp.GCPIntegrationTests;
-import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
-import org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors;
-import org.apache.nifi.processors.gcp.credentials.factory.CredentialsFactory;
-import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.TestRunner;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.experimental.categories.Category;
-
 import com.google.auth.Credentials;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.testing.RemoteBigQueryHelper;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
+import org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors;
+import org.apache.nifi.processors.gcp.credentials.factory.CredentialsFactory;
+import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunner;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
-@Category(GCPIntegrationTests.class)
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertNull;
+
 public abstract class AbstractBigQueryIT {
 
     protected static final String CONTROLLER_SERVICE = "GCPCredentialsService";
@@ -56,7 +52,7 @@ public abstract class AbstractBigQueryIT {
 
     private static final CredentialsFactory credentialsProviderFactory = new CredentialsFactory();
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() throws IOException {
         final Map<PropertyDescriptor, String> propertiesMap = new HashMap<>();
         propertiesMap.put(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE, SERVICE_ACCOUNT_JSON);
@@ -73,7 +69,7 @@ public abstract class AbstractBigQueryIT {
         dataset = bigquery.create(datasetInfo);
     }
 
-    @AfterClass
+    @AfterAll
     public static void afterClass() {
         bigquery.delete(dataset.getDatasetId(), BigQuery.DatasetDeleteOption.deleteContents());
     }

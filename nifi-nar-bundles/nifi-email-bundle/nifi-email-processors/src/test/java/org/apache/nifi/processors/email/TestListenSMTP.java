@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.processors.email;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.security.GeneralSecurityException;
-import java.util.Properties;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-import javax.net.ssl.SSLContext;
-
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.ClientAuth;
@@ -43,8 +27,24 @@ import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import javax.net.ssl.SSLContext;
+import java.security.GeneralSecurityException;
+import java.util.Properties;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestListenSMTP {
     private static final String SSL_SERVICE_IDENTIFIER = "ssl-context";
@@ -55,7 +55,7 @@ public class TestListenSMTP {
 
     private static final int MESSAGES = 2;
 
-    @BeforeClass
+    @BeforeAll
     public static void setTlsConfiguration() throws GeneralSecurityException {
         final TlsConfiguration testTlsConfiguration = new TemporaryKeyStoreBuilder().build();
 
@@ -80,7 +80,7 @@ public class TestListenSMTP {
     }
 
     @Test
-    public void testListenSMTP() throws Exception {
+    public void testListenSMTP() throws MessagingException {
         final int port = NetworkUtils.availablePort();
         final TestRunner runner = newTestRunner(port);
 
@@ -165,7 +165,7 @@ public class TestListenSMTP {
     }
 
     private void assertPortListening(final int port) {
-        assertTrue(String.format("expected server listening on %s:%d", "localhost", port), NetworkUtils.isListening("localhost", port, 5000));
+        assertTrue(NetworkUtils.isListening("localhost", port, 5000), String.format("expected server listening on %s:%d", "localhost", port));
     }
 
     private Session getSession(final int port) {
