@@ -37,9 +37,9 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
@@ -73,10 +73,11 @@ import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_URLS;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_USER;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.KAFKA_BOOTSTRAP_SERVERS;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.SSL_CONTEXT_SERVICE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -93,7 +94,7 @@ public class TestReportLineageToAtlas {
     private ReportingContext reportingContext;
     private String atlasConfDir;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         testSubject = new ReportLineageToAtlas();
         componentLogger = new MockComponentLog("reporting-task-id", testSubject);
@@ -104,7 +105,7 @@ public class TestReportLineageToAtlas {
         atlasConfDir = createAtlasConfDir();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         cleanUpAtlasConfDir();
     }
@@ -122,7 +123,7 @@ public class TestReportLineageToAtlas {
     }
 
     @Test
-    public void validateAtlasUrlsFromProperty() throws Exception {
+    public void validateAtlasUrlsFromProperty() {
         final MockProcessContext processContext = new MockProcessContext(testSubject);
         final MockValidationContext validationContext = new MockValidationContext(processContext);
 
@@ -150,7 +151,7 @@ public class TestReportLineageToAtlas {
         // Invalid URL.
         processContext.setProperty(ATLAS_URLS, "invalid");
         assertResults.accept(testSubject.validate(validationContext),
-                r -> assertTrue("Atlas URLs is invalid", !r.isValid()));
+                r -> assertTrue(!r.isValid(), "Atlas URLs is invalid"));
 
         // Valid URL
         processContext.setProperty(ATLAS_URLS, "http://atlas.example.com:21000");
@@ -167,7 +168,7 @@ public class TestReportLineageToAtlas {
         // Invalid and Valid URLs
         processContext.setProperty(ATLAS_URLS, "invalid, http://atlas2.example.com:21000");
         assertResults.accept(testSubject.validate(validationContext),
-                r -> assertTrue("Atlas URLs is invalid", !r.isValid()));
+                r -> assertTrue(!r.isValid(), "Atlas URLs is invalid"));
     }
 
     @Test
@@ -194,8 +195,8 @@ public class TestReportLineageToAtlas {
         atlasConf.setProperty("atlas.rest.address", atlasUrls);
 
         Consumer<Exception> assertion = e -> assertTrue(
-            "Expected " + MalformedURLException.class.getSimpleName() + " for " + atlasUrls + ", got " + e,
-            e.getCause() instanceof MalformedURLException
+            e.getCause() instanceof MalformedURLException,
+            "Expected " + MalformedURLException.class.getSimpleName() + " for " + atlasUrls + ", got " + e
         );
 
         // WHEN
@@ -217,7 +218,7 @@ public class TestReportLineageToAtlas {
             propertiesAdjustment,
             () -> fail(),
             e -> {
-                assertTrue("Expected a " + ProcessException.class.getSimpleName() + ", got " + e, e instanceof ProcessException);
+                assertTrue(e instanceof ProcessException, "Expected a " + ProcessException.class.getSimpleName() + ", got " + e);
                 exceptionConsumer.accept(e);
             }
         );
@@ -496,7 +497,7 @@ public class TestReportLineageToAtlas {
         assertFalse(isAsync);
     }
 
-    @Test(expected = ProcessException.class)
+    @Test
     public void testThrowExceptionWhenAtlasConfIsProvidedButSynchronousModeHasNotBeenSet() throws Exception {
         Properties atlasConf = new Properties();
         saveAtlasConf(atlasConf);
@@ -507,7 +508,7 @@ public class TestReportLineageToAtlas {
         ConfigurationContext configurationContext = new MockConfigurationContext(properties, null);
 
         testSubject.initialize(initializationContext);
-        testSubject.setup(configurationContext);
+        assertThrows(ProcessException.class, () -> testSubject.setup(configurationContext));
     }
 
     private void saveAtlasConf(Properties atlasConf) throws IOException {

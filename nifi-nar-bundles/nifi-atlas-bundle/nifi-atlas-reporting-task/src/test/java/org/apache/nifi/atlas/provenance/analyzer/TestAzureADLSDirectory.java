@@ -25,7 +25,8 @@ import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzerFactory;
 import org.apache.nifi.atlas.resolver.NamespaceResolver;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
@@ -35,8 +36,6 @@ import static org.apache.nifi.atlas.provenance.analyzer.AzureADLSDirectory.ATTR_
 import static org.apache.nifi.atlas.provenance.analyzer.AzureADLSDirectory.TYPE_ACCOUNT;
 import static org.apache.nifi.atlas.provenance.analyzer.AzureADLSDirectory.TYPE_CONTAINER;
 import static org.apache.nifi.atlas.provenance.analyzer.AzureADLSDirectory.TYPE_DIRECTORY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -114,13 +113,13 @@ public class TestAzureADLSDirectory {
     }
 
     private void assertAnalyzer(NiFiProvenanceEventAnalyzer analyzer) {
-        assertNotNull(analyzer);
-        assertEquals(AzureADLSDirectory.class, analyzer.getClass());
+        Assertions.assertNotNull(analyzer);
+        Assertions.assertEquals(AzureADLSDirectory.class, analyzer.getClass());
     }
 
     private void assertAnalysisResult(DataSetRefs refs, String path) {
-        assertEquals(0, refs.getInputs().size());
-        assertEquals(1, refs.getOutputs().size());
+        Assertions.assertEquals(0, refs.getInputs().size());
+        Assertions.assertEquals(1, refs.getOutputs().size());
 
         Referenceable ref = refs.getOutputs().iterator().next();
 
@@ -128,24 +127,24 @@ public class TestAzureADLSDirectory {
         while (StringUtils.isNotEmpty(actualPath)) {
             String directory = StringUtils.substringAfterLast(actualPath, "/");
 
-            assertEquals(TYPE_DIRECTORY, ref.getTypeName());
-            assertEquals(String.format("abfs://%s@%s%s/@%s", ADLS_FILESYSTEM, ADLS_ACCOUNT, actualPath, ATLAS_NAMESPACE), ref.get(ATTR_QUALIFIED_NAME));
-            assertEquals(directory, ref.get(ATTR_NAME));
-            assertNotNull(ref.get(ATTR_PARENT));
+            Assertions.assertEquals(TYPE_DIRECTORY, ref.getTypeName());
+            Assertions.assertEquals(String.format("abfs://%s@%s%s/@%s", ADLS_FILESYSTEM, ADLS_ACCOUNT, actualPath, ATLAS_NAMESPACE), ref.get(ATTR_QUALIFIED_NAME));
+            Assertions.assertEquals(directory, ref.get(ATTR_NAME));
+            Assertions.assertNotNull(ref.get(ATTR_PARENT));
 
             ref = (Referenceable) ref.get(ATTR_PARENT);
             actualPath = StringUtils.substringBeforeLast(actualPath, "/");
         }
 
-        assertEquals(TYPE_CONTAINER, ref.getTypeName());
-        assertEquals(String.format("abfs://%s@%s@%s", ADLS_FILESYSTEM, ADLS_ACCOUNT, ATLAS_NAMESPACE), ref.get(ATTR_QUALIFIED_NAME));
-        assertEquals(ADLS_FILESYSTEM, ref.get(ATTR_NAME));
-        assertNotNull(ref.get(ATTR_ACCOUNT));
+        Assertions.assertEquals(TYPE_CONTAINER, ref.getTypeName());
+        Assertions.assertEquals(String.format("abfs://%s@%s@%s", ADLS_FILESYSTEM, ADLS_ACCOUNT, ATLAS_NAMESPACE), ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals(ADLS_FILESYSTEM, ref.get(ATTR_NAME));
+        Assertions.assertNotNull(ref.get(ATTR_ACCOUNT));
 
         ref = (Referenceable) ref.get(ATTR_ACCOUNT);
 
-        assertEquals(TYPE_ACCOUNT, ref.getTypeName());
-        assertEquals(String.format("abfs://%s@%s", ADLS_ACCOUNT, ATLAS_NAMESPACE), ref.get(ATTR_QUALIFIED_NAME));
-        assertEquals(ADLS_ACCOUNT, ref.get(ATTR_NAME));
+        Assertions.assertEquals(TYPE_ACCOUNT, ref.getTypeName());
+        Assertions.assertEquals(String.format("abfs://%s@%s", ADLS_ACCOUNT, ATLAS_NAMESPACE), ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals(ADLS_ACCOUNT, ref.get(ATTR_NAME));
     }
 }

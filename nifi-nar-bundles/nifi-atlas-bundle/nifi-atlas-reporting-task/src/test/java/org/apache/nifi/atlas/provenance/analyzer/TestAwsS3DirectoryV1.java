@@ -18,7 +18,8 @@ package org.apache.nifi.atlas.provenance.analyzer;
 
 import org.apache.atlas.v1.model.instance.Referenceable;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
@@ -26,8 +27,6 @@ import static org.apache.nifi.atlas.provenance.analyzer.AwsS3Directory.ATTR_BUCK
 import static org.apache.nifi.atlas.provenance.analyzer.AwsS3Directory.ATTR_OBJECT_PREFIX_V1;
 import static org.apache.nifi.atlas.provenance.analyzer.AwsS3Directory.TYPE_BUCKET_V1;
 import static org.apache.nifi.atlas.provenance.analyzer.AwsS3Directory.TYPE_DIRECTORY_V1;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class TestAwsS3DirectoryV1 extends AbstractTestAwsS3Directory {
 
@@ -73,20 +72,20 @@ public class TestAwsS3DirectoryV1 extends AbstractTestAwsS3Directory {
         String expectedDirectoryQualifiedName = String.format("s3a://%s%s@%s", AWS_BUCKET, dirPath, ATLAS_NAMESPACE);
         String expectedBucketQualifiedName = String.format("s3a://%s@%s", AWS_BUCKET, ATLAS_NAMESPACE);
 
-        assertEquals(0, refs.getInputs().size());
-        assertEquals(1, refs.getOutputs().size());
+        Assertions.assertEquals(0, refs.getInputs().size());
+        Assertions.assertEquals(1, refs.getOutputs().size());
 
         Referenceable directoryRef = refs.getOutputs().iterator().next();
 
-        assertEquals(TYPE_DIRECTORY_V1, directoryRef.getTypeName());
-        assertEquals(expectedDirectoryQualifiedName, directoryRef.get(ATTR_QUALIFIED_NAME));
-        assertEquals(dirPath, directoryRef.get(ATTR_NAME));
-        assertEquals(dirPath, directoryRef.get(ATTR_OBJECT_PREFIX_V1));
+        Assertions.assertEquals(TYPE_DIRECTORY_V1, directoryRef.getTypeName());
+        Assertions.assertEquals(expectedDirectoryQualifiedName, directoryRef.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals(dirPath, directoryRef.get(ATTR_NAME));
+        Assertions.assertEquals(dirPath, directoryRef.get(ATTR_OBJECT_PREFIX_V1));
 
         Referenceable bucketRef = (Referenceable) directoryRef.get(ATTR_BUCKET_V1);
-        assertNotNull(bucketRef);
-        assertEquals(TYPE_BUCKET_V1, bucketRef.getTypeName());
-        assertEquals(expectedBucketQualifiedName, bucketRef.get(ATTR_QUALIFIED_NAME));
-        assertEquals(AWS_BUCKET, bucketRef.get(ATTR_NAME));
+        Assertions.assertNotNull(bucketRef);
+        Assertions.assertEquals(TYPE_BUCKET_V1, bucketRef.getTypeName());
+        Assertions.assertEquals(expectedBucketQualifiedName, bucketRef.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals(AWS_BUCKET, bucketRef.get(ATTR_NAME));
     }
 }

@@ -17,18 +17,17 @@
 package org.apache.nifi.atlas.hook;
 
 import org.apache.atlas.model.notification.HookNotification;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class TestNiFiAtlasHook {
 
     private NiFiAtlasHook hook;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         hook = new NiFiAtlasHook() {
             @Override
@@ -43,7 +42,7 @@ public class TestNiFiAtlasHook {
         hook.addMessage(new HookNotification(HookNotification.HookNotificationType.ENTITY_CREATE, "nifi"));
         hook.addMessage(new HookNotification(HookNotification.HookNotificationType.ENTITY_PARTIAL_UPDATE, "nifi"));
 
-        assertEquals(2, hook.getMessages().size());
+        Assertions.assertEquals(2, hook.getMessages().size());
     }
 
     @Test
@@ -53,6 +52,6 @@ public class TestNiFiAtlasHook {
 
         hook.commitMessages();
 
-        assertTrue(hook.getMessages().isEmpty());
+        Assertions.assertTrue(hook.getMessages().isEmpty());
     }
 }

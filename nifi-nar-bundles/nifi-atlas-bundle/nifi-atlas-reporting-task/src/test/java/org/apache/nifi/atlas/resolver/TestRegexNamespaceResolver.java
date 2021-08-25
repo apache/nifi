@@ -19,8 +19,8 @@ package org.apache.nifi.atlas.resolver;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.Collection;
@@ -49,10 +49,10 @@ public class TestRegexNamespaceResolver {
 
         // It should be valid
         final Collection<ValidationResult> validationResults = resolver.validate(validationContext);
-        Assert.assertEquals(0, validationResults.size());
+        Assertions.assertEquals(0, validationResults.size());
         resolver.configure(context);
 
-        Assert.assertNull(resolver.fromHostNames("example.com"));
+        Assertions.assertNull(resolver.fromHostNames("example.com"));
     }
 
     @Test
@@ -63,13 +63,13 @@ public class TestRegexNamespaceResolver {
         final RegexNamespaceResolver resolver = new RegexNamespaceResolver();
 
         final Collection<ValidationResult> validationResults = resolver.validate(validationContext);
-        Assert.assertEquals(1, validationResults.size());
+        Assertions.assertEquals(1, validationResults.size());
         final ValidationResult validationResult = validationResults.iterator().next();
-        Assert.assertEquals(RegexNamespaceResolver.PATTERN_PROPERTY_PREFIX, validationResult.getSubject());
+        Assertions.assertEquals(RegexNamespaceResolver.PATTERN_PROPERTY_PREFIX, validationResult.getSubject());
 
         try {
             resolver.configure(context);
-            Assert.fail("Configure method should fail, too");
+            Assertions.fail("Configure method should fail, too");
         } catch (IllegalArgumentException e) {
         }
     }
@@ -83,13 +83,13 @@ public class TestRegexNamespaceResolver {
         final RegexNamespaceResolver resolver = new RegexNamespaceResolver();
 
         final Collection<ValidationResult> validationResults = resolver.validate(validationContext);
-        Assert.assertEquals(1, validationResults.size());
+        Assertions.assertEquals(1, validationResults.size());
         final ValidationResult validationResult = validationResults.iterator().next();
-        Assert.assertEquals(propertyName, validationResult.getSubject());
+        Assertions.assertEquals(propertyName, validationResult.getSubject());
 
         try {
             resolver.configure(context);
-            Assert.fail("Configure method should fail, too");
+            Assertions.fail("Configure method should fail, too");
         } catch (IllegalArgumentException e) {
         }
     }
@@ -103,11 +103,11 @@ public class TestRegexNamespaceResolver {
         final RegexNamespaceResolver resolver = new RegexNamespaceResolver();
 
         final Collection<ValidationResult> validationResults = resolver.validate(validationContext);
-        Assert.assertEquals(0, validationResults.size());
+        Assertions.assertEquals(0, validationResults.size());
 
         resolver.configure(context);
 
-        Assert.assertEquals("Namespace1", resolver.fromHostNames("host1.example.com"));
+        Assertions.assertEquals("Namespace1", resolver.fromHostNames("host1.example.com"));
     }
 
     @Test
@@ -120,14 +120,14 @@ public class TestRegexNamespaceResolver {
         final RegexNamespaceResolver resolver = new RegexNamespaceResolver();
 
         final Collection<ValidationResult> validationResults = resolver.validate(validationContext);
-        Assert.assertEquals(0, validationResults.size());
+        Assertions.assertEquals(0, validationResults.size());
 
         resolver.configure(context);
 
-        Assert.assertEquals("Namespace1", resolver.fromHostNames("host1.example.com"));
-        Assert.assertEquals("Namespace1", resolver.fromHostNames("192.168.1.10"));
-        Assert.assertEquals("Namespace1", resolver.fromHostNames("192.168.1.22"));
-        Assert.assertNull(resolver.fromHostNames("192.168.2.30"));
+        Assertions.assertEquals("Namespace1", resolver.fromHostNames("host1.example.com"));
+        Assertions.assertEquals("Namespace1", resolver.fromHostNames("192.168.1.10"));
+        Assertions.assertEquals("Namespace1", resolver.fromHostNames("192.168.1.22"));
+        Assertions.assertNull(resolver.fromHostNames("192.168.2.30"));
     }
 
     @Test
@@ -145,17 +145,17 @@ public class TestRegexNamespaceResolver {
         final RegexNamespaceResolver resolver = new RegexNamespaceResolver();
 
         final Collection<ValidationResult> validationResults = resolver.validate(validationContext);
-        Assert.assertEquals(0, validationResults.size());
+        Assertions.assertEquals(0, validationResults.size());
 
         resolver.configure(context);
 
-        Assert.assertEquals(namespace1, resolver.fromHostNames("host1.c1.example.com"));
-        Assert.assertEquals(namespace1, resolver.fromHostNames("192.168.1.10"));
-        Assert.assertEquals(namespace1, resolver.fromHostNames("192.168.1.22"));
-        Assert.assertEquals(namespace2, resolver.fromHostNames("host2.c2.example.com"));
-        Assert.assertEquals(namespace2, resolver.fromHostNames("192.168.2.10"));
-        Assert.assertEquals(namespace2, resolver.fromHostNames("192.168.2.22"));
-        Assert.assertNull(resolver.fromHostNames("192.168.3.30"));
+        Assertions.assertEquals(namespace1, resolver.fromHostNames("host1.c1.example.com"));
+        Assertions.assertEquals(namespace1, resolver.fromHostNames("192.168.1.10"));
+        Assertions.assertEquals(namespace1, resolver.fromHostNames("192.168.1.22"));
+        Assertions.assertEquals(namespace2, resolver.fromHostNames("host2.c2.example.com"));
+        Assertions.assertEquals(namespace2, resolver.fromHostNames("192.168.2.10"));
+        Assertions.assertEquals(namespace2, resolver.fromHostNames("192.168.2.22"));
+        Assertions.assertNull(resolver.fromHostNames("192.168.3.30"));
     }
 
 }

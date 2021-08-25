@@ -24,7 +24,8 @@ import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzerFactory;
 import org.apache.nifi.atlas.resolver.NamespaceResolvers;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.HashMap;
@@ -34,9 +35,6 @@ import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 import static org.apache.nifi.atlas.provenance.analyzer.DatabaseAnalyzerUtil.ATTR_INPUT_TABLES;
 import static org.apache.nifi.atlas.provenance.analyzer.DatabaseAnalyzerUtil.ATTR_OUTPUT_TABLES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.when;
@@ -63,15 +61,15 @@ public class TestHive2JDBC {
         when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
-        assertNotNull(analyzer);
+        Assertions.assertNotNull(analyzer);
 
         final DataSetRefs refs = analyzer.analyze(context, record);
-        assertEquals(0, refs.getInputs().size());
-        assertEquals(1, refs.getOutputs().size());
+        Assertions.assertEquals(0, refs.getInputs().size());
+        Assertions.assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
-        assertEquals("hive_db", ref.getTypeName());
-        assertEquals("database_a", ref.get(ATTR_NAME));
-        assertEquals("database_a@namespace1", ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals("hive_db", ref.getTypeName());
+        Assertions.assertEquals("database_a", ref.get(ATTR_NAME));
+        Assertions.assertEquals("database_a@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     /**
@@ -97,25 +95,25 @@ public class TestHive2JDBC {
         when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
-        assertNotNull(analyzer);
+        Assertions.assertNotNull(analyzer);
 
         final DataSetRefs refs = analyzer.analyze(context, record);
-        assertEquals(2, refs.getInputs().size());
+        Assertions.assertEquals(2, refs.getInputs().size());
         // QualifiedName : Name
         final Map<String, String> expectedInputRefs = new HashMap<>();
         expectedInputRefs.put("database_a.table_a1@namespace1", "table_a1");
         expectedInputRefs.put("database_a.table_a2@namespace1", "table_a2");
         for (Referenceable ref : refs.getInputs()) {
             final String qName = (String) ref.get(ATTR_QUALIFIED_NAME);
-            assertTrue(expectedInputRefs.containsKey(qName));
-            assertEquals(expectedInputRefs.get(qName), ref.get(ATTR_NAME));
+            Assertions.assertTrue(expectedInputRefs.containsKey(qName));
+            Assertions.assertEquals(expectedInputRefs.get(qName), ref.get(ATTR_NAME));
         }
 
-        assertEquals(1, refs.getOutputs().size());
+        Assertions.assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
-        assertEquals("hive_table", ref.getTypeName());
-        assertEquals("table_b1", ref.get(ATTR_NAME));
-        assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals("hive_table", ref.getTypeName());
+        Assertions.assertEquals("table_b1", ref.get(ATTR_NAME));
+        Assertions.assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     /**
@@ -141,25 +139,25 @@ public class TestHive2JDBC {
         when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
-        assertNotNull(analyzer);
+        Assertions.assertNotNull(analyzer);
 
         final DataSetRefs refs = analyzer.analyze(context, record);
-        assertEquals(2, refs.getInputs().size());
+        Assertions.assertEquals(2, refs.getInputs().size());
         // QualifiedName : Name
         final Map<String, String> expectedInputRefs = new HashMap<>();
         expectedInputRefs.put("default.table_a1@namespace1", "table_a1");
         expectedInputRefs.put("default.table_a2@namespace1", "table_a2");
         for (Referenceable ref : refs.getInputs()) {
             final String qName = (String) ref.get(ATTR_QUALIFIED_NAME);
-            assertTrue(expectedInputRefs.containsKey(qName));
-            assertEquals(expectedInputRefs.get(qName), ref.get(ATTR_NAME));
+            Assertions.assertTrue(expectedInputRefs.containsKey(qName));
+            Assertions.assertEquals(expectedInputRefs.get(qName), ref.get(ATTR_NAME));
         }
 
-        assertEquals(1, refs.getOutputs().size());
+        Assertions.assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
-        assertEquals("hive_table", ref.getTypeName());
-        assertEquals("table_b1", ref.get(ATTR_NAME));
-        assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals("hive_table", ref.getTypeName());
+        Assertions.assertEquals("table_b1", ref.get(ATTR_NAME));
+        Assertions.assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     /**
@@ -184,25 +182,25 @@ public class TestHive2JDBC {
         when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
-        assertNotNull(analyzer);
+        Assertions.assertNotNull(analyzer);
 
         final DataSetRefs refs = analyzer.analyze(context, record);
-        assertEquals(2, refs.getInputs().size());
+        Assertions.assertEquals(2, refs.getInputs().size());
         // QualifiedName : Name
         final Map<String, String> expectedInputRefs = new HashMap<>();
         expectedInputRefs.put("default.table_a1@namespace1", "table_a1");
         expectedInputRefs.put("default.table_a2@namespace1", "table_a2");
         for (Referenceable ref : refs.getInputs()) {
             final String qName = (String) ref.get(ATTR_QUALIFIED_NAME);
-            assertTrue(expectedInputRefs.containsKey(qName));
-            assertEquals(expectedInputRefs.get(qName), ref.get(ATTR_NAME));
+            Assertions.assertTrue(expectedInputRefs.containsKey(qName));
+            Assertions.assertEquals(expectedInputRefs.get(qName), ref.get(ATTR_NAME));
         }
 
-        assertEquals(1, refs.getOutputs().size());
+        Assertions.assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
-        assertEquals("hive_table", ref.getTypeName());
-        assertEquals("table_b1", ref.get(ATTR_NAME));
-        assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals("hive_table", ref.getTypeName());
+        Assertions.assertEquals("table_b1", ref.get(ATTR_NAME));
+        Assertions.assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     /**
@@ -229,25 +227,25 @@ public class TestHive2JDBC {
         when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
-        assertNotNull(analyzer);
+        Assertions.assertNotNull(analyzer);
 
         final DataSetRefs refs = analyzer.analyze(context, record);
-        assertEquals(2, refs.getInputs().size());
+        Assertions.assertEquals(2, refs.getInputs().size());
         // QualifiedName : Name
         final Map<String, String> expectedInputRefs = new HashMap<>();
         expectedInputRefs.put("default.table_a1@namespace1", "table_a1");
         expectedInputRefs.put("default.table_a2@namespace1", "table_a2");
         for (Referenceable ref : refs.getInputs()) {
             final String qName = (String) ref.get(ATTR_QUALIFIED_NAME);
-            assertTrue(expectedInputRefs.containsKey(qName));
-            assertEquals(expectedInputRefs.get(qName), ref.get(ATTR_NAME));
+            Assertions.assertTrue(expectedInputRefs.containsKey(qName));
+            Assertions.assertEquals(expectedInputRefs.get(qName), ref.get(ATTR_NAME));
         }
 
-        assertEquals(1, refs.getOutputs().size());
+        Assertions.assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
-        assertEquals("hive_table", ref.getTypeName());
-        assertEquals("table_b1", ref.get(ATTR_NAME));
-        assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals("hive_table", ref.getTypeName());
+        Assertions.assertEquals("table_b1", ref.get(ATTR_NAME));
+        Assertions.assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     /**
@@ -272,25 +270,25 @@ public class TestHive2JDBC {
         when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
-        assertNotNull(analyzer);
+        Assertions.assertNotNull(analyzer);
 
         final DataSetRefs refs = analyzer.analyze(context, record);
-        assertEquals(2, refs.getInputs().size());
+        Assertions.assertEquals(2, refs.getInputs().size());
         // QualifiedName : Name
         final Map<String, String> expectedInputRefs = new HashMap<>();
         expectedInputRefs.put("some_database.table_a1@namespace1", "table_a1");
         expectedInputRefs.put("some_database.table_a2@namespace1", "table_a2");
         for (Referenceable ref : refs.getInputs()) {
             final String qName = (String) ref.get(ATTR_QUALIFIED_NAME);
-            assertTrue(expectedInputRefs.containsKey(qName));
-            assertEquals(expectedInputRefs.get(qName), ref.get(ATTR_NAME));
+            Assertions.assertTrue(expectedInputRefs.containsKey(qName));
+            Assertions.assertEquals(expectedInputRefs.get(qName), ref.get(ATTR_NAME));
         }
 
-        assertEquals(1, refs.getOutputs().size());
+        Assertions.assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
-        assertEquals("hive_table", ref.getTypeName());
-        assertEquals("table_b1", ref.get(ATTR_NAME));
-        assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals("hive_table", ref.getTypeName());
+        Assertions.assertEquals("table_b1", ref.get(ATTR_NAME));
+        Assertions.assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
 }

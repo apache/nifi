@@ -25,7 +25,8 @@ import org.apache.atlas.v1.model.notification.HookNotificationV1;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.atlas.AtlasUtils;
 import org.apache.nifi.atlas.NiFiAtlasClient;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,10 +51,6 @@ import static org.apache.nifi.atlas.NiFiTypes.TYPE_DATASET;
 import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_FLOW_PATH;
 import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_QUEUE;
 import static org.apache.nifi.atlas.hook.NiFiAtlasHook.NIFI_USER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -77,8 +74,8 @@ public class TestNotificationSender {
         final List<HookNotification> messages = Collections.emptyList();
         final Notifier notifier = new Notifier();
         sender.send(messages, notifier);
-        assertEquals(0, notifier.notifications.get(0).size());
-        assertEquals(0, notifier.notifications.get(1).size());
+        Assertions.assertEquals(0, notifier.notifications.get(0).size());
+        Assertions.assertEquals(0, notifier.notifications.get(1).size());
     }
 
     private Referenceable createRef(String type, String qname) {
@@ -89,11 +86,11 @@ public class TestNotificationSender {
 
     @SuppressWarnings("unchecked")
     private void assertCreateMessage(Notifier notifier, int notificationIndex, Referenceable ... expects) {
-        assertTrue(notifier.notifications.size() > notificationIndex);
+        Assertions.assertTrue(notifier.notifications.size() > notificationIndex);
         final List<HookNotification> messages = notifier.notifications.get(notificationIndex);
-        assertEquals(1, messages.size());
+        Assertions.assertEquals(1, messages.size());
         final HookNotificationV1.EntityCreateRequest message = (HookNotificationV1.EntityCreateRequest) messages.get(0);
-        assertEquals(expects.length, message.getEntities().size());
+        Assertions.assertEquals(expects.length, message.getEntities().size());
 
         // The use of 'flatMap' at NotificationSender does not preserve actual entities order.
         // Use typed qname map to assert regardless of ordering.
@@ -105,16 +102,16 @@ public class TestNotificationSender {
             final Referenceable expect = expects[i];
             final String typeName = expect.getTypeName();
             final Referenceable actual = entities.get(AtlasUtils.toTypedQualifiedName(typeName, (String) expect.get(ATTR_QUALIFIED_NAME)));
-            assertNotNull(actual);
-            assertEquals(typeName, actual.getTypeName());
-            assertEquals(expect.get(ATTR_QUALIFIED_NAME), actual.get(ATTR_QUALIFIED_NAME));
+            Assertions.assertNotNull(actual);
+            Assertions.assertEquals(typeName, actual.getTypeName());
+            Assertions.assertEquals(expect.get(ATTR_QUALIFIED_NAME), actual.get(ATTR_QUALIFIED_NAME));
 
             if (TYPE_NIFI_FLOW_PATH.equals(typeName)) {
                 assertIOReferences(expect, actual, ATTR_INPUTS);
                 assertIOReferences(expect, actual, ATTR_OUTPUTS);
                 hasFlowPathSeen = true;
             } else {
-                assertFalse("Types other than nifi_flow_path should be created before any nifi_flow_path entity.", hasFlowPathSeen);
+                Assertions.assertFalse(hasFlowPathSeen, "Types other than nifi_flow_path should be created before any nifi_flow_path entity.");
             }
         }
     }
@@ -124,32 +121,32 @@ public class TestNotificationSender {
         final Collection<Referenceable> expectedRefs = (Collection<Referenceable>) expect.get(attrName);
         if (expectedRefs != null) {
             final Collection<Referenceable> actualRefs = (Collection<Referenceable>) actual.get(attrName);
-            assertEquals(expectedRefs.size(), actualRefs.size());
+            Assertions.assertEquals(expectedRefs.size(), actualRefs.size());
             final Iterator<Referenceable> actualIterator = actualRefs.iterator();
             for (Referenceable expectedRef : expectedRefs) {
                 final Referenceable actualRef = actualIterator.next();
-                assertEquals(expectedRef.getTypeName(), actualRef.getTypeName());
-                assertEquals(expectedRef.get(ATTR_QUALIFIED_NAME), actualRef.get(ATTR_QUALIFIED_NAME));
+                Assertions.assertEquals(expectedRef.getTypeName(), actualRef.getTypeName());
+                Assertions.assertEquals(expectedRef.get(ATTR_QUALIFIED_NAME), actualRef.get(ATTR_QUALIFIED_NAME));
             }
         }
     }
 
     @SuppressWarnings("unchecked")
     private void assertUpdateFlowPathMessage(Notifier notifier, int notificationIndex, Referenceable ... expects) {
-        assertTrue(notifier.notifications.size() > notificationIndex);
+        Assertions.assertTrue(notifier.notifications.size() > notificationIndex);
         final List<HookNotification> messages = notifier.notifications.get(notificationIndex);
-        assertEquals(expects.length, messages.size());
+        Assertions.assertEquals(expects.length, messages.size());
         for (int i = 0; i < expects.length; i++) {
             final Referenceable expect = expects[i];
             final HookNotificationV1.EntityPartialUpdateRequest actual = (HookNotificationV1.EntityPartialUpdateRequest) messages.get(i);
-            assertEquals(expect.getTypeName(), actual.getTypeName());
-            assertEquals(ATTR_QUALIFIED_NAME, actual.getAttribute());
-            assertEquals(expect.get(ATTR_QUALIFIED_NAME), actual.getAttributeValue());
+            Assertions.assertEquals(expect.getTypeName(), actual.getTypeName());
+            Assertions.assertEquals(ATTR_QUALIFIED_NAME, actual.getAttribute());
+            Assertions.assertEquals(expect.get(ATTR_QUALIFIED_NAME), actual.getAttributeValue());
 
             final Collection expIn = (Collection) expect.get(ATTR_INPUTS);
             final Collection expOut = (Collection) expect.get(ATTR_OUTPUTS);
-            assertTrue(expIn.containsAll((Collection) actual.getEntity().get(ATTR_INPUTS)));
-            assertTrue(expOut.containsAll((Collection) actual.getEntity().get(ATTR_OUTPUTS)));
+            Assertions.assertTrue(expIn.containsAll((Collection) actual.getEntity().get(ATTR_INPUTS)));
+            Assertions.assertTrue(expOut.containsAll((Collection) actual.getEntity().get(ATTR_OUTPUTS)));
         }
     }
 

@@ -24,7 +24,8 @@ import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzerFactory;
 import org.apache.nifi.atlas.resolver.NamespaceResolvers;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_CLUSTER_NAME;
@@ -34,7 +35,6 @@ import static org.apache.nifi.atlas.NiFiTypes.ATTR_URI;
 import static org.apache.nifi.atlas.provenance.analyzer.HBaseTable.ATTR_NAMESPACE;
 import static org.apache.nifi.atlas.provenance.analyzer.HBaseTable.TYPE_HBASE_NAMESPACE;
 import static org.apache.nifi.atlas.provenance.analyzer.HBaseTable.TYPE_HBASE_TABLE;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.when;
 
@@ -114,20 +114,20 @@ public class TestHBaseTable {
 
     private void assertAnalysisResult(DataSetRefs refs, String expectedTableName, String expectedTableQualifiedName, String expectedTableUri,
                                       String expectedNamespaceName, String expectedNamespaceQualifiedName) {
-        assertEquals(1, refs.getInputs().size());
-        assertEquals(0, refs.getOutputs().size());
+        Assertions.assertEquals(1, refs.getInputs().size());
+        Assertions.assertEquals(0, refs.getOutputs().size());
 
         Referenceable tableRef = refs.getInputs().iterator().next();
-        assertEquals(TYPE_HBASE_TABLE, tableRef.getTypeName());
-        assertEquals(expectedTableName, tableRef.get(ATTR_NAME));
-        assertEquals(expectedTableQualifiedName, tableRef.get(ATTR_QUALIFIED_NAME));
-        assertEquals(expectedTableUri, tableRef.get(ATTR_URI));
+        Assertions.assertEquals(TYPE_HBASE_TABLE, tableRef.getTypeName());
+        Assertions.assertEquals(expectedTableName, tableRef.get(ATTR_NAME));
+        Assertions.assertEquals(expectedTableQualifiedName, tableRef.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals(expectedTableUri, tableRef.get(ATTR_URI));
 
         Referenceable namespaceRef = (Referenceable) tableRef.get(ATTR_NAMESPACE);
-        assertEquals(TYPE_HBASE_NAMESPACE, namespaceRef.getTypeName());
-        assertEquals(expectedNamespaceName, namespaceRef.get(ATTR_NAME));
-        assertEquals(expectedNamespaceQualifiedName, namespaceRef.get(ATTR_QUALIFIED_NAME));
-        assertEquals(ATLAS_METADATA_NAMESPACE, namespaceRef.get(ATTR_CLUSTER_NAME));
+        Assertions.assertEquals(TYPE_HBASE_NAMESPACE, namespaceRef.getTypeName());
+        Assertions.assertEquals(expectedNamespaceName, namespaceRef.get(ATTR_NAME));
+        Assertions.assertEquals(expectedNamespaceQualifiedName, namespaceRef.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals(ATLAS_METADATA_NAMESPACE, namespaceRef.get(ATTR_CLUSTER_NAME));
     }
 
 }

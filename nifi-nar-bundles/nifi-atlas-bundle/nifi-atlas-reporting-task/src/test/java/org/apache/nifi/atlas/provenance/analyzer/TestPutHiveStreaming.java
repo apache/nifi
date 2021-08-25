@@ -24,14 +24,13 @@ import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzerFactory;
 import org.apache.nifi.atlas.resolver.NamespaceResolvers;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 import static org.apache.nifi.atlas.provenance.analyzer.DatabaseAnalyzerUtil.ATTR_OUTPUT_TABLES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.when;
 
@@ -62,14 +61,14 @@ public class TestPutHiveStreaming {
         when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
-        assertNotNull(analyzer);
+        Assertions.assertNotNull(analyzer);
 
         final DataSetRefs refs = analyzer.analyze(context, record);
-        assertEquals(0, refs.getInputs().size());
-        assertEquals(1, refs.getOutputs().size());
+        Assertions.assertEquals(0, refs.getInputs().size());
+        Assertions.assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
-        assertEquals("hive_table", ref.getTypeName());
-        assertEquals("table_a", ref.get(ATTR_NAME));
-        assertEquals("database_a.table_a@namespace1", ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals("hive_table", ref.getTypeName());
+        Assertions.assertEquals("table_a", ref.get(ATTR_NAME));
+        Assertions.assertEquals("database_a.table_a@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 }

@@ -25,7 +25,8 @@ import org.apache.nifi.atlas.resolver.NamespaceResolvers;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
@@ -33,9 +34,6 @@ import java.util.List;
 
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.when;
 
@@ -61,15 +59,15 @@ public class TestUnknownDataSet {
         when(context.getNiFiNamespace()).thenReturn("test_namespace");
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, null, record.getEventType());
-        assertNotNull(analyzer);
+        Assertions.assertNotNull(analyzer);
 
         final DataSetRefs refs = analyzer.analyze(context, record);
-        assertEquals(1, refs.getInputs().size());
-        assertEquals(0, refs.getOutputs().size());
+        Assertions.assertEquals(1, refs.getInputs().size());
+        Assertions.assertEquals(0, refs.getOutputs().size());
         Referenceable ref = refs.getInputs().iterator().next();
-        assertEquals("nifi_data", ref.getTypeName());
-        assertEquals("GenerateFlowFile", ref.get(ATTR_NAME));
-        assertEquals("processor-1234@test_namespace", ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals("nifi_data", ref.getTypeName());
+        Assertions.assertEquals("GenerateFlowFile", ref.get(ATTR_NAME));
+        Assertions.assertEquals("processor-1234@test_namespace", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     @Test
@@ -93,10 +91,10 @@ public class TestUnknownDataSet {
         when(context.findConnectionTo(processorId)).thenReturn(connections);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, null, record.getEventType());
-        assertNotNull(analyzer);
+        Assertions.assertNotNull(analyzer);
 
         final DataSetRefs refs = analyzer.analyze(context, record);
-        assertNull("If the processor has incoming connections, no refs should be created", refs);
+        Assertions.assertNull(refs, "If the processor has incoming connections, no refs should be created");
     }
 
 }

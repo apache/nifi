@@ -26,7 +26,8 @@ import org.apache.nifi.atlas.resolver.NamespaceResolvers;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
@@ -36,9 +37,6 @@ import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_INPUT_PORT;
 import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_OUTPUT_PORT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.when;
 
@@ -73,19 +71,19 @@ public class TestNiFiRootGroupPort {
         when(context.findConnectionFrom(matches("port-guid"))).thenReturn(connections);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(componentType, transitUri, receiveEvent.getEventType());
-        assertNotNull(analyzer);
+        Assertions.assertNotNull(analyzer);
 
         final DataSetRefs refs = analyzer.analyze(context, receiveEvent);
-        assertEquals(1, refs.getInputs().size());
-        assertEquals(0, refs.getOutputs().size());
-        assertEquals(1, refs.getComponentIds().size());
+        Assertions.assertEquals(1, refs.getInputs().size());
+        Assertions.assertEquals(0, refs.getOutputs().size());
+        Assertions.assertEquals(1, refs.getComponentIds().size());
         // Should report connected componentId.
-        assertTrue(refs.getComponentIds().contains("port-guid"));
+        Assertions.assertTrue(refs.getComponentIds().contains("port-guid"));
 
         Referenceable ref = refs.getInputs().iterator().next();
-        assertEquals(TYPE_NIFI_INPUT_PORT, ref.getTypeName());
-        assertEquals("inputPortA", ref.get(ATTR_NAME));
-        assertEquals("port-guid@namespace1", ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals(TYPE_NIFI_INPUT_PORT, ref.getTypeName());
+        Assertions.assertEquals("inputPortA", ref.get(ATTR_NAME));
+        Assertions.assertEquals("port-guid@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     @Test
@@ -112,15 +110,15 @@ public class TestNiFiRootGroupPort {
         when(context.findConnectionTo(matches("port-guid"))).thenReturn(connections);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(componentType, transitUri, sendEvent.getEventType());
-        assertNotNull(analyzer);
+        Assertions.assertNotNull(analyzer);
 
         final DataSetRefs refs = analyzer.analyze(context, sendEvent);
-        assertEquals(0, refs.getInputs().size());
-        assertEquals(1, refs.getOutputs().size());
+        Assertions.assertEquals(0, refs.getInputs().size());
+        Assertions.assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
-        assertEquals(TYPE_NIFI_OUTPUT_PORT, ref.getTypeName());
-        assertEquals("outputPortA", ref.get(ATTR_NAME));
-        assertEquals("port-guid@namespace1", ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals(TYPE_NIFI_OUTPUT_PORT, ref.getTypeName());
+        Assertions.assertEquals("outputPortA", ref.get(ATTR_NAME));
+        Assertions.assertEquals("port-guid@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     @Test
@@ -149,19 +147,19 @@ public class TestNiFiRootGroupPort {
         when(context.findConnectionFrom(matches("port-guid"))).thenReturn(connections);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(componentType, transitUri, receiveEvent.getEventType());
-        assertNotNull(analyzer);
+        Assertions.assertNotNull(analyzer);
 
         final DataSetRefs refs = analyzer.analyze(context, receiveEvent);
-        assertEquals(1, refs.getInputs().size());
-        assertEquals(0, refs.getOutputs().size());
-        assertEquals(1, refs.getComponentIds().size());
+        Assertions.assertEquals(1, refs.getInputs().size());
+        Assertions.assertEquals(0, refs.getOutputs().size());
+        Assertions.assertEquals(1, refs.getComponentIds().size());
         // Should report connected componentId.
-        assertTrue(refs.getComponentIds().contains("port-guid"));
+        Assertions.assertTrue(refs.getComponentIds().contains("port-guid"));
 
         Referenceable ref = refs.getInputs().iterator().next();
-        assertEquals(TYPE_NIFI_INPUT_PORT, ref.getTypeName());
-        assertEquals("inputPortA", ref.get(ATTR_NAME));
-        assertEquals("port-guid@namespace1", ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals(TYPE_NIFI_INPUT_PORT, ref.getTypeName());
+        Assertions.assertEquals("inputPortA", ref.get(ATTR_NAME));
+        Assertions.assertEquals("port-guid@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     @Test
@@ -189,15 +187,15 @@ public class TestNiFiRootGroupPort {
         when(context.findConnectionTo(matches("port-guid"))).thenReturn(connections);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(componentType, transitUri, sendEvent.getEventType());
-        assertNotNull(analyzer);
+        Assertions.assertNotNull(analyzer);
 
         final DataSetRefs refs = analyzer.analyze(context, sendEvent);
-        assertEquals(0, refs.getInputs().size());
-        assertEquals(1, refs.getOutputs().size());
+        Assertions.assertEquals(0, refs.getInputs().size());
+        Assertions.assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
-        assertEquals(TYPE_NIFI_OUTPUT_PORT, ref.getTypeName());
-        assertEquals("outputPortA", ref.get(ATTR_NAME));
-        assertEquals("port-guid@namespace1", ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals(TYPE_NIFI_OUTPUT_PORT, ref.getTypeName());
+        Assertions.assertEquals("outputPortA", ref.get(ATTR_NAME));
+        Assertions.assertEquals("port-guid@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
 }

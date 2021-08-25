@@ -25,13 +25,12 @@ import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzerFactory;
 import org.apache.nifi.atlas.resolver.NamespaceResolvers;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -84,15 +83,15 @@ public class TestFilePath {
         when(context.getFilesystemPathsLevel()).thenReturn(filesystemPathsLevel);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
-        assertNotNull(analyzer);
-        assertEquals(FilePath.class, analyzer.getClass());
+        Assertions.assertNotNull(analyzer);
+        Assertions.assertEquals(FilePath.class, analyzer.getClass());
 
         final DataSetRefs refs = analyzer.analyze(context, record);
-        assertEquals(0, refs.getInputs().size());
-        assertEquals(1, refs.getOutputs().size());
+        Assertions.assertEquals(0, refs.getInputs().size());
+        Assertions.assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
-        assertEquals("fs_path", ref.getTypeName());
-        assertEquals(expectedPath, ref.get(ATTR_NAME));
-        assertEquals(expectedPath + "@namespace1", ref.get(ATTR_QUALIFIED_NAME));
+        Assertions.assertEquals("fs_path", ref.getTypeName());
+        Assertions.assertEquals(expectedPath, ref.get(ATTR_NAME));
+        Assertions.assertEquals(expectedPath + "@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 }
