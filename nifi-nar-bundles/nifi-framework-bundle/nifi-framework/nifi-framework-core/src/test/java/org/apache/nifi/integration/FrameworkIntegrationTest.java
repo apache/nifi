@@ -157,6 +157,7 @@ public class FrameworkIntegrationTest {
     private Bundle systemBundle;
     private ClusterCoordinator clusterCoordinator;
     private NiFiProperties nifiProperties;
+    private StatusHistoryRepository statusHistoryRepository;
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").build();
 
@@ -231,6 +232,8 @@ public class FrameworkIntegrationTest {
         systemBundle = SystemBundle.create(nifiProperties);
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
+        statusHistoryRepository = Mockito.mock(StatusHistoryRepository.class);
+
         final PropertyEncryptor encryptor = createEncryptor();
         final Authorizer authorizer = new AlwaysAuthorizedAuthorizer();
         final AuditService auditService = new NopAuditService();
@@ -266,8 +269,9 @@ public class FrameworkIntegrationTest {
             Mockito.when(clusterCoordinator.getNodeIdentifiers()).thenReturn(nodeIdentifiers);
             Mockito.when(clusterCoordinator.getLocalNodeIdentifier()).thenReturn(localNodeId);
 
-            flowController = FlowController.createClusteredInstance(flowFileEventRepository, nifiProperties, authorizer, auditService, encryptor, protocolSender, bulletinRepo, clusterCoordinator,
-                heartbeatMonitor, leaderElectionManager, VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, flowRegistryClient, extensionManager, Mockito.mock(RevisionManager.class));
+            flowController = FlowController.createClusteredInstance(flowFileEventRepository, nifiProperties, authorizer, auditService, encryptor, protocolSender,
+                    bulletinRepo, clusterCoordinator, heartbeatMonitor, leaderElectionManager, VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, flowRegistryClient,
+                    extensionManager, Mockito.mock(RevisionManager.class), statusHistoryRepository);
 
             flowController.setClustered(true, UUID.randomUUID().toString());
             flowController.setNodeId(localNodeId);
@@ -275,7 +279,7 @@ public class FrameworkIntegrationTest {
             flowController.setConnectionStatus(new NodeConnectionStatus(localNodeId, NodeConnectionState.CONNECTED));
         } else {
             flowController = FlowController.createStandaloneInstance(flowFileEventRepository, nifiProperties, authorizer, auditService, encryptor, bulletinRepo,
-                VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, flowRegistryClient, extensionManager);
+                VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, flowRegistryClient, extensionManager, statusHistoryRepository);
         }
 
         processScheduler = new StandardProcessScheduler(flowEngine, flowController, encryptor, flowController.getStateManagerProvider(), nifiProperties);

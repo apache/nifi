@@ -31,6 +31,7 @@ import org.apache.nifi.controller.DummyScheduledReportingTask;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
@@ -69,6 +70,7 @@ public class TestStandardReportingContext {
     private BulletinRepository bulletinRepo;
     private VariableRegistry variableRegistry;
     private FlowRegistryClient flowRegistry;
+    private StatusHistoryRepository statusHistoryRepository;
     private volatile String propsFile = TestStandardReportingContext.class.getResource("/flowcontrollertest.nifi.properties").getFile();
 
     @Before
@@ -86,6 +88,8 @@ public class TestStandardReportingContext {
         systemBundle = SystemBundle.create(nifiProperties);
         extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+
+        statusHistoryRepository = Mockito.mock(StatusHistoryRepository.class);
 
         User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
         User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();
@@ -129,7 +133,7 @@ public class TestStandardReportingContext {
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor,
-                bulletinRepo, variableRegistry, flowRegistry, extensionManager);
+                bulletinRepo, variableRegistry, flowRegistry, extensionManager, statusHistoryRepository);
     }
 
     @After

@@ -33,6 +33,7 @@ import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
@@ -231,7 +232,7 @@ public class StandardProcessorNodeIT {
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
             mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
             new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
-            mock(FlowRegistryClient.class), extensionManager);
+            mock(FlowRegistryClient.class), extensionManager, mock(StatusHistoryRepository.class));
 
         // Init processor
         final PropertyDescriptor classpathProp = new PropertyDescriptor.Builder().name("Classpath Resources")

@@ -35,6 +35,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
@@ -558,9 +559,9 @@ public class ProcessorLifecycleIT {
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
-            mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
-            new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
-            mock(FlowRegistryClient.class), extensionManager);
+                mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
+                new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
+                mock(FlowRegistryClient.class), extensionManager, mock(StatusHistoryRepository.class));
 
         final FlowManager flowManager = flowController.getFlowManager();
         this.processScheduler = flowController.getProcessScheduler();
@@ -593,9 +594,11 @@ public class ProcessorLifecycleIT {
     }
 
     /**
+     *
      */
     public static class TestProcessor extends AbstractProcessor {
-        private static final Runnable NOP = () -> {};
+        private static final Runnable NOP = () -> {
+        };
 
         private Runnable onScheduleCallback = NOP;
         private Runnable onUnscheduleCallback = NOP;
@@ -613,8 +616,7 @@ public class ProcessorLifecycleIT {
 
         private final List<String> operationNames = new LinkedList<>();
 
-        void setScenario(Runnable onScheduleCallback, Runnable onUnscheduleCallback, Runnable onStopCallback,
-                Runnable onTriggerCallback) {
+        void setScenario(Runnable onScheduleCallback, Runnable onUnscheduleCallback, Runnable onStopCallback, Runnable onTriggerCallback) {
             this.onScheduleCallback = onScheduleCallback;
             this.onUnscheduleCallback = onUnscheduleCallback;
             this.onStopCallback = onStopCallback;
@@ -731,6 +733,7 @@ public class ProcessorLifecycleIT {
             this.delayLimit = delayLimit;
             this.randomDelay = randomDelay;
         }
+
         Random random = new Random();
 
         @Override

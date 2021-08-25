@@ -25,6 +25,7 @@ import org.apache.nifi.controller.DummyScheduledProcessor;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
@@ -100,7 +101,7 @@ public class StandardFlowSerializerTest {
 
         final BulletinRepository bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager);
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager, Mockito.mock(StatusHistoryRepository.class));
 
         serializer = new StandardFlowSerializer(encryptor);
     }

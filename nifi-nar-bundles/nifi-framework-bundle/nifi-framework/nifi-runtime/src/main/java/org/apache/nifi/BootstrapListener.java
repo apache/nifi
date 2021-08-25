@@ -17,6 +17,7 @@
 package org.apache.nifi;
 
 import org.apache.nifi.controller.DecommissionTask;
+import org.apache.nifi.controller.status.history.StatusHistoryDump;
 import org.apache.nifi.diagnostics.DiagnosticsDump;
 import org.apache.nifi.util.LimitingInputStream;
 import org.slf4j.Logger;
@@ -72,7 +73,7 @@ public class BootstrapListener {
         listenThread.start();
 
         logger.debug("Notifying Bootstrap that local port is {}", localPort);
-        sendCommand("PORT", new String[] { String.valueOf(localPort), secretKey});
+        sendCommand("PORT", new String[]{String.valueOf(localPort), secretKey});
     }
 
     public void reload() throws IOException {
@@ -94,7 +95,7 @@ public class BootstrapListener {
 
     public void sendStartedStatus(boolean status) throws IOException {
         logger.debug("Notifying Bootstrap that the status of starting NiFi is {}", status);
-        sendCommand("STARTED", new String[]{ String.valueOf(status) });
+        sendCommand("STARTED", new String[]{String.valueOf(status)});
     }
 
     private void sendCommand(final String command, final String[] args) throws IOException {
@@ -238,6 +239,12 @@ public class BootstrapListener {
 
                                         writeDiagnostics(socket.getOutputStream(), verbose);
                                         break;
+                                    case STATUS_HISTORY:
+                                        logger.info("Received STATUS_HISTORY request from Bootstrap");
+                                        final String[] statusHistoryArgs = request.getArgs();
+                                        final int days = Integer.parseInt(statusHistoryArgs[0]);
+                                        writeNodeStatusHistory(socket.getOutputStream(), days);
+                                        break;
                                     case IS_LOADED:
                                         logger.debug("Received IS_LOADED request from Bootstrap");
                                         String answer = String.valueOf(nifiLoaded);
@@ -280,6 +287,11 @@ public class BootstrapListener {
     private void writeDiagnostics(final OutputStream out, final boolean verbose) throws IOException {
         final DiagnosticsDump diagnosticsDump = nifi.getServer().getDiagnosticsFactory().create(verbose);
         diagnosticsDump.writeTo(out);
+    }
+
+    private void writeNodeStatusHistory(final OutputStream out, final int days) throws IOException {
+        final StatusHistoryDump statusHistoryDump = nifi.getServer().getStatusHistoryDumpFactory().create(days);
+        statusHistoryDump.writeTo(out);
     }
 
     private void sendAnswer(final OutputStream out, final String answer) throws IOException {
@@ -333,7 +345,8 @@ public class BootstrapListener {
             DIAGNOSTICS,
             DECOMMISSION,
             PING,
-            IS_LOADED
+            IS_LOADED,
+            STATUS_HISTORY
         }
 
         private final RequestType requestType;

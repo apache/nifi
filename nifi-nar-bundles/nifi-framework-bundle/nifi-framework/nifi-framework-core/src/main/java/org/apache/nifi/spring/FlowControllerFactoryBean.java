@@ -24,6 +24,7 @@ import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.VariableRegistry;
@@ -55,6 +56,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private FlowRegistryClient flowRegistryClient;
     private ExtensionManager extensionManager;
     private RevisionManager revisionManager;
+    private StatusHistoryRepository statusHistoryRepository;
 
     @Override
     public Object getObject() throws Exception {
@@ -78,7 +80,8 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     variableRegistry,
                     flowRegistryClient,
                     extensionManager,
-                    revisionManager);
+                    revisionManager,
+                    statusHistoryRepository);
             } else {
                 flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
@@ -89,7 +92,8 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     bulletinRepository,
                     variableRegistry,
                     flowRegistryClient,
-                    extensionManager);
+                    extensionManager,
+                    statusHistoryRepository);
             }
 
         }
@@ -156,5 +160,9 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
 
     public void setRevisionManager(final RevisionManager revisionManager) {
         this.revisionManager = revisionManager;
+    }
+
+    public void setStatusHistoryRepository(StatusHistoryRepository statusHistoryRepository) {
+        this.statusHistoryRepository = statusHistoryRepository;
     }
 }
