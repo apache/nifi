@@ -16,12 +16,10 @@
  */
 package org.apache.nifi.cdc.mysql.event;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Types;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 
 /**
@@ -30,10 +28,10 @@ import static org.junit.Assert.assertNull;
 public class MySQLCDCUtilsTest {
     @Test
     public void testGetWritableObject() throws Exception {
-        assertNull(MySQLCDCUtils.getWritableObject(null, null));
-        assertNull(MySQLCDCUtils.getWritableObject(Types.INTEGER, null));
-        assertEquals((byte) 1, MySQLCDCUtils.getWritableObject(Types.INTEGER, (byte) 1));
-        assertEquals("Hello", MySQLCDCUtils.getWritableObject(Types.VARCHAR, "Hello".getBytes()));
+        Assertions.assertNull(MySQLCDCUtils.getWritableObject(null, null));
+        Assertions.assertNull(MySQLCDCUtils.getWritableObject(Types.INTEGER, null));
+        Assertions.assertEquals((byte) 1, MySQLCDCUtils.getWritableObject(Types.INTEGER, (byte) 1));
+        Assertions.assertEquals("Hello", MySQLCDCUtils.getWritableObject(Types.VARCHAR, "Hello".getBytes()));
     }
 
 }
