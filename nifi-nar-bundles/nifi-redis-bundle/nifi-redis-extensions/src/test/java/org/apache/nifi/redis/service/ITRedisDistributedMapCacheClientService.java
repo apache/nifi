@@ -34,10 +34,10 @@ import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import redis.embedded.RedisServer;
 
 import java.io.ByteArrayOutputStream;
@@ -67,7 +67,7 @@ public class ITRedisDistributedMapCacheClientService {
     private RedisDistributedMapCacheClientService redisMapCacheClientService;
     private int redisPort;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         this.redisPort = getAvailablePort();
 
@@ -86,7 +86,7 @@ public class ITRedisDistributedMapCacheClientService {
         }
     }
 
-    @After
+    @AfterEach
     public void teardown() throws IOException {
         if (redisServer != null) {
             redisServer.stop();
@@ -180,70 +180,70 @@ public class ITRedisDistributedMapCacheClientService {
                 final String value = "the time is " + timestamp;
 
                 // verify the key doesn't exists, put the key/value, then verify it exists
-                Assert.assertFalse(cacheClient.containsKey(key, stringSerializer));
+                Assertions.assertFalse(cacheClient.containsKey(key, stringSerializer));
                 cacheClient.put(key, value, stringSerializer, stringSerializer);
-                Assert.assertTrue(cacheClient.containsKey(key, stringSerializer));
+                Assertions.assertTrue(cacheClient.containsKey(key, stringSerializer));
 
                 // verify get returns the expected value we set above
                 final String retrievedValue = cacheClient.get(key, stringSerializer, stringDeserializer);
-                Assert.assertEquals(value, retrievedValue);
+                Assertions.assertEquals(value, retrievedValue);
 
                 // verify get returns null for a key that doesn't exist
                 final String missingValue = cacheClient.get("does-not-exist", stringSerializer, stringDeserializerWithoutNullCheck);
-                Assert.assertEquals(null, missingValue);
+                Assertions.assertEquals(null, missingValue);
 
                 // verify remove removes the entry and contains key returns false after
-                Assert.assertTrue(cacheClient.remove(key, stringSerializer));
-                Assert.assertFalse(cacheClient.containsKey(key, stringSerializer));
+                Assertions.assertTrue(cacheClient.remove(key, stringSerializer));
+                Assertions.assertFalse(cacheClient.containsKey(key, stringSerializer));
 
                 // verify putIfAbsent works the first time and returns false the second time
-                Assert.assertTrue(cacheClient.putIfAbsent(key, value, stringSerializer, stringSerializer));
-                Assert.assertFalse(cacheClient.putIfAbsent(key, "some other value", stringSerializer, stringSerializer));
-                Assert.assertEquals(value, cacheClient.get(key, stringSerializer, stringDeserializer));
+                Assertions.assertTrue(cacheClient.putIfAbsent(key, value, stringSerializer, stringSerializer));
+                Assertions.assertFalse(cacheClient.putIfAbsent(key, "some other value", stringSerializer, stringSerializer));
+                Assertions.assertEquals(value, cacheClient.get(key, stringSerializer, stringDeserializer));
 
                 // verify that getAndPutIfAbsent returns the existing value and doesn't modify it in the cache
                 final String getAndPutIfAbsentResult = cacheClient.getAndPutIfAbsent(key, value, stringSerializer, stringSerializer, stringDeserializer);
-                Assert.assertEquals(value, getAndPutIfAbsentResult);
-                Assert.assertEquals(value, cacheClient.get(key, stringSerializer, stringDeserializer));
+                Assertions.assertEquals(value, getAndPutIfAbsentResult);
+                Assertions.assertEquals(value, cacheClient.get(key, stringSerializer, stringDeserializer));
 
                 // verify that getAndPutIfAbsent on a key that doesn't exist returns null
                 final String keyThatDoesntExist = key + "_DOES_NOT_EXIST";
-                Assert.assertFalse(cacheClient.containsKey(keyThatDoesntExist, stringSerializer));
+                Assertions.assertFalse(cacheClient.containsKey(keyThatDoesntExist, stringSerializer));
                 final String getAndPutIfAbsentResultWhenDoesntExist = cacheClient.getAndPutIfAbsent(keyThatDoesntExist, value, stringSerializer, stringSerializer, stringDeserializer);
-                Assert.assertEquals(null, getAndPutIfAbsentResultWhenDoesntExist);
-                Assert.assertEquals(value, cacheClient.get(keyThatDoesntExist, stringSerializer, stringDeserializer));
+                Assertions.assertEquals(null, getAndPutIfAbsentResultWhenDoesntExist);
+                Assertions.assertEquals(value, cacheClient.get(keyThatDoesntExist, stringSerializer, stringDeserializer));
 
                 // verify atomic fetch returns the correct entry
                 final AtomicCacheEntry<String,String,byte[]> entry = cacheClient.fetch(key, stringSerializer, stringDeserializer);
-                Assert.assertEquals(key, entry.getKey());
-                Assert.assertEquals(value, entry.getValue());
-                Assert.assertTrue(Arrays.equals(value.getBytes(StandardCharsets.UTF_8), entry.getRevision().orElse(null)));
+                Assertions.assertEquals(key, entry.getKey());
+                Assertions.assertEquals(value, entry.getValue());
+                Assertions.assertTrue(Arrays.equals(value.getBytes(StandardCharsets.UTF_8), entry.getRevision().orElse(null)));
 
                 final AtomicCacheEntry<String,String,byte[]> notLatestEntry = new AtomicCacheEntry<>(entry.getKey(), entry.getValue(), "not previous".getBytes(StandardCharsets.UTF_8));
 
                 // verify atomic replace does not replace when previous value is not equal
-                Assert.assertFalse(cacheClient.replace(notLatestEntry, stringSerializer, stringSerializer));
-                Assert.assertEquals(value, cacheClient.get(key, stringSerializer, stringDeserializer));
+                Assertions.assertFalse(cacheClient.replace(notLatestEntry, stringSerializer, stringSerializer));
+                Assertions.assertEquals(value, cacheClient.get(key, stringSerializer, stringDeserializer));
 
                 // verify atomic replace does replace when previous value is equal
                 final String replacementValue = "this value has been replaced";
                 entry.setValue(replacementValue);
-                Assert.assertTrue(cacheClient.replace(entry, stringSerializer, stringSerializer));
-                Assert.assertEquals(replacementValue, cacheClient.get(key, stringSerializer, stringDeserializer));
+                Assertions.assertTrue(cacheClient.replace(entry, stringSerializer, stringSerializer));
+                Assertions.assertEquals(replacementValue, cacheClient.get(key, stringSerializer, stringDeserializer));
 
                 // verify atomic replace does replace no value previous existed
                 final String replaceKeyDoesntExist = key + "_REPLACE_DOES_NOT_EXIST";
                 final AtomicCacheEntry<String,String,byte[]> entryDoesNotExist = new AtomicCacheEntry<>(replaceKeyDoesntExist, replacementValue, null);
-                Assert.assertTrue(cacheClient.replace(entryDoesNotExist, stringSerializer, stringSerializer));
-                Assert.assertEquals(replacementValue, cacheClient.get(replaceKeyDoesntExist, stringSerializer, stringDeserializer));
+                Assertions.assertTrue(cacheClient.replace(entryDoesNotExist, stringSerializer, stringSerializer));
+                Assertions.assertEquals(replacementValue, cacheClient.get(replaceKeyDoesntExist, stringSerializer, stringDeserializer));
 
                 final int numToDelete = 2000;
                 for (int i=0; i < numToDelete; i++) {
                     cacheClient.put(key + "-" + i, value, stringSerializer, stringSerializer);
                 }
 
-                Assert.assertTrue(cacheClient.removeByPattern("test-redis-processor-*") >= numToDelete);
-                Assert.assertFalse(cacheClient.containsKey(key, stringSerializer));
+                Assertions.assertTrue(cacheClient.removeByPattern("test-redis-processor-*") >= numToDelete);
+                Assertions.assertFalse(cacheClient.containsKey(key, stringSerializer));
 
                 Map<String, String> bulk = new HashMap<>();
                 bulk.put("bulk-1", "testing1");
@@ -253,11 +253,11 @@ public class ITRedisDistributedMapCacheClientService {
                 bulk.put("bulk-5", "testing5");
 
                 cacheClient.putAll(bulk, stringSerializer, stringSerializer);
-                Assert.assertTrue(cacheClient.containsKey("bulk-1", stringSerializer));
-                Assert.assertTrue(cacheClient.containsKey("bulk-2", stringSerializer));
-                Assert.assertTrue(cacheClient.containsKey("bulk-3", stringSerializer));
-                Assert.assertTrue(cacheClient.containsKey("bulk-4", stringSerializer));
-                Assert.assertTrue(cacheClient.containsKey("bulk-5", stringSerializer));
+                Assertions.assertTrue(cacheClient.containsKey("bulk-1", stringSerializer));
+                Assertions.assertTrue(cacheClient.containsKey("bulk-2", stringSerializer));
+                Assertions.assertTrue(cacheClient.containsKey("bulk-3", stringSerializer));
+                Assertions.assertTrue(cacheClient.containsKey("bulk-4", stringSerializer));
+                Assertions.assertTrue(cacheClient.containsKey("bulk-5", stringSerializer));
 
                 session.transfer(flowFile, REL_SUCCESS);
             } catch (final Exception e) {

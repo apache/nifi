@@ -26,10 +26,10 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.StandardProcessorTestRunner;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 
@@ -46,12 +46,12 @@ public class TestRedisConnectionPoolService {
 
     private static SSLContext sslContext;
 
-    @BeforeClass
+    @BeforeAll
     public static void classSetup() throws IOException, GeneralSecurityException {
         sslContext = SSLContext.getDefault();
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         proc = new FakeRedisProcessor();
         testRunner = TestRunners.newTestRunner(proc);
@@ -81,8 +81,8 @@ public class TestRedisConnectionPoolService {
         JedisConnectionFactory connectionFactory = getJedisConnectionFactory(); // Uses config from test runner
 
         // Verify that the client configuration will be using an SSL socket factory and SSL parameters
-        Assert.assertTrue(connectionFactory.getClientConfiguration().getSslSocketFactory().isPresent());
-        Assert.assertTrue(connectionFactory.getClientConfiguration().getSslParameters().isPresent());
+        Assertions.assertTrue(connectionFactory.getClientConfiguration().getSslSocketFactory().isPresent());
+        Assertions.assertTrue(connectionFactory.getClientConfiguration().getSslParameters().isPresent());
 
         // Now remove the SSL context service
         testRunner.disableControllerService(redisService);
@@ -91,8 +91,8 @@ public class TestRedisConnectionPoolService {
         connectionFactory = getJedisConnectionFactory();
 
         // Now the client configuration will not use SSL
-        Assert.assertFalse(connectionFactory.getClientConfiguration().getSslSocketFactory().isPresent());
-        Assert.assertFalse(connectionFactory.getClientConfiguration().getSslParameters().isPresent());
+        Assertions.assertFalse(connectionFactory.getClientConfiguration().getSslSocketFactory().isPresent());
+        Assertions.assertFalse(connectionFactory.getClientConfiguration().getSslParameters().isPresent());
     }
 
     private void setDefaultRedisProperties() {

@@ -21,9 +21,9 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
@@ -36,7 +36,7 @@ public class TestRedisStateProvider {
     private StateProviderInitializationContext context;
     private ValidationContext validationContext;
 
-    @Before
+    @BeforeEach
     public void init() {
         context = Mockito.mock(StateProviderInitializationContext.class);
         redisStateProvider = new RedisStateProvider();
@@ -68,7 +68,7 @@ public class TestRedisStateProvider {
         redisStateProvider.initialize(context);
 
         Collection<ValidationResult> results = redisStateProvider.customValidate(validationContext);
-        Assert.assertTrue(results.isEmpty());
+        Assertions.assertTrue(results.isEmpty());
     }
 
     @Test
@@ -78,7 +78,7 @@ public class TestRedisStateProvider {
         redisStateProvider.initialize(context);
 
         Collection<ValidationResult> results = redisStateProvider.customValidate(validationContext);
-        Assert.assertTrue(results.isEmpty());
+        Assertions.assertTrue(results.isEmpty());
     }
 
     @Test
@@ -90,6 +90,6 @@ public class TestRedisStateProvider {
         redisStateProvider.initialize(context);
 
         Collection<ValidationResult> results = redisStateProvider.customValidate(validationContext);
-        Assert.assertEquals(1, results.size());
+        Assertions.assertEquals(1, results.size());
     }
 }

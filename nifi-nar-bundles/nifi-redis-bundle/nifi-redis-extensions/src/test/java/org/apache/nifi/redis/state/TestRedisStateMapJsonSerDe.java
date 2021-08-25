@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.redis.state;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
@@ -26,7 +26,7 @@ public class TestRedisStateMapJsonSerDe {
 
     private RedisStateMapSerDe serDe;
 
-    @Before
+    @BeforeEach
     public void setup() {
         serDe = new RedisStateMapJsonSerDe();
     }
@@ -42,23 +42,23 @@ public class TestRedisStateMapJsonSerDe {
                 .build();
 
         final byte[] serialized = serDe.serialize(stateMap);
-        Assert.assertNotNull(serialized);
+        Assertions.assertNotNull(serialized);
 
         final RedisStateMap deserialized = serDe.deserialize(serialized);
-        Assert.assertNotNull(deserialized);
-        Assert.assertEquals(stateMap.getVersion(), deserialized.getVersion());
-        Assert.assertEquals(stateMap.getEncodingVersion(), deserialized.getEncodingVersion());
-        Assert.assertEquals(stateMap.toMap(), deserialized.toMap());
+        Assertions.assertNotNull(deserialized);
+        Assertions.assertEquals(stateMap.getVersion(), deserialized.getVersion());
+        Assertions.assertEquals(stateMap.getEncodingVersion(), deserialized.getEncodingVersion());
+        Assertions.assertEquals(stateMap.toMap(), deserialized.toMap());
     }
 
     @Test
     public void testSerializeWhenNull() throws IOException {
-        Assert.assertNull(serDe.serialize(null));
+        Assertions.assertNull(serDe.serialize(null));
     }
 
     @Test
     public void testDeserializeWhenNull() throws IOException {
-        Assert.assertNull(serDe.deserialize(null));
+        Assertions.assertNull(serDe.deserialize(null));
     }
 
     @Test
@@ -66,14 +66,14 @@ public class TestRedisStateMapJsonSerDe {
         final RedisStateMap stateMap = new RedisStateMap.Builder().build();
 
         final byte[] serialized = serDe.serialize(stateMap);
-        Assert.assertNotNull(serialized);
+        Assertions.assertNotNull(serialized);
 
         final RedisStateMap deserialized = serDe.deserialize(serialized);
-        Assert.assertNotNull(deserialized);
-        Assert.assertEquals(RedisStateMap.DEFAULT_VERSION.longValue(), stateMap.getVersion());
-        Assert.assertEquals(RedisStateMap.DEFAULT_ENCODING, stateMap.getEncodingVersion());
-        Assert.assertNotNull(deserialized.toMap());
-        Assert.assertEquals(0, deserialized.toMap().size());
+        Assertions.assertNotNull(deserialized);
+        Assertions.assertEquals(RedisStateMap.DEFAULT_VERSION.longValue(), stateMap.getVersion());
+        Assertions.assertEquals(RedisStateMap.DEFAULT_ENCODING, stateMap.getEncodingVersion());
+        Assertions.assertNotNull(deserialized.toMap());
+        Assertions.assertEquals(0, deserialized.toMap().size());
     }
 
 }
