@@ -37,12 +37,12 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import org.apache.nifi.accumulo.controllerservices.AccumuloService;
 import org.apache.nifi.accumulo.controllerservices.MockAccumuloService;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -75,9 +75,9 @@ public class PutRecordIT {
 
 
 
-    @BeforeClass
+    @BeforeAll
     public static void setupInstance() throws IOException, InterruptedException, AccumuloSecurityException, AccumuloException, TableExistsException {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+        Assumptions.assumeTrue(!SystemUtils.IS_OS_WINDOWS, "Test only runs on *nix");
         Path tempDirectory = Files.createTempDirectory("acc"); // JUnit and Guava supply mechanisms for creating temp directories
         accumulo = new MiniAccumuloCluster(tempDirectory.toFile(), "password");
         accumulo.start();
@@ -139,10 +139,10 @@ public class PutRecordIT {
             ranges.add(new Range());
             scanner.setRanges(ranges);
             for (Map.Entry<Key, Value> kv : scanner) {
-                Assert.assertTrue(kv.getKey() + " not in expected keys",expectedKeys.remove(kv.getKey()));
+                Assertions.assertTrue(expectedKeys.remove(kv.getKey()), kv.getKey() + " not in expected keys");
             }
         }
-        Assert.assertEquals(0, expectedKeys.size());
+        Assertions.assertEquals(0, expectedKeys.size());
 
     }
 
@@ -180,7 +180,7 @@ public class PutRecordIT {
         runner.run();
 
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(PutAccumuloRecord.REL_SUCCESS);
-        Assert.assertTrue("Wrong count", results.size() == 1);
+        Assertions.assertTrue(results.size() == 1, "Wrong count");
         verifyKey(tableName, expectedKeys, defaultVis);
         if (deletes){
             runner.setProperty(PutAccumuloRecord.DELETE_KEY, "true");
