@@ -2094,7 +2094,7 @@
                 } else if (target.hasClass('delete-flow-analysis-rule')) {
                     nfFlowAnalysisRule.promptToDeleteFlowAnalysisRule(flowAnalysisRuleEntity);
                 } else if (target.hasClass('view-state-flow-analysis-rule')) {
-                    var canClear = flowAnalysisRuleEntity.status.runStatus === 'STOPPED' && flowAnalysisRuleEntity.status.activeThreadCount === 0;
+                    var canClear = flowAnalysisRuleEntity.status.runStatus === 'DISABLED';
                     nfComponentState.showState(flowAnalysisRuleEntity, canClear);
                 } else if (target.hasClass('change-version-flow-analysis-rule')) {
                     nfComponentVersion.promptForVersionChange(flowAnalysisRuleEntity);
