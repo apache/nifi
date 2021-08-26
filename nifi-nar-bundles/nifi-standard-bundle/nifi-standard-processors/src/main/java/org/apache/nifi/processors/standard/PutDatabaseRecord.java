@@ -605,7 +605,9 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
         // Always get the primary keys if Update Keys is empty. Otherwise if we have an Insert statement first, the table will be
         // cached but the primary keys will not be retrieved, causing future UPDATE statements to not have primary keys available
-        final boolean includePrimaryKeys = updateKeys == null;
+        // But if there is no updateKeys column in the Record when Update Keys is not empty, causing 'Record does not have a value
+        // for the UpdateKey column ** '
+        final boolean includePrimaryKeys = StringUtils.isEmpty(updateKeys);
 
         final SchemaKey schemaKey = new PutDatabaseRecord.SchemaKey(catalog, schemaName, tableName);
         final TableSchema tableSchema = schemaCache.get(schemaKey, key -> {
@@ -1328,7 +1330,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
     private Set<String> getUpdateKeyColumnNames(String tableName, String updateKeys, TableSchema tableSchema) throws SQLIntegrityConstraintViolationException {
         final Set<String> updateKeyColumnNames;
 
-        if (updateKeys == null) {
+        if (StringUtils.isEmpty(updateKeys)) {
             updateKeyColumnNames = tableSchema.getPrimaryKeyColumnNames();
         } else {
             updateKeyColumnNames = new HashSet<>();
