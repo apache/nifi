@@ -18,7 +18,7 @@ package org.apache.nifi.processors.gcp.storage;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.TestRunner;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 

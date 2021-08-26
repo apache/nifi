@@ -28,10 +28,13 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
@@ -105,6 +108,11 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
     @Mock
     Storage storage;
+
+    @BeforeEach
+    public void setup() throws Exception {
+        MockitoAnnotations.initMocks(this);
+    }
 
     @Override
     public AbstractGCSProcessor getProcessor() {
