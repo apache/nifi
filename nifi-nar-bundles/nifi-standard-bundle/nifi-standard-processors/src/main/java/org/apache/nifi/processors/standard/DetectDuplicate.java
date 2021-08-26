@@ -208,7 +208,7 @@ public class DetectDuplicate extends AbstractProcessor {
             } else {
                 session.getProvenanceReporter().route(flowFile, REL_NON_DUPLICATE);
                 session.transfer(flowFile, REL_NON_DUPLICATE);
-                logger.info("Could not find a duplicate entry in cache for {}; routing to non-duplicate", new Object[]{flowFile});
+                logger.debug("Could not find a duplicate entry in cache for {}; routing to non-duplicate", new Object[]{flowFile});
                 session.adjustCounter("Non-Duplicate Files Processed", 1L, false);
             }
         } catch (final IOException e) {
