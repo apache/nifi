@@ -3915,6 +3915,11 @@ that is specified.
 |`nifi.zookeeper.security.truststore`|Filename of the Truststore that will be used to verify the ZooKeeper server(s).
 |`nifi.zookeeper.security.truststoreType`|Optional. The type of the Truststore. Must be `PKCS12`, `JKS`, or `PEM`. If not specified the type will be determined from the file extension (`.p12`, `.jks`, `.pem`).
 |`nifi.zookeeper.security.truststorePasswd`|The password for the Truststore.
+|`nifi.zookeeper.jute.maxbuffer`|Maximum buffer size in bytes for packets sent to and received from ZooKeeper.
+Defaults to `1048575` bytes (`0xfffff` in hexadecimal) following ZooKeeper default `jute.maxbuffer` property.
+
+The link:http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#Unsafe+Options[ZooKeeper Administrator's Guide] categorizes this property as an *unsafe option*.
+Changing this property *requires* setting `jute.maxbuffer` on ZooKeeper servers.
 |====
 
 [[kerberos_properties]]
