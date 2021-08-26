@@ -216,7 +216,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             if (clientConfig != null && clientConfig.isClientSecure()) {
                 SecureClientZooKeeperFactory factory = new SecureClientZooKeeperFactory(clientConfig);
                 try {
-                    zooKeeper = factory.newZooKeeper(connectionString, timeoutMillis, new DefaultWatcher(), true);
+                    zooKeeper = factory.newZooKeeper(connectionString, timeoutMillis, new NoOpWatcher(), true);
                     logger.debug("Secure ZooKeeper Client connection [{}] created", connectionString);
                 } catch (final Exception e) {
                     logger.error("Secure ZooKeeper Client connection [{}] failed", connectionString, e);
@@ -224,8 +224,10 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                 }
             } else {
                 final ZKClientConfig zkClientConfig = new ZKClientConfig();
-                zkClientConfig.setProperty(ZKConfig.JUTE_MAXBUFFER, Integer.toString(clientConfig.getJuteMaxbuffer()));
-                zooKeeper = new ZooKeeper(connectionString, timeoutMillis, new DefaultWatcher(), zkClientConfig);
+                if (clientConfig != null) {
+                    zkClientConfig.setProperty(ZKConfig.JUTE_MAXBUFFER, Integer.toString(clientConfig.getJuteMaxbuffer()));
+                }
+                zooKeeper = new ZooKeeper(connectionString, timeoutMillis, new NoOpWatcher(), zkClientConfig);
                 logger.debug("Standard ZooKeeper Client connection [{}] created", connectionString);
             }
 
@@ -415,7 +417,6 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     private void createNode(final String path, final byte[] data, final String componentId, final Map<String, String> stateValues, final List<ACL> acls) throws IOException, KeeperException {
         try {
             final ZooKeeper zooKeeper = getZooKeeper();
-            validateDataSize(zooKeeper.getClientConfig(), data, componentId, stateValues.size());
             zooKeeper.create(path, data, acls, CreateMode.PERSISTENT);
         } catch (final InterruptedException ie) {
             throw new IOException("Failed to update cluster-wide state due to interruption", ie);
@@ -521,7 +522,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         }
     }
 
-    private static final class DefaultWatcher implements Watcher {
+    private static final class NoOpWatcher implements Watcher {
 
         @Override
         public void process(final WatchedEvent watchedEvent) {
