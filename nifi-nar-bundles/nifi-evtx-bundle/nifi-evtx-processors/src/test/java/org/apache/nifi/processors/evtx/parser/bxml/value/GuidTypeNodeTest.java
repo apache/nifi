@@ -18,16 +18,15 @@
 package org.apache.nifi.processors.evtx.parser.bxml.value;
 
 import org.apache.nifi.processors.evtx.parser.bxml.BxmlNodeTestBase;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-
-import static org.junit.Assert.assertEquals;
 
 public class GuidTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testGuidTypeNode() throws IOException {
         String guid = "a1b2c3d4-e5f6-a7b8-c9da-ebf001121314";
-        assertEquals(guid, new GuidTypeNode(testBinaryReaderBuilder.putGuid(guid).build(), chunkHeader, parent, -1).getValue());
+        Assertions.assertEquals(guid, new GuidTypeNode(testBinaryReaderBuilder.putGuid(guid).build(), chunkHeader, parent, -1).getValue());
     }
 }

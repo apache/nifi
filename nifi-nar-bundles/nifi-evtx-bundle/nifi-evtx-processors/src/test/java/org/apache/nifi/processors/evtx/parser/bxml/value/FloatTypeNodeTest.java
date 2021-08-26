@@ -18,17 +18,16 @@
 package org.apache.nifi.processors.evtx.parser.bxml.value;
 
 import org.apache.nifi.processors.evtx.parser.bxml.BxmlNodeTestBase;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-
-import static org.junit.Assert.assertEquals;
 
 public class FloatTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testFloatTypeNode() throws IOException {
         float value = 5.432f;
-        assertEquals(Float.toString(value),
+        Assertions.assertEquals(Float.toString(value),
                 new FloatTypeNode(testBinaryReaderBuilder.putDWord(Float.floatToIntBits(value)).build(), chunkHeader, parent, -1).getValue());
     }
 }
