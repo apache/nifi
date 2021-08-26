@@ -20,11 +20,11 @@ package org.apache.nifi.processors.evtx.parser;
 import org.apache.nifi.processors.evtx.parser.bxml.BxmlNode;
 import org.apache.nifi.processors.evtx.parser.bxml.EndOfStreamNode;
 import org.apache.nifi.processors.evtx.parser.bxml.RootNode;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.util.Date;
@@ -33,7 +33,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class RecordTest {
     @Mock
     ChunkHeader chunkHeader;
@@ -53,7 +53,7 @@ public class RecordTest {
         testBinaryReaderBuilder.putDWord(size);
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         TestBinaryReaderBuilder testBinaryReaderBuilder = new TestBinaryReaderBuilder();
         putNode(testBinaryReaderBuilder, recordNum, new Date());
