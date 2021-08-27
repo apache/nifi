@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.processors.parquet;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -31,7 +35,6 @@ import java.util.Map;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -61,14 +64,15 @@ import org.apache.nifi.util.TestRunners;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.mockito.Mockito;
 
-
+@DisabledOnOs(OS.WINDOWS)
 public class PutParquetTest {
 
     static final String DIRECTORY = "target";
@@ -80,14 +84,13 @@ public class PutParquetTest {
     private MockRecordParser readerFactory;
     private TestRunner testRunner;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupBeforeClass() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         BasicConfigurator.configure();
     }
 
-    @Before
-    public void setup() throws IOException, InitializationException {
+    @BeforeEach
+    public void setup() throws IOException {
         final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/avro/user.avsc"), StandardCharsets.UTF_8);
         schema = new Schema.Parser().parse(avroSchema);
 
@@ -142,28 +145,28 @@ public class PutParquetTest {
 
         // verify we generated a provenance event
         final List<ProvenanceEventRecord> provEvents = testRunner.getProvenanceEvents();
-        Assert.assertEquals(1, provEvents.size());
+        assertEquals(1, provEvents.size());
 
         // verify it was a SEND event with the correct URI
         final ProvenanceEventRecord provEvent = provEvents.get(0);
-        Assert.assertEquals(ProvenanceEventType.SEND, provEvent.getEventType());
+        assertEquals(ProvenanceEventType.SEND, provEvent.getEventType());
         // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
-        Assert.assertTrue(provEvent.getTransitUri().endsWith(DIRECTORY + "/" + filename));
+        assertTrue(provEvent.getTransitUri().endsWith(DIRECTORY + "/" + filename));
 
         // verify the content of the parquet file by reading it back in
         verifyAvroParquetUsers(avroParquetFile, 100);
 
         // verify we don't have the temp dot file after success
         final File tempAvroParquetFile = new File(DIRECTORY + "/." + filename);
-        Assert.assertFalse(tempAvroParquetFile.exists());
+        assertFalse(tempAvroParquetFile.exists());
 
         // verify we DO have the CRC file after success
         final File crcAvroParquetFile = new File(DIRECTORY + "/." + filename + ".crc");
-        Assert.assertTrue(crcAvroParquetFile.exists());
+        assertTrue(crcAvroParquetFile.exists());
     }
 
     @Test
-    public void testWriteAvroAndRemoveCRCFiles() throws IOException, InitializationException {
+    public void testWriteAvroAndRemoveCRCFiles() throws InitializationException {
         configure(proc,100);
         testRunner.setProperty(PutParquet.REMOVE_CRC_FILES, "true");
 
@@ -178,11 +181,11 @@ public class PutParquetTest {
 
         // verify we don't have the temp dot file after success
         final File tempAvroParquetFile = new File(DIRECTORY + "/." + filename);
-        Assert.assertFalse(tempAvroParquetFile.exists());
+        assertFalse(tempAvroParquetFile.exists());
 
         // verify we don't have the CRC file after success because we set remove to true
         final File crcAvroParquetFile = new File(DIRECTORY + "/." + filename + ".crc");
-        Assert.assertFalse(crcAvroParquetFile.exists());
+        assertFalse(crcAvroParquetFile.exists());
     }
 
     @Test
@@ -229,11 +232,11 @@ public class PutParquetTest {
     }
 
     @Test
-    public void testCreateDirectoryIOExceptionShouldRouteToRetry() throws InitializationException, IOException {
+    public void testCreateDirectoryIOExceptionShouldRouteToRetry() throws InitializationException {
         final PutParquet proc = new PutParquet() {
             @Override
             protected void createDirectory(FileSystem fileSystem, Path directory, String remoteOwner, String remoteGroup)
-                    throws IOException, FailureException {
+                    throws IOException {
                 throw new IOException("IOException creating directory");
             }
         };
@@ -251,11 +254,11 @@ public class PutParquetTest {
     }
 
     @Test
-    public void testCreateDirectoryFailureExceptionShouldRouteToFailure() throws InitializationException, IOException {
+    public void testCreateDirectoryFailureExceptionShouldRouteToFailure() throws InitializationException {
         final PutParquet proc = new PutParquet() {
             @Override
             protected void createDirectory(FileSystem fileSystem, Path directory, String remoteOwner, String remoteGroup)
-                    throws IOException, FailureException {
+                    throws FailureException {
                 throw new FailureException("FailureException creating directory");
             }
         };
@@ -281,7 +284,7 @@ public class PutParquetTest {
 
         // create a file in the directory with the same name
         final File avroParquetFile = new File(DIRECTORY + "/" + filename);
-        Assert.assertTrue(avroParquetFile.createNewFile());
+        assertTrue(avroParquetFile.createNewFile());
 
         final Map<String,String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
@@ -301,7 +304,7 @@ public class PutParquetTest {
 
         // create a file in the directory with the same name
         final File avroParquetFile = new File(DIRECTORY + "/" + filename);
-        Assert.assertTrue(avroParquetFile.createNewFile());
+        assertTrue(avroParquetFile.createNewFile());
 
         final Map<String,String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
@@ -320,7 +323,7 @@ public class PutParquetTest {
 
         // create a file in the directory with the same name
         final File avroParquetFile = new File(DIRECTORY + "/" + filename);
-        Assert.assertTrue(avroParquetFile.createNewFile());
+        assertTrue(avroParquetFile.createNewFile());
 
         final Map<String,String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
@@ -331,7 +334,7 @@ public class PutParquetTest {
     }
 
     @Test
-    public void testValidSchemaWithELShouldBeSuccessful() throws InitializationException, IOException {
+    public void testValidSchemaWithELShouldBeSuccessful() throws InitializationException {
         configure(proc, 10);
 
         final String filename = "testValidSchemaWithELShouldBeSuccessful-" + System.currentTimeMillis();
@@ -372,11 +375,11 @@ public class PutParquetTest {
     }
 
     @Test
-    public void testIOExceptionCreatingWriterShouldRouteToRetry() throws InitializationException, IOException, MalformedRecordException {
+    public void testIOExceptionCreatingWriterShouldRouteToRetry() throws InitializationException {
         final PutParquet proc = new PutParquet() {
             @Override
             public HDFSRecordWriter createHDFSRecordWriter(ProcessContext context, FlowFile flowFile, Configuration conf, Path path, RecordSchema schema)
-                    throws IOException, SchemaNotFoundException {
+                    throws IOException {
                 throw new IOException("IOException");
             }
         };
@@ -422,11 +425,11 @@ public class PutParquetTest {
     }
 
     @Test
-    public void testIOExceptionRenamingShouldRouteToRetry() throws InitializationException, IOException {
+    public void testIOExceptionRenamingShouldRouteToRetry() throws InitializationException {
         final PutParquet proc = new PutParquet() {
             @Override
             protected void rename(FileSystem fileSystem, Path srcFile, Path destFile)
-                    throws IOException, InterruptedException, FailureException {
+                    throws IOException {
                 throw new IOException("IOException renaming");
             }
         };
@@ -444,15 +447,15 @@ public class PutParquetTest {
 
         // verify we don't have the temp dot file after success
         final File tempAvroParquetFile = new File(DIRECTORY + "/." + filename);
-        Assert.assertFalse(tempAvroParquetFile.exists());
+        assertFalse(tempAvroParquetFile.exists());
     }
 
     @Test
-    public void testFailureExceptionRenamingShouldRouteToFailure() throws InitializationException, IOException {
+    public void testFailureExceptionRenamingShouldRouteToFailure() throws InitializationException {
         final PutParquet proc = new PutParquet() {
             @Override
             protected void rename(FileSystem fileSystem, Path srcFile, Path destFile)
-                    throws IOException, InterruptedException, FailureException {
+                    throws FailureException {
                 throw new FailureException("FailureException renaming");
             }
         };
@@ -470,11 +473,11 @@ public class PutParquetTest {
 
         // verify we don't have the temp dot file after success
         final File tempAvroParquetFile = new File(DIRECTORY + "/." + filename);
-        Assert.assertFalse(tempAvroParquetFile.exists());
+        assertFalse(tempAvroParquetFile.exists());
     }
 
     @Test
-    public void testRowGroupSize() throws IOException, InitializationException {
+    public void testRowGroupSize() throws InitializationException {
         configure(proc, 10);
         testRunner.setProperty(ParquetUtils.ROW_GROUP_SIZE, "1024 B");
 
@@ -489,7 +492,7 @@ public class PutParquetTest {
     }
 
     @Test
-    public void testInvalidRowGroupSizeFromELShouldRouteToFailure() throws IOException, InitializationException {
+    public void testInvalidRowGroupSizeFromELShouldRouteToFailure() throws InitializationException {
         configure(proc, 10);
         testRunner.setProperty(ParquetUtils.ROW_GROUP_SIZE, "${row.group.size}");
 
@@ -505,7 +508,7 @@ public class PutParquetTest {
     }
 
     @Test
-    public void testPageSize() throws IOException, InitializationException {
+    public void testPageSize() throws InitializationException {
         configure(proc, 10);
         testRunner.setProperty(ParquetUtils.PAGE_SIZE, "1024 B");
 
@@ -520,7 +523,7 @@ public class PutParquetTest {
     }
 
     @Test
-    public void testInvalidPageSizeFromELShouldRouteToFailure() throws IOException, InitializationException {
+    public void testInvalidPageSizeFromELShouldRouteToFailure() throws InitializationException {
         configure(proc, 10);
         testRunner.setProperty(ParquetUtils.PAGE_SIZE, "${page.size}");
 
@@ -536,7 +539,7 @@ public class PutParquetTest {
     }
 
     @Test
-    public void testDictionaryPageSize() throws IOException, InitializationException {
+    public void testDictionaryPageSize() throws InitializationException {
         configure(proc, 10);
         testRunner.setProperty(ParquetUtils.DICTIONARY_PAGE_SIZE, "1024 B");
 
@@ -551,7 +554,7 @@ public class PutParquetTest {
     }
 
     @Test
-    public void testInvalidDictionaryPageSizeFromELShouldRouteToFailure() throws IOException, InitializationException {
+    public void testInvalidDictionaryPageSizeFromELShouldRouteToFailure() throws InitializationException {
         configure(proc, 10);
         testRunner.setProperty(ParquetUtils.DICTIONARY_PAGE_SIZE, "${dictionary.page.size}");
 
@@ -567,7 +570,7 @@ public class PutParquetTest {
     }
 
     @Test
-    public void testMaxPaddingPageSize() throws IOException, InitializationException {
+    public void testMaxPaddingPageSize() throws InitializationException {
         configure(proc, 10);
         testRunner.setProperty(ParquetUtils.MAX_PADDING_SIZE, "1024 B");
 
@@ -582,7 +585,7 @@ public class PutParquetTest {
     }
 
     @Test
-    public void testInvalidMaxPaddingSizeFromELShouldRouteToFailure() throws IOException, InitializationException {
+    public void testInvalidMaxPaddingSizeFromELShouldRouteToFailure() throws InitializationException {
         configure(proc, 10);
         testRunner.setProperty(ParquetUtils.MAX_PADDING_SIZE, "${max.padding.size}");
 
@@ -621,7 +624,7 @@ public class PutParquetTest {
 
     private void verifyAvroParquetUsers(final Path avroParquetUsers, final int numExpectedUsers) throws IOException {
         final ParquetReader.Builder<GenericRecord> readerBuilder = AvroParquetReader
-                .<GenericRecord>builder(avroParquetUsers)
+                .<GenericRecord>builder(HadoopInputFile.fromPath(avroParquetUsers, testConf))
                 .withConf(testConf);
 
         int currUser = 0;
@@ -629,15 +632,15 @@ public class PutParquetTest {
         try (final ParquetReader<GenericRecord> reader = readerBuilder.build()) {
             GenericRecord nextRecord;
             while((nextRecord = reader.read()) != null) {
-                Assert.assertNotNull(nextRecord);
-                Assert.assertEquals("name" + currUser, nextRecord.get("name").toString());
-                Assert.assertEquals(currUser, nextRecord.get("favorite_number"));
-                Assert.assertEquals("blue" + currUser, nextRecord.get("favorite_color").toString());
+                assertNotNull(nextRecord);
+                assertEquals("name" + currUser, nextRecord.get("name").toString());
+                assertEquals(currUser, nextRecord.get("favorite_number"));
+                assertEquals("blue" + currUser, nextRecord.get("favorite_color").toString());
                 currUser++;
             }
         }
 
-        Assert.assertEquals(numExpectedUsers, currUser);
+        assertEquals(numExpectedUsers, currUser);
     }
 
 

@@ -27,17 +27,17 @@ import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPSecretKey;
 
 import org.bouncycastle.openpgp.PGPSecretKeyRing;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class StandardPGPPrivateKeyServiceTest {
@@ -61,7 +61,7 @@ public class StandardPGPPrivateKeyServiceTest {
 
     private TestRunner runner;
 
-    @BeforeClass
+    @BeforeAll
     public static void setKey() throws Exception {
         rsaSecretKey = PGPSecretKeyGenerator.generateRsaSecretKey(KEY_ENCRYPTION_PASSWORD.toCharArray());
 
@@ -75,7 +75,7 @@ public class StandardPGPPrivateKeyServiceTest {
         elGamalKeyringAscii = PGPFileUtils.getArmored(elGamalKeyring.getEncoded());
     }
 
-    @Before
+    @BeforeEach
     public void setService() {
         service = new StandardPGPPrivateKeyService();
         final Processor processor = mock(Processor.class);
