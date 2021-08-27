@@ -24,7 +24,7 @@ import org.apache.nifi.controller.ControllerService;
 public interface OAuth2AccessTokenProvider extends ControllerService {
 
     /**
-     * @return A valid access token and additional metadata (provided by the OAuth2 access server)
+     * @return A valid access token (refreshed automatically if needed) and additional metadata (provided by the OAuth2 access server)
      */
     AccessToken getAccessDetails();
 }

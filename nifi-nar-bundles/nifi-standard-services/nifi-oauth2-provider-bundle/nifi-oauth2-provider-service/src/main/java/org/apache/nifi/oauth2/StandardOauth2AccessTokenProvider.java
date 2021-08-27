@@ -26,8 +26,12 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -39,14 +43,17 @@ import org.apache.nifi.ssl.SSLContextService;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-@Tags({"oauth2", "provider", "authorization", "access token", "http" })
+@Tags({"oauth2", "provider", "authorization", "access token", "http"})
 @CapabilityDescription("Provides OAuth 2.0 access tokens that can be used as Bearer authorization header in HTTP requests." +
     " Uses Resource Owner Password Credentials Grant.")
-public class PasswordBasedOauth2TokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {
+public class StandardOauth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {
     public static final PropertyDescriptor AUTHORIZATION_SERVER_URL = new PropertyDescriptor.Builder()
         .name("authorization-server-url")
         .displayName("Authorization Server URL")
@@ -56,10 +63,31 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
+    public static AllowableValue RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE = new AllowableValue(
+        "password",
+        "User Password",
+        "Resource Owner Password Credentials Grant. Used to access resources available to users. Requires username and password and usually Client ID and Client Secret"
+    );
+    public static AllowableValue CLIENT_CREDENTIALS_GRANT_TYPE = new AllowableValue(
+        "client_credentials",
+        "Client Credentials",
+        "Client Credentials Grant. Used to access resources available to clients. Requires Client ID and Client Secret"
+    );
+
+    public static final PropertyDescriptor GRANT_TYPE = new PropertyDescriptor.Builder()
+        .name("grant-type")
+        .displayName("Grant Type")
+        .description("The OAuth2 Grant Type to be used when acquiring an access token.")
+        .required(true)
+        .allowableValues(RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE, CLIENT_CREDENTIALS_GRANT_TYPE)
+        .defaultValue(RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE.getValue())
+        .build();
+
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
         .name("service-user-name")
         .displayName("Username")
         .description("Username on the service that is being accessed.")
+        .dependsOn(GRANT_TYPE, RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE)
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -69,6 +97,7 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
         .name("service-password")
         .displayName("Password")
         .description("Password for the username on the service that is being accessed.")
+        .dependsOn(GRANT_TYPE, RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE)
         .required(true)
         .sensitive(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -101,6 +130,7 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
         AUTHORIZATION_SERVER_URL,
+        GRANT_TYPE,
         USERNAME,
         PASSWORD,
         CLIENT_ID,
@@ -112,13 +142,14 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
 
-    private String authorizationServerUrl;
-    private OkHttpClient httpClient;
+    private volatile String authorizationServerUrl;
+    private volatile OkHttpClient httpClient;
 
-    private String username;
-    private String password;
-    private String clientId;
-    private String clientSecret;
+    private volatile String grantType;
+    private volatile String username;
+    private volatile String password;
+    private volatile String clientId;
+    private volatile String clientSecret;
 
     private volatile AccessToken accessDetails;
 
@@ -133,10 +164,38 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
 
         httpClient = createHttpClient(context);
 
+        grantType = context.getProperty(GRANT_TYPE).getValue();
         username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         password = context.getProperty(PASSWORD).getValue();
         clientId = context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
         clientSecret = context.getProperty(CLIENT_SECRET).getValue();
+    }
+
+    @OnDisabled
+    public void onDisabled() {
+        accessDetails = null;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
+
+        if (
+            validationContext.getProperty(GRANT_TYPE).getValue().equals(CLIENT_CREDENTIALS_GRANT_TYPE.getValue())
+                && !validationContext.getProperty(CLIENT_ID).isSet()
+        ) {
+            validationResults.add(new ValidationResult.Builder().subject(CLIENT_ID.getDisplayName())
+                .valid(false)
+                .explanation(String.format(
+                    "When '%s' is set to '%s', '%s' is required",
+                    GRANT_TYPE.getDisplayName(),
+                    CLIENT_CREDENTIALS_GRANT_TYPE.getDisplayName(),
+                    CLIENT_ID.getDisplayName())
+                )
+                .build());
+        }
+
+        return validationResults;
     }
 
     protected OkHttpClient createHttpClient(ConfigurationContext context) {
@@ -155,25 +214,30 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
     @Override
     public AccessToken getAccessDetails() {
         if (this.accessDetails == null) {
-            acquireAuthorizationDetails();
+            acquireAccessDetails();
         } else if (this.accessDetails.isExpired()) {
             try {
-                refreshAuthorizationDetails();
+                refreshAccessDetails();
             } catch (Exception e) {
                 getLogger().info("Couldn't refresh access token, probably refresh token has expired." +
-                    " Getting new token using credentials.");
-                acquireAuthorizationDetails();
+                    " Getting new token.");
+                acquireAccessDetails();
             }
         }
 
         return accessDetails;
     }
 
-    private void acquireAuthorizationDetails() {
-        FormBody.Builder acquireTokenBuilder = new FormBody.Builder()
-            .add("grant_type", "password")
-            .add("username", username)
-            .add("password", password);
+    private void acquireAccessDetails() {
+        FormBody.Builder acquireTokenBuilder = new FormBody.Builder();
+
+        if (grantType.equals(RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE.getValue())) {
+            acquireTokenBuilder.add("grant_type", "password")
+                .add("username", username)
+                .add("password", password);
+        } else if (grantType.equals(CLIENT_CREDENTIALS_GRANT_TYPE.getValue())) {
+            acquireTokenBuilder.add("grant_type", "client_credentials");
+        }
 
         if (clientId != null) {
             acquireTokenBuilder.add("client_id", clientId);
@@ -190,7 +254,7 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
         this.accessDetails = getAccessDetails(acquireTokenRequest);
     }
 
-    private void refreshAuthorizationDetails() {
+    private void refreshAccessDetails() {
         FormBody.Builder refreshTokenBuilder = new FormBody.Builder()
             .add("grant_type", "refresh_token")
             .add("refresh_token", this.accessDetails.getRefreshToken());
@@ -203,9 +267,9 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
         RequestBody refreshTokenRequestBody = refreshTokenBuilder.build();
 
         Request refreshRequest = new Request.Builder()
-                .url(authorizationServerUrl)
-                .post(refreshTokenRequestBody)
-                .build();
+            .url(authorizationServerUrl)
+            .post(refreshTokenRequestBody)
+            .build();
 
         this.accessDetails = getAccessDetails(refreshRequest);
     }
@@ -223,7 +287,7 @@ public class PasswordBasedOauth2TokenProvider extends AbstractControllerService 
 
             return accessDetails;
         } catch (IOException e) {
-            throw new ProcessException(e);
+            throw new UncheckedIOException(e);
         }
     }
 }

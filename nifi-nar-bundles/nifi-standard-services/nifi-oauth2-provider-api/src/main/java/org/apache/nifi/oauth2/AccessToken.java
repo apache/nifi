@@ -24,7 +24,7 @@ public class AccessToken {
     private String accessToken;
     private String refreshToken;
     private String tokenType;
-    private long expires;
+    private long expiresIn;
     private String scopes;
 
     private final Instant fetchTime;
@@ -40,7 +40,7 @@ public class AccessToken {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.tokenType = tokenType;
-        this.expires = expiresIn;
+        this.expiresIn = expiresIn;
         this.scopes = scopes;
     }
 
@@ -68,12 +68,12 @@ public class AccessToken {
         this.tokenType = tokenType;
     }
 
-    public long getExpires() {
-        return expires;
+    public long getExpiresIn() {
+        return expiresIn;
     }
 
-    public void setExpires(long expires) {
-        this.expires = expires;
+    public void setExpiresIn(long expiresIn) {
+        this.expiresIn = expiresIn;
     }
 
     public String getScopes() {
@@ -89,7 +89,7 @@ public class AccessToken {
     }
 
     public boolean isExpired() {
-        boolean expired = Duration.between(Instant.now(), fetchTime.plusSeconds(expires - EXPIRY_MARGIN)).isNegative();
+        boolean expired = Duration.between(Instant.now(), fetchTime.plusSeconds(expiresIn - EXPIRY_MARGIN)).isNegative();
 
         return expired;
     }

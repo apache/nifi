@@ -41,7 +41,7 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
 @Deprecated
-@DeprecationNotice(alternatives = {PasswordBasedOauth2TokenProvider.class})
+@DeprecationNotice(alternatives = {StandardOauth2AccessTokenProvider.class})
 @Tags({"oauth2", "provider", "authorization" })
 @CapabilityDescription("This controller service provides a way of working with access and refresh tokens via the " +
         "password and client_credential grant flows in the OAuth2 specification. It is meant to provide a way for components " +

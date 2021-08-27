@@ -33,14 +33,14 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-public class PasswordBasedOauth2TokenProviderTest {
+public class StandardOauth2AccessTokenProviderTest {
     private static final String AUTHORIZATION_SERVER_URL = "http://authorizationServerUrl";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
     private static final String CLIENT_ID = "clientId";
     private static final String CLIENT_SECRET = "clientSecret";
 
-    private PasswordBasedOauth2TokenProvider testSubject;
+    private StandardOauth2AccessTokenProvider testSubject;
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private OkHttpClient mockHttpClient;
@@ -52,18 +52,19 @@ public class PasswordBasedOauth2TokenProviderTest {
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
 
-        testSubject = new PasswordBasedOauth2TokenProvider() {
+        testSubject = new StandardOauth2AccessTokenProvider() {
             @Override
             protected OkHttpClient createHttpClient(ConfigurationContext context) {
                 return mockHttpClient;
             }
         };
 
-        when(context.getProperty(PasswordBasedOauth2TokenProvider.AUTHORIZATION_SERVER_URL).evaluateAttributeExpressions().getValue()).thenReturn(AUTHORIZATION_SERVER_URL);
-        when(context.getProperty(PasswordBasedOauth2TokenProvider.USERNAME).evaluateAttributeExpressions().getValue()).thenReturn(USERNAME);
-        when(context.getProperty(PasswordBasedOauth2TokenProvider.PASSWORD).getValue()).thenReturn(PASSWORD);
-        when(context.getProperty(PasswordBasedOauth2TokenProvider.CLIENT_ID).evaluateAttributeExpressions().getValue()).thenReturn(CLIENT_ID);
-        when(context.getProperty(PasswordBasedOauth2TokenProvider.CLIENT_SECRET).getValue()).thenReturn(CLIENT_SECRET);
+        when(context.getProperty(StandardOauth2AccessTokenProvider.GRANT_TYPE).getValue()).thenReturn(StandardOauth2AccessTokenProvider.RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE.getValue());
+        when(context.getProperty(StandardOauth2AccessTokenProvider.AUTHORIZATION_SERVER_URL).evaluateAttributeExpressions().getValue()).thenReturn(AUTHORIZATION_SERVER_URL);
+        when(context.getProperty(StandardOauth2AccessTokenProvider.USERNAME).evaluateAttributeExpressions().getValue()).thenReturn(USERNAME);
+        when(context.getProperty(StandardOauth2AccessTokenProvider.PASSWORD).getValue()).thenReturn(PASSWORD);
+        when(context.getProperty(StandardOauth2AccessTokenProvider.CLIENT_ID).evaluateAttributeExpressions().getValue()).thenReturn(CLIENT_ID);
+        when(context.getProperty(StandardOauth2AccessTokenProvider.CLIENT_SECRET).getValue()).thenReturn(CLIENT_SECRET);
 
         testSubject.onEnabled(context);
     }
