@@ -742,7 +742,7 @@ The next configuration element is the Process Group Parameter Context, which is 
 
 The third element in the configuration dialog is the Process Group Comments. This provides a mechanism for providing any useful information or context about the Process Group.
 
-The next two elements, Process Group FlowFile Currency and Process Group Outbound Policy, are covered in the following sections.
+The next two elements, Process Group FlowFile Concurrency and Process Group Outbound Policy, are covered in the following sections.
 
 [[Flowfile_Concurrency]]
 ===== FlowFile Concurrency
