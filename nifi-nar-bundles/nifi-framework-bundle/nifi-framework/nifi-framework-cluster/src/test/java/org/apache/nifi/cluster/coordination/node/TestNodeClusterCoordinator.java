@@ -453,6 +453,50 @@ public class TestNodeClusterCoordinator {
         assertEquals(conflictingId.getSocketPort(), conflictingNodeId.getSocketPort());
     }
 
+    @Test
+    public void testAddNodeIdentifierWithSameAddressDifferentLoadBalanceEndpoint() {
+        // Add Node 1 to the cluster
+        final NodeIdentifier id1 = new NodeIdentifier("1234", "localhost", 8000, "localhost", 9000, "localhost", 10000, 11000, false);
+
+        final ConnectionRequest connectionRequest = new ConnectionRequest(id1, new StandardDataFlow(new byte[0], new byte[0], new byte[0], new HashSet<>()));
+        final ConnectionRequestMessage crm = new ConnectionRequestMessage();
+        crm.setConnectionRequest(connectionRequest);
+
+        final ProtocolMessage response = coordinator.handle(crm, Collections.emptySet());
+        assertNotNull(response);
+        assertTrue(response instanceof ConnectionResponseMessage);
+        final ConnectionResponseMessage responseMessage = (ConnectionResponseMessage) response;
+        final NodeIdentifier resolvedNodeId = responseMessage.getConnectionResponse().getNodeIdentifier();
+        assertEquals(id1, resolvedNodeId);
+
+        // Add in a conflicting ID
+        final NodeIdentifier conflictingId = new NodeIdentifier("1234", "localhost", 8001, "localhost", 9000, "loadbalance-2", 4848, "localhost", 10000, 11000, false, null);
+        final ConnectionRequest conRequest2 = new ConnectionRequest(conflictingId, new StandardDataFlow(new byte[0], new byte[0], new byte[0], new HashSet<>()));
+        final ConnectionRequestMessage crm2 = new ConnectionRequestMessage();
+        crm2.setConnectionRequest(conRequest2);
+
+        final ProtocolMessage conflictingResponse = coordinator.handle(crm2, Collections.emptySet());
+        assertNotNull(conflictingResponse);
+        assertTrue(conflictingResponse instanceof ConnectionResponseMessage);
+        final ConnectionResponseMessage conflictingResponseMessage = (ConnectionResponseMessage) conflictingResponse;
+        final NodeIdentifier conflictingNodeId = conflictingResponseMessage.getConnectionResponse().getNodeIdentifier();
+        assertEquals(id1.getId(), conflictingNodeId.getId());
+        assertEquals(conflictingId.getApiAddress(), conflictingNodeId.getApiAddress());
+        assertEquals(conflictingId.getApiPort(), conflictingNodeId.getApiPort());
+        assertEquals(conflictingId.getSiteToSiteAddress(), conflictingNodeId.getSiteToSiteAddress());
+        assertEquals(conflictingId.getSiteToSitePort(), conflictingNodeId.getSiteToSitePort());
+        assertEquals(conflictingId.getSocketAddress(), conflictingNodeId.getSocketAddress());
+        assertEquals(conflictingId.getSocketPort(), conflictingNodeId.getSocketPort());
+
+        // Ensure that the values were updated
+        final Set<NodeIdentifier> registeredNodeIds = coordinator.getNodeIdentifiers();
+        assertEquals(1, registeredNodeIds.size());
+
+        final NodeIdentifier registeredId = registeredNodeIds.iterator().next();
+        assertEquals("loadbalance-2", registeredId.getLoadBalanceAddress());
+        assertEquals(4848, registeredId.getLoadBalancePort());
+    }
+
     private NodeIdentifier createNodeId(final int index) {
         return new NodeIdentifier(String.valueOf(index), "localhost", 8000 + index, "localhost", 9000 + index, "localhost", 10000 + index, 11000 + index, false);
     }

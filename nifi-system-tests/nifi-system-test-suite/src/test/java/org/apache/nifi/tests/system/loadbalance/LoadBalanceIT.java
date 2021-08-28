@@ -19,6 +19,7 @@ package org.apache.nifi.tests.system.loadbalance;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
@@ -333,6 +334,82 @@ public class LoadBalanceIT extends NiFiSystemIT {
             .summaryStatistics();
 
         return stats.getMin() == stats.getMax();
+    }
+
+
+    @Test
+    public void testRoundRobinWithRestartAndPortChange() throws NiFiClientException, IOException, InterruptedException {
+        ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        final ProcessorEntity count = getClientUtil().createProcessor("CountEvents");
+
+        final ConnectionEntity connection = getClientUtil().createConnection(generate, count, "success");
+        getClientUtil().setAutoTerminatedRelationships(count, "success");
+
+        // Configure Processor to generate 20 FlowFiles, each 1 MB and run on Primary Node.
+        final Map<String, String> generateProperties = new HashMap<>();
+        generateProperties.put("File Size", "1 MB");
+        generateProperties.put("Batch Size", "20");
+        getClientUtil().updateProcessorProperties(generate, generateProperties);
+        getClientUtil().updateProcessorExecutionNode(generate, ExecutionNode.PRIMARY);
+
+        // Round Robin between nodes. This should result in 10 FlowFiles on each node.
+        getClientUtil().updateConnectionLoadBalancing(connection, LoadBalanceStrategy.ROUND_ROBIN, LoadBalanceCompression.DO_NOT_COMPRESS, null);
+
+        // Generate the data.
+        getNifiClient().getProcessorClient().startProcessor(generate);
+
+        // Wait until all 20 FlowFiles are queued up.
+        waitFor(() -> {
+            final ConnectionStatusEntity statusEntity = getConnectionStatus(connection.getId());
+            return statusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued() == 20;
+        });
+
+        // Wait until load balancing is complete
+        waitFor(() -> isConnectionDoneLoadBalancing(connection.getId()));
+
+        // Ensure that the FlowFiles are evenly distributed between the nodes.
+        final ConnectionStatusEntity statusEntity = getConnectionStatus(connection.getId());
+        assertTrue(isEvenlyDistributed(statusEntity));
+
+        assertEquals(20, getQueueSize(connection.getId()));
+        assertEquals(20 * 1024 * 1024, getQueueBytes(connection.getId()));
+
+        getNifiClient().getProcessorClient().stopProcessor(generate);
+
+        // Empty the queue because on restart, Node 2 will rebalance all of its data using the Load-Balance strategy, and we don't want
+        // the data to start out lopsided.
+        getClientUtil().emptyQueue(connection.getId());
+
+        final NiFiInstance instance2 = this.getNiFiInstance().getNodeInstance(2);
+        instance2.stop();
+
+        final Map<String, String> updatedLoadBalanceProperties = new HashMap<>();
+        updatedLoadBalanceProperties.put("nifi.cluster.load.balance.host", "127.0.0.1");
+        updatedLoadBalanceProperties.put("nifi.cluster.load.balance.port", "7676");
+        instance2.setProperties(updatedLoadBalanceProperties);
+
+        instance2.start(true);
+        waitForAllNodesConnected();
+
+        // Generate the data again
+        generate = getNifiClient().getProcessorClient().getProcessor(generate.getId());
+        getNifiClient().getProcessorClient().startProcessor(generate);
+
+        // Wait until all 20 FlowFiles are queued up
+        waitFor(() -> {
+            final ConnectionStatusEntity secondRoundStatusEntity = getConnectionStatus(connection.getId());
+            return secondRoundStatusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued() == 20;
+        });
+
+        // Wait until load balancing is complete
+        waitFor(() -> isConnectionDoneLoadBalancing(connection.getId()));
+
+        // Ensure that the FlowFiles are evenly distributed between the nodes.
+        final ConnectionStatusEntity afterSecondDataGenerationStatusEntity = getConnectionStatus(connection.getId());
+        assertTrue(isEvenlyDistributed(afterSecondDataGenerationStatusEntity));
+
+        assertEquals(20, getQueueSize(connection.getId()));
+        assertEquals(20 * 1024 * 1024, getQueueBytes(connection.getId()));
     }
 
 }
