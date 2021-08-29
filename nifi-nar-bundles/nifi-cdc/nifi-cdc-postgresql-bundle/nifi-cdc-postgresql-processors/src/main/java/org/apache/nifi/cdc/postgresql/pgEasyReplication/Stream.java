@@ -34,9 +34,11 @@ import org.postgresql.replication.PGReplicationStream;
 
 import org.apache.nifi.cdc.postgresql.pgEasyReplication.ConnectionManager;
 
-
-/* Streams are data changes captured (BEGIN, COMMIT, INSERT, UPDATE, DELETE, etc.) via Slot Replication API and decoded. */
-public class Stream {
+public class Stream { 
+    /** 
+     *  Streams are data changes captured (BEGIN, COMMIT, INSERT, UPDATE, DELETE, etc.) 
+     *  via Slot Replication API and decoded. 
+     */
 
     private PGReplicationStream repStream;
     private Long lastReceiveLSN;
@@ -54,7 +56,6 @@ public class Stream {
         PGConnection pgcon = this.connectionManager.getReplicationConnection().unwrap(PGConnection.class);
 
         if (lsn == null) {
-            // More details about pgoutput options in PostgreSQL project: https://github.com/postgres, source file: postgres/src/backend/replication/pgoutput/pgoutput.c
             this.repStream = pgcon.getReplicationAPI().replicationStream().logical().withSlotName(slt).withSlotOption("proto_version", "1").withSlotOption("publication_names", pub)
                     .withStatusInterval(1, TimeUnit.SECONDS).start();
 
@@ -62,10 +63,14 @@ public class Stream {
             // Reading from LSN start position
             LogSequenceNumber startLSN = LogSequenceNumber.valueOf(lsn);
 
-            // More details about pgoutput options in PostgreSQL project: https://github.com/postgres, source file: postgres/src/backend/replication/pgoutput/pgoutput.c
             this.repStream = pgcon.getReplicationAPI().replicationStream().logical().withSlotName(slt).withSlotOption("proto_version", "1").withSlotOption("publication_names", pub)
                     .withStatusInterval(1, TimeUnit.SECONDS).withStartPosition(startLSN).start();
         }
+        
+        /**
+         * More details about pgoutput options in PostgreSQL project,
+         * source file postgres/src/backend/replication/pgoutput/pgoutput.c
+         */
     }
 
     public Event readStream(boolean isSimpleEvent, boolean withBeginCommit, String outputFormat)
@@ -74,7 +79,7 @@ public class Stream {
         LinkedList<String> messages = new LinkedList<String>();
 
         if (this.decode == null) {
-            // First read stream
+            // First read
             this.decode = new Decode();
             decode.loadDataTypes(this.connectionManager);
         }

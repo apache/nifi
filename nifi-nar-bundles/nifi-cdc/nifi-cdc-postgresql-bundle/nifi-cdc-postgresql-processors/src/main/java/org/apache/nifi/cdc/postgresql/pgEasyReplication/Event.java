@@ -19,9 +19,11 @@ package org.apache.nifi.cdc.postgresql.pgEasyReplication;
 
 import java.util.LinkedList;
 
-
-/* Events represent the data and metadata returned by pgEasyReplication, regardless of whether it is a Stream (data changes) or a Snapshot. */
 public class Event {
+    /**
+     *  Events represents the data and metadata returned by pgEasyReplication, 
+     *  regardless of whether it is a Stream (data changes) or a Snapshot. 
+     */
 
     private LinkedList<String> data;
     private Long lastLSN;

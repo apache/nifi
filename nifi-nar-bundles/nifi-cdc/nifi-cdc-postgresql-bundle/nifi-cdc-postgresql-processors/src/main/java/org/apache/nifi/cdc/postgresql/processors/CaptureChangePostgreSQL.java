@@ -84,7 +84,7 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 @Tags({ "sql", "jdbc", "cdc", "postgresql" })
 
 @CapabilityDescription("Retrieves Change Data Capture (CDC) events from a PostgreSQL database. Works for PostgreSQL version 10+. CDC Events include INSERT, UPDATE, DELETE operations. Events "
-        + "are output as individual flow files ordered by the time at which the operation occurred. This processor use a replication connection to stream data and sql connection to snapshot.")
+        + "are output as individual flow files ordered by the time at which the operation occurred. This processor use a replication connection to stream data and SQL connection (COPY) to snapshot.")
 
 @Stateful(scopes = Scope.CLUSTER, description = "Information such as a 'pointer' to the current CDC event in the database is stored by this processor, such "
         + "that it can continue from the same location if restarted.")
@@ -98,18 +98,18 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("Successfully created FlowFile from CDC event.").build();
     // Properties
-    public static final PropertyDescriptor HOST = new PropertyDescriptor.Builder().name("cdc-postgresql-host").displayName("PostgreSQL Host")
-            .description("A list of hostname/port entries corresponding to nodes in a PostgreSQL cluster. The entries should be comma separated "
-                    + "using a colon such as host1:port,host2:port,....  For example postgresql.myhost.com:5432. This processor will attempt to connect to "
-                    + "the hosts in the list in order. If one node goes down and failover is enabled for the cluster, then the processor will connect "
-                    + "to the active node (assuming its host entry is specified in this property.  The default port for PostgreSQL connections is 5432.")
+    public static final PropertyDescriptor HOST = new PropertyDescriptor.Builder().name("cdc-postgresql-host").displayName("PostgreSQL hostname and port")
+            .description("A list of hostname:port entries corresponding to servers in a PostgreSQL cluster. The entries should be comma separated "
+                    + "using a colon such as host1:port,host2:port,.... This processor will attempt to connect to the hosts in the list in order."
+                    + "If one server goes down and failover is enabled for the cluster, then the processor will connect "
+                    + "to the active server (assuming its host entry is specified in this property). The default port for PostgreSQL connections is 5432.")
             .required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
-    public static final PropertyDescriptor DRIVER_NAME = new PropertyDescriptor.Builder().name("cdc-postgresql-driver-class").displayName("PostgreSQL Driver Class Name")
+    public static final PropertyDescriptor DRIVER_NAME = new PropertyDescriptor.Builder().name("cdc-postgresql-driver-class").displayName("PostgreSQL driver class name")
             .description("The class name of the PostgreSQL database driver class").defaultValue("org.postgresql.Driver").required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
 
-    public static final PropertyDescriptor DRIVER_LOCATION = new PropertyDescriptor.Builder().name("cdc-postgresql-driver-locations").displayName("PostgreSQL Driver Location(s)")
+    public static final PropertyDescriptor DRIVER_LOCATION = new PropertyDescriptor.Builder().name("cdc-postgresql-driver-locations").displayName("PostgreSQL driver location(s)")
             .description("Comma-separated list of files/folders and/or URLs containing the PostgreSQL driver JAR and its dependencies (if any)." + "For example '/var/tmp/postgresql-42.2.9.jar'")
             .defaultValue(null).required(false).addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
@@ -123,25 +123,30 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder().name("cdc-postgresql-password").displayName("Password").description("Password to access PostgreSQL cluster.")
             .required(false).sensitive(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
-    public static final PropertyDescriptor PUBLICATION = new PropertyDescriptor.Builder().name("cdc-postgresql-publication").displayName("Publication")
+    public static final PropertyDescriptor PUBLICATION = new PropertyDescriptor.Builder().name("cdc-postgresql-publication").displayName("Publication name")
             .description("PostgreSQL publication name. A publication is essentially a group of tables whose data changes are intended to be replicated through logical replication.").required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
-    public static final PropertyDescriptor SLOT_NAME = new PropertyDescriptor.Builder().name("cdc-postgresql-slot-name").displayName("Slot Name")
+    public static final PropertyDescriptor SLOT_NAME = new PropertyDescriptor.Builder().name("cdc-postgresql-slot-name").displayName("Replication slot name")
             .description("A unique, cluster-wide identifier for the replication slot. Each replication slot has a name, which can contain lower-case letters, numbers, "
                     + "and the underscore character. Existing replication slots and their state can be seen in the pg_replication_slots view.")
             .required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+    
+    public static final PropertyDescriptor DROP_SLOT_IF_EXISTS = new PropertyDescriptor.Builder().name("cdc-postgresql-drop-slot-if-exists").displayName("Drop if exists replication slot?")
+            .description("Drop replication slot if it already exists.")
+            .required(true).allowableValues("true", "false").defaultValue("false").addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
 
-    public static final PropertyDescriptor SNAPSHOT = new PropertyDescriptor.Builder().name("cdc-postgresql-snapshot").displayName("Make Snapshot")
+    public static final PropertyDescriptor SNAPSHOT = new PropertyDescriptor.Builder().name("cdc-postgresql-snapshot").displayName("Take a initial snapshot?")
             .description("The initial data in existing subscribed tables are snapshotted and copied in a parallel instance of a special kind of apply "
                     + "process. This process will create its own temporary replication slot and copy the existing data. Once existing data is copied, "
                     + "the worker enters synchronization mode, which ensures that the table is brought up to a synchronized state with the main apply "
                     + "process by streaming any changes that happened during the initial data copy using standard logical replication. Once the "
-                    + "synchronization is done, the control of the replication of the table is given back to the main apply process where the replication " + "continues as normal.")
+                    + "synchronization is done, the control of the replication of the table is given back to the main apply process where the replication " 
+                    + "continues as normal. Not recommended for big tables.")
             .required(true).allowableValues("true", "false").defaultValue("false").addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
 
-    public static final PropertyDescriptor INCLUDE_BEGIN_COMMIT = new PropertyDescriptor.Builder().name("cdc-postgresql-include-begin-commit").displayName("Include Begin/Commit Events")
-            .description("Specifies whether to emit events corresponding to a BEGIN or COMMIT event. Set to true if the BEGIN/COMMIT events are necessary in the downstream flow, "
+    public static final PropertyDescriptor INCLUDE_BEGIN_COMMIT = new PropertyDescriptor.Builder().name("cdc-postgresql-include-begin-commit").displayName("Include Begin/Commit events?")
+            .description("Specifies whether to emit events corresponding to a BEGIN or COMMIT statement. Set to true if the BEGIN/COMMIT events are necessary in the downstream flow, "
                     + "otherwise set to false, which suppresses generation of these events and can increase flow performance.")
             .required(true).allowableValues("true", "false").defaultValue("false").addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
 
@@ -151,14 +156,6 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
                     + "monotonically increasing integers that record the order of flow files generated by the processor. They can be used with the EnforceOrder "
                     + "processor to guarantee ordered delivery of CDC events.")
             .required(false).addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR).build();
-
-    public static final PropertyDescriptor DROP_SLOT_IF_EXISTS = new PropertyDescriptor.Builder().name("cdc-postgresql-drop-slot-if-exists").displayName("Drop If Exists Replication Slot")
-            .description("The initial data in existing subscribed tables are snapshotted and copied in a parallel instance of a special kind of apply "
-                    + "process. This process will create its own temporary replication slot and copy the existing data. Once existing data is copied, "
-                    + "the worker enters synchronization mode, which ensures that the table is brought up to a synchronized state with the main apply "
-                    + "process by streaming any changes that happened during the initial data copy using standard logical replication. Once the "
-                    + "synchronization is done, the control of the replication of the table is given back to the main apply process where the replication " + "continues as normal.")
-            .required(true).allowableValues("true", "false").defaultValue("false").addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
 
     private List<PropertyDescriptor> descriptors;
     private Set<Relationship> relationships;
@@ -272,7 +269,7 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
             if (this.lastLSNReceived != null)
                 updateState(stateManager);
         } catch (Exception e) {
-            throw new CDCException("Error closing CDC connection", e);
+            throw new CDCException("Error closing CDC connections!", e);
         }
     }
 
@@ -307,10 +304,10 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
         descriptors.add(PASSWORD);
         descriptors.add(PUBLICATION);
         descriptors.add(SLOT_NAME);
+        descriptors.add(DROP_SLOT_IF_EXISTS);
         descriptors.add(SNAPSHOT);
         descriptors.add(INCLUDE_BEGIN_COMMIT);
         descriptors.add(INIT_LSN);
-        descriptors.add(DROP_SLOT_IF_EXISTS);
 
         this.descriptors = Collections.unmodifiableList(descriptors);
 
@@ -344,9 +341,9 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
         final String host = context.getProperty(HOST).evaluateAttributeExpressions().getValue();
         final String database = context.getProperty(DATABASE_NAME).evaluateAttributeExpressions().getValue();
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-        final boolean dropSlotIfExists = context.getProperty(DROP_SLOT_IF_EXISTS).evaluateAttributeExpressions().asBoolean();
         final String publicationName = context.getProperty(PUBLICATION).evaluateAttributeExpressions().getValue();
         final String replicationSlotName = context.getProperty(SLOT_NAME).evaluateAttributeExpressions().getValue();
+        final boolean dropSlotIfExists = context.getProperty(DROP_SLOT_IF_EXISTS).evaluateAttributeExpressions().asBoolean();
 
         // Save off PostgreSQL cluster and JDBC driver information, will be used to
         // connect for event
@@ -396,26 +393,6 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
         }
     }
 
-    List<Event> getData() {
-
-        List<Event> events = new ArrayList<>();
-
-        if (!this.hasRun.get() && this.hasSnapshot) {
-            events.add(this.pgEasyReplication.getSnapshot());
-        }
-
-        if (!this.hasRun.get() && this.initialLSN != null) {
-            events.add(this.pgEasyReplication.readEvent(true, this.includeBeginCommit, MIME_TYPE_VALUE, initialLSN));
-        }
-
-        events.add(this.pgEasyReplication.readEvent(true, this.includeBeginCommit));
-
-        if (events != null)
-            this.hasRun.set(true);
-
-        return events;
-    }
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final ComponentLog logger = getLogger();
@@ -427,11 +404,22 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
         }
 
         List<FlowFile> listFlowFiles = new ArrayList<>();
+        List<Event> events = new ArrayList<>();
 
-        List<Event> events = getData();
+        if (!this.hasRun.get() && this.hasSnapshot) {
+            events.add(this.pgEasyReplication.getSnapshot());
+        }
 
-        if (events == null) {
-            logger.error("Failed to retrieve events.");
+        if (!this.hasRun.get() && this.initialLSN != null) {
+            events.add(this.pgEasyReplication.readStream(true, this.includeBeginCommit, MIME_TYPE_VALUE, initialLSN));
+        }
+
+        events.add(this.pgEasyReplication.readStream(true, this.includeBeginCommit));
+
+        if (events.size() > 0) {
+            this.hasRun.set(true);
+        }  else {
+            logger.error("No data captured. Check properties!");
             context.yield();
             throw new ProcessException();
         }
@@ -462,7 +450,5 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
         }
 
         session.transfer(listFlowFiles, REL_SUCCESS);
-        // getLogger().trace("...");
-
     }
 }

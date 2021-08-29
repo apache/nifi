@@ -29,11 +29,10 @@ import java.util.LinkedList;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 
-/*
- * Snapshots are copies of published table data.
- */
-
 public class Snapshot {
+    /**
+     *  Snapshots are copies of published table data.
+     */
 
     private String publication;
     private ConnectionManager connectionManager;

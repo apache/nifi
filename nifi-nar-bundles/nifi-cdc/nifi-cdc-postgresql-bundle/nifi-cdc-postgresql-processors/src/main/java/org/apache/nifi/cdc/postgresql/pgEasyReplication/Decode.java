@@ -32,6 +32,10 @@ import java.util.HashMap;
 import org.apache.nifi.cdc.postgresql.pgEasyReplication.ConnectionManager;
 
 public class Decode {
+    /**
+     *  Decode class defines the methods to convert binary buffer read from 
+     *  replication slot in a string message.
+     */
 
     private static HashMap<Integer, String> dataTypes = new HashMap<Integer, String>();
     private HashMap<Integer, Relation> relations = new HashMap<Integer, Relation>();

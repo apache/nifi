@@ -20,6 +20,9 @@ package org.apache.nifi.cdc.postgresql.pgEasyReplication;
 import java.util.HashMap;
 
 public class Relation {
+    /**
+     *  Relation class represents a database's table metadata.
+     */
 
     private int id;
     private String namespace;

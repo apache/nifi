@@ -31,6 +31,10 @@ import org.apache.nifi.cdc.postgresql.pgEasyReplication.Event;
 import org.apache.nifi.cdc.postgresql.pgEasyReplication.Snapshot;
 
 public class PGEasyReplication {
+    /**
+     *  PGEasyReplication is the helper class responsible for initializing logical replication, creating and dropping replication slots,
+     *  getting initial snapshots table, and reading streams.
+     */
 
     private String publication;
     private String slot;
@@ -42,9 +46,9 @@ public class PGEasyReplication {
     public static final boolean INCLUDE_BEGIN_COMMIT_DEFAULT = false;
     public static final String MIME_TYPE_OUTPUT_DEFAULT = "application/json";
 
-    public PGEasyReplication(String pub, String slt, ConnectionManager connectionManager) {
+    public PGEasyReplication(String pub, String slot, ConnectionManager connectionManager) {
         this.publication = pub;
-        this.slot = slt;
+        this.slot = slot;
         this.connectionManager = connectionManager;
     }
 
@@ -60,11 +64,11 @@ public class PGEasyReplication {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                // If slot exists
                 if (slotDropIfExists) {
                     this.dropReplicationSlot();
                     this.createReplicationSlot();
                 }
+                
             } else {
                 this.createReplicationSlot();
             }
@@ -78,8 +82,12 @@ public class PGEasyReplication {
         try {
             PGConnection pgcon = this.connectionManager.getReplicationConnection().unwrap(PGConnection.class);
 
-            // More details about pgoutput options in PostgreSQL project: https://github.com/postgres, source file: postgres/src/backend/replication/pgoutput/pgoutput.c
-            pgcon.getReplicationAPI().createReplicationSlot().logical().withSlotName(this.slot).withOutputPlugin("pgoutput").make();
+            
+            pgcon.getReplicationAPI().createReplicationSlot().logical().withSlotName(this.slot).withOutputPlugin("pgoutput").make();    
+            /**
+             * More details about pgoutput options in PostgreSQL project,
+             * source file postgres/src/backend/replication/pgoutput/pgoutput.c
+             */
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -115,28 +123,28 @@ public class PGEasyReplication {
         return event;
     }
 
-    public Event readEvent() {
-        return this.readEvent(IS_SIMPLE_EVENT_DEFAULT, INCLUDE_BEGIN_COMMIT_DEFAULT, MIME_TYPE_OUTPUT_DEFAULT, null);
+    public Event readStream() {
+        return this.readStream(IS_SIMPLE_EVENT_DEFAULT, INCLUDE_BEGIN_COMMIT_DEFAULT, MIME_TYPE_OUTPUT_DEFAULT, null);
     }
 
-    public Event readEvent(boolean isSimpleEvent) {
-        return this.readEvent(isSimpleEvent, INCLUDE_BEGIN_COMMIT_DEFAULT, MIME_TYPE_OUTPUT_DEFAULT, null);
+    public Event readStream(boolean isSimpleEvent) {
+        return this.readStream(isSimpleEvent, INCLUDE_BEGIN_COMMIT_DEFAULT, MIME_TYPE_OUTPUT_DEFAULT, null);
     }
 
-    public Event readEvent(boolean isSimpleEvent, boolean withBeginCommit) {
-        return this.readEvent(isSimpleEvent, withBeginCommit, MIME_TYPE_OUTPUT_DEFAULT, null);
+    public Event readStream(boolean isSimpleEvent, boolean withBeginCommit) {
+        return this.readStream(isSimpleEvent, withBeginCommit, MIME_TYPE_OUTPUT_DEFAULT, null);
     }
 
-    public Event readEvent(boolean isSimpleEvent, boolean withBeginCommit, String outputFormat) {
-        return this.readEvent(isSimpleEvent, withBeginCommit, outputFormat, null);
+    public Event readStream(boolean isSimpleEvent, boolean withBeginCommit, String outputFormat) {
+        return this.readStream(isSimpleEvent, withBeginCommit, outputFormat, null);
     }
 
-    public Event readEvent(boolean isSimpleEvent, boolean withBeginCommit, String outputFormat, Long startLSN) {
+    public Event readStream(boolean isSimpleEvent, boolean withBeginCommit, String outputFormat, Long startLSN) {
         Event event = null;
 
         try {
             if (this.stream == null) {
-                // First read stream
+                // First read
                 this.stream = new Stream(this.publication, this.slot, startLSN, this.connectionManager);
             }
 

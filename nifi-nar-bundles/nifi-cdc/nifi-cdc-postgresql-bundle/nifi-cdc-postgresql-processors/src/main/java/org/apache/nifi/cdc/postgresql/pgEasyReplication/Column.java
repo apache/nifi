@@ -18,6 +18,9 @@
 package org.apache.nifi.cdc.postgresql.pgEasyReplication;
 
 public class Column {
+    /**
+     *  Column class represents a table's column metadata.
+     */
 
     private int position;
     private char isKey;

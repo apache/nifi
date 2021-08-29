@@ -37,12 +37,10 @@ public class ConnectionManager {
         this.user = user;
         this.driverName = driverName;
 
-        if (password == null) {
+        if (password == null)
             password = "";
-        }
 
         this.password = password;
-
     }
 
     public void createReplicationConnection() throws Exception {
