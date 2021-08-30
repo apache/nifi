@@ -219,8 +219,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             try {
                 refreshAccessDetails();
             } catch (Exception e) {
-                getLogger().info("Couldn't refresh access token, probably refresh token has expired." +
-                    " Getting new token.");
+                getLogger().info("Couldn't refresh access token. Getting a new one.");
                 acquireAccessDetails();
             }
         }
