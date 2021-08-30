@@ -1538,6 +1538,9 @@
                     $.ajax({
                         type: 'GET',
                         url: '../nifi-api/parameter-contexts/' + encodeURIComponent(parameterContext.id),
+                        data: {
+                            includeInheritedParameters: 'true'
+                        },
                         dataType: 'json'
                     }).done(function (response) {
                         var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);

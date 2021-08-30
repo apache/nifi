@@ -21,14 +21,15 @@ import java.util.Optional;
 public interface ParameterLookup {
 
     /**
-     * Returns the Parameter with the given name
+     * Returns the Parameter with the given name, considering the base and all inherited ParameterContexts.
      * @param parameterName the name of the Parameter
      * @return the Parameter with the given name or an empty Optional if no Parameter exists with that name
      */
     Optional<Parameter> getParameter(String parameterName);
 
     /**
-     * Returns false if any Parameters are available, true if no Parameters have been defined
+     * Returns false if any Parameters are available, true if no Parameters have been defined in this or any
+     * inherited ParameterContexts.
      * @return true if empty
      */
     boolean isEmpty();

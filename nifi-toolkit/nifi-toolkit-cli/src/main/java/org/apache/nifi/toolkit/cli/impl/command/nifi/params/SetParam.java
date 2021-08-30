@@ -75,7 +75,7 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
 
         // Ensure the context exists...
         final ParamContextClient paramContextClient = client.getParamContextClient();
-        final ParameterContextEntity existingParameterContextEntity = paramContextClient.getParamContext(paramContextId);
+        final ParameterContextEntity existingParameterContextEntity = paramContextClient.getParamContext(paramContextId, false);
         final ParameterContextDTO existingParameterContextDTO = existingParameterContextEntity.getComponent();
 
         // Determine if this is an existing param or a new one...

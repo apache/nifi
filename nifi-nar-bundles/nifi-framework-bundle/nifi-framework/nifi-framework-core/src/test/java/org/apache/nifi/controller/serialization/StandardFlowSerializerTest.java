@@ -30,6 +30,11 @@ import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
@@ -45,6 +50,7 @@ import org.w3c.dom.Document;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -113,7 +119,22 @@ public class StandardFlowSerializerTest {
         dummy.setComments(RAW_COMMENTS);
         controller.getFlowManager().getRootGroup().addProcessor(dummy);
 
+        final ParameterContext parameterContext = new StandardParameterContext("context", "Context", ParameterReferenceManager.EMPTY, null);
+        final ParameterContext referencedContext = new StandardParameterContext("referenced-context", "Referenced Context", ParameterReferenceManager.EMPTY, null);
+        final ParameterContext referencedContext2 = new StandardParameterContext("referenced-context-2", "Referenced Context 2", ParameterReferenceManager.EMPTY, null);
+        final Map<String, Parameter> parameters = new HashMap<>();
+        final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name("foo").sensitive(true).build();
+        parameters.put("foo", new Parameter(parameterDescriptor, "value"));
+        parameterContext.setInheritedParameterContexts(Arrays.asList(referencedContext, referencedContext2));
+        parameterContext.setParameters(parameters);
+
+        controller.getFlowManager().getParameterContextManager().addParameterContext(parameterContext);
+        controller.getFlowManager().getParameterContextManager().addParameterContext(referencedContext);
+        controller.getFlowManager().getParameterContextManager().addParameterContext(referencedContext2);
+
+        controller.getFlowManager().getRootGroup().setParameterContext(parameterContext);
         controller.getFlowManager().getRootGroup().setVariables(Collections.singletonMap(RAW_VARIABLE_NAME, RAW_VARIABLE_VALUE));
+        controller.getFlowManager().getRootGroup().setParameterContext(parameterContext);
 
         // serialize the controller
         final ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -129,6 +150,7 @@ public class StandardFlowSerializerTest {
         assertTrue(serializedFlow.contains(SERIALIZED_VARIABLE_VALUE));
         assertFalse(serializedFlow.contains(RAW_VARIABLE_VALUE));
         assertFalse(serializedFlow.contains("\u0001"));
+        assertTrue(serializedFlow.contains("<inheritedParameterContextId>referenced-context</inheritedParameterContextId>"));
     }
 
     @Test

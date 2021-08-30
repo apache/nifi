@@ -30,6 +30,7 @@ import org.apache.nifi.toolkit.cli.impl.util.JacksonUtils;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 
 import java.io.FileOutputStream;
@@ -66,7 +67,7 @@ public class ExportParamContext extends AbstractNiFiCommand<ExportParamContext.E
 
         // retrieve the context by id
         final ParamContextClient paramContextClient = client.getParamContextClient();
-        final ParameterContextEntity parameterContextEntity = paramContextClient.getParamContext(paramContextId);
+        final ParameterContextEntity parameterContextEntity = paramContextClient.getParamContext(paramContextId, false);
 
         // clear out values that don't make sense for importing to next environment
         final ParameterContextDTO parameterContext = parameterContextEntity.getComponent();
@@ -80,6 +81,16 @@ public class ExportParamContext extends AbstractNiFiCommand<ExportParamContext.E
                 parameterDTO.setValue(null);
             }
             parameterEntity.setCanWrite(null);
+
+            parameterDTO.setParameterContext(null);
+        }
+
+        if (parameterContext.getInheritedParameterContexts() != null) {
+            for (final ParameterContextReferenceEntity ref : parameterContext.getInheritedParameterContexts()) {
+                ref.setId(null);
+                ref.setPermissions(null);
+                ref.getComponent().setId(null);
+            }
         }
 
         // sort the entities so that each export is in consistent order

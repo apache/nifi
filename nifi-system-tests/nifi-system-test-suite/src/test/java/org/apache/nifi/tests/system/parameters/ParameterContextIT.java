@@ -20,11 +20,13 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -34,6 +36,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -61,7 +64,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         assertSingleFooCreation(returned);
 
         final String contextId = returned.getId();
-        final ParameterContextEntity fetched = paramContextClient.getParamContext(contextId);
+        final ParameterContextEntity fetched = paramContextClient.getParamContext(contextId, false);
         assertSingleFooCreation(fetched);
     }
 
@@ -89,7 +92,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         assertSensitiveParametersNotReturned(returned);
 
         final String contextId = returned.getId();
-        final ParameterContextEntity fetched = paramContextClient.getParamContext(contextId);
+        final ParameterContextEntity fetched = paramContextClient.getParamContext(contextId, false);
         assertSensitiveParametersNotReturned(fetched);
     }
 
@@ -151,6 +154,30 @@ public class ParameterContextIT extends NiFiSystemIT {
         createdContextEntity.getComponent().setParameters(Collections.singleton(fooNull));
         getNifiClient().getParamContextClient().updateParamContext(createdContextEntity);
         // Should remain valid because property has a default.
+        waitForValidProcessor(processorId);
+    }
+
+    @Test
+    public void testValidationWithNestedParameterContexts() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        getClientUtil().updateProcessorProperties(generate, Collections.singletonMap("File Size", "#{foo}"));
+        getClientUtil().setAutoTerminatedRelationships(generate, "success");
+
+        final String processorId = generate.getId();
+
+        waitForInvalidProcessor(processorId);
+
+        final ParameterEntity fooKB = createParameterEntity("foo", null, false, "1 KB");
+        final Set<ParameterEntity> parameters = new HashSet<>();
+        parameters.add(fooKB);
+        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, parameters);
+        final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
+
+        final ParameterContextEntity parentContextEntity = createParameterContextEntity(getTestName() + " Parent", null,
+                null, Arrays.asList(createdContextEntity));
+        final ParameterContextEntity createdParentContextEntity = getNifiClient().getParamContextClient().createParamContext(parentContextEntity);
+
+        setParameterContext("root", createdParentContextEntity);
         waitForValidProcessor(processorId);
     }
 
@@ -609,8 +636,25 @@ public class ParameterContextIT extends NiFiSystemIT {
         return getClientUtil().createParameterEntity(name, description, sensitive, value);
     }
 
+    public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters,
+                                                               final List<ParameterContextEntity> parameterContextRefs) {
+        final List<ParameterContextReferenceEntity> refs = new ArrayList<>();
+        if (parameterContextRefs != null) {
+            refs.addAll(parameterContextRefs.stream().map(pce -> {
+                ParameterContextReferenceEntity ref = new ParameterContextReferenceEntity();
+                ref.setId(pce.getId());
+                ParameterContextReferenceDTO refDto = new ParameterContextReferenceDTO();
+                refDto.setId(pce.getComponent().getId());
+                refDto.setName(pce.getComponent().getName());
+                ref.setComponent(refDto);
+                return ref;
+            }).collect(Collectors.toList()));
+        }
+        return getClientUtil().createParameterContextEntity(name, description, parameters, refs);
+    }
+
     public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters) {
-        return getClientUtil().createParameterContextEntity(name, description, parameters);
+        return createParameterContextEntity(name, description, parameters, Collections.emptyList());
     }
 
     private ProcessGroupEntity setParameterContext(final String groupId, final ParameterContextEntity parameterContext) throws NiFiClientException, IOException {

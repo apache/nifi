@@ -215,7 +215,7 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
             currentState = generateFlowFileEntity.getComponent().getState();
         }
 
-        final ParameterContextDTO contextDto = node2Client.getParamContextClient().getParamContext(paramContextReference.getId()).getComponent();
+        final ParameterContextDTO contextDto = node2Client.getParamContextClient().getParamContext(paramContextReference.getId(), false).getComponent();
         assertEquals(2, contextDto.getBoundProcessGroups().size());
         assertEquals(1, contextDto.getParameters().size());
         final ParameterEntity parameterEntity = contextDto.getParameters().iterator().next();

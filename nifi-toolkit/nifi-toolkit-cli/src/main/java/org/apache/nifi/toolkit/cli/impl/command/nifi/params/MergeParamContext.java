@@ -46,7 +46,8 @@ public class MergeParamContext extends AbstractUpdateParamContextCommand<VoidRes
 
     @Override
     public String getDescription() {
-        return "Adds any parameters that exist in the exported context that don't exist in the existing context.";
+        return "Adds any parameters that exist in the exported context that don't exist in the existing context.  Overwrites any " +
+                "existing inherited parameter contexts with the provided list.";
     }
 
     @Override
@@ -75,7 +76,7 @@ public class MergeParamContext extends AbstractUpdateParamContextCommand<VoidRes
 
         // retrieve the existing context by id
         final ParamContextClient paramContextClient = client.getParamContextClient();
-        final ParameterContextEntity existingContextEntity = paramContextClient.getParamContext(existingContextId);
+        final ParameterContextEntity existingContextEntity = paramContextClient.getParamContext(existingContextId, false);
 
         final ParameterContextDTO existingContext = existingContextEntity.getComponent();
         if (existingContext.getParameters() == null) {
@@ -109,6 +110,10 @@ public class MergeParamContext extends AbstractUpdateParamContextCommand<VoidRes
         updatedContextEntity.setId(existingContext.getId());
         updatedContextEntity.setComponent(updatedContextDto);
         updatedContextEntity.setRevision(existingContextEntity.getRevision());
+
+        if (incomingContext.getInheritedParameterContexts() != null) {
+            updatedContextDto.setInheritedParameterContexts(incomingContext.getInheritedParameterContexts());
+        }
 
         // Submit the update request...
         final ParameterContextUpdateRequestEntity updateRequestEntity = paramContextClient.updateParamContext(updatedContextEntity);

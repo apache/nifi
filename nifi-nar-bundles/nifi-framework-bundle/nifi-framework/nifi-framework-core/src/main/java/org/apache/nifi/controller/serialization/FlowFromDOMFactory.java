@@ -168,6 +168,14 @@ public class FlowFromDOMFactory {
             parameterEntity.setParameter(parameterDto);
             parameterDtos.add(parameterEntity);
         }
+        final List<Element> inheritedParameterContextIds = FlowFromDOMFactory.getChildrenByTagName(element, "inheritedParameterContextId");
+        final List<ParameterContextReferenceEntity> parameterContexts = new ArrayList<>();
+        for (final Element inheritedParameterContextElement : inheritedParameterContextIds) {
+            final ParameterContextReferenceEntity parameterContextReference = new ParameterContextReferenceEntity();
+            parameterContextReference.setId(inheritedParameterContextElement.getTextContent());
+            parameterContexts.add(parameterContextReference);
+        }
+        dto.setInheritedParameterContexts(parameterContexts);
 
         dto.setParameters(parameterDtos);
 

@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class ParamContextsResult extends AbstractWritableResult<ParameterContextsEntity> implements Referenceable {
 
@@ -75,12 +76,15 @@ public class ParamContextsResult extends AbstractWritableResult<ParameterContext
                 .column("#", 3, 3, false)
                 .column("Id", 36, 36, false)
                 .column("Name", 20, 60, true)
+                .column("Inherited Param Contexts", 20, 60, true)
                 .column("Description", 40, 60, true)
                 .build();
 
         for (int i = 0; i < results.size(); i++) {
             final ParameterContextDTO r = results.get(i);
-            table.addRow("" + (i+1), r.getId(), r.getName(), r.getDescription());
+            final String inheritedParamContexts = r.getInheritedParameterContexts() == null ? ""
+                    : r.getInheritedParameterContexts().stream().map(pc -> pc.getComponent().getName()).collect(Collectors.joining(", "));
+            table.addRow("" + (i+1), r.getId(), r.getName(), inheritedParamContexts, r.getDescription());
         }
 
         final TableWriter tableWriter = new DynamicTableWriter();

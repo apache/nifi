@@ -1092,10 +1092,11 @@ public interface NiFiServiceFacade {
     /**
      * Returns the ParameterContextEntity for the ParameterContext with the given ID
      * @param parameterContextId the ID of the Parameter Context
+     * @param includeInheritedParameters Whether to include inherited parameters (and thus overridden values)
      * @param user the user on whose behalf the Parameter Context is being retrieved
      * @return the ParameterContextEntity
      */
-    ParameterContextEntity getParameterContext(String parameterContextId, NiFiUser user);
+    ParameterContextEntity getParameterContext(String parameterContextId, boolean includeInheritedParameters, NiFiUser user);
 
     /**
      * Creates a new Parameter Context

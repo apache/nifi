@@ -418,15 +418,16 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     client.addFlowRegistry(registryId, registryName, registryUrl, description);
                 }
             }
-
-            final Element parameterContextsElement = DomUtils.getChild(rootElement, "parameterContexts");
-            if (parameterContextsElement != null) {
-                final List<Element> contextElements = DomUtils.getChildElementsByTagName(parameterContextsElement, "parameterContext");
-                for (final Element contextElement : contextElements) {
-                    final ParameterContextDTO parameterContextDto = FlowFromDOMFactory.getParameterContext(contextElement, encryptor);
-                    createParameterContext(parameterContextDto, controller.getFlowManager());
+            controller.getFlowManager().withParameterContextResolution(() -> {
+                final Element parameterContextsElement = DomUtils.getChild(rootElement, "parameterContexts");
+                if (parameterContextsElement != null) {
+                    final List<Element> contextElements = DomUtils.getChildElementsByTagName(parameterContextsElement, "parameterContext");
+                    for (final Element contextElement : contextElements) {
+                        final ParameterContextDTO parameterContextDto = FlowFromDOMFactory.getParameterContext(contextElement, encryptor);
+                        createParameterContext(parameterContextDto, controller.getFlowManager());
+                    }
                 }
-            }
+            });
 
             logger.trace("Adding root process group");
             rootGroup = addProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor, encodingVersion);
@@ -529,7 +530,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             .map(this::createParameter)
             .collect(Collectors.toMap(param -> param.getDescriptor().getName(), Function.identity()));
 
-        final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters);
+        final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters, dto.getInheritedParameterContexts());
         context.setDescription(dto.getDescription());
         return context;
     }
