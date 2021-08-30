@@ -19,17 +19,16 @@ package org.apache.nifi.processors.script;
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestExecuteGroovy extends BaseScriptTest {
 
@@ -37,7 +36,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
             + "female,miss,marlene,shaw\n"
             + "male,mr,todd,graham";
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setupExecuteScript();
     }
@@ -85,10 +84,9 @@ public class TestExecuteGroovy extends BaseScriptTest {
     /**
      * Tests a script file that creates and transfers a new flow file.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testInvalidConfiguration() throws Exception {
+    public void testInvalidConfiguration() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION);
@@ -100,10 +98,9 @@ public class TestExecuteGroovy extends BaseScriptTest {
     /**
      * Tests a script file that creates and transfers a new flow file.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testCreateNewFlowFileWithScriptFile() throws Exception {
+    public void testCreateNewFlowFileWithScriptFile() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/test_onTrigger_newFlowFile.groovy");
@@ -123,10 +120,9 @@ public class TestExecuteGroovy extends BaseScriptTest {
     /**
      * Tests a script file that creates and transfers a new flow file.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testCreateNewFlowFileWithNoInputFile() throws Exception {
+    public void testCreateNewFlowFileWithNoInputFile() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY,
@@ -144,10 +140,9 @@ public class TestExecuteGroovy extends BaseScriptTest {
     /**
      * Tests a script file that creates and transfers a new flow file.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testDynamicProperties() throws Exception {
+    public void testDynamicProperties() {
         runner.setValidateExpressionUsage(true);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/test_dynamicProperties.groovy");
@@ -168,10 +163,9 @@ public class TestExecuteGroovy extends BaseScriptTest {
     /**
      * Tests a script file that changes the content of the incoming flowfile.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testChangeFlowFileWithScriptFile() throws Exception {
+    public void testChangeFlowFileWithScriptFile() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/groovy/test_onTrigger_changeContent.groovy");
@@ -192,10 +186,9 @@ public class TestExecuteGroovy extends BaseScriptTest {
     /**
      * Tests a script that has provides the body of an onTrigger() function.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testReadFlowFileContentAndStoreInFlowFileAttributeWithScriptBody() throws Exception {
+    public void testReadFlowFileContentAndStoreInFlowFileAttributeWithScriptBody() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
@@ -216,10 +209,9 @@ public class TestExecuteGroovy extends BaseScriptTest {
      * Tests a script that has provides the body of an onTrigger() function, where the ExecuteScript processor does
      * not specify a modules path
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testReadFlowFileContentAndStoreInFlowFileAttributeWithScriptBodyNoModules() throws Exception {
+    public void testReadFlowFileContentAndStoreInFlowFileAttributeWithScriptBodyNoModules() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
@@ -237,10 +229,9 @@ public class TestExecuteGroovy extends BaseScriptTest {
     /**
      * Tests a script that does not transfer or remove the original flow file, thereby causing an error during commit.
      *
-     * @throws Exception Any error encountered while testing. Expecting
      */
-    @Test(expected = AssertionError.class)
-    public void testScriptNoTransfer() throws Exception {
+    @Test
+    public void testScriptNoTransfer() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
@@ -249,17 +240,15 @@ public class TestExecuteGroovy extends BaseScriptTest {
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
-        runner.run();
-
+        assertThrows(AssertionError.class, () -> runner.run());
     }
 
     /**
      * Tests a script that uses a dynamic property to set a FlowFile attribute.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testReadFlowFileContentAndStoreInFlowFileCustomAttribute() throws Exception {
+    public void testReadFlowFileContentAndStoreInFlowFileCustomAttribute() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
@@ -280,23 +269,19 @@ public class TestExecuteGroovy extends BaseScriptTest {
      * Tests a script that throws an Exception within. The expected result is that the flow file is rolled back
      * and penalized. Besides we check that we yielded the processor.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testScriptException() throws Exception {
+    public void testScriptException() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(TEST_RESOURCE_LOCATION + "groovy/testScriptException.groovy"));
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
-        try {
-            runner.run();
-            fail();
-        } catch (AssertionError e) {
-            runner.assertPenalizeCount(1); // penalized
-            runner.assertQueueNotEmpty(); // flow file back in the input queue
-            assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled()); // processor yielded
-        }
+
+        assertThrows(AssertionError.class, () -> runner.run());
+        runner.assertPenalizeCount(1); // penalized
+        runner.assertQueueNotEmpty(); // flow file back in the input queue
+        assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled());
     }
 }

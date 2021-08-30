@@ -22,17 +22,18 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestExpressionHandler {
 
@@ -40,7 +41,7 @@ public class TestExpressionHandler {
     private MockComponentLog mockComponentLog;
     private ExpressionHandler expressionHandler;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(TestProcessor.class);
         mockComponentLog = new MockComponentLog();
@@ -151,12 +152,9 @@ public class TestExpressionHandler {
 
         final Action action = new Action();
         action.setType("FAKE");
-        action.setAttributes(attributes); try {
-            expressionHandler.execute(action, metrics);
-            fail();
-        } catch (UnsupportedOperationException ex) {
-            assertTrue(true);
-        }
+        action.setAttributes(attributes);
+
+        assertThrows(UnsupportedOperationException.class, () -> expressionHandler.execute(action, metrics));
     }
 
     @Test
@@ -173,16 +171,13 @@ public class TestExpressionHandler {
 
         final Action action = new Action();
         action.setType("FAKE");
-        action.setAttributes(attributes); try {
-            expressionHandler.execute(action, metrics);
-        } catch (UnsupportedOperationException ex) {
-            fail();
-        }
+        action.setAttributes(attributes);
+
+        assertDoesNotThrow(() -> expressionHandler.execute(action, metrics));
 
         final String warnMessage = mockComponentLog.getWarnMessage();
         assertTrue(StringUtils.isNotEmpty(warnMessage));
         assertEquals("This Action Handler does not support actions with the provided type: FAKE",warnMessage);
-
     }
 
     @Test
@@ -199,11 +194,9 @@ public class TestExpressionHandler {
 
         final Action action = new Action();
         action.setType("FAKE");
-        action.setAttributes(attributes); try {
-            expressionHandler.execute(action, metrics);
-        } catch (UnsupportedOperationException ex) {
-            fail();
-        }
+        action.setAttributes(attributes);
+
+        assertDoesNotThrow(() -> expressionHandler.execute(action, metrics));
 
         final String debugMessage = mockComponentLog.getDebugMessage();
         assertTrue(StringUtils.isNotEmpty(debugMessage));
@@ -224,12 +217,7 @@ public class TestExpressionHandler {
         final Action action = new Action();
         action.setType("EXPRESSION");
         action.setAttributes(attributes);
-        try {
-            expressionHandler.execute(action, metrics);
-            assertTrue(true);
-        } catch (UnsupportedOperationException ex) {
-            fail();
-        }
+        assertDoesNotThrow(() -> expressionHandler.execute(action, metrics));
     }
 
 

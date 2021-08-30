@@ -29,23 +29,21 @@ import org.apache.nifi.util.MockConfigurationContext
 import org.apache.nifi.util.MockEventAccess
 import org.apache.nifi.util.MockReportingContext
 import org.apache.nifi.util.TestRunners
-import org.junit.Before
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertTrue
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertTrue
 import static org.mockito.Mockito.*
 /**
  * Unit tests for ScriptedReportingTask.
  */
-@RunWith(JUnit4.class)
+
 class ScriptedReportingTaskTest {
     private static final String PROVENANCE_EVENTS_SCRIPT = "test_log_provenance_events.groovy"
     private static final String LOG_VM_STATS = "test_log_vm_stats.groovy"
@@ -56,7 +54,7 @@ class ScriptedReportingTaskTest {
     def runner
     def scriptingComponent
 
-    @Before
+    @BeforeEach
     void setUp() {
         task = new MockScriptedReportingTask()
         runner = TestRunners
@@ -195,6 +193,4 @@ class ScriptedReportingTaskTest {
             return this.@scriptingComponentHelper
         }
     }
-
-
 }

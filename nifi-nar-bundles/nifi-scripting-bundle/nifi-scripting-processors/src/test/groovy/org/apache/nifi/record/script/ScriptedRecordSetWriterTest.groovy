@@ -32,11 +32,9 @@ import org.apache.nifi.serialization.record.RecordSet
 import org.apache.nifi.util.MockComponentLog
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -45,13 +43,12 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
 
 /**
  * Unit tests for the ScriptedReader class
  */
-@RunWith(JUnit4.class)
 class ScriptedRecordSetWriterTest {
 
     private static final Logger logger = LoggerFactory.getLogger(ScriptedRecordSetWriterTest)
@@ -63,7 +60,7 @@ class ScriptedRecordSetWriterTest {
     def scriptingComponent
 
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = {String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
@@ -72,7 +69,7 @@ class ScriptedRecordSetWriterTest {
         TARGET_PATH.toFile().deleteOnExit()
     }
 
-    @Before
+    @BeforeEach
     void setUp() {
         recordSetWriterFactory = new MockScriptedWriter()
         runner = TestRunners
