@@ -105,7 +105,7 @@ public class ExecuteGroovyScriptTest {
         Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         FileUtils.copyDirectory(new File("src/test/resources"), new File("target/test/resources"));
         //prepare database connection
-        System.setProperty("derby.stream.error.file", "target/derby.log");
+        System.setProperty("derby.stream.error.file", "target" + File.separator + "derby.log");
 
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
