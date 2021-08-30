@@ -1176,6 +1176,13 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     DataValve getDataValve();
 
     /**
+     * @param parameterContext A ParameterContext
+     * @return True if the provided ParameterContext is referenced by this Process Group, either directly or
+     * indirectly through inherited ParameterContexts.
+     */
+    boolean referencesParameterContext(ParameterContext parameterContext);
+
+    /**
      * @return the default flowfile expiration of the ProcessGroup
      */
     String getDefaultFlowFileExpiration();

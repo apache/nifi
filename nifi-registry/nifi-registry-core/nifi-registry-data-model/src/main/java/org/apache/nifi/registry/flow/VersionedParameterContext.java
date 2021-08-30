@@ -18,6 +18,7 @@ package org.apache.nifi.registry.flow;
 
 import io.swagger.annotations.ApiModelProperty;
 
+import java.util.List;
 import java.util.Set;
 
 public class VersionedParameterContext {
@@ -25,6 +26,7 @@ public class VersionedParameterContext {
     private String name;
     private String description;
     private Set<VersionedParameter> parameters;
+    private List<String> inheritedParameterContexts;
 
     @ApiModelProperty("The name of the context")
     public String getName() {
@@ -51,5 +53,14 @@ public class VersionedParameterContext {
 
     public void setParameters(Set<VersionedParameter> parameters) {
         this.parameters = parameters;
+    }
+
+    @ApiModelProperty("The names of additional parameter contexts from which to inherit parameters")
+    public List<String> getInheritedParameterContexts() {
+        return inheritedParameterContexts;
+    }
+
+    public void setInheritedParameterContexts(List<String> parameterContextNames) {
+        this.inheritedParameterContexts = parameterContextNames;
     }
 }

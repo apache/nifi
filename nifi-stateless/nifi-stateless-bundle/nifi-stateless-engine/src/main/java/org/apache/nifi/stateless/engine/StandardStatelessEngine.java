@@ -176,8 +176,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
         // Map existing parameter contexts by name
         final Set<ParameterContext> parameterContexts = flowManager.getParameterContextManager().getParameterContexts();
-        final Map<String, ParameterContext> parameterContextMap = parameterContexts.stream()
-            .collect(Collectors.toMap(ParameterContext::getName, context -> context));
+        final Map<String, ParameterContext> parameterContextMap = flowManager.getParameterContextManager().getParameterContextNameMapping();
 
         // Update Parameters to match those that are provided in the flow configuration, plus those overrides provided
         final List<ParameterContextDefinition> parameterContextDefinitions = dataflowDefinition.getParameterContexts();

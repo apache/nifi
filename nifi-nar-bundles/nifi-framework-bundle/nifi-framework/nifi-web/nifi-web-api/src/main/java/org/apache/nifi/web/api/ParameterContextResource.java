@@ -147,7 +147,10 @@ public class ParameterContextResource extends ApplicationResource {
         @ApiResponse(code = 404, message = "The specified resource could not be found."),
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response getParameterContext(@ApiParam("The ID of the Parameter Context") @PathParam("id") final String parameterContextId) {
+    public Response getParameterContext(@ApiParam("The ID of the Parameter Context") @PathParam("id") final String parameterContextId,
+                                        @ApiParam("Whether or not to include inherited parameters from other parameter contexts, and therefore also overridden values.  " +
+                                                "If true, the result will be the 'effective' parameter context.") @QueryParam("includeInheritedParameters")
+                                        @DefaultValue("false") final boolean includeInheritedParameters) {
         // authorize access
         authorizeReadParameterContext(parameterContextId);
 
@@ -156,7 +159,7 @@ public class ParameterContextResource extends ApplicationResource {
         }
 
         // get the specified parameter context
-        final ParameterContextEntity entity = serviceFacade.getParameterContext(parameterContextId, NiFiUserUtils.getNiFiUser());
+        final ParameterContextEntity entity = serviceFacade.getParameterContext(parameterContextId, includeInheritedParameters, NiFiUserUtils.getNiFiUser());
         entity.setUri(generateResourceUri("parameter-contexts", entity.getId()));
 
         // generate the response
@@ -171,7 +174,8 @@ public class ParameterContextResource extends ApplicationResource {
         value = "Create a Parameter Context",
         response = ParameterContextEntity.class,
         authorizations = {
-            @Authorization(value = "Write - /parameter-contexts")
+            @Authorization(value = "Write - /parameter-contexts"),
+            @Authorization(value = "Read - for every inherited parameter context")
         })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -315,7 +319,9 @@ public class ParameterContextResource extends ApplicationResource {
             @Authorization(value = "Read - /parameter-contexts/{parameterContextId}"),
             @Authorization(value = "Write - /parameter-contexts/{parameterContextId}"),
             @Authorization(value = "Read - for every component that is affected by the update"),
-            @Authorization(value = "Write - for every component that is affected by the update")
+            @Authorization(value = "Write - for every component that is affected by the update"),
+            @Authorization(value = "Read - for every currently inherited parameter context"),
+            @Authorization(value = "Read - for any new inherited parameter context")
         })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -400,11 +406,13 @@ public class ParameterContextResource extends ApplicationResource {
     }
 
     private void validateParameterNames(final ParameterContextDTO parameterContextDto) {
-        for (final ParameterEntity entity : parameterContextDto.getParameters()) {
-            final String parameterName = entity.getParameter().getName();
-            if (!isLegalParameterName(parameterName)) {
-                throw new IllegalArgumentException("Request contains an illegal Parameter Name (" + parameterName + "). Parameter names may only include letters, numbers, spaces, and the special " +
-                    "characters .-_");
+        if (parameterContextDto.getParameters() != null) {
+            for (final ParameterEntity entity : parameterContextDto.getParameters()) {
+                final String parameterName = entity.getParameter().getName();
+                if (!isLegalParameterName(parameterName)) {
+                    throw new IllegalArgumentException("Request contains an illegal Parameter Name (" + parameterName
+                            + "). Parameter names may only include letters, numbers, spaces, and the special characters .-_");
+                }
             }
         }
     }
@@ -576,7 +584,7 @@ public class ParameterContextResource extends ApplicationResource {
                 parameterContext.authorize(authorizer, RequestAction.READ, user);
                 parameterContext.authorize(authorizer, RequestAction.WRITE, user);
 
-                final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(parameterContextId, user);
+                final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(parameterContextId, false, user);
                 for (final ProcessGroupEntity boundGroupEntity : contextEntity.getComponent().getBoundProcessGroups()) {
                     final String groupId = boundGroupEntity.getId();
                     final Authorizable groupAuthorizable = lookup.getProcessGroup(groupId).getAuthorizable();
@@ -660,7 +668,7 @@ public class ParameterContextResource extends ApplicationResource {
     }
 
     private void authorizeReferencingComponents(final String parameterContextId, final AuthorizableLookup lookup, final NiFiUser user) {
-        final ParameterContextEntity context = serviceFacade.getParameterContext(parameterContextId, NiFiUserUtils.getNiFiUser());
+        final ParameterContextEntity context = serviceFacade.getParameterContext(parameterContextId, false, NiFiUserUtils.getNiFiUser());
 
         for (final ParameterEntity parameterEntity : context.getComponent().getParameters()) {
             final ParameterDTO dto = parameterEntity.getParameter();
@@ -946,7 +954,7 @@ public class ParameterContextResource extends ApplicationResource {
                 throw new LifecycleManagementException("Failed to update Flow on all nodes in cluster due to " + explanation);
             }
 
-            return serviceFacade.getParameterContext(updatedContext.getId(), user);
+            return serviceFacade.getParameterContext(updatedContext.getId(), false, user);
         } else {
             serviceFacade.verifyUpdateParameterContext(updatedContext.getComponent(), true);
             return serviceFacade.updateParameterContext(revision, updatedContext.getComponent());
@@ -965,7 +973,11 @@ public class ParameterContextResource extends ApplicationResource {
     private <T> T getResponseEntity(final NodeResponse nodeResponse, final Class<T> clazz) {
         T entity = (T) nodeResponse.getUpdatedEntity();
         if (entity == null) {
-            entity = nodeResponse.getClientResponse().readEntity(clazz);
+            if (nodeResponse.getClientResponse() != null) {
+                entity = nodeResponse.getClientResponse().readEntity(clazz);
+            } else {
+                entity = (T) nodeResponse.getThrowable().toString();
+            }
         }
         return entity;
     }
@@ -1188,7 +1200,7 @@ public class ParameterContextResource extends ApplicationResource {
         updateRequestDto.setReferencingComponents(new HashSet<>(affectedComponents.values()));
 
         // Populate the Affected Components
-        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(asyncRequest.getComponentId(), NiFiUserUtils.getNiFiUser());
+        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(asyncRequest.getComponentId(), false, NiFiUserUtils.getNiFiUser());
         final ParameterContextUpdateRequestEntity updateRequestEntity = new ParameterContextUpdateRequestEntity();
 
         // If the request is complete, include the new representation of the Parameter Context along with its new Revision. Otherwise, do not include the information, since it is 'stale'

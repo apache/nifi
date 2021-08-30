@@ -688,15 +688,7 @@ public class NiFiRegistryFlowMapper {
                                       final Map<String, VersionedParameterContext> parameterContexts) {
         final ParameterContext parameterContext = processGroup.getParameterContext();
         if (parameterContext != null) {
-            // map this process group's parameter context and add to the collection
-            final Set<VersionedParameter> parameters = parameterContext.getParameters().values().stream()
-                    .map(this::mapParameter)
-                    .collect(Collectors.toSet());
-
-            final VersionedParameterContext versionedContext = new VersionedParameterContext();
-            versionedContext.setName(parameterContext.getName());
-            versionedContext.setParameters(parameters);
-            parameterContexts.put(versionedContext.getName(), versionedContext);
+            mapParameterContext(parameterContext, parameterContexts);
         }
 
         for (final ProcessGroup child : processGroup.getProcessGroups()) {
@@ -705,6 +697,23 @@ public class NiFiRegistryFlowMapper {
                 mapParameterContexts(child, mapDescendantVersionedFlows, parameterContexts);
             }
         }
+    }
+
+    private void mapParameterContext(final ParameterContext parameterContext, final Map<String, VersionedParameterContext> parameterContexts) {
+        // map this process group's parameter context and add to the collection
+        final Set<VersionedParameter> parameters = parameterContext.getParameters().values().stream()
+                .map(this::mapParameter)
+                .collect(Collectors.toSet());
+
+        final VersionedParameterContext versionedContext = new VersionedParameterContext();
+        versionedContext.setName(parameterContext.getName());
+        versionedContext.setParameters(parameters);
+        versionedContext.setInheritedParameterContexts(parameterContext.getInheritedParameterContextNames());
+        for(final ParameterContext inheritedParameterContext : parameterContext.getInheritedParameterContexts()) {
+            mapParameterContext(inheritedParameterContext, parameterContexts);
+        }
+
+        parameterContexts.put(versionedContext.getName(), versionedContext);
     }
 
     private VersionedParameter mapParameter(final Parameter parameter) {
