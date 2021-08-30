@@ -23,14 +23,15 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestActionHandlerLookup {
 
@@ -39,7 +40,7 @@ public class TestActionHandlerLookup {
     private ActionHandlerLookup actionHandlerLookup;
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         alertHandler = new MockPropertyActionHandler();
         logHandler = new MockPropertyActionHandler();
@@ -93,7 +94,7 @@ public class TestActionHandlerLookup {
         assert logHandler.getExecuteContextCalled();
     }
 
-    @Test(expected = ProcessException.class)
+    @Test
     public void testLookupInvalidActionType() {
         final Map<String, String> attributes = new HashMap<>();
         final Map<String, Object> metrics = new HashMap<>();
@@ -103,7 +104,7 @@ public class TestActionHandlerLookup {
         metrics.put("cpu", "90");
         final Action action = new Action();
         action.setType("FAKE");
-        actionHandlerLookup.execute(null,action,metrics);
+        assertThrows(ProcessException.class, () -> actionHandlerLookup.execute(null,action,metrics));
     }
 
     private static class MockPropertyActionHandler extends AbstractActionHandlerService  {
