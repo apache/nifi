@@ -22,6 +22,7 @@ import org.apache.nifi.controller.MockSwapManager;
 import org.apache.nifi.controller.queue.DropFlowFileAction;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -323,6 +324,29 @@ public class TestSwappablePriorityQueue {
             // ID's will start at 4999, since the last FlowFile added will have ID of 4999 (i < 5000, not i <= 5000).
             assertEquals(5000 - i - 1, polled.getId());
         }
+    }
+
+    @Test
+    public void testPollWithPenalizedFlowFile() {
+        final FlowFileRecord penalizedFlowFile = mock(FlowFileRecord.class);
+        when(penalizedFlowFile.isPenalized()).thenReturn(true);
+        assertTrue(queue.isEmpty());
+        queue.put(penalizedFlowFile);
+
+        final Set<FlowFileRecord> expiredRecords = new HashSet<>();
+        FlowFileRecord polled = queue.poll(expiredRecords, 0, PollStrategy.UNPENALIZED_FLOWFILES);
+        assertNull(polled);
+
+        assertFalse(queue.isEmpty());
+
+        polled = queue.poll(expiredRecords, 0, PollStrategy.ALL_FLOWFILES);
+        assertNotNull(polled);
+        assertSame(penalizedFlowFile, polled);
+
+        // queue is still not empty because FlowFile has not yet been acknowledged.
+        queue.acknowledge(polled);
+
+        assertTrue(queue.isEmpty());
     }
 
     @Test

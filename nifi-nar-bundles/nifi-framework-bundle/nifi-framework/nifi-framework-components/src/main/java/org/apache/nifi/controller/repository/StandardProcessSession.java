@@ -24,6 +24,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
@@ -2284,7 +2285,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         for (final Connection conn : context.getConnectable().getIncomingConnections()) {
             do {
                 expired.clear();
-                conn.getFlowFileQueue().poll(filter, expired);
+                conn.getFlowFileQueue().poll(filter, expired, PollStrategy.ALL_FLOWFILES);
                 removeExpired(expired, conn);
             } while (!expired.isEmpty());
         }

@@ -21,6 +21,7 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.RemoteQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.StandardRemoteQueuePartitionDiagnostics;
@@ -150,7 +151,7 @@ public class RemoteQueuePartition implements QueuePartition {
 
     private FlowFileRecord getFlowFile() {
         final Set<FlowFileRecord> expired = new HashSet<>();
-        final FlowFileRecord flowFile = priorityQueue.poll(expired, flowFileQueue.getFlowFileExpiration(TimeUnit.MILLISECONDS));
+        final FlowFileRecord flowFile = priorityQueue.poll(expired, flowFileQueue.getFlowFileExpiration(TimeUnit.MILLISECONDS), PollStrategy.ALL_FLOWFILES);
         flowFileQueue.handleExpiredRecords(expired);
         return flowFile;
     }
@@ -225,20 +226,11 @@ public class RemoteQueuePartition implements QueuePartition {
             }
         };
 
-        // Consider the queue empty unless a FlowFile is available. This means that if the queue has only penalized FlowFiles, it will be considered empty.
-        // This is what we want for the purpose of load balancing the data. Otherwise, we would have a situation where we create a connection to the other node,
-        // determine that now FlowFile is available to send, and then notify the node of this and close the connection. And then this would repeat over and over
-        // until the FlowFile is no longer penalized. Instead, we want to consider the queue empty until a FlowFile is actually available, and only then bother
-        // creating the connection to send data.
-        final BooleanSupplier emptySupplier = this::isQueueEmpty;
+        final BooleanSupplier emptySupplier = priorityQueue::isEmpty;
         clientRegistry.register(flowFileQueue.getIdentifier(), nodeIdentifier, emptySupplier, this::getFlowFile,
             failureCallback, successCallback, flowFileQueue::getLoadBalanceCompression, flowFileQueue::isPropagateBackpressureAcrossNodes);
 
         running = true;
-    }
-
-    private boolean isQueueEmpty() {
-        return !priorityQueue.isFlowFileAvailable();
     }
 
     public void onRemoved() {

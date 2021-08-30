@@ -275,7 +275,7 @@ public class StandardProcessSessionIT {
         Mockito.doAnswer(new Answer<List<FlowFileRecord>>() {
             @Override
             public List<FlowFileRecord> answer(InvocationOnMock invocation) throws Throwable {
-                return localFlowFileQueue.poll(invocation.getArgument(0), invocation.getArgument(1));
+                return localFlowFileQueue.poll((FlowFileFilter) invocation.getArgument(0), invocation.getArgument(1));
             }
         }).when(connection).poll(any(FlowFileFilter.class), any(Set.class));
 

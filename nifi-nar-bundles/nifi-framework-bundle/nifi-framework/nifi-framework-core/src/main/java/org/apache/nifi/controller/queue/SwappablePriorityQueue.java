@@ -435,33 +435,6 @@ public class SwappablePriorityQueue {
         return getFlowFileQueueSize().isEmpty();
     }
 
-    public boolean isFlowFileAvailable() {
-        if (isEmpty()) {
-            return false;
-        }
-
-        readLock.lock();
-        try {
-            // If we have data in the active or swap queue that is penalized, then we know that all FlowFiles
-            // are penalized. As a result, we can say that no FlowFile is available.
-            FlowFileRecord firstRecord = activeQueue.peek();
-            if (firstRecord == null && !swapQueue.isEmpty()) {
-                firstRecord = swapQueue.get(0);
-            }
-
-            if (firstRecord == null) {
-                // If the queue is not empty, then all data is swapped out. We don't actually know whether or not the swapped out data is penalized, so we assume
-                // that it is not penalized and is therefore available.
-                return !isEmpty();
-            }
-
-            // We do have a FlowFile that was retrieved from the active or swap queue. It is available if it is not penalized.
-            return !firstRecord.isPenalized();
-        } finally {
-            readLock.unlock("isFlowFileAvailable");
-        }
-    }
-
     public boolean isActiveQueueEmpty() {
         final FlowFileQueueSize queueSize = getFlowFileQueueSize();
         return queueSize.getActiveCount() == 0 && queueSize.getSwappedCount() == 0;
@@ -524,12 +497,16 @@ public class SwappablePriorityQueue {
     }
 
     public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final long expirationMillis) {
+        return poll(expiredRecords, expirationMillis, PollStrategy.UNPENALIZED_FLOWFILES);
+    }
+
+    public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final PollStrategy pollStrategy) {
         FlowFileRecord flowFile;
 
         // First check if we have any records Pre-Fetched.
         writeLock.lock();
         try {
-            flowFile = doPoll(expiredRecords, expirationMillis);
+            flowFile = doPoll(expiredRecords, expirationMillis, pollStrategy);
 
             if (flowFile != null) {
                 logger.trace("{} poll() returning {}", this, flowFile);
@@ -543,7 +520,7 @@ public class SwappablePriorityQueue {
     }
 
 
-    private FlowFileRecord doPoll(final Set<FlowFileRecord> expiredRecords, final long expirationMillis) {
+    private FlowFileRecord doPoll(final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final PollStrategy pollStrategy) {
         FlowFileRecord flowFile;
         boolean isExpired;
 
@@ -562,7 +539,7 @@ public class SwappablePriorityQueue {
                 if (expiredRecords.size() >= MAX_EXPIRED_RECORDS_PER_ITERATION) {
                     break;
                 }
-            } else if (flowFile != null && flowFile.isPenalized()) {
+            } else if (flowFile != null && flowFile.isPenalized() && pollStrategy == PollStrategy.UNPENALIZED_FLOWFILES) {
                 this.activeQueue.add(flowFile);
                 flowFile = null;
                 break;
@@ -581,12 +558,16 @@ public class SwappablePriorityQueue {
     }
 
     public List<FlowFileRecord> poll(int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis) {
+        return poll(maxResults, expiredRecords, expirationMillis, PollStrategy.UNPENALIZED_FLOWFILES);
+    }
+
+    public List<FlowFileRecord> poll(int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final PollStrategy pollStrategy) {
         final List<FlowFileRecord> records = new ArrayList<>(Math.min(1, maxResults));
 
         // First check if we have any records Pre-Fetched.
         writeLock.lock();
         try {
-            doPoll(records, maxResults, expiredRecords, expirationMillis);
+            doPoll(records, maxResults, expiredRecords, expirationMillis, pollStrategy);
         } finally {
             writeLock.unlock("poll(int, Set)");
         }
@@ -599,6 +580,10 @@ public class SwappablePriorityQueue {
     }
 
     public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords, final long expirationMillis) {
+        return poll(filter, expiredRecords, expirationMillis, PollStrategy.UNPENALIZED_FLOWFILES);
+    }
+
+    public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final PollStrategy pollStrategy) {
         long bytesPulled = 0L;
         int flowFilesPulled = 0;
 
@@ -626,7 +611,7 @@ public class SwappablePriorityQueue {
                     } else {
                         continue;
                     }
-                } else if (flowFile.isPenalized()) {
+                } else if (flowFile.isPenalized() && pollStrategy == PollStrategy.UNPENALIZED_FLOWFILES) {
                     this.activeQueue.add(flowFile);
                     break; // just stop searching because the rest are all penalized.
                 }
@@ -660,10 +645,10 @@ public class SwappablePriorityQueue {
         }
     }
 
-    private void doPoll(final List<FlowFileRecord> records, int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis) {
+    private void doPoll(final List<FlowFileRecord> records, int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final PollStrategy pollStrategy) {
         migrateSwapToActive();
 
-        final long bytesDrained = drainQueue(activeQueue, records, maxResults, expiredRecords, expirationMillis);
+        final long bytesDrained = drainQueue(activeQueue, records, maxResults, expiredRecords, expirationMillis, pollStrategy);
 
         long expiredBytes = 0L;
         for (final FlowFileRecord record : expiredRecords) {
@@ -701,7 +686,9 @@ public class SwappablePriorityQueue {
     }
 
 
-    private long drainQueue(final Queue<FlowFileRecord> sourceQueue, final List<FlowFileRecord> destination, int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis) {
+    private long drainQueue(final Queue<FlowFileRecord> sourceQueue, final List<FlowFileRecord> destination,
+                            int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis,
+                            final PollStrategy pollStrategy) {
         long drainedSize = 0L;
         FlowFileRecord pulled;
 
@@ -712,7 +699,7 @@ public class SwappablePriorityQueue {
                     break;
                 }
             } else {
-                if (pulled.isPenalized()) {
+                if (pulled.isPenalized() && pollStrategy == PollStrategy.UNPENALIZED_FLOWFILES) {
                     sourceQueue.add(pulled);
                     break;
                 }

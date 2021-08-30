@@ -23,6 +23,7 @@ import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -102,18 +103,33 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     }
 
     @Override
-    public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords) {
-        return priorityQueue.poll(expiredRecords, getExpiration());
+    public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
+        return priorityQueue.poll(expiredRecords, getExpiration(), pollStrategy);
     }
 
     @Override
-    public List<FlowFileRecord> poll(final int maxResults, final Set<FlowFileRecord> expiredRecords) {
-        return priorityQueue.poll(maxResults, expiredRecords, getExpiration());
+    public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords) {
+        return poll(expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
     @Override
-    public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords) {
-        return priorityQueue.poll(filter, expiredRecords, getExpiration());
+    public List<FlowFileRecord> poll(final int maxResults, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
+        return priorityQueue.poll(maxResults, expiredRecords, getExpiration(), pollStrategy);
+    }
+
+    @Override
+    public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
+        return poll(maxResults, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
+    }
+
+    @Override
+    public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
+        return priorityQueue.poll(filter, expiredRecords, getExpiration(), pollStrategy);
+    }
+
+    @Override
+    public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords) {
+        return poll(filter, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
     private int getExpiration() {

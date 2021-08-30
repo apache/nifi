@@ -32,6 +32,7 @@ import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueFactory;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -341,12 +342,12 @@ public final class StandardConnection implements Connection, ConnectionEventList
 
     @Override
     public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords) {
-        return flowFileQueue.poll(filter, expiredRecords);
+        return flowFileQueue.poll(filter, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
     @Override
     public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords) {
-        return flowFileQueue.poll(expiredRecords);
+        return flowFileQueue.poll(expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
     @Override

@@ -47,6 +47,7 @@ import org.apache.nifi.controller.queue.ListFlowFileStatus;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.NopConnectionEventListener;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueDiagnostics;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.StandardFlowFileQueue;
@@ -219,12 +220,27 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
+            public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords, PollStrategy pollStrategy) {
+                return null;
+            }
+
+            @Override
             public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords) {
                 return null;
             }
 
             @Override
+            public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords, PollStrategy pollStrategy) {
+                return null;
+            }
+
+            @Override
             public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
+                return null;
+            }
+
+            @Override
+            public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords, PollStrategy pollStrategy) {
                 return null;
             }
 

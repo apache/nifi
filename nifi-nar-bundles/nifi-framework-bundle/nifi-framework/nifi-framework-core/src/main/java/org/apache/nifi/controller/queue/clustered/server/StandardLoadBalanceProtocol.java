@@ -509,6 +509,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
         final long lineageStartDate = metadataIn.readLong();
         final long entryDate = metadataIn.readLong();
+        final long penaltyExpirationMillis = metadataIn.readLong();
 
         final ContentClaimTriple contentClaimTriple = consumeContent(dis, out, contentClaim, claimOffset, peerDescription, compression == LoadBalanceCompression.COMPRESS_ATTRIBUTES_AND_CONTENT);
 
@@ -521,6 +522,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             .size(contentClaimTriple.getContentLength())
             .entryDate(entryDate)
             .lineageStart(lineageStartDate, lineageStartIndex.getAndIncrement())
+            .penaltyExpirationTime(penaltyExpirationMillis)
             .build();
 
         logger.debug("Received FlowFile {} with {} attributes and {} bytes of content", flowFileRecord, attributes.size(), contentClaimTriple.getContentLength());

@@ -148,7 +148,7 @@ public class TestLoadBalanceSession {
 
         expectedDos.write(LoadBalanceProtocolConstants.CHECK_SPACE);
         expectedDos.write(LoadBalanceProtocolConstants.MORE_FLOWFILES);
-        expectedDos.writeInt(68); // metadata length
+        expectedDos.writeInt(76); // metadata length
         expectedDos.writeInt(1); // 1 attribute
         expectedDos.writeInt(4); // length of attribute
         expectedDos.write("uuid".getBytes());
@@ -156,13 +156,14 @@ public class TestLoadBalanceSession {
         expectedDos.write(flowFile1.getAttribute("uuid").getBytes());
         expectedDos.writeLong(flowFile1.getLineageStartDate()); // lineage start date
         expectedDos.writeLong(flowFile1.getEntryDate()); // entry date
+        expectedDos.writeLong(flowFile1.getPenaltyExpirationMillis()); // penalty expiration time
         expectedDos.write(LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
         expectedDos.writeInt(5);
         expectedDos.write("hello".getBytes());
         expectedDos.write(LoadBalanceProtocolConstants.NO_DATA_FRAME);
 
         expectedDos.write(LoadBalanceProtocolConstants.MORE_FLOWFILES);
-        expectedDos.writeInt(68); // metadata length
+        expectedDos.writeInt(76); // metadata length
         expectedDos.writeInt(1); // 1 attribute
         expectedDos.writeInt(4); // length of attribute
         expectedDos.write("uuid".getBytes());
@@ -170,6 +171,7 @@ public class TestLoadBalanceSession {
         expectedDos.write(flowFile2.getAttribute("uuid").getBytes());
         expectedDos.writeLong(flowFile2.getLineageStartDate()); // lineage start date
         expectedDos.writeLong(flowFile2.getEntryDate()); // entry date
+        expectedDos.writeLong(flowFile2.getPenaltyExpirationMillis()); // penalty expiration time
         expectedDos.write(LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
         expectedDos.writeInt(8);
         expectedDos.write("good-bye".getBytes());
@@ -235,7 +237,7 @@ public class TestLoadBalanceSession {
 
         expectedDos.write(LoadBalanceProtocolConstants.CHECK_SPACE);
         expectedDos.write(LoadBalanceProtocolConstants.MORE_FLOWFILES);
-        expectedDos.writeInt(68); // metadata length
+        expectedDos.writeInt(76); // metadata length
         expectedDos.writeInt(1); // 1 attribute
         expectedDos.writeInt(4); // length of attribute
         expectedDos.write("uuid".getBytes());
@@ -243,6 +245,7 @@ public class TestLoadBalanceSession {
         expectedDos.write(flowFile1.getAttribute("uuid").getBytes());
         expectedDos.writeLong(flowFile1.getLineageStartDate()); // lineage start date
         expectedDos.writeLong(flowFile1.getEntryDate()); // entry date
+        expectedDos.writeLong(flowFile1.getPenaltyExpirationMillis()); // penalty expiration time
 
         // first data frame
         expectedDos.write(LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
