@@ -17,8 +17,8 @@
 package org.apache.nifi.processors.twitter;
 
 import com.twitter.hbc.core.endpoint.Location;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
@@ -34,13 +34,13 @@ public class TestLocationUtil {
 
         final String locationString = swLon + "," + swLat + "," + neLon + "," + neLat;
         List<Location> locations = LocationUtil.parseLocations(locationString);
-        Assert.assertEquals(1, locations.size());
+        Assertions.assertEquals(1, locations.size());
 
         Location location = locations.get(0);
-        Assert.assertEquals(new Double(location.southwestCoordinate().longitude()), Double.valueOf(swLon));
-        Assert.assertEquals(new Double(location.southwestCoordinate().latitude()), Double.valueOf(swLat));
-        Assert.assertEquals(new Double(location.northeastCoordinate().longitude()), Double.valueOf(neLon));
-        Assert.assertEquals(new Double(location.northeastCoordinate().latitude()), Double.valueOf(neLat));
+        Assertions.assertEquals(new Double(location.southwestCoordinate().longitude()), Double.valueOf(swLon));
+        Assertions.assertEquals(new Double(location.southwestCoordinate().latitude()), Double.valueOf(swLat));
+        Assertions.assertEquals(new Double(location.northeastCoordinate().longitude()), Double.valueOf(neLon));
+        Assertions.assertEquals(new Double(location.northeastCoordinate().latitude()), Double.valueOf(neLat));
     }
 
     @Test
@@ -54,7 +54,7 @@ public class TestLocationUtil {
 
         final String locationString = "-122.75,36.8,-121.75,37.8,-74,40,-73,41,-64,30,-63,31,-54,20,-53,21";
         List<Location> locations = LocationUtil.parseLocations(locationString);
-        Assert.assertEquals(expectedLocations.size(), locations.size());
+        Assertions.assertEquals(expectedLocations.size(), locations.size());
 
         for (Location expectedLocation : expectedLocations) {
             boolean found = false;
@@ -67,7 +67,7 @@ public class TestLocationUtil {
                     break;
                 }
             }
-            Assert.assertTrue(found);
+            Assertions.assertTrue(found);
         }
 
     }
