@@ -23,8 +23,8 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -39,7 +39,7 @@ public class TestInvokeJython extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setupInvokeScriptProcessor();
     }
@@ -49,7 +49,7 @@ public class TestInvokeJython extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Test
+    @org.junit.jupiter.api.Test
     public void testAlwaysInvalid() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setValidateExpressionUsage(false);
@@ -66,7 +66,7 @@ public class TestInvokeJython extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Test
+    @org.junit.jupiter.api.Test
     public void testInvalidThenFixed() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setValidateExpressionUsage(false);
@@ -96,7 +96,7 @@ public class TestInvokeJython extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Test
+    @org.junit.jupiter.api.Test
     public void testUpdateAttributeFromProcessorPropertyAndFlowFileAttribute() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setValidateExpressionUsage(false);
@@ -149,7 +149,7 @@ public class TestInvokeJython extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Test
+    @org.junit.jupiter.api.Test
     public void testCompressor() throws Exception {
         final TestRunner one = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         one.setValidateExpressionUsage(false);
@@ -187,7 +187,7 @@ public class TestInvokeJython extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Test
+    @org.junit.jupiter.api.Test
     public void testInvalidConfiguration() throws Exception {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");

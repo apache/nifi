@@ -18,8 +18,8 @@ package org.apache.nifi.processors.script;
 
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -34,7 +34,7 @@ public class TestExecuteClojure extends BaseScriptTest {
             + "female,miss,marlene,shaw\n"
             + "male,mr,todd,graham";
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setupExecuteScript();
     }
@@ -65,7 +65,7 @@ public class TestExecuteClojure extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Test
+    @org.junit.jupiter.api.Test
     public void testNoIncomingFlowFile() throws Exception {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Clojure");

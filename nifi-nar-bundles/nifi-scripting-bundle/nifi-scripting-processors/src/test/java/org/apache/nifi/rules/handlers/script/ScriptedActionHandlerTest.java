@@ -34,8 +34,8 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockBulletinRepository;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
@@ -64,7 +64,7 @@ public class ScriptedActionHandlerTest {
     private Map<String, Object> facts = new HashMap<>();
     private Map<String, String> attrs = new HashMap<>();
 
-    @Before
+    @BeforeEach
     public void setup() {
         facts.put("predictedQueuedCount", 60);
         facts.put("predictedTimeToBytesBackpressureMillis", 299999);
@@ -72,7 +72,7 @@ public class ScriptedActionHandlerTest {
         attrs.put("message", "Time to backpressure < 5 mins");
     }
 
-    @Test
+    @org.junit.jupiter.api.Test
     public void testActions() throws InitializationException {
         actionHandler = initTask("src/test/resources/groovy/test_action_handler.groovy");
         List<Action> actions = Arrays.asList(new Action("LOG", attrs), new Action("ALERT", attrs));
@@ -97,7 +97,7 @@ public class ScriptedActionHandlerTest {
         assertEquals(42, facts.get("testFact"));
     }
 
-    @Test
+    @org.junit.jupiter.api.Test
     public void testPropertyContextActionHandler() throws InitializationException {
         actionHandler = initTask("src/test/resources/groovy/test_propertycontext_action_handler.groovy");
         mockScriptedBulletinRepository = new MockScriptedBulletinRepository();

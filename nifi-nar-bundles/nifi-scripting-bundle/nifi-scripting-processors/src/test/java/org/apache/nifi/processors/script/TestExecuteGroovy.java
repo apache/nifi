@@ -19,8 +19,8 @@ package org.apache.nifi.processors.script;
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -29,6 +29,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 public class TestExecuteGroovy extends BaseScriptTest {
@@ -37,7 +38,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
             + "female,miss,marlene,shaw\n"
             + "male,mr,todd,graham";
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setupExecuteScript();
     }
@@ -239,7 +240,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing. Expecting
      */
-    @Test(expected = AssertionError.class)
+    @Test
     public void testScriptNoTransfer() throws Exception {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
@@ -249,8 +250,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
-        runner.run();
-
+        assertThrows(AssertionError.class, () -> runner.run());
     }
 
     /**

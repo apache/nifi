@@ -20,8 +20,8 @@ import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -29,7 +29,7 @@ import java.util.List;
 
 public class TestExecuteJRuby extends BaseScriptTest {
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setupExecuteScript();
     }

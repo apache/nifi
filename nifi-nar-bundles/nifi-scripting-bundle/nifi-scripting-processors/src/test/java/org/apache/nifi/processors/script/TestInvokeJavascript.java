@@ -25,8 +25,8 @@ import org.apache.nifi.util.MockProcessorInitializationContext;
 import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -35,10 +35,11 @@ import java.util.Set;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestInvokeJavascript extends BaseScriptTest {
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setupInvokeScriptProcessor();
     }
@@ -50,7 +51,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Test
+    @org.junit.jupiter.api.Test
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
@@ -72,7 +73,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Test
+    @org.junit.jupiter.api.Test
     public void testScriptDefinedAttribute() throws Exception {
         InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
         MockProcessContext context = new MockProcessContext(processor);
@@ -107,7 +108,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Test
+    @org.junit.jupiter.api.Test
     public void testScriptDefinedRelationship() throws Exception {
         InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
         MockProcessContext context = new MockProcessContext(processor);
@@ -140,10 +141,9 @@ public class TestInvokeJavascript extends BaseScriptTest {
      * Tests a script that throws a ProcessException within.
      * The expected result is that the exception will be propagated.
      *
-     * @throws Exception Any error encountered while testing
      */
-    @Test(expected = AssertionError.class)
-    public void testInvokeScriptCausesException() throws Exception {
+    @Test
+    public void testInvokeScriptCausesException() {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
@@ -151,8 +151,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
         );
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
-        runner.run();
-
+        assertThrows(AssertionError.class, () -> runner.run());
     }
 
     /**
@@ -160,7 +159,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Test
+    @org.junit.jupiter.api.Test
     public void testScriptRoutesToFailure() throws Exception {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
@@ -180,7 +179,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Test
+    @org.junit.jupiter.api.Test
     public void testEmptyScript() throws Exception {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, "");

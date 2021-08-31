@@ -30,8 +30,8 @@ import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.security.MessageDigestUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -41,11 +41,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 public class TestInvokeGroovy extends BaseScriptTest {
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setupInvokeScriptProcessor();
     }
@@ -55,7 +56,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Test
+    @org.junit.jupiter.api.Test
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
@@ -110,7 +111,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Test
+    @org.junit.jupiter.api.Test
     public void testScriptDefinedRelationship() throws Exception {
         InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
         MockProcessContext context = new MockProcessContext(processor);
@@ -141,10 +142,9 @@ public class TestInvokeGroovy extends BaseScriptTest {
      * Tests a script that throws a ProcessException within. The expected result is that the exception will be
      * propagated
      *
-     * @throws Exception Any error encountered while testing
      */
-    @Test(expected = AssertionError.class)
-    public void testInvokeScriptCausesException() throws Exception {
+    @Test
+    public void testInvokeScriptCausesException() {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
@@ -152,8 +152,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
         );
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
-        runner.run();
-
+        assertThrows(AssertionError.class, () -> runner.run());
     }
 
     /**

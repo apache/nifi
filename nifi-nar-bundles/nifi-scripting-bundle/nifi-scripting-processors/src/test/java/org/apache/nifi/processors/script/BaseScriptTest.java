@@ -20,7 +20,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,7 +44,7 @@ public abstract class BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @BeforeClass
+    @BeforeAll
     public static void setupBeforeClass() throws Exception {
         FileUtils.copyDirectory(new File("src/test/resources"), new File("target/test/resources"));
     }

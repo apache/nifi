@@ -30,7 +30,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,7 +55,7 @@ public class TestScriptedTransformRecord {
         testPassThrough("Groovy", "record");
     }
 
-    @Test
+    @org.junit.jupiter.api.Test
     public void testSimpleJythonScript() throws InitializationException {
         testPassThrough("python", "_ = record");
     }
@@ -128,7 +128,7 @@ public class TestScriptedTransformRecord {
     }
 
 
-    @Test
+    @org.junit.jupiter.api.Test
     public void testZeroRecordInput() throws InitializationException {
         final RecordSchema schema = createSimpleNumberSchema();
         setup(schema);
@@ -173,7 +173,7 @@ public class TestScriptedTransformRecord {
 
 
 
-    @Test
+    @org.junit.jupiter.api.Test
     public void testCollectionOfRecords() throws InitializationException {
         final RecordSchema schema = createSimpleNumberSchema();
         setup(schema);
@@ -325,7 +325,7 @@ public class TestScriptedTransformRecord {
         assertEquals(4, recordsWritten.get(1).getAsInt("num").intValue());
     }
 
-    @Test
+    @org.junit.jupiter.api.Test
     public void testScriptReturnsWrongObject() throws InitializationException {
         final RecordSchema schema = createSimpleNumberSchema();
         setup(schema);
@@ -375,7 +375,7 @@ public class TestScriptedTransformRecord {
         assertSame(inputFlowFile, out);
     }
 
-    @Test
+    @org.junit.jupiter.api.Test
     public void testScriptWithFunctions() throws InitializationException {
         final List<RecordField> bookFields = new ArrayList<>();
         bookFields.add(new RecordField("author", RecordFieldType.STRING.getDataType()));
