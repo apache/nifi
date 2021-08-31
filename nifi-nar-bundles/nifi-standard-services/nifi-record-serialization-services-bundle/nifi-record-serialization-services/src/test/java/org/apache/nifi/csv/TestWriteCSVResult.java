@@ -45,6 +45,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
 
@@ -388,6 +389,7 @@ public class TestWriteCSVResult {
 
     private DateFormat getDateFormat(final String format) {
         final DateFormat df = new SimpleDateFormat(format);
+        df.setTimeZone(TimeZone.getTimeZone("gmt"));
         return df;
     }
 
