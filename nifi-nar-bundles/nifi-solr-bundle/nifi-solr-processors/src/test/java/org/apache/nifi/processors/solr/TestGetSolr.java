@@ -33,9 +33,9 @@ import org.apache.nifi.util.TestRunners;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.xmlunit.matchers.CompareMatcher;
 
 import java.io.IOException;
@@ -46,7 +46,8 @@ import java.util.Date;
 import java.util.stream.StreamSupport;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestGetSolr {
     private static final String DEFAULT_SOLR_CORE = "testCollection";
@@ -57,12 +58,12 @@ public class TestGetSolr {
 
     private static SolrClient solrClient;
 
-    @BeforeClass
+    @BeforeAll
     public static void createSolrClient() throws Exception {
         solrClient = createEmbeddedSolrClient();
     }
 
-    @AfterClass
+    @AfterAll
     public static void closeSolrClient() throws Exception {
         solrClient.close();
     }
@@ -129,7 +130,7 @@ public class TestGetSolr {
         runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 0);
     }
 
-    @Test(expected = java.lang.AssertionError.class)
+    @Test
     public void testValidation() {
         final TestableProcessor proc = new TestableProcessor(solrClient);
 
@@ -137,7 +138,7 @@ public class TestGetSolr {
         runner.setProperty(GetSolr.BATCH_SIZE, "2");
         runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_REC.getValue());
 
-        runner.run(1, false);
+        assertThrows(AssertionError.class, () -> runner.run(1, false));
     }
 
     @Test

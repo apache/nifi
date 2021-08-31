@@ -21,9 +21,9 @@ import org.apache.nifi.snmp.utils.SNMPUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.agent.mo.DefaultMOFactory;
 import org.snmp4j.agent.mo.MOAccessImpl;
 import org.snmp4j.smi.OID;
@@ -33,8 +33,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class SetSNMPTest {
 
@@ -45,7 +45,7 @@ public class SetSNMPTest {
     private static final String VALID_OID_FF_ATTRIBUTE = "snmp$1.3.6.1.4.1.32437.1.5.1.4.2.0$4";
     private static final String INVALID_OID_FF_ATTRIBUTE = "snmp$1.3.6.1.4.1.32437.1.5.1.4.213.0$4";
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() throws IOException {
         snmpV1Agent = new TestSNMPV1Agent("127.0.0.1");
         snmpV1Agent.start();
@@ -54,7 +54,7 @@ public class SetSNMPTest {
         );
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDown() {
         snmpV1Agent.stop();
     }

@@ -23,7 +23,7 @@ import org.apache.nifi.snmp.helper.SNMPTestUtils;
 import org.apache.nifi.snmp.testagents.TestAgent;
 import org.apache.nifi.snmp.testagents.TestSNMPV3Agent;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.MessageException;
 import org.snmp4j.SNMP4JSettings;
 import org.snmp4j.Snmp;
@@ -36,7 +36,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class SNMPV3RequestTest extends SNMPRequestTest {
 
@@ -63,17 +64,17 @@ public class SNMPV3RequestTest extends SNMPRequestTest {
         assertSubTreeContainsOids(response);
     }
 
-    @Test(expected = RequestTimeoutException.class)
+    @Test
     public void testSnmpGetTimeoutReturnsNull() throws IOException {
         final StandardSNMPRequestHandler standardSnmpRequestHandler = getSnmpV3Getter(INVALID_HOST, SnmpConstants.version3,
                 "SHA", "SHAAuthPassword");
-        standardSnmpRequestHandler.get(READ_ONLY_OID_1);
+        assertThrows(RequestTimeoutException.class, () -> standardSnmpRequestHandler.get(READ_ONLY_OID_1));
     }
 
-    @Test(expected = MessageException.class)
+    @Test
     public void testSnmpGetWithInvalidTargetThrowsException() throws IOException {
         final StandardSNMPRequestHandler standardSnmpRequestHandler = getSnmpV3Getter(LOCALHOST, -1, "SHA", "SHAAuthPassword");
-        standardSnmpRequestHandler.get(READ_ONLY_OID_1);
+        assertThrows(MessageException.class, () -> standardSnmpRequestHandler.get(READ_ONLY_OID_1));
     }
 
     @Test

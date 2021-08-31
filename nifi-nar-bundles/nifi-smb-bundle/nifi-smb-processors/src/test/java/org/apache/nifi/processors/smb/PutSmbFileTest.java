@@ -16,36 +16,35 @@
  */
 package org.apache.nifi.processors.smb;
 
+import com.hierynomus.mssmb2.SMB2CreateDisposition;
+import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertArrayEquals;
-import static org.mockito.ArgumentMatchers.anySet;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.any;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
-import org.mockito.ArgumentCaptor;
-
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.share.DiskShare;
-import com.hierynomus.smbj.session.Session;
-import com.hierynomus.mssmb2.SMB2CreateDisposition;
-import com.hierynomus.mssmb2.SMB2ShareAccess;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 
 public class PutSmbFileTest {
@@ -129,7 +128,7 @@ public class PutSmbFileTest {
         return shareAccessSet.getValue();
     }
 
-    @Before
+    @BeforeEach
     public void init() throws IOException {
         testRunner = TestRunners.newTestRunner(PutSmbFile.class);
         MockitoAnnotations.initMocks(this);

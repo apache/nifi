@@ -16,6 +16,17 @@
  */
 package org.apache.nifi.update.attributes;
 
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.attributes.UpdateAttribute;
+import org.apache.nifi.state.MockStateManager;
+import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,21 +37,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.attributes.UpdateAttribute;
-import org.apache.nifi.state.MockStateManager;
-import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import org.junit.Assert;
-import org.junit.Test;
-
 import static org.apache.nifi.processors.attributes.UpdateAttribute.STORE_STATE_LOCALLY;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  *
@@ -1001,7 +1000,7 @@ public class TestUpdateAttribute {
         try {
             runner.run();
         } catch (AssertionError e) {
-            Assert.assertTrue(e.getMessage().contains("org.apache.nifi.processor.exception.ProcessException"));
+            assertTrue(e.getMessage().contains("org.apache.nifi.processor.exception.ProcessException"));
         }
     }
 

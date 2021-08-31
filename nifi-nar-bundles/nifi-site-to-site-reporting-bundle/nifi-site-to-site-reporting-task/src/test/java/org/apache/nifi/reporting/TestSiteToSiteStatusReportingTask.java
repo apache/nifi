@@ -37,10 +37,8 @@ import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.json.Json;
@@ -59,11 +57,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteStatusReportingTask {
@@ -81,12 +80,9 @@ public class TestSiteToSiteStatusReportingTask {
         context = Mockito.mock(ReportingContext.class);
         Mockito.when(context.getStateManager())
                 .thenReturn(new MockStateManager(task));
-        Mockito.doAnswer(new Answer<PropertyValue>() {
-            @Override
-            public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
-                return new MockPropertyValue(properties.get(descriptor));
-            }
+        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+            final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
+            return new MockPropertyValue(properties.get(descriptor));
         }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
 
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
@@ -542,18 +538,15 @@ public class TestSiteToSiteStatusReportingTask {
                 final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
                 final Transaction transaction = Mockito.mock(Transaction.class);
 
-                try {
-                    Mockito.doAnswer((Answer<Object>) invocation -> {
-                        final byte[] data = invocation.getArgument(0, byte[].class);
-                        dataSent.add(data);
-                        return null;
-                    }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
+                assertDoesNotThrow(() -> {
+                            Mockito.doAnswer((Answer<Object>) invocation -> {
+                                final byte[] data = invocation.getArgument(0, byte[].class);
+                                dataSent.add(data);
+                                return null;
+                            }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
 
-                    when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
-                } catch (final Exception e) {
-                    e.printStackTrace();
-                    Assert.fail(e.toString());
-                }
+                            when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+                        });
                 siteToSiteClient = client;
             }
         }

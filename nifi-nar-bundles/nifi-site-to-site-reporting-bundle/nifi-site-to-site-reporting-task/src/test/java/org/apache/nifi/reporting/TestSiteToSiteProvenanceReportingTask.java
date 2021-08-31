@@ -41,10 +41,8 @@ import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.json.Json;
@@ -62,8 +60,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteProvenanceReportingTask {
@@ -81,41 +80,32 @@ public class TestSiteToSiteProvenanceReportingTask {
 
         when(context.getStateManager())
                 .thenReturn(new MockStateManager(task));
-        Mockito.doAnswer(new Answer<PropertyValue>() {
-            @Override
-            public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
-                return new MockPropertyValue(properties.get(descriptor));
-            }
+        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+            final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
+            return new MockPropertyValue(properties.get(descriptor));
         }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
 
-        Mockito.doAnswer(new Answer<PropertyValue>() {
-            @Override
-            public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
-                return new MockPropertyValue(properties.get(descriptor));
-            }
+        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+            final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
+            return new MockPropertyValue(properties.get(descriptor));
         }).when(confContext).getProperty(Mockito.any(PropertyDescriptor.class));
 
         final AtomicInteger totalEvents = new AtomicInteger(0);
 
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
-        Mockito.doAnswer(new Answer<List<ProvenanceEventRecord>>() {
-            @Override
-            public List<ProvenanceEventRecord> answer(final InvocationOnMock invocation) throws Throwable {
-                final long startId = invocation.getArgument(0, Long.class);
-                final int maxRecords = invocation.getArgument(1, Integer.class);
+        Mockito.doAnswer((Answer<List<ProvenanceEventRecord>>) invocation -> {
+            final long startId = invocation.getArgument(0, Long.class);
+            final int maxRecords = invocation.getArgument(1, Integer.class);
 
-                final List<ProvenanceEventRecord> eventsToReturn = new ArrayList<>();
-                for (int i = (int) Math.max(0, startId); i < (int) (startId + maxRecords) && totalEvents.get() < maxEventId; i++) {
-                    if (event != null) {
-                        eventsToReturn.add(event);
-                    }
-
-                    totalEvents.getAndIncrement();
+            final List<ProvenanceEventRecord> eventsToReturn = new ArrayList<>();
+            for (int i = (int) Math.max(0, startId); i < (int) (startId + maxRecords) && totalEvents.get() < maxEventId; i++) {
+                if (event != null) {
+                    eventsToReturn.add(event);
                 }
-                return eventsToReturn;
+
+                totalEvents.getAndIncrement();
             }
+            return eventsToReturn;
         }).when(eventAccess).getProvenanceEvents(Mockito.anyLong(), Mockito.anyInt());
         ProcessGroupStatus pgRoot = new ProcessGroupStatus();
         pgRoot.setId("root");
@@ -178,12 +168,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         pgB3.getConnectionStatus().add(b3RemoteOutputPort);
 
         final ProvenanceEventRepository provenanceRepository = Mockito.mock(ProvenanceEventRepository.class);
-        Mockito.doAnswer(new Answer<Long>() {
-            @Override
-            public Long answer(final InvocationOnMock invocation) throws Throwable {
-                return maxEventId;
-            }
-        }).when(provenanceRepository).getMaxEventId();
+        Mockito.doAnswer((Answer<Long>) invocation -> maxEventId).when(provenanceRepository).getMaxEventId();
 
         when(context.getEventAccess()).thenReturn(eventAccess);
         when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
@@ -615,12 +600,7 @@ public class TestSiteToSiteProvenanceReportingTask {
 
         // setup the mock provenance repository to return maxEventId
         final ProvenanceEventRepository provenanceRepository = Mockito.mock(ProvenanceEventRepository.class);
-        Mockito.doAnswer(new Answer<Long>() {
-            @Override
-            public Long answer(final InvocationOnMock invocation) throws Throwable {
-                return maxEventId;
-            }
-        }).when(provenanceRepository).getMaxEventId();
+        Mockito.doAnswer((Answer<Long>) invocation -> maxEventId).when(provenanceRepository).getMaxEventId();
 
         // setup the mock EventAccess to return the mock provenance repository
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
@@ -680,18 +660,16 @@ public class TestSiteToSiteProvenanceReportingTask {
                 final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
                 final Transaction transaction = Mockito.mock(Transaction.class);
 
-                try {
-                    Mockito.doAnswer((Answer<Object>) invocation -> {
-                        final byte[] data = invocation.getArgument(0, byte[].class);
-                        dataSent.add(data);
-                        return null;
-                    }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
+                assertDoesNotThrow(() -> {
+                            Mockito.doAnswer((Answer<Object>) invocation -> {
+                                final byte[] data = invocation.getArgument(0, byte[].class);
+                                dataSent.add(data);
+                                return null;
+                            }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
 
-                    when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
-                } catch (final Exception e) {
-                    e.printStackTrace();
-                    Assert.fail(e.toString());
-                }
+                            when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+
+                        });
                 siteToSiteClient = client;
             }
         }

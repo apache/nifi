@@ -29,8 +29,7 @@ import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.reporting.s2s.SiteToSiteUtils.NiFiUrlValidator;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
@@ -47,9 +46,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteBulletinReportingTask {
@@ -115,6 +115,7 @@ public class TestSiteToSiteBulletinReportingTask {
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject bulletinJson = jsonReader.readArray().getJsonObject(0);
+
         assertEquals("message", bulletinJson.getString("bulletinMessage"));
         assertEquals("group-name", bulletinJson.getString("bulletinGroupName"));
         assertEquals("group-path", bulletinJson.getString("bulletinGroupPath"));
@@ -179,18 +180,15 @@ public class TestSiteToSiteBulletinReportingTask {
                 final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
                 final Transaction transaction = Mockito.mock(Transaction.class);
 
-                try {
-                    Mockito.doAnswer((Answer<Object>) invocation -> {
-                        final byte[] data = invocation.getArgument(0, byte[].class);
-                        dataSent.add(data);
-                        return null;
-                    }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
+                assertDoesNotThrow(() -> {
+                            Mockito.doAnswer((Answer<Object>) invocation -> {
+                                final byte[] data = invocation.getArgument(0, byte[].class);
+                                dataSent.add(data);
+                                return null;
+                            }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
 
-                    when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
-                } catch (final Exception e) {
-                    e.printStackTrace();
-                    Assert.fail(e.toString());
-                }
+                            when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+                        });
                 siteToSiteClient = client;
             }
         }
