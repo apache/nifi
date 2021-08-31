@@ -18,7 +18,7 @@ package org.apache.nifi.snmp.factory;
 
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.apache.nifi.snmp.configuration.SNMPConfigurationBuilder;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.Snmp;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.security.UsmUser;

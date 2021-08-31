@@ -21,18 +21,16 @@ import org.apache.nifi.snmp.utils.SNMPUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.agent.mo.DefaultMOFactory;
 import org.snmp4j.agent.mo.MOAccessImpl;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
 
 import java.io.IOException;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class GetSNMPTest {
 
@@ -44,7 +42,7 @@ public class GetSNMPTest {
     private static final String GET = "GET";
     private static final String WALK = "WALK";
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() throws IOException {
         snmpV1Agent = new TestSNMPV1Agent("127.0.0.1");
         snmpV1Agent.start();
@@ -54,7 +52,7 @@ public class GetSNMPTest {
         );
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDown() {
         snmpV1Agent.stop();
     }
@@ -64,8 +62,8 @@ public class GetSNMPTest {
         final TestRunner runner = getTestRunner(readOnlyOID1.toString(), String.valueOf(snmpV1Agent.getPort()), GET);
         runner.run();
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(GetSNMP.REL_SUCCESS).get(0);
-        assertNotNull(successFF);
-        assertEquals(OIDValue1, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + readOnlyOID1.toString() + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
+        Assertions.assertNotNull(successFF);
+        Assertions.assertEquals(OIDValue1, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + readOnlyOID1.toString() + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
     }
 
     @Test
@@ -73,9 +71,9 @@ public class GetSNMPTest {
         final TestRunner runner = getTestRunner("1.3.6.1.4.1.32437", String.valueOf(snmpV1Agent.getPort()), WALK);
         runner.run();
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(GetSNMP.REL_SUCCESS).get(0);
-        assertNotNull(successFF);
-        assertEquals(OIDValue1, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + readOnlyOID1.toString() + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
-        assertEquals(OIDValue2, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + readOnlyOID2.toString() + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
+        Assertions.assertNotNull(successFF);
+        Assertions.assertEquals(OIDValue1, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + readOnlyOID1.toString() + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
+        Assertions.assertEquals(OIDValue2, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + readOnlyOID2.toString() + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
     }
 
     private TestRunner getTestRunner(final String oid, final String port, final String strategy) {
