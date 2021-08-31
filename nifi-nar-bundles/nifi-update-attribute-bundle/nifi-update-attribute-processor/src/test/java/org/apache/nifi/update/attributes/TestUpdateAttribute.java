@@ -36,11 +36,10 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.nifi.processors.attributes.UpdateAttribute.STORE_STATE_LOCALLY;
-import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -984,7 +983,7 @@ public class TestUpdateAttribute {
         try {
             runner.run();
         } catch (Throwable t) {
-            assertEquals(ProcessException.class, t.getCause().getClass());
+            Assertions.assertEquals(ProcessException.class, t.getCause().getClass());
         }
     }
 
@@ -1001,7 +1000,7 @@ public class TestUpdateAttribute {
         try {
             runner.run();
         } catch (AssertionError e) {
-            Assert.assertTrue(e.getMessage().contains("org.apache.nifi.processor.exception.ProcessException"));
+            Assertions.assertTrue(e.getMessage().contains("org.apache.nifi.processor.exception.ProcessException"));
         }
     }
 
