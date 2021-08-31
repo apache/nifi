@@ -20,8 +20,8 @@
 package org.apache.nifi.processors.solr;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.google.gson.stream.JsonReader;
 import java.io.ByteArrayInputStream;
@@ -53,9 +53,9 @@ import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.ZkClientClusterStateProvider;
 import org.apache.solr.client.solrj.request.CollectionAdminRequest;
 import org.apache.solr.common.SolrInputDocument;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.xmlunit.matchers.CompareMatcher;
 
@@ -82,7 +82,7 @@ public class QuerySolrIT {
         ZK_CONFIG_NAME = "QuerySolrIT_config";
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws IOException, SolrServerException {
         CloudSolrClient solrClient = createSolrClient();
         Path currentDir = Paths.get(ZK_CONFIG_PATH);
@@ -128,7 +128,7 @@ public class QuerySolrIT {
         return solrClient;
     }
 
-    @AfterClass
+    @AfterAll
     public static void teardown() {
         try {
             CloudSolrClient solrClient = createSolrClient();

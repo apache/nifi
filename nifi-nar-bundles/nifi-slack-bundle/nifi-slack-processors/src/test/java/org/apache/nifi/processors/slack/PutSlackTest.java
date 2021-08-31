@@ -23,16 +23,17 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.TestServer;
 import org.eclipse.jetty.servlet.ServletHandler;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PutSlackTest {
 
@@ -41,7 +42,7 @@ public class PutSlackTest {
     private CaptureServlet servlet;
     public static final String WEBHOOK_TEST_TEXT = "Hello From Apache NiFi";
 
-    @Before
+    @BeforeEach
     public void init() throws Exception {
         testRunner = TestRunners.newTestRunner(PutSlack.class);
 
@@ -57,13 +58,13 @@ public class PutSlackTest {
         servlet = (CaptureServlet) handler.getServlets()[0].getServlet();
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     public void testBlankText() {
         testRunner.setProperty(PutSlack.WEBHOOK_URL, server.getUrl());
         testRunner.setProperty(PutSlack.WEBHOOK_TEXT, "");
 
         testRunner.enqueue(new byte[0]);
-        testRunner.run(1);
+        assertThrows(AssertionError.class, () -> testRunner.run(1));
     }
 
     @Test
@@ -87,24 +88,24 @@ public class PutSlackTest {
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_FAILURE);
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     public void testInvalidIconUrl() {
         testRunner.setProperty(PutSlack.WEBHOOK_URL, server.getUrl());
         testRunner.setProperty(PutSlack.WEBHOOK_TEXT, WEBHOOK_TEST_TEXT);
         testRunner.setProperty(PutSlack.ICON_URL, "invalid");
 
         testRunner.enqueue(new byte[0]);
-        testRunner.run(1);
+        assertThrows(AssertionError.class, () -> testRunner.run(1));
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     public void testInvalidIconEmoji() {
         testRunner.setProperty(PutSlack.WEBHOOK_URL, server.getUrl());
         testRunner.setProperty(PutSlack.WEBHOOK_TEXT, WEBHOOK_TEST_TEXT);
         testRunner.setProperty(PutSlack.ICON_EMOJI, "invalid");
 
         testRunner.enqueue(new byte[0]);
-        testRunner.run(1);
+        assertThrows(AssertionError.class, () -> testRunner.run(1));
     }
 
     @Test
@@ -186,7 +187,7 @@ public class PutSlackTest {
     public void testGetPropertyDescriptors() throws Exception {
         PutSlack processor = new PutSlack();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 6, pd.size());
+        assertEquals(6, pd.size(), "size should be eq");
         assertTrue(pd.contains(PutSlack.WEBHOOK_TEXT));
         assertTrue(pd.contains(PutSlack.WEBHOOK_URL));
         assertTrue(pd.contains(PutSlack.CHANNEL));

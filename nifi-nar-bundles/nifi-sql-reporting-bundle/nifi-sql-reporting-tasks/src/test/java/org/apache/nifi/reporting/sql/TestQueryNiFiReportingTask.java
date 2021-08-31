@@ -48,8 +48,8 @@ import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.db.JdbcProperties;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
@@ -65,10 +65,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class TestQueryNiFiReportingTask {
@@ -78,7 +79,7 @@ public class TestQueryNiFiReportingTask {
     private MockRecordSinkService mockRecordSinkService;
     private ProcessGroupStatus status;
 
-    @Before
+    @BeforeEach
     public void setup() {
         mockRecordSinkService = new MockRecordSinkService();
         status = new ProcessGroupStatus();
@@ -168,6 +169,7 @@ public class TestQueryNiFiReportingTask {
         Map<String, Object> row = rows.get(0);
         assertEquals(3, row.size()); // Only projected 2 columns
         Object id = row.get("id");
+
         assertTrue(id instanceof String);
         assertEquals("nested", id);
         assertEquals(1001, row.get("queuedCount"));
@@ -214,6 +216,7 @@ public class TestQueryNiFiReportingTask {
         assertEquals(1, rows.size());
         Map<String, Object> row = rows.get(0);
         assertEquals(11, row.size());
+
         assertTrue(row.get(MetricNames.JVM_DAEMON_THREAD_COUNT.replace(".", "_")) instanceof Integer);
         assertTrue(row.get(MetricNames.JVM_HEAP_USAGE.replace(".", "_")) instanceof Double);
     }
@@ -272,6 +275,7 @@ public class TestQueryNiFiReportingTask {
         assertEquals(0L, row.get("eventId"));
         assertEquals("CREATE", row.get("eventType"));
         assertEquals(12L, row.get("entitySize"));
+
         assertNull(row.get("contentPath"));
         assertNull(row.get("previousContentPath"));
 
@@ -317,11 +321,12 @@ public class TestQueryNiFiReportingTask {
         assertEquals("controller", row.get("bulletinCategory"));
         assertEquals("WARN", row.get("bulletinLevel"));
         assertEquals(flowFileUuid, row.get("bulletinFlowFileUuid"));
+
         // Validate the second row
         row = rows.get(1);
         assertEquals("processor", row.get("bulletinCategory"));
         assertEquals("INFO", row.get("bulletinLevel"));
-        assertEquals(flowFileUuid, row.get("bulletinFlowFileUuid"));
+
         // Validate the third row
         row = rows.get(2);
         assertEquals("controller service", row.get("bulletinCategory"));

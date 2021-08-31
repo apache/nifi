@@ -17,7 +17,6 @@
 
 package org.apache.nifi.reporting;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -35,13 +34,11 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.json.Json;
@@ -60,21 +57,18 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
+@DisabledOnOs(OS.WINDOWS)
 public class TestSiteToSiteMetricsReportingTask {
 
     private ReportingContext context;
     private ProcessGroupStatus status;
 
-    @BeforeClass
-    public static void setUpSuite() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-    }
-
-    @Before
+    @BeforeEach
     public void setup() {
         status = new ProcessGroupStatus();
         status.setId("1234");
@@ -116,12 +110,9 @@ public class TestSiteToSiteMetricsReportingTask {
 
         context = Mockito.mock(ReportingContext.class);
         Mockito.when(context.getStateManager()).thenReturn(new MockStateManager(task));
-        Mockito.doAnswer(new Answer<PropertyValue>() {
-            @Override
-            public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
-                return new MockPropertyValue(properties.get(descriptor));
-            }
+        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+            final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
+            return new MockPropertyValue(properties.get(descriptor));
         }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
 
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
@@ -165,12 +156,9 @@ public class TestSiteToSiteMetricsReportingTask {
         Mockito.when(pValueUrl.evaluateAttributeExpressions()).thenReturn(pValueUrl);
         Mockito.when(pValueUrl.getValue()).thenReturn(url);
 
-        Mockito.doAnswer(new Answer<PropertyValue>() {
-            @Override
-            public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
-                return new MockPropertyValue(properties.get(descriptor));
-            }
+        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+            final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
+            return new MockPropertyValue(properties.get(descriptor));
         }).when(validationContext).getProperty(Mockito.any(PropertyDescriptor.class));
 
         final PropertyValue pValue = Mockito.mock(StandardPropertyValue.class);
@@ -179,8 +167,8 @@ public class TestSiteToSiteMetricsReportingTask {
 
         // should be invalid because both ambari format and record writer are set
         Collection<ValidationResult> list = task.validate(validationContext);
-        Assert.assertEquals(1, list.size());
-        Assert.assertEquals(SiteToSiteMetricsReportingTask.RECORD_WRITER.getDisplayName(), list.iterator().next().getInput());
+        assertEquals(1, list.size());
+        assertEquals(SiteToSiteMetricsReportingTask.RECORD_WRITER.getDisplayName(), list.iterator().next().getInput());
     }
 
     @Test
@@ -206,12 +194,9 @@ public class TestSiteToSiteMetricsReportingTask {
         Mockito.when(pValueUrl.evaluateAttributeExpressions()).thenReturn(pValueUrl);
         Mockito.when(pValueUrl.getValue()).thenReturn(url);
 
-        Mockito.doAnswer(new Answer<PropertyValue>() {
-            @Override
-            public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
-                return new MockPropertyValue(properties.get(descriptor));
-            }
+        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+            final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
+            return new MockPropertyValue(properties.get(descriptor));
         }).when(validationContext).getProperty(Mockito.any(PropertyDescriptor.class));
 
         final PropertyValue pValue = Mockito.mock(StandardPropertyValue.class);
@@ -220,8 +205,8 @@ public class TestSiteToSiteMetricsReportingTask {
 
         // should be invalid because both ambari format and record writer are set
         Collection<ValidationResult> list = task.validate(validationContext);
-        Assert.assertEquals(1, list.size());
-        Assert.assertEquals(SiteToSiteMetricsReportingTask.RECORD_WRITER.getDisplayName(), list.iterator().next().getInput());
+        assertEquals(1, list.size());
+        assertEquals(SiteToSiteMetricsReportingTask.RECORD_WRITER.getDisplayName(), list.iterator().next().getInput());
     }
 
     @Test
@@ -309,18 +294,15 @@ public class TestSiteToSiteMetricsReportingTask {
                 final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
                 final Transaction transaction = Mockito.mock(Transaction.class);
 
-                try {
-                    Mockito.doAnswer((Answer<Object>) invocation -> {
-                        final byte[] data = invocation.getArgument(0, byte[].class);
-                        dataSent.add(data);
-                        return null;
-                    }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
+                assertDoesNotThrow(() -> {
+                            Mockito.doAnswer((Answer<Object>) invocation -> {
+                                final byte[] data = invocation.getArgument(0, byte[].class);
+                                dataSent.add(data);
+                                return null;
+                            }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
 
-                    when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
-                } catch (final Exception e) {
-                    e.printStackTrace();
-                    Assert.fail(e.toString());
-                }
+                            when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+                        });
                 siteToSiteClient = client;
             }
         }

@@ -21,8 +21,8 @@ import org.apache.nifi.snmp.dto.SNMPTreeResponse;
 import org.apache.nifi.snmp.helper.SNMPTestUtils;
 import org.apache.nifi.snmp.testagents.TestAgent;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.snmp4j.CommunityTarget;
 import org.snmp4j.Snmp;
 import org.snmp4j.agent.mo.DefaultMOFactory;
@@ -36,8 +36,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public abstract class SNMPRequestTest {
 
@@ -68,7 +68,7 @@ public abstract class SNMPRequestTest {
 
     protected abstract TestAgent getAgentInstance();
 
-    @Before
+    @BeforeEach
     public void initAgent() throws IOException {
         agent.start();
         agent.registerManagedObjects(
@@ -78,7 +78,7 @@ public abstract class SNMPRequestTest {
         );
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         agent.stop();
     }

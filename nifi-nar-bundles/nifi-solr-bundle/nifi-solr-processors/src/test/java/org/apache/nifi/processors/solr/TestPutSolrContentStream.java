@@ -36,8 +36,7 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.security.auth.login.LoginException;
@@ -52,6 +51,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -237,7 +240,7 @@ public class TestPutSolrContentStream {
         // prove the document got added
         SolrQuery query = new SolrQuery("*:*");
         QueryResponse qResponse = solrClient.query(query);
-        Assert.assertEquals(1, qResponse.getResults().getNumFound());
+        assertEquals(1, qResponse.getResults().getNumFound());
 
         // run the processor with a delete-by-query command
         runner.enqueue("<delete><query>first:bob</query></delete>".getBytes(StandardCharsets.UTF_8));
@@ -245,7 +248,7 @@ public class TestPutSolrContentStream {
 
         // prove the document got deleted
         qResponse = solrClient.query(query);
-        Assert.assertEquals(0, qResponse.getResults().getNumFound());
+        assertEquals(0, qResponse.getResults().getNumFound());
     }
 
     @Test
@@ -377,7 +380,7 @@ public class TestPutSolrContentStream {
         runner.setProperty(SolrUtils.SOLR_LOCATION, "https://localhost:8443/solr");
         runner.assertNotValid();
 
-        final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
+        final SSLContextService sslContextService = mock(SSLContextService.class);
         Mockito.when(sslContextService.getIdentifier()).thenReturn("ssl-context");
         runner.addControllerService("ssl-context", sslContextService);
         runner.enableControllerService(sslContextService);
@@ -393,7 +396,7 @@ public class TestPutSolrContentStream {
         runner.setProperty(SolrUtils.SOLR_LOCATION, "http://localhost:8443/solr");
         runner.assertValid();
 
-        final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
+        final SSLContextService sslContextService = mock(SSLContextService.class);
         Mockito.when(sslContextService.getIdentifier()).thenReturn("ssl-context");
         runner.addControllerService("ssl-context", sslContextService);
         runner.enableControllerService(sslContextService);
@@ -457,9 +460,9 @@ public class TestPutSolrContentStream {
 
         proc.onScheduled(runner.getProcessContext());
         final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
-        Assert.assertNotNull(kerberosUser);
-        Assert.assertEquals(principal, kerberosUser.getPrincipal());
-        Assert.assertEquals(keytab, ((KerberosKeytabUser)kerberosUser).getKeytabFile());
+        assertNotNull(kerberosUser);
+        assertEquals(principal, kerberosUser.getPrincipal());
+        assertEquals(keytab, ((KerberosKeytabUser)kerberosUser).getKeytabFile());
     }
 
     @Test
@@ -483,7 +486,7 @@ public class TestPutSolrContentStream {
 
         proc.onScheduled(runner.getProcessContext());
         final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
-        Assert.assertNotNull(kerberosUser);
+        assertNotNull(kerberosUser);
     }
 
     @Test
@@ -510,8 +513,8 @@ public class TestPutSolrContentStream {
 
         proc.onScheduled(runner.getProcessContext());
         final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
-        Assert.assertNotNull(kerberosUser);
-        Assert.assertEquals(kerberosPrincipal, kerberosUser.getPrincipal());
+        assertNotNull(kerberosUser);
+        assertEquals(kerberosPrincipal, kerberosUser.getPrincipal());
     }
 
     @Test
@@ -541,9 +544,9 @@ public class TestPutSolrContentStream {
 
         proc.onScheduled(runner.getProcessContext());
         final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
-        Assert.assertNotNull(kerberosUser);
-        Assert.assertEquals(principal, kerberosUser.getPrincipal());
-        Assert.assertEquals(keytab, ((KerberosKeytabUser)kerberosUser).getKeytabFile());
+        assertNotNull(kerberosUser);
+        assertEquals(principal, kerberosUser.getPrincipal());
+        assertEquals(keytab, ((KerberosKeytabUser)kerberosUser).getKeytabFile());
     }
 
     @Test
@@ -566,7 +569,7 @@ public class TestPutSolrContentStream {
 
         proc.onScheduled(runner.getProcessContext());
         final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
-        Assert.assertNotNull(kerberosUser);
+        assertNotNull(kerberosUser);
     }
 
     @Test
@@ -591,7 +594,7 @@ public class TestPutSolrContentStream {
 
         proc.onScheduled(runner.getProcessContext());
         final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
-        Assert.assertNotNull(kerberosUser);
+        assertNotNull(kerberosUser);
     }
 
     @Test
@@ -600,7 +603,7 @@ public class TestPutSolrContentStream {
         final String keytab = "src/test/resources/foo.keytab";
 
         // Setup a mock KerberosUser that will still execute the privileged action
-        final KerberosKeytabUser kerberosUser = Mockito.mock(KerberosKeytabUser.class);
+        final KerberosKeytabUser kerberosUser = mock(KerberosKeytabUser.class);
         when(kerberosUser.getPrincipal()).thenReturn(principal);
         when(kerberosUser.getKeytabFile()).thenReturn(keytab);
         when(kerberosUser.doAs(any(PrivilegedExceptionAction.class))).thenAnswer((invocation -> {
@@ -679,7 +682,7 @@ public class TestPutSolrContentStream {
             mockSolrClient = new SolrClient() {
                 @Override
                 public NamedList<Object> request(SolrRequest solrRequest, String s) throws SolrServerException, IOException {
-                    Assert.assertEquals(expectedCollection, solrRequest.getParams().get(PutSolrContentStream.COLLECTION_PARAM_NAME));
+                    assertEquals(expectedCollection, solrRequest.getParams().get(PutSolrContentStream.COLLECTION_PARAM_NAME));
                     return new NamedList<>();
                 }
 
@@ -706,15 +709,9 @@ public class TestPutSolrContentStream {
 
         @Override
         protected SolrClient createSolrClient(ProcessContext context, String solrLocation) {
-            mockSolrClient = Mockito.mock(SolrClient.class);
-            try {
-                when(mockSolrClient.request(any(SolrRequest.class),
-                        eq(null))).thenThrow(throwable);
-            } catch (SolrServerException e) {
-                Assert.fail(e.getMessage());
-            } catch (IOException e) {
-                Assert.fail(e.getMessage());
-            }
+            mockSolrClient = mock(SolrClient.class);
+            assertDoesNotThrow(() -> when(mockSolrClient.request(any(SolrRequest.class),
+                        eq(null))).thenThrow(throwable));
             return mockSolrClient;
         }
 
@@ -783,7 +780,7 @@ public class TestPutSolrContentStream {
 
         SolrQuery query = new SolrQuery("*:*");
         QueryResponse qResponse = solrServer.query(query);
-        Assert.assertEquals(expectedDocuments.size(), qResponse.getResults().getNumFound());
+        assertEquals(expectedDocuments.size(), qResponse.getResults().getNumFound());
 
         // verify documents have expected fields and values
         for (SolrDocument expectedDoc : expectedDocuments) {
@@ -801,7 +798,7 @@ public class TestPutSolrContentStream {
                     break;
                 }
             }
-            Assert.assertTrue("Could not find " + expectedDoc, found);
+            assertTrue(found, "Could not find " + expectedDoc);
         }
     }
 

@@ -23,15 +23,16 @@ import com.splunk.ServiceArgs;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -41,7 +42,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@RunWith(MockitoJUnitRunner.class)
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class TestQuerySplunkIndexingStatus {
     private static final String EVENT = "{\"a\"=\"b\",\"c\"=\"d\",\"e\"=\"f\"}";
 
@@ -57,7 +63,7 @@ public class TestQuerySplunkIndexingStatus {
     private ArgumentCaptor<String> path;
     private ArgumentCaptor<RequestMessage> request;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         processor = new MockedQuerySplunkIndexingStatus(service);
         testRunner = TestRunners.newTestRunner(processor);
@@ -70,7 +76,7 @@ public class TestQuerySplunkIndexingStatus {
         Mockito.when(service.send(path.capture(), request.capture())).thenReturn(response);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         testRunner.shutdown();
     }
@@ -92,10 +98,10 @@ public class TestQuerySplunkIndexingStatus {
         final List<MockFlowFile> acknowledged = testRunner.getFlowFilesForRelationship(QuerySplunkIndexingStatus.RELATIONSHIP_ACKNOWLEDGED);
         final List<MockFlowFile> undetermined = testRunner.getFlowFilesForRelationship(QuerySplunkIndexingStatus.RELATIONSHIP_UNDETERMINED);
 
-        Assert.assertEquals(1, acknowledged.size());
-        Assert.assertEquals(1, undetermined.size());
-        Assert.assertFalse(acknowledged.get(0).isPenalized());
-        Assert.assertTrue(undetermined.get(0).isPenalized());
+        assertEquals(1, acknowledged.size());
+        assertEquals(1, undetermined.size());
+        assertFalse(acknowledged.get(0).isPenalized());
+        assertTrue(undetermined.get(0).isPenalized());
     }
 
     @Test
@@ -114,8 +120,8 @@ public class TestQuerySplunkIndexingStatus {
         testRunner.run();
 
         // then
-        Assert.assertEquals("{\"acks\":[1,2]}", request.getValue().getContent());
-        Assert.assertEquals(1, testRunner.getQueueSize().getObjectCount());
+        assertEquals("{\"acks\":[1,2]}", request.getValue().getContent());
+        assertEquals(1, testRunner.getQueueSize().getObjectCount());
         testRunner.assertAllFlowFilesTransferred(QuerySplunkIndexingStatus.RELATIONSHIP_ACKNOWLEDGED, 2);
     }
 

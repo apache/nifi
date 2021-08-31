@@ -19,18 +19,18 @@ package org.apache.nifi.processors.livy;
 import org.apache.nifi.controller.livy.LivySessionController;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.TestServer;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestExecuteSparkInteractive extends ExecuteSparkInteractiveTestBase {
 
     private static TestServer server;
     private static String url;
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() throws Exception {
         // useful for verbose logging output
         // don't commit this with this property enabled, or any 'mvn test' will be really verbose
@@ -44,12 +44,12 @@ public class TestExecuteSparkInteractive extends ExecuteSparkInteractiveTestBase
         url = server.getUrl();
     }
 
-    @AfterClass
+    @AfterAll
     public static void afterClass() throws Exception {
         server.shutdownServer();
     }
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         runner = TestRunners.newTestRunner(ExecuteSparkInteractive.class);
         LivySessionController livyControllerService = new LivySessionController();
@@ -62,7 +62,7 @@ public class TestExecuteSparkInteractive extends ExecuteSparkInteractiveTestBase
         server.clearHandlers();
     }
 
-    @After
+    @AfterEach
     public void after() {
         runner.shutdown();
     }

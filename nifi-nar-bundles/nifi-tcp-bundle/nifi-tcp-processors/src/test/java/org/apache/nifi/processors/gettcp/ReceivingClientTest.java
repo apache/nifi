@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.processors.gettcp;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -31,26 +32,29 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
 
-@Ignore // Ignored for full build due to artificial delays given the
-        // multi-threaded nature of most of the tests. Please un-Ignore and run
-        // when working on changes
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@EnabledIfSystemProperty(
+        named = "nifi.test.unstable",
+        matches = "true",
+        disabledReason = "Ignored for full build due to artificial delays given the multi-threaded nature of most of " +
+                "the tests. Please un-Ignore and run when working on changes"
+)
 public class ReceivingClientTest {
 
     private final static byte EOM = '\r';
 
     private ScheduledExecutorService scheduler;
 
-    @Before
+    @BeforeEach
     public void before() {
         this.scheduler = Executors.newScheduledThreadPool(1);
     }
 
-    @After
+    @AfterEach
     public void after() {
         this.scheduler.shutdownNow();
     }

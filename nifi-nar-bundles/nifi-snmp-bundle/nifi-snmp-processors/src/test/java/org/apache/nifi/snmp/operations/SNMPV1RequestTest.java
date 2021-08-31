@@ -21,13 +21,14 @@ import org.apache.nifi.snmp.dto.SNMPTreeResponse;
 import org.apache.nifi.snmp.exception.RequestTimeoutException;
 import org.apache.nifi.snmp.testagents.TestAgent;
 import org.apache.nifi.snmp.testagents.TestSNMPV1Agent;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.MessageException;
 import org.snmp4j.mp.SnmpConstants;
 
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class SNMPV1RequestTest extends SNMPRequestTest {
 
@@ -51,14 +52,14 @@ public class SNMPV1RequestTest extends SNMPRequestTest {
         assertSubTreeContainsOids(response);
     }
 
-    @Test(expected = RequestTimeoutException.class)
-    public void testSnmpGetTimeoutReturnsNull() throws IOException {
-        getResponseEvent(INVALID_HOST, agent.getPort(), SnmpConstants.version1, READ_ONLY_OID_1);
+    @Test
+    public void testSnmpGetTimeoutReturnsNull() {
+        assertThrows(RequestTimeoutException.class, () -> getResponseEvent(INVALID_HOST, agent.getPort(), SnmpConstants.version1, READ_ONLY_OID_1));
     }
 
-    @Test(expected = MessageException.class)
-    public void testSnmpGetWithInvalidTargetThrowsException() throws IOException {
-        getResponseEvent(LOCALHOST, agent.getPort(), -1, READ_ONLY_OID_1);
+    @Test
+    public void testSnmpGetWithInvalidTargetThrowsException() {
+        assertThrows(MessageException.class, () -> getResponseEvent(LOCALHOST, agent.getPort(), -1, READ_ONLY_OID_1));
     }
 
     @Test

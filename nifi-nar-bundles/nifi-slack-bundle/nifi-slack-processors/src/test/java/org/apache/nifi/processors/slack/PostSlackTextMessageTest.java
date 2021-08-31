@@ -21,8 +21,8 @@ import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.TestServer;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.json.Json;
 import javax.json.JsonObject;
@@ -36,8 +36,8 @@ import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_P
 import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_PATH_INVALID_JSON;
 import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_PATH_SUCCESS_TEXT_MSG;
 import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_PATH_WARNING;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class PostSlackTextMessageTest {
 
@@ -46,7 +46,7 @@ public class PostSlackTextMessageTest {
     private TestServer server;
     private PostSlackCaptureServlet servlet;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         testRunner = TestRunners.newTestRunner(PostSlack.class);
 

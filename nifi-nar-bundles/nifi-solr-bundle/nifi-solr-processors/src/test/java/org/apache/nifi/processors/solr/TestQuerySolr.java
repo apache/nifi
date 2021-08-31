@@ -21,7 +21,6 @@ package org.apache.nifi.processors.solr;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
@@ -33,9 +32,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.common.SolrInputDocument;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.xmlunit.matchers.CompareMatcher;
 
 import java.io.ByteArrayInputStream;
@@ -48,9 +47,9 @@ import java.util.Map;
 import java.util.stream.StreamSupport;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestQuerySolr {
     private static final String DEFAULT_SOLR_CORE = "testCollection";
@@ -65,7 +64,7 @@ public class TestQuerySolr {
 
     private static SolrClient solrClient;
 
-    @BeforeClass
+    @BeforeAll
     public static void createSolrClient() throws Exception {
         final String relPath = TestQuerySolr.class.getResource("/").getPath();
 
@@ -90,7 +89,7 @@ public class TestQuerySolr {
         solrClient.commit();
     }
 
-    @AfterClass
+    @AfterAll
     public static void closeSolrClient() throws IOException {
         solrClient.close();
     }
@@ -176,22 +175,22 @@ public class TestQuerySolr {
         final int facetQueriesCount = StreamSupport.stream(facetsNode.get("facet_queries").spliterator(), false)
                 .mapToInt(node -> node.get("count").asInt())
                 .sum();
-        assertEquals("Facet Queries Count not matched", 30, facetQueriesCount);
+        assertEquals(30, facetQueriesCount, "Facet Queries Count not matched");
 
         final int facetFieldsCount = StreamSupport.stream(facetsNode.get("facet_fields").get("integer_multi").spliterator(), false)
                 .mapToInt(node -> node.get("count").asInt())
                 .sum();
-        assertEquals("Facet Fields Count not matched", 30, facetFieldsCount);
+        assertEquals(30, facetFieldsCount, "Facet Fields Count not matched");
 
         final int facetRangesCount = StreamSupport.stream(facetsNode.get("facet_ranges").get("created").spliterator(), false)
                 .mapToInt(node -> node.get("count").asInt())
                 .sum();
-        assertEquals("Facet Ranges Count not matched",10, facetRangesCount);
+        assertEquals(10, facetRangesCount, "Facet Ranges Count not matched");
 
         final int facetIntervalsCount = StreamSupport.stream(facetsNode.get("facet_intervals").get("integer_single").spliterator(), false)
                 .mapToInt(node -> node.get("count").asInt())
                 .sum();
-        assertEquals("Facet Intervals Count not matched", 7, facetIntervalsCount);
+        assertEquals(7, facetIntervalsCount, "Facet Intervals Count not matched");
     }
 
     @Test
@@ -210,11 +209,11 @@ public class TestQuerySolr {
 
         final MockFlowFile facetsFlowFile = runner.getFlowFilesForRelationship(QuerySolr.FACETS).get(0);
         final JsonNode facetsNode = OBJECT_MAPPER.readTree(facetsFlowFile.getContent());
-        assertTrue("Facet Queries found", facetsNode.get("facet_queries").isEmpty());
+        assertTrue(facetsNode.get("facet_queries").isEmpty(), "Facet Queries found");
 
         final MockFlowFile statsFlowFile = runner.getFlowFilesForRelationship(QuerySolr.STATS).get(0);
         final JsonNode statsNode = OBJECT_MAPPER.readTree(statsFlowFile.getContent());
-        assertTrue("Stats found", statsNode.get("stats_fields").isEmpty());
+        assertTrue(statsNode.get("stats_fields").isEmpty(), "Stats found");
     }
 
     @Test
@@ -235,7 +234,7 @@ public class TestQuerySolr {
         final JsonNode statsNode = OBJECT_MAPPER.readTree(statsFlowFile.getContent());
 
         final JsonNode statsFieldsNode = statsNode.get("stats_fields");
-        assertNotNull("Stats Fields not found", statsFieldsNode);
+        assertNotNull(statsFieldsNode, "Stats Fields not found");
         final JsonNode configuredStatsFieldNode = statsFieldsNode.get(statsField);
 
         assertEquals("0.0", configuredStatsFieldNode.get("min").asText());

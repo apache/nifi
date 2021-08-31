@@ -20,24 +20,25 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.HashMap;
 
 import org.apache.nifi.spring.SpringDataExchanger.SpringResponse;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SpringContextFactoryTests {
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void validateACFailureDueToNotFound() {
-        SpringContextFactory.createSpringContextDelegate(".", "foo.xml");
+        assertThrows(IllegalStateException.class, () -> SpringContextFactory.createSpringContextDelegate(".", "foo.xml"));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void validateMessageNotSentNoFromNiFiChannel() throws Exception {
         SpringDataExchanger delegate = SpringContextFactory.createSpringContextDelegate(".", "context.xml");
         try {
-            delegate.send("hello", new HashMap<String, Object>(), 1000L);
+            assertThrows(IllegalStateException.class, () -> delegate.send("hello", new HashMap<String, Object>(), 1000L));
         } finally {
             delegate.close();
         }

@@ -21,9 +21,9 @@ import org.apache.nifi.snmp.utils.SNMPUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.agent.mo.DefaultMOFactory;
 import org.snmp4j.agent.mo.MOAccessImpl;
 import org.snmp4j.smi.OID;
@@ -31,8 +31,8 @@ import org.snmp4j.smi.OctetString;
 
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class GetSNMPTest {
 
@@ -44,7 +44,7 @@ public class GetSNMPTest {
     private static final String GET = "GET";
     private static final String WALK = "WALK";
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() throws IOException {
         snmpV1Agent = new TestSNMPV1Agent("127.0.0.1");
         snmpV1Agent.start();
@@ -54,7 +54,7 @@ public class GetSNMPTest {
         );
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDown() {
         snmpV1Agent.stop();
     }
