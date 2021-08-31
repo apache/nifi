@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util.hive;
 
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
@@ -29,6 +30,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 
 import java.io.IOException;
@@ -88,6 +90,9 @@ public class HiveJdbcCommon {
     public static final String MIME_TYPE_AVRO_BINARY = "application/avro-binary";
     public static final String CSV_MIME_TYPE = "text/csv";
 
+    private static final Schema TIMESTAMP_MILLIS_SCHEMA = LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
+    private static final Schema DATE_SCHEMA = LogicalTypes.date().addToSchema(Schema.create(Schema.Type.INT));
+
 
     public static final PropertyDescriptor NORMALIZE_NAMES_FOR_AVRO = new PropertyDescriptor.Builder()
             .name("hive-normalize-avro")
@@ -99,14 +104,15 @@ public class HiveJdbcCommon {
             .required(true)
             .build();
 
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, final int maxRows, boolean convertNames) throws SQLException, IOException {
-        return convertToAvroStream(rs, outStream, null, maxRows, convertNames, null);
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, final int maxRows, boolean convertNames, final boolean useLogicalTypes) throws SQLException, IOException {
+        return convertToAvroStream(rs, outStream, null, maxRows, convertNames, null, useLogicalTypes);
     }
 
 
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, final int maxRows, boolean convertNames, ResultSetRowCallback callback)
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, final int maxRows, boolean convertNames,
+                                           ResultSetRowCallback callback, final boolean useLogicalTypes)
             throws SQLException, IOException {
-        final Schema schema = createSchema(rs, recordName, convertNames);
+        final Schema schema = createSchema(rs, recordName, convertNames, useLogicalTypes);
         final GenericRecord rec = new GenericData.Record(schema);
 
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
@@ -149,7 +155,16 @@ public class HiveJdbcCommon {
                         // org.apache.avro.AvroRuntimeException: Unknown datum type java.lang.Byte
                         rec.put(i - 1, ((Byte) value).intValue());
 
-                    } else if (value instanceof BigDecimal || value instanceof BigInteger) {
+                    } else if (value instanceof BigDecimal) {
+                        if (useLogicalTypes) {
+                            final int precision = meta.getPrecision(i) > 1 ? meta.getPrecision(i) : 10;
+                            final int scale = meta.getScale(i) > 0 ? meta.getScale(i) : 0;
+                            rec.put(i - 1, AvroTypeUtil.convertToAvroObject(value, LogicalTypes.decimal(precision, scale).addToSchema(Schema.create(Schema.Type.BYTES))));
+                        } else {
+                            rec.put(i - 1, value.toString());
+                        }
+
+                    } else if (value instanceof BigInteger) {
                         // Avro can't handle BigDecimal and BigInteger as numbers - it will throw an AvroRuntimeException such as: "Unknown datum type: java.math.BigDecimal: 38"
                         rec.put(i - 1, value.toString());
 
@@ -170,10 +185,14 @@ public class HiveJdbcCommon {
                         rec.put(i - 1, value);
                     } else if (value instanceof java.sql.SQLXML) {
                         rec.put(i - 1, ((java.sql.SQLXML) value).getString());
+                    } else if (useLogicalTypes && javaSqlType == DATE) {
+                        rec.put(i - 1, AvroTypeUtil.convertToAvroObject(value, DATE_SCHEMA));
+                    } else if (useLogicalTypes && javaSqlType == TIMESTAMP) {
+                        rec.put(i - 1, AvroTypeUtil.convertToAvroObject(value, TIMESTAMP_MILLIS_SCHEMA));
                     } else {
                         // The different types that we support are numbers (int, long, double, float),
-                        // as well as boolean values and Strings. Since Avro doesn't provide
-                        // timestamp types, we want to convert those to Strings. So we will cast anything other
+                        // as well as boolean values, decimal, date, timestamp and Strings. Since Avro doesn't provide
+                        // times type, we want to convert those to Strings. So we will cast anything other
                         // than numbers or booleans to strings by using the toString() method.
                         rec.put(i - 1, value.toString());
                     }
@@ -190,7 +209,7 @@ public class HiveJdbcCommon {
     }
 
     public static Schema createSchema(final ResultSet rs, boolean convertNames) throws SQLException {
-        return createSchema(rs, null, false);
+        return createSchema(rs, null, false, false);
     }
 
     /**
@@ -203,7 +222,7 @@ public class HiveJdbcCommon {
      * @return A Schema object representing the result set converted to an Avro record
      * @throws SQLException if any error occurs during conversion
      */
-    public static Schema createSchema(final ResultSet rs, String recordName, boolean convertNames) throws SQLException {
+    public static Schema createSchema(final ResultSet rs, String recordName, boolean convertNames, final boolean useLogicalTypes) throws SQLException {
         final ResultSetMetaData meta = rs.getMetaData();
         final int nrOfColumns = meta.getColumnCount();
         String tableName = StringUtils.isEmpty(recordName) ? "NiFi_SelectHiveQL_Record" : recordName;
@@ -298,14 +317,32 @@ public class HiveJdbcCommon {
                 // Did not find direct suitable type, need to be clarified!!!!
                 case DECIMAL:
                 case NUMERIC:
-                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                    if (useLogicalTypes) {
+                        final int precision = meta.getPrecision(i) > 1 ? meta.getPrecision(i) : 10;
+                        final int scale = meta.getScale(i) > 0 ? meta.getScale(i) : 0;
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and()
+                                .type(LogicalTypes.decimal(precision, scale).addToSchema(Schema.create(Schema.Type.BYTES))).endUnion().noDefault();
+                    } else {
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                    }
                     break;
 
-                // Did not find direct suitable type, need to be clarified!!!!
+                // Dates were introduced in Hive 0.12.0
                 case DATE:
+                    if (useLogicalTypes) {
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and().type(DATE_SCHEMA).endUnion().noDefault();
+                    } else {
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                    }
+                    break;
+                // Did not find direct suitable type, need to be clarified!!!!
                 case TIME:
                 case TIMESTAMP:
-                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                    if (useLogicalTypes) {
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and().type(TIMESTAMP_MILLIS_SCHEMA).endUnion().noDefault();
+                    } else {
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                    }
                     break;
 
                 case BINARY:

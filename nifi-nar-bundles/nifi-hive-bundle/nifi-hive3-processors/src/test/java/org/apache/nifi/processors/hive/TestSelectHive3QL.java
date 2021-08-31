@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.hive;
 
+import org.apache.avro.LogicalTypes;
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
@@ -44,11 +47,16 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -690,6 +698,114 @@ public class TestSelectHive3QL {
         runner.clearTransferState();
     }
 
+    @Test
+    public void testAvroRecordCreatedWithoutLogicalTypesByDefault() throws SQLException, IOException {
+        final Schema expectedSchema = SchemaBuilder.record("NiFi_SelectHiveQL_Record").namespace("any.data").fields()
+                .name("ID").type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault()
+                .name("NAME").type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault()
+                .name("BIRTH_DATE").type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault()
+                .name("BIG_NUMBER").type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault()
+                .name("CREATED_ON").type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault()
+                .endRecord();
+        final int expectedId = 1;
+        final String expectedName = "Joe Smith";
+        final String expectedBirthDate = "1956-11-22";
+        final String expectedBigNumber = "12345678.12";
+        final String expectedCreatedOn = "1962-09-23 03:23:34.234";
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Statement stmt = con.createStatement();
+        final InputStream in;
+        final MockFlowFile mff;
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), birth_date date, big_number decimal(10,2),created_on timestamp)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, birth_date, big_number, created_on) VALUES (1, 'Joe Smith', '1956-11-22', 12345678.12, '1962-09-23 03:23:34.234')");
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(SelectHive3QL.HIVEQL_SELECT_QUERY, "SELECT * FROM TEST_QUERY_DB_TABLE");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(SelectHive3QL.REL_SUCCESS, 1);
+        mff = runner.getFlowFilesForRelationship(SelectHive3QL.REL_SUCCESS).get(0);
+        in = new ByteArrayInputStream(mff.toByteArray());
+
+        final GenericRecord record = getFirstRecordFromStream(in);
+
+        assertEquals(expectedSchema, record.getSchema());
+        assertEquals(expectedId, record.get("ID"));
+        assertEquals(expectedName, record.get("NAME").toString());
+        assertEquals(expectedBirthDate, record.get("BIRTH_DATE").toString());
+        assertEquals(expectedBigNumber, record.get("BIG_NUMBER").toString());
+        assertEquals(expectedCreatedOn, record.get("CREATED_ON").toString());
+
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testAvroRecordCreatedWithLogicalTypesWhenSet() throws SQLException, IOException {
+        final Schema expectedSchema = SchemaBuilder.record("NiFi_SelectHiveQL_Record").namespace("any.data").fields()
+                .name("ID").type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault()
+                .name("NAME").type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault()
+                .name("BIRTH_DATE").type().unionOf().nullBuilder().endNull().and()
+                .type(LogicalTypes.date().addToSchema(Schema.create(Schema.Type.INT))).endUnion().noDefault()
+                .name("BIG_NUMBER").type().unionOf().nullBuilder().endNull().and()
+                .type(LogicalTypes.decimal(10, 2).addToSchema(Schema.create(Schema.Type.BYTES))).endUnion().noDefault()
+                .name("CREATED_ON").type().unionOf().nullBuilder().endNull().and()
+                .type(LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG))).endUnion().noDefault()
+                .endRecord();
+        final int expectedId = 1;
+        final String expectedName = "Joe Smith";
+        final int expectedBirthDate = (int) LocalDate.parse("1956-11-22").toEpochDay();
+        final BigDecimal decimal = new BigDecimal("12345678.12").setScale(2, BigDecimal.ROUND_HALF_EVEN);
+        final ByteBuffer expectedBigNumber = ByteBuffer.wrap(decimal.unscaledValue().toByteArray());
+        final long expectedCreatedOn = LocalDateTime.parse("1962-09-23T03:23:34.234").atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC")).toInstant().toEpochMilli();
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Statement stmt = con.createStatement();
+        final InputStream in;
+        final MockFlowFile mff;
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), birth_date date, big_number decimal(10,2),created_on timestamp)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, birth_date, big_number, created_on) VALUES (1, 'Joe Smith', '1956-11-22', 12345678.12, '1962-09-23 03:23:34.234')");
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(SelectHive3QL.HIVEQL_SELECT_QUERY, "SELECT * FROM TEST_QUERY_DB_TABLE");
+        runner.setProperty(SelectHive3QL.USE_AVRO_LOGICAL_TYPES, "true");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(SelectHive3QL.REL_SUCCESS, 1);
+        mff = runner.getFlowFilesForRelationship(SelectHive3QL.REL_SUCCESS).get(0);
+        in = new ByteArrayInputStream(mff.toByteArray());
+
+        final GenericRecord record = getFirstRecordFromStream(in);
+
+        assertEquals(expectedSchema, record.getSchema());
+        assertEquals(expectedId, record.get("ID"));
+        assertEquals(expectedName, record.get("NAME").toString());
+        assertEquals(expectedBirthDate, record.get("BIRTH_DATE"));
+        assertEquals(expectedBigNumber, record.get("BIG_NUMBER"));
+        assertEquals(expectedCreatedOn, record.get("CREATED_ON"));
+
+
+        runner.clearTransferState();
+    }
+
     private long getNumberOfRecordsFromStream(InputStream in) throws IOException {
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
         try (DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, datumReader)) {
@@ -704,6 +820,13 @@ public class TestSelectHive3QL {
             }
 
             return recordsFromStream;
+        }
+    }
+
+    private GenericRecord getFirstRecordFromStream(InputStream in) throws IOException {
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, datumReader)) {
+            return dataFileReader.next();
         }
     }
 
