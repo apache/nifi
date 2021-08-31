@@ -16,24 +16,21 @@
  */
 package org.apache.nifi.rules.handlers;
 
-import junit.framework.TestCase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 public class TestLogHandler {
 
@@ -41,7 +38,7 @@ public class TestLogHandler {
     MockComponentLog mockComponentLog;
     LogHandler logHandler;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(TestProcessor.class);
         mockComponentLog = new MockComponentLog();
@@ -57,7 +54,7 @@ public class TestLogHandler {
     @Test
     public void testValidService() {
         runner.assertValid(logHandler);
-        assertThat(logHandler, instanceOf(LogHandler.class));
+        MatcherAssert.assertThat(logHandler, instanceOf(LogHandler.class));
     }
 
     @Test
@@ -81,8 +78,8 @@ public class TestLogHandler {
         action.setAttributes(attributes);
         logHandler.execute(action, metrics);
         String logMessage = mockComponentLog.getWarnMessage();
-        assertTrue(StringUtils.isNotEmpty(logMessage));
-        assertEquals(expectedMessage, logMessage);
+        Assertions.assertTrue(StringUtils.isNotEmpty(logMessage));
+        Assertions.assertEquals(expectedMessage, logMessage);
     }
 
     @Test
@@ -104,8 +101,8 @@ public class TestLogHandler {
         action.setAttributes(attributes);
         logHandler.execute(action, metrics);
         String logMessage = mockComponentLog.getInfoMessage();
-        assertTrue(StringUtils.isNotEmpty(logMessage));
-        assertEquals(expectedMessage, logMessage);
+        Assertions.assertTrue(StringUtils.isNotEmpty(logMessage));
+        Assertions.assertEquals(expectedMessage, logMessage);
 
     }
 
@@ -130,8 +127,8 @@ public class TestLogHandler {
         action.setAttributes(attributes);
         logHandler.execute(action, metrics);
         String logMessage = mockComponentLog.getInfoMessage();
-        assertTrue(StringUtils.isNotEmpty(logMessage));
-        assertEquals(expectedMessage, logMessage);
+        Assertions.assertTrue(StringUtils.isNotEmpty(logMessage));
+        Assertions.assertEquals(expectedMessage, logMessage);
 
     }
 
@@ -161,9 +158,9 @@ public class TestLogHandler {
         action.setAttributes(attributes);
         try {
             logHandler.execute(action, metrics);
-            fail();
+            Assertions.fail();
         } catch (UnsupportedOperationException ex) {
-            assertTrue(true);
+            Assertions.assertTrue(true);
         }
     }
 
@@ -194,12 +191,12 @@ public class TestLogHandler {
         try {
             logHandler.execute(action, metrics);
         } catch (UnsupportedOperationException ex) {
-            fail();
+            Assertions.fail();
         }
 
         final String warnMessage = mockComponentLog.getWarnMessage();
-        assertTrue(StringUtils.isNotEmpty(warnMessage));
-        TestCase.assertEquals("This Action Handler does not support actions with the provided type: FAKE",warnMessage);
+        Assertions.assertTrue(StringUtils.isNotEmpty(warnMessage));
+        Assertions.assertEquals("This Action Handler does not support actions with the provided type: FAKE",warnMessage);
     }
 
     @Test
@@ -229,12 +226,12 @@ public class TestLogHandler {
         try {
             logHandler.execute(action, metrics);
         } catch (UnsupportedOperationException ex) {
-            fail();
+            Assertions.fail();
         }
 
         final String debugMessage = mockComponentLog.getDebugMessage();
-        assertTrue(StringUtils.isNotEmpty(debugMessage));
-        TestCase.assertEquals("This Action Handler does not support actions with the provided type: FAKE",debugMessage);
+        Assertions.assertTrue(StringUtils.isNotEmpty(debugMessage));
+        Assertions.assertEquals("This Action Handler does not support actions with the provided type: FAKE",debugMessage);
     }
 
     @Test
@@ -262,9 +259,9 @@ public class TestLogHandler {
         action.setAttributes(attributes);
         try {
             logHandler.execute(action, metrics);
-            assertTrue(true);
+            Assertions.assertTrue(true);
         } catch (UnsupportedOperationException ex) {
-            fail();
+            Assertions.fail();
         }
     }
 
