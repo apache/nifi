@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.processors.gettcp;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -31,26 +33,25 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
 
-@Ignore // Ignored for full build due to artificial delays given the
-        // multi-threaded nature of most of the tests. Please un-Ignore and run
-        // when working on changes
+@EnabledIfSystemProperty(
+        named = "nifi.test.unstable",
+        matches = "true",
+        disabledReason = "Ignored for full build due to artificial delays given the multi-threaded nature of most of " +
+                "the tests. Please un-Ignore and run when working on changes"
+)
 public class ReceivingClientTest {
 
     private final static byte EOM = '\r';
 
     private ScheduledExecutorService scheduler;
 
-    @Before
+    @BeforeEach
     public void before() {
         this.scheduler = Executors.newScheduledThreadPool(1);
     }
 
-    @After
+    @AfterEach
     public void after() {
         this.scheduler.shutdownNow();
     }
@@ -67,19 +68,19 @@ public class ReceivingClientTest {
         StringBuilder stringBuilder = new StringBuilder();
         client.setMessageHandler((fromAddress, message, partialMessage) -> stringBuilder.append(new String(message, StandardCharsets.UTF_8)));
         client.start();
-        assertTrue(client.isRunning());
+        Assertions.assertTrue(client.isRunning());
 
         this.sendToSocket(address, msgToSend);
         Thread.sleep(200);
-        assertEquals("", stringBuilder.toString());
+        Assertions.assertEquals("", stringBuilder.toString());
         this.sendToSocket(address, "\r");
         Thread.sleep(200);
-        assertEquals(msgToSend + "\r", stringBuilder.toString());
+        Assertions.assertEquals(msgToSend + "\r", stringBuilder.toString());
 
         client.stop();
         server.stop();
-        assertFalse(client.isRunning());
-        assertFalse(server.isRunning());
+        Assertions.assertFalse(client.isRunning());
+        Assertions.assertFalse(server.isRunning());
     }
 
     @Test
@@ -94,18 +95,18 @@ public class ReceivingClientTest {
         List<String> messages = new ArrayList<>();
         client.setMessageHandler((fromAddress, message, partialMessage) -> messages.add(new String(message, StandardCharsets.UTF_8)));
         client.start();
-        assertTrue(client.isRunning());
+        Assertions.assertTrue(client.isRunning());
 
         this.sendToSocket(address, msgToSend);
         this.sendToSocket(address, "\r");
         Thread.sleep(200);
-        assertEquals("Hello from validateSuccessfullConnectionAndCommunicationWithClie", messages.get(0));
-        assertEquals("ntBufferSmallerThenMessage\r", messages.get(1));
+        Assertions.assertEquals("Hello from validateSuccessfullConnectionAndCommunicationWithClie", messages.get(0));
+        Assertions.assertEquals("ntBufferSmallerThenMessage\r", messages.get(1));
 
         client.stop();
         server.stop();
-        assertFalse(client.isRunning());
-        assertFalse(server.isRunning());
+        Assertions.assertFalse(client.isRunning());
+        Assertions.assertFalse(server.isRunning());
     }
 
     @Test
@@ -121,25 +122,25 @@ public class ReceivingClientTest {
         List<String> messages = new ArrayList<>();
         client.setMessageHandler((fromAddress, message, partialMessage) -> messages.add(new String(message, StandardCharsets.UTF_8)));
         client.start();
-        assertTrue(client.isRunning());
+        Assertions.assertTrue(client.isRunning());
 
         this.sendToSocket(address, msgToSend);
         Thread.sleep(200);
-        assertEquals(2, messages.size());
-        assertEquals("Hello from validateMessageSend", messages.get(0));
-        assertEquals("BeforeAfterClientConnectDiscon", messages.get(1));
+        Assertions.assertEquals(2, messages.size());
+        Assertions.assertEquals("Hello from validateMessageSend", messages.get(0));
+        Assertions.assertEquals("BeforeAfterClientConnectDiscon", messages.get(1));
         messages.clear();
 
         client.stop();
         this.sendToSocket(address, msgToSend);
         Thread.sleep(200);
-        assertEquals(0, messages.size());
+        Assertions.assertEquals(0, messages.size());
 
         this.sendToSocket(address, msgToSend);
 
         server.stop();
-        assertFalse(client.isRunning());
-        assertFalse(server.isRunning());
+        Assertions.assertFalse(client.isRunning());
+        Assertions.assertFalse(server.isRunning());
     }
 
     @Test
@@ -157,7 +158,7 @@ public class ReceivingClientTest {
         client.setDelayMillisBeforeReconnect(1000);
         client.setMessageHandler((fromAddress, message, partialMessage) -> System.out.println(new String(message)));
         client.start();
-        assertTrue(client.isRunning());
+        Assertions.assertTrue(client.isRunning());
 
         sendingExecutor.execute(new Runnable() {
             @Override
@@ -189,8 +190,8 @@ public class ReceivingClientTest {
         client.stop();
         server.stop();
 
-        assertFalse(client.isRunning());
-        assertFalse(server.isRunning());
+        Assertions.assertFalse(client.isRunning());
+        Assertions.assertFalse(server.isRunning());
     }
 
     private void sendToSocket(InetSocketAddress address, String message) throws Exception {
