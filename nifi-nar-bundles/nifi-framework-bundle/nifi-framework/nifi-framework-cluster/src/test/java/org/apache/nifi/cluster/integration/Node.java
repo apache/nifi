@@ -141,7 +141,7 @@ public class Node {
 
         electionManager = new CuratorLeaderElectionManager(4, nodeProperties);
         this.flowElection = flowElection;
-        this.statusHistoryRepository = statusHistoryRepository
+        this.statusHistoryRepository = statusHistoryRepository;
     }
 
 
