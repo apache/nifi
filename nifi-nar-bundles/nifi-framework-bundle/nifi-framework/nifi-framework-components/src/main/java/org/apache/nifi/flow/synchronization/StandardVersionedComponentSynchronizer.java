@@ -29,6 +29,7 @@ import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -74,18 +75,21 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.groups.StandardVersionedFlowStatus;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.parameter.NonSensitiveParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
+import org.apache.nifi.parameter.SensitiveParameterProvider;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.FlowRegistry;
+import org.apache.nifi.registry.flow.ParameterProviderReference;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
@@ -1799,7 +1803,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             group.setParameterContext(null);
         } else if (proposedParameterContextName != null) {
             final VersionedParameterContext versionedParameterContext = versionedParameterContexts.get(proposedParameterContextName);
-
+            /* TODO:
+            createMissingParameterProviders(versionedParameterContext, parameterProviderReferences, componentIdGenerator);
+             */
             if (currentParamContext == null) {
                 // Create a new Parameter Context based on the parameters provided
 
@@ -1825,6 +1831,42 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 // Update the current Parameter Context so that it has any Parameters included in the proposed context
                 addMissingConfiguration(versionedParameterContext, currentParamContext, versionedParameterContexts);
             }
+        }
+    }
+
+    private void createMissingParameterProviders(final VersionedParameterContext versionedParameterContext,
+                                                      final Map<String, ParameterProviderReference> parameterProviderReferences, final ComponentIdGenerator componentIdGenerator) {
+        createMissingParameterProvider(versionedParameterContext, versionedParameterContext.getSensitiveParameterProvider(), true, parameterProviderReferences, componentIdGenerator);
+        createMissingParameterProvider(versionedParameterContext, versionedParameterContext.getNonSensitiveParameterProvider(), false, parameterProviderReferences, componentIdGenerator);
+    }
+
+    private void createMissingParameterProvider(final VersionedParameterContext versionedParameterContext, final String parameterProviderId, final boolean sensitive,
+                                                final Map<String, ParameterProviderReference> parameterProviderReferences, final ComponentIdGenerator componentIdGenerator) {
+        String parameterProviderIdToSet = parameterProviderId;
+        if (parameterProviderId != null) {
+            ParameterProviderNode parameterProviderNode = context.getFlowManager().getParameterProvider(parameterProviderId);
+            if (parameterProviderNode == null) {
+                final ParameterProviderReference reference = parameterProviderReferences.get(parameterProviderId);
+                if (reference == null) {
+                    parameterProviderIdToSet = null;
+                } else {
+                    final String newParameterProviderId = componentIdGenerator.generateUuid(parameterProviderId, parameterProviderId, null);
+
+                    final Bundle bundle = reference.getBundle();
+                    parameterProviderNode = context.getFlowManager().createParameterProvider(reference.getType(), newParameterProviderId,
+                            new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion()), true);
+
+                    parameterProviderNode.pauseValidationTrigger(); // avoid triggering validation multiple times
+                    parameterProviderNode.setName(reference.getName());
+                    parameterProviderNode.resumeValidationTrigger();
+                    parameterProviderIdToSet = parameterProviderNode.getIdentifier();
+                }
+            }
+        }
+        if (sensitive) {
+            versionedParameterContext.setSensitiveParameterProvider(parameterProviderIdToSet);
+        } else {
+            versionedParameterContext.setNonSensitiveParameterProvider(parameterProviderIdToSet);
         }
     }
 
@@ -1884,6 +1926,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         final Map<String, Parameter> parameters = new HashMap<>();
         for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
+            if (versionedParameter == null) {
+                continue;
+            }
             final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
                 .name(versionedParameter.getName())
                 .description(versionedParameter.getDescription())
@@ -1894,7 +1939,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             parameters.put(versionedParameter.getName(), parameter);
         }
 
-        return context.getFlowManager().createParameterContext(parameterContextId, versionedParameterContext.getName(), parameters, Collections.emptyList());
+        return context.getFlowManager().createParameterContext(parameterContextId, versionedParameterContext.getName(), parameters, Collections.emptyList(),
+                versionedParameterContext.getSensitiveParameterProvider(), versionedParameterContext.getNonSensitiveParameterProvider());
     }
 
     private ParameterContext createParameterContext(final VersionedParameterContext versionedParameterContext, final String parameterContextId,
@@ -1911,7 +1957,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         final AtomicReference<ParameterContext> contextReference = new AtomicReference<>();
         context.getFlowManager().withParameterContextResolution(() -> {
-            final ParameterContext created = context.getFlowManager().createParameterContext(parameterContextId, versionedParameterContext.getName(), parameters, parameterContextRefs);
+            final ParameterContext created = context.getFlowManager().createParameterContext(parameterContextId, versionedParameterContext.getName(), parameters, parameterContextRefs,
+                    versionedParameterContext.getSensitiveParameterProvider(), versionedParameterContext.getNonSensitiveParameterProvider());
             contextReference.set(created);
         });
 
@@ -1984,6 +2031,18 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             currentParameterContext.setInheritedParameterContexts(versionedParameterContext.getInheritedParameterContexts().stream()
                 .map(name -> selectParameterContext(versionedParameterContexts.get(name), versionedParameterContexts))
                 .collect(Collectors.toList()));
+        }
+        if (versionedParameterContext.getSensitiveParameterProvider() != null && !currentParameterContext.getSensitiveParameterProvider().isPresent()) {
+            final ParameterProviderNode parameterProviderNode = currentParameterContext.getParameterProviderLookup().getParameterProvider(versionedParameterContext.getSensitiveParameterProvider());
+            if (parameterProviderNode != null) {
+                currentParameterContext.setSensitiveParameterProvider((SensitiveParameterProvider) parameterProviderNode.getParameterProvider());
+            }
+        }
+        if (versionedParameterContext.getNonSensitiveParameterProvider() != null && !currentParameterContext.getNonSensitiveParameterProvider().isPresent()) {
+            final ParameterProviderNode parameterProviderNode = currentParameterContext.getParameterProviderLookup().getParameterProvider(versionedParameterContext.getNonSensitiveParameterProvider());
+            if (parameterProviderNode != null) {
+                currentParameterContext.setNonSensitiveParameterProvider((NonSensitiveParameterProvider) parameterProviderNode.getParameterProvider());
+            }
         }
     }
 

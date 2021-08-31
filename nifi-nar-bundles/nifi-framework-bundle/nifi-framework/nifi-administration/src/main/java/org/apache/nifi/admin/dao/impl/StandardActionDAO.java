@@ -568,7 +568,8 @@ public class StandardActionDAO implements ActionDAO {
 
                 // get the component details if appropriate
                 ComponentDetails componentDetails = null;
-                if (Component.Processor.equals(component) || Component.ControllerService.equals(component) || Component.ReportingTask.equals(component)) {
+                if (Component.Processor.equals(component) || Component.ControllerService.equals(component) || Component.ReportingTask.equals(component)
+                        || Component.ParameterProvider.equals(component)) {
                     componentDetails = getExtensionDetails(actionId);
                 } else if (Component.RemoteProcessGroup.equals(component)) {
                     componentDetails = getRemoteProcessGroupDetails(actionId);
@@ -641,7 +642,8 @@ public class StandardActionDAO implements ActionDAO {
 
                 // get the component details if appropriate
                 ComponentDetails componentDetails = null;
-                if (Component.Processor.equals(component) || Component.ControllerService.equals(component) || Component.ReportingTask.equals(component)) {
+                if (Component.Processor.equals(component) || Component.ControllerService.equals(component) || Component.ReportingTask.equals(component)
+                        || Component.ParameterProvider.equals(component)) {
                     componentDetails = getExtensionDetails(actionId);
                 } else if (Component.RemoteProcessGroup.equals(component)) {
                     componentDetails = getRemoteProcessGroupDetails(actionId);

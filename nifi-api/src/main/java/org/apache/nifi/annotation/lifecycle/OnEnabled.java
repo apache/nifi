@@ -50,7 +50,7 @@ import java.lang.annotation.Target;
  * </p>
  *
  * <p>
- * Note that this annotation will be ignored if applied to a ReportingTask or
+ * Note that this annotation will be ignored if applied to a ReportingTask, ParameterProvider or
  * Processor. For a Controller Service, enabling and disabling are considered
  * lifecycle events, as the action makes them usable or unusable by other
  * components. However, for a Processor and a Reporting Task, these are not

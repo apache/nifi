@@ -25,6 +25,7 @@ import org.apache.nifi.documentation.html.HtmlProcessorDocumentationWriter;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
@@ -41,7 +42,7 @@ import java.io.OutputStream;
 import java.util.Set;
 
 /**
- * Uses the ExtensionManager to get a list of Processor, ControllerService, and
+ * Uses the ExtensionManager to get a list of Processor, ControllerService, ParameterProvider, and
  * Reporting Task classes that were loaded and generate documentation for them.
  *
  *
@@ -65,6 +66,7 @@ public class DocGenerator {
         documentConfigurableComponent(extensionManager.getExtensions(Processor.class), explodedNiFiDocsDir, extensionManager);
         documentConfigurableComponent(extensionManager.getExtensions(ControllerService.class), explodedNiFiDocsDir, extensionManager);
         documentConfigurableComponent(extensionManager.getExtensions(ReportingTask.class), explodedNiFiDocsDir, extensionManager);
+        documentConfigurableComponent(extensionManager.getExtensions(ParameterProvider.class), explodedNiFiDocsDir, extensionManager);
     }
 
     /**
@@ -145,7 +147,7 @@ public class DocGenerator {
 
     /**
      * Returns the DocumentationWriter for the type of component. Currently
-     * Processor, ControllerService, and ReportingTask are supported.
+     * Processor, ControllerService, ParameterProvider, and ReportingTask are supported.
      *
      * @param componentClass the class that requires a DocumentationWriter
      * @return a DocumentationWriter capable of generating documentation for
@@ -158,6 +160,8 @@ public class DocGenerator {
         } else if (ControllerService.class.isAssignableFrom(componentClass)) {
             return new HtmlDocumentationWriter(extensionManager);
         } else if (ReportingTask.class.isAssignableFrom(componentClass)) {
+            return new HtmlDocumentationWriter(extensionManager);
+        } else if (ParameterProvider.class.isAssignableFrom(componentClass)) {
             return new HtmlDocumentationWriter(extensionManager);
         }
 

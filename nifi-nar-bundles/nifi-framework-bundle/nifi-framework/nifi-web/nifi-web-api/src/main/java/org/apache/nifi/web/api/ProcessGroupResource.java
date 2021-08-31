@@ -2019,6 +2019,9 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
             serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId, NiFiUserUtils.getNiFiUser());
 
+            // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
+            serviceFacade.resolveParameterProviders(flowSnapshot, NiFiUserUtils.getNiFiUser());
+
             // Step 4: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
             requestProcessGroupEntity.setVersionedFlowSnapshot(flowSnapshot);
         }
@@ -4276,6 +4279,9 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         // resolve those to point to the appropriate Controller Service, if we are able to.
         serviceFacade.resolveInheritedControllerServices(deserializedSnapshot, groupId, NiFiUserUtils.getNiFiUser());
 
+        // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
+        serviceFacade.resolveParameterProviders(deserializedSnapshot, NiFiUserUtils.getNiFiUser());
+
         if (isDisconnectedFromCluster()) {
             verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
@@ -4372,6 +4378,9 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         // if there are any Controller Services referenced that are inherited from the parent group,
         // resolve those to point to the appropriate Controller Service, if we are able to.
         serviceFacade.resolveInheritedControllerServices(versionedFlowSnapshot, groupId, NiFiUserUtils.getNiFiUser());
+
+        // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
+        serviceFacade.resolveParameterProviders(versionedFlowSnapshot, NiFiUserUtils.getNiFiUser());
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, processGroupUploadEntity);

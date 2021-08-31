@@ -1138,6 +1138,9 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
         serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId, NiFiUserUtils.getNiFiUser());
 
+        // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
+        serviceFacade.resolveParameterProviders(flowSnapshot, NiFiUserUtils.getNiFiUser());
+
         // Step 1: Determine which components will be affected by updating the version
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByFlowUpdate(groupId, flowSnapshot);
 

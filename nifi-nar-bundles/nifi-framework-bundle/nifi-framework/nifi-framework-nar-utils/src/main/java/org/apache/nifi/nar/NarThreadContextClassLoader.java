@@ -30,6 +30,7 @@ import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
@@ -67,6 +68,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         narSpecificClasses.add(Processor.class);
         narSpecificClasses.add(FlowFilePrioritizer.class);
         narSpecificClasses.add(ReportingTask.class);
+        narSpecificClasses.add(ParameterProvider.class);
         narSpecificClasses.add(Validator.class);
         narSpecificClasses.add(InputStreamCallback.class);
         narSpecificClasses.add(OutputStreamCallback.class);

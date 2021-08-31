@@ -84,6 +84,7 @@ The following are available commands:
  nifi pg-import
  nifi pg-start
  nifi pg-stop
+ nifi pg-create
  nifi pg-get-vars
  nifi pg-set-var
  nifi pg-get-version
@@ -92,40 +93,55 @@ The following are available commands:
  nifi pg-list
  nifi pg-status
  nifi pg-get-services
+ nifi pg-create-service
  nifi pg-enable-services
  nifi pg-disable-services
- nifi pg-create-service
- nifi create-user
+ nifi pg-get-param-context
+ nifi pg-set-param-context
+ nifi pg-replace
+ nifi get-services
+ nifi get-service
+ nifi create-service
+ nifi enable-services
+ nifi disable-services
+ nifi get-reporting-tasks
+ nifi get-reporting-task
+ nifi create-reporting-task
+ nifi delete-reporting-task
+ nifi start-reporting-tasks
+ nifi stop-reporting-tasks
  nifi list-users
- nifi create-user-group
+ nifi create-user
  nifi list-user-groups
+ nifi create-user-group
  nifi update-user-group
  nifi get-policy
  nifi update-policy
- nifi create-service
- nifi get-services
- nifi get-service
- nifi disable-services
- nifi enable-services
- nifi get-reporting-task
- nifi get-reporting-tasks
- nifi create-reporting-task
- nifi delete-reporting-task
- nifi set-param
- nifi delete-param
+ nifi list-templates
+ nifi download-template
+ nifi upload-template
  nifi list-param-contexts
  nifi get-param-context
  nifi create-param-context
  nifi delete-param-context
- nifi merge-param-context
+ nifi set-inherited-param-contexts
+ nifi remove-inherited-param-contexts
+ nifi set-param-provider-reference
+ nifi remove-param-provider-reference
+ nifi set-param
+ nifi delete-param
+ nifi export-param-context
  nifi import-param-context
- nifi pg-get-param-context
- nifi pg-set-param-context
- nifi list-templates
- nifi download-template
- nifi upload-template
- nifi start-reporting-tasks
- nifi stop-reporting-tasks
+ nifi merge-param-context
+ nifi list-param-providers
+ nifi get-param-provider
+ nifi create-param-provider
+ nifi delete-param-provider
+ nifi fetch-params
+ nifi set-param-provider-property
+ nifi get-access-token
+ nifi get-access-token-spnego
+ nifi logout-access-token
  registry current-user
  registry list-buckets
  registry create-bucket
@@ -157,6 +173,9 @@ The following are available commands:
  registry get-policy
  registry update-policy
  registry update-bucket-policy
+ registry get-access-token
+ registry get-access-token-spnego
+ registry logout-access-token
  session keys
  session show
  session get

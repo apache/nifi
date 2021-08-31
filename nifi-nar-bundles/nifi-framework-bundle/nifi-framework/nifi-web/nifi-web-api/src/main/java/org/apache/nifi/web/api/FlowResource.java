@@ -88,6 +88,9 @@ import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextsEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderTypesEntity;
+import org.apache.nifi.web.api.entity.ParameterProvidersEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.PrioritizerTypesEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -184,6 +187,7 @@ public class FlowResource extends ApplicationResource {
     private ProcessGroupResource processGroupResource;
     private ControllerServiceResource controllerServiceResource;
     private ReportingTaskResource reportingTaskResource;
+    private ParameterProviderResource parameterProviderResource;
 
     public FlowResource() {
         super();
@@ -572,6 +576,54 @@ public class FlowResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
+
+    // ---------------
+    // parameter-providers
+    // ---------------
+
+    /**
+     * Retrieves all the of parameter providers in this NiFi.
+     *
+     * @return A parameterProvidersEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("parameter-providers")
+    @ApiOperation(
+            value = "Gets all parameter providers",
+            response = ParameterProvidersEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getParameterProviders() {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // get all the parameter providers
+        final Set<ParameterProviderEntity> parameterProviders = serviceFacade.getParameterProviders();
+        parameterProviderResource.populateRemainingParameterProviderEntitiesContent(parameterProviders);
+
+        // create the response entity
+        final ParameterProvidersEntity entity = new ParameterProvidersEntity();
+        entity.setParameterProviders(parameterProviders);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
 
     // ---------------
     // reporting-tasks
@@ -1313,7 +1365,7 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the types of reporting tasks that this NiFi supports.
      *
-     * @return A controllerServicesTypesEntity.
+     * @return A ReportingTaskTypesEntity.
      * @throws InterruptedException if interrupted
      */
     @GET
@@ -1395,6 +1447,63 @@ public class FlowResource extends ApplicationResource {
         // create response entity
         final RuntimeManifestEntity entity = new RuntimeManifestEntity();
         entity.setRuntimeManifest(serviceFacade.getRuntimeManifest());
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Retrieves the types of parameter providers that this NiFi supports.
+     *
+     * @return A ParameterProviderTypesEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("parameter-provider-types")
+    @ApiOperation(
+            value = "Retrieves the types of parameter providers that this NiFi supports",
+            notes = NON_GUARANTEED_ENDPOINT,
+            response = ParameterProviderTypesEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getParameterProviderTypes(
+            @ApiParam(
+                    value = "If specified, will only return types that are a member of this bundle group.",
+                    required = false
+            )
+            @QueryParam("bundleGroupFilter") String bundleGroupFilter,
+            @ApiParam(
+                    value = "If specified, will only return types that are a member of this bundle artifact.",
+                    required = false
+            )
+            @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
+            @ApiParam(
+                    value = "If specified, will only return types whose fully qualified classname matches.",
+                    required = false
+            )
+            @QueryParam("type") String typeFilter) throws InterruptedException {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // create response entity
+        final ParameterProviderTypesEntity entity = new ParameterProviderTypesEntity();
+        entity.setParameterProviderTypes(serviceFacade.getParameterProviderTypes(bundleGroupFilter, bundleArtifactFilter, typeFilter));
 
         // generate the response
         return generateOkResponse(entity).build();
@@ -2769,6 +2878,14 @@ public class FlowResource extends ApplicationResource {
                 // ignore as the component may not be a reporting task
             }
 
+            try {
+                final Authorizable authorizable = lookup.getParameterProvider(componentId).getAuthorizable();
+                authorizable.authorize(authorizer, RequestAction.READ, user);
+                return;
+            } catch (final ResourceNotFoundException e) {
+                // ignore as the component may not be a parameter provider
+            }
+
             // a component for the specified id could not be found, attempt to authorize based on read to the controller
             final Authorizable controller = lookup.getController();
             controller.authorize(authorizer, RequestAction.READ, user);
@@ -2959,6 +3076,10 @@ public class FlowResource extends ApplicationResource {
 
     public void setReportingTaskResource(ReportingTaskResource reportingTaskResource) {
         this.reportingTaskResource = reportingTaskResource;
+    }
+
+    public void setParameterProviderResource(final ParameterProviderResource parameterProviderResource) {
+        this.parameterProviderResource = parameterProviderResource;
     }
 
     public void setAuthorizer(Authorizer authorizer) {

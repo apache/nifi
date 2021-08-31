@@ -74,6 +74,9 @@ public class RemoveInheritedParamContexts extends AbstractUpdateParamContextComm
         final List<ParameterContextReferenceEntity> referenceEntities = new ArrayList<>();
         parameterContextDTO.setInheritedParameterContexts(referenceEntities);
 
+        parameterContextDTO.setSensitiveParameterProviderRef(existingParameterContextEntity.getComponent().getSensitiveParameterProviderRef());
+        parameterContextDTO.setNonSensitiveParameterProviderRef(existingParameterContextEntity.getComponent().getNonSensitiveParameterProviderRef());
+
         // Submit the update request...
         final ParameterContextUpdateRequestEntity updateRequestEntity = paramContextClient.updateParamContext(updatedParameterContextEntity);
         performUpdate(paramContextClient, updatedParameterContextEntity, updateRequestEntity);

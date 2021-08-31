@@ -1,0 +1,1123 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.web.api;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ComponentAuthorizable;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.ui.extension.UiExtension;
+import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.ResumeFlowException;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.api.concurrent.AsyncRequestManager;
+import org.apache.nifi.web.api.concurrent.AsynchronousWebRequest;
+import org.apache.nifi.web.api.concurrent.RequestManager;
+import org.apache.nifi.web.api.concurrent.StandardAsynchronousWebRequest;
+import org.apache.nifi.web.api.concurrent.StandardUpdateStep;
+import org.apache.nifi.web.api.concurrent.UpdateStep;
+import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
+import org.apache.nifi.web.api.dto.DtoFactory;
+import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersRequestDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersUpdateStepDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.ComponentStateEntity;
+import org.apache.nifi.web.api.entity.Entity;
+import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextUpdateEntity;
+import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderApplyParametersRequestEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderParameterApplicationEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderParameterFetchEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentsEntity;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.api.request.LongParameter;
+import org.apache.nifi.web.util.ComponentLifecycle;
+import org.apache.nifi.web.util.ParameterUpdateManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+/**
+ * RESTful endpoint for managing a Parameter Provider.
+ */
+@Path("/parameter-providers")
+@Api(
+        value = "/parameter-providers",
+        description = "Endpoint for managing a Parameter Provider."
+)
+public class ParameterProviderResource extends AbstractParameterResource {
+    private static final Logger logger = LoggerFactory.getLogger(ParameterProviderResource.class);
+
+    private NiFiServiceFacade serviceFacade;
+    private DtoFactory dtoFactory;
+    private Authorizer authorizer;
+
+    private ParameterUpdateManager parameterUpdateManager;
+    private RequestManager<List<ParameterContextEntity>, List<ParameterContextEntity>> updateRequestManager =
+            new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Parameter Provider Apply Thread");
+
+    private ComponentLifecycle clusterComponentLifecycle;
+    private ComponentLifecycle localComponentLifecycle;
+
+    @Context
+    private ServletContext servletContext;
+
+    public void init() {
+        parameterUpdateManager = new ParameterUpdateManager(serviceFacade, dtoFactory, authorizer, this);
+    }
+
+    private void authorizeReadParameterProvider(final String parameterProviderId) {
+        if (parameterProviderId == null) {
+            throw new IllegalArgumentException("Parameter Provider ID must be specified");
+        }
+
+        serviceFacade.authorizeAccess(lookup -> {
+            final ComponentAuthorizable parameterProvider = lookup.getParameterProvider(parameterProviderId);
+            parameterProvider.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+    }
+
+    /**
+     * Populate the uri's for the specified parameter providers.
+     *
+     * @param parameterProviderEntities parameter providers
+     * @return dtos
+     */
+    public Set<ParameterProviderEntity> populateRemainingParameterProviderEntitiesContent(final Set<ParameterProviderEntity> parameterProviderEntities) {
+        for (ParameterProviderEntity parameterProviderEntity : parameterProviderEntities) {
+            populateRemainingParameterProviderEntityContent(parameterProviderEntity);
+        }
+        return parameterProviderEntities;
+    }
+
+    /**
+     * Populate the uri's for the specified parameter provider.
+     *
+     * @param parameterProviderEntity parameter provider
+     * @return dtos
+     */
+    public ParameterProviderEntity populateRemainingParameterProviderEntityContent(final ParameterProviderEntity parameterProviderEntity) {
+        parameterProviderEntity.setUri(generateResourceUri("parameter-providers", parameterProviderEntity.getId()));
+
+        // populate the remaining content
+        if (parameterProviderEntity.getComponent() != null) {
+            populateRemainingParameterProviderContent(parameterProviderEntity.getComponent());
+        }
+        return parameterProviderEntity;
+    }
+
+    /**
+     * Populates the uri for the specified parameter provider.
+     */
+    public ParameterProviderDTO populateRemainingParameterProviderContent(final ParameterProviderDTO parameterProvider) {
+        final BundleDTO bundle = parameterProvider.getBundle();
+        if (bundle == null) {
+            return parameterProvider;
+        }
+
+        // see if this processor has any ui extensions
+        final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
+        if (uiExtensionMapping.hasUiExtension(parameterProvider.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion())) {
+            final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(parameterProvider.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+            for (final UiExtension uiExtension : uiExtensions) {
+                if (UiExtensionType.ParameterProviderConfiguration.equals(uiExtension.getExtensionType())) {
+                    parameterProvider.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
+                }
+            }
+        }
+
+        return parameterProvider;
+    }
+
+    /**
+     * Retrieves the specified parameter provider.
+     *
+     * @param id The id of the parameter provider to retrieve
+     * @return A parameterProviderEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}")
+    @ApiOperation(
+            value = "Gets a parameter provider",
+            response = ParameterProviderEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /parameter-providers/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getParameterProvider(
+            @ApiParam(
+                    value = "The parameter provider id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable parameterProvider = lookup.getParameterProvider(id).getAuthorizable();
+            parameterProvider.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        // get the parameter provider
+        final ParameterProviderEntity parameterProvider = serviceFacade.getParameterProvider(id);
+        populateRemainingParameterProviderEntityContent(parameterProvider);
+
+        return generateOkResponse(parameterProvider).build();
+    }
+
+    /**
+     * Retrieves the references of the specified parameter provider.
+     *
+     * @param id The id of the parameter provider to retrieve
+     * @return A parameterProviderEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/references")
+    @ApiOperation(
+            value = "Gets all references to a parameter provider",
+            response = ParameterProviderReferencingComponentsEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /parameter-providers/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getParameterProviderReferences(
+            @ApiParam(
+                    value = "The parameter provider id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable parameterProvider = lookup.getParameterProvider(id).getAuthorizable();
+            parameterProvider.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        // get the parameter provider references
+        final ParameterProviderReferencingComponentsEntity entity = serviceFacade.getParameterProviderReferencingComponents(id);
+
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Returns the descriptor for the specified property.
+     *
+     * @param id           The id of the parameter provider.
+     * @param propertyName The property
+     * @return a propertyDescriptorEntity
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/descriptors")
+    @ApiOperation(
+            value = "Gets a parameter provider property descriptor",
+            response = PropertyDescriptorEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /parameter-providers/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getPropertyDescriptor(
+            @ApiParam(
+                    value = "The parameter provider id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @ApiParam(
+                    value = "The property name.",
+                    required = true
+            )
+            @QueryParam("propertyName") final String propertyName) {
+
+        // ensure the property name is specified
+        if (propertyName == null) {
+            throw new IllegalArgumentException("The property name must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable parameterProvider = lookup.getParameterProvider(id).getAuthorizable();
+            parameterProvider.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        // get the property descriptor
+        final PropertyDescriptorDTO descriptor = serviceFacade.getParameterProviderPropertyDescriptor(id, propertyName);
+
+        // generate the response entity
+        final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
+        entity.setPropertyDescriptor(descriptor);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Gets the state for a parameter provider.
+     *
+     * @param id The id of the parameter provider
+     * @return a componentStateEntity
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/state")
+    @ApiOperation(
+            value = "Gets the state for a parameter provider",
+            response = ComponentStateEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /parameter-providers/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getState(
+            @ApiParam(
+                    value = "The parameter provider id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable parameterProvider = lookup.getParameterProvider(id).getAuthorizable();
+            parameterProvider.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+        });
+
+        // get the component state
+        final ComponentStateDTO state = serviceFacade.getParameterProviderState(id);
+
+        // generate the response entity
+        final ComponentStateEntity entity = new ComponentStateEntity();
+        entity.setComponentState(state);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Clears the state for a parameter provider.
+     *
+     * @param httpServletRequest servlet request
+     * @param id                 The id of the parameter provider
+     * @return a componentStateEntity
+     */
+    @POST
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/state/clear-requests")
+    @ApiOperation(
+            value = "Clears the state for a parameter provider",
+            response = ComponentStateEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /parameter-providers/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response clearState(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The parameter provider id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST);
+        }
+
+        final ParameterProviderEntity requestReportTaskEntity = new ParameterProviderEntity();
+        requestReportTaskEntity.setId(id);
+
+        return withWriteLock(
+                serviceFacade,
+                requestReportTaskEntity,
+                lookup -> {
+                    final Authorizable processor = lookup.getParameterProvider(id).getAuthorizable();
+                    processor.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyCanClearParameterProviderState(id),
+                (parameterProviderEntity) -> {
+                    // get the component state
+                    serviceFacade.clearParameterProviderState(parameterProviderEntity.getId());
+
+                    // generate the response entity
+                    final ComponentStateEntity entity = new ComponentStateEntity();
+
+                    // generate the response
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    /**
+     * Updates the specified a Parameter Provider.
+     *
+     * @param httpServletRequest  request
+     * @param id                  The id of the parameter provider to update.
+     * @param requestParameterProviderEntity A parameterProviderEntity.
+     * @return A parameterProviderEntity.
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}")
+    @ApiOperation(
+            value = "Updates a parameter provider",
+            response = ParameterProviderEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /parameter-providers/{uuid}"),
+                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response updateParameterProvider(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The parameter provider id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @ApiParam(
+                    value = "The parameter provider configuration details.",
+                    required = true
+            ) final ParameterProviderEntity requestParameterProviderEntity) {
+
+        if (requestParameterProviderEntity == null || requestParameterProviderEntity.getComponent() == null) {
+            throw new IllegalArgumentException("Parameter provider details must be specified.");
+        }
+
+        if (requestParameterProviderEntity.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        // ensure the ids are the same
+        final ParameterProviderDTO requestParameterProviderDTO = requestParameterProviderEntity.getComponent();
+        if (!id.equals(requestParameterProviderDTO.getId())) {
+            throw new IllegalArgumentException(String.format("The parameter provider id (%s) in the request body does not equal the "
+                    + "parameter provider id of the requested resource (%s).", requestParameterProviderDTO.getId(), id));
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestParameterProviderEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestParameterProviderEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final Revision requestRevision = getRevision(requestParameterProviderEntity, id);
+        return withWriteLock(
+                serviceFacade,
+                requestParameterProviderEntity,
+                requestRevision,
+                lookup -> {
+                    // authorize parameter provider
+                    final ComponentAuthorizable authorizable = lookup.getParameterProvider(id);
+                    authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // authorize any referenced services
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestParameterProviderDTO.getProperties(), authorizable, authorizer, lookup);
+                },
+                () -> serviceFacade.verifyUpdateParameterProvider(requestParameterProviderDTO),
+                (revision, parameterProviderEntity) -> {
+                    final ParameterProviderDTO parameterProviderDTO = parameterProviderEntity.getComponent();
+
+                    // update the parameter provider
+                    final ParameterProviderEntity entity = serviceFacade.updateParameterProvider(revision, parameterProviderDTO);
+                    populateRemainingParameterProviderEntityContent(entity);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    /**
+     * Removes the specified parameter provider.
+     *
+     * @param httpServletRequest request
+     * @param version            The revision is used to verify the client is working with
+     *                           the latest version of the flow.
+     * @param clientId           Optional client id. If the client id is not specified, a
+     *                           new one will be generated. This value (whether specified or generated) is
+     *                           included in the response.
+     * @param id                 The id of the parameter provider to remove.
+     * @return A entity containing the client id and an updated revision.
+     */
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}")
+    @ApiOperation(
+            value = "Deletes a parameter provider",
+            response = ParameterProviderEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /parameter-providers/{uuid}"),
+                    @Authorization(value = "Write - /controller"),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response removeParameterProvider(
+            @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The revision is used to verify the client is working with the latest version of the flow.",
+                    required = false
+            )
+            @QueryParam(VERSION) LongParameter version,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam(
+                    value = "The parameter provider id.",
+                    required = true
+            )
+            @PathParam("id") String id) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
+        }
+
+        final ParameterProviderEntity requestParameterProviderEntity = new ParameterProviderEntity();
+        requestParameterProviderEntity.setId(id);
+
+        // handle expects request (usually from the cluster manager)
+        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        return withWriteLock(
+                serviceFacade,
+                requestParameterProviderEntity,
+                requestRevision,
+                lookup -> {
+                    final ComponentAuthorizable parameterProvider = lookup.getParameterProvider(id);
+
+                    // ensure write permission to the parameter provider
+                    parameterProvider.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the parent process group
+                    parameterProvider.getAuthorizable().getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // verify any referenced services
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(parameterProvider, authorizer, lookup, false);
+                },
+                () -> serviceFacade.verifyDeleteParameterProvider(id),
+                (revision, parameterProviderEntity) -> {
+                    // delete the specified parameter provider
+                    final ParameterProviderEntity entity = serviceFacade.deleteParameterProvider(revision, parameterProviderEntity.getId());
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    /**
+     * Tells the Parameter Provider to fetch its parameters.  This will temporarily cache the fetched parameters,
+     * but the changes will not be applied to the flow until an "apply-parameters-requests" request is created.
+     *
+     * @param httpServletRequest  request
+     * @param parameterProviderId The id of the parameter provider.
+     * @return A parameterProviderEntity.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/parameters/fetch-requests")
+    @ApiOperation(
+            value = "Fetches and temporarily caches the parameters for a provider",
+            response = ParameterProviderEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /parameter-providers/{uuid} or  or /operation/parameter-providers/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response fetchParameters(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The parameter provider id.",
+                    required = true
+            )
+            @PathParam("id") final String parameterProviderId,
+            @ApiParam(
+                    value = "The parameter fetch request.",
+                    required = true
+            ) final ParameterProviderParameterFetchEntity fetchParametersEntity) {
+
+        if (fetchParametersEntity.getId() == null) {
+            throw new IllegalArgumentException("The ID of the Parameter Provider must be specified");
+        }
+        if (!fetchParametersEntity.getId().equals(parameterProviderId)) {
+            throw new IllegalArgumentException("The ID of the Parameter Provider must match the ID specified in the URL's path");
+        }
+
+        if (fetchParametersEntity.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, fetchParametersEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(fetchParametersEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final Revision requestRevision = getRevision(fetchParametersEntity.getRevision(), parameterProviderId);
+        return withWriteLock(
+                serviceFacade,
+                fetchParametersEntity,
+                requestRevision,
+                lookup -> {
+                    // authorize parameter provider
+                    final ComponentAuthorizable authorizable = lookup.getParameterProvider(parameterProviderId);
+                    authorizable.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyCanFetchParameters(parameterProviderId),
+                (revision, parameterProviderFetchEntity) -> {
+                    // fetch the parameters
+                    final ParameterProviderEntity entity = serviceFacade.fetchParameters(parameterProviderId);
+                    populateRemainingParameterProviderEntityContent(entity);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{providerId}/apply-parameters-requests")
+    @ApiOperation(
+            value = "Initiate a request to apply the fetched parameters of a Parameter Provider",
+            response = ParameterProviderApplyParametersRequestEntity.class,
+            notes = "This will initiate the process of applying fetched parameters to all referencing Parameter Contexts. Changing the value of a Parameter may require that one or more " +
+                    "components be stopped and restarted, so this action may take significantly more time than many other REST API actions. As a result, this endpoint will immediately return a " +
+                    "ParameterProviderApplyParametersRequestEntity, and the process of updating the necessary components will occur asynchronously in the background. The client may then " +
+                    "periodically poll the status of the request by issuing a GET request to /parameter-providers/apply-parameters-requests/{requestId}. Once the request is completed, the client " +
+                    "is expected to issue a DELETE request to /parameter-providers/apply-parameters-requests/{requestId}.",
+            authorizations = {
+                    @Authorization(value = "Read - /parameter-providers/{parameterProviderId}"),
+                    @Authorization(value = "Write - /parameter-providers/{parameterProviderId}"),
+                    @Authorization(value = "Read - for every component that is affected by the update"),
+                    @Authorization(value = "Write - for every component that is affected by the update")
+            })
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response submitApplyParameters(
+            @PathParam("providerId") final String parameterProviderId,
+            @ApiParam(value = "The apply parameters request.", required = true) final ParameterProviderParameterApplicationEntity requestEntity) {
+
+        if (requestEntity == null) {
+            throw new IllegalArgumentException("Apply Parameters Request must be specified.");
+        }
+
+        // Verify the request
+        final RevisionDTO revisionDto = requestEntity.getRevision();
+        if (revisionDto == null) {
+            throw new IllegalArgumentException("Parameter Provider Revision must be specified");
+        }
+
+        if (requestEntity.getId() == null) {
+            throw new IllegalArgumentException("Parameter Provider's ID must be specified");
+        }
+        if (!requestEntity.getId().equals(parameterProviderId)) {
+            throw new IllegalArgumentException("ID of Parameter Provider in message body does not match Parameter Provider ID supplied in URI");
+        }
+
+        // We will perform the updating of the Parameter Contexts in a background thread because it can be a long-running process.
+        // In order to do this, we will need some objects that are only available as Thread-Local variables to the current
+        // thread, so we will gather the values for these objects up front.
+        final boolean replicateRequest = isReplicateRequest();
+        final ComponentLifecycle componentLifecycle = replicateRequest ? clusterComponentLifecycle : localComponentLifecycle;
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // Workflow for this process:
+        // 1. Determine which components will be affected and are enabled/running
+        // 2. Verify READ and WRITE permissions for user, for every component that is affected
+        // 3. Verify READ and WRITE permissions for user, for each referenced Parameter Context
+        // 4. Stop all Processors that are affected.
+        // 5. Wait for all of the Processors to finish stopping.
+        // 6. Disable all Controller Services that are affected.
+        // 7. Wait for all Controller Services to finish disabling.
+        // 8. Update Parameter Contexts with fetched parameters from the Parameter Provider
+        // 9. Re-Enable all affected Controller Services
+        // 10. Re-Start all Processors
+
+        // Get a list of parameter context entities representing changes needed in order to apply the fetched parameters
+        final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, requestEntity.getParameterNames());
+
+        final Collection<ParameterContextDTO> updatedParameterContextDTOs = parameterContextUpdates.stream()
+                .map(ParameterContextEntity::getComponent)
+                .collect(Collectors.toList());
+        final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByParameterContextUpdate(updatedParameterContextDTOs);
+        logger.debug("Received Apply Request for Parameter Provider: {}; the following {} components will be affected: {}", requestEntity, affectedComponents.size(), affectedComponents);
+
+        final InitiateParameterProviderApplyParametersRequestWrapper requestWrapper = new InitiateParameterProviderApplyParametersRequestWrapper(parameterProviderId,
+                parameterContextUpdates, componentLifecycle, getAbsolutePath(), affectedComponents, replicateRequest, user);
+
+        final Revision requestRevision = getRevision(requestEntity.getRevision(), parameterProviderId);
+        return withWriteLock(
+                serviceFacade,
+                requestWrapper,
+                requestRevision,
+                lookup -> {
+                    // Verify READ and WRITE permissions for user, for the Parameter Provider itself
+                    final ComponentAuthorizable parameterProvider = lookup.getParameterProvider(parameterProviderId);
+                    parameterProvider.getAuthorizable().authorize(authorizer, RequestAction.READ, user);
+                    parameterProvider.getAuthorizable().authorize(authorizer, RequestAction.WRITE, user);
+
+                    // Verify READ and WRITE permissions for user, for every component that is affected
+                    affectedComponents.forEach(component -> parameterUpdateManager.authorizeAffectedComponent(component, lookup, user, true, true));
+                },
+                () -> {
+                    // Verify Request
+                    serviceFacade.verifyCanApplyParameters(parameterProviderId, requestEntity.getParameterNames());
+                },
+                this::submitApplyRequest
+        );
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{providerId}/apply-parameters-requests/{requestId}")
+    @ApiOperation(
+            value = "Returns the Apply Parameters Request with the given ID",
+            response = ParameterProviderApplyParametersRequestEntity.class,
+            notes = "Returns the Apply Parameters Request with the given ID. Once an Apply Parameters Request has been created by performing a POST to /nifi-api/parameter-providers, "
+                    + "that request can subsequently be retrieved via this endpoint, and the request that is fetched will contain the state, such as percent complete, the "
+                    + "current state of the request, and any failures. ",
+            authorizations = {
+                    @Authorization(value = "Only the user that submitted the request can get it")
+            })
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getParameterProviderApplyParametersRequest(
+            @ApiParam("The ID of the Parameter Provider") @PathParam("providerId") final String parameterProviderId,
+            @ApiParam("The ID of the Apply Parameters Request") @PathParam("requestId") final String applyParametersRequestId) {
+
+        authorizeReadParameterProvider(parameterProviderId);
+
+        return retrieveApplyParametersRequest("apply-parameters-requests", parameterProviderId, applyParametersRequestId);
+    }
+
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{providerId}/apply-parameters-requests/{requestId}")
+    @ApiOperation(
+            value = "Deletes the Apply Parameters Request with the given ID",
+            response = ParameterProviderApplyParametersRequestEntity.class,
+            notes = "Deletes the Apply Parameters Request with the given ID. After a request is created via a POST to /nifi-api/parameter-providers/apply-parameters-requests, it is expected "
+                    + "that the client will properly clean up the request by DELETE'ing it, once the Apply process has completed. If the request is deleted before the request "
+                    + "completes, then the Apply Parameters Request will finish the step that it is currently performing and then will cancel any subsequent steps.",
+            authorizations = {
+                    @Authorization(value = "Only the user that submitted the request can remove it")
+            })
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response deleteApplyParametersRequest(
+            @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam("The ID of the Parameter Provider") @PathParam("providerId") final String parameterProviderId,
+            @ApiParam("The ID of the Apply Parameters Request") @PathParam("requestId") final String applyParametersRequestId) {
+
+        authorizeReadParameterProvider(parameterProviderId);
+        return deleteApplyParametersRequest("apply-parameters-requests", parameterProviderId, applyParametersRequestId, disconnectedNodeAcknowledged.booleanValue());
+    }
+
+    private Response retrieveApplyParametersRequest(final String requestType, final String parameterProviderId, final String requestId) {
+        if (requestId == null) {
+            throw new IllegalArgumentException("Request ID must be specified.");
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // request manager will ensure that the current is the user that submitted this request
+        final AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>> asyncRequest = updateRequestManager.getRequest(requestType, requestId, user);
+        final ParameterProviderApplyParametersRequestEntity applyParametersRequestEntity = createApplyParametersRequestEntity(asyncRequest, requestType, parameterProviderId, requestId);
+        return generateOkResponse(applyParametersRequestEntity).build();
+    }
+
+    private Response deleteApplyParametersRequest(final String requestType, final String parameterProviderId, final String requestId, final boolean disconnectedNodeAcknowledged) {
+        if (requestId == null) {
+            throw new IllegalArgumentException("Request ID must be specified.");
+        }
+
+        if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // request manager will ensure that the current is the user that submitted this request
+        final AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>> asyncRequest = updateRequestManager.removeRequest(requestType, requestId, user);
+        if (asyncRequest == null) {
+            throw new ResourceNotFoundException("Could not find request of type " + requestType + " with ID " + requestId);
+        }
+
+        if (!asyncRequest.isComplete()) {
+            asyncRequest.cancel();
+        }
+
+        final ParameterProviderApplyParametersRequestEntity applyParametersRequestEntity = createApplyParametersRequestEntity(asyncRequest, requestType, parameterProviderId, requestId);
+        return generateOkResponse(applyParametersRequestEntity).build();
+    }
+
+    private ParameterProviderApplyParametersRequestEntity createApplyParametersRequestEntity(final AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>> asyncRequest,
+                                                                                             final String requestType, final String parameterProviderId, final String requestId) {
+        final ParameterProviderApplyParametersRequestEntity applyParametersRequestEntity = new ParameterProviderApplyParametersRequestEntity();
+        final ParameterProviderApplyParametersRequestDTO applyParametersRequestDTO = new ParameterProviderApplyParametersRequestDTO();
+        applyParametersRequestDTO.setComplete(asyncRequest.isComplete());
+        applyParametersRequestDTO.setFailureReason(asyncRequest.getFailureReason());
+        applyParametersRequestDTO.setLastUpdated(asyncRequest.getLastUpdated());
+        applyParametersRequestDTO.setRequestId(requestId);
+        applyParametersRequestDTO.setUri(generateResourceUri("parameter-providers", parameterProviderId, requestType, requestId));
+        applyParametersRequestDTO.setState(asyncRequest.getState());
+        applyParametersRequestDTO.setPercentCompleted(asyncRequest.getPercentComplete());
+
+        final ParameterProviderEntity parameterProvider = serviceFacade.getParameterProvider(parameterProviderId);
+        applyParametersRequestDTO.setParameterProvider(parameterProvider.getComponent());
+
+        final List<ParameterProviderApplyParametersUpdateStepDTO> updateSteps = new ArrayList<>();
+        for (final UpdateStep updateStep : asyncRequest.getUpdateSteps()) {
+            final ParameterProviderApplyParametersUpdateStepDTO stepDto = new ParameterProviderApplyParametersUpdateStepDTO();
+            stepDto.setDescription(updateStep.getDescription());
+            stepDto.setComplete(updateStep.isComplete());
+            stepDto.setFailureReason(updateStep.getFailureReason());
+            updateSteps.add(stepDto);
+        }
+        applyParametersRequestDTO.setUpdateSteps(updateSteps);
+
+        final Map<String, AffectedComponentEntity> overallAffectedComponents = new HashMap<>();
+        final List<ParameterContextUpdateEntity> parameterContextUpdates = new ArrayList<>();
+        applyParametersRequestDTO.setParameterContextUpdates(parameterContextUpdates);
+        final List<ParameterContextEntity> initialRequestList = asyncRequest.getRequest();
+        for(final ParameterContextEntity parameterContextEntity : initialRequestList) {
+            // The AffectedComponentEntity itself does not evaluate equality based on component information. As a result, we want to de-dupe the entities based on their identifiers.
+            final Map<String, AffectedComponentEntity> affectedComponents = new HashMap<>();
+            for (final ParameterEntity entity : parameterContextEntity.getComponent().getParameters()) {
+                for (final AffectedComponentEntity affectedComponentEntity : entity.getParameter().getReferencingComponents()) {
+                    final AffectedComponentEntity updatedAffectedComponentEntity = serviceFacade.getUpdatedAffectedComponentEntity(affectedComponentEntity);
+                    final String affectedComponentEntityId = affectedComponentEntity.getId();
+
+                    affectedComponents.put(affectedComponentEntityId, updatedAffectedComponentEntity);
+                    overallAffectedComponents.put(affectedComponentEntityId, updatedAffectedComponentEntity);
+                }
+            }
+
+            // Populate the Affected Components
+            final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(parameterContextEntity.getId(), false, NiFiUserUtils.getNiFiUser());
+            final ParameterContextUpdateEntity parameterContextUpdate = new ParameterContextUpdateEntity();
+            parameterContextUpdate.setReferencingComponents(new HashSet<>(affectedComponents.values()));
+
+            // If the request is complete, include the new representation of the Parameter Context along with its new Revision. Otherwise, do not include the information, since it is 'stale'
+            if (applyParametersRequestDTO.isComplete()) {
+                parameterContextUpdate.setParameterContext(contextEntity == null ? null : contextEntity.getComponent());
+                parameterContextUpdate.setParameterContextRevision(contextEntity == null ? null : contextEntity.getRevision());
+            }
+            parameterContextUpdates.add(parameterContextUpdate);
+        }
+        applyParametersRequestDTO.setReferencingComponents(new HashSet<>(overallAffectedComponents.values()));
+
+        applyParametersRequestEntity.setRequest(applyParametersRequestDTO);
+        return applyParametersRequestEntity;
+    }
+
+    private Response submitApplyRequest(final Revision requestRevision, final InitiateParameterProviderApplyParametersRequestWrapper requestWrapper) {
+        // Create an asynchronous request that will occur in the background, because this request may
+        // result in stopping components, which can take an indeterminate amount of time.
+        final String requestId = UUID.randomUUID().toString();
+        final String parameterProviderId = requestWrapper.getParameterProviderId();
+        final AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>> request = new StandardAsynchronousWebRequest<>(
+                requestId, requestWrapper.getParameterContextEntities(), parameterProviderId, requestWrapper.getUser(), getUpdateSteps());
+
+        // Submit the request to be performed in the background
+        final Consumer<AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>>> updateTask = asyncRequest -> {
+            try {
+                final List<ParameterContextEntity> updatedParameterContextEntities = parameterUpdateManager.updateParameterContexts(asyncRequest, requestWrapper.getComponentLifecycle(),
+                        requestWrapper.getExampleUri(), requestWrapper.getReferencingComponents(), requestWrapper.isReplicateRequest(), requestRevision, requestWrapper.getParameterContextEntities());
+
+                asyncRequest.markStepComplete(updatedParameterContextEntities);
+            } catch (final ResumeFlowException rfe) {
+                // Treat ResumeFlowException differently because we don't want to include a message that we couldn't update the flow
+                // since in this case the flow was successfully updated - we just couldn't re-enable the components.
+                logger.error(rfe.getMessage(), rfe);
+                asyncRequest.fail(rfe.getMessage());
+            } catch (final Exception e) {
+                logger.error("Failed to apply parameters", e);
+                asyncRequest.fail("Failed to apply parameters due to " + e);
+            }
+        };
+
+        updateRequestManager.submitRequest("apply-parameters-requests", requestId, request, updateTask);
+
+        // Generate the response.
+        final ParameterProviderApplyParametersRequestEntity applicationRequestEntity = createApplyParametersRequestEntity(
+                request, "apply-parameters-requests", parameterProviderId, requestId);
+        return generateOkResponse(applicationRequestEntity).build();
+    }
+
+    private List<UpdateStep> getUpdateSteps() {
+        return Arrays.asList(new StandardUpdateStep("Stopping Affected Processors"),
+                new StandardUpdateStep("Disabling Affected Controller Services"),
+                new StandardUpdateStep("Updating Parameter Contexts"),
+                new StandardUpdateStep("Re-Enabling Affected Controller Services"),
+                new StandardUpdateStep("Restarting Affected Processors"));
+    }
+
+    private static class InitiateParameterProviderApplyParametersRequestWrapper extends Entity {
+        private final String parameterProviderId;
+        private final List<ParameterContextEntity> parameterContextEntities;
+        private final ComponentLifecycle componentLifecycle;
+        private final URI exampleUri;
+        private final Set<AffectedComponentEntity> affectedComponents;
+        private final boolean replicateRequest;
+        private final NiFiUser nifiUser;
+
+        public InitiateParameterProviderApplyParametersRequestWrapper(final String parameterProviderId, final List<ParameterContextEntity> parameterContextEntities,
+                                                                      final ComponentLifecycle componentLifecycle,
+                                                                      final URI exampleUri, final Set<AffectedComponentEntity> affectedComponents, final boolean replicateRequest,
+                                                                      final NiFiUser nifiUser) {
+            this.parameterProviderId = parameterProviderId;
+            this.parameterContextEntities = parameterContextEntities;
+            this.componentLifecycle = componentLifecycle;
+            this.exampleUri = exampleUri;
+            this.affectedComponents = affectedComponents;
+            this.replicateRequest = replicateRequest;
+            this.nifiUser = nifiUser;
+        }
+
+        public String getParameterProviderId() {
+            return parameterProviderId;
+        }
+
+        public List<ParameterContextEntity> getParameterContextEntities() {
+            return parameterContextEntities;
+        }
+
+        public ComponentLifecycle getComponentLifecycle() {
+            return componentLifecycle;
+        }
+
+        public URI getExampleUri() {
+            return exampleUri;
+        }
+
+        public Set<AffectedComponentEntity> getReferencingComponents() {
+            return affectedComponents;
+        }
+
+        public boolean isReplicateRequest() {
+            return replicateRequest;
+        }
+
+        public NiFiUser getUser() {
+            return nifiUser;
+        }
+    }
+
+    // setters
+
+    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+        this.serviceFacade = serviceFacade;
+    }
+
+    public void setAuthorizer(final Authorizer authorizer) {
+        this.authorizer = authorizer;
+    }
+    public ComponentLifecycle getClusterComponentLifecycle() {
+        return clusterComponentLifecycle;
+    }
+
+    public void setClusterComponentLifecycle(final ComponentLifecycle clusterComponentLifecycle) {
+        this.clusterComponentLifecycle = clusterComponentLifecycle;
+    }
+
+    public ComponentLifecycle getLocalComponentLifecycle() {
+        return localComponentLifecycle;
+    }
+
+    public void setLocalComponentLifecycle(final ComponentLifecycle localComponentLifecycle) {
+        this.localComponentLifecycle = localComponentLifecycle;
+    }
+
+    public DtoFactory getDtoFactory() {
+        return dtoFactory;
+    }
+
+    public void setDtoFactory(DtoFactory dtoFactory) {
+        this.dtoFactory = dtoFactory;
+    }
+}

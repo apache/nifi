@@ -581,7 +581,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final ParameterContextManager contextManager = flowManager.getParameterContextManager();
         final List<String> referenceIds = findReferencedParameterContextIds(versionedParameterContext, contextManager, namedParameterContexts);
 
-        flowManager.createParameterContext(versionedParameterContext.getInstanceIdentifier(), versionedParameterContext.getName(), parameters, referenceIds);
+        flowManager.createParameterContext(versionedParameterContext.getInstanceIdentifier(), versionedParameterContext.getName(), parameters, referenceIds,
+                versionedParameterContext.getSensitiveParameterProvider(), versionedParameterContext.getNonSensitiveParameterProvider());
         logger.info("Added Parameter Context {}", versionedParameterContext.getName());
     }
 

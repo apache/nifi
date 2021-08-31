@@ -137,6 +137,7 @@ public interface FlowRegistry {
      * @param externalControllerServices a mapping of of Controller Service identifier to ExternalControllerServiceReference for any Controller Service that is referenced by the flow but that are
      * not included as part of the VersionedProcessGroup
      * @param parameterContexts a map of the Parameter Contexts to include in the snapshot keyed by name
+     * @param parameterProviderReferences a map of the Parameter Providers referenced by any Parameter Context in the snapshot, keyed by identifier
      * @param comments any comments for the snapshot
      * @param expectedVersion the version of the flow that we expect to save this snapshot as
      * @return the versioned flow snapshot
@@ -146,7 +147,7 @@ public interface FlowRegistry {
      * @throws NiFiRegistryException if the flow does not exist
      */
     VersionedFlowSnapshot registerVersionedFlowSnapshot(VersionedFlow flow, VersionedProcessGroup snapshot, Map<String, ExternalControllerServiceReference> externalControllerServices,
-                                                        Map<String, VersionedParameterContext> parameterContexts, String comments,
+                                                        Map<String, VersionedParameterContext> parameterContexts, Map<String, ParameterProviderReference> parameterProviderReferences, String comments,
                                                         int expectedVersion, NiFiUser user) throws IOException, NiFiRegistryException;
 
     /**

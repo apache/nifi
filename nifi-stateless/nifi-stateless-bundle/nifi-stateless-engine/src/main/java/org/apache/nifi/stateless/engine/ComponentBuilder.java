@@ -39,6 +39,9 @@ import org.apache.nifi.controller.exception.ControllerServiceInstantiationExcept
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
+import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
+import org.apache.nifi.controller.ParameterProviderNode;
+import org.apache.nifi.controller.parameter.StatelessParameterProviderNode;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
 import org.apache.nifi.controller.reporting.StatelessReportingTaskNode;
@@ -49,6 +52,9 @@ import org.apache.nifi.controller.service.StandardControllerServiceInvocationHan
 import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ParameterProviderInitializationContext;
+import org.apache.nifi.parameter.StandardParameterProviderInitializationContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.SimpleProcessLogger;
@@ -171,6 +177,40 @@ public class ComponentBuilder {
         }
     }
 
+    public ParameterProviderNode buildParameterProvider() throws ParameterProviderInstantiationException {
+        final LoggableComponent<ParameterProvider> parameterProviderComponent = createLoggableParameterProvider();
+        final ProcessScheduler processScheduler = statelessEngine.getProcessScheduler();
+        final ControllerServiceProvider controllerServiceProvider = statelessEngine.getControllerServiceProvider();
+        final ComponentVariableRegistry componentVariableRegistry = new StandardComponentVariableRegistry(statelessEngine.getRootVariableRegistry());
+        final ReloadComponent reloadComponent = statelessEngine.getReloadComponent();
+        final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
+        final ValidationTrigger validationTrigger = statelessEngine.getValidationTrigger();
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, componentVariableRegistry);
+
+        final ParameterProviderNode taskNode = new StatelessParameterProviderNode(parameterProviderComponent, identifier, statelessEngine, flowManager,
+                validationContextFactory, componentVariableRegistry, reloadComponent, extensionManager, validationTrigger);
+
+        logger.info("Created Reporting Task of type {} with identifier {}", type, identifier);
+        return taskNode;
+    }
+
+    private LoggableComponent<ParameterProvider> createLoggableParameterProvider() throws ParameterProviderInstantiationException {
+        try {
+            final LoggableComponent<ParameterProvider> taskComponent = createLoggableComponent(ParameterProvider.class);
+            final String taskName = taskComponent.getComponent().getClass().getSimpleName();
+            final NodeTypeProvider nodeTypeProvider = new StatelessNodeTypeProvider();
+
+            final ParameterProviderInitializationContext config = new StandardParameterProviderInitializationContext(identifier, taskName,
+                    taskComponent.getLogger(), statelessEngine.getControllerServiceProvider(),
+                    statelessEngine.getKerberosConfig(), nodeTypeProvider);
+
+            taskComponent.getComponent().initialize(config);
+
+            return taskComponent;
+        } catch (final Exception e) {
+            throw new ParameterProviderInstantiationException(type, e);
+        }
+    }
 
     public ControllerServiceNode buildControllerService() {
         final ExtensionManager extensionManager = statelessEngine.getExtensionManager();

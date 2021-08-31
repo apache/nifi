@@ -118,10 +118,22 @@ public enum CommandOption {
     PARAM_CONTEXT_INCLUDE_INHERITED("pcin", "paramContextIncludeInherited", "Indicates that all inherited parameters should be included", false),
     PARAM_CONTEXT_INHERITED_IDS("pcii", "paramContextInheritedIds", "A comma-separated list of parameter context IDs to inherit", true),
 
+    // NiFI - Parameter Providers
+    PARAM_PROVIDER_ID("ppid", "paramProviderId", "The id of a parameter provider", true),
+    PARAM_PROVIDER_NAME("ppn", "paramProviderName", "The name of a parameter provider", true),
+    PARAM_PROVIDER_TYPE("ppt", "paramProviderType", "The type (fully qualified class name) of a parameter provider", true),
+    PARAM_PROVIDER_GROUP_ID("ppgid", "paramProviderGroupId", "The bundle group ID of a parameter provider", true),
+    PARAM_PROVIDER_ARTIFACT_ID("ppaid", "paramProviderArtifactId", "The bundle artifact ID of a parameter provider", true),
+    PARAM_PROVIDER_VERSION("ppv", "paramProviderVersion", "The bundle version of a parameter provider", true),
+    PARAM_PROVIDER_SENSITIVE("pps", "paramProviderSensitive", "Whether or not the parameter provider provides sensitive parameters (true/false)", true),
+    APPLY_PARAMETERS("ap", "applyParameters", "If specified, the fetched parameters will also be applied to all referencing parameter contexts", false),
+    PROPERTY_NAME("prna", "propertyName", "The name of a property", true),
+    PROPERTY_VALUE("prva", "propertyValue", "The value of a property", true),
+
     PARAM_NAME("pn", "paramName", "The name of the parameter", true),
     PARAM_DESC("pd", "paramDescription", "The description of the parameter", true),
     PARAM_VALUE("pv", "paramValue", "The value of a parameter", true),
-    PARAM_SENSITIVE("ps", "paramSensitive", "Whether or not the parameter is sensitive", true),
+    PARAM_SENSITIVE("ps", "paramSensitive", "Whether or not the parameter is sensitive (true/false)", true),
 
     // Security related
     KEYSTORE("ks", "keystore", "A keystore to use for TLS/SSL connections", true),

@@ -28,11 +28,13 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -65,12 +67,17 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
+<<<<<<< HEAD
 import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
+=======
+import org.apache.nifi.parameter.ParameterProvider;
+>>>>>>> 651b6e1be1 (NIFI-9003: Adding ParameterProviders to NiFi)
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.ParameterProviderReference;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
@@ -780,30 +787,33 @@ public class NiFiRegistryFlowMapper {
     }
 
     public Map<String, VersionedParameterContext> mapParameterContexts(final ProcessGroup processGroup,
-                                                                       final boolean mapDescendantVersionedFlows) {
+                                                                       final boolean mapDescendantVersionedFlows,
+                                                                       final Map<String, ParameterProviderReference> parameterProviderReferences) {
         // cannot use a set to enforce uniqueness of parameter contexts because VersionedParameterContext in the
         // registry data model doesn't currently implement hashcode/equals based on context name
         final Map<String, VersionedParameterContext> parameterContexts = new HashMap<>();
-        mapParameterContexts(processGroup, mapDescendantVersionedFlows, parameterContexts);
+        mapParameterContexts(processGroup, mapDescendantVersionedFlows, parameterContexts, parameterProviderReferences);
         return parameterContexts;
     }
 
     private void mapParameterContexts(final ProcessGroup processGroup, final boolean mapDescendantVersionedFlows,
-                                      final Map<String, VersionedParameterContext> parameterContexts) {
+                                      final Map<String, VersionedParameterContext> parameterContexts,
+                                      final Map<String, ParameterProviderReference> parameterProviderReferences) {
         final ParameterContext parameterContext = processGroup.getParameterContext();
         if (parameterContext != null) {
-            mapParameterContext(parameterContext, parameterContexts);
+            mapParameterContext(parameterContext, parameterContexts, parameterProviderReferences);
         }
 
         for (final ProcessGroup child : processGroup.getProcessGroups()) {
             // only include child process group parameter contexts if boolean indicator is true or process group is unversioned
             if (mapDescendantVersionedFlows || child.getVersionControlInformation() == null) {
-                mapParameterContexts(child, mapDescendantVersionedFlows, parameterContexts);
+                mapParameterContexts(child, mapDescendantVersionedFlows, parameterContexts, parameterProviderReferences);
             }
         }
     }
 
-    private void mapParameterContext(final ParameterContext parameterContext, final Map<String, VersionedParameterContext> parameterContexts) {
+    private void mapParameterContext(final ParameterContext parameterContext, final Map<String, VersionedParameterContext> parameterContexts,
+                                     final Map<String, ParameterProviderReference> parameterProviderReferences) {
         // map this process group's parameter context and add to the collection
         final Set<VersionedParameter> parameters = mapParameters(parameterContext);
 
@@ -811,13 +821,22 @@ public class NiFiRegistryFlowMapper {
         versionedContext.setName(parameterContext.getName());
         versionedContext.setParameters(parameters);
         versionedContext.setInheritedParameterContexts(parameterContext.getInheritedParameterContextNames());
+        parameterContext.getSensitiveParameterProvider().ifPresent(parameterProvider -> {
+            versionedContext.setSensitiveParameterProvider(parameterProvider.getIdentifier());
+            parameterProviderReferences.put(parameterProvider.getIdentifier(), createParameterProviderReference(parameterContext.getParameterProviderLookup(), parameterProvider));
+        });
+        parameterContext.getNonSensitiveParameterProvider().ifPresent(parameterProvider -> {
+            versionedContext.setNonSensitiveParameterProvider(parameterProvider.getIdentifier());
+            parameterProviderReferences.put(parameterProvider.getIdentifier(), createParameterProviderReference(parameterContext.getParameterProviderLookup(), parameterProvider));
+        });
         for(final ParameterContext inheritedParameterContext : parameterContext.getInheritedParameterContexts()) {
-            mapParameterContext(inheritedParameterContext, parameterContexts);
+            mapParameterContext(inheritedParameterContext, parameterContexts, parameterProviderReferences);
         }
 
         parameterContexts.put(versionedContext.getName(), versionedContext);
     }
 
+<<<<<<< HEAD
     private Set<VersionedParameter> mapParameters(ParameterContext parameterContext) {
         final Set<VersionedParameter> parameters = parameterContext.getParameters().entrySet().stream()
                 .map(descriptorAndParameter -> mapParameter(
@@ -858,6 +877,24 @@ public class NiFiRegistryFlowMapper {
 
     private VersionedParameter mapParameter(final Parameter parameter, final String value) {
         if (parameter == null) {
+=======
+    private ParameterProviderReference createParameterProviderReference(final ParameterProviderLookup parameterProviderLookup, final ParameterProvider parameterProvider) {
+        final ParameterProviderReference reference = new ParameterProviderReference();
+        final ParameterProviderNode parameterProviderNode = parameterProviderLookup.getParameterProvider(parameterProvider.getIdentifier());
+        final BundleCoordinate bundleCoordinate = parameterProviderNode.getBundleCoordinate();
+
+        reference.setIdentifier(parameterProvider.getIdentifier());
+        reference.setName(parameterProviderNode.getName());
+        reference.setType(parameterProvider.getClass().getName());
+        reference.setBundle(new Bundle(bundleCoordinate.getGroup(), bundleCoordinate.getId(), bundleCoordinate.getVersion()));
+
+        return reference;
+    }
+
+    private VersionedParameter mapParameter(final Parameter parameter) {
+        // If it's provided, the parameters will have to be fetched once reconstituted anyway
+        if (parameter == null || parameter.isProvided()) {
+>>>>>>> 651b6e1be1 (NIFI-9003: Adding ParameterProviders to NiFi)
             return null;
         }
 

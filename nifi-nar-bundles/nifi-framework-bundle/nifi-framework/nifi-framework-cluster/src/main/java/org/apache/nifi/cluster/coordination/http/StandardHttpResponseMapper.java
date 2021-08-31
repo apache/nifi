@@ -49,6 +49,9 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ParameterContextEndpo
 import org.apache.nifi.cluster.coordination.http.endpoints.ParameterContextUpdateEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ParameterContextValidationMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ParameterContextsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ParameterProviderEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ParameterProviderFetchRequestsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ParameterProvidersEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.PortEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.PortStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.PrioritizerTypesEndpointMerger;
@@ -175,6 +178,9 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new VerifyConfigEndpointMerger());
         endpointMergers.add(new RuntimeManifestEndpointMerger());
         endpointMergers.add(new ReplayLastEventEndpointMerger());
+        endpointMergers.add(new ParameterProviderEndpointMerger());
+        endpointMergers.add(new ParameterProvidersEndpointMerger());
+        endpointMergers.add(new ParameterProviderFetchRequestsEndpointMerger());
     }
 
     @Override

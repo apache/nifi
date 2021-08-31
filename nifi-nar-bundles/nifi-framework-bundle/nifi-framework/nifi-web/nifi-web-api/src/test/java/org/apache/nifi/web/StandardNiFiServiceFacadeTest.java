@@ -43,6 +43,7 @@ import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
+import org.apache.nifi.registry.flow.ParameterProviderReference;
 import org.apache.nifi.registry.flow.RestBasedFlowRegistry;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
@@ -365,12 +366,13 @@ public class StandardNiFiServiceFacadeTest {
         final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mock(InstantiatedVersionedProcessGroup.class);
         when(flowMapper.mapNonVersionedProcessGroup(processGroup, controllerServiceProvider)).thenReturn(nonVersionedProcessGroup);
 
+        final Map<String, ParameterProviderReference> parameterProviderReferences = new HashMap<>();
         final String parameterName = "foo";
         final VersionedParameterContext versionedParameterContext = mock(VersionedParameterContext.class);
         when(versionedParameterContext.getName()).thenReturn(parameterName);
         final Map<String, VersionedParameterContext> parameterContexts = new LinkedHashMap<>();
         parameterContexts.put(parameterName, versionedParameterContext);
-        when(flowMapper.mapParameterContexts(processGroup, true)).thenReturn(parameterContexts);
+        when(flowMapper.mapParameterContexts(processGroup, true, parameterProviderReferences)).thenReturn(parameterContexts);
 
         final ExternalControllerServiceReference externalControllerServiceReference = mock(ExternalControllerServiceReference.class);
         final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences = new LinkedHashMap<>();

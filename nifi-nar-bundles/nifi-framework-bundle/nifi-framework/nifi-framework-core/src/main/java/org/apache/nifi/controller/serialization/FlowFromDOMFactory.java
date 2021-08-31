@@ -30,6 +30,7 @@ import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ComponentReferenceDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -38,6 +39,7 @@ import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
@@ -46,6 +48,7 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
+import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.slf4j.Logger;
@@ -148,6 +151,21 @@ public class FlowFromDOMFactory {
         return dto;
     }
 
+    public static ParameterProviderDTO getParameterProvider(final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
+        final ParameterProviderDTO dto = new ParameterProviderDTO();
+
+        dto.setId(getString(element, "id"));
+        dto.setName(getString(element, "name"));
+        dto.setComments(getString(element, "comment"));
+        dto.setType(getString(element, "class"));
+        dto.setBundle(getBundle(DomUtils.getChild(element, "bundle")));
+
+        dto.setProperties(getProperties(element, encryptor, flowEncodingVersion));
+        dto.setAnnotationData(getString(element, "annotationData"));
+
+        return dto;
+    }
+
     public static ParameterContextDTO getParameterContext(final Element element, final PropertyEncryptor encryptor) {
         final ParameterContextDTO dto = new ParameterContextDTO();
 
@@ -163,6 +181,7 @@ public class FlowFromDOMFactory {
             parameterDto.setName(getString(parameterElement, "name"));
             parameterDto.setDescription(getString(parameterElement, "description"));
             parameterDto.setSensitive(getBoolean(parameterElement, "sensitive"));
+            parameterDto.setProvided(getBoolean(parameterElement, "provided"));
 
             final String value = decrypt(getString(parameterElement, "value"), encryptor);
             parameterDto.setValue(value);
@@ -180,9 +199,32 @@ public class FlowFromDOMFactory {
         }
         dto.setInheritedParameterContexts(parameterContexts);
 
+        final ComponentReferenceEntity sensitiveParameterProviderReference = getParameterProviderReference(element, "sensitiveParameterProviderId");
+        if (sensitiveParameterProviderReference != null) {
+            dto.setSensitiveParameterProviderRef(sensitiveParameterProviderReference);
+        }
+        final ComponentReferenceEntity nonSensitiveParameterProviderReference = getParameterProviderReference(element, "nonSensitiveParameterProviderId");
+        if (nonSensitiveParameterProviderReference != null) {
+            dto.setNonSensitiveParameterProviderRef(nonSensitiveParameterProviderReference);
+        }
+
         dto.setParameters(parameterDtos);
 
         return dto;
+    }
+
+    private static ComponentReferenceEntity getParameterProviderReference(final Element parameterContextElement, final String idElementName) {
+        final String referenceId = getString(parameterContextElement, idElementName);
+        if (referenceId != null) {
+            final ComponentReferenceEntity reference = new ComponentReferenceEntity();
+            reference.setId(referenceId);
+            final ComponentReferenceDTO referenceDto = new ComponentReferenceDTO();
+            referenceDto.setId(referenceId);
+            reference.setComponent(referenceDto);
+
+            return reference;
+        }
+        return null;
     }
 
     public static ProcessGroupDTO getProcessGroup(final String parentId, final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion encodingVersion) {

@@ -1131,17 +1131,21 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
                 // There is an update to the parameter. We want to return the previous value of the Parameter.
                 final ParameterDescriptor parameterDescriptor;
+                final boolean isProvided;
                 if (optionalParameter.isPresent()) {
-                    parameterDescriptor = optionalParameter.get().getDescriptor();
+                    final Parameter previousParameter = optionalParameter.get();
+                    parameterDescriptor = previousParameter.getDescriptor();
+                    isProvided = previousParameter.isProvided();
                 } else {
                     parameterDescriptor = new ParameterDescriptor.Builder()
                         .name(parameterName)
                         .description("")
                         .sensitive(true)
                         .build();
+                    isProvided = false;
                 }
 
-                final Parameter updatedParameter = new Parameter(parameterDescriptor, parameterUpdate.getPreviousValue());
+                final Parameter updatedParameter = new Parameter(parameterDescriptor, parameterUpdate.getPreviousValue(), null, isProvided);
                 return Optional.of(updatedParameter);
             }
 

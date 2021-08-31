@@ -149,12 +149,6 @@ public class TestSecureNiFiConfigUtil {
             Collection<List<?>> sans = ((X509Certificate)certificate).getSubjectAlternativeNames();
             Set<String> foundSands = new HashSet<>();
             for(List<?> list : sans) {
-                String san = (String) list.get(1);
-                if (IPAddress.isValid(san)) {
-                    assertEquals(GeneralName.iPAddress, list.get(0));
-                } else {
-                    assertEquals(GeneralName.dNSName, list.get(0));
-                }
                 foundSands.add((String) list.get(1));
             }
             for(String expectedSAN : expectedSANs) {

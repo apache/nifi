@@ -25,6 +25,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -35,11 +36,14 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.parameter.NonSensitiveParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.ReferenceOnlyParameterContext;
+import org.apache.nifi.parameter.SensitiveParameterProvider;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterReferenceManager;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
@@ -71,6 +75,7 @@ public abstract class AbstractFlowManager implements FlowManager {
     private final ConcurrentMap<String, Port> allOutputPorts = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Funnel> allFunnels = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, ReportingTaskNode> allReportingTasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, ParameterProviderNode> allParameterProviders = new ConcurrentHashMap<>();
 
     private final FlowFileEventRepository flowFileEventRepository;
     private final ParameterContextManager parameterContextManager;
@@ -217,6 +222,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         componentCounts.put("Reporting Tasks", getAllReportingTasks().size());
         componentCounts.put("Process Groups", allProcessGroups.size() - 2); // -2 to account for the root group because we don't want it in our counts and the 'root group alias' key.
         componentCounts.put("Remote Process Groups", getRootGroup().findAllRemoteProcessGroups().size());
+        componentCounts.put("Parameter Providers", getAllParameterProviders().size());
 
         int localInputPorts = 0;
         int publicInputPorts = 0;
@@ -273,6 +279,7 @@ public abstract class AbstractFlowManager implements FlowManager {
 
         getRootControllerServices().forEach(this::removeRootControllerService);
         getAllReportingTasks().forEach(this::removeReportingTask);
+        getAllParameterProviders().forEach(this::removeParameterProvider);
 
         for (final String registryId : flowRegistryClient.getRegistryIdentifiers()) {
             flowRegistryClient.removeFlowRegistry(registryId);
@@ -292,6 +299,10 @@ public abstract class AbstractFlowManager implements FlowManager {
 
         for (final ReportingTaskNode reportingTask : getAllReportingTasks()) {
             reportingTask.verifyCanDelete();
+        }
+
+        for (final ParameterProviderNode parameterProvider : getAllParameterProviders()) {
+            parameterProvider.verifyCanDelete();
         }
 
         final ProcessGroup rootGroup = getRootGroup();
@@ -377,6 +388,11 @@ public abstract class AbstractFlowManager implements FlowManager {
     }
 
     @Override
+    public ParameterProviderNode createParameterProvider(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) {
+        return createParameterProvider(type, id, bundleCoordinate, Collections.emptySet(), firstTimeAdded, true);
+    }
+
+    @Override
     public void removeReportingTask(final ReportingTaskNode reportingTaskNode) {
         final ReportingTaskNode existing = allReportingTasks.get(reportingTaskNode.getIdentifier());
         if (existing == null || existing != reportingTaskNode) {
@@ -414,6 +430,66 @@ public abstract class AbstractFlowManager implements FlowManager {
         allReportingTasks.put(taskNode.getIdentifier(), taskNode);
     }
 
+    @Override
+    public ParameterProviderNode getParameterProvider(final String id) {
+        if (id == null) {
+            return null;
+        }
+        return allParameterProviders.get(id);
+    }
+
+    @Override
+    public void removeParameterProvider(final ParameterProviderNode parameterProvider) {
+        final ParameterProviderNode existing = allParameterProviders.get(parameterProvider.getIdentifier());
+        if (existing == null || existing != parameterProvider) {
+            throw new IllegalStateException("Parameter Provider " + parameterProvider + " does not exist in this Flow");
+        }
+
+        final Class<?> taskClass = parameterProvider.getParameterProvider().getClass();
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(getExtensionManager(), taskClass, parameterProvider.getParameterProvider().getIdentifier())) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, parameterProvider.getParameterProvider(), parameterProvider.getConfigurationContext());
+        }
+
+        for (final Map.Entry<PropertyDescriptor, String> entry : parameterProvider.getEffectivePropertyValues().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.getControllerServiceDefinition() != null) {
+                final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
+                if (value != null) {
+                    final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(value);
+                    if (serviceNode != null) {
+                        serviceNode.removeReference(parameterProvider, descriptor);
+                    }
+                }
+            }
+        }
+        for(final ParameterContext parameterContext : parameterProvider.getReferences()) {
+            parameterContext.getSensitiveParameterProvider().ifPresent(sensitiveProvider -> {
+                if (parameterProvider.getIdentifier().equals(sensitiveProvider.getIdentifier())) {
+                    parameterContext.setSensitiveParameterProvider(null);
+                }
+            });
+            parameterContext.getNonSensitiveParameterProvider().ifPresent(nonSensitiveProvider -> {
+                if (parameterProvider.getIdentifier().equals(nonSensitiveProvider.getIdentifier())) {
+                    parameterContext.setNonSensitiveParameterProvider(null);
+                }
+            });
+        }
+
+        allParameterProviders.remove(parameterProvider.getIdentifier());
+        LogRepositoryFactory.removeRepository(parameterProvider.getIdentifier());
+
+        getExtensionManager().removeInstanceClassLoader(parameterProvider.getIdentifier());
+    }
+
+    @Override
+    public Set<ParameterProviderNode> getAllParameterProviders() {
+        return Collections.unmodifiableSet(new HashSet<>(allParameterProviders.values()));
+    }
+
+    public void onParameterProviderAdded(final ParameterProviderNode parameterProviderNode) {
+        allParameterProviders.put(parameterProviderNode.getIdentifier(), parameterProviderNode);
+    }
+
     protected abstract ExtensionManager getExtensionManager();
 
     protected abstract ProcessScheduler getProcessScheduler();
@@ -430,16 +506,37 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     @Override
     public ParameterContext createParameterContext(final String id, final String name, final Map<String, Parameter> parameters,
-                                                   final List<String> inheritedContextIds) {
+                                                   final List<String> inheritedContextIds,
+                                                   final String sensitiveParameterProviderId, String nonSensitiveParameterProviderId) {
         final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
-            .anyMatch(paramContext -> paramContext.getName().equals(name));
+                .anyMatch(paramContext -> paramContext.getName().equals(name));
 
         if (namingConflict) {
             throw new IllegalStateException("Cannot create Parameter Context with name '" + name + "' because a Parameter Context already exists with that name");
         }
 
+        final ParameterProviderNode sensitiveParameterProviderNode = getParameterProvider(sensitiveParameterProviderId);
+        final ParameterProvider sensitiveParameterProvider = sensitiveParameterProviderNode == null ? null : sensitiveParameterProviderNode.getParameterProvider();
+        if (sensitiveParameterProvider != null && !(sensitiveParameterProvider instanceof SensitiveParameterProvider)) {
+            throw new IllegalArgumentException(String.format("Cannot set Non-Sensitive Parameter Provider [%s] as a Sensitive Parameter Provider for Parameter Context [%s]",
+                    sensitiveParameterProviderNode.getName(), name));
+        } else if (sensitiveParameterProvider == null && sensitiveParameterProviderId != null) {
+            throw new IllegalArgumentException(String.format("Cannot create Parameter Context [%s] referencing Sensitive Parameter Provider [%s] that could not be found", id,
+                    sensitiveParameterProviderId));
+        }
+
+        final ParameterProviderNode nonSensitiveParameterProviderNode = getParameterProvider(nonSensitiveParameterProviderId);
+        final ParameterProvider nonSensitiveParameterProvider = nonSensitiveParameterProviderNode == null ? null : nonSensitiveParameterProviderNode.getParameterProvider();
+        if (nonSensitiveParameterProvider != null && !(nonSensitiveParameterProvider instanceof NonSensitiveParameterProvider)) {
+            throw new IllegalArgumentException(String.format("Cannot set Sensitive Parameter Provider [%s] as a Non-Sensitive Parameter Provider for Parameter Context [%s]",
+                    nonSensitiveParameterProviderNode.getName(), name));
+        } else if (nonSensitiveParameterProvider == null && nonSensitiveParameterProviderId != null) {
+            throw new IllegalArgumentException(String.format("Cannot create Parameter Context [%s] referencing Non-Sensitive Parameter Provider [%s] that could not be found", id,
+                    nonSensitiveParameterProviderId));
+        }
         final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(this);
-        final ParameterContext parameterContext = new StandardParameterContext(id, name, referenceManager, getParameterContextParent());
+        final ParameterContext parameterContext = new StandardParameterContext(id, name, referenceManager, getParameterContextParent(),
+                this, (SensitiveParameterProvider) sensitiveParameterProvider, (NonSensitiveParameterProvider) nonSensitiveParameterProvider);
         parameterContext.setParameters(parameters);
 
         if (inheritedContextIds != null && !inheritedContextIds.isEmpty()) {

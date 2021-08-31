@@ -57,10 +57,13 @@ public class VersionedFlowSnapshot {
     private VersionedProcessGroup flowContents;
 
     // optional map of external controller service references
-    private Map<String,ExternalControllerServiceReference> externalControllerServices;
+    private Map<String, ExternalControllerServiceReference> externalControllerServices;
+
+    // optional map of parameter provider references, mapped by identifier
+    private Map<String, ParameterProviderReference> parameterProviders;
 
     // optional parameter contexts mapped by their name
-    private Map<String,VersionedParameterContext> parameterContexts;
+    private Map<String, VersionedParameterContext> parameterContexts;
 
     // optional encoding version that clients may specify to track how the flow contents are encoded
     private String flowEncodingVersion;
@@ -96,6 +99,15 @@ public class VersionedFlowSnapshot {
 
     public void setExternalControllerServices(Map<String, ExternalControllerServiceReference> externalControllerServices) {
         this.externalControllerServices = externalControllerServices;
+    }
+
+    @ApiModelProperty("Contains basic information about parameter providers referenced in the versioned flow.")
+    public Map<String, ParameterProviderReference> getParameterProviders() {
+        return parameterProviders;
+    }
+
+    public void setParameterProviders(final Map<String, ParameterProviderReference> parameterProviders) {
+        this.parameterProviders = parameterProviders;
     }
 
     @ApiModelProperty(value = "The flow this snapshot is for", readOnly = true)

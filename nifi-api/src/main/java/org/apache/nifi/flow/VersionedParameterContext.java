@@ -25,6 +25,8 @@ public class VersionedParameterContext extends VersionedComponent {
     private Set<VersionedParameter> parameters;
     private List<String> inheritedParameterContexts;
     private String description;
+    private String sensitiveParameterProvider;
+    private String nonSensitiveParameterProvider;
 
     @ApiModelProperty("The description of the parameter context")
     public String getDescription() {
@@ -56,5 +58,23 @@ public class VersionedParameterContext extends VersionedComponent {
     @Override
     public ComponentType getComponentType() {
         return ComponentType.PARAMETER_CONTEXT;
+    }
+
+    @ApiModelProperty("The identifier of an optional parameter provider for sensitive parameters")
+    public String getSensitiveParameterProvider() {
+        return sensitiveParameterProvider;
+    }
+
+    public void setSensitiveParameterProvider(String sensitiveParameterProvider) {
+        this.sensitiveParameterProvider = sensitiveParameterProvider;
+    }
+
+    @ApiModelProperty("The identifier of an optional parameter provider for non-sensitive parameters")
+    public String getNonSensitiveParameterProvider() {
+        return nonSensitiveParameterProvider;
+    }
+
+    public void setNonSensitiveParameterProvider(String nonSensitiveParameterProvider) {
+        this.nonSensitiveParameterProvider = nonSensitiveParameterProvider;
     }
 }

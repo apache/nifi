@@ -26,7 +26,8 @@ import org.apache.nifi.components.ConfigurableComponent;
 
 /**
  * Annotation that may be placed on a null {@link org.apache.nifi.processor.Processor Processor},
- * {@link org.apache.nifi.controller.ControllerService ControllerService}, or
+ * {@link org.apache.nifi.controller.ControllerService ControllerService},
+ * {@link org.apache.nifi.parameter.ParameterProvider ParameterProvider}, or
  * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} that indicates
  * this component is related to the components listed.
  *

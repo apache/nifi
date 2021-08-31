@@ -61,6 +61,8 @@ import org.apache.nifi.controller.flow.StandardFlowManager;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
+import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
+import org.apache.nifi.controller.parameter.ParameterProviderProvider;
 import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueFactory;
@@ -154,6 +156,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -238,7 +241,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-public class FlowController implements ReportingTaskProvider, Authorizable, NodeTypeProvider {
+public class FlowController implements ReportingTaskProvider, ParameterProviderProvider, Authorizable, NodeTypeProvider {
 
     // default repository implementations
     public static final String DEFAULT_FLOWFILE_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.WriteAheadFlowFileRepository";
@@ -1010,6 +1013,14 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, task.getClass(), task.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, task, taskNode.getConfigurationContext());
+            }
+        }
+
+        for (final ParameterProviderNode parameterProviderNode : getAllParameterProviders()) {
+            final ParameterProvider provider = parameterProviderNode.getParameterProvider();
+
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, provider.getClass(), provider.getIdentifier())) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, provider);
             }
         }
     }
@@ -2082,6 +2093,27 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     @Override
     public void removeReportingTask(final ReportingTaskNode reportingTaskNode) {
         flowManager.removeReportingTask(reportingTaskNode);
+    }
+
+    @Override
+    public ParameterProviderNode getParameterProviderNode(final String identifier) {
+        return flowManager.getParameterProvider(identifier);
+    }
+
+    @Override
+    public ParameterProviderNode createParameterProvider(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded)
+            throws ParameterProviderInstantiationException {
+        return flowManager.createParameterProvider(type, id, bundleCoordinate, firstTimeAdded);
+    }
+
+    @Override
+    public Set<ParameterProviderNode> getAllParameterProviders() {
+        return flowManager.getAllParameterProviders();
+    }
+
+    @Override
+    public void removeParameterProvider(final ParameterProviderNode parameterProviderNode) {
+        flowManager.removeParameterProvider(parameterProviderNode);
     }
 
 

@@ -33,6 +33,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.OutputPortClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamProviderClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
@@ -214,6 +215,16 @@ public class JerseyNiFiClient implements NiFiClient {
     @Override
     public ReportingTasksClient getReportingTasksClient(RequestConfig requestConfig) {
         return new JerseyReportingTasksClient(baseTarget, requestConfig);
+    }
+
+    @Override
+    public ParamProviderClient getParamProviderClient() {
+        return new JerseyParamProviderClient(baseTarget);
+    }
+
+    @Override
+    public ParamProviderClient getParamProviderClient(RequestConfig requestConfig) {
+        return new JerseyParamProviderClient(baseTarget, requestConfig);
     }
 
     @Override

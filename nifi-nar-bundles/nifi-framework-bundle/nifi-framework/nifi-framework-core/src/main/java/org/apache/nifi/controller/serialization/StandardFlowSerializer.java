@@ -25,6 +25,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Template;
@@ -120,6 +121,12 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
                 addReportingTask(reportingTasksNode, taskNode, encryptor);
             }
 
+            final Element parameterProvidersNode = doc.createElement("parameterProviders");
+            rootNode.appendChild(parameterProvidersNode);
+            for (final ParameterProviderNode providerNode : controller.getAllParameterProviders()) {
+                addParameterProvider(parameterProvidersNode, providerNode, encryptor);
+            }
+
             return doc;
         } catch (final ProcessingException | DOMException | IllegalArgumentException e) {
             throw new FlowSerializationException(e);
@@ -157,6 +164,8 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
             for(final ParameterContext childContext : parameterContext.getInheritedParameterContexts()) {
                 addStringElement(parameterContextElement, "inheritedParameterContextId", childContext.getIdentifier());
             }
+            parameterContext.getSensitiveParameterProvider().ifPresent(provider -> addStringElement(parameterContextElement, "sensitiveParameterProviderId", provider.getIdentifier()));
+            parameterContext.getNonSensitiveParameterProvider().ifPresent(provider -> addStringElement(parameterContextElement, "nonSensitiveParameterProviderId", provider.getIdentifier()));
 
             for (final Parameter parameter : parameterContext.getParameters().values()) {
                 addParameter(parameterContextElement, parameter, encryptor);
@@ -172,6 +181,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         addStringElement(parameterElement, "name", descriptor.getName());
         addStringElement(parameterElement, "description", descriptor.getDescription());
         addStringElement(parameterElement, "sensitive", String.valueOf(descriptor.isSensitive()));
+        addStringElement(parameterElement, "provided", String.valueOf(parameter.isProvided()));
 
         if (parameter.getValue() != null) {
             if (descriptor.isSensitive()) {
@@ -652,6 +662,20 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         addTextElement(taskElement, "schedulingStrategy", taskNode.getSchedulingStrategy().name());
 
         addConfiguration(taskElement, taskNode.getRawPropertyValues(), taskNode.getAnnotationData(), encryptor);
+
+        element.appendChild(taskElement);
+    }
+
+    public static void addParameterProvider(final Element element, final ParameterProviderNode providerNode, final PropertyEncryptor encryptor) {
+        final Element taskElement = element.getOwnerDocument().createElement("parameterProvider");
+        addTextElement(taskElement, "id", providerNode.getIdentifier());
+        addTextElement(taskElement, "name", providerNode.getName());
+        addTextElement(taskElement, "comment", providerNode.getComments());
+        addTextElement(taskElement, "class", providerNode.getCanonicalClassName());
+
+        addBundle(taskElement, providerNode.getBundleCoordinate());
+
+        addConfiguration(taskElement, providerNode.getRawPropertyValues(), providerNode.getAnnotationData(), encryptor);
 
         element.appendChild(taskElement);
     }

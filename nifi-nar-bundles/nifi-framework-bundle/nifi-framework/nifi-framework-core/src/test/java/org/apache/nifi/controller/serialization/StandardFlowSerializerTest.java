@@ -120,9 +120,9 @@ public class StandardFlowSerializerTest {
         dummy.setComments(RAW_COMMENTS);
         controller.getFlowManager().getRootGroup().addProcessor(dummy);
 
-        final ParameterContext parameterContext = new StandardParameterContext("context", "Context", ParameterReferenceManager.EMPTY, null);
-        final ParameterContext referencedContext = new StandardParameterContext("referenced-context", "Referenced Context", ParameterReferenceManager.EMPTY, null);
-        final ParameterContext referencedContext2 = new StandardParameterContext("referenced-context-2", "Referenced Context 2", ParameterReferenceManager.EMPTY, null);
+        final ParameterContext parameterContext = new StandardParameterContext("context", "Context", ParameterReferenceManager.EMPTY, null, null, null, null);
+        final ParameterContext referencedContext = new StandardParameterContext("referenced-context", "Referenced Context", ParameterReferenceManager.EMPTY, null, null, null, null);
+        final ParameterContext referencedContext2 = new StandardParameterContext("referenced-context-2", "Referenced Context 2", ParameterReferenceManager.EMPTY, null, null, null, null);
         final Map<String, Parameter> parameters = new HashMap<>();
         final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name("foo").sensitive(true).build();
         parameters.put("foo", new Parameter(parameterDescriptor, "value"));

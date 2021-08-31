@@ -114,7 +114,8 @@ public class InMemoryFlowRegistry implements FlowRegistry {
     @Override
     public VersionedFlowSnapshot registerVersionedFlowSnapshot(final VersionedFlow flow, final VersionedProcessGroup snapshot,
                                                                final Map<String, ExternalControllerServiceReference> externalControllerServices,
-                                                               final Map<String, VersionedParameterContext> parameterContexts, final String comments,
+                                                               final Map<String, VersionedParameterContext> parameterContexts,
+                                                               final Map<String, ParameterProviderReference> parameterProviderReferences, final String comments,
                                                                final int expectedVersion, final NiFiUser user) {
         throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }

@@ -44,7 +44,7 @@ public class TestStandardParameterContext {
     @Test
     public void testUpdatesApply() {
         final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
+        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null, null, null, null);
 
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").build();
         final ParameterDescriptor xyzDescriptor = new ParameterDescriptor.Builder().name("xyz").build();
@@ -99,7 +99,7 @@ public class TestStandardParameterContext {
     @Test
     public void testUpdateDescription() {
         final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
+        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null, null, null, null);
 
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").description("abc").build();
 
@@ -159,7 +159,7 @@ public class TestStandardParameterContext {
     public void testChangingSensitivity() {
         // Ensure no changes applied
         final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
+        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null, null, null, null);
 
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(true).build();
         final ParameterDescriptor xyzDescriptor = new ParameterDescriptor.Builder().name("xyz").build();
@@ -197,7 +197,7 @@ public class TestStandardParameterContext {
     @Test
     public void testChangingParameterForRunningProcessor() {
         final HashMapParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
+        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null, null, null, null);
 
         final ProcessorNode procNode = getProcessorNode("abc", referenceManager);
 
@@ -431,7 +431,7 @@ public class TestStandardParameterContext {
     @Test
     public void testChangingParameterForEnabledControllerService() {
         final HashMapParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
+        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null, null, null, null);
 
         final ControllerServiceNode serviceNode = Mockito.mock(ControllerServiceNode.class);
         enableControllerService(serviceNode);
@@ -765,7 +765,7 @@ public class TestStandardParameterContext {
 
     private static ParameterContext createParameterContext(final String id, final ParameterContextManager parameterContextLookup,
                                                            final ParameterReferenceManager referenceManager, final ParameterContext... children) {
-        final ParameterContext parameterContext = new StandardParameterContext(id, id.toUpperCase(), referenceManager, null );
+        final ParameterContext parameterContext = new StandardParameterContext(id, id.toUpperCase(), referenceManager, null, null, null, null);
         parameterContext.setInheritedParameterContexts(Arrays.asList(children));
 
         parameterContextLookup.addParameterContext(parameterContext);

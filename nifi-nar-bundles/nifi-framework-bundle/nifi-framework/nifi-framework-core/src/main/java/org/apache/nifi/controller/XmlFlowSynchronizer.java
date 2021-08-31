@@ -41,6 +41,7 @@ import org.apache.nifi.controller.inheritance.FlowInheritability;
 import org.apache.nifi.controller.inheritance.FlowInheritabilityCheck;
 import org.apache.nifi.controller.inheritance.MissingComponentsCheck;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
@@ -94,6 +95,7 @@ import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
@@ -322,6 +324,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         final Set<String> missingComponents = new HashSet<>();
         flowManager.getAllControllerServices().stream().filter(ComponentNode::isExtensionMissing).forEach(cs -> missingComponents.add(cs.getIdentifier()));
         flowManager.getAllReportingTasks().stream().filter(ComponentNode::isExtensionMissing).forEach(r -> missingComponents.add(r.getIdentifier()));
+        flowManager.getAllParameterProviders().stream().filter(ComponentNode::isExtensionMissing).forEach(r -> missingComponents.add(r.getIdentifier()));
         root.findAllProcessors().stream().filter(AbstractComponentNode::isExtensionMissing).forEach(p -> missingComponents.add(p.getIdentifier()));
 
         logger.trace("Exporting snippets from controller");
@@ -371,7 +374,8 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-    private void updateFlow(final FlowController controller, final Document configuration, final DataFlow existingFlow, final boolean existingFlowEmpty) throws ReportingTaskInstantiationException {
+    private void updateFlow(final FlowController controller, final Document configuration, final DataFlow existingFlow, final boolean existingFlowEmpty)
+            throws ReportingTaskInstantiationException, ParameterProviderInstantiationException {
         final boolean flowAlreadySynchronized = controller.isFlowSynchronized();
         final FlowManager flowManager = controller.getFlowManager();
 
@@ -394,6 +398,23 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
 
         // get the root group XML element
         final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
+
+        // get all the parameter provider elements
+        final Element parameterProvidersElement = DomUtils.getChild(rootElement, "parameterProviders");
+        final List<Element> parameterProviderElements = new ArrayList<>();
+        if (parameterProvidersElement != null) {
+            parameterProviderElements.addAll(DomUtils.getChildElementsByTagName(parameterProvidersElement, "parameterProvider"));
+        }
+
+        // get/create all the parameter provider nodes and DTOs
+        final Map<ParameterProviderNode, ParameterProviderDTO> parameterProviderNodesToDTOs = new HashMap<>();
+        for (final Element taskElement : parameterProviderElements) {
+            final ParameterProviderDTO dto = FlowFromDOMFactory.getParameterProvider(taskElement, encryptor, encodingVersion);
+            final ParameterProviderNode parameterProvider = getOrCreateParameterProvider(controller, dto, flowAlreadySynchronized, existingFlowEmpty);
+            parameterProviderNodesToDTOs.put(parameterProvider, dto);
+
+            parameterProvider.fetchParameters();
+        }
 
         // if this controller isn't initialized or its empty, add the root group, otherwise update
         final ProcessGroup rootGroup;
@@ -483,10 +504,17 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
                         .filter(e -> e.getKey().getControllerServiceDefinition() != null)
                         .map(Map.Entry::getValue)
                         .collect(Collectors.toSet());
+                    // find all the controller service ids referenced by parameter providers
+                    final Set<String> controllerServicesInParameterProviders = parameterProviderNodesToDTOs.keySet().stream()
+                            .flatMap(r -> r.getEffectivePropertyValues().entrySet().stream())
+                            .filter(e -> e.getKey().getControllerServiceDefinition() != null)
+                            .map(Map.Entry::getValue)
+                            .collect(Collectors.toSet());
 
                     // find the controller service nodes for each id referenced by a reporting task
                     final Set<ControllerServiceNode> controllerServicesToClone = controllerServices.keySet().stream()
-                        .filter(cs -> controllerServicesInReportingTasks.contains(cs.getIdentifier()))
+                        .filter(cs -> controllerServicesInReportingTasks.contains(cs.getIdentifier())
+                                || controllerServicesInParameterProviders.contains(cs.getIdentifier()))
                         .collect(Collectors.toSet());
 
                     // clone the controller services and map the original id to the clone
@@ -497,8 +525,9 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
                         controllerServiceMapping.put(controllerService.getIdentifier(), clone);
                     }
 
-                    // update the reporting tasks to reference the cloned controller services
-                    updateReportingTaskControllerServices(reportingTaskNodesToDTOs.keySet(), controllerServiceMapping);
+                    // update the reporting tasks and parameter providers to reference the cloned controller services
+                    updateControllerLevelControllerServices(reportingTaskNodesToDTOs.keySet(), controllerServiceMapping);
+                    updateControllerLevelControllerServices(parameterProviderNodesToDTOs.keySet(), controllerServiceMapping);
 
                     // enable all the cloned controller services
                     ControllerServiceLoader.enableControllerServices(controllerServiceMapping.values(), controller, autoResumeState);
@@ -524,10 +553,11 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             .collect(Collectors.toMap(param -> param.getDescriptor().getName(), Function.identity()));
 
         final List<String> referencedIds = dto.getInheritedParameterContexts().stream()
-            .map(ParameterContextReferenceEntity::getId)
-            .collect(Collectors.toList());
+                .map(ParameterContextReferenceEntity::getId)
+                .collect(Collectors.toList());
 
-        final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters, referencedIds);
+        final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters, referencedIds,
+                ParameterContextDTO.getReferenceId(dto.getSensitiveParameterProviderRef()), ParameterContextDTO.getReferenceId(dto.getNonSensitiveParameterProviderRef()));
         context.setDescription(dto.getDescription());
         return context;
     }
@@ -539,15 +569,15 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             .sensitive(Boolean.TRUE.equals(dto.getSensitive()))
             .build();
 
-        return new Parameter(parameterDescriptor, dto.getValue());
+        return new Parameter(parameterDescriptor, dto.getValue(), null, dto.getProvided());
     }
 
-    private void updateReportingTaskControllerServices(final Set<ReportingTaskNode> reportingTasks, final Map<String, ControllerServiceNode> controllerServiceMapping) {
-        for (ReportingTaskNode reportingTask : reportingTasks) {
-            if (reportingTask.getProperties() != null) {
-                reportingTask.pauseValidationTrigger();
+    private void updateControllerLevelControllerServices(final Set<? extends ComponentNode> componentNodes, final Map<String, ControllerServiceNode> controllerServiceMapping) {
+        for (final ComponentNode componentNode : componentNodes) {
+            if (componentNode.getProperties() != null) {
+                componentNode.pauseValidationTrigger();
                 try {
-                    final Set<Map.Entry<PropertyDescriptor, String>> propertyDescriptors = reportingTask.getEffectivePropertyValues().entrySet().stream()
+                    final Set<Map.Entry<PropertyDescriptor, String>> propertyDescriptors = componentNode.getEffectivePropertyValues().entrySet().stream()
                             .filter(e -> e.getKey().getControllerServiceDefinition() != null)
                             .filter(e -> controllerServiceMapping.containsKey(e.getValue()))
                             .collect(Collectors.toSet());
@@ -560,9 +590,9 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
                         controllerServiceProps.put(propertyDescriptor.getName(), clone.getIdentifier());
                     }
 
-                    reportingTask.setProperties(controllerServiceProps);
+                    componentNode.setProperties(controllerServiceProps);
                 } finally {
-                    reportingTask.resumeValidationTrigger();
+                    componentNode.resumeValidationTrigger();
                 }
             }
         }
@@ -626,6 +656,14 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         if (reportingTasksElement != null) {
             final List<Element> taskElements = DomUtils.getChildElementsByTagName(reportingTasksElement, "reportingTask");
             if (!taskElements.isEmpty()) {
+                return false;
+            }
+        }
+
+        final Element parameterProvidersElement = DomUtils.getChild(rootElement, "parameterProviders");
+        if (parameterProvidersElement != null) {
+            final List<Element> providerElements = DomUtils.getChildElementsByTagName(parameterProvidersElement, "parameterProvider");
+            if (!providerElements.isEmpty()) {
                 return false;
             }
         }
@@ -701,6 +739,35 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         return baos.toByteArray();
     }
 
+    private ParameterProviderNode getOrCreateParameterProvider(final FlowController controller, final ParameterProviderDTO dto,
+                                                               final boolean controllerInitialized, final boolean existingFlowEmpty)
+            throws ParameterProviderInstantiationException {
+        // create a new parameter provider node when the controller is not initialized or the flow is empty
+        if (!controllerInitialized || existingFlowEmpty) {
+            BundleCoordinate coordinate;
+            try {
+                coordinate = BundleUtils.getCompatibleBundle(extensionManager, dto.getType(), dto.getBundle());
+            } catch (final IllegalStateException e) {
+                final BundleDTO bundleDTO = dto.getBundle();
+                if (bundleDTO == null) {
+                    coordinate = BundleCoordinate.UNKNOWN_COORDINATE;
+                } else {
+                    coordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
+                }
+            }
+
+            final ParameterProviderNode parameterProvider = controller.createParameterProvider(dto.getType(), dto.getId(), coordinate, false);
+            parameterProvider.setName(dto.getName());
+            parameterProvider.setComments(dto.getComments());
+
+            parameterProvider.setAnnotationData(dto.getAnnotationData());
+            parameterProvider.setProperties(dto.getProperties());
+            return parameterProvider;
+        } else {
+            // otherwise, return the existing parameter provider node
+            return controller.getParameterProviderNode(dto.getId());
+        }
+    }
 
     private ReportingTaskNode getOrCreateReportingTask(final FlowController controller, final ReportingTaskDTO dto, final boolean controllerInitialized, final boolean existingFlowEmpty)
             throws ReportingTaskInstantiationException {

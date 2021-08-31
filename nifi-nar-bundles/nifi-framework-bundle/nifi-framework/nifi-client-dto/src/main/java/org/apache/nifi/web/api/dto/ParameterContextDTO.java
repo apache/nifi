@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -33,6 +34,8 @@ public class ParameterContextDTO {
     private Set<ParameterEntity> parameters;
     private Set<ProcessGroupEntity> boundProcessGroups;
     private List<ParameterContextReferenceEntity> inheritedParameterContexts;
+    private ComponentReferenceEntity sensitiveParameterProviderRef;
+    private ComponentReferenceEntity nonSensitiveParameterProviderRef;
 
     public void setId(String id) {
         this.identifier = id;
@@ -88,8 +91,42 @@ public class ParameterContextDTO {
         return boundProcessGroups;
     }
 
+    @ApiModelProperty("An optional Parameter Provider for sensitive Parameters")
+    public ComponentReferenceEntity getSensitiveParameterProviderRef() {
+        return sensitiveParameterProviderRef;
+    }
+
+    public void setSensitiveParameterProviderRef(final ComponentReferenceEntity sensitiveParameterProviderRef) {
+        this.sensitiveParameterProviderRef = sensitiveParameterProviderRef;
+    }
+
+    @ApiModelProperty("An optional Parameter Provider for non-sensitive Parameters")
+    public ComponentReferenceEntity getNonSensitiveParameterProviderRef() {
+        return nonSensitiveParameterProviderRef;
+    }
+
+    public void setNonSensitiveParameterProviderRef(final ComponentReferenceEntity nonSensitiveParameterProviderRef) {
+        this.nonSensitiveParameterProviderRef = nonSensitiveParameterProviderRef;
+    }
+
     @Override
     public String toString() {
         return "ParameterContext[id=" + identifier + ", name=" + name + ", parameters=" + parameters + "]";
+    }
+
+    /**
+     * A utility method for safely returning the identifier of a ComponentReferenceEntity.
+     * @param referenceEntity A ComponentReferenceEntity
+     * @return The <code>referenceEntity.getComponent().getId()</code> (may be null)
+     */
+    public static String getReferenceId(final ComponentReferenceEntity referenceEntity) {
+        if (referenceEntity == null) {
+            return null;
+        }
+        final ComponentReferenceDTO dto = referenceEntity.getComponent();
+        if (dto == null) {
+            return null;
+        }
+        return dto.getId();
     }
 }

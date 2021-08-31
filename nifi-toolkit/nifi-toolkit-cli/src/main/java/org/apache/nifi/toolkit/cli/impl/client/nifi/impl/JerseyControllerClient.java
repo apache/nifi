@@ -23,6 +23,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
@@ -221,6 +222,21 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
             return getRequestBuilder(target).post(
                     Entity.entity(reportingTask, MediaType.APPLICATION_JSON),
                     ReportingTaskEntity.class
+            );
+        });
+    }
+
+    @Override
+    public ParameterProviderEntity createParamProvider(final ParameterProviderEntity paramProvider) throws NiFiClientException, IOException {
+        if (paramProvider == null) {
+            throw new IllegalArgumentException("Parameter provider cannot be null or blank");
+        }
+
+        return executeAction("Error creating parameter provider", () -> {
+            final WebTarget target = controllerTarget.path("parameter-providers");
+            return getRequestBuilder(target).post(
+                    Entity.entity(paramProvider, MediaType.APPLICATION_JSON),
+                    ParameterProviderEntity.class
             );
         });
     }
