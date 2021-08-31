@@ -41,8 +41,7 @@ import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -62,8 +61,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteProvenanceReportingTask {
@@ -690,7 +690,7 @@ public class TestSiteToSiteProvenanceReportingTask {
                     when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
                 } catch (final Exception e) {
                     e.printStackTrace();
-                    Assert.fail(e.toString());
+                    fail(e.toString());
                 }
                 siteToSiteClient = client;
             }

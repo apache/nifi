@@ -40,8 +40,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
@@ -52,9 +52,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class TestSiteToSiteReportingRecordSink {
 
@@ -87,16 +84,16 @@ public class TestSiteToSiteReportingRecordSink {
 
         task.sendData(recordSet, new HashMap<>(), true);
 
-        assertEquals(1, task.dataSent.size());
+        Assertions.assertEquals(1, task.dataSent.size());
         String[] lines = new String(task.dataSent.get(0)).split("\n");
-        assertNotNull(lines);
-        assertEquals(2, lines.length);
+        Assertions.assertNotNull(lines);
+        Assertions.assertEquals(2, lines.length);
         String[] data = new String(lines[0]).split(",");
-        assertEquals("15", data[0]); // In the MockRecordWriter all values are strings
-        assertEquals("Hello", data[1]);
+        Assertions.assertEquals("15", data[0]); // In the MockRecordWriter all values are strings
+        Assertions.assertEquals("Hello", data[1]);
         data = new String(lines[1]).split(",");
-        assertEquals("6", data[0]);
-        assertEquals("World!", data[1]);
+        Assertions.assertEquals("6", data[0]);
+        Assertions.assertEquals("World!", data[1]);
     }
 
     @Test
@@ -114,12 +111,12 @@ public class TestSiteToSiteReportingRecordSink {
         task.sendData(RecordSet.of(recordSchema), new HashMap<>(), true);
 
         // One entry of an empty byte array
-        assertEquals(1, task.dataSent.size());
-        assertEquals(0, task.dataSent.get(0).length);
+        Assertions.assertEquals(1, task.dataSent.size());
+        Assertions.assertEquals(0, task.dataSent.get(0).length);
 
         task.sendData(RecordSet.of(recordSchema), new HashMap<>(), false);
         // Still only one entry even after two sends (toggled sendZeroResults)
-        assertEquals(1, task.dataSent.size());
+        Assertions.assertEquals(1, task.dataSent.size());
     }
 
     public MockSiteToSiteReportingRecordSink initTask(Map<PropertyDescriptor, String> customProperties) throws InitializationException, IOException {
@@ -164,7 +161,7 @@ public class TestSiteToSiteReportingRecordSink {
                 Mockito.when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
             } catch (final Exception e) {
                 e.printStackTrace();
-                Assert.fail(e.toString());
+                Assertions.fail(e.toString());
             }
 
             return client;

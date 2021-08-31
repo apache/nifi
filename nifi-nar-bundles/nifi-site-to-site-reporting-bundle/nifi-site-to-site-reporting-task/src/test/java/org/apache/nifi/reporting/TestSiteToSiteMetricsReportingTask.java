@@ -35,11 +35,11 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -60,8 +60,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteMetricsReportingTask {
@@ -69,12 +67,12 @@ public class TestSiteToSiteMetricsReportingTask {
     private ReportingContext context;
     private ProcessGroupStatus status;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpSuite() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+        Assumptions.assumeTrue(!SystemUtils.IS_OS_WINDOWS, "Test only runs on *nix");
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         status = new ProcessGroupStatus();
         status.setId("1234");
@@ -179,8 +177,8 @@ public class TestSiteToSiteMetricsReportingTask {
 
         // should be invalid because both ambari format and record writer are set
         Collection<ValidationResult> list = task.validate(validationContext);
-        Assert.assertEquals(1, list.size());
-        Assert.assertEquals(SiteToSiteMetricsReportingTask.RECORD_WRITER.getDisplayName(), list.iterator().next().getInput());
+        Assertions.assertEquals(1, list.size());
+        Assertions.assertEquals(SiteToSiteMetricsReportingTask.RECORD_WRITER.getDisplayName(), list.iterator().next().getInput());
     }
 
     @Test
@@ -220,8 +218,8 @@ public class TestSiteToSiteMetricsReportingTask {
 
         // should be invalid because both ambari format and record writer are set
         Collection<ValidationResult> list = task.validate(validationContext);
-        Assert.assertEquals(1, list.size());
-        Assert.assertEquals(SiteToSiteMetricsReportingTask.RECORD_WRITER.getDisplayName(), list.iterator().next().getInput());
+        Assertions.assertEquals(1, list.size());
+        Assertions.assertEquals(SiteToSiteMetricsReportingTask.RECORD_WRITER.getDisplayName(), list.iterator().next().getInput());
     }
 
     @Test
@@ -233,22 +231,22 @@ public class TestSiteToSiteMetricsReportingTask {
         MockSiteToSiteMetricsReportingTask task = initTask(properties);
         task.onTrigger(context);
 
-        assertEquals(1, task.dataSent.size());
+        Assertions.assertEquals(1, task.dataSent.size());
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonArray array = jsonReader.readObject().getJsonArray("metrics");
         for(int i = 0; i < array.size(); i++) {
             JsonObject object = array.getJsonObject(i);
-            assertEquals("nifi", object.getString("appid"));
-            assertEquals("1234", object.getString("instanceid"));
+            Assertions.assertEquals("nifi", object.getString("appid"));
+            Assertions.assertEquals("1234", object.getString("instanceid"));
             if(object.getString("metricname").equals("FlowFilesQueued")) {
                 for(Entry<String, JsonValue> kv : object.getJsonObject("metrics").entrySet()) {
-                    assertEquals("\"100\"", kv.getValue().toString());
+                    Assertions.assertEquals("\"100\"", kv.getValue().toString());
                 }
                 return;
             }
         }
-        fail();
+        Assertions.fail();
     }
 
     @Test
@@ -261,22 +259,22 @@ public class TestSiteToSiteMetricsReportingTask {
         MockSiteToSiteMetricsReportingTask task = initTask(properties);
         task.onTrigger(context);
 
-        assertEquals(1, task.dataSent.size());
+        Assertions.assertEquals(1, task.dataSent.size());
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonArray array = jsonReader.readObject().getJsonArray("metrics");
         for(int i = 0; i < array.size(); i++) {
             JsonObject object = array.getJsonObject(i);
-            assertEquals("nifi", object.getString("appid"));
-            assertEquals("1234", object.getString("instanceid"));
+            Assertions.assertEquals("nifi", object.getString("appid"));
+            Assertions.assertEquals("1234", object.getString("instanceid"));
             if(object.getString("metricname").equals("BytesReadLast5Minutes")) {
                 for(Entry<String, JsonValue> kv : object.getJsonObject("metrics").entrySet()) {
-                    assertEquals("\"null\"", kv.getValue().toString());
+                    Assertions.assertEquals("\"null\"", kv.getValue().toString());
                 }
                 return;
             }
         }
-        fail();
+        Assertions.fail();
     }
 
     @Test
@@ -288,11 +286,11 @@ public class TestSiteToSiteMetricsReportingTask {
 
         task.onTrigger(context);
 
-        assertEquals(1, task.dataSent.size());
+        Assertions.assertEquals(1, task.dataSent.size());
         String[] data = new String(task.dataSent.get(0)).split(",");
-        assertEquals("\"nifi\"", data[0]);
-        assertEquals("\"1234\"", data[1]);
-        assertEquals("\"100\"", data[10]); // FlowFilesQueued
+        Assertions.assertEquals("\"nifi\"", data[0]);
+        Assertions.assertEquals("\"1234\"", data[1]);
+        Assertions.assertEquals("\"100\"", data[10]); // FlowFilesQueued
     }
 
     private static final class MockSiteToSiteMetricsReportingTask extends SiteToSiteMetricsReportingTask {
@@ -319,7 +317,7 @@ public class TestSiteToSiteMetricsReportingTask {
                     when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
                 } catch (final Exception e) {
                     e.printStackTrace();
-                    Assert.fail(e.toString());
+                    Assertions.fail(e.toString());
                 }
                 siteToSiteClient = client;
             }
