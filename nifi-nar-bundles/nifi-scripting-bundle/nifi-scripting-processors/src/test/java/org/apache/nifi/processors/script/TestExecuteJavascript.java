@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-
 public class TestExecuteJavascript extends BaseScriptTest {
 
     @BeforeEach
@@ -37,10 +36,9 @@ public class TestExecuteJavascript extends BaseScriptTest {
     /**
      * Tests a script that has provides the body of an onTrigger() function.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
+    public void testReadFlowFileContentAndStoreInFlowFileAttribute() {
         final TestRunner runner = TestRunners.newTestRunner(new ExecuteScript());
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");

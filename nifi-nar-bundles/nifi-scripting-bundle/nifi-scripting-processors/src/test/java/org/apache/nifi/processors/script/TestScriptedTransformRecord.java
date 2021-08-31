@@ -39,10 +39,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestScriptedTransformRecord {
 
@@ -55,7 +55,7 @@ public class TestScriptedTransformRecord {
         testPassThrough("Groovy", "record");
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     public void testSimpleJythonScript() throws InitializationException {
         testPassThrough("python", "_ = record");
     }
@@ -128,7 +128,7 @@ public class TestScriptedTransformRecord {
     }
 
 
-    @org.junit.jupiter.api.Test
+    @Test
     public void testZeroRecordInput() throws InitializationException {
         final RecordSchema schema = createSimpleNumberSchema();
         setup(schema);
@@ -173,7 +173,7 @@ public class TestScriptedTransformRecord {
 
 
 
-    @org.junit.jupiter.api.Test
+    @Test
     public void testCollectionOfRecords() throws InitializationException {
         final RecordSchema schema = createSimpleNumberSchema();
         setup(schema);
@@ -325,7 +325,7 @@ public class TestScriptedTransformRecord {
         assertEquals(4, recordsWritten.get(1).getAsInt("num").intValue());
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     public void testScriptReturnsWrongObject() throws InitializationException {
         final RecordSchema schema = createSimpleNumberSchema();
         setup(schema);
@@ -375,7 +375,7 @@ public class TestScriptedTransformRecord {
         assertSame(inputFlowFile, out);
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     public void testScriptWithFunctions() throws InitializationException {
         final List<RecordField> bookFields = new ArrayList<>();
         bookFields.add(new RecordField("author", RecordFieldType.STRING.getDataType()));

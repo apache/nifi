@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-
 public class TestExecuteLua extends BaseScriptTest {
 
     @BeforeEach
@@ -34,14 +33,12 @@ public class TestExecuteLua extends BaseScriptTest {
         super.setupExecuteScript();
     }
 
-
     /**
      * Tests a script that has provides the body of an onTrigger() function.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
+    public void testReadFlowFileContentAndStoreInFlowFileAttribute() {
         final TestRunner runner = TestRunners.newTestRunner(new ExecuteScript());
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "lua");
@@ -56,5 +53,4 @@ public class TestExecuteLua extends BaseScriptTest {
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS);
         result.get(0).assertAttributeEquals("from-content", "test content");
     }
-
 }

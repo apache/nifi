@@ -19,7 +19,6 @@ package org.apache.nifi.processors.script;
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
@@ -79,7 +78,6 @@ public class TestExecuteJython extends BaseScriptTest {
     }
 
     @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
-//    @Disabled("This is more of an integration test, can be run before and after changes to ExecuteScript to measure performance improvements")
     @Test
     public void testPerformance() {
         runner.setValidateExpressionUsage(false);

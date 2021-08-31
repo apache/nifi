@@ -20,32 +20,28 @@ import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.StopWatch
 import org.apache.nifi.util.TestRunners
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.TimeUnit
 
-import static org.junit.Assert.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertNotNull
 
-@RunWith(JUnit4.class)
 class ExecuteScriptGroovyTest extends BaseScriptTest {
     private static final Logger logger = LoggerFactory.getLogger(ExecuteScriptGroovyTest.class)
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
     }
 
-    @Before
+    @BeforeEach
     void setUp() throws Exception {
         super.setupExecuteScript()
 
@@ -53,10 +49,6 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy")
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testAddTimeAndThreadAttribute.groovy")
         runner.setProperty(ScriptingComponentUtils.MODULES, TEST_RESOURCE_LOCATION + "groovy")
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     private void setupPooledExecuteScript(int poolSize = 2) {
@@ -150,7 +142,10 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         }
     }
 
-    @Ignore("This test fails intermittently when the serial execution happens faster than pooled")
+    @EnabledIfSystemProperty(
+            named = "nifi.test.unstable",
+            matches = "true",
+            disabledReason = "This test fails intermittently when the serial execution happens faster than pooled")
     @Test
     void testPooledExecutionShouldBeFaster() throws Exception {
         // Arrange
