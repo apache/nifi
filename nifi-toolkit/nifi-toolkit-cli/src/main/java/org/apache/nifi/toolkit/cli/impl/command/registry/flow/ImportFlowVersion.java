@@ -101,6 +101,7 @@ public class ImportFlowVersion extends AbstractNiFiRegistryCommand<StringResult>
         snapshot.setFlowContents(deserializedSnapshot.getFlowContents());
         snapshot.setExternalControllerServices(deserializedSnapshot.getExternalControllerServices());
         snapshot.setParameterContexts(deserializedSnapshot.getParameterContexts());
+        snapshot.setParameterProviders(deserializedSnapshot.getParameterProviders());
         snapshot.setFlowEncodingVersion(deserializedSnapshot.getFlowEncodingVersion());
 
         final VersionedFlowSnapshot createdSnapshot = snapshotClient.create(snapshot);

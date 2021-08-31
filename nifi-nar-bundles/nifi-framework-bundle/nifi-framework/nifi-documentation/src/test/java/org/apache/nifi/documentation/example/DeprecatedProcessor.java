@@ -53,7 +53,7 @@ import org.apache.nifi.processor.util.StandardValidators;
     @WritesAttribute(attribute = "first", description = "this is the first attribute i write"),
     @WritesAttribute(attribute = "second")})
 @ReadsAttribute(attribute = "incoming", description = "this specifies the format of the thing")
-@SeeAlso(value = {FullyDocumentedControllerService.class, FullyDocumentedReportingTask.class}, classNames = {"org.apache.nifi.processor.ExampleProcessor"})
+@SeeAlso(value = {FullyDocumentedControllerService.class, FullyDocumentedReportingTask.class, FullyDocumentedParameterProvider.class}, classNames = {"org.apache.nifi.processor.ExampleProcessor"})
 @DynamicProperty(name = "Relationship Name", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
                     value = "some XPath", description = "Routes FlowFiles to relationships based on XPath")
 @DynamicRelationship(name = "name from dynamic property", description = "all files that match the properties XPath")

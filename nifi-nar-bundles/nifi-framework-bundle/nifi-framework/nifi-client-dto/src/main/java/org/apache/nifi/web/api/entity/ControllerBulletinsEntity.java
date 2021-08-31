@@ -31,6 +31,7 @@ public class ControllerBulletinsEntity extends Entity {
     private List<BulletinEntity> bulletins;
     private List<BulletinEntity> controllerServiceBulletins;
     private List<BulletinEntity> reportingTaskBulletins;
+    private List<BulletinEntity> parameterProviderBulletins;
 
     /**
      * @return System bulletins to be reported to the user
@@ -68,12 +69,25 @@ public class ControllerBulletinsEntity extends Entity {
         this.reportingTaskBulletins = reportingTaskBulletins;
     }
 
+    /**
+     * @return Parameter provider bulletins to be reported to the user
+     */
+    @ApiModelProperty("Parameter provider bulletins to be reported to the user.")
+    public List<BulletinEntity> getParameterProviderBulletins() {
+        return parameterProviderBulletins;
+    }
+
+    public void setParameterProviderBulletins(List<BulletinEntity> parameterProviderBulletins) {
+        this.parameterProviderBulletins = parameterProviderBulletins;
+    }
+
     @Override
     public ControllerBulletinsEntity clone() {
         final ControllerBulletinsEntity other = new ControllerBulletinsEntity();
         other.setBulletins(getBulletins() == null ? null : new ArrayList<>(getBulletins()));
         other.setControllerServiceBulletins(getControllerServiceBulletins() == null ? null : new ArrayList<>(getControllerServiceBulletins()));
         other.setReportingTaskBulletins(getReportingTaskBulletins() == null ? null : new ArrayList<>(getReportingTaskBulletins()));
+        other.setParameterProviderBulletins(getParameterProviderBulletins() == null ? null : new ArrayList<>(getParameterProviderBulletins()));
         return other;
     }
 }

@@ -62,9 +62,13 @@ high-level description of the most common extension points:
       monitoring information, and internal NiFi state to be published to external
       endpoints, such as log files, e-mail, and remote web services.
 
+- ParameterProvider
+    * The ParameterProvider interface allows Parameters to be provided by external sources.  Provided parameters
+      are still stored in Parameter Contexts, but this mechanism allows them to be provided and managed externally.
+
 - ControllerService
     * A ControllerService provides shared state and functionality across Processors, other ControllerServices,
-      and ReportingTasks within a single JVM. An example use case may include loading a very
+      Parameter Providers, and ReportingTasks within a single JVM. An example use case may include loading a very
       large dataset into memory. By performing this work in a ControllerService, the data
       can be loaded once and be exposed to all Processors via this service, rather than requiring
       many different Processors to load the dataset themselves.
@@ -177,7 +181,7 @@ Processors to run without consuming resources unnecessarily.
 [[property_descriptor]]
 ==== PropertyDescriptor
 PropertyDescriptor defines a property that is to be used by a
-Processor, ReportingTask, or ControllerService.
+Processor, ReportingTask, ParameterProvider, or ControllerService.
 The definition of a property includes its name, a description of the
 property, an optional default value,
 validation logic, and an indicator as to whether or not the property
@@ -511,7 +515,7 @@ Annotations may be applied to Java methods in a NiFi component to
 indicate to
 the framework when the methods should be called. For the discussion of
 Component Lifecycle, we will define a NiFi component as a
-Processor, ControllerServices, or ReportingTask.
+Processor, ControllerServices, ParameterProviders, or ReportingTask.
 
 ==== @OnAdded
 
@@ -546,9 +550,9 @@ without throwing anything.
 Methods using this annotation must take either 0 arguments or a single argument
 of type `org.apache.nifi.controller.ConfigurationContext`.
 
-Note that this annotation will be ignored if applied to a ReportingTask or
-Processor. For a Controller Service, enabling and disabling are considered
-lifecycle events, as the action makes them usable or unusable by other
+Note that this annotation will be ignored if applied to a ReportingTask,
+Parameter Provider, or Processor. For a Controller Service, enabling and disabling
+are considered lifecycle events, as the action makes them usable or unusable by other
 components. However, for a Processor and a Reporting Task, these are not
 lifecycle events but rather a mechanism to allow a component to be excluded
 when starting or stopping a group of components.
@@ -910,7 +914,7 @@ Often Processors and ControllerServices are related to one another.  Sometimes i
 Sometimes a Processor uses a ControllerService like `InvokeHTTP` and `StandardSSLContextService`.  Sometimes one ControllerService uses another
 like `DistributedMapCacheClientService` and `DistributedMapCacheServer`.  Developers of these extension points may relate these
 different components using the `SeeAlso` tag.  This annotation links these components in the documentation.
-`SeeAlso` can be applied to Processors, ControllerServices and ReportingTasks.  An example of how to do this is listed below:
+`SeeAlso` can be applied to Processors, ControllerServices, ParameterProviders, and ReportingTasks.  An example of how to do this is listed below:
 
 [source, java]
 ----
@@ -939,7 +943,7 @@ to provide a rich explanation of what this Processor is doing, what kind of
 data it expects and produces, and what FlowFile attributes it expects and produces.
 Because this documentation is in an HTML format, you may include images and tables
 to best describe this component.  The same methods can be used to provide advanced
-documentation for Processors, ControllerServices and ReportingTasks.
+documentation for Processors, ControllerServices, ParameterProviders, and ReportingTasks.
 
 [[provenance_events]]
 == Provenance Events
@@ -1928,14 +1932,15 @@ Controller Service's interface. See <<nars>> for more information.
 === Interacting with a ControllerService
 
 ControllerServices may be obtained by a Processor, another
-ControllerService, or a ReportingTask
+ControllerService, a ParameterProvider, or a ReportingTask
 by means of the ControllerServiceLookup or by using the
 `identifiesControllerService` method of the
 PropertyDescriptor's Builder class. The ControllerServiceLookup can be
 obtained by a Processor from the
 ProcessorInitializationContext that is passed to the `initialize`
 method. Likewise, it is obtained by
-a ControllerService from the ControllerServiceInitializationContext
+a ControllerService from the ControllerServiceInitializationContext,
+a ParameterProvider from the ParameterProviderInitializationContext,
 and by a ReportingTask via the
 ReportingConfiguration object passed to the `initialize` method.
 
@@ -2005,7 +2010,7 @@ ReportingTask interface exposes methods for
 configuration, validation, and initialization. These methods are all
 identical to those of the
 Processor and ControllerService interfaces except that the
-`initialize` method is passed a `ReportingConfiguration`
+`initialize` method is passed a `ReportingInitializationContext`
 object, as opposed to the initialization objects received by the other
 Components. The ReportingTask also has
 an `onTrigger` method that is invoked by the framework to trigger the
@@ -2048,6 +2053,44 @@ event describes. This provides a great deal of information to
 ReportingTasks, allowing reports to be generated
 in many different ways to expose metrics and monitoring capabilities
 needed for any number of operational concerns.
+
+== Parameter Providers
+
+Although Parameter Contexts cannot be extended, the `ParameterProvider`
+interface allows an extension point for providing parameters to
+Parameter Contexts.  Parameter Providers can fetch groups of parameters
+that can be mapped to new Parameter Contexts, which can then be kept
+up to date by re-fetching the parameters.
+
+This extensibility allows parameters to be both initially provided and
+managed external to NiFi.
+
+
+=== Developing a Parameter Provider
+
+The ParameterProvider interface exposes methods for
+configuration, validation, and initialization. These methods are all
+identical to those of the Processor and ControllerService interfaces except that the
+`initialize` method is passed a `ParameterProviderInitializationContext`
+object, as opposed to the initialization objects received by the other
+Components. The ParameterProvider also has a `fetchParameters` method that is invoked
+by the framework to fetch the parameters from its source.
+
+Fetched parameters are returned in `ParameterGroup` s, each of which has
+a group name and a list of parameters.  Parameter Groups may be mapped by the user
+to Parameter Contexts.  This allows a single `ParameterProvider` instance to provide different
+parameters to multiple Parameter Contexts based on their mappings.
+
+Within the `fetchParameters` method, the ParameterProvider is given access to a
+`ConfigurationContext`, from which configuration
+and information about the NiFi instance can be obtained. The
+ControllerServiceLookup that is accessible via the Context provides
+access to ControllerServices that have been
+configured. However, this method of obtaining Controller Services is
+not the preferred method. Rather, the
+preferred method for obtaining a Controller Service is to reference
+the Controller Service in a PropertyDescriptor,
+as is discussed in the <<interacting-with-controller-service>> section.
 
 == UI Extensions
 

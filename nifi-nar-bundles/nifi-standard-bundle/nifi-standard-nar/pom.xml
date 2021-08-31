@@ -43,6 +43,10 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-parameter-providers</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-content-viewer</artifactId>
             <type>war</type>
         </dependency>

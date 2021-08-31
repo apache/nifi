@@ -32,6 +32,7 @@ public enum Component {
     ControllerService,
     ReportingTask,
     ParameterContext,
+    ParameterProvider,
     AccessPolicy,
     User,
     UserGroup;

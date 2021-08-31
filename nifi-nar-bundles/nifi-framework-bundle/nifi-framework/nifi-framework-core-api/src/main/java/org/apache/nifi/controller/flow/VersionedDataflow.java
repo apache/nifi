@@ -18,6 +18,7 @@
 package org.apache.nifi.controller.flow;
 
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.flow.VersionedParameterContext;
@@ -30,6 +31,7 @@ public class VersionedDataflow {
     private int maxTimerDrivenThreadCount;
     private List<VersionedRegistry> registries;
     private List<VersionedParameterContext> parameterContexts;
+    private List<VersionedParameterProvider> parameterProviders;
     private List<VersionedControllerService> controllerServices;
     private List<VersionedReportingTask> reportingTasks;
     private Set<VersionedTemplate> templates;
@@ -81,6 +83,14 @@ public class VersionedDataflow {
 
     public void setReportingTasks(final List<VersionedReportingTask> reportingTasks) {
         this.reportingTasks = reportingTasks;
+    }
+
+    public List<VersionedParameterProvider> getParameterProviders() {
+        return parameterProviders;
+    }
+
+    public void setParameterProviders(final List<VersionedParameterProvider> parameterProviders) {
+        this.parameterProviders = parameterProviders;
     }
 
     public VersionedProcessGroup getRootGroup() {

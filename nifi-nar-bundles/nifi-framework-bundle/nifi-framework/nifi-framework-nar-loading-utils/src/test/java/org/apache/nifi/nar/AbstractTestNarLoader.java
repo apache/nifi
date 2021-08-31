@@ -18,6 +18,7 @@ package org.apache.nifi.nar;
 
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
@@ -79,6 +80,7 @@ public abstract class AbstractTestNarLoader {
         assertEquals(0, extensionManager.getExtensions(Processor.class).size());
         assertEquals(0, extensionManager.getExtensions(ControllerService.class).size());
         assertEquals(0, extensionManager.getExtensions(ReportingTask.class).size());
+        assertEquals(0, extensionManager.getExtensions(ParameterProvider.class).size());
 
         // Create class we are testing
         narLoader = new StandardNarLoader(

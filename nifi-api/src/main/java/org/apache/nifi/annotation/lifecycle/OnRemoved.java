@@ -28,7 +28,8 @@ import org.apache.nifi.processor.ProcessContext;
 /**
  * <p>
  * Marker annotation a {@link org.apache.nifi.processor.Processor Processor},
- * {@link org.apache.nifi.controller.ControllerService ControllerService}, or
+ * {@link org.apache.nifi.controller.ControllerService ControllerService},
+ * {@link org.apache.nifi.parameter.ParameterProvider ParameterProvider}, or
  * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} implementation
  * can use to indicate a method should be called whenever the component is
  * removed from the flow. This method will be called once for the entire life of
@@ -40,7 +41,7 @@ import org.apache.nifi.processor.ProcessContext;
  * <p>
  * Methods with this annotation are permitted to take no arguments or to take a
  * single argument. If using a single argument, that argument must be of type
- * {@link ConfigurationContext} if the component is a ReportingTask or a
+ * {@link ConfigurationContext} if the component is a ReportingTask, a ParameterProvider, or a
  * ControllerService. If the component is a Processor, then the argument must be
  * of type {@link ProcessContext}.
  * </p>

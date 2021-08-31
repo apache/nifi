@@ -258,8 +258,8 @@ public class ParameterContextAuditor extends NiFiAuditor {
     /**
      * Extracts the values for the configured fields from the specified ParameterContext.
      */
-    private Map<String, String> extractConfiguredParameterContextValues(ParameterContext parameterContext, ParameterContextDTO parameterContextDTO) {
-        Map<String, String> values = new HashMap<>();
+    private Map<String, String> extractConfiguredParameterContextValues(final ParameterContext parameterContext, final ParameterContextDTO parameterContextDTO) {
+        final Map<String, String> values = new HashMap<>();
 
         if (parameterContextDTO.getDescription() != null) {
             values.put("Name", parameterContext.getName());
@@ -281,6 +281,9 @@ public class ParameterContextAuditor extends NiFiAuditor {
         if (!parameterContext.getInheritedParameterContexts().isEmpty()) {
             values.put("Inherited Parameter Contexts", parameterContext.getInheritedParameterContexts()
                     .stream().map(pc -> pc.getIdentifier()).collect(Collectors.joining(", ")));
+        }
+        if (parameterContext.getParameterProvider() != null) {
+            values.put("Sensitive Parameter Provider", parameterContext.getParameterProvider().getIdentifier());
         }
 
         return values;

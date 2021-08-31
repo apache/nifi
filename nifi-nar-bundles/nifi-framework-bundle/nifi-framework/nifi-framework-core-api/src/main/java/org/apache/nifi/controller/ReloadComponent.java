@@ -19,6 +19,7 @@ package org.apache.nifi.controller;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 
@@ -65,5 +66,17 @@ public interface ReloadComponent {
      */
     void reload(ReportingTaskNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls)
             throws ReportingTaskInstantiationException;
+
+    /**
+     * Changes the underlying ParameterProvider held by the node to an instance of the new type.
+     *
+     * @param existingNode the ParameterProvider being updated
+     * @param newType the fully qualified class name of the new type
+     * @param bundleCoordinate the bundle coordinate of the new type
+     * @param additionalUrls additional URLs to be added to the instance class loader of the new component
+     * @throws ParameterProviderInstantiationException if unable to create an instance of the new type
+     */
+    void reload(ParameterProviderNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls)
+            throws ParameterProviderInstantiationException;
 
 }

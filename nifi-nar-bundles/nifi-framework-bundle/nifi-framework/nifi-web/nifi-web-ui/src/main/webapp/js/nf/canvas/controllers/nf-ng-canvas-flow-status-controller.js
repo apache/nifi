@@ -222,6 +222,14 @@
                                 });
                             }
 
+                            // show all parameter providers
+                            if (!nfCommon.isEmpty(searchResults.parameterProviderNodeResults)) {
+                                ul.append('<li class="search-header"><div class="search-result-icon icon"></div>Parameter Providers</li>');
+                                $.each(searchResults.parameterProviderNodeResults, function (i, parameterProviderMatch) {
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, parameterProviderMatch, { type: 'parameter provider' }));
+                                });
+                            }
+
                             // show all parameter contexts and parameters
                             if (!nfCommon.isEmpty(searchResults.parameterContextResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon"></div>Parameter Contexts</li>');

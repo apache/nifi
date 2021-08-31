@@ -38,6 +38,7 @@ public class SearchResultsDTO {
     private List<ComponentSearchResultDTO> labelResults = new ArrayList<>();
     private List<ComponentSearchResultDTO> controllerServiceNodeResults = new ArrayList<>();
     private List<ComponentSearchResultDTO> parameterContextResults = new ArrayList<>();
+    private List<ComponentSearchResultDTO> parameterProviderNodeResults = new ArrayList<>();
     private List<ComponentSearchResultDTO> parameterResults = new ArrayList<>();
 
     /**
@@ -164,6 +165,20 @@ public class SearchResultsDTO {
 
     public void setControllerServiceNodeResults(List<ComponentSearchResultDTO> controllerServiceNodeResults) {
         this.controllerServiceNodeResults = controllerServiceNodeResults;
+    }
+
+    /**
+     * @return the parameter provider nodes that matched the search
+     */
+    @ApiModelProperty(
+        value = "The parameter provider nodes that matched the search"
+    )
+    public List<ComponentSearchResultDTO> getParameterProviderNodeResults() {
+        return parameterProviderNodeResults;
+    }
+
+    public void setParameterProviderNodeResults(List<ComponentSearchResultDTO> parameterProviderNodeResults) {
+        this.parameterProviderNodeResults = parameterProviderNodeResults;
     }
 
     /**

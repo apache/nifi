@@ -537,14 +537,14 @@ public class StandardStatelessEngine implements StatelessEngine {
     private void overrideParameters(final Map<String, ParameterContext> parameterContextMap, final ParameterValueProvider parameterValueProvider) {
         for (final ParameterContext context : parameterContextMap.values()) {
             final String contextName = context.getName();
-            final Map<ParameterDescriptor, Parameter> parameters = context.getParameters();
+            final Map<ParameterDescriptor, Parameter> parameters = context.getEffectiveParameters();
 
             final Map<String, Parameter> updatedParameters = new HashMap<>();
             for (final Parameter parameter : parameters.values()) {
                 final String parameterName = parameter.getDescriptor().getName();
                 if (parameterValueProvider.isParameterDefined(contextName, parameterName)) {
                     final String providedValue = parameterValueProvider.getParameterValue(contextName, parameterName);
-                    final Parameter updatedParameter = new Parameter(parameter.getDescriptor(), providedValue);
+                    final Parameter updatedParameter = new Parameter(parameter.getDescriptor(), providedValue, parameter.getParameterContextId(), parameter.isProvided());
                     updatedParameters.put(parameterName, updatedParameter);
                 }
             }
@@ -576,7 +576,8 @@ public class StandardStatelessEngine implements StatelessEngine {
                 }
 
                 final Parameter existingParameter = optionalParameter.get();
-                final Parameter updatedParameter = new Parameter(existingParameter.getDescriptor(), parameterDefinition.getValue());
+                final Parameter updatedParameter = new Parameter(existingParameter.getDescriptor(), parameterDefinition.getValue(), existingParameter.getParameterContextId(),
+                        existingParameter.isProvided());
                 parameters.put(parameterName, updatedParameter);
             }
         }

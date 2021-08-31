@@ -56,6 +56,7 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterContextManager;
@@ -93,6 +94,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.AdditionalMatchers.or;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyCollection;
@@ -101,6 +103,7 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
@@ -150,7 +153,11 @@ public class StandardVersionedComponentSynchronizerTest {
         doAnswer(invocation -> {
             final String id = invocation.getArgument(0, String.class);
             final String name = invocation.getArgument(1, String.class);
-            final ParameterContext parameterContext = new StandardParameterContext(id, name, parameterReferenceManager, null);
+            final ParameterContext parameterContext = new StandardParameterContext.Builder()
+                    .id(id)
+                    .name(name)
+                    .parameterReferenceManager(parameterReferenceManager)
+                    .build();
 
             final Map<String, Parameter> parameterMap = invocation.getArgument(2, Map.class);
             parameterContext.setParameters(parameterMap);
@@ -164,7 +171,7 @@ public class StandardVersionedComponentSynchronizerTest {
             parameterContextManager.addParameterContext(parameterContext);
 
             return parameterContext;
-        }).when(flowManager).createParameterContext(anyString(), anyString(), anyMap(), anyList());
+        }).when(flowManager).createParameterContext(anyString(), anyString(), anyMap(), anyList(), or(any(ParameterProviderConfiguration.class), isNull()));
 
         final VersionedFlowSynchronizationContext context = new VersionedFlowSynchronizationContext.Builder()
             .componentIdGenerator(componentIdGenerator)

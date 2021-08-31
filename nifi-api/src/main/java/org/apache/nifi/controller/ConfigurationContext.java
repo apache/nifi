@@ -59,7 +59,7 @@ public interface ConfigurationContext extends PropertyContext {
     Long getSchedulingPeriod(TimeUnit timeUnit);
 
     /**
-     * Returns the component's (ControllerService, ReportingTask, e.g.) name
+     * Returns the component's (ControllerService, ReportingTask, ParameterProvider, e.g.) name
      * @return the String name of this component
      */
     String getName();

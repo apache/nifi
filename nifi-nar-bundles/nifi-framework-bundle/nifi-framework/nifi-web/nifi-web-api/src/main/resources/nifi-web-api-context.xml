@@ -110,6 +110,7 @@
     <bean id="parameterMatcher" class="org.apache.nifi.web.search.attributematchers.ParameterMatcher" />
     <bean id="labelMatcher" class="org.apache.nifi.web.search.attributematchers.LabelMatcher" />
     <bean id="controllerServiceNodeMatcher" class="org.apache.nifi.web.search.attributematchers.ControllerServiceNodeMatcher" />
+    <bean id="parameterProviderNodeMatcher" class="org.apache.nifi.web.search.attributematchers.ParameterProviderNodeMatcher" />
 
     <bean id="componentMatcherFactory" class="org.apache.nifi.web.search.ComponentMatcherFactory" />
 
@@ -211,6 +212,15 @@
         </constructor-arg>
     </bean>
 
+    <bean id="matcherForParameterProviderNode" factory-bean="componentMatcherFactory" factory-method="getInstanceForParameterProviderNode">
+        <constructor-arg>
+            <util:list>
+                <ref bean="parameterProviderNodeMatcher" />
+                <ref bean="propertyMatcher" />
+            </util:list>
+        </constructor-arg>
+    </bean>
+
     <!-- nifi component dao initialization -->
     <bean id="processGroupDAO" class="org.apache.nifi.web.dao.impl.StandardProcessGroupDAO">
         <property name="flowController" ref="flowController"/>
@@ -253,6 +263,11 @@
         <property name="reloadComponent" ref="reloadComponent" />
         <property name="flowController" ref="flowController" />
     </bean>
+    <bean id="parameterProviderDAO" class="org.apache.nifi.web.dao.impl.StandardParameterProviderDAO">
+        <property name="componentStateDAO" ref="componentStateDAO"/>
+        <property name="reloadComponent" ref="reloadComponent" />
+        <property name="flowController" ref="flowController" />
+    </bean>
     <bean id="componentStateDAO" class="org.apache.nifi.web.dao.impl.StandardComponentStateDAO">
         <property name="stateManagerProvider" ref="stateManagerProvider"/>
     </bean>
@@ -289,6 +304,7 @@
         <property name="matcherForParameter" ref="matcherForParameter" />
         <property name="matcherForLabel" ref="matcherForLabel" />
         <property name="matcherForControllerServiceNode" ref="matcherForControllerServiceNode" />
+        <property name="matcherForParameterProviderNode" ref="matcherForParameterProviderNode" />
     </bean>
     <bean id="controllerFacade" class="org.apache.nifi.web.controller.ControllerFacade">
         <property name="flowController" ref="flowController"/>
@@ -312,6 +328,7 @@
         <property name="connectionDAO" ref="connectionDAO"/>
         <property name="controllerServiceDAO" ref="controllerServiceDAO"/>
         <property name="reportingTaskDAO" ref="reportingTaskDAO"/>
+        <property name="parameterProviderDAO" ref="parameterProviderDAO"/>
         <property name="templateDAO" ref="templateDAO"/>
         <property name="snippetDAO" ref="snippetDAO"/>
         <property name="accessPolicyDAO" ref="policyBasedAuthorizerDAO"/>
@@ -332,6 +349,7 @@
         <property name="connectionDAO" ref="connectionDAO"/>
         <property name="controllerServiceDAO" ref="controllerServiceDAO"/>
         <property name="reportingTaskDAO" ref="reportingTaskDAO"/>
+        <property name="parameterProviderDAO" ref="parameterProviderDAO"/>
         <property name="templateDAO" ref="templateDAO"/>
         <property name="snippetDAO" ref="snippetDAO"/>
         <property name="accessPolicyDAO" ref="policyBasedAuthorizerDAO"/>
@@ -378,6 +396,7 @@
         <property name="templateResource" ref="templateResource"/>
         <property name="controllerServiceResource" ref="controllerServiceResource"/>
         <property name="reportingTaskResource" ref="reportingTaskResource"/>
+        <property name="parameterProviderResource" ref="parameterProviderResource"/>
         <property name="processGroupResource" ref="processGroupResource"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
@@ -398,6 +417,7 @@
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="reportingTaskResource" ref="reportingTaskResource"/>
+        <property name="parameterProviderResource" ref="parameterProviderResource"/>
         <property name="controllerServiceResource" ref="controllerServiceResource"/>
         <property name="authorizer" ref="authorizer"/>
         <property name="flowController" ref="flowController" />
@@ -450,6 +470,18 @@
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="authorizer" ref="authorizer"/>
         <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="parameterProviderResource" class="org.apache.nifi.web.api.ParameterProviderResource" scope="singleton"
+            init-method="init">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="dtoFactory" ref="dtoFactory" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+        <property name="clusterComponentLifecycle" ref="clusterComponentLifecycle" />
+        <property name="localComponentLifecycle" ref="localComponentLifecycle" />
     </bean>
     <bean id="processGroupResource" class="org.apache.nifi.web.api.ProcessGroupResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
@@ -617,7 +649,8 @@
         <constructor-arg ref="requestReplicator" />
         <constructor-arg ref="flowController" />
     </bean>
-    <bean id="parameterContextResource" class="org.apache.nifi.web.api.ParameterContextResource" scope="singleton">
+    <bean id="parameterContextResource" class="org.apache.nifi.web.api.ParameterContextResource" scope="singleton"
+            init-method="init">
         <property name="serviceFacade" ref="serviceFacade" />
         <property name="authorizer" ref="authorizer" />
         <property name="properties" ref="nifiProperties"/>
@@ -707,6 +740,11 @@
         <property name="processGroupDAO" ref="processGroupDAO"/>
     </bean>
     <bean id="parameterContextAuditor" class="org.apache.nifi.audit.ParameterContextAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="parameterProviderAuditor" class="org.apache.nifi.audit.ParameterProviderAuditor">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="auditService" ref="auditService"/>
         <property name="processGroupDAO" ref="processGroupDAO"/>

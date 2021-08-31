@@ -36,6 +36,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ExtensionBuilder;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.FlowSnippet;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -59,6 +60,7 @@ import org.apache.nifi.logging.ControllerServiceLogObserver;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
+import org.apache.nifi.logging.ParameterProviderLogObserver;
 import org.apache.nifi.logging.ProcessorLogObserver;
 import org.apache.nifi.logging.ReportingTaskLogObserver;
 import org.apache.nifi.nar.ExtensionManager;
@@ -406,6 +408,61 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         }
 
         return taskNode;
+    }
+
+    @Override
+    public ParameterProviderNode createParameterProvider(final String type, final String id, final BundleCoordinate bundleCoordinate,
+                                                         final Set<URL> additionalUrls, final boolean firstTimeAdded, final boolean registerLogObserver) {
+        requireNonNull(type);
+        requireNonNull(id);
+        requireNonNull(bundleCoordinate);
+
+        // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
+
+        final ParameterProviderNode parameterProviderNode = new ExtensionBuilder()
+                .identifier(id)
+                .type(type)
+                .bundleCoordinate(bundleCoordinate)
+                .controllerServiceProvider(flowController.getControllerServiceProvider())
+                .processScheduler(processScheduler)
+                .nodeTypeProvider(flowController)
+                .validationTrigger(flowController.getValidationTrigger())
+                .reloadComponent(flowController.getReloadComponent())
+                .variableRegistry(flowController.getVariableRegistry())
+                .addClasspathUrls(additionalUrls)
+                .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
+                .flowController(flowController)
+                .extensionManager(extensionManager)
+                .buildParameterProvider();
+
+        LogRepositoryFactory.getRepository(parameterProviderNode.getIdentifier()).setLogger(parameterProviderNode.getLogger());
+
+        if (firstTimeAdded) {
+            final Class<?> taskClass = parameterProviderNode.getParameterProvider().getClass();
+            final String identifier = parameterProviderNode.getParameterProvider().getIdentifier();
+
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), taskClass, identifier)) {
+                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, parameterProviderNode.getParameterProvider());
+
+                if (flowController.isInitialized()) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, parameterProviderNode.getParameterProvider());
+                }
+            } catch (final Exception e) {
+                throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + parameterProviderNode.getParameterProvider(), e);
+            }
+        }
+
+        if (registerLogObserver) {
+            onParameterProviderAdded(parameterProviderNode);
+
+            // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
+            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
+                    new ParameterProviderLogObserver(bulletinRepository, parameterProviderNode));
+        }
+
+        return parameterProviderNode;
     }
 
     public Set<ControllerServiceNode> getRootControllerServices() {

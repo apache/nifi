@@ -57,6 +57,7 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
         final Map<NodeIdentifier, List<BulletinEntity>> bulletinDtos = new HashMap<>();
         final Map<NodeIdentifier, List<BulletinEntity>> controllerServiceBulletinDtos = new HashMap<>();
         final Map<NodeIdentifier, List<BulletinEntity>> reportingTaskBulletinDtos = new HashMap<>();
+        final Map<NodeIdentifier, List<BulletinEntity>> parameterProviderBulletinDtos = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, ControllerBulletinsEntity> entry : entityMap.entrySet()) {
             final NodeIdentifier nodeIdentifier = entry.getKey();
             final ControllerBulletinsEntity entity = entry.getValue();
@@ -90,6 +91,15 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
                     reportingTaskBulletinDtos.computeIfAbsent(nodeIdentifier, nodeId -> new ArrayList<>()).add(bulletin);
                 });
             }
+            if (entity.getParameterProviderBulletins() != null) {
+                entity.getParameterProviderBulletins().forEach(bulletin -> {
+                    if (bulletin.getNodeAddress() == null) {
+                        bulletin.setNodeAddress(nodeAddress);
+                    }
+
+                    parameterProviderBulletinDtos.computeIfAbsent(nodeIdentifier, nodeId -> new ArrayList<>()).add(bulletin);
+                });
+            }
         }
 
         clientEntity.setBulletins(BulletinMerger.mergeBulletins(bulletinDtos, entityMap.size()));
@@ -100,6 +110,7 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
         Collections.sort(clientEntity.getBulletins(), BULLETIN_COMPARATOR);
         Collections.sort(clientEntity.getControllerServiceBulletins(), BULLETIN_COMPARATOR);
         Collections.sort(clientEntity.getReportingTaskBulletins(), BULLETIN_COMPARATOR);
+        Collections.sort(clientEntity.getParameterProviderBulletins(), BULLETIN_COMPARATOR);
 
         // prune the response to only include the max number of bulletins
         if (clientEntity.getBulletins().size() > MAX_BULLETINS_FOR_CONTROLLER) {
@@ -110,6 +121,9 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
         }
         if (clientEntity.getReportingTaskBulletins().size() > MAX_BULLETINS_PER_COMPONENT) {
             clientEntity.setReportingTaskBulletins(clientEntity.getReportingTaskBulletins().subList(0, MAX_BULLETINS_PER_COMPONENT));
+        }
+        if (clientEntity.getParameterProviderBulletins().size() > MAX_BULLETINS_PER_COMPONENT) {
+            clientEntity.setParameterProviderBulletins(clientEntity.getParameterProviderBulletins().subList(0, MAX_BULLETINS_PER_COMPONENT));
         }
     }
 

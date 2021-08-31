@@ -42,7 +42,8 @@ public enum ResourceType {
     Operation("/operation"),
     Template("/templates"),
     Tenant("/tenants"),
-    ParameterContext("/parameter-contexts");
+    ParameterContext("/parameter-contexts"),
+    ParameterProvider("/parameter-providers");
 
     final String value;
 

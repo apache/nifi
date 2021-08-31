@@ -79,6 +79,7 @@ import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
@@ -132,7 +133,10 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterGroupConfiguration;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.lineage.ComputeLineageResult;
@@ -229,6 +233,9 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -260,6 +267,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
@@ -1479,10 +1487,32 @@ public final class DtoFactory {
                     .map(pc -> entityFactory.createParameterReferenceEntity(createParameterContextReference(pc), createPermissionsDto(pc)))
                     .collect(Collectors.toList()));
         }
+        dto.setParameterProviderConfiguration(createParameterProviderConfigurationEntity(parameterContext));
         dto.setInheritedParameterContexts(parameterContextRefs);
 
         dto.setParameters(parameterEntities);
         return dto;
+    }
+
+    private ParameterProviderConfigurationEntity createParameterProviderConfigurationEntity(final ParameterContext parameterContext) {
+        final ParameterProvider parameterProvider = parameterContext.getParameterProvider();
+        if (parameterProvider == null) {
+            return null;
+        }
+
+        final String parameterProviderId = parameterProvider.getIdentifier();
+        final ParameterProviderNode parameterProviderNode = parameterContext.getParameterProviderLookup().getParameterProvider(parameterProviderId);
+
+        final ParameterProviderConfigurationEntity config = new ParameterProviderConfigurationEntity();
+        config.setId(parameterProviderId);
+        final ParameterProviderConfigurationDTO dto = new ParameterProviderConfigurationDTO();
+        config.setComponent(dto);
+
+        dto.setParameterProviderId(parameterProviderId);
+        dto.setParameterProviderName(parameterProviderNode.getName());
+        dto.setParameterGroupName(parameterContext.getParameterProviderConfiguration().getParameterGroupName());
+        dto.setSynchronized(parameterContext.getParameterProviderConfiguration().isSynchronized());
+        return config;
     }
 
     public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager,
@@ -1508,6 +1538,7 @@ public final class DtoFactory {
         if (parameter.getValue() != null) {
             dto.setValue(descriptor.isSensitive() ? SENSITIVE_VALUE_MASK : parameter.getValue());
         }
+        dto.setProvided(parameter.isProvided());
 
         final ParameterReferenceManager parameterReferenceManager = parameterContext.getParameterReferenceManager();
 
@@ -1614,6 +1645,121 @@ public final class DtoFactory {
         }
 
         return dto;
+    }
+
+    public ParameterProviderReferencingComponentDTO createParameterProviderReferencingComponentDTO(final ParameterContext reference) {
+        Objects.requireNonNull(reference, "ParameterContext must be provided in order to create a ParameterProviderReferencingComponentDTO");
+
+        final ParameterProviderReferencingComponentDTO dto = new ParameterProviderReferencingComponentDTO();
+        dto.setId(reference.getIdentifier());
+        dto.setName(reference.getName());
+
+        return dto;
+    }
+
+    public ParameterProviderDTO createParameterProviderDto(final ParameterProviderNode parameterProviderNode) {
+        final BundleCoordinate bundleCoordinate = parameterProviderNode.getBundleCoordinate();
+        final List<Bundle> compatibleBundles = extensionManager.getBundles(parameterProviderNode.getCanonicalClassName()).stream().filter(bundle -> {
+            final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
+            return bundleCoordinate.getGroup().equals(coordinate.getGroup()) && bundleCoordinate.getId().equals(coordinate.getId());
+        }).collect(Collectors.toList());
+
+        final ParameterProviderDTO dto = new ParameterProviderDTO();
+        dto.setId(parameterProviderNode.getIdentifier());
+        dto.setName(parameterProviderNode.getName());
+        dto.setType(parameterProviderNode.getCanonicalClassName());
+        dto.setBundle(createBundleDto(bundleCoordinate));
+        dto.setAnnotationData(parameterProviderNode.getAnnotationData());
+        dto.setComments(parameterProviderNode.getComments());
+        dto.setPersistsState(parameterProviderNode.getParameterProvider().getClass().isAnnotationPresent(Stateful.class));
+        dto.setRestricted(parameterProviderNode.isRestricted());
+        dto.setDeprecated(parameterProviderNode.isDeprecated());
+        dto.setExtensionMissing(parameterProviderNode.isExtensionMissing());
+        dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
+
+        // sort a copy of the properties
+        final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>((o1, o2) -> Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName()));
+        sortedProperties.putAll(parameterProviderNode.getRawPropertyValues());
+
+        // get the property order from the parameter provider
+        final ParameterProvider parameterProvider = parameterProviderNode.getParameterProvider();
+        final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
+        final List<PropertyDescriptor> descriptors = parameterProvider.getPropertyDescriptors();
+        if (descriptors != null && !descriptors.isEmpty()) {
+            for (final PropertyDescriptor descriptor : descriptors) {
+                orderedProperties.put(descriptor, null);
+            }
+        }
+        orderedProperties.putAll(sortedProperties);
+
+        final Collection<ParameterGroupConfiguration> parameterGroupConfigurations = parameterProviderNode.getParameterGroupConfigurations();
+        dto.setParameterGroupConfigurations(new LinkedHashSet<>(parameterGroupConfigurations.stream()
+                .sorted()
+                .map(this::getParameterGroupConfigurationEntity)
+                .collect(Collectors.toList())));
+
+        // build the descriptor and property dtos
+        dto.setDescriptors(new LinkedHashMap<>());
+        dto.setProperties(new LinkedHashMap<>());
+        for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+
+            // store the property descriptor
+            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, null));
+
+            // determine the property value - don't include sensitive properties
+            String propertyValue = entry.getValue();
+            if (propertyValue != null && descriptor.isSensitive()) {
+                propertyValue = SENSITIVE_VALUE_MASK;
+            } else if (propertyValue == null && descriptor.getDefaultValue() != null) {
+                propertyValue = descriptor.getDefaultValue();
+            }
+
+            // set the property value
+            dto.getProperties().put(descriptor.getName(), propertyValue);
+        }
+
+        final ValidationStatus validationStatus = parameterProviderNode.getValidationStatus(1, TimeUnit.MILLISECONDS);
+        dto.setValidationStatus(validationStatus.name());
+
+        final Set<ParameterProviderReferencingComponentEntity> referencingParameterContexts = new HashSet<>();
+        for (final ParameterContext parameterContext : parameterProviderNode.getReferences()) {
+            final ParameterProviderReferencingComponentDTO referenceDto = createParameterProviderReferencingComponentDTO(parameterContext);
+            final ParameterProviderReferencingComponentEntity referenceEntity = entityFactory.createParameterProviderReferencingComponentEntity(parameterContext.getIdentifier(),
+                    referenceDto, null, createPermissionsDto(parameterContext, NiFiUserUtils.getNiFiUser()), Collections.emptyList());
+            referencingParameterContexts.add(referenceEntity);
+        }
+        if (!referencingParameterContexts.isEmpty()) {
+            dto.setReferencingParameterContexts(referencingParameterContexts);
+        }
+
+        // add the validation errors
+        final Collection<ValidationResult> validationErrors = parameterProviderNode.getValidationErrors();
+        if (validationErrors != null && !validationErrors.isEmpty()) {
+            final List<String> errors = new ArrayList<>();
+            for (final ValidationResult validationResult : validationErrors) {
+                errors.add(validationResult.toString());
+            }
+
+            dto.setValidationErrors(errors);
+        }
+
+        return dto;
+    }
+
+    private ParameterGroupConfigurationEntity getParameterGroupConfigurationEntity(final ParameterGroupConfiguration parameterGroupConfiguration) {
+        final ParameterGroupConfigurationEntity entity = new ParameterGroupConfigurationEntity();
+        entity.setGroupName(parameterGroupConfiguration.getGroupName());
+        entity.setParameterContextName(parameterGroupConfiguration.getParameterContextName());
+
+        final Map<String, ParameterSensitivity> parameterSensitivities = new LinkedHashMap<>();
+        parameterGroupConfiguration.getParameterSensitivities().keySet().stream()
+                .sorted()
+                .forEach(parameterName -> parameterSensitivities.put(parameterName, parameterGroupConfiguration.getParameterSensitivities().get(parameterName)));
+
+        entity.setParameterSensitivities(parameterSensitivities);
+        entity.setSynchronized(parameterGroupConfiguration.isSynchronized());
+        return entity;
     }
 
     public ControllerServiceDTO createControllerServiceDto(final ControllerServiceNode controllerServiceNode) {
@@ -1738,6 +1884,14 @@ public final class DtoFactory {
             dto.setReferenceType(ReportingTask.class.getSimpleName());
 
             propertyDescriptors = node.getReportingTask().getPropertyDescriptors();
+            validationErrors = node.getValidationErrors();
+            processGroupId = null;
+        } else if (component instanceof ParameterProviderNode) {
+            final ParameterProviderNode node = ((ParameterProviderNode) component);
+            dto.setType(node.getComponentType());
+            dto.setReferenceType(ParameterProvider.class.getSimpleName());
+
+            propertyDescriptors = node.getParameterProvider().getPropertyDescriptors();
             validationErrors = node.getValidationErrors();
             processGroupId = null;
         }

@@ -31,6 +31,7 @@ public class ExtensionMapping {
     private final Map<String, Set<BundleCoordinate>> processorNames = new HashMap<>();
     private final Map<String, Set<BundleCoordinate>> controllerServiceNames = new HashMap<>();
     private final Map<String, Set<BundleCoordinate>> reportingTaskNames = new HashMap<>();
+    private final Map<String, Set<BundleCoordinate>> parameterProviderNames = new HashMap<>();
 
     private final BiFunction<Set<BundleCoordinate>, Set<BundleCoordinate>, Set<BundleCoordinate>> merger = (oldValue, newValue) -> {
         final Set<BundleCoordinate> merged = new HashSet<>();
@@ -69,6 +70,16 @@ public class ExtensionMapping {
         });
     }
 
+    void addParameterProvider(final BundleCoordinate coordinate, final String parameterProviderName) {
+        parameterProviderNames.computeIfAbsent(parameterProviderName, name -> new HashSet<>()).add(coordinate);
+    }
+
+    void addAllParameterProviders(final BundleCoordinate coordinate, final Collection<String> parameterProviderNames) {
+        parameterProviderNames.forEach(name -> {
+            addParameterProvider(coordinate, name);
+        });
+    }
+
     void merge(final ExtensionMapping other) {
         other.getProcessorNames().forEach((name, otherCoordinates) -> {
             processorNames.merge(name, otherCoordinates, merger);
@@ -78,6 +89,9 @@ public class ExtensionMapping {
         });
         other.getReportingTaskNames().forEach((name, otherCoordinates) -> {
             reportingTaskNames.merge(name, otherCoordinates, merger);
+        });
+        other.getParameterProviderNames().forEach((name, otherCoordinates) -> {
+            parameterProviderNames.merge(name, otherCoordinates, merger);
         });
     }
 
@@ -93,11 +107,16 @@ public class ExtensionMapping {
         return Collections.unmodifiableMap(reportingTaskNames);
     }
 
+    public Map<String, Set<BundleCoordinate>> getParameterProviderNames() {
+        return Collections.unmodifiableMap(parameterProviderNames);
+    }
+
     public Map<String, Set<BundleCoordinate>> getAllExtensionNames() {
         final Map<String, Set<BundleCoordinate>> extensionNames = new HashMap<>();
         extensionNames.putAll(processorNames);
         extensionNames.putAll(controllerServiceNames);
         extensionNames.putAll(reportingTaskNames);
+        extensionNames.putAll(parameterProviderNames);
         return extensionNames;
     }
 
@@ -113,11 +132,14 @@ public class ExtensionMapping {
         for (final Set<BundleCoordinate> coordinates : reportingTaskNames.values()) {
             size += coordinates.size();
         }
+        for (final Set<BundleCoordinate> coordinates : parameterProviderNames.values()) {
+            size += coordinates.size();
+        }
 
         return size;
     }
 
     public boolean isEmpty() {
-        return processorNames.isEmpty() && controllerServiceNames.isEmpty() && reportingTaskNames.isEmpty();
+        return processorNames.isEmpty() && controllerServiceNames.isEmpty() && reportingTaskNames.isEmpty() && parameterProviderNames.isEmpty();
     }
 }

@@ -102,10 +102,11 @@ $(document).ready(function () {
         var matchingProcessors = applyComponentFilter($('#processor-links'));
         var matchingControllerServices = applyComponentFilter($('#controller-service-links'));
         var matchingReportingTasks = applyComponentFilter($('#reporting-task-links'));
+        var matchingParameterProviders = applyComponentFilter($('#parameter-provider-links'));
         var matchingDeveloper = applyComponentFilter($('#developer-links'));
 
         // update the rule count
-        $('#displayed-components').text(matchingGeneral + matchingProcessors + matchingControllerServices + matchingReportingTasks + matchingDeveloper);
+        $('#displayed-components').text(matchingGeneral + matchingProcessors + matchingControllerServices + matchingReportingTasks + matchingParameterProviders + matchingDeveloper);
     };
 
     var selectComponent = function (selectedExtension, selectedBundleGroup, selectedBundleArtifact, selectedArtifactVersion) {

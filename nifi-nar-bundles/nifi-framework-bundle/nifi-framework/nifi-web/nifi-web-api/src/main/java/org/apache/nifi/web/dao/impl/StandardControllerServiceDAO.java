@@ -40,6 +40,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -416,8 +417,9 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final ParameterLookup parameterLookup = serviceNode.getProcessGroup() == null ? ParameterLookup.EMPTY : serviceNode.getProcessGroup().getParameterContext();
+        final VariableRegistry variableRegistry = serviceNode.getProcessGroup() == null ? VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY : serviceNode.getProcessGroup().getVariableRegistry();
         final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, properties, serviceNode.getAnnotationData(),
-            parameterLookup, flowController.getControllerServiceProvider(), null, serviceNode.getProcessGroup().getVariableRegistry());
+            parameterLookup, flowController.getControllerServiceProvider(), null, variableRegistry);
 
         final List<ConfigVerificationResult> verificationResults = serviceNode.verifyConfiguration(configurationContext, configVerificationLog, variables, extensionManager);
         final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()

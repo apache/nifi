@@ -36,17 +36,18 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.flow.ExternalControllerServiceReference;
+import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.RestBasedFlowRegistry;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.web.api.dto.DtoFactory;
@@ -91,14 +92,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyMap;
+import static org.mockito.Mockito.anySet;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.same;
-import static org.mockito.Mockito.anySet;
-import static org.mockito.Mockito.anyMap;
 
 public class StandardNiFiServiceFacadeTest {
 
@@ -365,12 +366,13 @@ public class StandardNiFiServiceFacadeTest {
         final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mock(InstantiatedVersionedProcessGroup.class);
         when(flowMapper.mapNonVersionedProcessGroup(processGroup, controllerServiceProvider)).thenReturn(nonVersionedProcessGroup);
 
+        final Map<String, ParameterProviderReference> parameterProviderReferences = new HashMap<>();
         final String parameterName = "foo";
         final VersionedParameterContext versionedParameterContext = mock(VersionedParameterContext.class);
         when(versionedParameterContext.getName()).thenReturn(parameterName);
         final Map<String, VersionedParameterContext> parameterContexts = new LinkedHashMap<>();
         parameterContexts.put(parameterName, versionedParameterContext);
-        when(flowMapper.mapParameterContexts(processGroup, true)).thenReturn(parameterContexts);
+        when(flowMapper.mapParameterContexts(processGroup, true, parameterProviderReferences)).thenReturn(parameterContexts);
 
         final ExternalControllerServiceReference externalControllerServiceReference = mock(ExternalControllerServiceReference.class);
         final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences = new LinkedHashMap<>();
@@ -432,7 +434,7 @@ public class StandardNiFiServiceFacadeTest {
 
         when(flowMapper.mapControllerService(same(parentControllerService1), same(controllerServiceProvider), anySet(), anyMap())).thenReturn(versionedControllerService1);
         when(flowMapper.mapControllerService(same(parentControllerService2), same(controllerServiceProvider), anySet(), anyMap())).thenReturn(versionedControllerService2);
-        when(flowMapper.mapParameterContexts(processGroup, true)).thenReturn(new HashMap<>());
+        when(flowMapper.mapParameterContexts(processGroup, true, null)).thenReturn(new HashMap<>());
 
         final ExternalControllerServiceReference externalControllerServiceReference = mock(ExternalControllerServiceReference.class);
         final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences = new LinkedHashMap<>();
