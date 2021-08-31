@@ -61,6 +61,7 @@ import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.LimitingInputStream;
+import org.apache.nifi.stream.io.NonFlushableOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -2966,8 +2967,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     // We need to copy all of the data from the old claim to the new claim
                     StreamUtils.copy(oldClaimIn, outStream);
 
-                    // wrap our OutputStreams so that the processor cannot close it
-                    try (final OutputStream disableOnClose = new DisableOnCloseOutputStream(outStream)) {
+                    // Don't allow flushing of the BufferedOutputStream. The callback may well call wrap our stream in another object that needs to be flushed.
+                    // This is OK, but append() is often used many times to append just a small bit of data, over & over. If we allow flushing of our buffered output stream
+                    // each time, performance suffers. Instead, we prevent the flushing at this level, and we flush in commit.
+                    final NonFlushableOutputStream nonFlushable = new NonFlushableOutputStream(outStream);
+
+                    // Wrap our OutputStreams so that the processor cannot close it
+                    try (final OutputStream disableOnClose = new DisableOnCloseOutputStream(nonFlushable)) {
                         writeRecursionSet.add(source);
                         writer.process(new FlowFileAccessOutputStream(disableOnClose, source));
                     } finally {
@@ -2978,8 +2984,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 newClaim = oldClaim;
                 originalByteWrittenCount = outStream.getBytesWritten();
 
-                // wrap our OutputStreams so that the processor cannot close it
-                try (final OutputStream disableOnClose = new DisableOnCloseOutputStream(outStream);
+                // Don't allow flushing of the BufferedOutputStream. The callback may well call wrap our stream in another object that needs to be flushed.
+                // This is OK, but append() is often used many times to append just a small bit of data, over & over. If we allow flushing of our buffered output stream
+                // each time, performance suffers. Instead, we prevent the flushing at this level, and we flush in commit.
+                final NonFlushableOutputStream nonFlushable = new NonFlushableOutputStream(outStream);
+
+                // Wrap our OutputStreams so that the processor cannot close it
+                try (final OutputStream disableOnClose = new DisableOnCloseOutputStream(nonFlushable);
                     final OutputStream flowFileAccessOutStream = new FlowFileAccessOutputStream(disableOnClose, source)) {
                     writeRecursionSet.add(source);
                     writer.process(flowFileAccessOutStream);
