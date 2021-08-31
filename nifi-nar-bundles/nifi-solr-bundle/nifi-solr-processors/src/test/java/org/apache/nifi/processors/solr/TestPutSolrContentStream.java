@@ -36,8 +36,8 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.security.auth.login.LoginException;
@@ -237,7 +237,7 @@ public class TestPutSolrContentStream {
         // prove the document got added
         SolrQuery query = new SolrQuery("*:*");
         QueryResponse qResponse = solrClient.query(query);
-        Assert.assertEquals(1, qResponse.getResults().getNumFound());
+        Assertions.assertEquals(1, qResponse.getResults().getNumFound());
 
         // run the processor with a delete-by-query command
         runner.enqueue("<delete><query>first:bob</query></delete>".getBytes(StandardCharsets.UTF_8));
@@ -245,7 +245,7 @@ public class TestPutSolrContentStream {
 
         // prove the document got deleted
         qResponse = solrClient.query(query);
-        Assert.assertEquals(0, qResponse.getResults().getNumFound());
+        Assertions.assertEquals(0, qResponse.getResults().getNumFound());
     }
 
     @Test
@@ -457,9 +457,9 @@ public class TestPutSolrContentStream {
 
         proc.onScheduled(runner.getProcessContext());
         final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
-        Assert.assertNotNull(kerberosUser);
-        Assert.assertEquals(principal, kerberosUser.getPrincipal());
-        Assert.assertEquals(keytab, ((KerberosKeytabUser)kerberosUser).getKeytabFile());
+        Assertions.assertNotNull(kerberosUser);
+        Assertions.assertEquals(principal, kerberosUser.getPrincipal());
+        Assertions.assertEquals(keytab, ((KerberosKeytabUser)kerberosUser).getKeytabFile());
     }
 
     @Test
@@ -510,8 +510,8 @@ public class TestPutSolrContentStream {
 
         proc.onScheduled(runner.getProcessContext());
         final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
-        Assert.assertNotNull(kerberosUser);
-        Assert.assertEquals(kerberosPrincipal, kerberosUser.getPrincipal());
+        Assertions.assertNotNull(kerberosUser);
+        Assertions.assertEquals(kerberosPrincipal, kerberosUser.getPrincipal());
     }
 
     @Test
@@ -541,9 +541,9 @@ public class TestPutSolrContentStream {
 
         proc.onScheduled(runner.getProcessContext());
         final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
-        Assert.assertNotNull(kerberosUser);
-        Assert.assertEquals(principal, kerberosUser.getPrincipal());
-        Assert.assertEquals(keytab, ((KerberosKeytabUser)kerberosUser).getKeytabFile());
+        Assertions.assertNotNull(kerberosUser);
+        Assertions.assertEquals(principal, kerberosUser.getPrincipal());
+        Assertions.assertEquals(keytab, ((KerberosKeytabUser)kerberosUser).getKeytabFile());
     }
 
     @Test
@@ -679,7 +679,7 @@ public class TestPutSolrContentStream {
             mockSolrClient = new SolrClient() {
                 @Override
                 public NamedList<Object> request(SolrRequest solrRequest, String s) throws SolrServerException, IOException {
-                    Assert.assertEquals(expectedCollection, solrRequest.getParams().get(PutSolrContentStream.COLLECTION_PARAM_NAME));
+                    Assertions.assertEquals(expectedCollection, solrRequest.getParams().get(PutSolrContentStream.COLLECTION_PARAM_NAME));
                     return new NamedList<>();
                 }
 
@@ -711,9 +711,9 @@ public class TestPutSolrContentStream {
                 when(mockSolrClient.request(any(SolrRequest.class),
                         eq(null))).thenThrow(throwable);
             } catch (SolrServerException e) {
-                Assert.fail(e.getMessage());
+                Assertions.fail(e.getMessage());
             } catch (IOException e) {
-                Assert.fail(e.getMessage());
+                Assertions.fail(e.getMessage());
             }
             return mockSolrClient;
         }
@@ -783,7 +783,7 @@ public class TestPutSolrContentStream {
 
         SolrQuery query = new SolrQuery("*:*");
         QueryResponse qResponse = solrServer.query(query);
-        Assert.assertEquals(expectedDocuments.size(), qResponse.getResults().getNumFound());
+        Assertions.assertEquals(expectedDocuments.size(), qResponse.getResults().getNumFound());
 
         // verify documents have expected fields and values
         for (SolrDocument expectedDoc : expectedDocuments) {
@@ -801,7 +801,7 @@ public class TestPutSolrContentStream {
                     break;
                 }
             }
-            Assert.assertTrue("Could not find " + expectedDoc, found);
+            Assertions.assertTrue(found, "Could not find " + expectedDoc);
         }
     }
 
