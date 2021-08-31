@@ -28,6 +28,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.uuid5.Uuid5Util;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.nio.charset.IllegalCharsetNameException;
@@ -59,6 +61,26 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class TestRecordPath {
+
+    private static final String USER_TIMEZONE_PROPERTY = "user.timezone";
+
+    private static final String SYSTEM_TIMEZONE = System.getProperty(USER_TIMEZONE_PROPERTY);
+
+    private static final String TEST_TIMEZONE = "America/Phoenix";
+
+    private static final int TEST_OFFSET_HOURS = 2;
+
+    private static final String TEST_TIMEZONE_OFFSET = String.format("GMT+0%d:00", TEST_OFFSET_HOURS);
+
+    @BeforeClass
+    public static void setTestTimezone() {
+        System.setProperty(USER_TIMEZONE_PROPERTY, TEST_TIMEZONE);
+    }
+
+    @AfterClass
+    public static void setSystemTimezone() {
+        System.setProperty(USER_TIMEZONE_PROPERTY, SYSTEM_TIMEZONE);
+    }
 
     @Test
     public void testCompile() {
@@ -1434,23 +1456,21 @@ public class TestRecordPath {
         final String localDateFormatted = "2017-10-20";
         final String localDateTimeFormatted = String.format("%sT12:45:30", localDateFormatted);
         final LocalDateTime localDateTime = LocalDateTime.parse(localDateTimeFormatted);
-        final int offsetHours = 6;
-        final String timeZone = String.format("GMT+%d:00", offsetHours);
 
         values.put("date", localDateTimeFormatted);
         final Record record = new MapRecord(schema, values);
 
         final FieldValue fieldValue = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get();
         assertEquals(localDateFormatted, fieldValue.getValue());
-        final FieldValue fieldValue2 = RecordPath.compile(String.format("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'yyyy-MM-dd' , '%s')", timeZone))
+        final FieldValue fieldValue2 = RecordPath.compile(String.format("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'yyyy-MM-dd' , '%s')", TEST_TIMEZONE_OFFSET))
             .evaluate(record).getSelectedFields().findFirst().get();
         assertEquals(localDateFormatted, fieldValue2.getValue());
 
-        final FieldValue fieldValue3 = RecordPath.compile(String.format("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), \"yyyy-MM-dd'T'HH:mm:ss\", '%s')", timeZone))
+        final FieldValue fieldValue3 = RecordPath.compile(String.format("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), \"yyyy-MM-dd'T'HH:mm:ss\", '%s')", TEST_TIMEZONE_OFFSET))
             .evaluate(record).getSelectedFields().findFirst().get();
 
         final ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime, ZoneOffset.systemDefault());
-        final ZonedDateTime adjustedZoneDateTime = zonedDateTime.withZoneSameInstant(ZoneOffset.ofHours(offsetHours));
+        final ZonedDateTime adjustedZoneDateTime = zonedDateTime.withZoneSameInstant(ZoneOffset.ofHours(TEST_OFFSET_HOURS));
         final LocalDateTime adjustedLocalDateTime = adjustedZoneDateTime.toLocalDateTime();
         final String adjustedDateTime = adjustedLocalDateTime.toString();
         assertEquals(adjustedDateTime, fieldValue3.getValue());
