@@ -154,6 +154,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -1010,6 +1011,14 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, task.getClass(), task.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, task, taskNode.getConfigurationContext());
+            }
+        }
+
+        for (final ParameterProviderNode parameterProviderNode : flowManager.getAllParameterProviders()) {
+            final ParameterProvider provider = parameterProviderNode.getParameterProvider();
+
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, provider.getClass(), provider.getIdentifier())) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, provider);
             }
         }
     }

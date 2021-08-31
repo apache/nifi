@@ -93,6 +93,8 @@ UI may become unavailable.
 
 *Reporting Task*: Reporting Tasks run in the background to provide statistical reports about what is happening in the NiFi instance. The DFM adds and configures Reporting Tasks in the User Interface as desired. Common reporting tasks include the ControllerStatusReportingTask, MonitorDiskUsage reporting task, MonitorMemory reporting task, and the StandardGangliaReporter.
 
+*Parameter Provider*: Parameter Providers can provide parameters from an external source to Parameter Contexts.  The parameters of a Parameter Provider may be fetched and applied to all referencing Parameter Contexts.
+
 *Funnel*: A funnel is a NiFi component that is used to combine the data from several Connections into a single Connection.
 
 *Process Group*: When a dataflow becomes complex, it often is beneficial to reason about the dataflow at a higher, more abstract level.

@@ -37,6 +37,7 @@ import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.RegistryDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.entity.BulletinEntity;
@@ -47,6 +48,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
@@ -87,6 +89,7 @@ public class ControllerResource extends ApplicationResource {
     private Authorizer authorizer;
 
     private ReportingTaskResource reportingTaskResource;
+    private ParameterProviderResource parameterProviderResource;
     private ControllerServiceResource controllerServiceResource;
 
     /**
@@ -205,6 +208,110 @@ public class ControllerResource extends ApplicationResource {
                 (revision, configEntity) -> {
                     final ControllerConfigurationEntity entity = serviceFacade.updateControllerConfiguration(revision, configEntity.getComponent());
                     return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    // ---------------
+    // parameter providers
+    // ---------------
+
+    /**
+     * Creates a new Parameter Provider.
+     *
+     * @param httpServletRequest  request
+     * @param requestParameterProviderEntity A parameterProviderEntity.
+     * @return A parameterProviderEntity.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("parameter-providers")
+    @ApiOperation(
+            value = "Creates a new parameter provider",
+            response = ParameterProviderEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /controller"),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}"),
+                    @Authorization(value = "Write - if the Parameter Provider is restricted - /restricted-components")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response createParameterProvider(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The parameter provider configuration details.",
+                    required = true
+            ) final ParameterProviderEntity requestParameterProviderEntity) {
+
+        if (requestParameterProviderEntity == null || requestParameterProviderEntity.getComponent() == null) {
+            throw new IllegalArgumentException("Parameter provider details must be specified.");
+        }
+
+        if (requestParameterProviderEntity.getRevision() == null || (requestParameterProviderEntity.getRevision().getVersion() == null
+                || requestParameterProviderEntity.getRevision().getVersion() != 0)) {
+            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Parameter provider.");
+        }
+
+        final ParameterProviderDTO requestParameterProvider = requestParameterProviderEntity.getComponent();
+        if (requestParameterProvider.getId() != null) {
+            throw new IllegalArgumentException("Parameter provider ID cannot be specified.");
+        }
+
+        if (StringUtils.isBlank(requestParameterProvider.getType())) {
+            throw new IllegalArgumentException("The type of parameter provider to create must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, requestParameterProviderEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestParameterProviderEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        return withWriteLock(
+                serviceFacade,
+                requestParameterProviderEntity,
+                lookup -> {
+                    authorizeController(RequestAction.WRITE);
+
+                    ComponentAuthorizable authorizable = null;
+                    try {
+                        authorizable = lookup.getConfigurableComponent(requestParameterProvider.getType(), requestParameterProvider.getBundle());
+
+                        if (authorizable.isRestricted()) {
+                            authorizeRestrictions(authorizer, authorizable);
+                        }
+
+                        if (requestParameterProvider.getProperties() != null) {
+                            AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestParameterProvider.getProperties(), authorizable, authorizer, lookup);
+                        }
+                    } finally {
+                        if (authorizable != null) {
+                            authorizable.cleanUpResources();
+                        }
+                    }
+                },
+                () -> serviceFacade.verifyCreateParameterProvider(requestParameterProvider),
+                (parameterProviderEntity) -> {
+                    final ParameterProviderDTO parameterProvider = parameterProviderEntity.getComponent();
+
+                    // set the processor id as appropriate
+                    parameterProvider.setId(generateUuid());
+
+                    // create the parameter provider and generate the json
+                    final Revision revision = getRevision(parameterProviderEntity, parameterProvider.getId());
+                    final ParameterProviderEntity entity = serviceFacade.createParameterProvider(revision, parameterProvider);
+                    parameterProviderResource.populateRemainingParameterProviderEntityContent(entity);
+
+                    // build the response
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }
@@ -1168,6 +1275,10 @@ public class ControllerResource extends ApplicationResource {
 
     public void setReportingTaskResource(final ReportingTaskResource reportingTaskResource) {
         this.reportingTaskResource = reportingTaskResource;
+    }
+
+    public void setParameterProviderResource(final ParameterProviderResource parameterProviderResource) {
+        this.parameterProviderResource = parameterProviderResource;
     }
 
     public void setControllerServiceResource(final ControllerServiceResource controllerServiceResource) {

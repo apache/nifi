@@ -31,6 +31,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
+import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
@@ -590,6 +591,11 @@ public class StandardProcessorNodeIT {
 
         @Override
         public void reload(ReportingTaskNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws ReportingTaskInstantiationException {
+            reload(newType, additionalUrls);
+        }
+
+        @Override
+        public void reload(ParameterProviderNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws ParameterProviderInstantiationException {
             reload(newType, additionalUrls);
         }
 

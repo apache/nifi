@@ -31,6 +31,7 @@ import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.LoggingXmlParserErrorHandler;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
@@ -276,6 +277,21 @@ public class FingerprintFactory {
             }
         }
 
+        final Element parameterProvidersElem = DomUtils.getChild(flowControllerElem, "parameterProviders");
+        if (parameterProvidersElem != null) {
+            final List<ParameterProviderDTO> parameterProviderDtos = new ArrayList<>();
+            for (final Element taskElem : DomUtils.getChildElementsByTagName(parameterProvidersElem, "parameterProvider")) {
+                final ParameterProviderDTO dto = FlowFromDOMFactory.getParameterProvider(taskElem, encryptor, encodingVersion);
+                parameterProviderDtos.add(dto);
+            }
+
+            Collections.sort(parameterProviderDtos, Comparator.comparing(ParameterProviderDTO::getId));
+
+            for (final ParameterProviderDTO dto : parameterProviderDtos) {
+                addParameterProviderFingerprint(builder, dto);
+            }
+        }
+
         return builder;
     }
 
@@ -311,12 +327,18 @@ public class FingerprintFactory {
                 builder.append(inheritedParameterContextId.getTextContent());
             }
         }
+        final String parameterProviderId = DomUtils.getChildText(parameterContextElement, "parameterProviderId");
+        builder.append(parameterProviderId == null ? "NO_PARAMETER_PROVIDER_ID" : parameterProviderId);
+        final String parameterGroupName = DomUtils.getChildText(parameterContextElement, "parameterGroupName");
+        builder.append(parameterGroupName == null ? "NO_PARAMETER_GROUP_NAME" : parameterGroupName);
+        final String isSynchronized = DomUtils.getChildText(parameterContextElement, "isSynchronized");
+        builder.append(isSynchronized == null ? "NO_PARAMETER_IS_SYNCHRONIZED" : isSynchronized);
 
         return builder;
     }
 
     private void addParameter(final StringBuilder builder, final Element parameterElement) {
-        Stream.of("name", "description", "sensitive").forEach(elementName -> appendFirstValue(builder, DomUtils.getChildNodesByTagName(parameterElement, elementName)));
+        Stream.of("name", "description", "sensitive", "provided").forEach(elementName -> appendFirstValue(builder, DomUtils.getChildNodesByTagName(parameterElement, elementName)));
 
         final String value = DomUtils.getChildText(parameterElement, "value");
         if (value == null) {
@@ -801,6 +823,26 @@ public class FingerprintFactory {
         final ConfigurableComponent configurableComponent = extensionManager.getTempComponent(dto.getType(), coordinate);
         if (configurableComponent == null) {
             logger.warn("Unable to get ReportingTask of type {}; its default properties will be fingerprinted instead of being ignored.", dto.getType());
+        }
+
+        addPropertiesFingerprint(builder, configurableComponent, dto.getProperties());
+    }
+
+    private void addParameterProviderFingerprint(final StringBuilder builder, final ParameterProviderDTO dto) {
+        builder.append(dto.getId());
+        builder.append(dto.getType());
+        builder.append(dto.getName());
+
+        addBundleFingerprint(builder, dto.getBundle());
+
+        builder.append(dto.getComments());
+        builder.append(dto.getAnnotationData());
+
+        // get the temp instance of the ParameterProvider so that we know the default property values
+        final BundleCoordinate coordinate = getCoordinate(dto.getType(), dto.getBundle());
+        final ConfigurableComponent configurableComponent = extensionManager.getTempComponent(dto.getType(), coordinate);
+        if (configurableComponent == null) {
+            logger.warn("Unable to get ParameterProvider of type {}; its default properties will be fingerprinted instead of being ignored.", dto.getType());
         }
 
         addPropertiesFingerprint(builder, configurableComponent, dto.getProperties());

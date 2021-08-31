@@ -37,6 +37,7 @@ import org.apache.nifi.flow.resource.ExternalResourceProvider;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.init.ConfigurableComponentInitializer;
 import org.apache.nifi.init.ConfigurableComponentInitializerFactory;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.reporting.InitializationException;
@@ -99,6 +100,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(Processor.class, new HashSet<>());
         definitionMap.put(FlowFilePrioritizer.class, new HashSet<>());
         definitionMap.put(ReportingTask.class, new HashSet<>());
+        definitionMap.put(ParameterProvider.class, new HashSet<>());
         definitionMap.put(ControllerService.class, new HashSet<>());
         definitionMap.put(Authorizer.class, new HashSet<>());
         definitionMap.put(UserGroupProvider.class, new HashSet<>());
@@ -231,7 +233,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
      * which the services file live in the given bundle directly and NOT the parent/ancestor bundle.
      *
      * @param bundle the bundle whose extensions are of interest
-     * @param extensionType the type of extension (I.e., Processor, ControllerService, ReportingTask, etc.)
+     * @param extensionType the type of extension (I.e., Processor, ControllerService, ParameterProvider, ReportingTask, etc.)
      * @return the set of URL's that point to Service Files for the given extension type in the given bundle. An empty set will be
      * returned if no service files exist
      *
@@ -344,7 +346,8 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
      * @return true if the given class is a processor, controller service, or reporting task
      */
     private static boolean multipleVersionsAllowed(Class<?> type) {
-        return Processor.class.isAssignableFrom(type) || ControllerService.class.isAssignableFrom(type) || ReportingTask.class.isAssignableFrom(type);
+        return Processor.class.isAssignableFrom(type) || ControllerService.class.isAssignableFrom(type) || ReportingTask.class.isAssignableFrom(type)
+                || ParameterProvider.class.isAssignableFrom(type);
     }
 
     protected boolean isInstanceClassLoaderRequired(final String classType, final Bundle bundle) {

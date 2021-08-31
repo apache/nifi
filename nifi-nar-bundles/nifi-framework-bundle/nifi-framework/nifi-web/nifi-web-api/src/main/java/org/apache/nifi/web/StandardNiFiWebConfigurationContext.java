@@ -45,6 +45,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.ApplicationResource.ReplicationTarget;
 import org.apache.nifi.web.api.dto.AllowableValueDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
@@ -52,6 +53,7 @@ import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.util.ClientResponseUtils;
@@ -144,6 +146,15 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
                 componentType = Component.ReportingTask;
                 break;
+            case ParameterProviderConfiguration:
+                // authorize access
+                serviceFacade.authorizeAccess(lookup -> {
+                    final Authorizable authorizable = lookup.getParameterProvider(requestContext.getId()).getAuthorizable();
+                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                });
+
+                componentType = Component.ParameterProvider;
+                break;
         }
 
         if (componentType == null) {
@@ -219,6 +230,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 break;
             case ReportingTaskConfiguration:
                 componentFacade = new ReportingTaskFacade();
+                break;
+            case ParameterProviderConfiguration:
+                componentFacade = new ParameterProviderFacade();
                 break;
         }
 
@@ -788,6 +802,151 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                     .annotationData(reportingTask.getAnnotationData())
                     .properties(reportingTask.getProperties())
                     .validateErrors(reportingTask.getValidationErrors()).build();
+        }
+    }
+
+    /**
+     * Interprets the request/response with the underlying ControllerService model.
+     */
+    private class ParameterProviderFacade implements ComponentFacade {
+
+        @Override
+        public ComponentDetails getComponentDetails(final NiFiWebRequestContext requestContext) {
+            final String id = requestContext.getId();
+            final ParameterProviderDTO parameterProvider;
+
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable authorizable = lookup.getParameterProvider(id).getAuthorizable();
+                authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            });
+
+            if (properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
+                // create the request URL
+                URI requestUrl;
+                try {
+                    String path = "/nifi-api/parameter-providers/" + URLEncoder.encode(id, "UTF-8");
+                    requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
+                } catch (final URISyntaxException | UnsupportedEncodingException use) {
+                    throw new ClusterRequestException(use);
+                }
+
+                // set the request parameters
+                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap();
+
+                // replicate request
+                NodeResponse nodeResponse;
+                try {
+                    nodeResponse = replicate(HttpMethod.GET, requestUrl, parameters, getHeaders(requestContext));
+                } catch (final InterruptedException e) {
+                    throw new IllegalClusterStateException("Request was interrupted while waiting for response from node");
+                }
+
+                // check for issues replicating request
+                checkResponse(nodeResponse, id);
+
+                // return parameter provider
+                ParameterProviderEntity entity = (ParameterProviderEntity) nodeResponse.getUpdatedEntity();
+                if (entity == null) {
+                    entity = nodeResponse.getClientResponse().readEntity(ParameterProviderEntity.class);
+                }
+                parameterProvider = entity.getComponent();
+            } else {
+                parameterProvider = serviceFacade.getParameterProvider(id).getComponent();
+            }
+
+            // return the parameter provider info
+            return getComponentConfiguration(parameterProvider);
+        }
+
+        @Override
+        public ComponentDetails updateComponent(final NiFiWebConfigurationRequestContext requestContext, final String annotationData, final Map<String, String> properties) {
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
+            final Revision revision = requestContext.getRevision();
+            final String id = requestContext.getId();
+
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                // authorize the parameter provider
+                final ComponentAuthorizable authorizable = lookup.getParameterProvider(id);
+                authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                // authorize any referenced service
+                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(properties, authorizable, authorizer, lookup);
+            });
+
+            final ParameterProviderDTO parameterProvider;
+            if (StandardNiFiWebConfigurationContext.this.properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
+                // create the request URL
+                URI requestUrl;
+                try {
+                    String path = "/nifi-api/parameter-providers/" + URLEncoder.encode(id, "UTF-8");
+                    requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
+                } catch (final URISyntaxException | UnsupportedEncodingException use) {
+                    throw new ClusterRequestException(use);
+                }
+
+                // create the revision
+                final RevisionDTO revisionDto = new RevisionDTO();
+                revisionDto.setClientId(revision.getClientId());
+                revisionDto.setVersion(revision.getVersion());
+
+                // create the parameter provider entity
+                final ParameterProviderEntity parameterProviderEntity = new ParameterProviderEntity();
+                parameterProviderEntity.setRevision(revisionDto);
+
+                // create the parameter provider dto
+                final ParameterProviderDTO parameterProviderDto = new ParameterProviderDTO();
+                parameterProviderEntity.setComponent(parameterProviderDto);
+                parameterProviderDto.setId(id);
+                parameterProviderDto.setAnnotationData(annotationData);
+                parameterProviderDto.setProperties(properties);
+
+                // set the content type to json
+                final Map<String, String> headers = getHeaders(requestContext);
+                headers.put("Content-Type", "application/json");
+
+                // replicate request
+                NodeResponse nodeResponse;
+                try {
+                    nodeResponse = replicate(HttpMethod.PUT, requestUrl, parameterProviderEntity, headers);
+                } catch (final InterruptedException e) {
+                    throw new IllegalClusterStateException("Request was interrupted while waiting for response from node");
+                }
+
+                // check for issues replicating request
+                checkResponse(nodeResponse, id);
+
+                // return parameter provider
+                ParameterProviderEntity entity = (ParameterProviderEntity) nodeResponse.getUpdatedEntity();
+                if (entity == null) {
+                    entity = nodeResponse.getClientResponse().readEntity(ParameterProviderEntity.class);
+                }
+                parameterProvider = entity.getComponent();
+            } else {
+                final ParameterProviderDTO parameterProviderDto = new ParameterProviderDTO();
+                parameterProviderDto.setId(id);
+                parameterProviderDto.setAnnotationData(annotationData);
+                parameterProviderDto.setProperties(properties);
+
+                // obtain write lock
+                serviceFacade.verifyRevision(revision, user);
+                final ParameterProviderEntity entity = serviceFacade.updateParameterProvider(revision, parameterProviderDto);
+                parameterProvider = entity.getComponent();
+            }
+
+            // return the processor info
+            return getComponentConfiguration(parameterProvider);
+        }
+
+        private ComponentDetails getComponentConfiguration(final ParameterProviderDTO parameterProvider) {
+            return new ComponentDetails.Builder()
+                    .id(parameterProvider.getId())
+                    .name(parameterProvider.getName())
+                    .type(parameterProvider.getType())
+                    .annotationData(parameterProvider.getAnnotationData())
+                    .properties(parameterProvider.getProperties())
+                    .validateErrors(parameterProvider.getValidationErrors()).build();
         }
     }
 

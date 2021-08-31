@@ -17,6 +17,7 @@
 package org.apache.nifi.parameter;
 
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
+import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 
 import java.util.List;
 import java.util.Map;
@@ -79,18 +80,6 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
     Optional<Parameter> getParameter(ParameterDescriptor parameterDescriptor);
 
     /**
-     * Checks whether this ParameterContext would still have an effective value for the given parameter if the
-     * parameter was removed from this or any inherited parameter context, no matter how indirect.  This allows
-     * the ParameterContext to be checked for validity: if it will still have an effective value, the parameter
-     * can be safely removed.
-     *
-     * @param parameterDescriptor parameter descriptor to check
-     * @return True if, when the parameter is removed, this ParameterContext would still have an effective value
-     * for the parameter.
-     */
-    boolean hasEffectiveValueIfRemoved(ParameterDescriptor parameterDescriptor);
-
-    /**
      * Returns the Map of all Parameters in this context (not in any inherited ParameterContexts). Note that the Map that
      * is returned may either be immutable or may be a defensive copy but modifying the Map that is returned will have
      * no effect on the contents of this Parameter Context.
@@ -110,20 +99,43 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
     Map<ParameterDescriptor, Parameter> getEffectiveParameters();
 
     /**
-     * Returns the resulting map of effective parameter updates if the given parameter updates and inherited parameter contexts were to be applied.
-     * This allows potential changes to be detected before actually applying the parameter updates.
-     * @param parameterUpdates A map from parameter name to updated parameter (null if removal is desired)
-     * @param inheritedParameterContexts An ordered list of parameter contexts to inherit from
-     * @return The effective map of parameter updates that would result if these changes were applied.  This includes only parameters that would
-     * be effectively updated or removed, and is mapped by parameter name
+     * Returns a map from parameter name to Parameter, representing all parameters that would be effectively
+     * updated if the provided configuration was applied.  Only parameters that would be effectively updated or added are
+     * included in the map.  A null value for a Parameter represents an effective deletion of that parameter name.
+     * @param parameters A proposed map from parameter name to Parameter (if Parameter is null, this represents a deletion)
+     * @param inheritedParameterContexts A proposed list of inherited parameter contexts
+     * @return A map of effective parameter updates
      */
-    Map<String, Parameter> getEffectiveParameterUpdates(Map<String, Parameter> parameterUpdates, List<ParameterContext> inheritedParameterContexts);
+    Map<String, Parameter> getEffectiveParameterUpdates(final Map<String, Parameter> parameters, final List<ParameterContext> inheritedParameterContexts);
 
     /**
      * Returns the ParameterReferenceManager that is associated with this ParameterContext
      * @return the ParameterReferenceManager that is associated with this ParameterContext
      */
     ParameterReferenceManager getParameterReferenceManager();
+
+    /**
+     * Returns the ParameterProviderLookup that is associated with this ParameterContext
+     * @return the ParameterProviderLookup that is associated with this ParameterContext
+     */
+    ParameterProviderLookup getParameterProviderLookup();
+
+    /**
+     *
+     * @return The {@link ParameterProvider}, or null if none is set.  In the latter case, Parameters are set manually.
+     */
+    ParameterProvider getParameterProvider();
+
+    /**
+     * @return The configuration for the ParameterProvider, or null if none is configured
+     */
+    ParameterProviderConfiguration getParameterProviderConfiguration();
+
+    /**
+     * Configures a {@link ParameterProvider} that will be used to provide Parameters.
+     * @param parameterProviderConfiguration The configuration for the ParameterProvider
+     */
+    void configureParameterProvider(ParameterProviderConfiguration parameterProviderConfiguration);
 
     /**
      * Verifies whether the parameter context can be updated with the provided parameters and inherited parameter contexts.

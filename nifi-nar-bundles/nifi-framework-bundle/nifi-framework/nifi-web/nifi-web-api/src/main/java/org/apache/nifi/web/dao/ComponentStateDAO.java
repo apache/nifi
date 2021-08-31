@@ -18,6 +18,7 @@ package org.apache.nifi.web.dao;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -72,6 +73,22 @@ public interface ComponentStateDAO {
      * @param reportingTask reporting task
      */
     void clearState(ReportingTaskNode reportingTask);
+
+    /**
+     * Gets the state for the specified parameter provider.
+     *
+     * @param parameterProvider parameter provider
+     * @param scope     scope
+     * @return state map
+     */
+    StateMap getState(ParameterProviderNode parameterProvider, Scope scope);
+
+    /**
+     * Clears the state for the specified parameter provider.
+     *
+     * @param parameterProvider parameter provider
+     */
+    void clearState(ParameterProviderNode parameterProvider);
 
     /**
      * Gets the state map for the specified RemoteProcessGroup.

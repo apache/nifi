@@ -186,6 +186,41 @@
                             </c:choose>
                         </div>
                     </div>
+                    <div class="section">
+                        <div class="header">Parameter Providers</div>
+                        <div id="parameter-provider-links" class="component-links">
+                            <c:choose>
+                                <c:when test="${not empty parameterProviders}">
+                                    <ul>
+                                    <c:forEach var="entry" items="${parameterProviders}">
+                                        <c:forEach var="bundleEntry" items="${parameterProviderBundleLookup[entry.value]}">
+                                            <li class="component-item">
+                                                <span class="bundle-group hidden">${bundleEntry.group}</span>
+                                                <span class="bundle-artifact hidden">${bundleEntry.id}</span>
+                                                <span class="bundle-version hidden">${bundleEntry.version}</span>
+                                                <span class="extension-class hidden">${entry.value}</span>
+                                                <a class="component-link" href="components/${bundleEntry.group}/${bundleEntry.id}/${bundleEntry.version}/${entry.value}/index.html" target="component-usage">
+                                                    <c:choose>
+                                                        <c:when test="${bundleEntry.version == 'unversioned'}">
+                                                            ${entry.key}
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            ${entry.key} <span class="version">${bundleEntry.version}</span>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </a>
+                                            </li>
+                                        </c:forEach>
+                                    </c:forEach>
+                                    </ul>
+                                    <span class="no-matching no-components hidden">No matching parameter providers</span>
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="no-components">No parameter provider documentation found</span>
+                                </c:otherwise>
+                            </c:choose>
+                        </div>
+                    </div>
                 </div>
                 <div id="component-filter-controls">
                     <div id="component-filter-container">

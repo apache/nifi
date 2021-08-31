@@ -74,6 +74,8 @@ import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ParameterProviderNode;
+import org.apache.nifi.controller.ParametersApplication;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.PropertyConfigurationMapper;
@@ -99,6 +101,7 @@ import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
+import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConfigurableComponent;
 import org.apache.nifi.flow.VersionedConnection;
@@ -121,6 +124,7 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
@@ -209,6 +213,9 @@ import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderConfigurationDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PreviousValueDTO;
@@ -283,6 +290,9 @@ import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -322,6 +332,7 @@ import org.apache.nifi.web.dao.ControllerServiceDAO;
 import org.apache.nifi.web.dao.FunnelDAO;
 import org.apache.nifi.web.dao.LabelDAO;
 import org.apache.nifi.web.dao.ParameterContextDAO;
+import org.apache.nifi.web.dao.ParameterProviderDAO;
 import org.apache.nifi.web.dao.PortDAO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
@@ -400,6 +411,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private ConnectionDAO connectionDAO;
     private ControllerServiceDAO controllerServiceDAO;
     private ReportingTaskDAO reportingTaskDAO;
+    private ParameterProviderDAO parameterProviderDAO;
     private TemplateDAO templateDAO;
     private UserDAO userDAO;
     private UserGroupDAO userGroupDAO;
@@ -588,6 +600,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyCanVerifyParameterProviderConfig(final String parameterProviderId) {
+        parameterProviderDAO.verifyConfigVerification(parameterProviderId);
+    }
+
+    @Override
     public void verifyDeleteProcessor(final String processorId) {
         processorDAO.verifyDelete(processorId);
     }
@@ -697,7 +714,37 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         reportingTaskDAO.verifyDelete(reportingTaskId);
     }
 
-    // -----------------------------------------
+    @Override
+    public void verifyCreateParameterProvider(ParameterProviderDTO parameterProviderDTO) {
+        parameterProviderDAO.verifyCreate(parameterProviderDTO);
+    }
+
+    @Override
+    public void verifyUpdateParameterProvider(final ParameterProviderDTO parameterProviderDTO) {
+        // if provider does not exist, then the update request is likely creating it
+        // so we don't verify since it will fail
+        if (parameterProviderDAO.hasParameterProvider(parameterProviderDTO.getId())) {
+            parameterProviderDAO.verifyUpdate(parameterProviderDTO);
+        } else {
+            verifyCreateParameterProvider(parameterProviderDTO);
+        }
+    }
+
+    @Override
+    public void verifyCanFetchParameters(final String parameterProviderId) {
+        parameterProviderDAO.verifyCanFetchParameters(parameterProviderId);
+    }
+
+    @Override
+    public void verifyDeleteParameterProvider(final String parameterProviderId) {
+        parameterProviderDAO.verifyDelete(parameterProviderId);
+    }
+
+    @Override
+    public void verifyCanApplyParameters(final String parameterProviderId, Collection<ParameterGroupConfiguration> parameterGroupConfigurations) {
+        parameterProviderDAO.verifyCanApplyParameters(parameterProviderId, parameterGroupConfigurations);
+    }
+// -----------------------------------------
     // Write Operations
     // -----------------------------------------
 
@@ -727,8 +774,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 usersAuthorizable,
                 () -> userDAO.updateUser(userDTO),
                 user -> {
-                    final Set<TenantEntity> tenantEntities = groups.stream().map(g -> g.getIdentifier()).map(mapUserGroupIdToTenantEntity(false)).collect(Collectors.toSet());
-                    final Set<AccessPolicySummaryEntity> policyEntities = policies.stream().map(ap -> createAccessPolicySummaryEntity(ap)).collect(Collectors.toSet());
+                    final Set<TenantEntity> tenantEntities = groups.stream().map(Group::getIdentifier).map(mapUserGroupIdToTenantEntity(false)).collect(Collectors.toSet());
+                    final Set<AccessPolicySummaryEntity> policyEntities = policies.stream().map(this::createAccessPolicySummaryEntity).collect(Collectors.toSet());
                     return dtoFactory.createUserDto(user, tenantEntities, policyEntities);
                 });
 
@@ -745,7 +792,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 () -> userGroupDAO.updateUserGroup(userGroupDTO),
                 userGroup -> {
                     final Set<TenantEntity> tenantEntities = userGroup.getUsers().stream().map(mapUserIdToTenantEntity(false)).collect(Collectors.toSet());
-                    final Set<AccessPolicySummaryEntity> policyEntities = policies.stream().map(ap -> createAccessPolicySummaryEntity(ap)).collect(Collectors.toSet());
+                    final Set<AccessPolicySummaryEntity> policyEntities = policies.stream().map(this::createAccessPolicySummaryEntity).collect(Collectors.toSet());
                     return dtoFactory.createUserGroupDto(userGroup, tenantEntities, policyEntities);
                 }
         );
@@ -902,21 +949,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         try {
             final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-            final RevisionUpdate<D> updatedComponent = revisionManager.updateRevision(new StandardRevisionClaim(revision), user, new UpdateRevisionTask<D>() {
-                @Override
-                public RevisionUpdate<D> update() {
-                    // get the updated component
-                    final C component = daoUpdate.get();
+            final RevisionUpdate<D> updatedComponent = revisionManager.updateRevision(new StandardRevisionClaim(revision), user, () -> {
+                // get the updated component
+                final C component = daoUpdate.get();
 
-                    // save updated controller
-                    controllerFacade.save();
+                // save updated controller
+                controllerFacade.save();
 
-                    final D dto = dtoCreation.apply(component);
+                final D dto = dtoCreation.apply(component);
 
-                    final Revision updatedRevision = revisionManager.getRevision(revision.getComponentId()).incrementRevision(revision.getClientId());
-                    final FlowModification lastModification = new FlowModification(updatedRevision, user.getIdentity());
-                    return new StandardRevisionUpdate<>(dto, lastModification);
-                }
+                final Revision updatedRevision = revisionManager.getRevision(revision.getComponentId()).incrementRevision(revision.getClientId());
+                final FlowModification lastModification = new FlowModification(updatedRevision, user.getIdentity());
+                return new StandardRevisionUpdate<>(dto, lastModification);
             });
 
             return updatedComponent;
@@ -1215,7 +1259,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                                                                 final ParameterContextLookup parameterContextLookup) {
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterContext, user);
         final RevisionDTO revisionDto = dtoFactory.createRevisionDTO(revisionManager.getRevision(parameterContext.getIdentifier()));
-        final ParameterContextDTO parameterContextDto = dtoFactory.createParameterContextDto(parameterContext, revisionManager, includeInheritedParameters, parameterContextLookup);
+        final ParameterContextDTO parameterContextDto = dtoFactory.createParameterContextDto(parameterContext, revisionManager, includeInheritedParameters,
+                parameterContextLookup);
         final ParameterContextEntity entity = entityFactory.createParameterContextEntity(parameterContextDto, revisionDto, permissions);
         return entity;
     }
@@ -1224,9 +1269,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public List<ComponentValidationResultEntity> validateComponents(final ParameterContextDTO parameterContextDto, final NiFiUser nifiUser) {
         final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextDto.getId());
         final Set<ProcessGroup> boundProcessGroups = parameterContext.getParameterReferenceManager().getProcessGroupsBound(parameterContext);
-
-        final ParameterContext updatedParameterContext = new StandardParameterContext(parameterContext.getIdentifier(), parameterContext.getName(),
-                ParameterReferenceManager.EMPTY, null);
+        final ParameterContext updatedParameterContext = new StandardParameterContext.Builder()
+                .id(parameterContext.getIdentifier())
+                .name(parameterContext.getName())
+                .parameterReferenceManager(ParameterReferenceManager.EMPTY)
+                .build();
         final Map<String, Parameter> parameters = new HashMap<>();
         parameterContextDto.getParameters().stream()
             .map(ParameterEntity::getParameter)
@@ -1281,7 +1328,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             .sensitive(Boolean.TRUE.equals(dto.getSensitive()))
             .build();
 
-        return new Parameter(descriptor, dto.getValue());
+        final String parameterContextId = dto.getParameterContext() == null ? null : dto.getParameterContext().getId();
+        return new Parameter(descriptor, dto.getValue(), parameterContextId, dto.getProvided());
     }
 
     @Override
@@ -1293,13 +1341,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // update revision through revision manager
         final RevisionUpdate<ParameterContextDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
-            // create the reporting task
+            // create the parameter context
             final ParameterContext parameterContext = parameterContextDAO.createParameterContext(parameterContextDto);
 
             // save the update
             controllerFacade.save();
 
-            final ParameterContextDTO dto = dtoFactory.createParameterContextDto(parameterContext, revisionManager, false, parameterContextDAO);
+            final ParameterContextDTO dto = dtoFactory.createParameterContextDto(parameterContext, revisionManager, false,
+                    parameterContextDAO);
             final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
             return new StandardRevisionUpdate<>(dto, lastMod);
         });
@@ -1393,8 +1442,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<AffectedComponentEntity> getComponentsAffectedByParameterContextUpdate(final ParameterContextDTO parameterContextDto) {
-        return getComponentsAffectedByParameterContextUpdate(parameterContextDto, true);
+    public Set<AffectedComponentEntity> getComponentsAffectedByParameterContextUpdate(final Collection<ParameterContextDTO> parameterContextDTOs) {
+        final Set<AffectedComponentEntity> allAffectedComponents = new HashSet<>();
+        for (final ParameterContextDTO parameterContextDTO : parameterContextDTOs) {
+            allAffectedComponents.addAll(getComponentsAffectedByParameterContextUpdate(parameterContextDTO, true));
+        }
+        return allAffectedComponents;
     }
 
     private Set<AffectedComponentEntity> getComponentsAffectedByParameterContextUpdate(final ParameterContextDTO parameterContextDto, final boolean includeInactive) {
@@ -1550,8 +1603,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             final Parameter parameter = parameterOption.get();
             final boolean valueUpdated = !Objects.equals(updatedValue, parameter.getValue());
+            // Sensitivity can be updated for provided parameters only
+            final boolean sensitivityUpdated = parameterDto.getSensitive() != null && parameterDto.getSensitive() != parameter.getDescriptor().isSensitive();
             final boolean descriptionUpdated = parameterDto.getDescription() != null && !parameterDto.getDescription().equals(parameter.getDescriptor().getDescription());
-            final boolean updated = valueUpdated || descriptionUpdated;
+            final boolean updated = valueUpdated || descriptionUpdated || sensitivityUpdated;
             if (updated) {
                 updatedParameters.add(parameterName);
             }
@@ -1762,6 +1817,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public void clearReportingTaskState(final String reportingTaskId) {
         reportingTaskDAO.clearState(reportingTaskId);
+    }
+
+    @Override
+    public void verifyCanClearParameterProviderState(final String parameterProviderId) {
+        parameterProviderDAO.verifyClearState(parameterProviderId);
+    }
+
+    @Override
+    public void clearParameterProviderState(final String parameterProviderId) {
+        parameterProviderDAO.clearState(parameterProviderId);
     }
 
     @Override
@@ -3286,6 +3351,140 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public ParameterProviderEntity createParameterProvider(final Revision revision, final ParameterProviderDTO parameterProviderDTO) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // request claim for component to be created... revision already verified (version == 0)
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+
+        // update revision through revision manager
+        final RevisionUpdate<ParameterProviderDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            // create the parameter provider
+            final ParameterProviderNode parameterProvider = parameterProviderDAO.createParameterProvider(parameterProviderDTO);
+
+            // save the update
+            controllerFacade.save();
+            awaitValidationCompletion(parameterProvider);
+
+            final ParameterProviderDTO dto = dtoFactory.createParameterProviderDto(parameterProvider);
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        final ParameterProviderNode parameterProvider = parameterProviderDAO.getParameterProvider(parameterProviderDTO.getId());
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterProvider);
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(parameterProvider.getIdentifier()));
+        final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+        return entityFactory.createParameterProviderEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, bulletinEntities);
+    }
+
+    @Override
+    public ParameterProviderEntity updateParameterProvider(final Revision revision, final ParameterProviderDTO parameterProviderDTO) {
+        // get the component, ensure we have access to it, and perform the update request
+        final ParameterProviderNode parameterProvider = parameterProviderDAO.getParameterProvider(parameterProviderDTO.getId());
+        final RevisionUpdate<ParameterProviderDTO> snapshot = updateComponent(revision,
+                parameterProvider,
+                () -> parameterProviderDAO.updateParameterProvider(parameterProviderDTO),
+                rt -> {
+                    awaitValidationCompletion(rt);
+                    return dtoFactory.createParameterProviderDto(rt);
+                });
+
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterProvider);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(parameterProvider));
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(parameterProvider.getIdentifier()));
+        final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+        return entityFactory.createParameterProviderEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, bulletinEntities);
+    }
+
+    @Override
+    public List<ConfigVerificationResultDTO> performParameterProviderConfigVerification(final String parameterProviderId, final Map<String, String> properties) {
+        return parameterProviderDAO.verifyConfiguration(parameterProviderId, properties);
+    }
+
+    @Override
+    public ConfigurationAnalysisEntity analyzeParameterProviderConfiguration(final String parameterProviderId, final Map<String, String> properties) {
+        final ParameterProviderNode taskNode = parameterProviderDAO.getParameterProvider(parameterProviderId);
+        final ConfigurationAnalysisEntity configurationAnalysisEntity = analyzeConfiguration(taskNode, properties, null);
+        return configurationAnalysisEntity;
+    }
+
+    @Override
+    public ParameterProviderEntity deleteParameterProvider(final Revision revision, final String parameterProviderId) {
+        final ParameterProviderNode parameterProvider = parameterProviderDAO.getParameterProvider(parameterProviderId);
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterProvider);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(parameterProvider));
+        final ParameterProviderDTO snapshot = deleteComponent(
+                revision,
+                parameterProvider.getResource(),
+                () -> parameterProviderDAO.deleteParameterProvider(parameterProviderId),
+                true,
+                dtoFactory.createParameterProviderDto(parameterProvider));
+
+        return entityFactory.createParameterProviderEntity(snapshot, null, permissions, null);
+    }
+
+    @Override
+    public ParameterProviderEntity fetchParameters(final String parameterProviderId) {
+        final ParameterProviderNode parameterProvider = parameterProviderDAO.getParameterProvider(parameterProviderId);
+
+        awaitValidationCompletion(parameterProvider);
+        parameterProvider.fetchParameters();
+
+        final ParameterProviderEntity entity = createParameterProviderEntity(parameterProvider);
+        return entity;
+    }
+
+    @Override
+    public List<ParameterContextEntity> getParameterContextUpdatesForAppliedParameters(final String parameterProviderId, final Collection<ParameterGroupConfiguration> parameterGroupConfigurations) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Map<String, ParameterGroupConfiguration> parameterGroupConfigurationMap = parameterGroupConfigurations.stream()
+                .collect(Collectors.toMap(ParameterGroupConfiguration::getParameterContextName, Function.identity()));
+
+        final List<ParametersApplication> parametersApplications = parameterProviderDAO.getFetchedParametersToApply(parameterProviderId, parameterGroupConfigurations);
+        return parametersApplications.stream()
+                .filter(parametersApplication -> !parametersApplication.getParameterUpdates().isEmpty())
+                .map(parametersApplication -> {
+                    final ParameterContext parameterContext = parametersApplication.getParameterContext();
+                    final ParameterGroupConfiguration parameterGroupConfiguration = parameterGroupConfigurationMap.get(parameterContext.getName());
+                    final ParameterContextEntity entity = createParameterContextEntity(parameterContext, false, user, parameterContextDAO);
+                    final ParameterProviderConfigurationDTO parameterProviderConfiguration = entity.getComponent().getParameterProviderConfiguration().getComponent();
+                    parameterProviderConfiguration.setSynchronized(parameterGroupConfiguration.isSynchronized());
+
+                    final Map<String, Parameter> parameterUpdates = parametersApplication.getParameterUpdates();
+                    final Map<String, ParameterEntity> currentParameterEntities = entity.getComponent().getParameters()
+                            .stream()
+                            .collect(Collectors.toMap(
+                                    parameterEntity -> parameterEntity.getParameter().getName(),
+                                    Function.identity()
+                            ));
+                    final Set<ParameterEntity> updatedParameterEntities = new LinkedHashSet<>();
+                    entity.getComponent().setParameters(updatedParameterEntities);
+                    for (final Map.Entry<String, Parameter> parameterEntry : parameterUpdates.entrySet()) {
+                        final String parameterName = parameterEntry.getKey();
+                        final Parameter parameter = parameterEntry.getValue();
+                        final ParameterEntity parameterEntity;
+                        if (parameter == null) {
+                            parameterEntity = currentParameterEntities.get(parameterName);
+                            if (parameterEntity != null) {
+                                final ParameterDTO parameterDTO = parameterEntity.getParameter();
+                                // These three fields must be null in order for ParameterContextDAO to recognize this as a parameter deletion
+                                parameterDTO.setDescription(null);
+                                parameterDTO.setSensitive(null);
+                                parameterDTO.setValue(null);
+                                updatedParameterEntities.add(parameterEntity);
+                            }
+                        } else {
+                            parameterEntity = dtoFactory.createParameterEntity(parameterContext, parameter, revisionManager, parameterContextDAO);
+                            updatedParameterEntities.add(parameterEntity);
+                        }
+                    }
+                    return entity;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public void deleteActions(final Date endDate) {
         // get the user from the request
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -3421,7 +3620,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final StateMap clusterState = isClustered() ? processorDAO.getState(processorId, Scope.CLUSTER) : null;
         final StateMap localState = processorDAO.getState(processorId, Scope.LOCAL);
 
-        // processor will be non null as it was already found when getting the state
+        // processor will be non-null as it was already found when getting the state
         final ProcessorNode processor = processorDAO.getProcessor(processorId);
         return dtoFactory.createComponentStateDTO(processorId, processor.getProcessor().getClass(), localState, clusterState);
     }
@@ -3431,7 +3630,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final StateMap clusterState = isClustered() ? controllerServiceDAO.getState(controllerServiceId, Scope.CLUSTER) : null;
         final StateMap localState = controllerServiceDAO.getState(controllerServiceId, Scope.LOCAL);
 
-        // controller service will be non null as it was already found when getting the state
+        // controller service will be non-null as it was already found when getting the state
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
         return dtoFactory.createComponentStateDTO(controllerServiceId, controllerService.getControllerServiceImplementation().getClass(), localState, clusterState);
     }
@@ -3441,9 +3640,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final StateMap clusterState = isClustered() ? reportingTaskDAO.getState(reportingTaskId, Scope.CLUSTER) : null;
         final StateMap localState = reportingTaskDAO.getState(reportingTaskId, Scope.LOCAL);
 
-        // reporting task will be non null as it was already found when getting the state
+        // reporting task will be non-null as it was already found when getting the state
         final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskId);
         return dtoFactory.createComponentStateDTO(reportingTaskId, reportingTask.getReportingTask().getClass(), localState, clusterState);
+    }
+
+    @Override
+    public ComponentStateDTO getParameterProviderState(final String parameterProviderId) {
+        final StateMap clusterState = isClustered() ? parameterProviderDAO.getState(parameterProviderId, Scope.CLUSTER) : null;
+        final StateMap localState = parameterProviderDAO.getState(parameterProviderId, Scope.LOCAL);
+
+        // parameter provider will be non-null as it was already found when getting the state
+        final ParameterProviderNode parameterProvider = parameterProviderDAO.getParameterProvider(parameterProviderId);
+        return dtoFactory.createComponentStateDTO(parameterProviderId, parameterProvider.getParameterProvider().getClass(), localState, clusterState);
     }
 
     @Override
@@ -3641,6 +3850,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public Set<DocumentedTypeDTO> getParameterProviderTypes(final String bundleGroup, final String bundleArtifact, final String type) {
+        return controllerFacade.getParameterProviderTypes(bundleGroup, bundleArtifact, type);
+    }
+
+    @Override
     public ProcessorEntity getProcessor(final String id) {
         final ProcessorNode processor = processorDAO.getProcessor(id);
         return createProcessorEntity(processor, NiFiUserUtils.getNiFiUser());
@@ -3688,6 +3902,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     break;
                 case REPORTING_TASK:
                     authorizable = authorizableLookup.getReportingTask(sourceId).getAuthorizable();
+                    break;
+                case PARAMETER_PROVIDER:
+                    authorizable = authorizableLookup.getParameterProvider(sourceId).getAuthorizable();
                     break;
                 case CONTROLLER_SERVICE:
                     authorizable = authorizableLookup.getControllerService(sourceId).getAuthorizable();
@@ -3764,8 +3981,58 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void discoverCompatibleBundles(VersionedProcessGroup versionedGroup) {
+    public void discoverCompatibleBundles(final VersionedProcessGroup versionedGroup) {
         BundleUtils.discoverCompatibleBundles(controllerFacade.getExtensionManager(), versionedGroup);
+    }
+
+    @Override
+    public void resolveParameterProviders(final VersionedFlowSnapshot versionedFlowSnapshot, final NiFiUser user) {
+        final Map<String, ParameterProviderReference> parameterProviderReferences = versionedFlowSnapshot.getParameterProviders();
+        if (parameterProviderReferences == null || parameterProviderReferences.isEmpty()
+                || versionedFlowSnapshot.getParameterContexts() == null || versionedFlowSnapshot.getParameterContexts().isEmpty()) {
+            return;
+        }
+
+        final Set<ParameterProviderNode> parameterProviderNodes = parameterProviderDAO.getParameterProviders().stream()
+                .filter(provider -> provider.isAuthorized(authorizer, RequestAction.READ, user))
+                .collect(Collectors.toSet());
+
+        for (final VersionedParameterContext parameterContext : versionedFlowSnapshot.getParameterContexts().values()) {
+            resolveParameterProvider(parameterContext, parameterProviderNodes, parameterProviderReferences);
+        }
+    }
+
+    private void resolveParameterProvider(final VersionedParameterContext parameterContext, final Set<ParameterProviderNode> availableParameterProviders,
+                                          final Map<String, ParameterProviderReference> parameterProviderReferences) {
+
+        final String referencedParameterProviderId = parameterContext.getParameterProvider();
+        if (referencedParameterProviderId == null) {
+            return;
+        }
+
+        final ParameterProviderReference parameterProviderReference = parameterProviderReferences == null ? null : parameterProviderReferences.get(referencedParameterProviderId);
+        if (parameterProviderReference == null) {
+            return;
+        }
+        final ExtensionManager extensionManager = controllerFacade.getExtensionManager();
+        final BundleCoordinate compatibleBundle = BundleUtils.discoverCompatibleBundle(extensionManager, parameterProviderReference.getType(), parameterProviderReference.getBundle());
+        final ConfigurableComponent tempComponent = extensionManager.getTempComponent(parameterProviderReference.getType(), compatibleBundle);
+        final Class<?> referencedProviderClass = tempComponent.getClass();
+
+        final String parameterProviderReferenceName = parameterProviderReference.getName();
+        final List<ParameterProviderNode> matchingParameterProviders = availableParameterProviders.stream()
+                .filter(provider -> provider.getName().equals(parameterProviderReferenceName))
+                .filter(provider -> referencedProviderClass.isAssignableFrom(provider.getParameterProvider().getClass()))
+                .collect(Collectors.toList());
+
+        if (matchingParameterProviders.size() != 1) {
+            return;
+        }
+
+        final ParameterProviderNode matchingProviderNode = matchingParameterProviders.get(0);
+        final String resolvedId = matchingProviderNode.getIdentifier();
+
+        parameterContext.setParameterProvider(resolvedId);
     }
 
     @Override
@@ -4052,6 +4319,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
         }
         controllerBulletinsEntity.setReportingTaskBulletins(reportingTaskBulletinEntities);
+
+        // get the parameter provider bulletins
+        final BulletinQuery parameterProviderQuery = new BulletinQuery.Builder().sourceType(ComponentType.PARAMETER_PROVIDER).build();
+        final List<Bulletin> allParameterProviderBulletins = bulletinRepository.findBulletins(parameterProviderQuery);
+        final List<BulletinEntity> parameterProviderBulletinEntities = new ArrayList<>();
+        for (final Bulletin bulletin : allParameterProviderBulletins) {
+            try {
+                final Authorizable parameterProviderAuthorizable = authorizableLookup.getParameterProvider(bulletin.getSourceId()).getAuthorizable();
+                final boolean parameterProviderAuthorizableAuthorized = parameterProviderAuthorizable.isAuthorized(authorizer, RequestAction.READ, user);
+
+                final BulletinEntity parameterProviderBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), parameterProviderAuthorizableAuthorized);
+                parameterProviderBulletinEntities.add(parameterProviderBulletin);
+                controllerBulletinEntities.add(parameterProviderBulletin);
+            } catch (final ResourceNotFoundException e) {
+                // parameter provider missing.. skip
+            }
+        }
+        controllerBulletinsEntity.setParameterProviderBulletins(parameterProviderBulletinEntities);
 
         controllerBulletinsEntity.setBulletins(pruneAndSortBulletins(controllerBulletinEntities, BulletinRepository.MAX_BULLETINS_FOR_CONTROLLER));
         return controllerBulletinsEntity;
@@ -4554,6 +4839,93 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return dtoFactory.createPropertyDescriptorDto(descriptor, null);
     }
 
+    private ParameterProviderEntity createParameterProviderEntity(final ParameterProviderNode parameterProvider) {
+        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(parameterProvider.getIdentifier()));
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterProvider);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(parameterProvider));
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(parameterProvider.getIdentifier()));
+        final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+        return entityFactory.createParameterProviderEntity(dtoFactory.createParameterProviderDto(parameterProvider),
+                revision, permissions, bulletinEntities);
+    }
+
+    @Override
+    public Set<ParameterProviderEntity> getParameterProviders() {
+        final Set<ParameterProviderNode> parameterProviders = parameterProviderDAO.getParameterProviders();
+        return parameterProviders.stream()
+                .map(parameterProvider -> createParameterProviderEntity(parameterProvider))
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public ParameterProviderEntity getParameterProvider(final String parameterProviderId) {
+        final ParameterProviderNode parameterProvider = parameterProviderDAO.getParameterProvider(parameterProviderId);
+        return createParameterProviderEntity(parameterProvider);
+    }
+
+    @Override
+    public ParameterProviderReferencingComponentsEntity getParameterProviderReferencingComponents(final String parameterProviderId) {
+        final ParameterProviderNode provider = parameterProviderDAO.getParameterProvider(parameterProviderId);
+        return createParameterProviderReferencingComponentsEntity(provider.getReferences());
+    }
+
+    /**
+     * Creates entities for components referencing a ParameterProvider using their current revision.
+     *
+     * @param references ParameterContexts that reference the parameter provider
+     * @return The entity
+     */
+    private ParameterProviderReferencingComponentsEntity createParameterProviderReferencingComponentsEntity(final Set<ParameterContext> references) {
+        final Map<String, Revision> referencingRevisions = new HashMap<>();
+        for (final ParameterContext reference : references) {
+            referencingRevisions.put(reference.getIdentifier(), revisionManager.getRevision(reference.getIdentifier()));
+        }
+
+        return createParameterProviderReferencingComponentsEntity(references, referencingRevisions);
+    }
+    /**
+     * Creates entities for components referencing a ParameterProvider using the specified revisions.
+     *
+     * @param references referencing ParameterContexts
+     * @param revisions The revisions
+     * @return The entity
+     */
+    private ParameterProviderReferencingComponentsEntity createParameterProviderReferencingComponentsEntity(
+            final Set<ParameterContext> references, final Map<String, Revision> revisions) {
+
+        final String modifier = NiFiUserUtils.getNiFiUserIdentity();
+
+        final Set<ParameterProviderReferencingComponentEntity> componentEntities = new HashSet<>();
+        for (final ParameterContext reference : references) {
+            final PermissionsDTO permissions = dtoFactory.createPermissionsDto(reference);
+
+            final Revision revision = revisions.get(reference.getIdentifier());
+            final FlowModification flowMod = new FlowModification(revision, modifier);
+            final RevisionDTO revisionDto = dtoFactory.createRevisionDTO(flowMod);
+            final ParameterProviderReferencingComponentDTO dto = dtoFactory.createParameterProviderReferencingComponentDTO(reference);
+
+            final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(reference.getIdentifier()));
+            componentEntities.add(entityFactory.createParameterProviderReferencingComponentEntity(reference.getIdentifier(), dto, revisionDto, permissions, bulletins));
+        }
+
+        final ParameterProviderReferencingComponentsEntity entity = new ParameterProviderReferencingComponentsEntity();
+        entity.setParameterProviderReferencingComponents(componentEntities);
+        return entity;
+    }
+
+    @Override
+    public PropertyDescriptorDTO getParameterProviderPropertyDescriptor(final String id, final String property) {
+        final ParameterProviderNode parameterProvider = parameterProviderDAO.getParameterProvider(id);
+        PropertyDescriptor descriptor = parameterProvider.getParameterProvider().getPropertyDescriptor(property);
+
+        // return an invalid descriptor if the parameter provider doesn't support this property
+        if (descriptor == null) {
+            descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
+        }
+
+        return dtoFactory.createPropertyDescriptorDto(descriptor, null);
+    }
+
     @Override
     public StatusHistoryEntity getProcessGroupStatusHistory(final String groupId) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
@@ -4578,7 +4950,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // Create a VersionedProcessGroup snapshot of the flow as it is currently.
         final InstantiatedVersionedProcessGroup versionedProcessGroup = createFlowSnapshot(groupId);
-        final Map<String, VersionedParameterContext> parameterContexts = createVersionedParameterContexts(processGroup);
+        final Map<String, ParameterProviderReference> parameterProviderReferences = new HashMap<>();
+        final Map<String, VersionedParameterContext> parameterContexts = createVersionedParameterContexts(processGroup, parameterProviderReferences);
 
         final String flowId = versionedFlowDto.getFlowId() == null ? UUID.randomUUID().toString() : versionedFlowDto.getFlowId();
 
@@ -4611,8 +4984,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         try {
             // add a snapshot to the flow in the registry
-            registeredSnapshot = registerVersionedFlowSnapshot(registryId, registeredFlow, versionedProcessGroup, parameterContexts, versionedProcessGroup.getExternalControllerServiceReferences(),
-                versionedFlowDto.getComments(), snapshotVersion);
+            registeredSnapshot = registerVersionedFlowSnapshot(registryId, registeredFlow, versionedProcessGroup, parameterContexts, parameterProviderReferences,
+                    versionedProcessGroup.getExternalControllerServiceReferences(), versionedFlowDto.getComments(), snapshotVersion);
         } catch (final NiFiCoreException e) {
             // If the flow has been created, but failed to add a snapshot,
             // then we need to capture the created versioned flow information as a partial successful result.
@@ -4696,8 +5069,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final InstantiatedVersionedProcessGroup nonVersionedProcessGroup =
                 mapper.mapNonVersionedProcessGroup(processGroup, controllerFacade.getControllerServiceProvider());
 
+        final Map<String, ParameterProviderReference> parameterProviderReferences = new HashMap<>();
+
         // Create a complete (include descendant flows) map of parameter contexts
-        final Map<String, VersionedParameterContext> parameterContexts = mapper.mapParameterContexts(processGroup, true);
+        final Map<String, VersionedParameterContext> parameterContexts = mapper.mapParameterContexts(processGroup, true, parameterProviderReferences);
 
         final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences =
                 Optional.ofNullable(nonVersionedProcessGroup.getExternalControllerServiceReferences()).orElse(Collections.emptyMap());
@@ -4731,6 +5106,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         nonVersionedProcessGroup.setControllerServices(controllerServices);
         nonVersionedFlowSnapshot.setFlowContents(nonVersionedProcessGroup);
+        nonVersionedFlowSnapshot.setParameterProviders(parameterProviderReferences);
         nonVersionedFlowSnapshot.setParameterContexts(parameterContexts);
         nonVersionedFlowSnapshot.setFlowEncodingVersion(RestBasedFlowRegistry.FLOW_ENCODING_VERSION);
 
@@ -4834,9 +5210,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return versionedGroup;
     }
 
-    private Map<String, VersionedParameterContext> createVersionedParameterContexts(final ProcessGroup processGroup) {
+    private Map<String, VersionedParameterContext> createVersionedParameterContexts(final ProcessGroup processGroup, final Map<String, ParameterProviderReference> parameterProviderReferences) {
         final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
-        return mapper.mapParameterContexts(processGroup, false);
+        return mapper.mapParameterContexts(processGroup, false, parameterProviderReferences);
     }
 
     @Override
@@ -4913,15 +5289,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public VersionedFlowSnapshot registerVersionedFlowSnapshot(final String registryId, final VersionedFlow flow, final VersionedProcessGroup snapshot,
                                                                final Map<String, VersionedParameterContext> parameterContexts,
-                                                               final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences, final String comments,
-                                                               final int expectedVersion) {
+                                                               final Map<String, ParameterProviderReference> parameterProviderReferences,
+                                                               final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
+                                                               final String comments, final int expectedVersion) {
         final FlowRegistry registry = flowRegistryClient.getFlowRegistry(registryId);
         if (registry == null) {
             throw new ResourceNotFoundException("No Flow Registry exists with ID " + registryId);
         }
 
         try {
-            return registry.registerVersionedFlowSnapshot(flow, snapshot, externalControllerServiceReferences, parameterContexts, comments, expectedVersion, NiFiUserUtils.getNiFiUser());
+            return registry.registerVersionedFlowSnapshot(flow, snapshot, externalControllerServiceReferences, parameterContexts,
+                    parameterProviderReferences, comments, expectedVersion, NiFiUserUtils.getNiFiUser());
         } catch (final IOException | NiFiRegistryException e) {
             throw new NiFiCoreException("Failed to register flow with Flow Registry due to " + e.getMessage(), e);
         }
@@ -5418,7 +5796,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createProcessGroupEntity(revisionUpdate.getComponent(), updatedRevision, permissions, status, bulletinEntities);
     }
 
-
     private AuthorizationResult authorizeAction(final Action action) {
         final String sourceId = action.getSourceId();
         final Component type = action.getSourceType();
@@ -5458,6 +5835,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     break;
                 case ParameterContext:
                     authorizable = authorizableLookup.getParameterContext(sourceId);
+                    break;
+                case ParameterProvider:
+                    authorizable = authorizableLookup.getParameterProvider(sourceId).getAuthorizable();
                     break;
                 case AccessPolicy:
                     authorizable = authorizableLookup.getAccessPolicyById(sourceId);
@@ -5984,6 +6364,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     public void setReportingTaskDAO(final ReportingTaskDAO reportingTaskDAO) {
         this.reportingTaskDAO = reportingTaskDAO;
+    }
+
+    public void setParameterProviderDAO(final ParameterProviderDAO parameterProviderDAO) {
+        this.parameterProviderDAO = parameterProviderDAO;
     }
 
     public void setParameterContextDAO(final ParameterContextDAO parameterContextDAO) {

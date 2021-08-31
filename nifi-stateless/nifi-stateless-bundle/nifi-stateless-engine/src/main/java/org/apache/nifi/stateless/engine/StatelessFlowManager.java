@@ -31,6 +31,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.StandardConnection;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -313,6 +314,13 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
         }
 
         return taskNode;
+    }
+
+    @Override
+    public ParameterProviderNode createParameterProvider(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
+                                                         final boolean register) {
+
+        throw new UnsupportedOperationException("Parameter Providers are not supported in Stateless NiFi");
     }
 
     @Override

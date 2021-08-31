@@ -30,32 +30,20 @@ import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.groups.FlowFileConcurrency;
-import org.apache.nifi.groups.FlowFileOutboundPolicy;
-import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.groups.RemoteProcessGroup;
-import org.apache.nifi.logging.LogLevel;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.parameter.Parameter;
-import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.parameter.ParameterDescriptor;
-import org.apache.nifi.registry.ComponentVariableRegistry;
-import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
-import org.apache.nifi.registry.flow.FlowRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.flow.PortType;
-import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
@@ -69,6 +57,24 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ParameterProviderConfiguration;
+import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
+import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.registry.VariableDescriptor;
+import org.apache.nifi.registry.flow.FlowRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.flow.ParameterProviderReference;
+import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -83,6 +89,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -104,12 +111,19 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class NiFiRegistryFlowMapperTest {
 
+    private static final String PARAMETER_PROVIDER_ID = "id";
     @Mock
     private ExtensionManager extensionManager;
     @Mock
     private ControllerServiceProvider controllerServiceProvider;
     @Mock
     private FlowRegistryClient flowRegistryClient;
+    @Mock
+    private ParameterProviderLookup parameterProviderLookup;
+    @Mock
+    private ParameterProviderNode parameterProviderNode;
+    @Mock
+    private ParameterProvider parameterProvider;
 
     private NiFiRegistryFlowMapper flowMapper = new NiFiRegistryFlowMapper(extensionManager);
 
@@ -120,6 +134,13 @@ public class NiFiRegistryFlowMapperTest {
         final FlowRegistry flowRegistry = mock(FlowRegistry.class);
         when(flowRegistryClient.getFlowRegistry(anyString())).thenReturn(flowRegistry);
         when(flowRegistry.getURL()).thenReturn("url");
+
+        when(parameterProviderLookup.getParameterProvider(PARAMETER_PROVIDER_ID)).thenReturn(parameterProviderNode);
+        when(parameterProviderNode.getName()).thenReturn("name");
+        final BundleCoordinate bundleCoordinates = new BundleCoordinate("group", "artifact", "version");
+        when(parameterProviderNode.getBundleCoordinate()).thenReturn(bundleCoordinates);
+
+        when(parameterProvider.getIdentifier()).thenReturn(PARAMETER_PROVIDER_ID);
     }
 
     /**
@@ -137,10 +158,12 @@ public class NiFiRegistryFlowMapperTest {
                 prepareProcessGroupWithParameterContext(Collections.singletonList(innerProcessGroup),
                         false, false);
 
+        final Map<String, ParameterProviderReference> parameterProviderReferences = new HashMap<>();
+
         // first nesting should be traversed because child is not version controlled, but deeper nesting should be ignored
         // because map versioned descendants indicator is false
         final Map<String, VersionedParameterContext> versionedParameterContexts =
-                flowMapper.mapParameterContexts(processGroup, false);
+                flowMapper.mapParameterContexts(processGroup, false, parameterProviderReferences);
 
         // verify single parameter context
         assertEquals(1, versionedParameterContexts.size());
@@ -149,6 +172,7 @@ public class NiFiRegistryFlowMapperTest {
 
         final String expectedName = innerProcessGroup.getParameterContext().getName();
         verifyParameterContext(innerProcessGroup.getParameterContext(), versionedParameterContexts.get(expectedName));
+        verifyParameterProviders(parameterProviderReferences);
     }
 
     /**
@@ -166,9 +190,11 @@ public class NiFiRegistryFlowMapperTest {
                 prepareProcessGroupWithParameterContext(Collections.singletonList(innerProcessGroup),
                         true, true);
 
+        final Map<String, ParameterProviderReference> parameterProviderReferences = new HashMap<>();
+
         // include nested parameter contexts even though they are version controlled because map descendant indicator is true
         final Map<String, VersionedParameterContext> versionedParameterContexts =
-                flowMapper.mapParameterContexts(processGroup, true);
+                flowMapper.mapParameterContexts(processGroup, true, parameterProviderReferences);
 
         // verify parameter contexts
         assertEquals(2, versionedParameterContexts.size());
@@ -177,6 +203,7 @@ public class NiFiRegistryFlowMapperTest {
         final String expectedName2 = innerInnerProcessGroup.getParameterContext().getName();
         verifyParameterContext(processGroup.getParameterContext(), versionedParameterContexts.get(expectedName1));
         verifyParameterContext(innerInnerProcessGroup.getParameterContext(), versionedParameterContexts.get(expectedName2));
+        verifyParameterProviders(parameterProviderReferences);
     }
 
     /**
@@ -272,6 +299,11 @@ public class NiFiRegistryFlowMapperTest {
             final Map<ParameterDescriptor, Parameter> parametersMap = new LinkedHashMap<>();
             when(parameterContext.getParameters()).thenReturn(parametersMap);
             when(parameterContext.getInheritedParameterContextNames()).thenReturn(Collections.singletonList("other-context"));
+            when(parameterContext.getParameterProvider()).thenReturn(parameterProvider);
+            when(parameterContext.getParameterProviderLookup()).thenReturn(parameterProviderLookup);
+            final ParameterProviderConfiguration parameterProviderConfiguration = new StandardParameterProviderConfiguration(PARAMETER_PROVIDER_ID,
+                    "groupName", true);
+            when(parameterContext.getParameterProviderConfiguration()).thenReturn(parameterProviderConfiguration);
 
             addParameter(parametersMap, "value" + (counter++), false);
             addParameter(parametersMap, "value" + (counter++), true);
@@ -295,6 +327,18 @@ public class NiFiRegistryFlowMapperTest {
         when(parameter.getDescriptor()).thenReturn(parameterDescriptor);
         when(parameter.getValue()).thenReturn(value);
         parametersMap.put(parameterDescriptor, parameter);
+    }
+
+    private void verifyParameterProviders(final Map<String, ParameterProviderReference> references) {
+        assertEquals(1, references.size());
+        final ParameterProviderReference reference = references.get(PARAMETER_PROVIDER_ID);
+        assertNotNull(reference);
+        assertEquals("name", reference.getName());
+        assertEquals(PARAMETER_PROVIDER_ID, reference.getIdentifier());
+        assertNotNull(reference.getType());
+        assertEquals("group", reference.getBundle().getGroup());
+        assertEquals("artifact", reference.getBundle().getArtifact());
+        assertEquals("version", reference.getBundle().getVersion());
     }
 
     private void verifyParameterContext(final ParameterContext parameterContext, final VersionedParameterContext versionedParameterContext) {

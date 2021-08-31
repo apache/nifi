@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
@@ -53,5 +54,7 @@ public interface ControllerClient {
     ControllerServiceEntity createControllerService(ControllerServiceEntity controllerService) throws NiFiClientException, IOException;
 
     ReportingTaskEntity createReportingTask(ReportingTaskEntity reportingTask) throws NiFiClientException, IOException;
+
+    ParameterProviderEntity createParamProvider(ParameterProviderEntity paramProvider) throws NiFiClientException, IOException;
 
 }

@@ -25,6 +25,9 @@ public class VersionedParameterContext extends VersionedComponent {
     private Set<VersionedParameter> parameters;
     private List<String> inheritedParameterContexts;
     private String description;
+    private String parameterProvider;
+    private String parameterGroupName;
+    private Boolean isSynchronized;
 
     @ApiModelProperty("The description of the parameter context")
     public String getDescription() {
@@ -56,5 +59,32 @@ public class VersionedParameterContext extends VersionedComponent {
     @Override
     public ComponentType getComponentType() {
         return ComponentType.PARAMETER_CONTEXT;
+    }
+
+    @ApiModelProperty("The identifier of an optional parameter provider")
+    public String getParameterProvider() {
+        return parameterProvider;
+    }
+
+    public void setParameterProvider(String parameterProvider) {
+        this.parameterProvider = parameterProvider;
+    }
+
+    @ApiModelProperty("The corresponding parameter group name fetched from the parameter provider, if applicable")
+    public String getParameterGroupName() {
+        return parameterGroupName;
+    }
+
+    public void setParameterGroupName(String parameterGroupName) {
+        this.parameterGroupName = parameterGroupName;
+    }
+
+    @ApiModelProperty("True if the parameter provider is set and the context should receive updates when its parameters are next fetched")
+    public Boolean isSynchronized() {
+        return isSynchronized;
+    }
+
+    public void setSynchronized(Boolean aSynchronized) {
+        isSynchronized = aSynchronized;
     }
 }

@@ -19,6 +19,7 @@ package org.apache.nifi.web.dao;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 
 import java.util.List;
@@ -80,6 +81,13 @@ public interface ParameterContextDAO extends ParameterContextLookup {
      * context is disabled. If <code>false</code>, these verifications will not be performed.
      */
     void verifyUpdate(ParameterContextDTO parameterContextDto, boolean verifyComponentStates);
+
+    /**
+     * Returns the ParameterProvider if the provided DTO contains a valid reference.
+     * @param parameterContextDTO The parameter context DTO
+     * @return The ParameterProvider, if relevant, or null if not specified
+     */
+    ParameterProvider getParameterProvider(final ParameterContextDTO parameterContextDTO);
 
     /**
      * Determines whether this parameter context can be removed.

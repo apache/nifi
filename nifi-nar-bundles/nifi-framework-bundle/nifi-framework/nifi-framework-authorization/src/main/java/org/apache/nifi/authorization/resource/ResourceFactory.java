@@ -280,6 +280,24 @@ public final class ResourceFactory {
         }
     };
 
+    private final static Resource PARAMETER_PROVIDERS_RESOURCE = new Resource() {
+
+        @Override
+        public String getIdentifier() {
+            return ResourceType.ParameterProvider.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "Parameter Providers";
+        }
+
+        @Override
+        public String getSafeDescription() {
+            return "parameter providers";
+        }
+    };
+
 
     /**
      * Gets the Resource for accessing the Controller. This includes Controller level configuration, bulletins, reporting tasks, and the cluster.
@@ -314,6 +332,14 @@ public final class ResourceFactory {
      */
     public static Resource getParameterContextsResource() {
         return PARAMETER_CONTEXTS_RESOURCE;
+    }
+
+    /**
+     * Gets the Resource for accessing the Parameter Providers.
+     * @return The resource for access Parameter Providers
+     */
+    public static Resource getParameterProvidersResource() {
+        return PARAMETER_PROVIDERS_RESOURCE;
     }
 
     /**
@@ -554,6 +580,9 @@ public final class ResourceFactory {
                         break;
                     case ParameterContext:
                         componentType = "Parameter Context";
+                        break;
+                    case ParameterProvider:
+                        componentType = "Parameter Provider";
                         break;
                     default:
                         componentType = "Component";

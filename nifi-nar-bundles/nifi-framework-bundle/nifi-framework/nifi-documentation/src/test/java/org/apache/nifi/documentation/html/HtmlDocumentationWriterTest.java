@@ -22,10 +22,12 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.documentation.example.ControllerServiceWithLogger;
 import org.apache.nifi.documentation.example.FullyDocumentedControllerService;
+import org.apache.nifi.documentation.example.FullyDocumentedParameterProvider;
 import org.apache.nifi.documentation.example.FullyDocumentedReportingTask;
 import org.apache.nifi.documentation.example.ReportingTaskWithLogger;
 import org.apache.nifi.init.ControllerServiceInitializer;
-import org.apache.nifi.init.ReportingTaskingInitializer;
+import org.apache.nifi.init.ParameterProviderInitializer;
+import org.apache.nifi.init.ReportingTaskInitializer;
 import org.apache.nifi.mock.MockControllerServiceInitializationContext;
 import org.apache.nifi.mock.MockReportingInitializationContext;
 import org.apache.nifi.nar.ExtensionManager;
@@ -111,10 +113,56 @@ public class HtmlDocumentationWriterTest {
     }
 
     @Test
+    public void testDocumentParameterProvider() throws InitializationException, IOException {
+
+        FullyDocumentedParameterProvider parameterProvider = new FullyDocumentedParameterProvider();
+        ParameterProviderInitializer initializer = new ParameterProviderInitializer(extensionManager);
+        initializer.initialize(parameterProvider);
+
+        DocumentationWriter writer = new HtmlDocumentationWriter(extensionManager);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        writer.write(parameterProvider, baos, false);
+        initializer.teardown(parameterProvider);
+
+        String results = new String(baos.toByteArray());
+        XmlValidator.assertXmlValid(results);
+
+        // description
+        assertContains(results, "A helper parameter provider to do...");
+
+        // tags
+        assertContains(results, "first, second, third");
+
+        // properties
+        assertContains(results, "Include Regex");
+        assertContains(results, "A Regular Expression indicating what to include as parameters.");
+
+        // restricted
+        assertContains(results, "parameter provider restriction description");
+
+        // verify system resource considerations
+        assertContains(results, SystemResource.CPU.name());
+        assertContains(results, SystemResourceConsideration.DEFAULT_DESCRIPTION);
+        assertContains(results, SystemResource.DISK.name());
+        assertContains(results, "Customized disk usage description");
+        assertContains(results, SystemResource.MEMORY.name());
+        assertContains(results, "Not Specified");
+
+        // verify the right OnRemoved and OnShutdown methods were called
+        assertEquals(0, parameterProvider.getOnRemovedArgs());
+        assertEquals(0, parameterProvider.getOnRemovedNoArgs());
+
+        assertEquals(1, parameterProvider.getOnShutdownArgs());
+        assertEquals(1, parameterProvider.getOnShutdownNoArgs());
+    }
+
+    @Test
     public void testDocumentReportingTask() throws InitializationException, IOException {
 
         FullyDocumentedReportingTask reportingTask = new FullyDocumentedReportingTask();
-        ReportingTaskingInitializer initializer = new ReportingTaskingInitializer(extensionManager);
+        ReportingTaskInitializer initializer = new ReportingTaskInitializer(extensionManager);
         initializer.initialize(reportingTask);
 
         DocumentationWriter writer = new HtmlDocumentationWriter(extensionManager);

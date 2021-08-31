@@ -23,6 +23,7 @@ public class VersionedExternalFlow {
     private VersionedProcessGroup flowContents;
     private Map<String, ExternalControllerServiceReference> externalControllerServices;
     private Map<String, VersionedParameterContext> parameterContexts;
+    private Map<String, ParameterProviderReference> parameterProviders;
     private VersionedExternalFlowMetadata metadata;
 
     public VersionedProcessGroup getFlowContents() {
@@ -55,5 +56,13 @@ public class VersionedExternalFlow {
 
     public void setMetadata(final VersionedExternalFlowMetadata metadata) {
         this.metadata = metadata;
+    }
+
+    public Map<String, ParameterProviderReference> getParameterProviders() {
+        return parameterProviders;
+    }
+
+    public void setParameterProviders(final Map<String, ParameterProviderReference> parameterProviders) {
+        this.parameterProviders = parameterProviders;
     }
 }

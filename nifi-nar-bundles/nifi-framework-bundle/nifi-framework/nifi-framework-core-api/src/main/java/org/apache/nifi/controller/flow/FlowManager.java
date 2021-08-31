@@ -21,10 +21,12 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
@@ -32,6 +34,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
+import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 
 import java.net.URL;
@@ -42,7 +45,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
-public interface FlowManager {
+public interface FlowManager extends ParameterProviderLookup {
     String ROOT_GROUP_ID_ALIAS = "root";
     String DEFAULT_ROOT_GROUP_NAME = "NiFi Flow";
 
@@ -312,7 +315,14 @@ public interface FlowManager {
 
     Set<ReportingTaskNode> getAllReportingTasks();
 
+    ParameterProviderNode createParameterProvider(String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded,
+                                                  boolean registerLogObserver);
 
+    ParameterProviderNode createParameterProvider(String type, String id, BundleCoordinate bundleCoordinate, boolean firstTimeAdded);
+
+    void removeParameterProvider(ParameterProviderNode parameterProvider);
+
+    Set<ParameterProviderNode> getAllParameterProviders();
 
     Set<ControllerServiceNode> getAllControllerServices();
 
@@ -320,7 +330,6 @@ public interface FlowManager {
 
     ControllerServiceNode createControllerService(String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded,
                                                          boolean registerLogObserver, String classloaderIsolationKey);
-
 
     Set<ControllerServiceNode> getRootControllerServices();
 
@@ -343,11 +352,13 @@ public interface FlowManager {
      * @param parameters        The Parameters
      * @param inheritedContextIds The identifiers of any Parameter Contexts that the newly created Parameter Context should inherit from. The order of the identifiers in the List determines the
      * order in which parameters with conflicting names are resolved. I.e., the Parameter Context whose ID comes first in the List is preferred.
+     * @param parameterProviderConfiguration Optional configuration for a ParameterProvider
      * @return The created ParameterContext
      * @throws IllegalStateException If <code>parameterContexts</code> is not empty and this method is called without being wrapped
      * by {@link FlowManager#withParameterContextResolution(Runnable)}
      */
-    ParameterContext createParameterContext(String id, String name, Map<String, Parameter> parameters, List<String> inheritedContextIds);
+    ParameterContext createParameterContext(String id, String name, Map<String, Parameter> parameters, List<String> inheritedContextIds,
+                                            ParameterProviderConfiguration parameterProviderConfiguration);
 
     /**
      * Performs the given ParameterContext-related action, and then resolves all inherited ParameterContext references.
@@ -370,7 +381,8 @@ public interface FlowManager {
     ParameterContextManager getParameterContextManager();
 
     /**
-     * @return the number of each type of component (Processor, Controller Service, Process Group, Funnel, Input Port, Output Port, Reporting Task, Remote Process Group)
+     * @return the number of each type of component (Processor, Controller Service, Process Group, Funnel, Input Port, Output Port,
+     * Parameter Provider, Reporting Task, Remote Process Group)
      */
     Map<String, Integer> getComponentCounts();
 

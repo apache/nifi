@@ -77,14 +77,16 @@ public class ParamContextsResult extends AbstractWritableResult<ParameterContext
                 .column("Id", 36, 36, false)
                 .column("Name", 20, 60, true)
                 .column("Inherited Param Contexts", 20, 60, true)
+                .column("Parameter Provider", 20, 60, false)
                 .column("Description", 40, 60, true)
                 .build();
 
         for (int i = 0; i < results.size(); i++) {
             final ParameterContextDTO r = results.get(i);
+            final String parameterProviderId = r.getParameterProviderConfiguration() == null ? "" : r.getParameterProviderConfiguration().getComponent().getParameterProviderId();
             final String inheritedParamContexts = r.getInheritedParameterContexts() == null ? ""
                     : r.getInheritedParameterContexts().stream().map(pc -> pc.getComponent().getName()).collect(Collectors.joining(", "));
-            table.addRow("" + (i+1), r.getId(), r.getName(), inheritedParamContexts, r.getDescription());
+            table.addRow("" + (i+1), r.getId(), r.getName(), inheritedParamContexts, parameterProviderId, r.getDescription());
         }
 
         final TableWriter tableWriter = new DynamicTableWriter();

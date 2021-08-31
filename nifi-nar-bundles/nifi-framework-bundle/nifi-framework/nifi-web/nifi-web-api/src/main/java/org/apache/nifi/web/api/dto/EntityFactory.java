@@ -57,6 +57,8 @@ import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
@@ -572,6 +574,47 @@ public final class EntityFactory {
         return entity;
     }
 
+    public ParameterProviderReferencingComponentEntity createParameterProviderReferencingComponentEntity(final String id, final ParameterProviderReferencingComponentDTO dto,
+                                                                                                         final RevisionDTO revision, final PermissionsDTO permissions,
+                                                                                                         final List<BulletinDTO> bulletins) {
+        final ParameterProviderReferencingComponentEntity entity = new ParameterProviderReferencingComponentEntity();
+        entity.setId(id);
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setPermissions(permissions);
+            entity.setId(dto.getId());
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+
+        if (permissions.getCanRead() == Boolean.TRUE) {
+            final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+            entity.setBulletins(bulletinEntities);
+        } else {
+            entity.setBulletins(null);
+        }
+
+        return entity;
+    }
+
+    public ParameterProviderEntity createParameterProviderEntity(final ParameterProviderDTO dto, final RevisionDTO revision,
+                                                                 final PermissionsDTO permissions, final List<BulletinEntity> bulletins) {
+        final ParameterProviderEntity entity = new ParameterProviderEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setPermissions(permissions);
+            entity.setId(dto.getId());
+
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setComponent(dto);
+                entity.setBulletins(bulletins);
+            }
+        }
+
+        return entity;
+    }
+
     public ParameterContextEntity createParameterContextEntity(final ParameterContextDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
         final ParameterContextEntity entity = new ParameterContextEntity();
         entity.setRevision(revision);
@@ -747,5 +790,4 @@ public final class EntityFactory {
 
         return entity;
     }
-
 }

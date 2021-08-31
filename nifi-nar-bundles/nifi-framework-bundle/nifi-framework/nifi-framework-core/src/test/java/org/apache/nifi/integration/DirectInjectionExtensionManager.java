@@ -21,6 +21,7 @@ import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
 
@@ -40,6 +41,8 @@ public class DirectInjectionExtensionManager extends StandardExtensionDiscoverin
             extensionType = ControllerService.class;
         } else if (extension instanceof ReportingTask) {
             extensionType = ReportingTask.class;
+        } else if (extension instanceof ParameterProvider) {
+            extensionType = ParameterProvider.class;
         } else {
             throw new IllegalArgumentException("Given extension is not a Processor, Controller Service, or Reporting Task");
         }

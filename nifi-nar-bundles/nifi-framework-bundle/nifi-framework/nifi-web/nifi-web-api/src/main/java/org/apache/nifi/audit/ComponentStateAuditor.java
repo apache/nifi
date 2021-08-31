@@ -21,12 +21,13 @@ import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.authorization.user.NiFiUser;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -135,7 +136,7 @@ public class ComponentStateAuditor extends NiFiAuditor {
     }
 
     /**
-     * Audits clearing of state from a Processor.
+     * Audits clearing of state from a Reporting Task.
      *
      * @param proceedingJoinPoint join point
      * @param reportingTask the reporting task
@@ -171,6 +172,52 @@ public class ComponentStateAuditor extends NiFiAuditor {
             configAction.setSourceName(reportingTask.getName());
             configAction.setSourceType(Component.ReportingTask);
             configAction.setComponentDetails(reportingTaskDetails);
+            actions.add(configAction);
+
+            // record the action
+            saveActions(actions, logger);
+        }
+
+        return stateMap;
+    }
+
+    /**
+     * Audits clearing of state from a Parameter Provider.
+     *
+     * @param proceedingJoinPoint join point
+     * @param parameterProvider the parameter provider
+     * @throws java.lang.Throwable ex
+     */
+    @Around("within(org.apache.nifi.web.dao.ComponentStateDAO+) && "
+        + "execution(void clearState(org.apache.nifi.controller.ParameterProviderNode)) && "
+        + "args(parameterProvider)")
+    public StateMap clearParameterProviderStateAdvice(final ProceedingJoinPoint proceedingJoinPoint, final ParameterProviderNode parameterProvider) throws Throwable {
+
+        // update the parameter provider state
+        final StateMap stateMap = (StateMap) proceedingJoinPoint.proceed();
+
+        // if no exception were thrown, add the clear action...
+
+        // get the current user
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // ensure the user was found
+        if (user != null) {
+            final Collection<Action> actions = new ArrayList<>();
+
+            // create the parameter provider details
+            final FlowChangeExtensionDetails parameterProviderDetails = new FlowChangeExtensionDetails();
+            parameterProviderDetails.setType(parameterProvider.getParameterProvider().getClass().getSimpleName());
+
+            // create the clear action
+            final FlowChangeAction configAction = new FlowChangeAction();
+            configAction.setUserIdentity(user.getIdentity());
+            configAction.setOperation(Operation.ClearState);
+            configAction.setTimestamp(new Date());
+            configAction.setSourceId(parameterProvider.getIdentifier());
+            configAction.setSourceName(parameterProvider.getName());
+            configAction.setSourceType(Component.ParameterProvider);
+            configAction.setComponentDetails(parameterProviderDetails);
             actions.add(configAction);
 
             // record the action

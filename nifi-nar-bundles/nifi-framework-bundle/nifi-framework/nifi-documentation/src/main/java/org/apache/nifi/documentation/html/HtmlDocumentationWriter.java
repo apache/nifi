@@ -59,7 +59,7 @@ import java.util.Set;
 
 /**
  * Generates HTML documentation for a ConfigurableComponent. This class is used
- * to generate documentation for ControllerService and ReportingTask because
+ * to generate documentation for ControllerService, ParameterProvider, and ReportingTask because
  * they have no additional information.
  *
  *

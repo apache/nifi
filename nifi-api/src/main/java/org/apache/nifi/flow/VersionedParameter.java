@@ -25,6 +25,7 @@ public class VersionedParameter {
     private String name;
     private String description;
     private boolean sensitive;
+    private boolean provided;
     private String value;
 
     @ApiModelProperty("The name of the parameter")
@@ -52,6 +53,15 @@ public class VersionedParameter {
 
     public void setSensitive(boolean sensitive) {
         this.sensitive = sensitive;
+    }
+
+    @ApiModelProperty("Whether or not the parameter value is provided by a ParameterProvider")
+    public boolean isProvided() {
+        return provided;
+    }
+
+    public void setProvided(boolean provided) {
+        this.provided = provided;
     }
 
     @ApiModelProperty("The value of the parameter")

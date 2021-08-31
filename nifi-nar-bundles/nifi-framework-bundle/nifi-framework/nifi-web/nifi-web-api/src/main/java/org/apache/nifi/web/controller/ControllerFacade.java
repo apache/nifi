@@ -43,6 +43,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.FlowController.GroupStatusCounts;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Template;
@@ -71,6 +72,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.manifest.RuntimeManifestService;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -579,6 +581,18 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
+     * Gets the ParameterProvider types that this controller supports.
+     *
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
+     * @return the ParameterProvider types that this controller supports
+     */
+    public Set<DocumentedTypeDTO> getParameterProviderTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+        return dtoFactory.fromDocumentedTypes(getExtensionManager().getExtensions(ParameterProvider.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
+    }
+
+    /**
      * Gets the counters for this controller.
      *
      * @return the counters for this controller
@@ -988,6 +1002,14 @@ public class ControllerFacade implements Authorizable {
             resources.add(reportingTaskResource);
             resources.add(ResourceFactory.getPolicyResource(reportingTaskResource));
             resources.add(ResourceFactory.getOperationResource(reportingTaskResource));
+        }
+
+        // add each parameter provider
+        for (final ParameterProviderNode parameterProvider : flowController.getFlowManager().getAllParameterProviders()) {
+            final Resource parameterProviderResource = parameterProvider.getResource();
+            resources.add(parameterProviderResource);
+            resources.add(ResourceFactory.getPolicyResource(parameterProviderResource));
+            resources.add(ResourceFactory.getOperationResource(parameterProviderResource));
         }
 
         // add each template

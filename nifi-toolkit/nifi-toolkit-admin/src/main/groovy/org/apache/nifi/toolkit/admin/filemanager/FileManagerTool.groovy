@@ -37,7 +37,6 @@ import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.toolkit.admin.AbstractAdminTool
 import org.apache.nifi.toolkit.admin.configmigrator.ConfigMigrator
 import org.apache.nifi.toolkit.admin.util.AdminUtil
-import org.apache.nifi.util.StringUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 

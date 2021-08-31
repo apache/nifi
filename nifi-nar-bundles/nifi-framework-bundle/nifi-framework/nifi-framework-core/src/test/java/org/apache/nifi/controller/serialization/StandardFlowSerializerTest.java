@@ -112,6 +112,14 @@ public class StandardFlowSerializerTest {
         FileUtils.deleteDirectory(new File("./target/standardflowserializertest"));
     }
 
+    private static ParameterContext createParameterContext(final String id, final String name) {
+        return new StandardParameterContext.Builder()
+                .id(id)
+                .name(name)
+                .parameterReferenceManager(ParameterReferenceManager.EMPTY)
+                .build();
+    }
+
     @Test
     public void testSerializationEscapingAndFiltering() throws Exception {
         final ProcessorNode dummy = controller.getFlowManager().createProcessor(DummyScheduledProcessor.class.getName(),
@@ -120,9 +128,9 @@ public class StandardFlowSerializerTest {
         dummy.setComments(RAW_COMMENTS);
         controller.getFlowManager().getRootGroup().addProcessor(dummy);
 
-        final ParameterContext parameterContext = new StandardParameterContext("context", "Context", ParameterReferenceManager.EMPTY, null);
-        final ParameterContext referencedContext = new StandardParameterContext("referenced-context", "Referenced Context", ParameterReferenceManager.EMPTY, null);
-        final ParameterContext referencedContext2 = new StandardParameterContext("referenced-context-2", "Referenced Context 2", ParameterReferenceManager.EMPTY, null);
+        final ParameterContext parameterContext = createParameterContext("context", "Context");
+        final ParameterContext referencedContext = createParameterContext("referenced-context", "Referenced Context");
+        final ParameterContext referencedContext2 = createParameterContext("referenced-context-2", "Referenced Context 2");
         final Map<String, Parameter> parameters = new HashMap<>();
         final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name("foo").sensitive(true).build();
         parameters.put("foo", new Parameter(parameterDescriptor, "value"));

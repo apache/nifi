@@ -30,6 +30,8 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
+import org.apache.nifi.flow.ParameterProviderReference;
+import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.flow.VersionedParameterContext;
@@ -58,6 +60,7 @@ import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -104,6 +107,8 @@ import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -428,6 +433,16 @@ public interface NiFiServiceFacade {
      * @return the runtime manifest
      */
     RuntimeManifest getRuntimeManifest();
+
+    /**
+     * Returns the list of parameter provider types.
+     *
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
+     * @return The list of available parameter provider types matching specified criteria
+     */
+    Set<DocumentedTypeDTO> getParameterProviderTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter);
 
     /**
      * Returns the list of prioritizer types.
@@ -1566,9 +1581,10 @@ public interface NiFiServiceFacade {
      * @param registryId the ID of the Flow Registry to persist the snapshot to
      * @param flow the flow where the snapshot should be persisted
      * @param snapshot the Snapshot to persist
+     * @param parameterContexts a map of the Parameter Contexts to include keyed by name
+     * @param parameterProviderReferences a map of the Parameter Providers referenced by any Parameter Context in the snapshot, keyed by identifier
      * @param externalControllerServiceReferences a mapping of controller service id to ExternalControllerServiceReference for any Controller Service that is referenced in the flow but not included
      * in the VersionedProcessGroup
-     * @param parameterContexts a map of the Parameter Contexts to include keyed by name
      * @param comments about the snapshot
      * @param expectedVersion the version to save the flow as
      * @return the snapshot that represents what was stored in the registry
@@ -1577,6 +1593,7 @@ public interface NiFiServiceFacade {
      */
     VersionedFlowSnapshot registerVersionedFlowSnapshot(String registryId, VersionedFlow flow, VersionedProcessGroup snapshot,
                                                         Map<String, VersionedParameterContext> parameterContexts,
+                                                        Map<String, ParameterProviderReference> parameterProviderReferences,
                                                         Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
                                                         String comments, int expectedVersion);
 
@@ -1685,12 +1702,17 @@ public interface NiFiServiceFacade {
      */
     void verifyCanVerifyControllerServiceConfig(String controllerServiceId);
 
-
     /**
      * Verifies that the Reporting Task with the given identifier is in a state where its configuration can be verified
      * @param reportingTaskId the ID of the service
      */
     void verifyCanVerifyReportingTaskConfig(String reportingTaskId);
+
+    /**
+     * Verifies that the Parameter Provider with the given identifier is in a state where its configuration can be verified
+     * @param parameterProviderId the ID of the service
+     */
+    void verifyCanVerifyParameterProviderConfig(String parameterProviderId);
 
     /**
      * Verifies that the Process Group with the given identifier can be saved to the flow registry
@@ -1732,12 +1754,12 @@ public interface NiFiServiceFacade {
                                                   String componentIdSeed, boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
 
     /**
-     * Returns a Set representing all components that will be affected by updating the Parameter Context that is represented by the given DTO.
+     * Returns a Set representing all components that will be affected by updating the Parameter Contexts that are represented by the given DTOs.
      *
-     * @param parameterContextDto the Parameter Context DTO that represents all changes that are to occur to a Parameter Context
-     * @return a Set representing all components that will be affected by the update
+     * @param parameterContextDtos the Parameter Context DTOs that represent all changes that are to occur to a set of Parameter Contexts
+     * @return a Set representing all components that will be affected by the updates
      */
-    Set<AffectedComponentEntity> getComponentsAffectedByParameterContextUpdate(ParameterContextDTO parameterContextDto);
+    Set<AffectedComponentEntity> getComponentsAffectedByParameterContextUpdate(Collection<ParameterContextDTO> parameterContextDtos);
 
     /**
      * Returns an up-to-date representation of the component that is referenced by the given affected component
@@ -1831,6 +1853,28 @@ public interface NiFiServiceFacade {
      * @param reportingTaskId the reporting task id
      */
     void clearReportingTaskState(String reportingTaskId);
+
+    /**
+     * Gets the state for the specified parameter provider.
+     *
+     * @param parameterProviderId the parameter provider id
+     * @return  the component state
+     */
+    ComponentStateDTO getParameterProviderState(String parameterProviderId);
+
+    /**
+     * Verifies the parameter provider state could be cleared.
+     *
+     * @param parameterProviderId the parameter provider id
+     */
+    void verifyCanClearParameterProviderState(String parameterProviderId);
+
+    /**
+     * Clears the state for the specified parameter provider.
+     *
+     * @param parameterProviderId the parameter provider id
+     */
+    void clearParameterProviderState(String parameterProviderId);
 
     /**
      * Gets the state for the specified RemoteProcessGroup.
@@ -2136,6 +2180,139 @@ public interface NiFiServiceFacade {
      * @param controllerServiceId id
      */
     void verifyDeleteControllerService(String controllerServiceId);
+
+    // ----------------------------------------
+    // Parameter Provider methods
+    // ----------------------------------------
+
+    /**
+     * Verifies the specified parameter provider can be created.
+     *
+     * @param parameterProviderDTO task
+     */
+    void verifyCreateParameterProvider(ParameterProviderDTO parameterProviderDTO);
+
+    /**
+     * Creates a parameter provider.
+     *
+     * @param revision revision
+     * @param parameterProviderDTO The parameter provider DTO
+     * @return The parameter provider DTO
+     */
+    ParameterProviderEntity createParameterProvider(Revision revision, ParameterProviderDTO parameterProviderDTO);
+
+    /**
+     * Gets all parameter providers.
+     *
+     * @return tasks
+     */
+    Set<ParameterProviderEntity> getParameterProviders();
+
+    /**
+     * Gets the specified parameter provider.
+     *
+     * @param parameterProviderId id
+     * @return task
+     */
+    ParameterProviderEntity getParameterProvider(String parameterProviderId);
+
+    /**
+     * Verifies the specified parameter provider is able to fetch its parameters.
+     *
+     * @param parameterProviderId parameter provider id
+     */
+    void verifyCanFetchParameters(String parameterProviderId);
+
+    /**
+     * Fetches the parameters and caches them in the parameter provider.  Note that the parameters will not
+     * be applied to the flow.
+     * @param parameterProviderId parameter provider id
+     * @return The parameter provider
+     */
+    ParameterProviderEntity fetchParameters(String parameterProviderId);
+
+    /**
+     * Verifies the specified parameter provider is able to apply fetched parameters to the flow.
+     * @param parameterProviderId parameter provider id
+     * @param parameterGroupConfigurations Configuration for each fetched Parameter Group.   Any parameters not found in this set will not be included
+     *                                     in the update verification.
+     */
+    void verifyCanApplyParameters(String parameterProviderId, Collection<ParameterGroupConfiguration> parameterGroupConfigurations);
+
+    /**
+     * Returns a list of ParameterContext entities representing updates needed in order to apply the fetched
+     * parameters from the parameter provider to the referencing parameter contexts
+     * @param parameterProviderId parameter provider id
+     * @param parameterGroupConfigurations Configuration for each fetched Parameter Group.  Any parameters not found in this set will not be included in the update.
+     * @return The list of ParameterContextEntity objects representing required updates to referencing
+     * parameter contexts
+     */
+    List<ParameterContextEntity> getParameterContextUpdatesForAppliedParameters(String parameterProviderId, Collection<ParameterGroupConfiguration> parameterGroupConfigurations);
+
+    /**
+     * Gets the references for specified parameter provider.
+     *
+     * @param parameterProviderId id
+     * @return parameter provider references
+     */
+    ParameterProviderReferencingComponentsEntity getParameterProviderReferencingComponents(String parameterProviderId);
+
+    /**
+     * Get the descriptor for the specified property of the specified parameter provider.
+     *
+     * @param id id
+     * @param property property
+     * @return descriptor
+     */
+    PropertyDescriptorDTO getParameterProviderPropertyDescriptor(String id, String property);
+
+    /**
+     * Updates the specified parameter provider.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param parameterProviderDTO The parameter provider DTO
+     * @return The parameter provider DTO
+     */
+    ParameterProviderEntity updateParameterProvider(Revision revision, ParameterProviderDTO parameterProviderDTO);
+
+    /**
+     * Performs verification of the given Configuration for the parameter provider with the given ID
+     * @param parameterProviderId the id of the parameter provider
+     * @param properties the configured properties to verify
+     * @return verification results
+     */
+    List<ConfigVerificationResultDTO> performParameterProviderConfigVerification(String parameterProviderId, Map<String, String> properties);
+
+    /**
+     * Performs analysis of the given properties, determining which attributes are referenced by properties
+     * @param parameterProviderId the ID of the parameter provider
+     * @param properties the properties
+     * @return analysis results
+     */
+    ConfigurationAnalysisEntity analyzeParameterProviderConfiguration(String parameterProviderId, Map<String, String> properties);
+
+    /**
+     * Deletes the specified parameter provider.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param parameterProviderId The parameter provider id
+     * @return snapshot
+     */
+    ParameterProviderEntity deleteParameterProvider(Revision revision, String parameterProviderId);
+
+    /**
+     * Verifies the specified parameter provider can be updated.
+     *
+     * @param parameterProviderDTO parameter provider
+     */
+    void verifyUpdateParameterProvider(ParameterProviderDTO parameterProviderDTO);
+
+    /**
+     * Verifies the specified parameter provider can be removed.
+     *
+     * @param parameterProviderId id
+     */
+    void verifyDeleteParameterProvider(String parameterProviderId);
 
     // ----------------------------------------
     // Reporting Task methods
@@ -2499,6 +2676,15 @@ public interface NiFiServiceFacade {
      * @param user the NiFi user on whose behalf the request is happening; this user is used for validation so that only the Controller Services that the user has READ permissions to are included
      */
     void resolveInheritedControllerServices(VersionedFlowSnapshot versionedFlowSnapshot, String parentGroupId, NiFiUser user);
+
+    /**
+     * For any Parameter Provider that is found in the given Versioned Process Group, attempts to find an existing Parameter Provider that matches the definition. If any is found,
+     * the Parameter Context within the Versioned Process Group is updated to point to the existing Parameter Provider.
+     *
+     * @param versionedFlowSnapshot the flow snapshot
+     * @param user the NiFi user on whose behalf the request is happening; this user is used for validation so that only the Parameter Providers that the user has READ permissions to are included
+     */
+    void resolveParameterProviders(VersionedFlowSnapshot versionedFlowSnapshot, NiFiUser user);
 
     /**
      * @param type the component type

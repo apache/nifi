@@ -25,7 +25,8 @@ import java.lang.annotation.Target;
 
 /**
  * Annotation that can be applied to a {@link org.apache.nifi.processor.Processor Processor},
- * {@link org.apache.nifi.controller.ControllerService ControllerService}, or
+ * {@link org.apache.nifi.controller.ControllerService ControllerService},
+ * {@link org.apache.nifi.parameter.ParameterProvider ParameterProvider}, or
  * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} in order to
  * associate tags (keywords) with the component. These tags do not affect the
  * component in any way but serve as additional documentation and can be used to
