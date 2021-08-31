@@ -112,6 +112,8 @@ public class DataTypeUtils {
     private static final Pattern FLOATING_POINT_PATTERN = Pattern.compile(doubleRegex);
     private static final Pattern DECIMAL_PATTERN = Pattern.compile(decimalRegex);
 
+    private static final TimeZone GMT_TIME_ZONE = TimeZone.getTimeZone("GMT");
+
     private static final Supplier<DateFormat> DEFAULT_DATE_FORMAT = () -> getDateFormat(RecordFieldType.DATE.getDefaultFormat());
     private static final Supplier<DateFormat> DEFAULT_TIME_FORMAT = () -> getDateFormat(RecordFieldType.TIME.getDefaultFormat());
     private static final Supplier<DateFormat> DEFAULT_TIMESTAMP_FORMAT = () -> getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat());
@@ -1327,7 +1329,9 @@ public class DataTypeUtils {
     }
 
     /**
-     * Get Date Format using default Local Time Zone
+     * Get Date Format using GMT Time Zone
+     *
+     * This Date Format can produce unexpected results when the system default Time Zone is not GMT
      *
      * @param pattern Date Format Pattern used for new SimpleDateFormat()
      * @return Date Format or null when pattern not provided
@@ -1336,7 +1340,7 @@ public class DataTypeUtils {
         if (pattern == null) {
             return null;
         }
-        return getDateFormat(pattern, TimeZone.getDefault());
+        return getDateFormat(pattern, GMT_TIME_ZONE);
     }
 
     /**
