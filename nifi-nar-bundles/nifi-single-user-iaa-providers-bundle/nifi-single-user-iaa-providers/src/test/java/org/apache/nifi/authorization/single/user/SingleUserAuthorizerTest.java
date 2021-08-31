@@ -19,21 +19,21 @@ package org.apache.nifi.authorization.single.user;
 import org.apache.nifi.authorization.AuthorizerInitializationContext;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class SingleUserAuthorizerTest {
     private static final String BLANK_PROVIDERS = "/conf/login-identity-providers.xml";
 
@@ -54,7 +54,7 @@ public class SingleUserAuthorizerTest {
     @Mock
     private AuthorizerInitializationContext initializationContext;
 
-    @Before
+    @BeforeEach
     public void setAuthorizer() {
         authorizer = new SingleUserAuthorizer();
         when(initializationContext.getIdentifier()).thenReturn(AUTHORIZER_IDENTIFIER);

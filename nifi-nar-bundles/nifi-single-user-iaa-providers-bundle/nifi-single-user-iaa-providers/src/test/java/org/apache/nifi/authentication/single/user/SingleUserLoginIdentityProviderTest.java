@@ -22,11 +22,12 @@ import org.apache.nifi.authentication.LoginIdentityProviderConfigurationContext;
 import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
 import org.apache.nifi.authentication.single.user.encoder.PasswordEncoder;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -38,13 +39,11 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class SingleUserLoginIdentityProviderTest {
     private static final String BLANK_PROVIDERS = "/conf/login-identity-providers.xml";
 
@@ -65,7 +64,7 @@ public class SingleUserLoginIdentityProviderTest {
 
     private SingleUserLoginIdentityProvider provider;
 
-    @Before
+    @BeforeEach
     public void setProvider() {
         provider = new SingleUserLoginIdentityProvider();
         encoder = new StringPasswordEncoder();
@@ -90,15 +89,15 @@ public class SingleUserLoginIdentityProviderTest {
         final String providersConfiguration = new String(Files.readAllBytes(configuredProvidersPath));
 
         final Matcher usernameMatcher = USERNAME_PATTERN.matcher(providersConfiguration);
-        assertTrue("Username not found", usernameMatcher.find());
+        Assertions.assertTrue(usernameMatcher.find(), "Username not found");
         final String username = usernameMatcher.group(FIRST_GROUP);
 
         final Matcher passwordMatcher = PASSWORD_PATTERN.matcher(providersConfiguration);
-        assertTrue("Password not found", passwordMatcher.find());
+        Assertions.assertTrue(passwordMatcher.find(), "Password not found");
 
         final LoginCredentials loginCredentials = new LoginCredentials(username, encoder.encoded);
         final AuthenticationResponse response = provider.authenticate(loginCredentials);
-        assertEquals(username, response.getUsername());
+        Assertions.assertEquals(username, response.getUsername());
     }
 
     @Test
@@ -153,7 +152,7 @@ public class SingleUserLoginIdentityProviderTest {
 
         final LoginCredentials loginCredentials = new LoginCredentials(username, password);
         final AuthenticationResponse response = provider.authenticate(loginCredentials);
-        assertEquals(username, response.getUsername());
+        Assertions.assertEquals(username, response.getUsername());
     }
 
     private static class StringPasswordEncoder implements PasswordEncoder {
