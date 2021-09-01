@@ -17,18 +17,12 @@
 package org.apache.nifi.web.dao;
 
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 
 import java.util.Set;
 
-public interface ParameterContextDAO {
-    /**
-     * Determines if the specified parameter context exists.
-     *
-     * @param parameterContextId id
-     * @return true if parameter context exists
-     */
-    boolean hasParameterContext(String parameterContextId);
+public interface ParameterContextDAO extends ParameterContextLookup {
 
     /**
      * Determines whether this parameter context can be created.
@@ -44,14 +38,6 @@ public interface ParameterContextDAO {
      * @return The parameter context
      */
     ParameterContext createParameterContext(ParameterContextDTO parameterContextDto);
-
-    /**
-     * Gets the specified parameter context.
-     *
-     * @param parameterContextId the id of the parameter context
-     * @return the parameter context
-     */
-    ParameterContext getParameterContext(String parameterContextId);
 
     /**
      * Gets all of the parameter contexts.

@@ -17,6 +17,8 @@
 
 package org.apache.nifi.registry.flow;
 
+import org.apache.nifi.flow.VersionedProcessGroup;
+
 /**
  * <p>
  * Provides a mechanism for conveying which Flow Registry a flow is stored in, and

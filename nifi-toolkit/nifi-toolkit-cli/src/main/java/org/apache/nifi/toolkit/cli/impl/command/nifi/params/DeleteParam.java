@@ -63,7 +63,7 @@ public class DeleteParam extends AbstractUpdateParamContextCommand<VoidResult> {
 
         // Ensure the context exists...
         final ParamContextClient paramContextClient = client.getParamContextClient();
-        final ParameterContextEntity existingEntity = paramContextClient.getParamContext(paramContextId);
+        final ParameterContextEntity existingEntity = paramContextClient.getParamContext(paramContextId, false);
 
         // Determine if this is an existing param or a new one...
         final Optional<ParameterDTO> existingParam = existingEntity.getComponent().getParameters().stream()

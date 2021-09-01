@@ -18,8 +18,8 @@
 package org.apache.nifi.stateless.basics;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.registry.flow.VersionedPort;
-import org.apache.nifi.registry.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
@@ -67,13 +67,14 @@ public class MergingIT extends StatelessSystemIT {
         final DataflowTrigger trigger = dataflow.trigger();
         final TriggerResult result = trigger.getResult();
         assertTrue(result.isSuccessful());
-        result.acknowledge();
 
         final List<FlowFile> flowFiles = result.getOutputFlowFiles("Out");
         assertEquals(1, flowFiles.size());
 
         final FlowFile first = flowFiles.get(0);
-        final String outputContent = new String(result.readContent(first));
+        final String outputContent = new String(result.readContentAsByteArray(first));
         assertEquals("abc123xyz321abc123xyz321abc123xyz321", outputContent);
+
+        result.acknowledge();
     }
 }

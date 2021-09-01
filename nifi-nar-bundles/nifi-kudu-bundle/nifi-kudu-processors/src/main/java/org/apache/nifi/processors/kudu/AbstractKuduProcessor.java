@@ -263,7 +263,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     protected KerberosUser createKerberosKeytabUser(String principal, String keytab, ProcessContext context) {
         return new KerberosKeytabUser(principal, keytab) {
             @Override
-            public synchronized void login() throws LoginException {
+            public synchronized void login() {
                 if (!isLoggedIn()) {
                     super.login();
 
@@ -276,7 +276,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     protected KerberosUser createKerberosPasswordUser(String principal, String password, ProcessContext context) {
         return new KerberosPasswordUser(principal, password) {
             @Override
-            public synchronized void login() throws LoginException {
+            public synchronized void login() {
                 if (!isLoggedIn()) {
                     super.login();
 

@@ -26,10 +26,10 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,14 +39,14 @@ public class PutGridFSIT extends GridFSITTestBase {
 
     static final String BUCKET = "put_test_bucket";
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         runner = TestRunners.newTestRunner(PutGridFS.class);
         runner.setProperty(PutGridFS.FILE_NAME, String.format("${%s}", CoreAttributes.FILENAME.key()));
         super.setup(runner, BUCKET);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         super.tearDown();
     }
@@ -61,7 +61,7 @@ public class PutGridFSIT extends GridFSITTestBase {
         runner.run();
         runner.assertAllFlowFilesTransferred(PutGridFS.REL_SUCCESS);
 
-        Assert.assertTrue("File does not exist", fileExists(fileName, BUCKET));
+        Assertions.assertTrue(fileExists(fileName, BUCKET), "File does not exist");
     }
 
     @Test
@@ -86,8 +86,8 @@ public class PutGridFSIT extends GridFSITTestBase {
             put("department", "Accounting");
         }};
 
-        Assert.assertTrue("File does not exist", fileExists(fileName, BUCKET));
-        Assert.assertTrue("File is missing PARENT_PROPERTIES", fileHasProperties(fileName, BUCKET, attrs));
+        Assertions.assertTrue(fileExists(fileName, BUCKET), "File does not exist");
+        Assertions.assertTrue(fileHasProperties(fileName, BUCKET, attrs), "File is missing PARENT_PROPERTIES");
     }
 
     @Test
@@ -107,7 +107,7 @@ public class PutGridFSIT extends GridFSITTestBase {
         MongoCollection files = client.getDatabase(DB).getCollection(bucketName);
         Document query = Document.parse(String.format("{\"filename\": \"%s\"}", fileName));
         long count = files.count(query);
-        Assert.assertTrue("Wrong count", count == 10);
+        Assertions.assertTrue(count == 10, "Wrong count");
     }
 
     @Test

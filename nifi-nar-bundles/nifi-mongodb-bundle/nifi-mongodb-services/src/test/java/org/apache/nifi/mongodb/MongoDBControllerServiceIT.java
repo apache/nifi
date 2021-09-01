@@ -19,9 +19,9 @@ package org.apache.nifi.mongodb;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Calendar;
 
@@ -32,7 +32,7 @@ public class MongoDBControllerServiceIT {
     private TestRunner runner;
     private MongoDBControllerService service;
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class);
         service = new MongoDBControllerService();
@@ -41,7 +41,7 @@ public class MongoDBControllerServiceIT {
         runner.enableControllerService(service);
     }
 
-    @After
+    @AfterEach
     public void after() throws Exception {
         service.onDisable();
     }

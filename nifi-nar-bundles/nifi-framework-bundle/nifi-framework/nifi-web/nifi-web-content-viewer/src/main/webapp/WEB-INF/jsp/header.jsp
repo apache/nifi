@@ -35,6 +35,7 @@
         <script type="text/javascript" src="../nifi/js/jquery/combo/jquery.combo.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/modal/jquery.modal.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-namespace.js"></script>
+        <script type="text/javascript" src="../nifi/js/nf/nf-authorization-storage.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-storage.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-ajax-setup.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-universal-capture.js"></script>

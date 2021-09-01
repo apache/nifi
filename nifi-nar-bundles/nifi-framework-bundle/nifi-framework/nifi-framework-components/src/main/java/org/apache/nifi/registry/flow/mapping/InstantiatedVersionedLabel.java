@@ -17,7 +17,7 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
-import org.apache.nifi.registry.flow.VersionedLabel;
+import org.apache.nifi.flow.VersionedLabel;
 
 public class InstantiatedVersionedLabel extends VersionedLabel implements InstantiatedVersionedComponent {
     private final String instanceId;

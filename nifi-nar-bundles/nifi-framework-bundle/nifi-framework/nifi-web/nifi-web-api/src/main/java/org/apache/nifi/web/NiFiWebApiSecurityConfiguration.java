@@ -19,9 +19,9 @@ package org.apache.nifi.web;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationFilter;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationProvider;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
-import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
+import org.apache.nifi.web.security.http.SecurityCookieName;
+import org.apache.nifi.web.security.http.SecurityHeader;
+import org.apache.nifi.web.security.jwt.resolver.StandardBearerTokenResolver;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationProvider;
 import org.apache.nifi.web.security.oidc.OIDCEndpoints;
@@ -29,7 +29,6 @@ import org.apache.nifi.web.security.saml.SAMLEndpoints;
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
 import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
-import org.apache.nifi.web.security.x509.X509IdentityProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,6 +40,9 @@ import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 import org.springframework.security.web.csrf.CsrfFilter;
@@ -64,10 +66,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     private X509AuthenticationFilter x509AuthenticationFilter;
     private X509CertificateExtractor certificateExtractor;
     private X509PrincipalExtractor principalExtractor;
-    private X509IdentityProvider certificateIdentityProvider;
     private X509AuthenticationProvider x509AuthenticationProvider;
-
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
     private JwtAuthenticationProvider jwtAuthenticationProvider;
 
     private KnoxAuthenticationFilter knoxAuthenticationFilter;
@@ -105,7 +104,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                             SAMLEndpoints.LOGIN_CONSUMER,
                             SAMLEndpoints.LOGIN_EXCHANGE,
                             // the logout sequence will be protected by a request identifier set in a Cookie so these
-                            // paths need to be listed here in order to pass through our normal authn filters
+                            // paths need to be listed here in order to pass through our normal authentication filters
                             SAMLEndpoints.SINGLE_LOGOUT_REQUEST,
                             SAMLEndpoints.SINGLE_LOGOUT_CONSUMER,
                             SAMLEndpoints.LOCAL_LOGOUT,
@@ -115,8 +114,8 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         NiFiCsrfTokenRepository csrfRepository = new NiFiCsrfTokenRepository();
-        csrfRepository.setHeaderName(NiFiBearerTokenResolver.AUTHORIZATION);
-        csrfRepository.setCookieName(NiFiBearerTokenResolver.JWT_COOKIE_NAME);
+        csrfRepository.setHeaderName(SecurityHeader.AUTHORIZATION.getHeader());
+        csrfRepository.setCookieName(SecurityCookieName.AUTHORIZATION_BEARER.getName());
 
         http
                 .cors().and()
@@ -129,7 +128,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         http.addFilterBefore(x509FilterBean(), AnonymousAuthenticationFilter.class);
 
         // jwt
-        http.addFilterBefore(jwtFilterBean(), AnonymousAuthenticationFilter.class);
+        http.addFilterBefore(bearerTokenAuthenticationFilter(), AnonymousAuthenticationFilter.class);
 
         // knox
         http.addFilterBefore(knoxFilterBean(), AnonymousAuthenticationFilter.class);
@@ -168,16 +167,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     }
 
     @Bean
-    public JwtAuthenticationFilter jwtFilterBean() throws Exception {
-        if (jwtAuthenticationFilter == null) {
-            jwtAuthenticationFilter = new JwtAuthenticationFilter();
-            jwtAuthenticationFilter.setProperties(properties);
-            jwtAuthenticationFilter.setAuthenticationManager(authenticationManager());
-        }
-        return jwtAuthenticationFilter;
-    }
-
-    @Bean
     public KnoxAuthenticationFilter knoxFilterBean() throws Exception {
         if (knoxAuthenticationFilter == null) {
             knoxAuthenticationFilter = new KnoxAuthenticationFilter();
@@ -197,6 +186,18 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
             x509AuthenticationFilter.setAuthenticationManager(authenticationManager());
         }
         return x509AuthenticationFilter;
+    }
+
+    @Bean
+    public BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter() throws Exception {
+        final BearerTokenAuthenticationFilter filter = new BearerTokenAuthenticationFilter(authenticationManager());
+        filter.setBearerTokenResolver(bearerTokenResolver());
+        return filter;
+    }
+
+    @Bean
+    public BearerTokenResolver bearerTokenResolver() {
+        return new StandardBearerTokenResolver();
     }
 
     @Bean
@@ -242,10 +243,5 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     @Autowired
     public void setPrincipalExtractor(X509PrincipalExtractor principalExtractor) {
         this.principalExtractor = principalExtractor;
-    }
-
-    @Autowired
-    public void setCertificateIdentityProvider(X509IdentityProvider certificateIdentityProvider) {
-        this.certificateIdentityProvider = certificateIdentityProvider;
     }
 }
