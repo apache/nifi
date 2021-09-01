@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.properties;
 
+import org.apache.nifi.properties.configuration.AwsKmsClientProvider;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -23,6 +24,7 @@ import org.junit.Test;
 import org.mockito.internal.util.io.IOUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.kms.KmsClient;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,7 +54,7 @@ import java.util.Properties;
  *
  */
 
-public class AWSKMSSensitivePropertyProviderIT {
+public class AwsKmsSensitivePropertyProviderIT {
     private static final String SAMPLE_PLAINTEXT = "AWSKMSSensitivePropertyProviderIT SAMPLE-PLAINTEXT";
     private static final String ACCESS_KEY_PROPS_NAME = "aws.access.key.id";
     private static final String SECRET_KEY_PROPS_NAME = "aws.secret.access.key";
@@ -63,13 +65,13 @@ public class AWSKMSSensitivePropertyProviderIT {
 
     private static final String EMPTY_PROPERTY = "";
 
-    private static AWSKMSSensitivePropertyProvider spp;
+    private static AwsKmsSensitivePropertyProvider spp;
 
     private static BootstrapProperties props;
 
     private static Path mockBootstrapConf, mockAWSBootstrapConf;
 
-    private static final Logger logger = LoggerFactory.getLogger(AWSKMSSensitivePropertyProviderIT.class);
+    private static final Logger logger = LoggerFactory.getLogger(AwsKmsSensitivePropertyProviderIT.class);
 
     private static void initializeBootstrapProperties() throws IOException{
         mockBootstrapConf = Files.createTempFile("bootstrap", ".conf").toAbsolutePath();
@@ -101,7 +103,10 @@ public class AWSKMSSensitivePropertyProviderIT {
     public static void initOnce() throws IOException {
         initializeBootstrapProperties();
         Assert.assertNotNull(props);
-        spp = new AWSKMSSensitivePropertyProvider(props);
+        final AwsKmsClientProvider provider = new AwsKmsClientProvider();
+        final Properties properties = provider.getClientProperties(props).orElse(null);
+        final KmsClient kmsClient = provider.getClient(properties).orElse(null);
+        spp = new AwsKmsSensitivePropertyProvider(kmsClient, properties);
         Assert.assertNotNull(spp);
     }
 
