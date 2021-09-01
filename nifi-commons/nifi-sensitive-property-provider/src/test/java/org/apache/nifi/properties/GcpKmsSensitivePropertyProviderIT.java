@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.properties;
 
+import com.google.cloud.kms.v1.KeyManagementServiceClient;
+import org.apache.nifi.properties.configuration.GoogleKeyManagementServiceClientProvider;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -46,7 +48,7 @@ import java.util.Properties;
  * when running the integration tests
  */
 
-public class GCPKMSSensitivePropertyProviderIT {
+public class GcpKmsSensitivePropertyProviderIT {
     private static final String SAMPLE_PLAINTEXT = "GCPKMSSensitivePropertyProviderIT SAMPLE-PLAINTEXT";
     private static final String PROJECT_ID_PROPS_NAME = "gcp.kms.project";
     private static final String LOCATION_ID_PROPS_NAME = "gcp.kms.location";
@@ -56,13 +58,13 @@ public class GCPKMSSensitivePropertyProviderIT {
 
     private static final String EMPTY_PROPERTY = "";
 
-    private static GCPKMSSensitivePropertyProvider spp;
+    private static GcpKmsSensitivePropertyProvider spp;
 
     private static BootstrapProperties props;
 
     private static Path mockBootstrapConf, mockGCPBootstrapConf;
 
-    private static final Logger logger = LoggerFactory.getLogger(GCPKMSSensitivePropertyProviderIT.class);
+    private static final Logger logger = LoggerFactory.getLogger(GcpKmsSensitivePropertyProviderIT.class);
 
     private static void initializeBootstrapProperties() throws IOException{
         mockBootstrapConf = Files.createTempFile("bootstrap", ".conf").toAbsolutePath();
@@ -81,11 +83,11 @@ public class GCPKMSSensitivePropertyProviderIT {
         String keyId = System.getProperty(KEY_ID_PROPS_NAME, EMPTY_PROPERTY);
 
         StringBuilder bootstrapConfText = new StringBuilder();
-        String lineSeparator = System.getProperty("line.separator");
-        bootstrapConfText.append(PROJECT_ID_PROPS_NAME + "=" + projectId);
-        bootstrapConfText.append(lineSeparator + LOCATION_ID_PROPS_NAME + "=" + locationId);
-        bootstrapConfText.append(lineSeparator + KEYRING_ID_PROPS_NAME + "=" + keyringId);
-        bootstrapConfText.append(lineSeparator + KEY_ID_PROPS_NAME + "=" + keyId);
+        String lineSeparator = System.lineSeparator();
+        bootstrapConfText.append(PROJECT_ID_PROPS_NAME).append("=").append(projectId).append(lineSeparator);
+        bootstrapConfText.append(LOCATION_ID_PROPS_NAME).append("=").append(locationId).append(lineSeparator);
+        bootstrapConfText.append(KEYRING_ID_PROPS_NAME).append("=").append(keyringId).append(lineSeparator);
+        bootstrapConfText.append(KEY_ID_PROPS_NAME).append("=").append(keyId).append(lineSeparator);
         IOUtil.writeText(bootstrapConfText.toString(), mockGCPBootstrapConf.toFile());
     }
 
@@ -93,7 +95,10 @@ public class GCPKMSSensitivePropertyProviderIT {
     public static void initOnce() throws IOException {
         initializeBootstrapProperties();
         Assert.assertNotNull(props);
-        spp = new GCPKMSSensitivePropertyProvider(props);
+        final GoogleKeyManagementServiceClientProvider provider = new GoogleKeyManagementServiceClientProvider();
+        final Properties clientProperties = provider.getClientProperties(props).orElse(null);
+        final KeyManagementServiceClient client = provider.getClient(clientProperties).orElse(null);
+        spp = new GcpKmsSensitivePropertyProvider(client, clientProperties);
         Assert.assertNotNull(spp);
     }
 
