@@ -32,7 +32,7 @@ import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -43,8 +43,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for the NiFiOrcUtils helper class
@@ -189,10 +190,10 @@ public class TestNiFiOrcUtils {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void test_getPrimitiveOrcTypeFromPrimitiveAvroType_badType() throws Exception {
         Schema.Type nonPrimitiveType = Schema.Type.ARRAY;
-        NiFiOrcUtils.getPrimitiveOrcTypeFromPrimitiveAvroType(nonPrimitiveType);
+        assertThrows(IllegalArgumentException.class, () -> NiFiOrcUtils.getPrimitiveOrcTypeFromPrimitiveAvroType(nonPrimitiveType));
     }
 
     @Test
@@ -287,9 +288,9 @@ public class TestNiFiOrcUtils {
         });
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void test_convertToORCObjectBadUnion() {
-        NiFiOrcUtils.convertToORCObject(TypeInfoUtils.getTypeInfoFromTypeString("uniontype<bigint,long>"), "Hello");
+        assertThrows(IllegalArgumentException.class, () -> NiFiOrcUtils.convertToORCObject(TypeInfoUtils.getTypeInfoFromTypeString("uniontype<bigint,long>"), "Hello"));
     }
 
 

@@ -39,8 +39,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -49,8 +48,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for the NiFiOrcUtils helper class
@@ -186,7 +186,7 @@ public class TestNiFiOrcUtils {
         final TypeInfo orcField = NiFiOrcUtils.getOrcField(decimalDataType, false);
 
         // then
-        Assert.assertEquals(expected, orcField);
+        assertEquals(expected, orcField);
     }
 
     @Test
@@ -213,13 +213,14 @@ public class TestNiFiOrcUtils {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void test_getPrimitiveOrcTypeFromPrimitiveFieldType_badType() {
-        NiFiOrcUtils.getPrimitiveOrcTypeFromPrimitiveFieldType(RecordFieldType.ARRAY.getDataType());
+        assertThrows(IllegalArgumentException.class, () ->
+                NiFiOrcUtils.getPrimitiveOrcTypeFromPrimitiveFieldType(RecordFieldType.ARRAY.getDataType()));
     }
 
     @Test
-    public void test_getWritable() throws Exception {
+    public void test_getWritable() {
         assertTrue(NiFiOrcUtils.convertToORCObject(null, 1, true) instanceof IntWritable);
         assertTrue(NiFiOrcUtils.convertToORCObject(null, 1L, true) instanceof LongWritable);
         assertTrue(NiFiOrcUtils.convertToORCObject(null, 1.0f, true) instanceof FloatWritable);
@@ -317,9 +318,10 @@ public class TestNiFiOrcUtils {
         });
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void test_convertToORCObjectBadUnion() {
-        NiFiOrcUtils.convertToORCObject(TypeInfoUtils.getTypeInfoFromTypeString("uniontype<bigint,long>"), "Hello", true);
+        assertThrows(IllegalArgumentException.class,
+                () ->NiFiOrcUtils.convertToORCObject(TypeInfoUtils.getTypeInfoFromTypeString("uniontype<bigint,long>"), "Hello", true));
     }
 
     @Test

@@ -16,9 +16,21 @@
  */
 package org.apache.nifi.hbase;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.distributed.cache.client.Deserializer;
+import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
+import org.apache.nifi.distributed.cache.client.Serializer;
+import org.apache.nifi.hbase.GetHBase.ScanResult;
+import org.apache.nifi.hbase.scan.Column;
+import org.apache.nifi.hbase.util.StringSerDe;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,22 +48,12 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.nifi.annotation.notification.PrimaryNodeState;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.distributed.cache.client.Deserializer;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.hbase.GetHBase.ScanResult;
-import org.apache.nifi.hbase.scan.Column;
-import org.apache.nifi.hbase.util.StringSerDe;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestGetHBase {
 
@@ -60,7 +62,7 @@ public class TestGetHBase {
     private MockCacheClient cacheClient;
     private MockHBaseClientService hBaseClient;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         proc = new MockGetHBase();
         runner = TestRunners.newTestRunner(proc);
@@ -81,13 +83,13 @@ public class TestGetHBase {
         runner.setValidateExpressionUsage(true);
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         final File file = proc.getStateFile();
         if (file.exists()) {
             file.delete();
         }
-        Assert.assertFalse(file.exists());
+        assertFalse(file.exists());
     }
 
     @Test
@@ -141,7 +143,7 @@ public class TestGetHBase {
     public void testPersistAndRecoverFromLocalState() throws InitializationException {
         final File stateFile = new File("target/test-recover-state.bin");
         if (!stateFile.delete() && stateFile.exists()) {
-            Assert.fail("Could not delete state file " + stateFile);
+            fail("Could not delete state file " + stateFile);
         }
         proc.setStateFile(stateFile);
 
@@ -199,7 +201,7 @@ public class TestGetHBase {
         // for the first time, should use the state from distributed cache
         final File stateFile = proc.getStateFile();
         if (!stateFile.delete() && stateFile.exists()) {
-            Assert.fail("Could not delete state file " + stateFile);
+            fail("Could not delete state file " + stateFile);
         }
         proc.onPrimaryNodeChange(PrimaryNodeState.ELECTED_PRIMARY_NODE);
 
@@ -280,8 +282,8 @@ public class TestGetHBase {
         proc.onRemoved(runner.getProcessContext());
 
         // onRemoved should have cleared both
-        Assert.assertFalse(proc.getStateFile().exists());
-        Assert.assertFalse(cacheClient.containsKey(proc.getKey(), new StringSerDe()));
+        assertFalse(proc.getStateFile().exists());
+        assertFalse(cacheClient.containsKey(proc.getKey(), new StringSerDe()));
     }
 
     @Test
@@ -344,8 +346,8 @@ public class TestGetHBase {
         expectedCols.add(new Column("cf3".getBytes(Charset.forName("UTF-8")), null));
 
         final List<Column> actualColumns = proc.getColumns();
-        Assert.assertNotNull(actualColumns);
-        Assert.assertEquals(expectedCols.size(), actualColumns.size());
+        assertNotNull(actualColumns);
+        assertEquals(expectedCols.size(), actualColumns.size());
 
         for (final Column expectedCol : expectedCols) {
             boolean found = false;
@@ -355,7 +357,7 @@ public class TestGetHBase {
                     break;
                 }
             }
-            Assert.assertTrue("Didn't find expected column", found);
+            assertTrue(found, "Didn't find expected column");
         }
     }
 

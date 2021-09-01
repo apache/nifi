@@ -26,8 +26,8 @@ import org.apache.hive.hcatalog.streaming.RecordWriter;
 import org.apache.hive.hcatalog.streaming.StreamingConnection;
 import org.apache.hive.hcatalog.streaming.StreamingException;
 import org.apache.hive.hcatalog.streaming.TransactionBatch;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
@@ -38,8 +38,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.isA;
@@ -60,7 +61,7 @@ public class HiveWriterTest {
     private Callable<RecordWriter> recordWriterCallable;
     private TransactionBatch transactionBatch;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         hiveEndPoint = mock(HiveEndPoint.class);
         txnsPerBatch = 100;
@@ -116,29 +117,21 @@ public class HiveWriterTest {
         assertNotNull(hiveWriter);
     }
 
-    @Test(expected = HiveWriter.ConnectFailure.class)
+    @Test
     public void testNewConnectionInvalidTable() throws Exception {
         hiveEndPoint = mock(HiveEndPoint.class);
         InvalidTable invalidTable = new InvalidTable("badDb", "badTable");
         when(hiveEndPoint.newConnection(autoCreatePartitions, hiveConf, userGroupInformation)).thenThrow(invalidTable);
-        try {
-            initWriter();
-        } catch (HiveWriter.ConnectFailure e) {
-            assertEquals(invalidTable, e.getCause());
-            throw e;
-        }
+        HiveWriter.ConnectFailure e = assertThrows(HiveWriter.ConnectFailure.class, () -> initWriter());
+        assertEquals(invalidTable, e.getCause());
     }
 
-    @Test(expected = HiveWriter.ConnectFailure.class)
+    @Test
     public void testRecordWriterStreamingException() throws Exception {
         recordWriterCallable = mock(Callable.class);
         StreamingException streamingException = new StreamingException("Test Exception");
         when(recordWriterCallable.call()).thenThrow(streamingException);
-        try {
-            initWriter();
-        } catch (HiveWriter.ConnectFailure e) {
-            assertEquals(streamingException, e.getCause());
-            throw e;
-        }
+        HiveWriter.ConnectFailure e = assertThrows(HiveWriter.ConnectFailure.class, () -> initWriter());
+        assertEquals(streamingException, e.getCause());
     }
 }

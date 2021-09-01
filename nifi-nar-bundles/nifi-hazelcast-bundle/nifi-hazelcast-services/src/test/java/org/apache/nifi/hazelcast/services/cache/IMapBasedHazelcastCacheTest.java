@@ -17,19 +17,22 @@
 package org.apache.nifi.hazelcast.services.cache;
 
 import com.hazelcast.map.IMap;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(MockitoJUnitRunner.class)
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@ExtendWith(MockitoExtension.class)
 public class IMapBasedHazelcastCacheTest {
     private static final String KEY = "key";
     private static final String KEY_2 = "key2";
@@ -42,7 +45,7 @@ public class IMapBasedHazelcastCacheTest {
 
     private IMapBasedHazelcastCache testSubject;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         testSubject = new IMapBasedHazelcastCache(storage, TTL);
     }
@@ -57,7 +60,7 @@ public class IMapBasedHazelcastCacheTest {
 
         // then
         Mockito.verify(storage).get(KEY);
-        Assert.assertEquals(VALUE, result);
+        assertEquals(VALUE, result);
     }
 
     @Test
@@ -70,7 +73,7 @@ public class IMapBasedHazelcastCacheTest {
 
         // then
         Mockito.verify(storage).putIfAbsent(KEY, VALUE, TTL, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(VALUE_2, result);
+        assertEquals(VALUE_2, result);
     }
 
     @Test
@@ -92,7 +95,7 @@ public class IMapBasedHazelcastCacheTest {
 
         // then
         Mockito.verify(storage).containsKey(KEY);
-        Assert.assertTrue(result);
+        assertTrue(result);
     }
 
     @Test
@@ -105,7 +108,7 @@ public class IMapBasedHazelcastCacheTest {
 
         // then
         Mockito.verify(storage).remove(KEY);
-        Assert.assertTrue(result);
+        assertTrue(result);
     }
 
     @Test
@@ -118,7 +121,7 @@ public class IMapBasedHazelcastCacheTest {
 
         // then
         Mockito.verify(storage).remove(KEY);
-        Assert.assertFalse(result);
+        assertFalse(result);
     }
 
 
@@ -133,6 +136,6 @@ public class IMapBasedHazelcastCacheTest {
         // then
         Mockito.verify(storage).delete(KEY);
         Mockito.verify(storage).delete(KEY_2);
-        Assert.assertEquals(2, result);
+        assertEquals(2, result);
     }
 }

@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.jms.processors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.TransportConnector;
@@ -43,19 +35,12 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
 import org.springframework.jms.support.JmsHeaders;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jms.BytesMessage;
 import javax.jms.Connection;
@@ -68,6 +53,22 @@ import javax.jms.Session;
 import javax.jms.StreamMessage;
 import javax.jms.TextMessage;
 import javax.net.SocketFactory;
+import java.io.IOException;
+import java.net.URI;
+import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ConsumeJMSIT {
 
@@ -274,7 +275,8 @@ public class ConsumeJMSIT {
      * @throws Exception
      *             unexpected
      */
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateNifi6915() throws Exception {
         BrokerService broker = new BrokerService();
         try {
@@ -289,7 +291,7 @@ public class ConsumeJMSIT {
             boolean stopConsumer = true;
             c1Consumer.run(1, stopConsumer);
             List<MockFlowFile> flowFiles = c1Consumer.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
-            assertTrue("Expected no messages", flowFiles.isEmpty());
+            assertTrue(flowFiles.isEmpty(), "Expected no messages");
             // 2. Publish a message M1 to topic T.
             publishAMessage(cf, destinationName, "Hi buddy!!");
             // 3. Start C1.
@@ -313,20 +315,18 @@ public class ConsumeJMSIT {
         }
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateNifi6915OnlyOneThreadAllowed() {
         ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
         final String destinationName = "validateNifi6915";
-        try {
-            TestRunner runner = createNonSharedDurableConsumer(cf, destinationName);
-            runner.setThreadCount(2);
-            runner.run(1, true);
-            fail();
-        } catch (Throwable e) {
-            // Unable to capture the message :(
-        }
 
         TestRunner runner = createNonSharedDurableConsumer(cf, destinationName);
+        runner.setThreadCount(2);
+        final TestRunner temp = runner;
+        assertThrows(Throwable.class, () -> temp.run(1, true));
+
+        runner = createNonSharedDurableConsumer(cf, destinationName);
         // using one thread, it should not fail.
         runner.setThreadCount(1);
         runner.run(1, true);
@@ -343,7 +343,8 @@ public class ConsumeJMSIT {
      * @throws Exception
      *             any error related to the broker.
      */
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateNIFI7034() throws Exception {
         class ConsumeJMSForNifi7034 extends ConsumeJMS {
             @Override
@@ -383,12 +384,8 @@ public class ConsumeJMSIT {
             runner.setProperty(ConsumeJMS.DESTINATION, destinationName);
             runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.TOPIC);
 
-            try {
-                runner.run();
-                fail("Unit test implemented in a way this line must not be called");
-            } catch (AssertionError e) {
-                assertFalse("It is expected transport be closed. ", tcpTransport.get().isConnected());
-            }
+            assertThrows(AssertionError.class, () -> runner.run());
+            assertFalse(tcpTransport.get().isConnected(), "It is expected transport be closed. ");
         } finally {
             if (broker != null) {
                 broker.stop();
@@ -396,7 +393,8 @@ public class ConsumeJMSIT {
         }
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void whenExceptionIsRaisedTheProcessorShouldBeYielded() throws Exception {
         TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
@@ -411,13 +409,8 @@ public class ConsumeJMSIT {
         runner.setProperty(ConsumeJMS.DESTINATION, "foo");
         runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.TOPIC);
 
-        try {
-            runner.run();
-            fail("The test was implemented in a way this line should not be reached.");
-        } catch (AssertionError e) {
-        } finally {
-            assertTrue("In case of an exception, the processor should be yielded.", ((MockProcessContext) runner.getProcessContext()).isYieldCalled());
-        }
+         assertThrows(AssertionError.class, () -> runner.run());
+         assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled(), "In case of an exception, the processor should be yielded.");
     }
 
     @Test
@@ -435,13 +428,8 @@ public class ConsumeJMSIT {
         runner.setProperty(ConsumeJMS.DESTINATION, "myTopic");
         runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.TOPIC);
 
-        try {
-            runner.run();
-            fail("The test was implemented in a way this line should not be reached.");
-        } catch (AssertionError e) {
-        } finally {
-            assertTrue("In case of an exception, the processor should be yielded.", ((MockProcessContext) runner.getProcessContext()).isYieldCalled());
-        }
+        assertThrows(AssertionError.class, () -> runner.run());
+        assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled(), "In case of an exception, the processor should be yielded.");
     }
 
     private static void publishAMessage(ActiveMQConnectionFactory cf, final String destinationName, String messageContent) throws JMSException {

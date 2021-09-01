@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.jms.processors;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayOutputStream;
@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -47,7 +48,8 @@ import org.apache.commons.lang3.SerializationUtils;
 import org.apache.nifi.jms.processors.JMSConsumer.ConsumerCallback;
 import org.apache.nifi.jms.processors.JMSConsumer.JMSResponse;
 import org.apache.nifi.logging.ComponentLog;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
@@ -327,7 +329,8 @@ public class JMSPublisherConsumerIT {
         }
     }
 
-    @Test(timeout = 20000)
+    @Test
+    @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
     public void testMultipleThreads() throws Exception {
         String destinationName = "testMultipleThreads";
         JmsTemplate publishTemplate = CommonTest.buildJmsTemplateForDestination(false);
@@ -384,7 +387,8 @@ public class JMSPublisherConsumerIT {
     }
 
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateMessageRedeliveryWhenNotAcked() throws Exception {
         String destinationName = "validateMessageRedeliveryWhenNotAcked";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);

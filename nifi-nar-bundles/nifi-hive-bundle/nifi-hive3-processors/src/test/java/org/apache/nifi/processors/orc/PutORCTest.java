@@ -18,7 +18,6 @@ package org.apache.nifi.processors.orc;
 
 import org.apache.avro.Schema;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -55,11 +54,10 @@ import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -82,10 +80,14 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.function.BiFunction;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+@DisabledOnOs(OS.WINDOWS)
 public class PutORCTest {
 
     private static final String DIRECTORY = "target";
@@ -96,12 +98,7 @@ public class PutORCTest {
     private PutORC proc;
     private TestRunner testRunner;
 
-    @BeforeClass
-    public static void setupBeforeClass() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-    }
-
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/user.avsc"), StandardCharsets.UTF_8);
         schema = new Schema.Parser().parse(avroSchema);
@@ -203,18 +200,18 @@ public class PutORCTest {
         final ProvenanceEventRecord provEvent = provEvents.get(0);
         assertEquals(ProvenanceEventType.SEND, provEvent.getEventType());
         // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
-        Assert.assertTrue(provEvent.getTransitUri().endsWith(DIRECTORY + "/" + filename));
+        assertTrue(provEvent.getTransitUri().endsWith(DIRECTORY + "/" + filename));
 
         // verify the content of the ORC file by reading it back in
         verifyORCUsers(orcFile, 100);
 
         // verify we don't have the temp dot file after success
         final File tempOrcFile = new File(DIRECTORY + "/." + filename);
-        Assert.assertFalse(tempOrcFile.exists());
+        assertFalse(tempOrcFile.exists());
 
         // verify we DO have the CRC file after success
         final File crcAvroORCFile = new File(DIRECTORY + "/." + filename + ".crc");
-        Assert.assertTrue(crcAvroORCFile.exists());
+        assertTrue(crcAvroORCFile.exists());
     }
 
     @Test
@@ -272,7 +269,7 @@ public class PutORCTest {
         final ProvenanceEventRecord provEvent = provEvents.get(0);
         assertEquals(ProvenanceEventType.SEND, provEvent.getEventType());
         // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
-        Assert.assertTrue(provEvent.getTransitUri().endsWith(DIRECTORY + "/" + filename));
+        assertTrue(provEvent.getTransitUri().endsWith(DIRECTORY + "/" + filename));
 
         // verify the content of the ORC file by reading it back in
         verifyORCUsers(orcFile, 10, (x, currUser) -> {
@@ -289,11 +286,11 @@ public class PutORCTest {
 
         // verify we don't have the temp dot file after success
         final File tempOrcFile = new File(DIRECTORY + "/." + filename);
-        Assert.assertFalse(tempOrcFile.exists());
+        assertFalse(tempOrcFile.exists());
 
         // verify we DO have the CRC file after success
         final File crcAvroORCFile = new File(DIRECTORY + "/." + filename + ".crc");
-        Assert.assertTrue(crcAvroORCFile.exists());
+        assertTrue(crcAvroORCFile.exists());
     }
 
     @Test
@@ -410,7 +407,7 @@ public class PutORCTest {
 
         // verify we don't have the temp dot file after success
         final File tempAvroORCFile = new File(DIRECTORY + "/." + filename);
-        Assert.assertFalse(tempAvroORCFile.exists());
+        assertFalse(tempAvroORCFile.exists());
     }
 
     @Test
@@ -487,8 +484,8 @@ public class PutORCTest {
         int currUser = 0;
         Object nextRecord = null;
         while ((nextRecord = recordReader.next(nextRecord)) != null) {
-            Assert.assertNotNull(nextRecord);
-            Assert.assertTrue("Not an OrcStruct", nextRecord instanceof OrcStruct);
+            assertNotNull(nextRecord);
+            assertTrue(nextRecord instanceof OrcStruct, "Not an OrcStruct");
             List<Object> x = inspector.getStructFieldsDataAsList(nextRecord);
 
             if (assertFunction == null) {

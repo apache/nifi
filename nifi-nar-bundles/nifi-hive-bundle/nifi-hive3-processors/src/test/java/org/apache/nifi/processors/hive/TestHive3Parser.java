@@ -22,18 +22,18 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestHive3Parser extends AbstractHive3QLProcessor {
 
-    @Before
+    @BeforeEach
     public void initialize() {
         final MockProcessContext processContext = new MockProcessContext(this);
         final ProcessorInitializationContext initializationContext = new MockProcessorInitializationContext(this, processContext);

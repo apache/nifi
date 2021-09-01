@@ -24,10 +24,9 @@ import org.apache.ignite.lang.IgniteFuture;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 
 import java.io.IOException;
@@ -37,8 +36,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.AdditionalMatchers.or;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -56,7 +56,7 @@ public class TestPutIgniteCache {
     private Map<String,String> properties2;
     private Ignite ignite;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         ignite = mock(Ignite.class);
         final IgniteCache igniteCache = TestGetIgniteCache.mockIgniteCache();
@@ -95,7 +95,7 @@ public class TestPutIgniteCache {
         properties2.put("igniteKey", "key2");
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         runner = null;
     }
@@ -126,7 +126,7 @@ public class TestPutIgniteCache {
         out.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "0");
 
         out.assertContentEquals("test".getBytes());
-        Assert.assertArrayEquals("test".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("mykey"));
+        assertArrayEquals("test".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("mykey"));
         runner.shutdown();
     }
 
@@ -156,7 +156,7 @@ public class TestPutIgniteCache {
         out.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "0");
 
         out.assertContentEquals("test".getBytes());
-        Assert.assertArrayEquals("test".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
+        assertArrayEquals("test".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
         runner.shutdown();
     }
 
@@ -188,7 +188,7 @@ public class TestPutIgniteCache {
         out1.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "0");
 
         out1.assertContentEquals("test1".getBytes());
-        Assert.assertEquals("test1",new String(putIgniteCache.getIgniteCache().get("key1")));
+        assertEquals("test1",new String(putIgniteCache.getIgniteCache().get("key1")));
 
         final MockFlowFile out2 = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS).get(1);
 
@@ -198,7 +198,7 @@ public class TestPutIgniteCache {
         out2.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_SUCCESSFUL_COUNT, "2");
 
         out2.assertContentEquals("test2".getBytes());
-        Assert.assertArrayEquals("test1".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
+        assertArrayEquals("test1".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
 
         runner.shutdown();
     }
@@ -232,7 +232,7 @@ public class TestPutIgniteCache {
         out1.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "0");
 
         out1.assertContentEquals("test1".getBytes());
-        Assert.assertEquals("test2",new String(putIgniteCache.getIgniteCache().get("key1")));
+        assertEquals("test2",new String(putIgniteCache.getIgniteCache().get("key1")));
 
         final MockFlowFile out2 = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS).get(1);
 
@@ -243,7 +243,7 @@ public class TestPutIgniteCache {
 
         out2.assertContentEquals("test2".getBytes());
 
-        Assert.assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
+        assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
 
         runner.shutdown();
     }
@@ -338,7 +338,7 @@ public class TestPutIgniteCache {
         out1.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "0");
 
         out1.assertContentEquals("test1".getBytes());
-        Assert.assertArrayEquals("test1".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
+        assertArrayEquals("test1".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
 
         final MockFlowFile out2 = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS).get(1);
 
@@ -348,7 +348,7 @@ public class TestPutIgniteCache {
         out2.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_SUCCESSFUL_COUNT, "2");
 
         out2.assertContentEquals("test2".getBytes());
-        Assert.assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key2"));
+        assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key2"));
 
         runner.shutdown();
 
@@ -437,7 +437,7 @@ public class TestPutIgniteCache {
         out2.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "1");
 
         out2.assertContentEquals("test2".getBytes());
-        Assert.assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key2"));
+        assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key2"));
 
         runner.shutdown();
 
@@ -470,7 +470,7 @@ public class TestPutIgniteCache {
         out1.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "0");
 
         out1.assertContentEquals("test1".getBytes());
-        Assert.assertArrayEquals("test1".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
+        assertArrayEquals("test1".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
 
         final MockFlowFile out2 = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE).get(0);
 
@@ -572,7 +572,7 @@ public class TestPutIgniteCache {
         out2.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_SUCCESSFUL_COUNT, "1");
 
         out2.assertContentEquals("test2".getBytes());
-        Assert.assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
+        assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
 
         final MockFlowFile out3 = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE).get(1);
 
