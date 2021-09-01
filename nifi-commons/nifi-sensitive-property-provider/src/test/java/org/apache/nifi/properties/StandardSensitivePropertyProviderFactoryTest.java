@@ -56,8 +56,6 @@ public class StandardSensitivePropertyProviderFactoryTest {
     private static Path nifiProperties;
     private static String defaultBootstrapContents;
 
-    private static NiFiProperties niFiProperties;
-
     @BeforeClass
     public static void initOnce() throws IOException {
         Security.addProvider(new BouncyCastleProvider());
@@ -74,8 +72,6 @@ public class StandardSensitivePropertyProviderFactoryTest {
                 "nifi.bootstrap.protection.hashicorp.vault.conf", FilenameUtils.separatorsToUnix(hashicorpVaultBootstrapConf.toString()));
         bootstrapConf = writeDefaultBootstrapConf();
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, FilenameUtils.separatorsToUnix(nifiProperties.toString()));
-
-        niFiProperties = new NiFiProperties();
     }
 
     private static Path writeDefaultBootstrapConf() throws IOException {
@@ -86,8 +82,7 @@ public class StandardSensitivePropertyProviderFactoryTest {
         final Path tempBootstrapConf = Files.createTempFile("bootstrap", ".conf").toAbsolutePath();
         final Path bootstrapConf = Files.move(tempBootstrapConf, tempConfDir.resolve("bootstrap.conf"), StandardCopyOption.REPLACE_EXISTING);
 
-        final String bootstrapConfText = String.format(contents);
-        IOUtil.writeText(bootstrapConfText, bootstrapConf.toFile());
+        IOUtil.writeText(contents, bootstrapConf.toFile());
         return bootstrapConf;
     }
 
@@ -137,10 +132,9 @@ public class StandardSensitivePropertyProviderFactoryTest {
     }
 
     @Test
-    public void testGetPropertyContextUnconfigured() {
+    public void testGetPropertyContextNotConfigured() {
         configureDefaultFactory();
         assertEquals("default/prop", factory.getPropertyContext("ldap-provider", "prop").getContextKey());
-
     }
 
     @Test
@@ -163,11 +157,11 @@ public class StandardSensitivePropertyProviderFactoryTest {
         properties.put("vault.transit.path", "nifi-transit");
         configureHashicorpVault(properties);
 
-        final SensitivePropertyProvider spp = factory.getProvider(PropertyProtectionScheme.HASHICORP_VAULT_TRANSIT);
+        factory.getProvider(PropertyProtectionScheme.HASHICORP_VAULT_TRANSIT);
     }
 
     @Test
-    public void testHashicorpVaultTransit_isSupported() throws IOException {
+    public void testHashicorpVaultTransitSupported() throws IOException {
         configureDefaultFactory();
         final Properties properties = new Properties();
         properties.put("vault.transit.path", "nifi-transit");
@@ -191,7 +185,7 @@ public class StandardSensitivePropertyProviderFactoryTest {
     }
 
     @Test
-    public void testHashicorpVaultTransit_invalidCharacters() throws IOException {
+    public void testHashicorpVaultTransitInvalidCharacters() throws IOException {
         configureDefaultFactory();
         final Properties properties = new Properties();
         properties.put("vault.transit.path", "invalid/characters");
@@ -201,7 +195,7 @@ public class StandardSensitivePropertyProviderFactoryTest {
     }
 
     @Test
-    public void testAES_GCM() throws IOException {
+    public void testAesGcm() throws IOException {
         configureDefaultFactory();
         final ProtectedPropertyContext context = ProtectedPropertyContext.defaultContext("propertyName");
 

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.properties;
 
+import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
+import org.apache.nifi.properties.configuration.AzureCryptographyClientProvider;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -94,7 +96,10 @@ public class AzureKeyVaultKeySensitivePropertyProviderIT {
     public static void initOnce() throws IOException {
         initializeBootstrapProperties();
         Assert.assertNotNull(props);
-        spp = new AzureKeyVaultKeySensitivePropertyProvider(props);
+        final AzureCryptographyClientProvider provider = new AzureCryptographyClientProvider();
+        final Properties properties = provider.getClientProperties(props).orElse(null);
+        final CryptographyClient cryptographyClient = provider.getClient(properties).orElse(null);
+        spp = new AzureKeyVaultKeySensitivePropertyProvider(cryptographyClient, properties);
         Assert.assertNotNull(spp);
     }
 
@@ -109,7 +114,7 @@ public class AzureKeyVaultKeySensitivePropertyProviderIT {
     @Test
     public void testEncryptDecrypt() {
         logger.info("Running testEncryptDecrypt of Azure Key Vault Key SPP integration test");
-        this.runEncryptDecryptTest();
+        runEncryptDecryptTest();
         logger.info("testEncryptDecrypt of Azure Key Vault Key SPP integration test completed");
     }
 
