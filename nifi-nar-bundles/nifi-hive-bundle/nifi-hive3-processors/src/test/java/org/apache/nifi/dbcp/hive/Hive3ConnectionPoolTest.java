@@ -17,20 +17,6 @@
 
 package org.apache.nifi.dbcp.hive;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.isA;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.security.PrivilegedExceptionAction;
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -44,9 +30,24 @@ import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockVariableRegistry;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.security.PrivilegedExceptionAction;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class Hive3ConnectionPoolTest {
     private UserGroupInformation userGroupInformation;
@@ -56,7 +57,7 @@ public class Hive3ConnectionPoolTest {
     private KerberosProperties kerberosProperties;
     private File krb5conf = new File("src/test/resources/krb5.conf");
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         // have to initialize this system property before anything else
         System.setProperty("java.security.krb5.conf", krb5conf.getAbsolutePath());
@@ -113,16 +114,12 @@ public class Hive3ConnectionPoolTest {
         kerberosPropertiesField.set(hive3ConnectionPool, kerberosProperties);
     }
 
-    @Test(expected = ProcessException.class)
+    @Test
     public void testGetConnectionSqlException() throws SQLException {
         SQLException sqlException = new SQLException("bad sql");
         when(basicDataSource.getConnection()).thenThrow(sqlException);
-        try {
-            hive3ConnectionPool.getConnection();
-        } catch (ProcessException e) {
-            assertEquals(sqlException, e.getCause());
-            throw e;
-        }
+        ProcessException pe = assertThrows(ProcessException.class, () -> hive3ConnectionPool.getConnection());
+        assertEquals(sqlException, pe.getCause());
     }
 
     @Test
@@ -185,8 +182,11 @@ public class Hive3ConnectionPoolTest {
         assertEquals(URL, hive3ConnectionPool.getConnectionURL());
     }
 
-    @Ignore("Kerberos does not seem to be properly handled in Travis build, but, locally, this test should successfully run")
-    @Test(expected = InitializationException.class)
+    @EnabledIfSystemProperty(
+            named = "nifi.test.unstable",
+            matches = "true",
+            disabledReason = "Kerberos does not seem to be properly handled in Travis build, but, locally, this test should successfully run")
+    @Test
     public void testKerberosAuthException() throws Exception {
         final String URL = "jdbc:hive2://localhost:10000/default";
         final String conf = "src/test/resources/hive-site-security.xml";
@@ -209,6 +209,6 @@ public class Hive3ConnectionPoolTest {
         registry.setVariable(new VariableDescriptor("kprinc"), kprinc);
 
         MockConfigurationContext context = new MockConfigurationContext(props, null, registry);
-        hive3ConnectionPool.onConfigured(context);
+        assertThrows(InitializationException.class, () -> hive3ConnectionPool.onConfigured(context));
     }
 }

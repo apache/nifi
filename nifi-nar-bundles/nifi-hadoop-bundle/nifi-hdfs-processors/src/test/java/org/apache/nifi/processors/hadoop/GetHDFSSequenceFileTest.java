@@ -27,8 +27,8 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockProcessContext;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.io.File;
@@ -36,7 +36,7 @@ import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -50,7 +50,7 @@ public class GetHDFSSequenceFileTest {
     private UserGroupInformation userGroupInformation;
     private boolean reloginTried;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         configuration = mock(Configuration.class);
         fileSystem = mock(FileSystem.class);

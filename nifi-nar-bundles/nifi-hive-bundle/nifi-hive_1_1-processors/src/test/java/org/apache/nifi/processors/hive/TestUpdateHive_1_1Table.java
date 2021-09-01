@@ -34,12 +34,11 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
@@ -56,14 +55,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@RunWith(JUnit4.class)
+@DisabledOnOs(OS.WINDOWS)
 public class TestUpdateHive_1_1Table {
 
     private static final String TEST_CONF_PATH = "src/test/resources/core-site.xml";
@@ -122,13 +121,10 @@ public class TestUpdateHive_1_1Table {
             new String[]{"Location:", "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/_newTable", null}
     };
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
-
     private TestRunner runner;
     private UpdateHive_1_1Table processor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
 
         Configuration testConf = new Configuration();
@@ -192,11 +188,10 @@ public class TestUpdateHive_1_1Table {
     }
 
     @Test
-    public void testSetup() throws Exception {
+    public void testSetup(@TempDir java.nio.file.Path tempDir) throws Exception {
         configure(processor, 0);
         runner.assertNotValid();
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockHiveConnectionPool(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
