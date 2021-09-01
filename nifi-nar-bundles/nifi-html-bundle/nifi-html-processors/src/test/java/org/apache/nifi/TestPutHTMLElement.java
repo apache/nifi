@@ -24,21 +24,20 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestPutHTMLElement extends AbstractHTMLTest {
 
     private TestRunner testRunner;
 
-    @Before
+    @BeforeEach
     public void init() {
         testRunner = TestRunners.newTestRunner(PutHTMLElement.class);
         testRunner.setProperty(PutHTMLElement.URL, "http://localhost");

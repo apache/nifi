@@ -17,20 +17,21 @@
 package org.apache.nifi.hbase.io;
 
 import org.apache.nifi.hbase.scan.ResultCell;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestJsonRowSerializer {
 
     private final byte[] rowKey = "row1".getBytes(StandardCharsets.UTF_8);
     private ResultCell[] cells;
 
-    @Before
+    @BeforeEach
     public void setup() {
         final byte[] cell1Fam = "colFam1".getBytes(StandardCharsets.UTF_8);
         final byte[] cell1Qual = "colQual1".getBytes(StandardCharsets.UTF_8);
@@ -53,7 +54,7 @@ public class TestJsonRowSerializer {
         rowSerializer.serialize(rowKey, cells, out);
 
         final String json = out.toString(StandardCharsets.UTF_8.name());
-        Assert.assertEquals("{\"row\":\"row1\", \"cells\": {\"colFam1:colQual1\":\"val1\", \"colFam2:colQual2\":\"val2\"}}", json);
+        assertEquals("{\"row\":\"row1\", \"cells\": {\"colFam1:colQual1\":\"val1\", \"colFam2:colQual2\":\"val2\"}}", json);
     }
 
     private ResultCell getResultCell(byte[] fam, byte[] qual, byte[] val) {

@@ -30,10 +30,10 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,8 +43,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -60,13 +60,13 @@ public class TestCreateHadoopSequenceFile {
     private NiFiProperties mockNiFiProperties;
     private KerberosProperties kerberosProperties;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.hadoop", "debug");
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
@@ -76,7 +76,7 @@ public class TestCreateHadoopSequenceFile {
         controller = TestRunners.newTestRunner(proc);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         controller.clearTransferState();
     }

@@ -18,26 +18,26 @@ package org.apache.nifi.processors.hadoop.inotify;
 
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestEventTypeValidator {
     ValidationContext context;
     EventTypeValidator eventTypeValidator;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         context = Mockito.mock(ValidationContext.class);
         eventTypeValidator = new EventTypeValidator();
     }
 
     @Test
-    public void nullInputShouldProperlyFail() throws Exception {
+    public void nullInputShouldProperlyFail() {
         String subject = "subject";
         String input = null;
         ValidationResult result = eventTypeValidator.validate(subject, input, context);
@@ -49,7 +49,7 @@ public class TestEventTypeValidator {
     }
 
     @Test
-    public void emptyInputShouldProperlyFail() throws Exception {
+    public void emptyInputShouldProperlyFail() {
         String subject = "subject";
         String input = "";
         ValidationResult result = eventTypeValidator.validate(subject, input, context);
@@ -61,7 +61,7 @@ public class TestEventTypeValidator {
     }
 
     @Test
-    public void validEventTypesShouldProperlyValidate() throws Exception {
+    public void validEventTypesShouldProperlyValidate() {
         String input = "  append, Create, CLOSE";
         String subject = "subject";
         ValidationResult result = eventTypeValidator.validate(subject, input, context);
@@ -73,7 +73,7 @@ public class TestEventTypeValidator {
     }
 
     @Test
-    public void inputWithInvalidEventTypeShouldProperlyDisplayEventsInExplanation() throws Exception {
+    public void inputWithInvalidEventTypeShouldProperlyDisplayEventsInExplanation() {
         String subject = "subject";
         String input = "append, CREATE, invalidValue1, rename, metadata, unlink";
         ValidationResult result = eventTypeValidator.validate(subject, input, context);
@@ -85,7 +85,7 @@ public class TestEventTypeValidator {
     }
 
     @Test
-    public void inputWithMultipleInvalidEventTypeShouldProperlyDisplayEventsInExplanation() throws Exception {
+    public void inputWithMultipleInvalidEventTypeShouldProperlyDisplayEventsInExplanation() {
         String subject = "subject";
         String input = "append, CREATE, invalidValue1, rename, metadata, unlink, invalidValue2";
         ValidationResult result = eventTypeValidator.validate(subject, input, context);

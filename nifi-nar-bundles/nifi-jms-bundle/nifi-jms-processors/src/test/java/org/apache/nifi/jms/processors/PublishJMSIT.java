@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.jms.processors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -41,7 +41,9 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
 
@@ -51,6 +53,7 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jms.BytesMessage;
@@ -62,7 +65,8 @@ import javax.net.SocketFactory;
 
 public class PublishJMSIT {
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateSuccessfulPublishAndTransferToSuccess() throws Exception {
         ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
@@ -107,7 +111,8 @@ public class PublishJMSIT {
         runner.run(1, true, false); // Run once just so that we can trigger the shutdown of the Connection Factory
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateSuccessfulPublishAndTransferToSuccessWithEL() throws Exception {
         ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
@@ -170,7 +175,8 @@ public class PublishJMSIT {
         assertNotNull(runner.getFlowFilesForRelationship(PublishJMS.REL_FAILURE).get(0));
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validatePublishTextMessage() throws Exception {
         ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
@@ -210,7 +216,8 @@ public class PublishJMSIT {
         runner.run(1, true, false); // Run once just so that we can trigger the shutdown of the Connection Factory
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validatePublishPropertyTypes() throws Exception {
         ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
@@ -282,7 +289,8 @@ public class PublishJMSIT {
         runner.run(1, true, false); // Run once just so that we can trigger the shutdown of the Connection Factory
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateRegexAndIllegalHeaders() throws Exception {
         ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
@@ -338,7 +346,8 @@ public class PublishJMSIT {
      * </p>
      * @throws Exception any error related to the broker.
      */
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateNIFI7034() throws Exception {
         class PublishJmsForNifi7034 extends PublishJMS {
             @Override
@@ -380,7 +389,7 @@ public class PublishJMSIT {
 
             runner.enqueue("hi".getBytes());
             runner.run();
-            assertFalse("It is expected transport be closed. ", tcpTransport.get().isConnected());
+            assertFalse(tcpTransport.get().isConnected(), "It is expected transport be closed. ");
         } finally {
             if (broker != null) {
                 broker.stop();
@@ -397,7 +406,8 @@ public class PublishJMSIT {
      * </p>
      * @throws Exception any error related to the broker.
      */
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateNIFI7563UsingOneThread() throws Exception {
         BrokerService broker = new BrokerService();
         try {
@@ -438,10 +448,10 @@ public class PublishJMSIT {
             runner.enqueue("hi".getBytes(), flowFileAttributes);
             runner.enqueue("hi".getBytes(), flowFileAttributes);
             runner.run(2);
-            assertTrue("It is expected at least " + threads + " Connection to be opened.", threads == connectionFactoryProxy.openedConnections());
-            assertTrue("It is expected " + threads + " Session to be opened and there are " + connectionFactoryProxy.openedSessions(), threads == connectionFactoryProxy.openedSessions());
-            assertTrue("It is expected " + threads + " MessageProducer to be opened and there are " + connectionFactoryProxy.openedProducers(), threads == connectionFactoryProxy.openedProducers());
-            assertTrue("Some resources were not closed.", connectionFactoryProxy.isAllResourcesClosed());
+            assertTrue(threads == connectionFactoryProxy.openedConnections(), "It is expected at least " + threads + " Connection to be opened.");
+            assertTrue(threads == connectionFactoryProxy.openedSessions(), "It is expected " + threads + " Session to be opened and there are " + connectionFactoryProxy.openedSessions());
+            assertTrue(threads == connectionFactoryProxy.openedProducers(), "It is expected " + threads + " MessageProducer to be opened and there are " + connectionFactoryProxy.openedProducers());
+            assertTrue(connectionFactoryProxy.isAllResourcesClosed(), "Some resources were not closed.");
         } finally {
             if (broker != null) {
                 broker.stop();
@@ -458,7 +468,8 @@ public class PublishJMSIT {
      * </p>
      * @throws Exception any error related to the broker.
      */
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateNIFI7563UsingMultipleThreads() throws Exception {
         BrokerService broker = new BrokerService();
         try {
@@ -502,10 +513,10 @@ public class PublishJMSIT {
                 runner.enqueue(messageContent, flowFileAttributes);
             }
             runner.run(messagesToGenerate);
-            assertTrue("It is expected at least " + threads + " Connection to be opened.", connectionFactoryProxy.openedConnections() <= threads);
-            assertTrue("It is expected " + threads + " Session to be opened and there are " + connectionFactoryProxy.openedSessions(), connectionFactoryProxy.openedSessions() <= threads);
-            assertTrue("It is expected " + threads + " MessageProducer to be opened and there are " + connectionFactoryProxy.openedProducers(), connectionFactoryProxy.openedProducers() <= threads);
-            assertTrue("Some resources were not closed.", connectionFactoryProxy.isAllResourcesClosed());
+            assertTrue(connectionFactoryProxy.openedConnections() <= threads, "It is expected at least " + threads + " Connection to be opened.");
+            assertTrue(connectionFactoryProxy.openedSessions() <= threads, "It is expected " + threads + " Session to be opened and there are " + connectionFactoryProxy.openedSessions());
+            assertTrue(connectionFactoryProxy.openedProducers() <= threads, "It is expected " + threads + " MessageProducer to be opened and there are " + connectionFactoryProxy.openedProducers());
+            assertTrue(connectionFactoryProxy.isAllResourcesClosed(), "Some resources were not closed.");
         } finally {
             if (broker != null) {
                 broker.stop();
@@ -525,13 +536,8 @@ public class PublishJMSIT {
         runner.setProperty(ConsumeJMS.DESTINATION, "myTopic");
         runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.TOPIC);
 
-        try {
-            runner.enqueue("message");
-            runner.run();
-            fail("The test was implemented in a way this line should not be reached.");
-        } catch (AssertionError e) {
-        } finally {
-            assertTrue("In case of an exception, the processor should be yielded.", ((MockProcessContext) runner.getProcessContext()).isYieldCalled());
-        }
+        runner.enqueue("message");
+        assertThrows(AssertionError.class, () -> runner.run());
+        assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled(), "In case of an exception, the processor should be yielded.");
     }
 }

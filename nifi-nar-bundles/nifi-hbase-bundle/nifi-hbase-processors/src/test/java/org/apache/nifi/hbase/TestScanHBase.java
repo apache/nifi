@@ -16,17 +16,19 @@
  */
 package org.apache.nifi.hbase;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 public class TestScanHBase {
 
@@ -34,7 +36,7 @@ public class TestScanHBase {
     private MockHBaseClientService hBaseClientService;
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         proc = new ScanHBase();
         runner = TestRunners.newTestRunner(proc);
@@ -85,7 +87,7 @@ public class TestScanHBase {
         runner.assertTransferCount(ScanHBase.REL_SUCCESS, 0);
         runner.assertTransferCount(ScanHBase.REL_ORIGINAL, 0);
 
-        Assert.assertEquals(0, hBaseClientService.getNumScans());
+        assertEquals(0, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -101,7 +103,7 @@ public class TestScanHBase {
         runner.assertTransferCount(ScanHBase.REL_SUCCESS, 0);
         runner.assertTransferCount(ScanHBase.REL_ORIGINAL, 0);
 
-        Assert.assertEquals(0, hBaseClientService.getNumScans());
+        assertEquals(0, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -120,7 +122,7 @@ public class TestScanHBase {
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanHBase.REL_ORIGINAL).get(0);
         flowFile.assertAttributeEquals("scanhbase.results.found", Boolean.FALSE.toString());
 
-        Assert.assertEquals(1, hBaseClientService.getNumScans());
+        assertEquals(1, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -161,7 +163,7 @@ public class TestScanHBase {
         flowFile = runner.getFlowFilesForRelationship(ScanHBase.REL_ORIGINAL).get(0);
         flowFile.assertAttributeEquals("scanhbase.results.found", Boolean.TRUE.toString());
 
-        Assert.assertEquals(1, hBaseClientService.getNumScans());
+        assertEquals(1, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -243,7 +245,7 @@ public class TestScanHBase {
 
         runner.getFlowFilesForRelationship(ScanHBase.REL_SUCCESS).forEach(ff ->{
             ff.assertAttributeEquals(ScanHBase.HBASE_ROWS_COUNT_ATTR, "100");
-            Assert.assertNotEquals(0, ff.getId()); // since total amount of rows is a multiplication of bulkSize, original FF (with id=0) shouldn't be present on output.
+            assertNotEquals(0, ff.getId()); // since total amount of rows is a multiplication of bulkSize, original FF (with id=0) shouldn't be present on output.
         });
     }
 
@@ -311,7 +313,7 @@ public class TestScanHBase {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanHBase.REL_SUCCESS).get(0);
         flowFile.assertContentEquals("[{\"cq1\":\"val1\", \"cq2\":\"val2\"}]");
 
-        Assert.assertEquals(1, hBaseClientService.getNumScans());
+        assertEquals(1, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -351,7 +353,7 @@ public class TestScanHBase {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanHBase.REL_SUCCESS).get(0);
         flowFile.assertContentEquals("[{\"row\":\"row1\", \"cells\": [{\"fam\":\"nifi\",\"qual\":\"cq2\",\"val\":\"val2\",\"ts\":" + ts1 + "}]}]");
 
-        Assert.assertEquals(1, hBaseClientService.getNumScans());
+        assertEquals(1, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -369,7 +371,7 @@ public class TestScanHBase {
         runner.assertTransferCount(ScanHBase.REL_SUCCESS, 0);
         runner.assertTransferCount(ScanHBase.REL_ORIGINAL, 0);
 
-        Assert.assertEquals(0, hBaseClientService.getNumScans());
+        assertEquals(0, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -397,7 +399,7 @@ public class TestScanHBase {
         runner.assertTransferCount(ScanHBase.REL_SUCCESS, 0);
         runner.assertTransferCount(ScanHBase.REL_ORIGINAL, 0);
 
-        Assert.assertEquals(0, hBaseClientService.getNumScans());
+        assertEquals(0, hBaseClientService.getNumScans());
     }
 
 }

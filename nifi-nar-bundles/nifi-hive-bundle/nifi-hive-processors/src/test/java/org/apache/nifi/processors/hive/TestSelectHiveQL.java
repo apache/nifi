@@ -32,9 +32,9 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.hive.HiveJdbcCommon;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,8 +59,8 @@ import static org.apache.nifi.util.hive.HiveJdbcCommon.AVRO;
 import static org.apache.nifi.util.hive.HiveJdbcCommon.CSV;
 import static org.apache.nifi.util.hive.HiveJdbcCommon.CSV_MIME_TYPE;
 import static org.apache.nifi.util.hive.HiveJdbcCommon.MIME_TYPE_AVRO_BINARY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSelectHiveQL {
 
@@ -91,14 +91,14 @@ public class TestSelectHiveQL {
             + " where PER.ID > 10";
 
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
     }
 
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         final DBCPService dbcp = new DBCPServiceSimpleImpl();
         final Map<String, String> dbcpProperties = new HashMap<>();

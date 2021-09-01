@@ -22,16 +22,18 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestVisibilityUtil {
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         runner = TestRunners.newTestRunner(PutHBaseCell.class);
         final MockHBaseClientService hBaseClient = new MockHBaseClientService();
@@ -56,8 +58,8 @@ public class TestVisibilityUtil {
 
         String label = VisibilityUtil.pickVisibilityString("test", "test", ff, context);
 
-        Assert.assertNotNull(label);
-        Assert.assertEquals("U&PII&PHI", label);
+        assertNotNull(label);
+        assertEquals("U&PII&PHI", label);
     }
 
     @Test
@@ -72,8 +74,8 @@ public class TestVisibilityUtil {
 
         String label = VisibilityUtil.pickVisibilityString("test", "test", ff, context);
 
-        Assert.assertNotNull(label);
-        Assert.assertEquals("U&PII&PHI", label);
+        assertNotNull(label);
+        assertEquals("U&PII&PHI", label);
     }
 
     @Test
@@ -88,8 +90,8 @@ public class TestVisibilityUtil {
 
         String label = VisibilityUtil.pickVisibilityString("test", "test", ff, context);
 
-        Assert.assertNotNull(label);
-        Assert.assertEquals("U&PII", label);
+        assertNotNull(label);
+        assertEquals("U&PII", label);
     }
 
     @Test
@@ -102,8 +104,8 @@ public class TestVisibilityUtil {
 
         String label = VisibilityUtil.pickVisibilityString("test", "test", ff, context);
 
-        Assert.assertNotNull(label);
-        Assert.assertEquals("U&PII", label);
+        assertNotNull(label);
+        assertEquals("U&PII", label);
     }
 
     @Test
@@ -115,14 +117,14 @@ public class TestVisibilityUtil {
 
         String label = VisibilityUtil.pickVisibilityString("test", "test", ff, context);
 
-        Assert.assertNotNull(label);
-        Assert.assertEquals("U&PII", label);
+        assertNotNull(label);
+        assertEquals("U&PII", label);
 
         runner.setProperty("visibility.test.test", "U&PII&PHI");
         label = VisibilityUtil.pickVisibilityString("test", "test", ff, context);
 
-        Assert.assertNotNull(label);
-        Assert.assertEquals("U&PII&PHI", label);
+        assertNotNull(label);
+        assertEquals("U&PII&PHI", label);
 
     }
 }

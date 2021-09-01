@@ -44,8 +44,8 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.orc.TestNiFiOrcUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -63,10 +63,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 /**
@@ -77,15 +77,10 @@ public class TestConvertAvroToORC {
     private ConvertAvroToORC processor;
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         processor = new ConvertAvroToORC();
         runner = TestRunners.newTestRunner(processor);
-    }
-
-    @Test
-    public void test_Setup() throws Exception {
-
     }
 
     @Test

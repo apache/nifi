@@ -17,8 +17,10 @@
 package org.apache.nifi.nar.hadoop.util;
 
 import org.apache.hadoop.fs.Path;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ExtensionFilterTest {
 
@@ -32,7 +34,7 @@ public class ExtensionFilterTest {
         final boolean result = testSubject.accept(path);
 
         // then
-        Assert.assertTrue(result);
+        assertTrue(result);
     }
 
     @Test
@@ -45,7 +47,7 @@ public class ExtensionFilterTest {
         final boolean result = testSubject.accept(path);
 
         // then
-        Assert.assertTrue(result);
+        assertTrue(result);
     }
 
     @Test
@@ -58,7 +60,7 @@ public class ExtensionFilterTest {
         final boolean result = testSubject.accept(path);
 
         // then
-        Assert.assertFalse(result);
+        assertFalse(result);
     }
 
     @Test
@@ -71,7 +73,7 @@ public class ExtensionFilterTest {
         final boolean result = testSubject.accept(path);
 
         // then
-        Assert.assertFalse(result);
+        assertFalse(result);
     }
 
     @Test
@@ -84,7 +86,7 @@ public class ExtensionFilterTest {
         final boolean result = testSubject.accept(path);
 
         // then
-        Assert.assertFalse(result);
+        assertFalse(result);
     }
 
     @Test
@@ -97,7 +99,7 @@ public class ExtensionFilterTest {
         final boolean result = testSubject.accept(path);
 
         // then
-        Assert.assertFalse(result);
+        assertFalse(result);
     }
 
 }

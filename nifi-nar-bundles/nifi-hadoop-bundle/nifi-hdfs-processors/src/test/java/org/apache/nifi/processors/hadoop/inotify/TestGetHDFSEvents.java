@@ -29,18 +29,17 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,10 +50,7 @@ public class TestGetHDFSEvents {
     DFSInotifyEventInputStream inotifyEventInputStream;
     HdfsAdmin hdfsAdmin;
 
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
-
-    @Before
+    @BeforeEach
     public void setup() {
         mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
@@ -64,15 +60,16 @@ public class TestGetHDFSEvents {
     }
 
     @Test
-    public void notSettingHdfsPathToWatchShouldThrowError() throws Exception {
-        exception.expect(AssertionError.class);
-        exception.expectMessage("'HDFS Path to Watch' is invalid because HDFS Path to Watch is required");
+    public void notSettingHdfsPathToWatchShouldThrowError() {
+        AssertionError error = assertThrows(AssertionError.class, () -> {
+            GetHDFSEvents processor = new TestableGetHDFSEvents(kerberosProperties, hdfsAdmin);
+            TestRunner runner = TestRunners.newTestRunner(processor);
 
-        GetHDFSEvents processor = new TestableGetHDFSEvents(kerberosProperties, hdfsAdmin);
-        TestRunner runner = TestRunners.newTestRunner(processor);
+            runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
+            runner.run();
+        });
 
-        runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
-        runner.run();
+        assertTrue(error.getMessage().contains("'HDFS Path to Watch' is invalid because HDFS Path to Watch is required"));
     }
 
     @Test
