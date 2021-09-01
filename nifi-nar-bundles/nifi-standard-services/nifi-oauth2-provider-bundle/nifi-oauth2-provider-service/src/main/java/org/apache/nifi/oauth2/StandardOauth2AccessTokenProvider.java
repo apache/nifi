@@ -216,11 +216,15 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         if (this.accessDetails == null) {
             acquireAccessDetails();
         } else if (this.accessDetails.isExpired()) {
-            try {
-                refreshAccessDetails();
-            } catch (Exception e) {
-                getLogger().info("Couldn't refresh access token. Getting a new one.");
+            if (this.accessDetails.getRefreshToken() == null) {
                 acquireAccessDetails();
+            } else {
+                try {
+                    refreshAccessDetails();
+                } catch (Exception e) {
+                    getLogger().info("Couldn't refresh access token.", e);
+                    acquireAccessDetails();
+                }
             }
         }
 
@@ -228,6 +232,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     }
 
     private void acquireAccessDetails() {
+        getLogger().debug("Getting a new access token.");
+
         FormBody.Builder acquireTokenBuilder = new FormBody.Builder();
 
         if (grantType.equals(RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE.getValue())) {
@@ -254,6 +260,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     }
 
     private void refreshAccessDetails() {
+        getLogger().debug("Refreshing access token.");
+
         FormBody.Builder refreshTokenBuilder = new FormBody.Builder()
             .add("grant_type", "refresh_token")
             .add("refresh_token", this.accessDetails.getRefreshToken());
