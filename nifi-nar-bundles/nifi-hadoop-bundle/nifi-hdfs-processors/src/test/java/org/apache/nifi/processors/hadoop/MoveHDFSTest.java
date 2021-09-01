@@ -27,12 +27,10 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,8 +40,11 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -55,27 +56,27 @@ public class MoveHDFSTest {
     private NiFiProperties mockNiFiProperties;
     private KerberosProperties kerberosProperties;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpSuite() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+        assumeTrue(!SystemUtils.IS_OS_WINDOWS, "Test only runs on *nix");
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
         kerberosProperties = new KerberosProperties(null);
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         File inputDirectory = new File(INPUT_DIRECTORY);
         File outputDirectory = new File(OUTPUT_DIRECTORY);
         if (inputDirectory.exists()) {
-            Assert.assertTrue("Could not delete input directory: " + inputDirectory, FileUtils.deleteQuietly(inputDirectory));
+            assertTrue(FileUtils.deleteQuietly(inputDirectory), "Could not delete input directory: " + inputDirectory);
         }
         if (outputDirectory.exists()) {
-            Assert.assertTrue("Could not delete output directory: " + outputDirectory, FileUtils.deleteQuietly(outputDirectory));
+            assertTrue(FileUtils.deleteQuietly(outputDirectory), "Could not delete output directory: " + outputDirectory);
         }
     }
 
@@ -93,7 +94,7 @@ public class MoveHDFSTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             assertTrue(vr.toString().contains("Output Directory is required"));
         }
@@ -114,7 +115,7 @@ public class MoveHDFSTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
     }
 
     @Test
@@ -128,7 +129,7 @@ public class MoveHDFSTest {
         runner.run();
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
-        Assert.assertEquals(7, flowFiles.size());
+        assertEquals(7, flowFiles.size());
     }
 
     @Test
@@ -143,8 +144,8 @@ public class MoveHDFSTest {
         runner.run();
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
-        Assert.assertEquals(7, flowFiles.size());
-        Assert.assertTrue(new File(INPUT_DIRECTORY, ".dotfile").exists());
+        assertEquals(7, flowFiles.size());
+        assertTrue(new File(INPUT_DIRECTORY, ".dotfile").exists());
     }
 
     @Test
@@ -159,7 +160,7 @@ public class MoveHDFSTest {
         runner.run();
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
-        Assert.assertEquals(8, flowFiles.size());
+        assertEquals(8, flowFiles.size());
     }
 
     @Test
@@ -174,7 +175,7 @@ public class MoveHDFSTest {
         runner.run();
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
-        Assert.assertEquals(1, flowFiles.size());
+        assertEquals(1, flowFiles.size());
     }
 
     @Test
@@ -189,9 +190,9 @@ public class MoveHDFSTest {
         runner.run();
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
-        Assert.assertEquals(1, flowFiles.size());
-        Assert.assertTrue(new File(INPUT_DIRECTORY, "randombytes-1").exists());
-        Assert.assertTrue(new File(OUTPUT_DIRECTORY, "randombytes-1").exists());
+        assertEquals(1, flowFiles.size());
+        assertTrue(new File(INPUT_DIRECTORY, "randombytes-1").exists());
+        assertTrue(new File(OUTPUT_DIRECTORY, "randombytes-1").exists());
     }
 
     @Test
@@ -205,9 +206,9 @@ public class MoveHDFSTest {
         runner.run();
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
-        Assert.assertEquals(1, flowFiles.size());
-        Assert.assertFalse(new File(INPUT_DIRECTORY, "randombytes-1").exists());
-        Assert.assertTrue(new File(OUTPUT_DIRECTORY, "randombytes-1").exists());
+        assertEquals(1, flowFiles.size());
+        assertFalse(new File(INPUT_DIRECTORY, "randombytes-1").exists());
+        assertTrue(new File(OUTPUT_DIRECTORY, "randombytes-1").exists());
     }
 
     @Test
@@ -223,9 +224,9 @@ public class MoveHDFSTest {
         runner.run();
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
-        Assert.assertEquals(7, flowFiles.size());
-        Assert.assertTrue(new File(INPUT_DIRECTORY).exists());
-        Assert.assertTrue(subdir.exists());
+        assertEquals(7, flowFiles.size());
+        assertTrue(new File(INPUT_DIRECTORY).exists());
+        assertTrue(subdir.exists());
     }
 
     @Test
@@ -236,11 +237,11 @@ public class MoveHDFSTest {
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
         runner.enqueue(new byte[0]);
-        Assert.assertEquals(0, Files.list(Paths.get(INPUT_DIRECTORY)).count());
+        assertEquals(0, Files.list(Paths.get(INPUT_DIRECTORY)).count());
         runner.run();
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
-        Assert.assertEquals(0, flowFiles.size());
+        assertEquals(0, flowFiles.size());
     }
 
     @Test
@@ -282,7 +283,7 @@ public class MoveHDFSTest {
       runner.assertAllFlowFilesTransferred(expectedDestination);
 
       List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(expectedDestination);
-      Assert.assertEquals(1, flowFiles.size());
+      assertEquals(1, flowFiles.size());
 
       byte[] actual = Files.readAllBytes(Paths.get(OUTPUT_DIRECTORY, "randombytes-1"));
 
