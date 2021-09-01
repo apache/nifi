@@ -27,7 +27,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.junit.Assert;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -35,6 +34,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestHazelcastProcessor extends AbstractProcessor {
     private static final String KEY_1 = "key1";
@@ -76,24 +80,24 @@ class TestHazelcastProcessor extends AbstractProcessor {
         final HazelcastMapCacheClient testSubject = context.getProperty(TEST_HAZELCAST_MAP_CACHE_CLIENT).asControllerService(HazelcastMapCacheClient.class);
 
         try {
-            Assert.assertFalse(testSubject.containsKey(KEY_1, SERIALIZER));
+            assertFalse(testSubject.containsKey(KEY_1, SERIALIZER));
             testSubject.put(KEY_1, VALUE_1, SERIALIZER, SERIALIZER);
-            Assert.assertTrue(testSubject.containsKey(KEY_1, SERIALIZER));
-            Assert.assertEquals(VALUE_1, testSubject.get(KEY_1, SERIALIZER, SERIALIZER));
-            Assert.assertTrue(testSubject.remove(KEY_1, SERIALIZER));
-            Assert.assertFalse(testSubject.containsKey(KEY_1, SERIALIZER));
+            assertTrue(testSubject.containsKey(KEY_1, SERIALIZER));
+            assertEquals(VALUE_1, testSubject.get(KEY_1, SERIALIZER, SERIALIZER));
+            assertTrue(testSubject.remove(KEY_1, SERIALIZER));
+            assertFalse(testSubject.containsKey(KEY_1, SERIALIZER));
 
-            Assert.assertNull(testSubject.getAndPutIfAbsent(KEY_2, VALUE_2, SERIALIZER, SERIALIZER, SERIALIZER));
-            Assert.assertEquals(VALUE_2, testSubject.getAndPutIfAbsent(KEY_2, VALUE_2, SERIALIZER, SERIALIZER, SERIALIZER));
+            assertNull(testSubject.getAndPutIfAbsent(KEY_2, VALUE_2, SERIALIZER, SERIALIZER, SERIALIZER));
+            assertEquals(VALUE_2, testSubject.getAndPutIfAbsent(KEY_2, VALUE_2, SERIALIZER, SERIALIZER, SERIALIZER));
             testSubject.put(KEY_1, VALUE_1, SERIALIZER, SERIALIZER);
 
-            Assert.assertTrue(testSubject.containsKey(KEY_1, SERIALIZER));
-            Assert.assertTrue(testSubject.containsKey(KEY_2, SERIALIZER));
+            assertTrue(testSubject.containsKey(KEY_1, SERIALIZER));
+            assertTrue(testSubject.containsKey(KEY_2, SERIALIZER));
 
-            Assert.assertEquals(2, testSubject.removeByPattern("key.*"));
+            assertEquals(2, testSubject.removeByPattern("key.*"));
 
-            Assert.assertTrue(testSubject.replace(new AtomicCacheEntry<>(KEY_1, VALUE_1, 0L), SERIALIZER, SERIALIZER));
-            Assert.assertEquals(VALUE_1, testSubject.fetch(KEY_1, SERIALIZER, SERIALIZER).getValue());
+            assertTrue(testSubject.replace(new AtomicCacheEntry<>(KEY_1, VALUE_1, 0L), SERIALIZER, SERIALIZER));
+            assertEquals(VALUE_1, testSubject.fetch(KEY_1, SERIALIZER, SERIALIZER).getValue());
 
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final AssertionError| IOException e) {
