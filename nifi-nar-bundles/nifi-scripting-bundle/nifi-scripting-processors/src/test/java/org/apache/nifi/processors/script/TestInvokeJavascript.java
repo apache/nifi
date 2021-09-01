@@ -51,7 +51,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
      *
      * @Any error encountered while testing
      */
-    @org.junit.jupiter.api.Test
+    @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
@@ -73,7 +73,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
      *
      * @Any error encountered while testing
      */
-    @org.junit.jupiter.api.Test
+    @Test
     public void testScriptDefinedAttribute() {
         InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
         MockProcessContext context = new MockProcessContext(processor);
@@ -108,7 +108,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
      *
      * @Any error encountered while testing
      */
-    @org.junit.jupiter.api.Test
+    @Test
     public void testScriptDefinedRelationship() {
         InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
         MockProcessContext context = new MockProcessContext(processor);
@@ -159,7 +159,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
      *
      * @Any error encountered while testing
      */
-    @org.junit.jupiter.api.Test
+    @Test
     public void testScriptRoutesToFailure() {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
@@ -179,7 +179,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
      *
      * @Any error encountered while testing
      */
-    @org.junit.jupiter.api.Test
+    @Test
     public void testEmptyScript() {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, "");

@@ -64,7 +64,7 @@ public class TestExecuteClojure extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @org.junit.jupiter.api.Test
+    @Test
     public void testNoIncomingFlowFile() throws Exception {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Clojure");

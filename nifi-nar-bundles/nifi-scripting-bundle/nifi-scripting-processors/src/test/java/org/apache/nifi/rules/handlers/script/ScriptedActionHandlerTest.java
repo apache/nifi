@@ -72,7 +72,7 @@ public class ScriptedActionHandlerTest {
         attrs.put("message", "Time to backpressure < 5 mins");
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     public void testActions() throws InitializationException {
         actionHandler = initTask("src/test/resources/groovy/test_action_handler.groovy");
         List<Action> actions = Arrays.asList(new Action("LOG", attrs), new Action("ALERT", attrs));
@@ -97,7 +97,7 @@ public class ScriptedActionHandlerTest {
         assertEquals(42, facts.get("testFact"));
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     public void testPropertyContextActionHandler() throws InitializationException {
         actionHandler = initTask("src/test/resources/groovy/test_propertycontext_action_handler.groovy");
         mockScriptedBulletinRepository = new MockScriptedBulletinRepository();

@@ -29,7 +29,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestExecuteGroovy extends BaseScriptTest {
 
@@ -279,13 +278,10 @@ public class TestExecuteGroovy extends BaseScriptTest {
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
-        try {
-            runner.run();
-            fail();
-        } catch (AssertionError e) {
-            runner.assertPenalizeCount(1); // penalized
-            runner.assertQueueNotEmpty(); // flow file back in the input queue
-            assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled()); // processor yielded
-        }
+
+        assertThrows(AssertionError.class, () -> runner.run());
+        runner.assertPenalizeCount(1); // penalized
+        runner.assertQueueNotEmpty(); // flow file back in the input queue
+        assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled());
     }
 }

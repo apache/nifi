@@ -53,7 +53,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
      * Tests a script that has a Groovy Processor that that reads the first line of text from the flowfiles content and stores the value in an attribute of the outgoing flowfile.
      *
      */
-    @org.junit.jupiter.api.Test
+    @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
@@ -106,7 +106,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
      * stores the value in an attribute of the outgoing flowfile.
      *
      */
-    @org.junit.jupiter.api.Test
+    @Test
     public void testScriptDefinedRelationship() {
         InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
         MockProcessContext context = new MockProcessContext(processor);

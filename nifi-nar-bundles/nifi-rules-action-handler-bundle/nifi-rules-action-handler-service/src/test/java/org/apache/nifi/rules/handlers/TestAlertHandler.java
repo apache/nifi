@@ -32,7 +32,6 @@ import org.apache.nifi.util.MockBulletinRepository;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.hamcrest.MatcherAssert;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -43,6 +42,11 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 
 public class TestAlertHandler {
@@ -91,12 +95,7 @@ public class TestAlertHandler {
         final Action action = new Action();
         action.setType("ALERT");
         action.setAttributes(attributes);
-        try {
-            alertHandler.execute(action, metrics);
-            Assertions.fail();
-        } catch (UnsupportedOperationException ex) {
-            Assertions.assertTrue(true);
-        }
+        assertThrows(UnsupportedOperationException.class, () -> alertHandler.execute(action, metrics));
     }
 
     @Test
@@ -125,11 +124,11 @@ public class TestAlertHandler {
         alertHandler.execute(reportingContext, action, metrics);
         BulletinRepository bulletinRepository = reportingContext.getBulletinRepository();
         List<Bulletin> bulletins = bulletinRepository.findBulletinsForController();
-        Assertions.assertFalse(bulletins.isEmpty());
+        assertFalse(bulletins.isEmpty());
         Bulletin bulletin = bulletins.get(0);
-        Assertions.assertEquals(bulletin.getCategory(), category);
-        Assertions.assertEquals(bulletin.getMessage(), expectedOutput);
-        Assertions.assertEquals(bulletin.getLevel(), severity);
+        assertEquals(bulletin.getCategory(), category);
+        assertEquals(bulletin.getMessage(), expectedOutput);
+        assertEquals(bulletin.getLevel(), severity);
     }
 
     @Test
@@ -155,11 +154,11 @@ public class TestAlertHandler {
         alertHandler.execute(reportingContext, action, metrics);
         BulletinRepository bulletinRepository = reportingContext.getBulletinRepository();
         List<Bulletin> bulletins = bulletinRepository.findBulletinsForController();
-        Assertions.assertFalse(bulletins.isEmpty());
+        assertFalse(bulletins.isEmpty());
         Bulletin bulletin = bulletins.get(0);
-        Assertions.assertEquals(bulletin.getCategory(), category);
-        Assertions.assertEquals(bulletin.getMessage(), expectedOutput);
-        Assertions.assertEquals(bulletin.getLevel(), severity);
+        assertEquals(bulletin.getCategory(), category);
+        assertEquals(bulletin.getMessage(), expectedOutput);
+        assertEquals(bulletin.getLevel(), severity);
     }
 
     @Test
@@ -192,8 +191,8 @@ public class TestAlertHandler {
         };
         alertHandler.execute(fakeContext, action, metrics);
         final String debugMessage = mockComponentLog.getWarnMessage();
-        Assertions.assertTrue(StringUtils.isNotEmpty(debugMessage));
-        Assertions.assertEquals(debugMessage,"Reporting context was not provided to create bulletins.");
+        assertTrue(StringUtils.isNotEmpty(debugMessage));
+        assertEquals(debugMessage,"Reporting context was not provided to create bulletins.");
     }
 
     @Test
@@ -217,8 +216,8 @@ public class TestAlertHandler {
         Mockito.when(reportingContext.getBulletinRepository()).thenReturn(null);
         alertHandler.execute(fakeContext, action, metrics);
         final String warnMessage = mockComponentLog.getWarnMessage();
-        Assertions.assertTrue(StringUtils.isNotEmpty(warnMessage));
-        Assertions.assertEquals(warnMessage,"Bulletin Repository is not available which is unusual. Cannot send a bulletin.");
+        assertTrue(StringUtils.isNotEmpty(warnMessage));
+        assertEquals(warnMessage,"Bulletin Repository is not available which is unusual. Cannot send a bulletin.");
     }
 
     @Test
@@ -243,11 +242,7 @@ public class TestAlertHandler {
         final Action action = new Action();
         action.setType("FAKE");
         action.setAttributes(attributes);
-        try {
-            alertHandler.execute(reportingContext, action, metrics);
-            Assertions.fail();
-        } catch (UnsupportedOperationException ex) {
-        }
+        assertThrows(UnsupportedOperationException.class, () -> alertHandler.execute(reportingContext, action, metrics));
     }
 
     @Test
@@ -272,15 +267,12 @@ public class TestAlertHandler {
         final Action action = new Action();
         action.setType("FAKE");
         action.setAttributes(attributes);
-        try {
-            alertHandler.execute(reportingContext,action, metrics);
-            Assertions.assertTrue(true);
-        } catch (UnsupportedOperationException ex) {
-            Assertions.fail();
-        }
+
+        assertDoesNotThrow(() -> alertHandler.execute(reportingContext,action, metrics));
+
         final String warnMessage = mockComponentLog.getWarnMessage();
-        Assertions.assertTrue(StringUtils.isNotEmpty(warnMessage));
-        Assertions.assertEquals("This Action Handler does not support actions with the provided type: FAKE",warnMessage);
+        assertTrue(StringUtils.isNotEmpty(warnMessage));
+        assertEquals("This Action Handler does not support actions with the provided type: FAKE",warnMessage);
     }
 
     @Test
@@ -305,15 +297,11 @@ public class TestAlertHandler {
         final Action action = new Action();
         action.setType("FAKE");
         action.setAttributes(attributes);
-        try {
-            alertHandler.execute(reportingContext,action, metrics);
-            Assertions.assertTrue(true);
-        } catch (UnsupportedOperationException ex) {
-            Assertions.fail();
-        }
+        assertDoesNotThrow(() -> alertHandler.execute(reportingContext,action, metrics));
+
         final String debugMessage = mockComponentLog.getDebugMessage();
-        Assertions.assertTrue(StringUtils.isNotEmpty(debugMessage));
-        Assertions.assertEquals("This Action Handler does not support actions with the provided type: FAKE",debugMessage);
+        assertTrue(StringUtils.isNotEmpty(debugMessage));
+        assertEquals("This Action Handler does not support actions with the provided type: FAKE",debugMessage);
     }
 
     @Test
@@ -336,12 +324,7 @@ public class TestAlertHandler {
         final Action action = new Action();
         action.setType("ALERT");
         action.setAttributes(attributes);
-        try {
-            alertHandler.execute(reportingContext,action, metrics);
-            Assertions.assertTrue(true);
-        } catch (UnsupportedOperationException ex) {
-            Assertions.fail();
-        }
+        assertDoesNotThrow(() -> alertHandler.execute(reportingContext,action, metrics));
     }
 
     private static class MockAlertHandler extends AlertHandler {

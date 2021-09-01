@@ -31,7 +31,6 @@ import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.hamcrest.MatcherAssert;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -44,6 +43,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestRecordSinkHandler {
     private TestRunner runner;
@@ -91,13 +93,13 @@ public class TestRecordSinkHandler {
         recordSinkHandler.execute(action, metrics);
         String logMessage = mockComponentLog.getDebugMessage();
         List<Map<String, Object>> rows = recordSinkService.getRows();
-        Assertions.assertTrue(StringUtils.isNotEmpty(logMessage));
-        Assertions.assertTrue(logMessage.startsWith(expectedMessage));
-        Assertions.assertFalse(rows.isEmpty());
+        assertTrue(StringUtils.isNotEmpty(logMessage));
+        assertTrue(logMessage.startsWith(expectedMessage));
+        assertFalse(rows.isEmpty());
         Map<String,Object> record = rows.get(0);
-        Assertions.assertEquals("90", (record.get("cpu")));
-        Assertions.assertEquals("1000000", (record.get("jvmHeap")));
-        Assertions.assertEquals(bigDecimalValue, (record.get("custom")));
+        assertEquals("90", (record.get("cpu")));
+        assertEquals("1000000", (record.get("jvmHeap")));
+        assertEquals(bigDecimalValue, (record.get("custom")));
     }
 
     private static class MockRecordSinkHandler extends RecordSinkHandler {

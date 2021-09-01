@@ -24,13 +24,15 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -60,17 +62,12 @@ public class TestAvroSchemaRegistry {
 
         SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().name(schemaName).build();
         RecordSchema locatedSchema = delegate.retrieveSchema(schemaIdentifier);
-        Assertions.assertEquals(fooSchemaText, locatedSchema.getSchemaText().get());
-        try {
-            delegate.retrieveSchema(SchemaIdentifier.builder().name("barSchema").build());
-            Assertions.fail("Expected a SchemaNotFoundException to be thrown but it was not");
-        } catch (final SchemaNotFoundException expected) {
-        }
-
+        assertEquals(fooSchemaText, locatedSchema.getSchemaText().get());
+        assertThrows(SchemaNotFoundException.class, () -> delegate.retrieveSchema(SchemaIdentifier.builder().name("barSchema").build()));
     }
 
     @Test
-    public void validateStrictAndNonStrictSchemaRegistrationFromDynamicProperties() throws Exception {
+    public void validateStrictAndNonStrictSchemaRegistrationFromDynamicProperties() {
         String schemaName = "fooSchema";
         ConfigurationContext configContext = mock(ConfigurationContext.class);
         Map<PropertyDescriptor, String> properties = new HashMap<>();
@@ -102,11 +99,11 @@ public class TestAvroSchemaRegistry {
         // Strict parsing
         when(propertyValue.asBoolean()).thenReturn(true);
         Collection<ValidationResult> results = delegate.customValidate(validationContext);
-        Assertions.assertTrue(results.stream().anyMatch(result -> !result.isValid()));
+        assertTrue(results.stream().anyMatch(result -> !result.isValid()));
 
         // Non-strict parsing
         when(propertyValue.asBoolean()).thenReturn(false);
         results = delegate.customValidate(validationContext);
-        results.forEach(result -> Assertions.assertTrue(result.isValid()));
+        results.forEach(result -> assertTrue(result.isValid()));
     }
 }
