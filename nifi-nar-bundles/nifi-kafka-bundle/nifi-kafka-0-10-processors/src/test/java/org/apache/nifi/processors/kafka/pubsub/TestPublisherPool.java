@@ -17,17 +17,22 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.nifi.logging.ComponentLog;
+import org.junit.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.mockito.Mockito;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.nifi.logging.ComponentLog;
-import org.junit.Test;
-import org.mockito.Mockito;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-
+@EnabledIfSystemProperty(
+        named = "nifi.test.kafka10.enabled",
+        matches = "true",
+        disabledReason = "The test is valid and should be ran when working on this module."
+)
 public class TestPublisherPool {
 
     @Test

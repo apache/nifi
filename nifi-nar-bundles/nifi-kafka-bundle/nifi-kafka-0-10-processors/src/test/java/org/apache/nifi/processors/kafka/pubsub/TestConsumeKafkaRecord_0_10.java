@@ -29,9 +29,10 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -39,6 +40,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+@EnabledIfSystemProperty(
+        named = "nifi.test.kafka10.enabled",
+        matches = "true",
+        disabledReason = "The test is valid and should be ran when working on this module."
+)
 public class TestConsumeKafkaRecord_0_10 {
 
     private ConsumerLease mockLease = null;
@@ -77,7 +83,7 @@ public class TestConsumeKafkaRecord_0_10 {
     }
 
     @Test
-    public void validateCustomValidatorSettings() throws Exception {
+    public void validateCustomValidatorSettings() {
         runner.setProperty(ConsumeKafkaRecord_0_10.TOPICS, "foo");
         runner.setProperty(ConsumeKafkaRecord_0_10.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafkaRecord_0_10.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_10.OFFSET_EARLIEST);
@@ -94,38 +100,29 @@ public class TestConsumeKafkaRecord_0_10 {
     }
 
     @Test
-    public void validatePropertiesValidation() throws Exception {
+    public void validatePropertiesValidation() {
         runner.setProperty(ConsumeKafkaRecord_0_10.TOPICS, "foo");
         runner.setProperty(ConsumeKafkaRecord_0_10.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafkaRecord_0_10.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_10.OFFSET_EARLIEST);
 
         runner.removeProperty(ConsumeKafkaRecord_0_10.GROUP_ID);
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("invalid because Group ID is required"));
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("invalid because Group ID is required"));
 
         runner.setProperty(ConsumeKafkaRecord_0_10.GROUP_ID, "");
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
-        }
+
+        e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
 
         runner.setProperty(ConsumeKafkaRecord_0_10.GROUP_ID, "  ");
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
-        }
+
+        e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
     }
 
     @Test
-    public void validateGetAllMessages() throws Exception {
+    public void validateGetAllMessages() {
         String groupName = "validateGetAllMessages";
 
         when(mockConsumerPool.obtainConsumer(any(), any())).thenReturn(mockLease);
@@ -147,7 +144,7 @@ public class TestConsumeKafkaRecord_0_10 {
     }
 
     @Test
-    public void validateGetAllMessagesPattern() throws Exception {
+    public void validateGetAllMessagesPattern() {
         String groupName = "validateGetAllMessagesPattern";
 
         when(mockConsumerPool.obtainConsumer(any(), any())).thenReturn(mockLease);
@@ -170,7 +167,7 @@ public class TestConsumeKafkaRecord_0_10 {
     }
 
     @Test
-    public void validateGetErrorMessages() throws Exception {
+    public void validateGetErrorMessages() {
         String groupName = "validateGetErrorMessages";
 
         when(mockConsumerPool.obtainConsumer(any(), any())).thenReturn(mockLease);
@@ -192,7 +189,7 @@ public class TestConsumeKafkaRecord_0_10 {
     }
 
     @Test
-    public void testJaasConfiguration() throws Exception {
+    public void testJaasConfiguration() {
         runner.setProperty(ConsumeKafkaRecord_0_10.TOPICS, "foo");
         runner.setProperty(ConsumeKafkaRecord_0_10.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafkaRecord_0_10.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_10.OFFSET_EARLIEST);
@@ -220,5 +217,4 @@ public class TestConsumeKafkaRecord_0_10 {
         runner.setProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME, "${service}");
         runner.assertValid();
     }
-
 }

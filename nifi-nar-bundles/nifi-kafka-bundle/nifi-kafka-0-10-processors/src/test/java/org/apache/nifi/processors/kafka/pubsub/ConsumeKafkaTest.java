@@ -22,11 +22,17 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
+@EnabledIfSystemProperty(
+        named = "nifi.test.kafka10.enabled",
+        matches = "true",
+        disabledReason = "The test is valid and should be ran when working on this module."
+)
 public class ConsumeKafkaTest {
 
     ConsumerLease mockLease = null;
@@ -68,28 +74,20 @@ public class ConsumeKafkaTest {
         runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
 
         runner.removeProperty(ConsumeKafka_0_10.GROUP_ID);
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("invalid because Group ID is required"));
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("invalid because Group ID is required"));
+
 
         runner.setProperty(ConsumeKafka_0_10.GROUP_ID, "");
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
-        }
+
+        e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
 
         runner.setProperty(ConsumeKafka_0_10.GROUP_ID, "  ");
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
-        }
+
+        e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
     }
 
     @Test

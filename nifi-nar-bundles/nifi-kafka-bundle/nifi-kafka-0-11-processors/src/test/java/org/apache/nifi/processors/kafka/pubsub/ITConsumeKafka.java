@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.processors.kafka.pubsub;
 
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -23,26 +31,24 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-
+@EnabledIfSystemProperty(
+        named = "nifi.test.kafka11.enabled",
+        matches = "true",
+        disabledReason = "The test is valid and should be ran when working on this module."
+)
 public class ITConsumeKafka {
 
     ConsumerLease mockLease = null;
     ConsumerPool mockConsumerPool = null;
 
-    @Before
+    @BeforeEach
     public void setup() {
         mockLease = mock(ConsumerLease.class);
         mockConsumerPool = mock(ConsumerPool.class);
     }
 
     @Test
-    public void validateGetAllMessages() throws Exception {
+    public void validateGetAllMessages() {
         String groupName = "validateGetAllMessages";
 
         when(mockConsumerPool.obtainConsumer(any(), any())).thenReturn(mockLease);
@@ -72,7 +78,7 @@ public class ITConsumeKafka {
     }
 
     @Test
-    public void validateGetAllMessagesPattern() throws Exception {
+    public void validateGetAllMessagesPattern() {
         String groupName = "validateGetAllMessagesPattern";
 
         when(mockConsumerPool.obtainConsumer(any(), any())).thenReturn(mockLease);
@@ -103,7 +109,7 @@ public class ITConsumeKafka {
     }
 
     @Test
-    public void validateGetErrorMessages() throws Exception {
+    public void validateGetErrorMessages() {
         String groupName = "validateGetErrorMessages";
 
         when(mockConsumerPool.obtainConsumer(any(), any())).thenReturn(mockLease);
@@ -131,5 +137,4 @@ public class ITConsumeKafka {
         verifyNoMoreInteractions(mockConsumerPool);
         verifyNoMoreInteractions(mockLease);
     }
-
 }

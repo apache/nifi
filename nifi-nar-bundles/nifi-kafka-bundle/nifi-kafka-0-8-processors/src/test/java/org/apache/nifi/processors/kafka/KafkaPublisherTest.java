@@ -16,10 +16,21 @@
  */
 package org.apache.nifi.processors.kafka;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
+import kafka.consumer.Consumer;
+import kafka.consumer.ConsumerConfig;
+import kafka.consumer.ConsumerIterator;
+import kafka.consumer.ConsumerTimeoutException;
+import kafka.consumer.KafkaStream;
+import kafka.javaapi.consumer.ConsumerConnector;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processors.kafka.KafkaPublisher.KafkaPublisherResult;
+import org.apache.nifi.processors.kafka.test.EmbeddedKafka;
+import org.apache.nifi.processors.kafka.test.EmbeddedKafkaProducerHelper;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -29,40 +40,32 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processors.kafka.KafkaPublisher.KafkaPublisherResult;
-import org.apache.nifi.processors.kafka.test.EmbeddedKafka;
-import org.apache.nifi.processors.kafka.test.EmbeddedKafkaProducerHelper;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import kafka.consumer.Consumer;
-import kafka.consumer.ConsumerConfig;
-import kafka.consumer.ConsumerIterator;
-import kafka.consumer.ConsumerTimeoutException;
-import kafka.consumer.KafkaStream;
-import kafka.javaapi.consumer.ConsumerConnector;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
 // The test is valid and should be ran when working on this module. @Ignore is
 // to speed up the overall build
-@Ignore
+@EnabledIfSystemProperty(
+        named = "nifi.test.kafka08.enabled",
+        matches = "true",
+        disabledReason = "The test is valid and should be ran when working on this module."
+)
 public class KafkaPublisherTest {
 
     private static EmbeddedKafka kafkaLocal;
 
     private static EmbeddedKafkaProducerHelper producerHelper;
 
-    @BeforeClass
+    @BeforeAll
     public static void bforeClass() {
         kafkaLocal = new EmbeddedKafka();
         kafkaLocal.start();
         producerHelper = new EmbeddedKafkaProducerHelper(kafkaLocal);
     }
 
-    @AfterClass
+    @AfterAll
     public static void afterClass() throws Exception {
         producerHelper.close();
         kafkaLocal.stop();
@@ -116,12 +119,7 @@ public class KafkaPublisherTest {
         assertNotNull(iter.next());
         assertNotNull(iter.next());
         assertNotNull(iter.next());
-        try {
-            iter.next();
-            fail();
-        } catch (ConsumerTimeoutException e) {
-            // that's OK since this is the Kafka mechanism to unblock
-        }
+        assertThrows(ConsumerTimeoutException.class, () -> iter.next());
     }
 
     /*
@@ -150,12 +148,8 @@ public class KafkaPublisherTest {
         String m2 = new String(iter.next().message());
         assertEquals("Hello Kafka3", m1);
         assertEquals("Hello Kafka4", m2);
-        try {
-            iter.next();
-            fail();
-        } catch (ConsumerTimeoutException e) {
-            // that's OK since this is the Kafka mechanism to unblock
-        }
+
+        assertThrows(ConsumerTimeoutException.class, () -> iter.next());
 
         // simulates the second re-try
         lastAckedMessageIndex = 2;
@@ -194,12 +188,7 @@ public class KafkaPublisherTest {
 
         ConsumerIterator<byte[], byte[]> iter = this.buildConsumer(topicName);
 
-        try {
-            iter.next();
-            fail();
-        } catch (ConsumerTimeoutException e) {
-            // that's OK since this is the Kafka mechanism to unblock
-        }
+        assertThrows(ConsumerTimeoutException.class, () -> iter.next());
 
         // simulates the second re-try
         lastAckedMessageIndex = 6;
@@ -207,12 +196,8 @@ public class KafkaPublisherTest {
         publishingContext = new PublishingContext(contentStream, topicName, lastAckedMessageIndex);
         publishingContext.setDelimiterBytes("\n".getBytes(StandardCharsets.UTF_8));
         publisher.publish(publishingContext);
-        try {
-            iter.next();
-            fail();
-        } catch (ConsumerTimeoutException e) {
-            // that's OK since this is the Kafka mechanism to unblock
-        }
+
+        assertThrows(ConsumerTimeoutException.class, () -> iter.next());
 
         publisher.close();
     }

@@ -18,16 +18,17 @@ package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+
 import static org.junit.Assume.assumeFalse;
-import org.junit.Before;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
@@ -36,13 +37,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+@EnabledIfSystemProperty(
+        named = "nifi.test.kafka09.enabled",
+        matches = "true",
+        disabledReason = "The test is valid and should be ran when working on this module."
+)
 public class ITConsumeKafka {
 
     Consumer<byte[], byte[]> mockConsumer = null;
     ConsumerLease mockLease = null;
     ConsumerPool mockConsumerPool = null;
 
-    @Before
+    @BeforeEach
     public void setup() {
         mockConsumer = mock(Consumer.class);
         mockLease = mock(ConsumerLease.class);

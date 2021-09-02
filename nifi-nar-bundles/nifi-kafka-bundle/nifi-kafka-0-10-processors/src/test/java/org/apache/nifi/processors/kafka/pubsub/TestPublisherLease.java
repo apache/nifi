@@ -37,8 +37,8 @@ import org.apache.nifi.util.MockFlowFile;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.ByteArrayInputStream;
@@ -48,16 +48,20 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-
+@EnabledIfSystemProperty(
+        named = "nifi.test.kafka10.enabled",
+        matches = "true",
+        disabledReason = "The test is valid and should be ran when working on this module."
+)
 public class TestPublisherLease {
     private ComponentLog logger;
     private Producer<byte[], byte[]> producer;
@@ -127,13 +131,10 @@ public class TestPublisherLease {
         final byte[] messageKey = null;
         final byte[] demarcatorBytes = null;
 
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(final InvocationOnMock invocation) throws Throwable {
-                final Callback callback = invocation.getArgument(1);
-                callback.onCompletion(null, new RuntimeException("Unit Test Intentional Exception"));
-                return null;
-            }
+        doAnswer((Answer<Object>) invocation -> {
+            final Callback callback = invocation.getArgument(1);
+            callback.onCompletion(null, new RuntimeException("Unit Test Intentional Exception"));
+            return null;
         }).when(producer).send(any(ProducerRecord.class), any(Callback.class));
 
         lease.publish(flowFile, new ByteArrayInputStream(new byte[1]), messageKey, demarcatorBytes, topic);
@@ -160,20 +161,17 @@ public class TestPublisherLease {
 
         final AtomicInteger correctMessages = new AtomicInteger(0);
         final AtomicInteger incorrectMessages = new AtomicInteger(0);
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
-                final byte[] value = record.value();
-                final String valueString = new String(value, StandardCharsets.UTF_8);
-                if ("1234567890".equals(valueString)) {
-                    correctMessages.incrementAndGet();
-                } else {
-                    incorrectMessages.incrementAndGet();
-                }
-
-                return null;
+        doAnswer((Answer<Object>) invocation -> {
+            final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
+            final byte[] value = record.value();
+            final String valueString = new String(value, StandardCharsets.UTF_8);
+            if ("1234567890".equals(valueString)) {
+                correctMessages.incrementAndGet();
+            } else {
+                incorrectMessages.incrementAndGet();
             }
+
+            return null;
         }).when(producer).send(any(ProducerRecord.class), any(Callback.class));
 
         final FlowFile flowFile = new MockFlowFile(1L);
@@ -222,20 +220,17 @@ public class TestPublisherLease {
 
         final AtomicInteger correctMessages = new AtomicInteger(0);
         final AtomicInteger incorrectMessages = new AtomicInteger(0);
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
-                final byte[] value = record.value();
-                final String valueString = new String(value, StandardCharsets.UTF_8);
-                if ("".equals(valueString)) {
-                    correctMessages.incrementAndGet();
-                } else {
-                    incorrectMessages.incrementAndGet();
-                }
-
-                return null;
+        doAnswer((Answer<Object>) invocation -> {
+            final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
+            final byte[] value = record.value();
+            final String valueString = new String(value, StandardCharsets.UTF_8);
+            if ("".equals(valueString)) {
+                correctMessages.incrementAndGet();
+            } else {
+                incorrectMessages.incrementAndGet();
             }
+
+            return null;
         }).when(producer).send(any(ProducerRecord.class), any(Callback.class));
 
         final FlowFile flowFile = new MockFlowFile(1L);

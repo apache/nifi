@@ -16,38 +16,40 @@
  */
 package org.apache.nifi.processors.kafka;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-
 import org.apache.nifi.processors.kafka.test.EmbeddedKafka;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafkaProducerHelper;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
-@Ignore
-// The test is valid and should be ran when working on this module. @Ignore is
-// to speed up the overall build
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@EnabledIfSystemProperty(
+    named = "nifi.test.kafka08.enabled",
+    matches = "true",
+    disabledReason = "The test is valid and should be ran when working on this module."
+)
 public class GetKafkaIntegrationTests {
 
     private static EmbeddedKafka kafkaLocal;
 
     private static EmbeddedKafkaProducerHelper producerHelper;
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass(){
         kafkaLocal = new EmbeddedKafka();
         kafkaLocal.start();
         producerHelper = new EmbeddedKafkaProducerHelper(kafkaLocal);
     }
 
-    @AfterClass
+    @AfterAll
     public static void afterClass() throws Exception {
         producerHelper.close();
         kafkaLocal.stop();

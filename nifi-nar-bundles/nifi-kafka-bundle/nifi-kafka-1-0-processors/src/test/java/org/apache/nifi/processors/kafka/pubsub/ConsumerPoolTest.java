@@ -26,8 +26,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.kafka.pubsub.ConsumerPool.PoolStats;
 import org.apache.nifi.provenance.ProvenanceReporter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.nio.charset.StandardCharsets;
@@ -39,8 +39,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -57,7 +57,7 @@ public class ConsumerPoolTest {
     private ConsumerPool testDemarcatedPool = null;
     private ComponentLog logger = null;
 
-    @Before
+    @BeforeEach
     @SuppressWarnings("unchecked")
     public void setup() {
         consumer = mock(Consumer.class);
@@ -196,16 +196,11 @@ public class ConsumerPoolTest {
     }
 
     @Test
-    public void validatePoolConsumerFails() throws Exception {
+    public void validatePoolConsumerFails() {
 
         when(consumer.poll(anyLong())).thenThrow(new KafkaException("oops"));
         try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
-            try {
-                lease.poll();
-                fail();
-            } catch (final KafkaException ke) {
-
-            }
+            assertThrows(KafkaException.class, () -> lease.poll());
         }
         testPool.close();
         verify(mockSession, times(0)).create();

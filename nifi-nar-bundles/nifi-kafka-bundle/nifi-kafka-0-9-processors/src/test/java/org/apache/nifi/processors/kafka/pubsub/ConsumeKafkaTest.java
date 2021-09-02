@@ -18,23 +18,29 @@ package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
+@EnabledIfSystemProperty(
+        named = "nifi.test.kafka09.enabled",
+        matches = "true",
+        disabledReason = "The test is valid and should be ran when working on this module."
+)
 public class ConsumeKafkaTest {
 
     Consumer<byte[], byte[]> mockConsumer = null;
     ConsumerLease mockLease = null;
     ConsumerPool mockConsumerPool = null;
 
-    @Before
+    @BeforeEach
     public void setup() {
         mockConsumer = mock(Consumer.class);
         mockLease = mock(ConsumerLease.class);
@@ -71,27 +77,17 @@ public class ConsumeKafkaTest {
         runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
 
         runner.removeProperty(ConsumeKafka.GROUP_ID);
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("invalid because Group ID is required"));
-        }
+        AssertionError e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("invalid because Group ID is required"));
 
         runner.setProperty(ConsumeKafka.GROUP_ID, "");
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
-        }
+
+        e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
 
         runner.setProperty(ConsumeKafka.GROUP_ID, "  ");
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
-        }
+
+        e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
     }
 }

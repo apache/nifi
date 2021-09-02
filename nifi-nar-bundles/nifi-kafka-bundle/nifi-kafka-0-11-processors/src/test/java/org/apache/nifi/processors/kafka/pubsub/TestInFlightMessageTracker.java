@@ -17,20 +17,30 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
+import org.apache.nifi.util.MockComponentLog;
+import org.apache.nifi.util.MockFlowFile;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.nifi.util.MockComponentLog;
-import org.apache.nifi.util.MockFlowFile;
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@EnabledIfSystemProperty(
+        named = "nifi.test.kafka11.enabled",
+        matches = "true",
+        disabledReason = "The test is valid and should be ran when working on this module."
+)
 public class TestInFlightMessageTracker {
 
-    @Test(timeout = 5000L)
+    @Test
+    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
     public void testAwaitCompletionWhenComplete() throws InterruptedException, TimeoutException {
         final MockFlowFile flowFile = new MockFlowFile(1L);
 
@@ -49,7 +59,8 @@ public class TestInFlightMessageTracker {
         tracker.awaitCompletion(1L);
     }
 
-    @Test(timeout = 5000L)
+    @Test
+    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
     public void testAwaitCompletionWhileWaiting() throws InterruptedException, ExecutionException {
         final MockFlowFile flowFile = new MockFlowFile(1L);
 
@@ -77,12 +88,6 @@ public class TestInFlightMessageTracker {
     }
 
     private void verifyNotComplete(final InFlightMessageTracker tracker) throws InterruptedException {
-        try {
-            tracker.awaitCompletion(10L);
-            Assert.fail("Expected timeout");
-        } catch (final TimeoutException te) {
-            // expected
-        }
+        assertThrows(TimeoutException.class, () -> tracker.awaitCompletion(10L));
     }
-
 }
