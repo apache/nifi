@@ -15,6 +15,7 @@ package org.apache.nifi.processors.hive;/*
  * limitations under the License.
  */
 
+import com.google.common.io.Files;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.dbcp.hive.Hive_1_1DBCPService;
@@ -23,10 +24,8 @@ import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -40,19 +39,16 @@ import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestPutHive_1_1QL {
     private static final String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100), code integer)";
     private static final String createPersonsAutoId = "CREATE TABLE PERSONS (id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1), name VARCHAR(100), code INTEGER check(code <= 100))";
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
-
-    @BeforeClass
+    @BeforeAll
     public static void setup() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
     }
@@ -60,7 +56,7 @@ public class TestPutHive_1_1QL {
     @Test
     public void testDirectStatements() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHive_1_1QL.class);
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
@@ -107,7 +103,7 @@ public class TestPutHive_1_1QL {
     @Test
     public void testFailInMiddleWithBadStatementRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHive_1_1QL.class);
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
@@ -136,7 +132,7 @@ public class TestPutHive_1_1QL {
     @Test
     public void testFailAtBeginning() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHive_1_1QL.class);
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
@@ -161,7 +157,7 @@ public class TestPutHive_1_1QL {
     @Test
     public void testFailAtBeginningRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHive_1_1QL.class);
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
@@ -178,12 +174,9 @@ public class TestPutHive_1_1QL {
         runner.enqueue("INSERT INTO PERSONS".getBytes()); // intentionally wrong syntax
         runner.enqueue("INSERT INTO PERSONS (NAME, CODE) VALUES ('Tom', 3)".getBytes());
         runner.enqueue("INSERT INTO PERSONS (NAME, CODE) VALUES ('Harry', 44)".getBytes());
-        try {
-            runner.run();
-            fail("ProcessException should be thrown");
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException);
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
+        assertTrue(e.getCause() instanceof ProcessException);
 
         assertEquals(3, runner.getQueueSize().getObjectCount());
         runner.assertTransferCount(PutHive_1_1QL.REL_FAILURE, 0);
@@ -193,7 +186,7 @@ public class TestPutHive_1_1QL {
     @Test
     public void testFailInMiddleWithBadParameterType() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHive_1_1QL.class);
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
@@ -230,7 +223,7 @@ public class TestPutHive_1_1QL {
     @Test
     public void testFailInMiddleWithBadParameterValue() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHive_1_1QL.class);
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
@@ -279,7 +272,7 @@ public class TestPutHive_1_1QL {
     @Test
     public void testFailInMiddleWithBadNumberFormat() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHive_1_1QL.class);
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
@@ -329,7 +322,7 @@ public class TestPutHive_1_1QL {
     @Test
     public void testUsingSqlDataTypesWithNegativeValues() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHive_1_1QL.class);
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
@@ -366,7 +359,7 @@ public class TestPutHive_1_1QL {
     @Test
     public void testStatementsWithPreparedParameters() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHive_1_1QL.class);
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
@@ -434,7 +427,7 @@ public class TestPutHive_1_1QL {
     @Test
     public void testMultipleStatementsWithinFlowFile() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHive_1_1QL.class);
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
@@ -476,8 +469,8 @@ public class TestPutHive_1_1QL {
             try (final Statement stmt = conn.createStatement()) {
                 final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
                 assertTrue(rs.next());
-                assertEquals("Record ID mismatch", 1, rs.getInt(1));
-                assertEquals("Record NAME mismatch", "George", rs.getString(2));
+                assertEquals(1, rs.getInt(1), "Record ID mismatch");
+                assertEquals( "George", rs.getString(2), "Record NAME mismatch");
             }
         }
     }
@@ -485,7 +478,7 @@ public class TestPutHive_1_1QL {
     @Test
     public void testMultipleStatementsWithinFlowFilePlusEmbeddedDelimiter() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHive_1_1QL.class);
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
@@ -525,8 +518,8 @@ public class TestPutHive_1_1QL {
             try (final Statement stmt = conn.createStatement()) {
                 final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
                 assertTrue(rs.next());
-                assertEquals("Record ID mismatch", 1, rs.getInt(1));
-                assertEquals("Record NAME mismatch", "George\\;", rs.getString(2));
+                assertEquals(1, rs.getInt(1), "Record ID mismatch");
+                assertEquals( "George\\;", rs.getString(2), "Record NAME mismatch");
             }
         }
     }
@@ -535,7 +528,7 @@ public class TestPutHive_1_1QL {
     @Test
     public void testWithNullParameter() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHive_1_1QL.class);
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
@@ -577,7 +570,7 @@ public class TestPutHive_1_1QL {
     @Test
     public void testInvalidStatement() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHive_1_1QL.class);
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
@@ -680,12 +673,9 @@ public class TestPutHive_1_1QL {
         attributes.put("hiveql.args.4.value", "1");
 
         runner.enqueue(sql.getBytes(), attributes);
-        try {
-            runner.run();
-            fail("Should throw ProcessException");
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException);
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
+        assertTrue(e.getCause() instanceof ProcessException);
 
         assertEquals(1, runner.getQueueSize().getObjectCount());
         runner.assertAllFlowFilesTransferred(PutHive_1_1QL.REL_RETRY, 0);
@@ -752,12 +742,9 @@ public class TestPutHive_1_1QL {
         attributes.put("hiveql.args.4.value", "1");
 
         runner.enqueue(sql.getBytes(), attributes);
-        try {
-            runner.run();
-            fail("Should throw ProcessException");
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException);
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
+        assertTrue(e.getCause() instanceof ProcessException);
 
         assertEquals(1, runner.getQueueSize().getObjectCount());
         runner.assertAllFlowFilesTransferred(PutHive_1_1QL.REL_RETRY, 0);
