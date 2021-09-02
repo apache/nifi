@@ -26,8 +26,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -35,6 +34,10 @@ import java.util.Iterator;
 import java.util.List;
 
 import static org.apache.nifi.hbase.HBaseTestUtil.getHBaseClientService;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestPutHBaseRecord {
 
@@ -81,7 +84,7 @@ public class TestPutHBaseRecord {
     }
 
     private void basicPutSetup(String encodingStrategy, PutValidator validator, String batchSize, int expectedPuts) throws Exception {
-        Assert.assertEquals(1L, 1L);
+        assertEquals(1L, 1L);
         TestRunner runner = getTestRunner(DEFAULT_TABLE_NAME, DEFAULT_COLUMN_FAMILY, batchSize);
         runner.setProperty(PutHBaseRecord.ROW_FIELD_NAME, "id");
         runner.setProperty(PutHBaseRecord.FIELD_ENCODING_STRATEGY, encodingStrategy);
@@ -91,25 +94,25 @@ public class TestPutHBaseRecord {
         runner.run();
 
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(PutHBaseRecord.REL_SUCCESS);
-        Assert.assertTrue("Wrong count", results.size() == 1);
+        assertEquals(1, results.size(), "Wrong count");
 
-        Assert.assertEquals("Wrong number of PutFlowFiles ", client.getFlowFilePuts().get("nifi").size(), expectedPuts);
+        assertEquals(client.getFlowFilePuts().get("nifi").size(), expectedPuts, "Wrong number of PutFlowFiles ");
         for (PutFlowFile putFlowFile : client.getFlowFilePuts().get("nifi")) {
             Iterator<PutColumn> columnIterator = putFlowFile.getColumns().iterator();
             PutColumn name = columnIterator.next();
             PutColumn code = columnIterator.next();
-            Assert.assertNotNull("Name was null", name);
-            Assert.assertNotNull("Code was null", code);
+            assertNotNull(name, "Name was null");
+            assertNotNull(code, "Code was null");
 
             String nFamName = new String(name.getColumnFamily());
             String cFamName = new String(code.getColumnFamily());
             String nQual    = new String(name.getColumnQualifier());
             String cQual    = new String(code.getColumnQualifier());
 
-            Assert.assertEquals("Name column family didn't match", nFamName, DEFAULT_COLUMN_FAMILY);
-            Assert.assertEquals("Code column family didn't match", cFamName, DEFAULT_COLUMN_FAMILY);
-            Assert.assertEquals("Name qualifier didn't match", nQual, "name");
-            Assert.assertEquals("Code qualifier didn't match", cQual, "code");
+            assertEquals(nFamName, DEFAULT_COLUMN_FAMILY, "Name column family didn't match");
+            assertEquals(cFamName, DEFAULT_COLUMN_FAMILY, "Code column family didn't match");
+            assertEquals(nQual, "name", "Name qualifier didn't match");
+            assertEquals(cQual, "code", "Code qualifier didn't match");
 
             validator.handle(name, code);
         }
@@ -122,8 +125,8 @@ public class TestPutHBaseRecord {
             PutColumn code = columns[1];
             String nameVal = Bytes.toString(name.getBuffer());
             Long codeVal = Bytes.toLong(code.getBuffer());
-            Assert.assertTrue("Name was not found", NAMES.contains(nameVal));
-            Assert.assertTrue("Code was not found ", CODES.contains(codeVal));
+            assertTrue(NAMES.contains(nameVal), "Name was not found");
+            assertTrue(CODES.contains(codeVal), "Code was not found ");
         });
     }
 
@@ -132,8 +135,8 @@ public class TestPutHBaseRecord {
         PutColumn code = columns[1];
         String nameVal = Bytes.toString(name.getBuffer());
         String codeVal = Bytes.toString(code.getBuffer());
-        Assert.assertTrue("Name was not found", NAMES.contains(nameVal));
-        Assert.assertTrue("Code was not found ", CODES.contains(new Long(codeVal)));
+        assertTrue(NAMES.contains(nameVal), "Name was not found");
+        assertTrue(CODES.contains(new Long(codeVal)), "Code was not found ");
     }
 
     @Test
@@ -159,7 +162,7 @@ public class TestPutHBaseRecord {
 
     @Test
     public void testFailure() throws Exception {
-        Assert.assertEquals(1L, 1L);
+        assertEquals(1L, 1L);
         TestRunner runner = getTestRunner(DEFAULT_TABLE_NAME, DEFAULT_COLUMN_FAMILY, "2");
         runner.setProperty(PutHBaseRecord.ROW_FIELD_NAME, "id");
         runner.setProperty(PutHBaseRecord.FIELD_ENCODING_STRATEGY, PutHBaseRecord.STRING_ENCODING_VALUE);
@@ -170,23 +173,23 @@ public class TestPutHBaseRecord {
         runner.enqueue("Test".getBytes("UTF-8")); // This is to coax the processor into reading the data in the reader.
         runner.run();
         List<MockFlowFile> result = runner.getFlowFilesForRelationship(PutHBaseRecord.REL_FAILURE);
-        Assert.assertEquals("Size was wrong", result.size(), 1);
-        Assert.assertEquals("Wrong # of PutFlowFiles", client.getFlowFilePuts().get("nifi").size(), 2);
-        Assert.assertTrue(runner.getFlowFilesForRelationship(PutHBaseRecord.REL_SUCCESS).size() == 0);
+        assertEquals(result.size(), 1, "Size was wrong");
+        assertEquals(client.getFlowFilePuts().get("nifi").size(), 2, "Wrong # of PutFlowFiles");
+        assertTrue(runner.getFlowFilesForRelationship(PutHBaseRecord.REL_SUCCESS).size() == 0);
 
         MockFlowFile mff = result.get(0);
-        Assert.assertNotNull("Missing restart index attribute", mff.getAttribute("restart.index"));
+        assertNotNull("Missing restart index attribute", mff.getAttribute("restart.index"));
         List<PutFlowFile> old = client.getFlowFilePuts().get("nifi");
         client.setTestFailure(false);
         runner.enqueue("test");
         runner.run();
 
-        Assert.assertEquals("Size was wrong", result.size(), 1);
-        Assert.assertEquals("Wrong # of PutFlowFiles", client.getFlowFilePuts().get("nifi").size(), 2);
+        assertEquals(result.size(), 1, "Size was wrong");
+        assertEquals(client.getFlowFilePuts().get("nifi").size(), 2, "Wrong # of PutFlowFiles");
 
         List<PutFlowFile> newPFF = client.getFlowFilePuts().get("nifi");
         for (PutFlowFile putFlowFile : old) {
-            Assert.assertFalse("Duplication", newPFF.contains(putFlowFile));
+            assertFalse(newPFF.contains(putFlowFile), "Duplication");
         }
     }
 

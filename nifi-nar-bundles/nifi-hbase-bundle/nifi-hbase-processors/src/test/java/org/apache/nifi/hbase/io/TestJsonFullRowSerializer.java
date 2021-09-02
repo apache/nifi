@@ -18,13 +18,14 @@ package org.apache.nifi.hbase.io;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.hbase.scan.ResultCell;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestJsonFullRowSerializer {
 
@@ -43,7 +44,7 @@ public class TestJsonFullRowSerializer {
     private final byte[] rowKey = ROW.getBytes(StandardCharsets.UTF_8);
     private ResultCell[] cells;
 
-    @Before
+    @BeforeEach
     public void setup() {
         final byte[] cell1Fam = FAM1.getBytes(StandardCharsets.UTF_8);
         final byte[] cell1Qual = QUAL1.getBytes(StandardCharsets.UTF_8);
@@ -66,7 +67,7 @@ public class TestJsonFullRowSerializer {
         rowSerializer.serialize(rowKey, cells, out);
 
         final String json = out.toString(StandardCharsets.UTF_8.name());
-        Assert.assertEquals("{\"row\":\"row1\", \"cells\": [" +
+        assertEquals("{\"row\":\"row1\", \"cells\": [" +
                 "{\"fam\":\"" + FAM1 + "\",\"qual\":\"" + QUAL1 + "\",\"val\":\"" + VAL1 + "\",\"ts\":" + TS1 + "}, " +
                 "{\"fam\":\"" + FAM2 + "\",\"qual\":\"" + QUAL2 + "\",\"val\":\"" + VAL2 + "\",\"ts\":" + TS2 + "}]}",
                 json);
@@ -89,7 +90,7 @@ public class TestJsonFullRowSerializer {
         final String val2Base64 = Base64.encodeBase64String(VAL2.getBytes(StandardCharsets.UTF_8));
 
         final String json = out.toString(StandardCharsets.UTF_8.name());
-        Assert.assertEquals("{\"row\":\"" + rowBase64 + "\", \"cells\": [" +
+        assertEquals("{\"row\":\"" + rowBase64 + "\", \"cells\": [" +
                 "{\"fam\":\"" + fam1Base64 + "\",\"qual\":\"" + qual1Base64 + "\",\"val\":\"" + val1Base64 + "\",\"ts\":" + TS1 + "}, " +
                 "{\"fam\":\"" + fam2Base64 + "\",\"qual\":\"" + qual2Base64 + "\",\"val\":\"" + val2Base64 + "\",\"ts\":" + TS2 + "}]}", json);
     }
@@ -113,5 +114,4 @@ public class TestJsonFullRowSerializer {
 
         return cell;
     }
-
 }
