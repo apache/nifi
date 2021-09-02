@@ -20,12 +20,6 @@ language governing permissions and limitations under the License. -->
     <artifactId>nifi-elasticsearch-restapi-processors</artifactId>
     <packaging>jar</packaging>
 
-    <properties>
-        <slf4jversion>2.7</slf4jversion>
-        <es.version>5.6.6</es.version>
-        <lucene.version>6.2.1</lucene.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -108,6 +102,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-path</artifactId>
+            <version>1.15.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-record-utils</artifactId>
             <version>1.15.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

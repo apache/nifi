@@ -65,9 +65,9 @@ public class IndexOperationRequest {
         Index("index"),
         Update("update"),
         Upsert("upsert");
-        String value;
+        private final String value;
 
-        Operation(String value) {
+        Operation(final String value) {
             this.value = value;
         }
 
@@ -79,6 +79,10 @@ public class IndexOperationRequest {
             return Arrays.stream(Operation.values())
                     .filter(o -> o.getValue().equalsIgnoreCase(value)).findFirst()
                     .orElseThrow(() -> new IllegalArgumentException(String.format("Unknown Index Operation %s", value)));
+        }
+
+        public static String[] allValues() {
+            return Arrays.stream(Operation.values()).map(Operation::getValue).sorted().toArray(String[]::new);
         }
     }
 
