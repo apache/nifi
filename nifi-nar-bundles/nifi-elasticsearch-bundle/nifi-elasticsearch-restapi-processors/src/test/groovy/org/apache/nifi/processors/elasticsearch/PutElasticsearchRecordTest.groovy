@@ -42,9 +42,6 @@ import java.sql.Timestamp
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.OffsetDateTime
-import java.time.ZoneId
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 import static groovy.json.JsonOutput.prettyPrint
@@ -98,7 +95,7 @@ class PutElasticsearchRecordTest {
         runner.setProperty(reader, SchemaAccessUtils.SCHEMA_REGISTRY, "registry")
         runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_NAME_PROPERTY)
         runner.setProperty(PutElasticsearchRecord.RECORD_READER, "reader")
-        runner.setProperty(PutElasticsearchRecord.INDEX_OP, "index")
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP, IndexOperationRequest.Operation.Index.getValue())
         runner.setProperty(PutElasticsearchRecord.INDEX, "test_index")
         runner.setProperty(PutElasticsearchRecord.TYPE, "test_type")
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP, "test_timestamp")
@@ -111,6 +108,23 @@ class PutElasticsearchRecordTest {
     }
 
     void basicTest(int failure, int retry, int success) {
+        def evalClosure = { List<IndexOperationRequest> items ->
+            int timestampDefaultCount = items.findAll { it.fields.get("@timestamp") == "test_timestamp" }.size()
+            int indexCount = items.findAll { it.index == "test_index" }.size()
+            int typeCount = items.findAll { it.type == "test_type" }.size()
+            int opCount = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
+            Assert.assertEquals(2, timestampDefaultCount)
+            Assert.assertEquals(2, indexCount)
+            Assert.assertEquals(2, typeCount)
+            Assert.assertEquals(2, opCount)
+        }
+
+        basicTest(failure, retry, success, evalClosure)
+    }
+
+    void basicTest(int failure, int retry, int success, Closure evalClosure) {
+        clientService.evalClosure = evalClosure
+
         runner.enqueue(flowFileContents, [ "schema.name": "simple" ])
         runner.run()
 
@@ -122,6 +136,17 @@ class PutElasticsearchRecordTest {
     @Test
     void simpleTest() {
         basicTest(0, 0, 1)
+    }
+
+    @Test
+    void simpleTestCoercedDefaultTimestamp() {
+        def evalClosure = { List<IndexOperationRequest> items ->
+            int timestampDefault = items.findAll { it.fields.get("@timestamp") == 100L }.size()
+            Assert.assertEquals(2, timestampDefault)
+        }
+
+        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP, "100")
+        basicTest(0, 0, 1, evalClosure)
     }
 
     @Test
@@ -244,9 +269,9 @@ class PutElasticsearchRecordTest {
             def timestampCount = items.findAll { it.fields.get("@timestamp") ==
                     LOCAL_DATE.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
             }.size()
-            def noTimestampCount = items.findAll { it.fields.get("@timestamp") == null }.size()
             int dateCount = items.findAll { it.fields.get("date") != null }.size()
             def idCount = items.findAll { it.fields.get("id") != null }.size()
+            def defaultCoercedTimestampCount = items.findAll { it.fields.get("@timestamp") == 100L }.size()
             Assert.assertEquals(5, testTypeCount)
             Assert.assertEquals(1, messageTypeCount)
             Assert.assertEquals(5, testIndexCount)
@@ -254,7 +279,7 @@ class PutElasticsearchRecordTest {
             Assert.assertEquals(5, indexOperationCount)
             Assert.assertEquals(1, updateOperationCount)
             Assert.assertEquals(1, timestampCount)
-            Assert.assertEquals(5, noTimestampCount)
+            Assert.assertEquals(5, defaultCoercedTimestampCount)
             Assert.assertEquals(1, dateCount)
             Assert.assertEquals(6, idCount)
         }
@@ -263,7 +288,7 @@ class PutElasticsearchRecordTest {
 
         runner.setProperty(PutElasticsearchRecord.INDEX_OP, "\${operation}")
         runner.setProperty(PutElasticsearchRecord.RETAIN_ID_FIELD, "true")
-        runner.removeProperty(PutElasticsearchRecord.AT_TIMESTAMP)
+        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP, "100")
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/date")
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_DATE_FORMAT, "dd/MM/yyyy")
         runner.setProperty(PutElasticsearchRecord.RETAIN_AT_TIMESTAMP_FIELD, "true")
@@ -305,6 +330,7 @@ class PutElasticsearchRecordTest {
         clientService.evalClosure = evalClosure
 
         runner.setProperty(PutElasticsearchRecord.INDEX_OP, "index")
+        runner.removeProperty(PutElasticsearchRecord.AT_TIMESTAMP)
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/time")
         runner.removeProperty(PutElasticsearchRecord.TYPE)
         runner.enqueue(flowFileContents, [
@@ -333,12 +359,14 @@ class PutElasticsearchRecordTest {
             int upsert = items.findAll { it.operation == IndexOperationRequest.Operation.Upsert }.size()
             int delete = items.findAll { it.operation == IndexOperationRequest.Operation.Delete }.size()
             def timestampCount = items.findAll { it.fields.get("@timestamp") == 101L }.size()
+            def noTimestampCount = items.findAll { it.fields.get("@timestamp") == null }.size()
             Assert.assertEquals(1, index)
             Assert.assertEquals(2, create)
             Assert.assertEquals(1, update)
             Assert.assertEquals(1, upsert)
             Assert.assertEquals(1, delete)
             Assert.assertEquals(1, timestampCount)
+            Assert.assertEquals(5, noTimestampCount)
         }
 
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/code")

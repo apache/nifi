@@ -507,7 +507,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
     private Object getTimestampFromRecordPath(final Record record, final RecordPath path, final String fallback,
                                               final boolean retain) {
         if (path == null) {
-            return fallback;
+            return coerceStringToLong("@timestamp", fallback);
         }
 
         final RecordPathResult result = path.evaluate(record);
@@ -573,7 +573,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
 
             return returnValue;
         } else {
-            return fallback;
+            return coerceStringToLong("@timestamp", fallback);
         }
     }
 
