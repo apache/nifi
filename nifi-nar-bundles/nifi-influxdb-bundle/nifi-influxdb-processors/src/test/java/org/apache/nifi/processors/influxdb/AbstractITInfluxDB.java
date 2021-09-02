@@ -41,7 +41,7 @@ public class AbstractITInfluxDB {
 
     protected Type QueryResultListType = new TypeToken<List<QueryResult>>(){}.getType();
 
-    protected void initInfluxDB() throws InterruptedException, Exception {
+    protected void initInfluxDB() throws Exception {
         influxDB = InfluxDBFactory.connect(dbUrl,user,password);
         influxDB.createDatabase(dbName);
         int max = 10;
