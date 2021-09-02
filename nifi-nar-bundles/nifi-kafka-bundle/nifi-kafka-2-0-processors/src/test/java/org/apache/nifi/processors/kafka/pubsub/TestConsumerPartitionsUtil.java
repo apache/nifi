@@ -20,8 +20,9 @@ package org.apache.nifi.processors.kafka.pubsub;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.mock.MockComponentLogger;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -29,18 +30,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestConsumerPartitionsUtil {
     private final ComponentLog logger = new MockComponentLogger();
     private String hostname;
 
-    @Before
+    @BeforeEach
     public void setup() throws UnknownHostException {
         hostname = InetAddress.getLocalHost().getHostName();;
     }
@@ -49,7 +49,7 @@ public class TestConsumerPartitionsUtil {
     public void testNoPartitionAssignments() throws UnknownHostException {
         final Map<String, String> properties = Collections.singletonMap("key", "value");
         final int[] partitions = ConsumerPartitionsUtil.getPartitionsForHost(properties, logger);
-        assertNull(partitions);
+        Assertions.assertNull(partitions);
     }
 
     @Test
@@ -116,5 +116,4 @@ public class TestConsumerPartitionsUtil {
         assertNotNull(partitions);
         assertEquals(0, partitions.length);
     }
-
 }

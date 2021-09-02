@@ -29,8 +29,8 @@ import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Mockito;
 
@@ -45,8 +45,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -65,7 +65,7 @@ public class TestPublishKafkaRecord_1_0 {
     private TestRunner runner;
 
     @SuppressWarnings("unchecked")
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException, IOException {
         mockPool = mock(PublisherPool.class);
         mockLease = mock(PublisherLease.class);
