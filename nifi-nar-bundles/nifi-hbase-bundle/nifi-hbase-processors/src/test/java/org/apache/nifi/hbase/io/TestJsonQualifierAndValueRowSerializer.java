@@ -18,13 +18,14 @@ package org.apache.nifi.hbase.io;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.hbase.scan.ResultCell;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestJsonQualifierAndValueRowSerializer {
 
@@ -43,7 +44,7 @@ public class TestJsonQualifierAndValueRowSerializer {
     private final byte[] rowKey = ROW.getBytes(StandardCharsets.UTF_8);
     private ResultCell[] cells;
 
-    @Before
+    @BeforeEach
     public void setup() {
         final byte[] cell1Fam = FAM1.getBytes(StandardCharsets.UTF_8);
         final byte[] cell1Qual = QUAL1.getBytes(StandardCharsets.UTF_8);
@@ -66,7 +67,7 @@ public class TestJsonQualifierAndValueRowSerializer {
         rowSerializer.serialize(rowKey, cells, out);
 
         final String json = out.toString(StandardCharsets.UTF_8.name());
-        Assert.assertEquals("{\"" + QUAL1 + "\":\"" + VAL1 + "\", \"" + QUAL2 + "\":\"" + VAL2 + "\"}", json);
+        assertEquals("{\"" + QUAL1 + "\":\"" + VAL1 + "\", \"" + QUAL2 + "\":\"" + VAL2 + "\"}", json);
     }
 
     @Test
@@ -82,7 +83,7 @@ public class TestJsonQualifierAndValueRowSerializer {
         final String val2Base64 = Base64.encodeBase64String(VAL2.getBytes(StandardCharsets.UTF_8));
 
         final String json = out.toString(StandardCharsets.UTF_8.name());
-        Assert.assertEquals("{\"" + qual1Base64 + "\":\"" + val1Base64 + "\", \"" + qual2Base64 + "\":\"" + val2Base64 + "\"}", json);
+        assertEquals("{\"" + qual1Base64 + "\":\"" + val1Base64 + "\", \"" + qual2Base64 + "\":\"" + val2Base64 + "\"}", json);
     }
 
     private ResultCell getResultCell(byte[] fam, byte[] qual, byte[] val, long timestamp) {

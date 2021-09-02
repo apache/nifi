@@ -21,13 +21,14 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestFetchHBaseRow {
 
@@ -35,7 +36,7 @@ public class TestFetchHBaseRow {
     private MockHBaseClientService hBaseClientService;
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         proc = new FetchHBaseRow();
         runner = TestRunners.newTestRunner(proc);
@@ -87,7 +88,7 @@ public class TestFetchHBaseRow {
         runner.assertTransferCount(FetchHBaseRow.REL_SUCCESS, 0);
         runner.assertTransferCount(FetchHBaseRow.REL_NOT_FOUND, 0);
 
-        Assert.assertEquals(0, hBaseClientService.getNumScans());
+        assertEquals(0, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -103,7 +104,7 @@ public class TestFetchHBaseRow {
         runner.assertTransferCount(FetchHBaseRow.REL_SUCCESS, 0);
         runner.assertTransferCount(FetchHBaseRow.REL_NOT_FOUND, 0);
 
-        Assert.assertEquals(0, hBaseClientService.getNumScans());
+        assertEquals(0, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -119,7 +120,7 @@ public class TestFetchHBaseRow {
         runner.assertTransferCount(FetchHBaseRow.REL_SUCCESS, 0);
         runner.assertTransferCount(FetchHBaseRow.REL_NOT_FOUND, 0);
 
-        Assert.assertEquals(0, hBaseClientService.getNumScans());
+        assertEquals(0, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -148,7 +149,7 @@ public class TestFetchHBaseRow {
                         "{\"fam\":\"nifi\",\"qual\":\"cq1\",\"val\":\"val1\",\"ts\":" + ts1 + "}, " +
                         "{\"fam\":\"nifi\",\"qual\":\"cq2\",\"val\":\"val2\",\"ts\":" + ts1 + "}]}");
 
-        Assert.assertEquals(1, hBaseClientService.getNumScans());
+        assertEquals(1, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -177,7 +178,7 @@ public class TestFetchHBaseRow {
         flowFile.assertAttributeEquals(FetchHBaseRow.HBASE_ROW_ATTR,
                 "{\"row\":\"row1\", \"cells\": [{\"fam\":\"nifi\",\"qual\":\"cq2\",\"val\":\"val2\",\"ts\":" + ts1 + "}]}");
 
-        Assert.assertEquals(1, hBaseClientService.getNumScans());
+        assertEquals(1, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -217,7 +218,7 @@ public class TestFetchHBaseRow {
                         "{\"fam\":\"" + fam1Base64 + "\",\"qual\":\"" + qual1Base64 + "\",\"val\":\"" + val1Base64 + "\",\"ts\":" + ts1 + "}, " +
                         "{\"fam\":\"" + fam2Base64 + "\",\"qual\":\"" + qual2Base64 + "\",\"val\":\"" + val2Base64 + "\",\"ts\":" + ts1 + "}]}");
 
-        Assert.assertEquals(1, hBaseClientService.getNumScans());
+        assertEquals(1, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -233,7 +234,7 @@ public class TestFetchHBaseRow {
         runner.assertTransferCount(FetchHBaseRow.REL_SUCCESS, 0);
         runner.assertTransferCount(FetchHBaseRow.REL_NOT_FOUND, 1);
 
-        Assert.assertEquals(1, hBaseClientService.getNumScans());
+        assertEquals(1, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -261,7 +262,7 @@ public class TestFetchHBaseRow {
                 "{\"fam\":\"nifi\",\"qual\":\"cq1\",\"val\":\"val1\",\"ts\":" + ts1 + "}, " +
                 "{\"fam\":\"nifi\",\"qual\":\"cq2\",\"val\":\"val2\",\"ts\":" + ts1 + "}]}");
 
-        Assert.assertEquals(1, hBaseClientService.getNumScans());
+        assertEquals(1, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -288,7 +289,7 @@ public class TestFetchHBaseRow {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchHBaseRow.REL_SUCCESS).get(0);
         flowFile.assertContentEquals("{\"row\":\"row1\", \"cells\": [{\"fam\":\"nifi\",\"qual\":\"cq2\",\"val\":\"val2\",\"ts\":" + ts1 + "}]}");
 
-        Assert.assertEquals(1, hBaseClientService.getNumScans());
+        assertEquals(1, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -327,7 +328,7 @@ public class TestFetchHBaseRow {
                 "{\"fam\":\"" + fam1Base64 + "\",\"qual\":\"" + qual1Base64 + "\",\"val\":\"" + val1Base64 + "\",\"ts\":" + ts1 + "}, " +
                 "{\"fam\":\"" + fam2Base64 + "\",\"qual\":\"" + qual2Base64 + "\",\"val\":\"" + val2Base64 + "\",\"ts\":" + ts1 + "}]}");
 
-        Assert.assertEquals(1, hBaseClientService.getNumScans());
+        assertEquals(1, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -353,7 +354,7 @@ public class TestFetchHBaseRow {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchHBaseRow.REL_SUCCESS).get(0);
         flowFile.assertContentEquals("{\"cq1\":\"val1\", \"cq2\":\"val2\"}");
 
-        Assert.assertEquals(1, hBaseClientService.getNumScans());
+        assertEquals(1, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -385,7 +386,7 @@ public class TestFetchHBaseRow {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchHBaseRow.REL_SUCCESS).get(0);
         flowFile.assertContentEquals("{\"row\":\"row1\", \"cells\": [{\"fam\":\"nifi\",\"qual\":\"cq2\",\"val\":\"val2\",\"ts\":" + ts1 + "}]}");
 
-        Assert.assertEquals(1, hBaseClientService.getNumScans());
+        assertEquals(1, hBaseClientService.getNumScans());
     }
 
     @Test
@@ -403,7 +404,7 @@ public class TestFetchHBaseRow {
         runner.assertTransferCount(FetchHBaseRow.REL_SUCCESS, 0);
         runner.assertTransferCount(FetchHBaseRow.REL_NOT_FOUND, 0);
 
-        Assert.assertEquals(0, hBaseClientService.getNumScans());
+        assertEquals(0, hBaseClientService.getNumScans());
     }
 
 }

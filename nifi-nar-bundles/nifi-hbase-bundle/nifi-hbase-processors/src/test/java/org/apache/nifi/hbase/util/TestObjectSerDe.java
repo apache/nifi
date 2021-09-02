@@ -16,14 +16,18 @@
  */
 package org.apache.nifi.hbase.util;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestObjectSerDe {
 
@@ -37,19 +41,19 @@ public class TestObjectSerDe {
        out.writeObject(myObject);
 
        byte[] myObjectBytes = bOut.toByteArray();
-       Assert.assertNotNull(myObjectBytes);
-       Assert.assertTrue(myObjectBytes.length > 0);
+       assertNotNull(myObjectBytes);
+       assertTrue(myObjectBytes.length > 0);
 
        final Object deserialized = serDe.deserialize(myObjectBytes);
-       Assert.assertTrue(deserialized instanceof String);
-       Assert.assertEquals(myObject, deserialized);
+       assertTrue(deserialized instanceof String);
+       assertEquals(myObject, deserialized);
    }
 
     @Test
     public void testDeserializeNull() throws IOException {
         final ObjectSerDe serDe = new ObjectSerDe();
         final Object deserialized = serDe.deserialize(null);
-        Assert.assertNull(deserialized);
+        assertNull(deserialized);
     }
 
     @Test
@@ -64,8 +68,8 @@ public class TestObjectSerDe {
         final ObjectInputStream in = new ObjectInputStream(bIn);
 
         final Object deserialized = in.readObject();
-        Assert.assertTrue(deserialized instanceof String);
-        Assert.assertEquals(myObject, deserialized);
+        assertTrue(deserialized instanceof String);
+        assertEquals(myObject, deserialized);
     }
 
 }
