@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.hive;
 
+import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -34,10 +35,8 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
@@ -54,8 +53,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -121,13 +120,10 @@ public class TestUpdateHiveTable {
             new String[]{"Location:", "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/_newTable", null}
     };
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
-
     private TestRunner runner;
     private MockUpdateHiveTable processor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
 
         Configuration testConf = new Configuration();
@@ -194,7 +190,7 @@ public class TestUpdateHiveTable {
     public void testSetup() throws Exception {
         configure(processor, 0);
         runner.assertNotValid();
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockHiveConnectionPool(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
