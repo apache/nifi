@@ -29,14 +29,16 @@ import org.apache.nifi.util.TestRunners;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Selector;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestGetHTMLElement extends AbstractHTMLTest {
 
     private TestRunner testRunner;
 
-    @Before
+    @BeforeEach
     public void init() {
         testRunner = TestRunners.newTestRunner(GetHTMLElement.class);
         testRunner.setProperty(GetHTMLElement.URL, "http://localhost");
@@ -45,10 +47,10 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
         testRunner.setProperty(GetHTMLElement.HTML_CHARSET, "UTF-8");
     }
 
-    @Test(expected = Selector.SelectorParseException.class)
+    @Test
     public void testCSSSelectorSyntaxValidator() throws IOException {
         Document doc = Jsoup.parse(new File("src/test/resources/Weather.html"), StandardCharsets.UTF_8.name());
-        doc.select("---invalidCssSelector");
+        assertThrows(Selector.SelectorParseException.class, () -> doc.select("---invalidCssSelector"));
     }
 
     @Test
