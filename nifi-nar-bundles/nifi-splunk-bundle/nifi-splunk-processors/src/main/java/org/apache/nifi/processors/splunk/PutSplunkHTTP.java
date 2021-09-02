@@ -32,7 +32,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dto.splunk.SendRawDataResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -52,7 +51,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -65,6 +63,7 @@ import java.util.Set;
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 @SeeAlso(QuerySplunkIndexingStatus.class)
 public class PutSplunkHTTP extends SplunkAPICall {
+    private static final String ENDPOINT = "/services/collector/raw";
 
     static final PropertyDescriptor SOURCE = new PropertyDescriptor.Builder()
             .name("source")
@@ -166,9 +165,9 @@ public class PutSplunkHTTP extends SplunkAPICall {
         }
 
         try {
-            final RequestDetails requestDetails = RequestDetails.getInstance(getLogger(), context, flowFile);
-            final RequestMessage requestMessage = createRequestMessage(session, flowFile, requestDetails);
-            responseMessage = call(requestDetails.getEndpoint(), requestMessage);
+            final String endpoint = getEndpoint(context, flowFile);
+            final RequestMessage requestMessage = createRequestMessage(session, flowFile, context);
+            responseMessage = call(endpoint, requestMessage);
             flowFile = session.putAttribute(flowFile, "splunk.status.code", String.valueOf(responseMessage.getStatus()));
 
             switch (responseMessage.getStatus()) {
@@ -206,17 +205,20 @@ public class PutSplunkHTTP extends SplunkAPICall {
         }
     }
 
-    private RequestMessage createRequestMessage(final ProcessSession session, final FlowFile flowFile, final RequestDetails requestDetails) {
+    protected RequestMessage createRequestMessage(final ProcessSession session, final FlowFile flowFile, final ProcessContext context) {
         final RequestMessage requestMessage = new RequestMessage("POST");
-        final String flowFileContentType = Optional.ofNullable(requestDetails.getContentType()).orElse(flowFile.getAttribute("mime.type"));
+        final String contentType = (context.getProperty(CONTENT_TYPE).isSet())
+                ? context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue()
+                : flowFile.getAttribute("mime.type");
 
-        if (flowFileContentType != null) {
-            requestMessage.getHeader().put("Content-Type", flowFileContentType);
+        if (contentType != null) {
+            requestMessage.getHeader().put("Content-Type", contentType);
         }
 
         // The current version of Splunk's {@link com.splunk.Service} class is lack of support for OutputStream as content.
         // For further details please visit {@link com.splunk.HttpService#send} which is called internally.
-        requestMessage.setContent(extractTextMessageBody(flowFile, session, requestDetails.getCharset()));
+        final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue();
+        requestMessage.setContent(extractTextMessageBody(flowFile, session, charset));
         return requestMessage;
     }
 
@@ -233,75 +235,43 @@ public class PutSplunkHTTP extends SplunkAPICall {
         return session.putAllAttributes(flowFile, attributes);
     }
 
-    private static class RequestDetails {
-        private static final String ENDPOINT = "/services/collector/raw";
+    public String getEndpoint(final ProcessContext context, final FlowFile flowFile) {
+        final Map<String, String> queryParameters = new HashMap<>();
 
-        private final String endpoint;
-        private final String contentType;
-        private final String charset;
-
-        private RequestDetails(final String endpoint, final String contentType, final String charset) {
-            this.endpoint = endpoint;
-            this.contentType = contentType;
-            this.charset = charset;
+        if (context.getProperty(SOURCE_TYPE).isSet()) {
+            queryParameters.put("sourcetype", context.getProperty(SOURCE_TYPE).evaluateAttributeExpressions(flowFile).getValue());
         }
 
-        public String getEndpoint() {
-            return endpoint;
+        if (context.getProperty(SOURCE).isSet()) {
+            queryParameters.put("source", context.getProperty(SOURCE).evaluateAttributeExpressions(flowFile).getValue());
         }
 
-        public String getContentType() {
-            return contentType;
+        if (context.getProperty(HOST).isSet()) {
+            queryParameters.put("host", context.getProperty(HOST).evaluateAttributeExpressions(flowFile).getValue());
         }
 
-        public String getCharset() {
-            return charset;
+        if (context.getProperty(INDEX).isSet()) {
+            queryParameters.put("index", context.getProperty(INDEX).evaluateAttributeExpressions(flowFile).getValue());
         }
 
-        public static RequestDetails getInstance(final ComponentLog logger, final ProcessContext context, final FlowFile flowFile) {
-            final String contentType = (context.getProperty(CONTENT_TYPE).isSet()) ? context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue() : null;
-            final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue();
-            final Map<String, String> queryParameters = new HashMap<>();
+        final StringBuilder result = new StringBuilder(ENDPOINT);
 
-            if (context.getProperty(SOURCE_TYPE).isSet()) {
-                queryParameters.put("sourcetype", context.getProperty(SOURCE_TYPE).evaluateAttributeExpressions(flowFile).getValue());
-            }
+        if (!queryParameters.isEmpty()) {
+            final List<String> parameters = new LinkedList<>();
 
-            if (context.getProperty(SOURCE).isSet()) {
-                queryParameters.put("source", context.getProperty(SOURCE).evaluateAttributeExpressions(flowFile).getValue());
-            }
-
-            if (context.getProperty(HOST).isSet()) {
-                queryParameters.put("host", context.getProperty(HOST).evaluateAttributeExpressions(flowFile).getValue());
-            }
-
-            if (context.getProperty(INDEX).isSet()) {
-                queryParameters.put("index", context.getProperty(INDEX).evaluateAttributeExpressions(flowFile).getValue());
-            }
-
-            return new RequestDetails(getEndpoint(logger, queryParameters), contentType, charset);
-        }
-
-        private static String getEndpoint(final ComponentLog logger, final Map<String, String> queryParameters) {
-            final StringBuilder result = new StringBuilder(ENDPOINT);
-
-            if (!queryParameters.isEmpty()) {
-                final List<String> parameters = new LinkedList<>();
-
-                try {
-                    for (final Map.Entry<String, String> parameter : queryParameters.entrySet()) {
-                        parameters.add(URLEncoder.encode(parameter.getKey(), "UTF-8") + '=' + URLEncoder.encode(parameter.getValue(), "UTF-8"));
-                    }
-                } catch (final UnsupportedEncodingException e) {
-                    logger.error("Could not be initialized because of: {}", new Object[]{e.getMessage()}, e);
-                    throw new ProcessException(e);
+            try {
+                for (final Map.Entry<String, String> parameter : queryParameters.entrySet()) {
+                    parameters.add(URLEncoder.encode(parameter.getKey(), "UTF-8") + '=' + URLEncoder.encode(parameter.getValue(), "UTF-8"));
                 }
-
-                result.append('?');
-                result.append(String.join("&", parameters));
+            } catch (final UnsupportedEncodingException e) {
+                getLogger().error("Could not be initialized because of: {}", new Object[]{e.getMessage()}, e);
+                throw new ProcessException(e);
             }
 
-            return result.toString();
+            result.append('?');
+            result.append(String.join("&", parameters));
         }
+
+        return result.toString();
     }
 }
