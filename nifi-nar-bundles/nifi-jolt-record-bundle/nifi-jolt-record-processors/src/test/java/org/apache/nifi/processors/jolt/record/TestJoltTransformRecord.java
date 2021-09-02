@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.jolt.record;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processor.Relationship;
@@ -33,10 +32,10 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.IOException;
 import java.net.URL;
@@ -50,9 +49,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@DisabledOnOs(OS.WINDOWS) //The pretty printed json comparisons dont work on windows
 public class TestJoltTransformRecord {
 
     private TestRunner runner;
@@ -60,13 +60,7 @@ public class TestJoltTransformRecord {
     private MockRecordParser parser;
     private JsonRecordSetWriter writer;
 
-    //The pretty printed json comparisons dont work on windows
-    @BeforeClass
-    public static void setUpSuite() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-    }
-
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         processor = new JoltTransformRecord();
         runner = TestRunners.newTestRunner(processor);
