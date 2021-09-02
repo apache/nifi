@@ -18,7 +18,18 @@
  */
 package org.apache.nifi.processors.kite;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -32,28 +43,19 @@ import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.Assume;
-import org.junit.BeforeClass;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestInferAvroSchema {
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+        Assumptions.assumeTrue(!SystemUtils.IS_OS_WINDOWS, "Test only runs on *nix");
     }
 
     private TestRunner runner = null;
 
-    @Before
+    @BeforeEach
     public void setup() {
         runner = TestRunners.newTestRunner(InferAvroSchema.class);
 
@@ -139,7 +141,7 @@ public class TestInferAvroSchema {
         MockFlowFile data = runner.getFlowFilesForRelationship(InferAvroSchema.REL_SUCCESS).get(0);
         String avroSchema = data.getAttribute(InferAvroSchema.AVRO_SCHEMA_ATTRIBUTE_NAME);
         String knownSchema = new String(unix2PlatformSpecificLineEndings(new File("src/test/resources/Shapes.json.avro")), StandardCharsets.UTF_8);
-        Assert.assertEquals(avroSchema, knownSchema);
+        assertEquals(avroSchema, knownSchema);
 
         // Since that avro schema is written to an attribute this should be teh same as the original
         data.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
@@ -315,7 +317,7 @@ public class TestInferAvroSchema {
 
         MockFlowFile data = runner.getFlowFilesForRelationship(InferAvroSchema.REL_SUCCESS).get(0);
         String avroSchema = data.getAttribute(InferAvroSchema.AVRO_SCHEMA_ATTRIBUTE_NAME);
-        Assert.assertTrue(avroSchema.contains("\"name\" : \"myrecord\""));
+        assertTrue(avroSchema.contains("\"name\" : \"myrecord\""));
 
         // Since that avro schema is written to an attribute this should be teh same as the original
         data.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");

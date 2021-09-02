@@ -18,19 +18,19 @@
  */
 package org.apache.nifi.processors.kite;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.nifi.processors.kite.AbstractKiteConvertProcessor.CodecType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import static org.apache.nifi.processors.kite.TestUtil.streamFor;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestJSONToAvroProcessor {
 
@@ -68,8 +68,8 @@ public class TestJSONToAvroProcessor {
 
         long converted = runner.getCounterValue("Converted records");
         long errors = runner.getCounterValue("Conversion errors");
-        Assert.assertEquals("Should convert 2 rows", 2, converted);
-        Assert.assertEquals("Should reject 3 rows", 3, errors);
+        assertEquals(2, converted, "Should convert 2 rows");
+        assertEquals(3, errors, "Should reject 3 rows");
 
         runner.assertTransferCount("success", 1);
         runner.assertTransferCount("failure", 0);
@@ -78,10 +78,10 @@ public class TestJSONToAvroProcessor {
         MockFlowFile incompatible = runner.getFlowFilesForRelationship("incompatible").get(0);
         String failureContent = new String(runner.getContentAsByteArray(incompatible),
                 StandardCharsets.UTF_8);
-        Assert.assertEquals("Should reject an invalid string and double",
-                JSON_CONTENT, failureContent);
-        Assert.assertEquals("Should accumulate error messages",
-                FAILURE_SUMMARY, incompatible.getAttribute("errors"));
+        assertEquals(
+                JSON_CONTENT, failureContent, "Should reject an invalid string and double");
+        assertEquals(
+                FAILURE_SUMMARY, incompatible.getAttribute("errors"), "Should accumulate error messages");
     }
 
     @Test
@@ -97,8 +97,8 @@ public class TestJSONToAvroProcessor {
 
         long converted = runner.getCounterValue("Converted records");
         long errors = runner.getCounterValue("Conversion errors");
-        Assert.assertEquals("Should convert 2 rows", 2, converted);
-        Assert.assertEquals("Should reject 3 rows", 3, errors);
+        assertEquals(2, converted, "Should convert 2 rows");
+        assertEquals(3, errors, "Should reject 3 rows");
 
         runner.assertTransferCount("success", 1);
         runner.assertTransferCount("failure", 0);
@@ -107,10 +107,10 @@ public class TestJSONToAvroProcessor {
         MockFlowFile incompatible = runner.getFlowFilesForRelationship("incompatible").get(0);
         String failureContent = new String(runner.getContentAsByteArray(incompatible),
                 StandardCharsets.UTF_8);
-        Assert.assertEquals("Should reject an invalid string and double",
-                JSON_CONTENT, failureContent);
-        Assert.assertEquals("Should accumulate error messages",
-                FAILURE_SUMMARY, incompatible.getAttribute("errors"));
+        assertEquals(
+                JSON_CONTENT, failureContent, "Should reject an invalid string and double");
+        assertEquals(
+                FAILURE_SUMMARY, incompatible.getAttribute("errors"), "Should accumulate error messages");
     }
 
     @Test
@@ -125,16 +125,16 @@ public class TestJSONToAvroProcessor {
 
         long converted = runner.getCounterValue("Converted records");
         long errors = runner.getCounterValue("Conversion errors");
-        Assert.assertEquals("Should convert 0 rows", 0, converted);
-        Assert.assertEquals("Should reject 1 row", 3, errors);
+        assertEquals(0, converted, "Should convert 0 rows");
+        assertEquals(3, errors, "Should reject 1 row");
 
         runner.assertTransferCount("success", 0);
         runner.assertTransferCount("failure", 1);
         runner.assertTransferCount("incompatible", 0);
 
         MockFlowFile incompatible = runner.getFlowFilesForRelationship("failure").get(0);
-        Assert.assertEquals("Should set an error message",
-                FAILURE_SUMMARY, incompatible.getAttribute("errors"));
+        assertEquals(
+                FAILURE_SUMMARY, incompatible.getAttribute("errors"), "Should set an error message");
     }
 
     @Test
@@ -149,16 +149,16 @@ public class TestJSONToAvroProcessor {
 
         long converted = runner.getCounterValue("Converted records");
         long errors = runner.getCounterValue("Conversion errors");
-        Assert.assertEquals("Should convert 0 rows", 0, converted);
-        Assert.assertEquals("Should reject 0 row", 0, errors);
+        assertEquals(0, converted, "Should convert 0 rows");
+        assertEquals(0, errors, "Should reject 0 row");
 
         runner.assertTransferCount("success", 0);
         runner.assertTransferCount("failure", 1);
         runner.assertTransferCount("incompatible", 0);
 
         MockFlowFile incompatible = runner.getFlowFilesForRelationship("failure").get(0);
-        Assert.assertEquals("Should set an error message",
-                "No incoming records", incompatible.getAttribute("errors"));
+        assertEquals(
+                "No incoming records", incompatible.getAttribute("errors"), "Should set an error message");
     }
 
     @Test
@@ -175,8 +175,8 @@ public class TestJSONToAvroProcessor {
 
         long converted = runner.getCounterValue("Converted records");
         long errors = runner.getCounterValue("Conversion errors");
-        Assert.assertEquals("Should convert 2 rows", 2, converted);
-        Assert.assertEquals("Should reject 0 row", 0, errors);
+        assertEquals(2, converted, "Should convert 2 rows");
+        assertEquals(0, errors, "Should reject 0 row");
 
         runner.assertTransferCount("success", 1);
         runner.assertTransferCount("failure", 0);

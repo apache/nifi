@@ -18,72 +18,16 @@
  */
 package org.apache.nifi.processors.kite;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.charset.Charset;
-
 import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
 import org.kitesdk.data.DatasetDescriptor;
-import org.kitesdk.data.Datasets;
 import org.kitesdk.data.spi.DefaultConfiguration;
 
-import static org.apache.nifi.processors.kite.TestUtil.bytesFor;
+import java.io.IOException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestGetSchema {
-
-    public static final Schema SCHEMA = SchemaBuilder.record("Test").fields()
-            .requiredLong("id")
-            .requiredString("color")
-            .optionalDouble("price")
-            .endRecord();
-
-    @Rule
-    public TemporaryFolder temp = new TemporaryFolder();
-
-    @Test
-    @Ignore("Does not work on windows")
-    public void testSchemaFromFileSystem() throws IOException {
-        File schemaFile = temp.newFile("schema.avsc");
-        FileOutputStream out = new FileOutputStream(schemaFile);
-        out.write(bytesFor(SCHEMA.toString(), Charset.forName("utf8")));
-        out.close();
-
-        Schema schema = AbstractKiteProcessor.getSchema(
-                schemaFile.toString(), DefaultConfiguration.get());
-
-        Assert.assertEquals("Schema from file should match", SCHEMA, schema);
-    }
-
-    @Test
-    @Ignore("Does not work on windows")
-    public void testSchemaFromKiteURIs() throws IOException {
-        String location = temp.newFolder("ns", "temp").toString();
-        if (location.endsWith("/")) {
-            location = location.substring(0, location.length() - 1);
-        }
-        String datasetUri = "dataset:" + location;
-        DatasetDescriptor descriptor = new DatasetDescriptor.Builder()
-                .schema(SCHEMA)
-                .build();
-
-        Datasets.create(datasetUri, descriptor);
-
-        Schema schema = AbstractKiteProcessor.getSchema(
-                datasetUri, DefaultConfiguration.get());
-        Assert.assertEquals("Schema from dataset URI should match", SCHEMA, schema);
-
-        schema = AbstractKiteProcessor.getSchema(
-                "view:file:" + location + "?color=orange", DefaultConfiguration.get());
-        Assert.assertEquals("Schema from view URI should match", SCHEMA, schema);
-    }
-
     @Test
     public void testSchemaFromResourceURI() throws IOException {
         DatasetDescriptor descriptor = new DatasetDescriptor.Builder()
@@ -94,7 +38,7 @@ public class TestGetSchema {
         Schema schema = AbstractKiteProcessor.getSchema(
                 "resource:schema/user.avsc", DefaultConfiguration.get());
 
-        Assert.assertEquals("Schema from resource URI should match",
-                expected, schema);
+        assertEquals(
+                expected, schema, "Schema from resource URI should match");
     }
 }

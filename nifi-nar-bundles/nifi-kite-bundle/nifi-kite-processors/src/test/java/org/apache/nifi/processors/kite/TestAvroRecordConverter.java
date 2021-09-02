@@ -18,24 +18,22 @@
  */
 package org.apache.nifi.processors.kite;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
-import java.util.Collections;
-import java.util.Map;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.commons.lang.LocaleUtils;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestAvroRecordConverter {
-    final static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     final static Map<String, String> EMPTY_MAPPING = ImmutableMap.of();
     final static String NESTED_RECORD_SCHEMA_STRING = "{\n"
             + "    \"type\": \"record\",\n"
@@ -146,8 +144,8 @@ public class TestAvroRecordConverter {
     /**
      * Tests the case where we try to convert a string to a long incorrectly.
      */
-    @Test(expected = org.apache.nifi.processors.kite.AvroRecordConverter.AvroConversionException.class)
-    public void testIllegalConversion() throws Exception {
+    @Test
+    public void testIllegalConversion() {
         // We will convert s1 from string to long (or leave it null), ignore s2,
         // convert l1 from long to string, and leave l2 the same.
         Schema input = SchemaBuilder.record("Input")
@@ -166,11 +164,11 @@ public class TestAvroRecordConverter {
         inputRecord.put("s2", "blah");
         inputRecord.put("l1", null);
         inputRecord.put("l2", 5L);
-        converter.convert(inputRecord);
+        assertThrows(AvroRecordConverter.AvroConversionException.class, () -> converter.convert(inputRecord));
     }
 
     @Test
-    public void testGetUnmappedFields() throws Exception {
+    public void testGetUnmappedFields() {
         Schema input = SchemaBuilder.record("Input")
                 .namespace("com.cloudera.edh").fields()
                 .nullableString("s1", "").requiredString("s2")

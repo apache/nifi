@@ -18,15 +18,7 @@
  */
 package org.apache.nifi.processors.kite;
 
-import static org.apache.nifi.processors.kite.TestUtil.streamFor;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.text.NumberFormat;
-import java.text.ParseException;
-import java.util.List;
-import java.util.Locale;
-
+import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.file.DataFileStream;
@@ -37,10 +29,17 @@ import org.apache.nifi.processors.kite.AbstractKiteConvertProcessor.CodecType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Lists;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.text.NumberFormat;
+import java.text.ParseException;
+import java.util.List;
+import java.util.Locale;
+
+import static org.apache.nifi.processors.kite.TestUtil.streamFor;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestConvertAvroSchema {
 
@@ -83,8 +82,8 @@ public class TestConvertAvroSchema {
 
         long converted = runner.getCounterValue("Converted records");
         long errors = runner.getCounterValue("Conversion errors");
-        Assert.assertEquals("Should convert 2 rows", 2, converted);
-        Assert.assertEquals("Should reject 1 rows", 1, errors);
+        assertEquals(2, converted, "Should convert 2 rows");
+        assertEquals(1, errors, "Should reject 1 rows");
 
         runner.assertTransferCount("success", 1);
         runner.assertTransferCount("failure", 1);
@@ -98,13 +97,13 @@ public class TestConvertAvroSchema {
                         runner.getContentAsByteArray(incompatible)), reader);
         int count = 0;
         for (Record r : stream) {
-            Assert.assertEquals(badRecord, r);
+            assertEquals(badRecord, r);
             count++;
         }
         stream.close();
-        Assert.assertEquals(1, count);
-        Assert.assertEquals("Should accumulate error messages",
-                FAILURE_SUMMARY, incompatible.getAttribute("errors"));
+        assertEquals(1, count);
+        assertEquals(
+                FAILURE_SUMMARY, incompatible.getAttribute("errors"), "Should accumulate error messages");
 
         GenericDatumReader<Record> successReader = new GenericDatumReader<Record>(
                 OUTPUT_SCHEMA);
@@ -115,14 +114,14 @@ public class TestConvertAvroSchema {
         count = 0;
         for (Record r : successStream) {
             if (count == 0) {
-                Assert.assertEquals(convertBasic(goodRecord1, locale), r);
+                assertEquals(convertBasic(goodRecord1, locale), r);
             } else {
-                Assert.assertEquals(convertBasic(goodRecord2, locale), r);
+                assertEquals(convertBasic(goodRecord2, locale), r);
             }
             count++;
         }
         successStream.close();
-        Assert.assertEquals(2, count);
+        assertEquals(2, count);
     }
 
     @Test
@@ -150,8 +149,8 @@ public class TestConvertAvroSchema {
 
         long converted = runner.getCounterValue("Converted records");
         long errors = runner.getCounterValue("Conversion errors");
-        Assert.assertEquals("Should convert 2 rows", 2, converted);
-        Assert.assertEquals("Should reject 1 rows", 1, errors);
+        assertEquals(2, converted, "Should convert 2 rows");
+        assertEquals(1, errors, "Should reject 1 rows");
 
         runner.assertTransferCount("success", 1);
         runner.assertTransferCount("failure", 1);
@@ -165,13 +164,13 @@ public class TestConvertAvroSchema {
                         runner.getContentAsByteArray(incompatible)), reader);
         int count = 0;
         for (Record r : stream) {
-            Assert.assertEquals(badRecord, r);
+            assertEquals(badRecord, r);
             count++;
         }
         stream.close();
-        Assert.assertEquals(1, count);
-        Assert.assertEquals("Should accumulate error messages",
-                FAILURE_SUMMARY, incompatible.getAttribute("errors"));
+        assertEquals(1, count);
+        assertEquals(
+                FAILURE_SUMMARY, incompatible.getAttribute("errors"), "Should accumulate error messages");
 
         GenericDatumReader<Record> successReader = new GenericDatumReader<Record>(
                 OUTPUT_SCHEMA);
@@ -182,14 +181,14 @@ public class TestConvertAvroSchema {
         count = 0;
         for (Record r : successStream) {
             if (count == 0) {
-                Assert.assertEquals(convertBasic(goodRecord1, locale), r);
+                assertEquals(convertBasic(goodRecord1, locale), r);
             } else {
-                Assert.assertEquals(convertBasic(goodRecord2, locale), r);
+                assertEquals(convertBasic(goodRecord2, locale), r);
             }
             count++;
         }
         successStream.close();
-        Assert.assertEquals(2, count);
+        assertEquals(2, count);
     }
 
     @Test
@@ -224,8 +223,8 @@ public class TestConvertAvroSchema {
 
         long converted = runner.getCounterValue("Converted records");
         long errors = runner.getCounterValue("Conversion errors");
-        Assert.assertEquals("Should convert 2 rows", 2, converted);
-        Assert.assertEquals("Should reject 1 rows", 1, errors);
+        assertEquals(2, converted, "Should convert 2 rows");
+        assertEquals(1, errors, "Should reject 1 rows");
 
         runner.assertTransferCount("success", 1);
         runner.assertTransferCount("failure", 1);
@@ -239,13 +238,13 @@ public class TestConvertAvroSchema {
                         runner.getContentAsByteArray(incompatible)), reader);
         int count = 0;
         for (Record r : stream) {
-            Assert.assertEquals(badRecord, r);
+            assertEquals(badRecord, r);
             count++;
         }
         stream.close();
-        Assert.assertEquals(1, count);
-        Assert.assertEquals("Should accumulate error messages",
-                FAILURE_SUMMARY, incompatible.getAttribute("errors"));
+        assertEquals(1, count);
+        assertEquals(
+                FAILURE_SUMMARY, incompatible.getAttribute("errors"), "Should accumulate error messages");
 
         GenericDatumReader<Record> successReader = new GenericDatumReader<Record>(
                 OUTPUT_SCHEMA);
@@ -256,14 +255,14 @@ public class TestConvertAvroSchema {
         count = 0;
         for (Record r : successStream) {
             if (count == 0) {
-                Assert.assertEquals(convertBasic(goodRecord1, locale), r);
+                assertEquals(convertBasic(goodRecord1, locale), r);
             } else {
-                Assert.assertEquals(convertBasic(goodRecord2, locale), r);
+                assertEquals(convertBasic(goodRecord2, locale), r);
             }
             count++;
         }
         successStream.close();
-        Assert.assertEquals(2, count);
+        assertEquals(2, count);
     }
 
     @Test
@@ -287,8 +286,8 @@ public class TestConvertAvroSchema {
 
         long converted = runner.getCounterValue("Converted records");
         long errors = runner.getCounterValue("Conversion errors");
-        Assert.assertEquals("Should convert 2 rows", 2, converted);
-        Assert.assertEquals("Should reject 0 rows", 0, errors);
+        assertEquals(2, converted, "Should convert 2 rows");
+        assertEquals(0, errors, "Should reject 0 rows");
 
         runner.assertTransferCount("success", 1);
         runner.assertTransferCount("failure", 0);
@@ -302,14 +301,14 @@ public class TestConvertAvroSchema {
         int count = 0;
         for (Record r : successStream) {
             if (count == 0) {
-                Assert.assertEquals(convertNested(goodRecord1), r);
+                assertEquals(convertNested(goodRecord1), r);
             } else {
-                Assert.assertEquals(convertNested(goodRecord2), r);
+                assertEquals(convertNested(goodRecord2), r);
             }
             count++;
         }
         successStream.close();
-        Assert.assertEquals(2, count);
+        assertEquals(2, count);
     }
 
     private Record convertBasic(Record inputRecord, Locale locale) {

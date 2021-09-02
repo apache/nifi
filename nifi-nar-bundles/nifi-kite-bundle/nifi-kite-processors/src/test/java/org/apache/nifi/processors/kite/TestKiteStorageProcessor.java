@@ -19,50 +19,48 @@
 package org.apache.nifi.processors.kite;
 
 import com.google.common.collect.Lists;
-
-import java.io.IOException;
-import java.util.List;
-
+import com.google.common.io.Files;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.kitesdk.data.Dataset;
 import org.kitesdk.data.DatasetDescriptor;
 import org.kitesdk.data.Datasets;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+
 import static org.apache.nifi.processors.kite.TestUtil.invalidStreamFor;
 import static org.apache.nifi.processors.kite.TestUtil.streamFor;
 import static org.apache.nifi.processors.kite.TestUtil.user;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Ignore("Does not work on windows")
+@DisabledOnOs(OS.WINDOWS)
 public class TestKiteStorageProcessor {
-
-    @Rule
-    public TemporaryFolder temp = new TemporaryFolder();
 
     private String datasetUri = null;
     private Dataset<Record> dataset = null;
 
-    @Before
-    public void createDataset() throws Exception {
+    @BeforeEach
+    public void createDataset() {
         DatasetDescriptor descriptor = new DatasetDescriptor.Builder()
                 .schema(TestUtil.USER_SCHEMA)
                 .build();
-        this.datasetUri = "dataset:file:" + temp.newFolder("ns", "temp").toString();
+        this.datasetUri = "dataset:file:" + new File(Files.createTempDir(), "ns/temp");
         this.dataset = Datasets.create(datasetUri, descriptor, Record.class);
     }
 
-    @After
-    public void deleteDataset() throws Exception {
+    @AfterEach
+    public void deleteDataset() {
         Datasets.delete(datasetUri);
     }
 
@@ -85,12 +83,11 @@ public class TestKiteStorageProcessor {
 
         runner.assertAllFlowFilesTransferred("success", 1);
         runner.assertQueueEmpty();
-        Assert.assertEquals("Should store 3 values",
-                3, (long) runner.getCounterValue("Stored records"));
+        assertEquals(3, (long) runner.getCounterValue("Stored records"), "Should store 3 values");
 
         List<Record> stored = Lists.newArrayList(
                 (Iterable<Record>) dataset.newReader());
-        Assert.assertEquals("Records should match", users, stored);
+        assertEquals(users, stored, "Records should match");
     }
 
     @Test
@@ -137,8 +134,7 @@ public class TestKiteStorageProcessor {
         runner.run();
 
         long stored = runner.getCounterValue("Stored records");
-        Assert.assertTrue("Should store some readable values",
-                0 < stored && stored < 10000);
+        assertTrue(0 < stored && stored < 10000, "Should store some readable values");
 
         runner.assertAllFlowFilesTransferred("success", 1);
     }
