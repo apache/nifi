@@ -33,7 +33,7 @@ import java.util.Properties;
 /**
  * Microsoft Azure Key Vault Key Sensitive Property Provider using Cryptography Client for encryption operations
  */
-public class AzureKeyVaultKeySensitivePropertyProvider extends ClientBasedEncodedSensitivePropertiesProvider<CryptographyClient> {
+public class AzureKeyVaultKeySensitivePropertyProvider extends ClientBasedEncodedSensitivePropertyProvider<CryptographyClient> {
     protected static final String ENCRYPTION_ALGORITHM_PROPERTY = "azure.keyvault.encryption.algorithm";
 
     protected static final List<KeyOperation> REQUIRED_OPERATIONS = Arrays.asList(KeyOperation.DECRYPT, KeyOperation.ENCRYPT);

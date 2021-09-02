@@ -22,20 +22,20 @@ import org.slf4j.LoggerFactory;
 import java.util.Properties;
 
 /**
- * Client-Based extension of Encoded Sensitive Properties Provider
+ * Client-Based extension of Encoded Sensitive Property Provider
  *
  * @param <T> Client Type
  */
-public abstract class ClientBasedEncodedSensitivePropertiesProvider<T> extends EncodedSensitivePropertiesProvider {
+public abstract class ClientBasedEncodedSensitivePropertyProvider<T> extends EncodedSensitivePropertyProvider {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final T client;
 
     private final Properties properties;
 
-    public ClientBasedEncodedSensitivePropertiesProvider(final PropertyProtectionScheme propertyProtectionScheme,
-                                                         final T client,
-                                                         final Properties properties) {
+    public ClientBasedEncodedSensitivePropertyProvider(final PropertyProtectionScheme propertyProtectionScheme,
+                                                       final T client,
+                                                       final Properties properties) {
         super(propertyProtectionScheme);
         this.client = client;
         this.properties = properties;

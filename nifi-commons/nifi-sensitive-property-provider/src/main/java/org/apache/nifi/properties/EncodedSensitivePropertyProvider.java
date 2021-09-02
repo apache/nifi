@@ -22,9 +22,9 @@ import java.util.Base64;
 import java.util.Objects;
 
 /**
- * Encoded Sensitive Properties Provider handles Base64 encoding and decoding of property values
+ * Encoded Sensitive Property Provider handles Base64 encoding and decoding of property values
  */
-public abstract class EncodedSensitivePropertiesProvider implements SensitivePropertyProvider {
+public abstract class EncodedSensitivePropertyProvider implements SensitivePropertyProvider {
     private static final Charset VALUE_CHARACTER_SET = StandardCharsets.UTF_8;
 
     private static final Base64.Encoder ENCODER = Base64.getEncoder().withoutPadding();
@@ -33,7 +33,7 @@ public abstract class EncodedSensitivePropertiesProvider implements SensitivePro
 
     private final PropertyProtectionScheme propertyProtectionScheme;
 
-    public EncodedSensitivePropertiesProvider(final PropertyProtectionScheme propertyProtectionScheme) {
+    public EncodedSensitivePropertyProvider(final PropertyProtectionScheme propertyProtectionScheme) {
         this.propertyProtectionScheme = Objects.requireNonNull(propertyProtectionScheme, "Scheme Required");
     }
 

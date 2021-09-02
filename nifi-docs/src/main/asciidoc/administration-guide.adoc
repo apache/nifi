@@ -1795,7 +1795,7 @@ If no administrator action is taken, the configuration values remain unencrypted
 
 For more information, see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
 
-In addition to the default AES encryption provider, other providers can be configured in their respective `bootstrap-*.conf` files. Following is a list of additional encryption providers and their configuration:
+Configuring each Sensitive Property Provider requires including the appropriate file reference property in `bootstrap.conf`. The default `bootstrap.conf` includes commented file reference properties for available providers.
 
 === HashiCorp Vault providers
 Two encryption providers are currently configurable in the `bootstrap-hashicorp-vault.conf` file:

@@ -31,7 +31,7 @@ import java.util.Properties;
 /**
  * Google Cloud Platform Key Management Service Sensitive Property Provider
  */
-public class GcpKmsSensitivePropertyProvider extends ClientBasedEncodedSensitivePropertiesProvider<KeyManagementServiceClient> {
+public class GcpKmsSensitivePropertyProvider extends ClientBasedEncodedSensitivePropertyProvider<KeyManagementServiceClient> {
     protected static final String PROJECT_PROPERTY = "gcp.kms.project";
     protected static final String LOCATION_PROPERTY = "gcp.kms.location";
     protected static final String KEYRING_PROPERTY = "gcp.kms.keyring";

@@ -31,7 +31,7 @@ import java.util.Properties;
 /**
  * Amazon Web Services Key Management Service Sensitive Property Provider
  */
-public class AwsKmsSensitivePropertyProvider extends ClientBasedEncodedSensitivePropertiesProvider<KmsClient> {
+public class AwsKmsSensitivePropertyProvider extends ClientBasedEncodedSensitivePropertyProvider<KmsClient> {
     protected static final String KEY_ID_PROPERTY = "aws.kms.key.id";
 
     AwsKmsSensitivePropertyProvider(final KmsClient kmsClient, final Properties properties) throws SensitivePropertyProtectionException {
