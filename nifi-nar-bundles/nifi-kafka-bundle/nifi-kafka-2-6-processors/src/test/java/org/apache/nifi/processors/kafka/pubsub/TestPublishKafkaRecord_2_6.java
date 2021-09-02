@@ -31,11 +31,10 @@ import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
@@ -49,8 +48,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -69,7 +68,7 @@ public class TestPublishKafkaRecord_2_6 {
     private PublisherLease mockLease;
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException, IOException {
         mockPool = mock(PublisherPool.class);
         mockLease = mock(PublisherLease.class);
@@ -177,11 +176,8 @@ public class TestPublishKafkaRecord_2_6 {
     public void testFailureWhenCreationgTransaction() {
         runner.enqueue("John Doe, 48");
 
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(final InvocationOnMock invocationOnMock) {
-                throw new ProducerFencedException("Intentional ProducedFencedException for unit test");
-            }
+        doAnswer((Answer<Object>) invocationOnMock -> {
+            throw new ProducerFencedException("Intentional ProducedFencedException for unit test");
         }).when(mockLease).beginTransaction();
 
         runner.run();
@@ -196,11 +192,8 @@ public class TestPublishKafkaRecord_2_6 {
         runner.setProperty(KafkaProcessorUtils.FAILURE_STRATEGY, KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK);
         runner.enqueue("John Doe, 48");
 
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(final InvocationOnMock invocationOnMock) {
-                throw new ProducerFencedException("Intentional ProducedFencedException for unit test");
-            }
+        doAnswer((Answer<Object>) invocationOnMock -> {
+            throw new ProducerFencedException("Intentional ProducedFencedException for unit test");
         }).when(mockLease).beginTransaction();
 
         runner.run();
@@ -329,22 +322,19 @@ public class TestPublishKafkaRecord_2_6 {
         when(mockPool.obtainPublisher()).thenReturn(mockLease);
 
         final Map<Integer, List<Integer>> partitionsByAge = new HashMap<>();
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(final InvocationOnMock invocationOnMock) throws Throwable {
-                final Function<Record, Integer> partitioner = invocationOnMock.getArgument(6, Function.class);
-                final RecordSet recordSet = invocationOnMock.getArgument(1, RecordSet.class);
+        doAnswer((Answer<Object>) invocationOnMock -> {
+            final Function<Record, Integer> partitioner = invocationOnMock.getArgument(6, Function.class);
+            final RecordSet recordSet = invocationOnMock.getArgument(1, RecordSet.class);
 
-                Record record;
-                while ((record = recordSet.next()) != null) {
-                    final int partition = partitioner.apply(record);
-                    final Integer age = record.getAsInt("age");
+            Record record;
+            while ((record = recordSet.next()) != null) {
+                final int partition = partitioner.apply(record);
+                final Integer age = record.getAsInt("age");
 
-                    partitionsByAge.computeIfAbsent(age, k -> new ArrayList<>()).add(partition);
-                }
-
-                return null;
+                partitionsByAge.computeIfAbsent(age, k -> new ArrayList<>()).add(partition);
             }
+
+            return null;
         }).when(mockLease).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
             nullable(RecordSchema.class), nullable(String.class), any(String.class), nullable(Function.class));
 

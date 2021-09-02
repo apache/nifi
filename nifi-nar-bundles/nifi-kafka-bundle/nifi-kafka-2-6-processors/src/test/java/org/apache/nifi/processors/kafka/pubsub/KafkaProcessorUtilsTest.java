@@ -18,16 +18,16 @@ package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
 import org.apache.nifi.security.krb.KerberosUser;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.security.auth.login.AppConfigurationEntry;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -68,5 +68,4 @@ public class KafkaProcessorUtilsTest {
     assertNotNull(jaasConfig);
     assertEquals("com.sun.security.auth.module.Krb5LoginModule required option1=\"value1\" option2=\"value2\";", jaasConfig);
   }
-
 }
