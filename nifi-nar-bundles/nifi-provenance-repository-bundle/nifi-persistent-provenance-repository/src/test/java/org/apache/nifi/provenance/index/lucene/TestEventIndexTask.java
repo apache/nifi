@@ -27,27 +27,27 @@ import org.apache.nifi.provenance.index.EventIndexWriter;
 import org.apache.nifi.provenance.lucene.IndexManager;
 import org.apache.nifi.provenance.lucene.LuceneEventIndexWriter;
 import org.apache.nifi.provenance.serialization.StorageSummary;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTimeout;
 
 public class TestEventIndexTask {
 
-    @BeforeClass
-    public static void setupClass() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
+    @Test
+    public void testIndexWriterCommittedWhenAppropriate() {
+        assertTimeout(Duration.ofSeconds(5), this::runIndexWriteCommittedWhenAppropriate);
     }
 
-    @Test(timeout = 5000)
-    public void testIndexWriterCommittedWhenAppropriate() throws IOException, InterruptedException {
+    private void runIndexWriteCommittedWhenAppropriate() throws InterruptedException, IOException {
         final BlockingQueue<StoredDocument> docQueue = new LinkedBlockingQueue<>();
         final RepositoryConfiguration repoConfig = new RepositoryConfiguration();
         final File storageDir = new File("target/storage/TestEventIndexTask/1");
