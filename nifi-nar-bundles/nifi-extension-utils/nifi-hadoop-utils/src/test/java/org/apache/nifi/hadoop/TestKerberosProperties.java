@@ -19,45 +19,47 @@ package org.apache.nifi.hadoop;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.logging.ComponentLog;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
 import java.util.List;
 
-public class TestKerberosProperties {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+public class TestKerberosProperties {
     @Test
     public void testWithKerberosConfigFile() {
         final File file = new File("src/test/resources/krb5.conf");
 
         final KerberosProperties kerberosProperties = new KerberosProperties(file);
-        Assert.assertNotNull(kerberosProperties);
+        assertNotNull(kerberosProperties);
 
-        Assert.assertNotNull(kerberosProperties.getKerberosConfigFile());
-        Assert.assertNotNull(kerberosProperties.getKerberosConfigValidator());
-        Assert.assertNotNull(kerberosProperties.getKerberosPrincipal());
-        Assert.assertNotNull(kerberosProperties.getKerberosKeytab());
+        assertNotNull(kerberosProperties.getKerberosConfigFile());
+        assertNotNull(kerberosProperties.getKerberosConfigValidator());
+        assertNotNull(kerberosProperties.getKerberosPrincipal());
+        assertNotNull(kerberosProperties.getKerberosKeytab());
 
         final ValidationResult result = kerberosProperties.getKerberosConfigValidator().validate("test", "principal", null);
-        Assert.assertTrue(result.isValid());
+        assertTrue(result.isValid());
     }
 
     @Test
     public void testWithoutKerberosConfigFile() {
-        final File file = new File("src/test/resources/krb5.conf");
-
         final KerberosProperties kerberosProperties = new KerberosProperties(null);
-        Assert.assertNotNull(kerberosProperties);
+        assertNotNull(kerberosProperties);
 
-        Assert.assertNull(kerberosProperties.getKerberosConfigFile());
-        Assert.assertNotNull(kerberosProperties.getKerberosConfigValidator());
-        Assert.assertNotNull(kerberosProperties.getKerberosPrincipal());
-        Assert.assertNotNull(kerberosProperties.getKerberosKeytab());
+        assertNull(kerberosProperties.getKerberosConfigFile());
+        assertNotNull(kerberosProperties.getKerberosConfigValidator());
+        assertNotNull(kerberosProperties.getKerberosPrincipal());
+        assertNotNull(kerberosProperties.getKerberosKeytab());
 
         final ValidationResult result = kerberosProperties.getKerberosConfigValidator().validate("test", "principal", null);
-        Assert.assertFalse(result.isValid());
+        assertFalse(result.isValid());
     }
 
     @Test
@@ -68,23 +70,23 @@ public class TestKerberosProperties {
         // no security enabled in config so doesn't matter what principal, keytab, and password are
         List<ValidationResult> results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 "test", config, null, null, null, log);
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
 
         results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 "test", config, "principal", null, null, log);
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
 
         results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 "test", config, "principal", "keytab", null, log);
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
 
         results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 "test", config, "principal", null, "password", log);
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
 
         results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 "test", config, "principal", "keytab", "password", log);
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
 
         // change the config to have kerberos turned on
         config.set("hadoop.security.authentication", "kerberos");
@@ -93,42 +95,42 @@ public class TestKerberosProperties {
         // security is enabled, no principal, keytab, or password provided
         results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 "test", config, null, null, null, log);
-        Assert.assertEquals(2, results.size());
+        assertEquals(2, results.size());
 
         // security is enabled, keytab provided, no principal or password provided
         results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 "test", config, null, "keytab", null, log);
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
 
         // security is enabled, password provided, no principal or keytab provided
         results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 "test", config, null, null, "password", log);
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
 
         // security is enabled, no principal provided, keytab and password provided
         results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 "test", config, null, "keytab", "password", log);
-        Assert.assertEquals(2, results.size());
+        assertEquals(2, results.size());
 
         // security is enabled, principal provided, no keytab or password provided
         results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 "test", config, "principal", null, null, log);
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
 
         // security is enabled, principal and keytab provided, no password provided
         results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 "test", config, "principal", "keytab", null, log);
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
 
         // security is enabled, no keytab provided, principal and password provided
         results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 "test", config, "principal", null, "password", log);
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
 
         // security is enabled, principal, keytab, and password provided
         results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 "test", config, "principal", "keytab", "password", log);
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
     }
 
 }

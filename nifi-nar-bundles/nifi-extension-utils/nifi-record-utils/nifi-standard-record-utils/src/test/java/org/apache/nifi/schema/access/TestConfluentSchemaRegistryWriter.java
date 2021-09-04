@@ -21,8 +21,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -30,6 +29,9 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestConfluentSchemaRegistryWriter {
 
@@ -42,13 +44,13 @@ public class TestConfluentSchemaRegistryWriter {
         schemaAccessWriter.validateSchema(recordSchema);
     }
 
-    @Test(expected = SchemaNotFoundException.class)
-    public void testValidateInvalidSchema() throws SchemaNotFoundException {
+    @Test
+    public void testValidateInvalidSchema() {
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().name("test").build();
         final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
 
         final SchemaAccessWriter schemaAccessWriter = new ConfluentSchemaRegistryWriter();
-        schemaAccessWriter.validateSchema(recordSchema);
+        assertThrows(SchemaNotFoundException.class, () -> schemaAccessWriter.validateSchema(recordSchema));
     }
 
     @Test
@@ -62,8 +64,8 @@ public class TestConfluentSchemaRegistryWriter {
 
         try (final ByteArrayInputStream bytesIn = new ByteArrayInputStream(out.toByteArray());
              final DataInputStream in = new DataInputStream(bytesIn)) {
-            Assert.assertEquals(0, in.readByte());
-            Assert.assertEquals((int) schemaIdentifier.getIdentifier().getAsLong(), in.readInt());
+            assertEquals(0, in.readByte());
+            assertEquals((int) schemaIdentifier.getIdentifier().getAsLong(), in.readInt());
         }
     }
 
