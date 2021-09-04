@@ -17,8 +17,9 @@
 
 package org.apache.nifi.provenance.store.iterator;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,13 +43,10 @@ import org.apache.nifi.provenance.store.RecordReaderFactory;
 import org.apache.nifi.provenance.toc.StandardTocWriter;
 import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
-
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 public class TestSelectiveRecordReaderEventIterator {
-
 
     private RecordWriter createWriter(final File file, final TocWriter tocWriter, final boolean compressed, final int uncompressedBlockSize) throws IOException {
         return new EventIdFirstSchemaRecordWriter(file, new AtomicLong(0L), tocWriter, compressed, uncompressedBlockSize, IdentifierLookup.EMPTY);
@@ -74,7 +72,7 @@ public class TestSelectiveRecordReaderEventIterator {
         eventIds.add(3048L);
 
         List<File> filteredFiles = SelectiveRecordReaderEventIterator.filterUnneededFiles(files, eventIds);
-        assertEquals(Arrays.asList(new File[] {file1000, file2000, file3000}), filteredFiles);
+        assertEquals(Arrays.asList(file1000, file2000, file3000), filteredFiles);
 
         // Filter out file at end
         eventIds.clear();
@@ -82,7 +80,7 @@ public class TestSelectiveRecordReaderEventIterator {
         eventIds.add(1048L);
 
         filteredFiles = SelectiveRecordReaderEventIterator.filterUnneededFiles(files, eventIds);
-        assertEquals(Arrays.asList(new File[] {file1, file1000}), filteredFiles);
+        assertEquals(Arrays.asList(file1, file1000), filteredFiles);
     }
 
     @Test
@@ -97,9 +95,7 @@ public class TestSelectiveRecordReaderEventIterator {
         eventIds.add(1L);
         eventIds.add(5L);
 
-        final RecordReaderFactory readerFactory = (file, logs, maxChars) -> {
-            return RecordReaders.newRecordReader(file, logs, maxChars);
-        };
+        final RecordReaderFactory readerFactory = RecordReaders::newRecordReader;
 
         final SelectiveRecordReaderEventIterator itr = new SelectiveRecordReaderEventIterator(files, readerFactory, eventIds, 65536);
         final Optional<ProvenanceEventRecord> firstRecordOption = itr.nextEvent();
@@ -107,9 +103,9 @@ public class TestSelectiveRecordReaderEventIterator {
     }
 
     @Test
-    @Ignore("For local testing only. Runs indefinitely")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     public void testPerformanceOfRandomAccessReads() throws Exception {
-        final File dir = new File("target/storage/" + UUID.randomUUID().toString());
+        final File dir = new File("target/storage/" + UUID.randomUUID());
         final File journalFile = new File(dir, "/4.prov.gz");
         final File tocFile = TocUtil.getTocFile(journalFile);
 
@@ -126,7 +122,7 @@ public class TestSelectiveRecordReaderEventIterator {
             4L, 80L, 1024L, 1025L, 1026L, 1027L, 1028L, 1029L, 1030L, 40_000L, 80_000L, 99_000L
         };
 
-        final RecordReaderFactory readerFactory = (file, logs, maxChars) -> RecordReaders.newRecordReader(file, logs, maxChars);
+        final RecordReaderFactory readerFactory = RecordReaders::newRecordReader;
 
         final List<File> files = new ArrayList<>();
         files.add(new File(dir, "0.prov"));
@@ -145,9 +141,7 @@ public class TestSelectiveRecordReaderEventIterator {
                     Collections.singletonList(journalFile), readerFactory, Arrays.asList(eventIds), 32 * 1024);
 
                 for (final long id : eventIds) {
-                    time(() -> {
-                        return iterator.nextEvent().orElse(null);
-                    }, id);
+                    time(() -> iterator.nextEvent().orElse(null), id);
                 }
             }
 
@@ -157,13 +151,8 @@ public class TestSelectiveRecordReaderEventIterator {
     }
 
     private void time(final Callable<ProvenanceEventRecord> task, final long id) throws Exception {
-        final long start = System.nanoTime();
         final ProvenanceEventRecord event = task.call();
-        Assert.assertNotNull(event);
-        Assert.assertEquals(id, event.getEventId());
-        //        System.out.println(event);
-        final long nanos = System.nanoTime() - start;
-        final long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
-        //        System.out.println("Took " + millis + " ms to " + taskDescription);
+        assertNotNull(event);
+        assertEquals(id, event.getEventId());
     }
 }
