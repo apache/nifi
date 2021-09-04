@@ -17,7 +17,7 @@
 package org.apache.nifi.processor.util.pattern;
 
 import org.apache.nifi.processor.exception.ProcessException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

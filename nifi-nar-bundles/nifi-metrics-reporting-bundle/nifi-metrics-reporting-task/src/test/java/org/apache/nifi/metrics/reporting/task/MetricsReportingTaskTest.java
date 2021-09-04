@@ -34,21 +34,23 @@ import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockReportingContext;
 import org.apache.nifi.util.MockReportingInitializationContext;
 import org.apache.nifi.util.MockVariableRegistry;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -60,7 +62,8 @@ import static org.mockito.Mockito.when;
  *
  * @author Omer Hadari
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class MetricsReportingTaskTest {
 
     /**
@@ -136,7 +139,7 @@ public class MetricsReportingTaskTest {
      * different contexts, overriding {@link MetricsReportingTask#currentStatusReference} and instantiating the test
      * subject.
      */
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         Map<String, ControllerService> services = new HashMap<>();
         services.put(REPORTER_SERVICE_IDENTIFIER, reporterServiceStub);

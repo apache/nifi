@@ -22,18 +22,17 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class AbstractSchemaAccessStrategyTest {
-
     protected SchemaRegistry schemaRegistry;
     protected RecordSchema recordSchema;
 
-    @Before
+    @BeforeEach
     public void setup() {
         this.schemaRegistry = Mockito.mock(SchemaRegistry.class);
 
@@ -50,6 +49,4 @@ public class AbstractSchemaAccessStrategyTest {
 
         this.recordSchema = new SimpleRecordSchema(fields, schemaIdentifier);
     }
-
-
 }

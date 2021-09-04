@@ -52,10 +52,9 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.Tuple;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.OngoingStubbing;
 
@@ -78,9 +77,10 @@ import java.util.stream.IntStream;
 import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.EXCEPTION;
 import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.FAIL;
 import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.OK;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -108,7 +108,7 @@ public class TestPutKudu {
 
     private final java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
 
-    @Before
+    @BeforeEach
     public void setUp() {
         processor = new MockPutKudu();
         testRunner = TestRunners.newTestRunner(processor);
@@ -125,7 +125,7 @@ public class TestPutKudu {
         testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.INSERT.toString());
     }
 
-    @After
+    @AfterEach
     public void close() {
         testRunner = null;
     }
@@ -214,11 +214,11 @@ public class TestPutKudu {
 
         // verify we generated a provenance event
         final List<ProvenanceEventRecord> provEvents = testRunner.getProvenanceEvents();
-        Assert.assertEquals(1, provEvents.size());
+        assertEquals(1, provEvents.size());
 
         // verify it was a SEND event with the correct URI
         final ProvenanceEventRecord provEvent = provEvents.get(0);
-        Assert.assertEquals(ProvenanceEventType.SEND, provEvent.getEventType());
+        assertEquals(ProvenanceEventType.SEND, provEvent.getEventType());
     }
 
     @Test
@@ -456,14 +456,14 @@ public class TestPutKudu {
         buildPartialRow((long) 1, null, (short) 10, "id", "id", null, null, false);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testBuildPartialRowNullPrimaryKey() {
-        buildPartialRow(null, "foo", (short) 10, "id", "id", "SFO", null, false);
+        assertThrows(IllegalArgumentException.class, () -> buildPartialRow(null, "foo", (short) 10, "id", "id", "SFO", null, false));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testBuildPartialRowNotNullable() {
-        buildPartialRow((long) 1, "foo", null, "id", "id", "SFO", null, false);
+        assertThrows(IllegalArgumentException.class, () -> buildPartialRow((long) 1, "foo", null, "id", "id", "SFO", null, false));
     }
 
     @Test
@@ -472,10 +472,10 @@ public class TestPutKudu {
         row.getLong("id");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testBuildPartialRowLowercaseFieldsFalse() {
         PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", "SFO", null, false);
-        row.getLong("id");
+        assertThrows(IllegalArgumentException.class, () -> row.getLong("id"));
     }
 
     @Test
@@ -484,16 +484,16 @@ public class TestPutKudu {
         row.getLong("ID");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testBuildPartialRowLowercaseFieldsKuduUpperFail() {
         PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "ID", "ID", "SFO", null, true);
-        row.getLong("ID");
+        assertThrows(IllegalArgumentException.class, () -> row.getLong("ID"));
     }
 
     @Test
     public void testBuildPartialRowVarCharTooLong() {
         PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", "San Francisco", null, true);
-        Assert.assertEquals("Kudu client should truncate VARCHAR value to expected length", "San", row.getVarchar("airport_code"));
+        assertEquals( "San", row.getVarchar("airport_code"), "Kudu client should truncate VARCHAR value to expected length");
     }
 
     @Test
@@ -502,8 +502,8 @@ public class TestPutKudu {
         // Comparing string representations of dates, because java.sql.Date does not override
         // java.util.Date.equals method and therefore compares milliseconds instead of
         // comparing dates, even though java.sql.Date is supposed to ignore time
-        Assert.assertEquals(String.format("Expecting the date to be %s, but got %s", today, row.getDate("sql_date").toString()),
-                row.getDate("sql_date").toString(), today.toString());
+        assertEquals(row.getDate("sql_date").toString(), today.toString(),
+                String.format("Expecting the date to be %s, but got %s", today, row.getDate("sql_date").toString()));
     }
 
     @Test
@@ -521,7 +521,7 @@ public class TestPutKudu {
 
         final PartialRow row = buildPartialRowDateField(dateFieldValue, Type.STRING);
         final String column = row.getString(DATE_FIELD);
-        assertEquals("Partial Row Field not matched", ISO_8601_YEAR_MONTH_DAY, column);
+        assertEquals(ISO_8601_YEAR_MONTH_DAY, column, "Partial Row Field not matched");
     }
 
     @Test
@@ -543,7 +543,7 @@ public class TestPutKudu {
         final PartialRow row = buildPartialRowTimestampField(timestampFieldValue);
         final Timestamp timestamp = row.getTimestamp(TIMESTAMP_FIELD);
         final Timestamp expected = Timestamp.valueOf(timestampFieldValue.toString());
-        assertEquals("Partial Row Timestamp Field not matched", expected, timestamp);
+        assertEquals(expected, timestamp, "Partial Row Timestamp Field not matched");
     }
 
     private PartialRow buildPartialRowTimestampField(final Object timestampFieldValue) {
@@ -567,7 +567,7 @@ public class TestPutKudu {
     private void assertPartialRowDateFieldEquals(final Object dateFieldValue) {
         final PartialRow row = buildPartialRowDateField(dateFieldValue, Type.DATE);
         final java.sql.Date rowDate = row.getDate(DATE_FIELD);
-        assertEquals("Partial Row Date Field not matched", ISO_8601_YEAR_MONTH_DAY, rowDate.toString());
+        assertEquals(ISO_8601_YEAR_MONTH_DAY, rowDate.toString(), "Partial Row Date Field not matched");
     }
 
     private PartialRow buildPartialRowDateField(final Object dateFieldValue, final Type columnType) {

@@ -23,11 +23,11 @@ import com.codahale.metrics.graphite.GraphiteSender;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.verify;
  *
  * @author Omer Hadari
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class GraphiteMetricReporterServiceTest {
 
     /**
@@ -109,7 +109,7 @@ public class GraphiteMetricReporterServiceTest {
     /**
      * Instantiate the runner and mocks between tests. Register metrics to the {@link #metricRegistryStub}.
      */
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(processorDummy);
         testedService = new GraphiteMetricReporterService();
