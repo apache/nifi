@@ -27,11 +27,13 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.util.Utf8;
 import org.apache.commons.io.input.ReaderInputStream;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.apache.derby.jdbc.EmbeddedDriver;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
@@ -40,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.CharArrayReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -66,14 +69,17 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -84,28 +90,48 @@ public class TestJdbcCommon {
     private static final Logger LOGGER = LoggerFactory.getLogger(TestJdbcCommon.class);
     static final String createTable = "create table restaurants(id integer, name varchar(20), city varchar(50))";
 
-    @ClassRule
-    public static TemporaryFolder folder = new TemporaryFolder();
-
     /**
      * Setting up Connection is expensive operation.
      * So let's do this only once and reuse Connection in each test.
      */
     static protected Connection con;
 
-    @BeforeClass
-    public static void setup() throws ClassNotFoundException, SQLException {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
-        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        // remove previous test database, if any
-        folder.delete();
+    private File tempFile;
 
-        String location = folder.getRoot().getAbsolutePath();
+    @BeforeAll
+    public static void beforeAll() throws ClassNotFoundException {
+        final File derbyLog = new File(System.getProperty("java.io.tmpdir"), "derby.log");
+        derbyLog.deleteOnExit();
+        System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
+        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+    }
+
+    @AfterAll
+    public static void clearDerbyLog() {
+        System.clearProperty(DERBY_LOG_PROPERTY);
+    }
+
+    @BeforeEach
+    public void setup() throws ClassNotFoundException, SQLException, IOException {
+        DriverManager.registerDriver(new EmbeddedDriver());
+        tempFile = new File(System.getProperty("java.io.tmpdir"), (this.getClass().getSimpleName() + "-" + UUID.randomUUID()));
+        String location = tempFile.getAbsolutePath();
         con = DriverManager.getConnection("jdbc:derby:" + location + ";create=true");
         try (final Statement stmt = con.createStatement()) {
             stmt.executeUpdate(createTable);
         }
     }
+
+    @AfterEach
+    public void cleanup() throws IOException {
+        if (tempFile.exists()) {
+            final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
+            assertEquals("XJ015", exception.getSQLState());
+            FileUtils.deleteFile(tempFile, true);
+        }
+    }
+
+    private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
 
     @Test
     public void testCreateSchema() throws ClassNotFoundException, SQLException {
@@ -257,7 +283,7 @@ public class TestJdbcCommon {
                 JdbcCommon.createSchema(rs);
             } catch (final IllegalArgumentException | SQLException sqle) {
                 sqle.printStackTrace();
-                Assert.fail("Failed when using type " + field.getName());
+                fail("Failed when using type " + field.getName());
             }
         }
     }
@@ -275,11 +301,11 @@ public class TestJdbcCommon {
         when(rs.getMetaData()).thenReturn(metadata);
 
         Schema schema = JdbcCommon.createSchema(rs);
-        Assert.assertNotNull(schema);
+        assertNotNull(schema);
 
         Schema.Field field = schema.getField("Col1");
         Schema fieldSchema = field.schema();
-        Assert.assertEquals(2, fieldSchema.getTypes().size());
+        assertEquals(2, fieldSchema.getTypes().size());
 
         boolean foundIntSchema = false;
         boolean foundNullSchema = false;
@@ -310,11 +336,11 @@ public class TestJdbcCommon {
         when(rs.getMetaData()).thenReturn(metadata);
 
         Schema schema = JdbcCommon.createSchema(rs);
-        Assert.assertNotNull(schema);
+        assertNotNull(schema);
 
         Schema.Field field = schema.getField("Col1");
         Schema fieldSchema = field.schema();
-        Assert.assertEquals(2, fieldSchema.getTypes().size());
+        assertEquals(2, fieldSchema.getTypes().size());
 
         boolean foundLongSchema = false;
         boolean foundNullSchema = false;
@@ -345,11 +371,11 @@ public class TestJdbcCommon {
         when(rs.getMetaData()).thenReturn(metadata);
 
         Schema schema = JdbcCommon.createSchema(rs);
-        Assert.assertNotNull(schema);
+        assertNotNull(schema);
 
         Schema.Field field = schema.getField("Col1");
         Schema fieldSchema = field.schema();
-        Assert.assertEquals(2, fieldSchema.getTypes().size());
+        assertEquals(2, fieldSchema.getTypes().size());
 
         boolean foundIntSchema = false;
         boolean foundNullSchema = false;
@@ -380,11 +406,11 @@ public class TestJdbcCommon {
         when(rs.getMetaData()).thenReturn(metadata);
 
         Schema schema = JdbcCommon.createSchema(rs);
-        Assert.assertNotNull(schema);
+        assertNotNull(schema);
 
         Schema.Field field = schema.getField("Col1");
         Schema fieldSchema = field.schema();
-        Assert.assertEquals(2, fieldSchema.getTypes().size());
+        assertEquals(2, fieldSchema.getTypes().size());
 
         boolean foundLongSchema = false;
         boolean foundNullSchema = false;

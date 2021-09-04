@@ -20,12 +20,13 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.when;
 
@@ -92,8 +93,8 @@ public class TestSchemaNamePropertyStrategy extends AbstractSchemaAccessStrategy
         assertNotNull(retrievedSchema);
     }
 
-    @Test(expected = SchemaNotFoundException.class)
-    public void testNameAndNonNumericVersion() throws SchemaNotFoundException, IOException {
+    @Test
+    public void testNameAndNonNumericVersion() {
         final PropertyValue nameValue = new MockPropertyValue("person");
         final PropertyValue branchValue = new MockPropertyValue(null);
         final PropertyValue versionValue = new MockPropertyValue("XYZ");
@@ -101,7 +102,7 @@ public class TestSchemaNamePropertyStrategy extends AbstractSchemaAccessStrategy
         final SchemaNamePropertyStrategy schemaNamePropertyStrategy = new SchemaNamePropertyStrategy(
                 schemaRegistry, nameValue, branchValue, versionValue);
 
-        schemaNamePropertyStrategy.getSchema(Collections.emptyMap(), null, recordSchema);
+        assertThrows(SchemaNotFoundException.class, () -> schemaNamePropertyStrategy.getSchema(Collections.emptyMap(), null, recordSchema));
     }
 
     @Test

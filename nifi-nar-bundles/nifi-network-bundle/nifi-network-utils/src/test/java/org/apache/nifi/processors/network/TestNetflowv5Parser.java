@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.processors.network;
 
+import org.apache.nifi.processors.network.parser.Netflowv5Parser;
+import org.junit.jupiter.api.Test;
+
 import java.util.OptionalInt;
 
-import org.apache.nifi.processors.network.parser.Netflowv5Parser;
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestNetflowv5Parser {
     private static final byte sample1[] = {
@@ -49,24 +51,24 @@ public class TestNetflowv5Parser {
     public void testParsingSingleRecord() throws Throwable {
         final Netflowv5Parser parser = new Netflowv5Parser(OptionalInt.empty());
         int parsedRecords = parser.parse(sample1);
-        Assert.assertEquals(sample1RecordCount, parsedRecords);
+        assertEquals(sample1RecordCount, parsedRecords);
         final Object[][] data = parser.getRecordData();
-        Assert.assertEquals(Long.valueOf(1), data[0][5]);
-        Assert.assertEquals(Long.valueOf(64), data[0][6]);
+        assertEquals(Long.valueOf(1), data[0][5]);
+        assertEquals(Long.valueOf(64), data[0][6]);
     }
 
     @Test
     public void testParsingMultipleRecords() throws Throwable {
         final Netflowv5Parser parser = new Netflowv5Parser(OptionalInt.empty());
         int parsedRecords = parser.parse(sample2);
-        Assert.assertEquals(sample2RecordCount, parsedRecords);
+        assertEquals(sample2RecordCount, parsedRecords);
         final Object[][] data = parser.getRecordData();
         for (int i = 0; i < 3; i++) {
-            Assert.assertEquals("10.0.0.2", data[i][0]);
-            Assert.assertEquals("10.0.0.3", data[i][1]);
-            Assert.assertEquals("0.0.0.0", data[i][2]);
-            Assert.assertEquals(3, data[i][3]);
-            Assert.assertEquals(i, data[i][19]);
+            assertEquals("10.0.0.2", data[i][0]);
+            assertEquals("10.0.0.3", data[i][1]);
+            assertEquals("0.0.0.0", data[i][2]);
+            assertEquals(3, data[i][3]);
+            assertEquals(i, data[i][19]);
         }
     }
 
@@ -76,7 +78,7 @@ public class TestNetflowv5Parser {
         try {
             parser.parse("invalid data".getBytes());
         } catch (Throwable e) {
-            Assert.assertTrue(e.getMessage().contains("Invalid Packet Length"));
+            assertTrue(e.getMessage().contains("Invalid Packet Length"));
         }
     }
 
@@ -86,7 +88,7 @@ public class TestNetflowv5Parser {
         try {
             parser.parse(invalidVersion);
         } catch (Throwable e) {
-            Assert.assertTrue(e.getMessage().contains("Version mismatch"));
+            assertTrue(e.getMessage().contains("Version mismatch"));
         }
     }
 }

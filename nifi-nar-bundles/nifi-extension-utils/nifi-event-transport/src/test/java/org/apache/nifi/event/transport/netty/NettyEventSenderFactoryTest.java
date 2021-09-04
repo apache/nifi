@@ -18,19 +18,18 @@ package org.apache.nifi.event.transport.netty;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
 import java.time.Duration;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class NettyEventSenderFactoryTest {
     private static final String ADDRESS = "127.0.0.1";

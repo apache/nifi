@@ -16,7 +16,12 @@
  */
 package org.apache.nifi.processors.groovyx;
 
-import org.apache.commons.lang3.SystemUtils;
+import groovy.json.JsonOutput;
+import groovy.json.JsonSlurper;
+import org.apache.commons.io.FileUtils;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -27,48 +32,32 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;
-
-import org.apache.commons.io.FileUtils;
-
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.processor.exception.ProcessException;
-
-import org.junit.AfterClass;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.FixMethodOrder;
-import org.junit.runners.MethodSorters;
+import org.codehaus.groovy.runtime.ResourceGroovyMethods;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.HashMap;
-
-import java.sql.DriverManager;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.dbcp.DBCPService;
-
-import org.codehaus.groovy.runtime.ResourceGroovyMethods;
-
-import groovy.json.JsonSlurper;
-import groovy.json.JsonOutput;
-
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@DisabledOnOs(OS.WINDOWS)
 public class ExecuteGroovyScriptTest {
     private final static String DB_LOCATION = "target/db";
 
@@ -84,8 +73,8 @@ public class ExecuteGroovyScriptTest {
             + "male,mr,todd,graham";
 
 
-    @AfterClass
-    public static void cleanUpAfterClass() throws Exception {
+    @AfterAll
+    public static void cleanUpAfterClass() {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
         } catch (Exception e) {
@@ -100,9 +89,8 @@ public class ExecuteGroovyScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @BeforeClass
+    @BeforeAll
     public static void setupBeforeClass() throws Exception {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         FileUtils.copyDirectory(new File("src/test/resources"), new File("target/test/resources"));
         //prepare database connection
         System.setProperty("derby.stream.error.file", "target" + File.separator + "derby.log");
@@ -126,7 +114,7 @@ public class ExecuteGroovyScriptTest {
         con.close();
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         //init processor
         proc = new ExecuteGroovyScript();
@@ -175,7 +163,7 @@ public class ExecuteGroovyScriptTest {
     }
 
     @Test
-    public void test_onTrigger_groovy() throws Exception {
+    public void test_onTrigger_groovy() {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTrigger.groovy");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
@@ -188,7 +176,7 @@ public class ExecuteGroovyScriptTest {
     }
 
     @Test
-    public void test_onTriggerX_groovy() throws Exception {
+    public void test_onTriggerX_groovy() {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTriggerX.groovy");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
@@ -201,7 +189,7 @@ public class ExecuteGroovyScriptTest {
     }
 
     @Test
-    public void test_onTrigger_changeContent_groovy() throws Exception {
+    public void test_onTrigger_changeContent_groovy() {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTrigger_changeContent.groovy");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
@@ -217,7 +205,7 @@ public class ExecuteGroovyScriptTest {
     }
 
     @Test
-    public void test_onTrigger_changeContentX_groovy() throws Exception {
+    public void test_onTrigger_changeContentX_groovy() {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTrigger_changeContentX.groovy");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
@@ -233,7 +221,7 @@ public class ExecuteGroovyScriptTest {
     }
 
     @Test
-    public void test_no_input_groovy() throws Exception {
+    public void test_no_input_groovy() {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_no_input.groovy");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
@@ -247,20 +235,20 @@ public class ExecuteGroovyScriptTest {
 
 
     @Test
-    public void test_good_script() throws Exception {
+    public void test_good_script() {
         runner.setProperty(proc.SCRIPT_BODY, " def ff = session.get(); if(!ff)return; REL_SUCCESS << ff ");
         runner.assertValid();
     }
 
     @Test
-    public void test_bad_script() throws Exception {
+    public void test_bad_script() {
         runner.setProperty(proc.SCRIPT_BODY, " { { ");
         runner.assertNotValid();
     }
 
     //---------------------------------------------------------
     @Test
-    public void test_ctl_01_access() throws Exception {
+    public void test_ctl_01_access() {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_ctl_01_access.groovy");
         runner.setProperty("CTL.mydbcp", "dbcp"); //pass dbcp as a service to script
         runner.assertValid();
@@ -274,7 +262,7 @@ public class ExecuteGroovyScriptTest {
     }
 
     @Test
-    public void test_sql_01_select() throws Exception {
+    public void test_sql_01_select() {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_sql_01_select.groovy");
         runner.setProperty("SQL.mydb", "dbcp");
         runner.assertValid();
@@ -343,7 +331,7 @@ public class ExecuteGroovyScriptTest {
     }
 
     @Test
-    public void test_record_reader_writer_access() throws Exception {
+    public void test_record_reader_writer_access() {
         runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_record_reader_writer.groovy");
         runner.setProperty("RecordReader.myreader", "myreader"); //pass myreader as a service to script
         runner.setProperty("RecordWriter.mywriter", "mywriter"); //pass mywriter as a service to script
@@ -478,7 +466,7 @@ public class ExecuteGroovyScriptTest {
     }
 
     @Test
-    public void test_onStart_onStop() throws Exception {
+    public void test_onStart_onStop() {
         runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onStart_onStop.groovy");
         runner.assertValid();
         runner.enqueue("");
@@ -499,7 +487,7 @@ public class ExecuteGroovyScriptTest {
     }
 
     @Test
-    public void test_onUnscheduled() throws Exception {
+    public void test_onUnscheduled() {
         runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onUnscheduled.groovy");
         runner.assertValid();
         final PrintStream originalOut = System.out;

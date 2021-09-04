@@ -27,15 +27,16 @@ import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.ranger.authorization.hadoop.config.RangerPluginConfig;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -73,7 +74,7 @@ public class ManagedRangerAuthorizerTest {
     private final String serviceType = "nifi";
     private final String appId = "nifiAppId";
 
-    @Before
+    @BeforeEach
     public void setup() {
         // have to initialize this system property before anything else
         File krb5conf = new File("src/test/resources/krb5.conf");
@@ -89,33 +90,33 @@ public class ManagedRangerAuthorizerTest {
     }
 
     @Test
-    public void testNonConfigurableFingerPrint() throws Exception {
+    public void testNonConfigurableFingerPrint() {
         final UserGroupProvider userGroupProvider = mock(UserGroupProvider.class);
 
         final ManagedRangerAuthorizer managedRangerAuthorizer = getStandardManagedAuthorizer(userGroupProvider);
-        Assert.assertEquals(EMPTY_FINGERPRINT, managedRangerAuthorizer.getFingerprint());
+        assertEquals(EMPTY_FINGERPRINT, managedRangerAuthorizer.getFingerprint());
     }
 
     @Test
-    public void testConfigurableEmptyFingerPrint() throws Exception {
+    public void testConfigurableEmptyFingerPrint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
         when(userGroupProvider.getFingerprint()).thenReturn("");
 
         final ManagedRangerAuthorizer managedRangerAuthorizer = getStandardManagedAuthorizer(userGroupProvider);
-        Assert.assertEquals(EMPTY_FINGERPRINT, managedRangerAuthorizer.getFingerprint());
+        assertEquals(EMPTY_FINGERPRINT, managedRangerAuthorizer.getFingerprint());
     }
 
     @Test
-    public void testConfigurableFingerPrint() throws Exception {
+    public void testConfigurableFingerPrint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
         when(userGroupProvider.getFingerprint()).thenReturn(TENANT_FINGERPRINT);
 
         final ManagedRangerAuthorizer managedRangerAuthorizer = getStandardManagedAuthorizer(userGroupProvider);
-        Assert.assertEquals(NON_EMPTY_FINGERPRINT, managedRangerAuthorizer.getFingerprint());
+        assertEquals(NON_EMPTY_FINGERPRINT, managedRangerAuthorizer.getFingerprint());
     }
 
     @Test
-    public void testInheritEmptyFingerprint() throws Exception {
+    public void testInheritEmptyFingerprint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
 
         final ManagedRangerAuthorizer managedRangerAuthorizer = getStandardManagedAuthorizer(userGroupProvider);
@@ -124,16 +125,16 @@ public class ManagedRangerAuthorizerTest {
         verify(userGroupProvider, times(0)).inheritFingerprint(anyString());
     }
 
-    @Test(expected = AuthorizationAccessException.class)
-    public void testInheritInvalidFingerprint() throws Exception {
+    @Test
+    public void testInheritInvalidFingerprint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
 
         final ManagedRangerAuthorizer managedRangerAuthorizer = getStandardManagedAuthorizer(userGroupProvider);
-        managedRangerAuthorizer.inheritFingerprint("not a valid fingerprint");
+        assertThrows(AuthorizationAccessException.class, () -> managedRangerAuthorizer.inheritFingerprint("not a valid fingerprint"));
     }
 
     @Test
-    public void testInheritNonEmptyFingerprint() throws Exception {
+    public void testInheritNonEmptyFingerprint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
 
         final ManagedRangerAuthorizer managedRangerAuthorizer = getStandardManagedAuthorizer(userGroupProvider);
@@ -143,7 +144,7 @@ public class ManagedRangerAuthorizerTest {
     }
 
     @Test
-    public void testCheckInheritEmptyFingerprint() throws Exception {
+    public void testCheckInheritEmptyFingerprint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
 
         final ManagedRangerAuthorizer managedRangerAuthorizer = getStandardManagedAuthorizer(userGroupProvider);
@@ -152,16 +153,16 @@ public class ManagedRangerAuthorizerTest {
         verify(userGroupProvider, times(0)).inheritFingerprint(anyString());
     }
 
-    @Test(expected = AuthorizationAccessException.class)
-    public void testCheckInheritInvalidFingerprint() throws Exception {
+    @Test
+    public void testCheckInheritInvalidFingerprint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
 
         final ManagedRangerAuthorizer managedRangerAuthorizer = getStandardManagedAuthorizer(userGroupProvider);
-        managedRangerAuthorizer.checkInheritability("not a valid fingerprint");
+        assertThrows(AuthorizationAccessException.class, () -> managedRangerAuthorizer.checkInheritability("not a valid fingerprint"));
     }
 
     @Test
-    public void testCheckInheritNonEmptyFingerprint() throws Exception {
+    public void testCheckInheritNonEmptyFingerprint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
 
         final ManagedRangerAuthorizer managedRangerAuthorizer = getStandardManagedAuthorizer(userGroupProvider);
@@ -170,12 +171,12 @@ public class ManagedRangerAuthorizerTest {
         verify(userGroupProvider, times(1)).checkInheritability(TENANT_FINGERPRINT);
     }
 
-    @Test(expected = UninheritableAuthorizationsException.class)
-    public void testCheckInheritNonConfigurableUserGroupProvider() throws Exception {
+    @Test
+    public void testCheckInheritNonConfigurableUserGroupProvider() {
         final UserGroupProvider userGroupProvider = mock(UserGroupProvider.class);
 
         final ManagedRangerAuthorizer managedRangerAuthorizer = getStandardManagedAuthorizer(userGroupProvider);
-        managedRangerAuthorizer.checkInheritability(NON_EMPTY_FINGERPRINT);
+        assertThrows(UninheritableAuthorizationsException.class, () -> managedRangerAuthorizer.checkInheritability(NON_EMPTY_FINGERPRINT));
     }
 
     private ManagedRangerAuthorizer getStandardManagedAuthorizer(final UserGroupProvider userGroupProvider) {
