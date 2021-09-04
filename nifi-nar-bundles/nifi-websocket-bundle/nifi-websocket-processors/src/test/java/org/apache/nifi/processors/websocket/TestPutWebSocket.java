@@ -26,7 +26,6 @@ import org.apache.nifi.websocket.SendMessage;
 import org.apache.nifi.websocket.WebSocketMessage;
 import org.apache.nifi.websocket.WebSocketService;
 import org.apache.nifi.websocket.WebSocketSession;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -42,6 +41,8 @@ import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_MESSAGE_TYPE;
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_REMOTE_ADDRESS;
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_SESSION_ID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -53,12 +54,12 @@ import static org.mockito.Mockito.when;
 public class TestPutWebSocket {
 
     private void assertFlowFile(WebSocketSession webSocketSession, String serviceId, String endpointId, MockFlowFile ff, WebSocketMessage.Type messageType) {
-        Assertions.assertEquals(serviceId, ff.getAttribute(ATTR_WS_CS_ID));
-        Assertions.assertEquals(webSocketSession.getSessionId(), ff.getAttribute(ATTR_WS_SESSION_ID));
-        Assertions.assertEquals(endpointId, ff.getAttribute(ATTR_WS_ENDPOINT_ID));
-        Assertions.assertEquals(webSocketSession.getLocalAddress().toString(), ff.getAttribute(ATTR_WS_LOCAL_ADDRESS));
-        Assertions.assertEquals(webSocketSession.getRemoteAddress().toString(), ff.getAttribute(ATTR_WS_REMOTE_ADDRESS));
-        Assertions.assertEquals(messageType != null ? messageType.name() : null, ff.getAttribute(ATTR_WS_MESSAGE_TYPE));
+        assertEquals(serviceId, ff.getAttribute(ATTR_WS_CS_ID));
+        assertEquals(webSocketSession.getSessionId(), ff.getAttribute(ATTR_WS_SESSION_ID));
+        assertEquals(endpointId, ff.getAttribute(ATTR_WS_ENDPOINT_ID));
+        assertEquals(webSocketSession.getLocalAddress().toString(), ff.getAttribute(ATTR_WS_LOCAL_ADDRESS));
+        assertEquals(webSocketSession.getRemoteAddress().toString(), ff.getAttribute(ATTR_WS_REMOTE_ADDRESS));
+        assertEquals(messageType != null ? messageType.name() : null, ff.getAttribute(ATTR_WS_MESSAGE_TYPE));
     }
 
     private WebSocketSession getWebSocketSession() {
@@ -92,14 +93,14 @@ public class TestPutWebSocket {
 
         final List<MockFlowFile> succeededFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_SUCCESS);
         //assertEquals(0, succeededFlowFiles.size());   //No longer valid test after NIFI-3318 since not specifying sessionid will send to all clients
-        Assertions.assertEquals(1, succeededFlowFiles.size());
+        assertEquals(1, succeededFlowFiles.size());
 
         final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_FAILURE);
         //assertEquals(1, failedFlowFiles.size());      //No longer valid test after NIFI-3318
-        Assertions.assertEquals(0, failedFlowFiles.size());
+        assertEquals(0, failedFlowFiles.size());
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        Assertions.assertEquals(0, provenanceEvents.size());
+        assertEquals(0, provenanceEvents.size());
 
     }
 
@@ -127,15 +128,15 @@ public class TestPutWebSocket {
         runner.run();
 
         final List<MockFlowFile> succeededFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_SUCCESS);
-        Assertions.assertEquals(0, succeededFlowFiles.size());
+        assertEquals(0, succeededFlowFiles.size());
 
         final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_FAILURE);
-        Assertions.assertEquals(1, failedFlowFiles.size());
+        assertEquals(1, failedFlowFiles.size());
         final MockFlowFile failedFlowFile = failedFlowFiles.iterator().next();
-        Assertions.assertNotNull(failedFlowFile.getAttribute(ATTR_WS_FAILURE_DETAIL));
+        assertNotNull(failedFlowFile.getAttribute(ATTR_WS_FAILURE_DETAIL));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        Assertions.assertEquals(0, provenanceEvents.size());
+        assertEquals(0, provenanceEvents.size());
 
     }
 
@@ -163,15 +164,15 @@ public class TestPutWebSocket {
         runner.run();
 
         final List<MockFlowFile> succeededFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_SUCCESS);
-        Assertions.assertEquals(0, succeededFlowFiles.size());
+        assertEquals(0, succeededFlowFiles.size());
 
         final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_FAILURE);
-        Assertions.assertEquals(1, failedFlowFiles.size());
+        assertEquals(1, failedFlowFiles.size());
         final MockFlowFile failedFlowFile = failedFlowFiles.iterator().next();
-        Assertions.assertNotNull(failedFlowFile.getAttribute(ATTR_WS_FAILURE_DETAIL));
+        assertNotNull(failedFlowFile.getAttribute(ATTR_WS_FAILURE_DETAIL));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        Assertions.assertEquals(0, provenanceEvents.size());
+        assertEquals(0, provenanceEvents.size());
 
     }
 
@@ -205,15 +206,15 @@ public class TestPutWebSocket {
         runner.run();
 
         final List<MockFlowFile> succeededFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_SUCCESS);
-        Assertions.assertEquals(0, succeededFlowFiles.size());
+        assertEquals(0, succeededFlowFiles.size());
 
         final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_FAILURE);
-        Assertions.assertEquals(1, failedFlowFiles.size());
+        assertEquals(1, failedFlowFiles.size());
         final MockFlowFile failedFlowFile = failedFlowFiles.iterator().next();
-        Assertions.assertNotNull(failedFlowFile.getAttribute(ATTR_WS_FAILURE_DETAIL));
+        assertNotNull(failedFlowFile.getAttribute(ATTR_WS_FAILURE_DETAIL));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        Assertions.assertEquals(0, provenanceEvents.size());
+        assertEquals(0, provenanceEvents.size());
 
     }
 
@@ -254,15 +255,15 @@ public class TestPutWebSocket {
         runner.run(2);
 
         final List<MockFlowFile> succeededFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_SUCCESS);
-        Assertions.assertEquals(2, succeededFlowFiles.size());
+        assertEquals(2, succeededFlowFiles.size());
         assertFlowFile(webSocketSession, serviceId, endpointId, succeededFlowFiles.get(0), WebSocketMessage.Type.TEXT);
         assertFlowFile(webSocketSession, serviceId, endpointId, succeededFlowFiles.get(1), WebSocketMessage.Type.BINARY);
 
         final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_FAILURE);
-        Assertions.assertEquals(0, failedFlowFiles.size());
+        assertEquals(0, failedFlowFiles.size());
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        Assertions.assertEquals(2, provenanceEvents.size());
+        assertEquals(2, provenanceEvents.size());
     }
 
 

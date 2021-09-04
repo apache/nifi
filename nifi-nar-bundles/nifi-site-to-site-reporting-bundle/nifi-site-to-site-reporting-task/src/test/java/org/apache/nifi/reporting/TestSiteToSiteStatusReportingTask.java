@@ -37,7 +37,6 @@ import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
@@ -58,6 +57,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteStatusReportingTask {
@@ -106,16 +111,16 @@ public class TestSiteToSiteStatusReportingTask {
         MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
-        Assertions.assertEquals(16, task.dataSent.size());
+        assertEquals(16, task.dataSent.size());
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject firstElement = jsonReader.readArray().getJsonObject(0);
         JsonString componentId = firstElement.getJsonString("componentId");
-        Assertions.assertEquals(pgStatus.getId(), componentId.getString());
+        assertEquals(pgStatus.getId(), componentId.getString());
         JsonNumber terminatedThreads = firstElement.getJsonNumber("terminatedThreadCount");
-        Assertions.assertEquals(1, terminatedThreads.longValue());
+        assertEquals(1, terminatedThreads.longValue());
         JsonString versionedFlowState = firstElement.getJsonString("versionedFlowState");
-        Assertions.assertEquals("UP_TO_DATE", versionedFlowState.getString());
+        assertEquals("UP_TO_DATE", versionedFlowState.getString());
     }
 
     @Test
@@ -130,11 +135,11 @@ public class TestSiteToSiteStatusReportingTask {
         MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
-        Assertions.assertEquals(1, task.dataSent.size()); // Only root pg and 3 child pgs
+        assertEquals(1, task.dataSent.size()); // Only root pg and 3 child pgs
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonString componentId = jsonReader.readArray().getJsonObject(0).getJsonString("componentId");
-        Assertions.assertEquals(pgStatus.getId(), componentId.getString());
+        assertEquals(pgStatus.getId(), componentId.getString());
     }
 
     @Test
@@ -154,13 +159,13 @@ public class TestSiteToSiteStatusReportingTask {
         JsonObject object = jsonReader.readArray().getJsonObject(0);
         JsonString backpressure = object.getJsonString("isBackPressureEnabled");
         JsonString source = object.getJsonString("sourceName");
-        Assertions.assertEquals("true", backpressure.getString());
-        Assertions.assertEquals("source", source.getString());
+        assertEquals("true", backpressure.getString());
+        assertEquals("source", source.getString());
         JsonString dataSizeThreshold = object.getJsonString("backPressureDataSizeThreshold");
         JsonNumber bytesThreshold = object.getJsonNumber("backPressureBytesThreshold");
-        Assertions.assertEquals("1 KB", dataSizeThreshold.getString());
-        Assertions.assertEquals(1024, bytesThreshold.intValue());
-        Assertions.assertNull(object.get("destinationName"));
+        assertEquals("1 KB", dataSizeThreshold.getString());
+        assertEquals(1024, bytesThreshold.intValue());
+        assertNull(object.get("destinationName"));
     }
 
     @Test
@@ -180,7 +185,7 @@ public class TestSiteToSiteStatusReportingTask {
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject object = jsonReader.readArray().getJsonObject(0);
         JsonValue destination = object.get("destinationName");
-        Assertions.assertEquals(destination, JsonValue.NULL);
+        assertEquals(destination, JsonValue.NULL);
 
    }
 
@@ -196,11 +201,11 @@ public class TestSiteToSiteStatusReportingTask {
         MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
-        Assertions.assertEquals(3, task.dataSent.size());  // 3 processors for each of 4 groups
+        assertEquals(3, task.dataSent.size());  // 3 processors for each of 4 groups
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonString componentId = jsonReader.readArray().getJsonObject(0).getJsonString("componentId");
-        Assertions.assertEquals("root.1.processor.1", componentId.getString());
+        assertEquals("root.1.processor.1", componentId.getString());
     }
 
     @Test
@@ -215,11 +220,11 @@ public class TestSiteToSiteStatusReportingTask {
         MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
-        Assertions.assertEquals(10, task.dataSent.size());  // 3 + (3 * 3) + (3 * 3 * 3) = 39, or 10 batches of 4
+        assertEquals(10, task.dataSent.size());  // 3 + (3 * 3) + (3 * 3 * 3) = 39, or 10 batches of 4
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonString componentId = jsonReader.readArray().getJsonObject(0).getJsonString("componentId");
-        Assertions.assertEquals("root.1.1.processor.1", componentId.getString());
+        assertEquals("root.1.1.processor.1", componentId.getString());
     }
 
     @Test
@@ -239,12 +244,12 @@ public class TestSiteToSiteStatusReportingTask {
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject object = jsonReader.readArray().getJsonObject(0);
         JsonString runStatus = object.getJsonString("runStatus");
-        Assertions.assertEquals(RunStatus.Stopped.name(), runStatus.getString());
+        assertEquals(RunStatus.Stopped.name(), runStatus.getString());
         boolean isTransmitting = object.getBoolean("transmitting");
-        Assertions.assertFalse(isTransmitting);
+        assertFalse(isTransmitting);
         JsonNumber inputBytes = object.getJsonNumber("inputBytes");
-        Assertions.assertEquals(5, inputBytes.intValue());
-        Assertions.assertNull(object.get("activeThreadCount"));
+        assertEquals(5, inputBytes.intValue());
+        assertNull(object.get("activeThreadCount"));
     }
 
     @Test
@@ -263,7 +268,7 @@ public class TestSiteToSiteStatusReportingTask {
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject object = jsonReader.readArray().getJsonObject(0);
         JsonValue activeThreadCount = object.get("activeThreadCount");
-        Assertions.assertEquals(activeThreadCount, JsonValue.NULL);
+        assertEquals(activeThreadCount, JsonValue.NULL);
     }
 
     @Test
@@ -278,14 +283,14 @@ public class TestSiteToSiteStatusReportingTask {
         MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
-        Assertions.assertEquals(3, task.dataSent.size());
+        assertEquals(3, task.dataSent.size());
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject firstElement = jsonReader.readArray().getJsonObject(0);
         JsonNumber activeThreadCount = firstElement.getJsonNumber("activeThreadCount");
-        Assertions.assertEquals(1L, activeThreadCount.longValue());
+        assertEquals(1L, activeThreadCount.longValue());
         JsonString transmissionStatus = firstElement.getJsonString("transmissionStatus");
-        Assertions.assertEquals("Transmitting", transmissionStatus.getString());
+        assertEquals("Transmitting", transmissionStatus.getString());
     }
 
     @Test
@@ -301,12 +306,12 @@ public class TestSiteToSiteStatusReportingTask {
         MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
-        Assertions.assertEquals(3, task.dataSent.size());
+        assertEquals(3, task.dataSent.size());
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject firstElement = jsonReader.readArray().getJsonObject(0);
         JsonValue targetURI = firstElement.get("targetURI");
-        Assertions.assertEquals(targetURI, JsonValue.NULL);
+        assertEquals(targetURI, JsonValue.NULL);
     }
 
     @Test
@@ -325,18 +330,18 @@ public class TestSiteToSiteStatusReportingTask {
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject object = jsonReader.readArray().getJsonObject(0);
         JsonString parentName = object.getJsonString("parentName");
-        Assertions.assertTrue(parentName.getString().startsWith("Awesome.1-"));
+        assertTrue(parentName.getString().startsWith("Awesome.1-"));
         JsonString parentPath = object.getJsonString("parentPath");
-        Assertions.assertTrue(parentPath.getString().startsWith("NiFi Flow / Awesome.1"));
+        assertTrue(parentPath.getString().startsWith("NiFi Flow / Awesome.1"));
         JsonString runStatus = object.getJsonString("runStatus");
-        Assertions.assertEquals(RunStatus.Running.name(), runStatus.getString());
+        assertEquals(RunStatus.Running.name(), runStatus.getString());
         JsonNumber inputBytes = object.getJsonNumber("inputBytes");
-        Assertions.assertEquals(9, inputBytes.intValue());
+        assertEquals(9, inputBytes.intValue());
         JsonObject counterMap = object.getJsonObject("counters");
-        Assertions.assertNotNull(counterMap);
-        Assertions.assertEquals(10, counterMap.getInt("counter1"));
-        Assertions.assertEquals(5, counterMap.getInt("counter2"));
-        Assertions.assertNull(object.get("processorType"));
+        assertNotNull(counterMap);
+        assertEquals(10, counterMap.getInt("counter1"));
+        assertEquals(5, counterMap.getInt("counter2"));
+        assertNull(object.get("processorType"));
     }
 
     @Test
@@ -356,7 +361,7 @@ public class TestSiteToSiteStatusReportingTask {
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject object = jsonReader.readArray().getJsonObject(0);
         JsonValue type = object.get("processorType");
-        Assertions.assertEquals(type, JsonValue.NULL);
+        assertEquals(type, JsonValue.NULL);
     }
 
     /***********************************
@@ -543,7 +548,7 @@ public class TestSiteToSiteStatusReportingTask {
                     when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
                 } catch (final Exception e) {
                     e.printStackTrace();
-                    Assertions.fail(e.toString());
+                    fail(e.toString());
                 }
                 siteToSiteClient = client;
             }

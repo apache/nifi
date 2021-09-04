@@ -37,6 +37,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
@@ -140,9 +141,9 @@ public class PutSmbFileTest {
 
         verify(connection).authenticate(authenticationContext.capture());
         AuthenticationContext acObj = authenticationContext.getValue();
-        Assertions.assertEquals(acObj.getUsername(), USERNAME);
-        Assertions.assertEquals(acObj.getDomain(), DOMAIN);
-        Assertions.assertArrayEquals(acObj.getPassword(), PASSWORD.toCharArray());
+        assertEquals(acObj.getUsername(), USERNAME);
+        assertEquals(acObj.getDomain(), DOMAIN);
+        assertArrayEquals(acObj.getPassword(), PASSWORD.toCharArray());
     }
 
     @Test
@@ -154,9 +155,9 @@ public class PutSmbFileTest {
         verify(connection).authenticate(authenticationContext.capture());
         AuthenticationContext acObj = authenticationContext.getValue();
         AuthenticationContext compAc = AuthenticationContext.anonymous();
-        Assertions.assertEquals(acObj.getUsername(), compAc.getUsername());
-        Assertions.assertEquals(acObj.getDomain(), compAc.getDomain());
-        Assertions.assertArrayEquals(acObj.getPassword(), compAc.getPassword());
+        assertEquals(acObj.getUsername(), compAc.getUsername());
+        assertEquals(acObj.getDomain(), compAc.getDomain());
+        assertArrayEquals(acObj.getPassword(), compAc.getPassword());
     }
 
     @Test
@@ -173,23 +174,23 @@ public class PutSmbFileTest {
     public void testFileShareNone() throws IOException {
         testRunner.setProperty(PutSmbFile.SHARE_ACCESS, PutSmbFile.SHARE_ACCESS_NONE);
         Set<SMB2ShareAccess> shareAccessSet = testOpenFileShareAccess();
-        Assertions.assertTrue(shareAccessSet.isEmpty());
+        assertTrue(shareAccessSet.isEmpty());
     }
 
     @Test
     public void testFileShareRead() throws IOException {
         testRunner.setProperty(PutSmbFile.SHARE_ACCESS, PutSmbFile.SHARE_ACCESS_READ);
         Set<SMB2ShareAccess> shareAccessSet = testOpenFileShareAccess();
-        Assertions.assertTrue(shareAccessSet.contains(SMB2ShareAccess.FILE_SHARE_READ));
+        assertTrue(shareAccessSet.contains(SMB2ShareAccess.FILE_SHARE_READ));
     }
 
     @Test
     public void testFileShareReadWriteDelete() throws IOException {
         testRunner.setProperty(PutSmbFile.SHARE_ACCESS, PutSmbFile.SHARE_ACCESS_READWRITEDELETE);
         Set<SMB2ShareAccess> shareAccessSet = testOpenFileShareAccess();
-        Assertions.assertTrue(shareAccessSet.contains(SMB2ShareAccess.FILE_SHARE_READ));
-        Assertions.assertTrue(shareAccessSet.contains(SMB2ShareAccess.FILE_SHARE_WRITE));
-        Assertions.assertTrue(shareAccessSet.contains(SMB2ShareAccess.FILE_SHARE_DELETE));
+        assertTrue(shareAccessSet.contains(SMB2ShareAccess.FILE_SHARE_READ));
+        assertTrue(shareAccessSet.contains(SMB2ShareAccess.FILE_SHARE_WRITE));
+        assertTrue(shareAccessSet.contains(SMB2ShareAccess.FILE_SHARE_DELETE));
     }
 
     @Test

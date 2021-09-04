@@ -43,7 +43,6 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.db.JdbcProperties;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -57,6 +56,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 
@@ -146,7 +147,6 @@ public class TestMetricsEventReportingTask {
         groupStatuses.add(groupStatus1);
         groupStatuses.add(groupStatus3);
         status.setProcessGroupStatus(groupStatuses);
-
     }
 
     @Test
@@ -159,11 +159,10 @@ public class TestMetricsEventReportingTask {
         List<Tuple<String, Action>> defaultLogActions = actionHandler.getDefaultActionsByType("LOG");
         List<Tuple<String, Action>> defaultAlertActions = actionHandler.getDefaultActionsByType("ALERT");
         List<PropertyContext> propertyContexts = actionHandler.getPropertyContexts();
-        Assertions.assertFalse(metricsList.isEmpty());
-        Assertions.assertEquals(2,defaultLogActions.size());
-        Assertions.assertEquals(2,defaultAlertActions.size());
-        Assertions.assertEquals(4,propertyContexts.size());
-
+        assertFalse(metricsList.isEmpty());
+        assertEquals(2,defaultLogActions.size());
+        assertEquals(2,defaultAlertActions.size());
+        assertEquals(4,propertyContexts.size());
     }
 
     private MockMetricsEventReportingTask initTask(Map<PropertyDescriptor, String> customProperties) throws InitializationException, IOException {

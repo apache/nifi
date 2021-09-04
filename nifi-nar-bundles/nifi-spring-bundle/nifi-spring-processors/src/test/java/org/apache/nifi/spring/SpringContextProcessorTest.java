@@ -23,7 +23,6 @@ import org.apache.nifi.spring.SpringDataExchanger.SpringResponse;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -33,6 +32,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -73,7 +75,7 @@ public class SpringContextProcessorTest {
         runner.run(1, false);
         verify(delegate, times(1)).send(Mockito.any(), Mockito.any(Map.class), Mockito.anyLong());
         verify(delegate, times(1)).receive(100);
-        Assertions.assertTrue(runner.getFlowFilesForRelationship(TestProcessor.REL_SUCCESS).isEmpty());
+        assertTrue(runner.getFlowFilesForRelationship(TestProcessor.REL_SUCCESS).isEmpty());
         runner.shutdown();
     }
 
@@ -96,7 +98,7 @@ public class SpringContextProcessorTest {
 
         verify(delegate, never()).send(Mockito.any(), Mockito.any(Map.class), Mockito.anyLong());
         verify(delegate, times(1)).receive(0);
-        Assertions.assertTrue(runner.getFlowFilesForRelationship(TestProcessor.REL_SUCCESS).size() == 1);
+        assertTrue(runner.getFlowFilesForRelationship(TestProcessor.REL_SUCCESS).size() == 1);
         runner.shutdown();
     }
 
@@ -123,9 +125,9 @@ public class SpringContextProcessorTest {
         verify(delegate, times(1)).send(Mockito.any(), Mockito.any(Map.class), Mockito.anyLong());
         verify(delegate, times(1)).receive(100);
         List<MockFlowFile> ffList = runner.getFlowFilesForRelationship(TestProcessor.REL_SUCCESS);
-        Assertions.assertTrue(ffList.size() == 1);
-        Assertions.assertEquals("foo", ffList.get(0).getAttribute("foo"));
-        Assertions.assertNull(ffList.get(0).getAttribute("bar"));
+        assertTrue(ffList.size() == 1);
+        assertEquals("foo", ffList.get(0).getAttribute("foo"));
+        assertNull(ffList.get(0).getAttribute("bar"));
         runner.shutdown();
     }
 

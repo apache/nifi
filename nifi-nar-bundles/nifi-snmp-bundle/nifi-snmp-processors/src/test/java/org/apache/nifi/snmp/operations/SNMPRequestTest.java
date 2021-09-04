@@ -22,7 +22,6 @@ import org.apache.nifi.snmp.helper.SNMPTestUtils;
 import org.apache.nifi.snmp.testagents.TestAgent;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.snmp4j.CommunityTarget;
 import org.snmp4j.Snmp;
@@ -36,6 +35,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public abstract class SNMPRequestTest {
 
@@ -118,11 +120,11 @@ public abstract class SNMPRequestTest {
         WALK_OID_MAP.forEach((key, value) -> {
             if (!isMatch.get() && attribute.getKey().contains(key)) {
                 isMatch.set(true);
-                Assertions.assertEquals(value, attribute.getValue());
+                assertEquals(value, attribute.getValue());
             }
         });
         if (!isMatch.get()) {
-            Assertions.fail("Expected OID did not found in subtree.");
+            fail("Expected OID did not found in subtree.");
         }
     }
 }

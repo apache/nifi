@@ -21,7 +21,6 @@ import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.TestServer;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -37,6 +36,8 @@ import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_P
 import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_PATH_INVALID_JSON;
 import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_PATH_SUCCESS_TEXT_MSG;
 import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_PATH_WARNING;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class PostSlackTextMessageTest {
 
@@ -73,7 +74,7 @@ public class PostSlackTextMessageTest {
 
         JsonObject requestBodyJson = getRequestBodyJson();
         assertBasicRequest(requestBodyJson);
-        Assertions.assertEquals("my-text", requestBodyJson.getString("text"));
+        assertEquals("my-text", requestBodyJson.getString("text"));
     }
 
     @Test
@@ -91,8 +92,8 @@ public class PostSlackTextMessageTest {
 
         JsonObject requestBodyJson = getRequestBodyJson();
         assertBasicRequest(requestBodyJson);
-        Assertions.assertEquals("my-text", requestBodyJson.getString("text"));
-        Assertions.assertEquals("[{\"my-attachment-key\":\"my-attachment-value\"}]", requestBodyJson.getJsonArray("attachments").toString());
+        assertEquals("my-text", requestBodyJson.getString("text"));
+        assertEquals("[{\"my-attachment-key\":\"my-attachment-value\"}]", requestBodyJson.getJsonArray("attachments").toString());
     }
 
     @Test
@@ -109,7 +110,7 @@ public class PostSlackTextMessageTest {
 
         JsonObject requestBodyJson = getRequestBodyJson();
         assertBasicRequest(requestBodyJson);
-        Assertions.assertEquals("[{\"my-attachment-key\":\"my-attachment-value\"}]", requestBodyJson.getJsonArray("attachments").toString());
+        assertEquals("[{\"my-attachment-key\":\"my-attachment-value\"}]", requestBodyJson.getJsonArray("attachments").toString());
     }
 
     @Test
@@ -124,7 +125,7 @@ public class PostSlackTextMessageTest {
 
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_FAILURE);
 
-        Assertions.assertFalse(servlet.hasBeenInteracted());
+        assertFalse(servlet.hasBeenInteracted());
     }
 
     @Test
@@ -139,7 +140,7 @@ public class PostSlackTextMessageTest {
 
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_FAILURE);
 
-        Assertions.assertFalse(servlet.hasBeenInteracted());
+        assertFalse(servlet.hasBeenInteracted());
     }
 
     @Test
@@ -157,8 +158,8 @@ public class PostSlackTextMessageTest {
 
         JsonObject requestBodyJson = getRequestBodyJson();
         assertBasicRequest(requestBodyJson);
-        Assertions.assertEquals(1, requestBodyJson.getJsonArray("attachments").size());
-        Assertions.assertEquals("[{\"my-attachment-key\":\"my-attachment-value\"}]", requestBodyJson.getJsonArray("attachments").toString());
+        assertEquals(1, requestBodyJson.getJsonArray("attachments").size());
+        assertEquals("[{\"my-attachment-key\":\"my-attachment-value\"}]", requestBodyJson.getJsonArray("attachments").toString());
     }
 
     @Test
@@ -176,8 +177,8 @@ public class PostSlackTextMessageTest {
 
         JsonObject requestBodyJson = getRequestBodyJson();
         assertBasicRequest(requestBodyJson);
-        Assertions.assertEquals(1, requestBodyJson.getJsonArray("attachments").size());
-        Assertions.assertEquals("[{\"my-attachment-key\":\"my-attachment-value\"}]", requestBodyJson.getJsonArray("attachments").toString());
+        assertEquals(1, requestBodyJson.getJsonArray("attachments").size());
+        assertEquals("[{\"my-attachment-key\":\"my-attachment-value\"}]", requestBodyJson.getJsonArray("attachments").toString());
     }
 
     @Test
@@ -261,15 +262,15 @@ public class PostSlackTextMessageTest {
 
         JsonObject requestBodyJson = getRequestBodyJson();
         assertBasicRequest(requestBodyJson);
-        Assertions.assertEquals("Iñtërnâtiônàližætiøn", requestBodyJson.getString("text"));
+        assertEquals("Iñtërnâtiônàližætiøn", requestBodyJson.getString("text"));
     }
 
     private void assertBasicRequest(JsonObject requestBodyJson) {
         Map<String, String> requestHeaders = servlet.getLastPostHeaders();
-        Assertions.assertEquals("Bearer my-access-token", requestHeaders.get("Authorization"));
-        Assertions.assertEquals("application/json; charset=UTF-8", requestHeaders.get("Content-Type"));
+        assertEquals("Bearer my-access-token", requestHeaders.get("Authorization"));
+        assertEquals("application/json; charset=UTF-8", requestHeaders.get("Content-Type"));
 
-        Assertions.assertEquals("my-channel", requestBodyJson.getString("channel"));
+        assertEquals("my-channel", requestBodyJson.getString("channel"));
     }
 
     private JsonObject getRequestBodyJson() {

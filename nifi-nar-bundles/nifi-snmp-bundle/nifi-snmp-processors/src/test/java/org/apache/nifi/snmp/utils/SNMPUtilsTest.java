@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.snmp.utils;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.snmp4j.PDU;
 
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Test class for {@link SNMPUtils}.
@@ -39,8 +40,8 @@ public class SNMPUtilsTest {
 
         final Map<String, String> attributeMap = SNMPUtils.getPduAttributeMap(pdu);
 
-        Assertions.assertEquals("0", attributeMap.get(SNMPUtils.SNMP_PROP_PREFIX + "errorIndex"));
-        Assertions.assertEquals("0", attributeMap.get(SNMPUtils.SNMP_PROP_PREFIX + "errorStatus"));
-        Assertions.assertEquals("4", attributeMap.get(SNMPUtils.SNMP_PROP_PREFIX + "type"));
+        assertEquals("0", attributeMap.get(SNMPUtils.SNMP_PROP_PREFIX + "errorIndex"));
+        assertEquals("0", attributeMap.get(SNMPUtils.SNMP_PROP_PREFIX + "errorStatus"));
+        assertEquals("4", attributeMap.get(SNMPUtils.SNMP_PROP_PREFIX + "type"));
     }
 }

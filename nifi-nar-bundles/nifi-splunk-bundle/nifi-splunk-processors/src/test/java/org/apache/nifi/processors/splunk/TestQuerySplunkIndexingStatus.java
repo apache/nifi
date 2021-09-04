@@ -24,7 +24,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +41,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -95,10 +98,10 @@ public class TestQuerySplunkIndexingStatus {
         final List<MockFlowFile> acknowledged = testRunner.getFlowFilesForRelationship(QuerySplunkIndexingStatus.RELATIONSHIP_ACKNOWLEDGED);
         final List<MockFlowFile> undetermined = testRunner.getFlowFilesForRelationship(QuerySplunkIndexingStatus.RELATIONSHIP_UNDETERMINED);
 
-        Assertions.assertEquals(1, acknowledged.size());
-        Assertions.assertEquals(1, undetermined.size());
-        Assertions.assertFalse(acknowledged.get(0).isPenalized());
-        Assertions.assertTrue(undetermined.get(0).isPenalized());
+        assertEquals(1, acknowledged.size());
+        assertEquals(1, undetermined.size());
+        assertFalse(acknowledged.get(0).isPenalized());
+        assertTrue(undetermined.get(0).isPenalized());
     }
 
     @Test
@@ -117,8 +120,8 @@ public class TestQuerySplunkIndexingStatus {
         testRunner.run();
 
         // then
-        Assertions.assertEquals("{\"acks\":[1,2]}", request.getValue().getContent());
-        Assertions.assertEquals(1, testRunner.getQueueSize().getObjectCount());
+        assertEquals("{\"acks\":[1,2]}", request.getValue().getContent());
+        assertEquals(1, testRunner.getQueueSize().getObjectCount());
         testRunner.assertAllFlowFilesTransferred(QuerySplunkIndexingStatus.RELATIONSHIP_ACKNOWLEDGED, 2);
     }
 

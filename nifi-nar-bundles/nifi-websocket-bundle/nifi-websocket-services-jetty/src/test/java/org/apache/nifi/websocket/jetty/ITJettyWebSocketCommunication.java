@@ -24,10 +24,10 @@ import org.apache.nifi.websocket.WebSocketClientService;
 import org.apache.nifi.websocket.WebSocketServerService;
 import org.apache.nifi.websocket.WebSocketSessionInfo;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.mockito.invocation.InvocationOnMock;
 
 import java.net.ServerSocket;
@@ -37,6 +37,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -44,7 +47,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
-
+@DisabledOnOs(OS.WINDOWS)
 public class ITJettyWebSocketCommunication {
 
     protected int serverPort;
@@ -119,7 +122,6 @@ public class ITJettyWebSocketCommunication {
 
     @Test
     public void testClientServerCommunication() throws Exception {
-        Assumptions.assumeFalse(isWindowsEnvironment());
         // Expectations.
         final CountDownLatch serverIsConnectedByClient = new CountDownLatch(1);
         final CountDownLatch clientConnectedServer = new CountDownLatch(1);
@@ -166,21 +168,21 @@ public class ITJettyWebSocketCommunication {
 
         clientService.connect(clientId);
 
-        Assertions.assertTrue(clientConnectedServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to fire connected event.");
-        Assertions.assertTrue(serverIsConnectedByClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to fire connected event.");
+        assertTrue(clientConnectedServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to fire connected event.");
+        assertTrue(serverIsConnectedByClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to fire connected event.");
 
         clientService.sendMessage(clientId, clientSessionIdRef.get(), sender -> sender.sendString(textMessageFromClient));
         clientService.sendMessage(clientId, clientSessionIdRef.get(), sender -> sender.sendBinary(ByteBuffer.wrap(textMessageFromClient.getBytes())));
 
 
-        Assertions.assertTrue(serverReceivedTextMessageFromClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to consume text message.");
-        Assertions.assertTrue(serverReceivedBinaryMessageFromClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to consume binary message.");
+        assertTrue(serverReceivedTextMessageFromClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to consume text message.");
+        assertTrue(serverReceivedBinaryMessageFromClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to consume binary message.");
 
         serverService.sendMessage(serverPath, serverSessionIdRef.get(), sender -> sender.sendString(textMessageFromServer));
         serverService.sendMessage(serverPath, serverSessionIdRef.get(), sender -> sender.sendBinary(ByteBuffer.wrap(textMessageFromServer.getBytes())));
 
-        Assertions.assertTrue(clientReceivedTextMessageFromServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to consume text message.");
-        Assertions.assertTrue(clientReceivedBinaryMessageFromServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to consume binary message.");
+        assertTrue(clientReceivedTextMessageFromServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to consume text message.");
+        assertTrue(clientReceivedBinaryMessageFromServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to consume binary message.");
 
         clientService.deregisterProcessor(clientId, clientProcessor);
         serverService.deregisterProcessor(serverPath, serverProcessor);
@@ -188,7 +190,6 @@ public class ITJettyWebSocketCommunication {
 
     @Test
     public void testClientServerCommunicationRecovery() throws Exception {
-        Assumptions.assumeFalse(isWindowsEnvironment());
         // Expectations.
         final CountDownLatch serverIsConnectedByClient = new CountDownLatch(1);
         final CountDownLatch clientConnectedServer = new CountDownLatch(1);
@@ -235,8 +236,8 @@ public class ITJettyWebSocketCommunication {
 
         clientService.connect(clientId, Collections.emptyMap());
 
-        Assertions.assertTrue(clientConnectedServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to fire connected event.");
-        Assertions.assertTrue(serverIsConnectedByClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to fire connected event.");
+        assertTrue(clientConnectedServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to fire connected event.");
+        assertTrue(serverIsConnectedByClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to fire connected event.");
 
         // Nothing happens if maintenance is executed while sessions are alive.
         ((JettyWebSocketClient) clientService).maintainSessions();
@@ -251,14 +252,14 @@ public class ITJettyWebSocketCommunication {
         clientService.sendMessage(clientId, clientSessionIdRef.get(), sender -> sender.sendString(textMessageFromClient));
         clientService.sendMessage(clientId, clientSessionIdRef.get(), sender -> sender.sendBinary(ByteBuffer.wrap(textMessageFromClient.getBytes())));
 
-        Assertions.assertTrue(serverReceivedTextMessageFromClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to consume text message.");
-        Assertions.assertTrue(serverReceivedBinaryMessageFromClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to consume binary message.");
+        assertTrue(serverReceivedTextMessageFromClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to consume text message.");
+        assertTrue(serverReceivedBinaryMessageFromClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to consume binary message.");
 
         serverService.sendMessage(serverPath, serverSessionIdRef.get(), sender -> sender.sendString(textMessageFromServer));
         serverService.sendMessage(serverPath, serverSessionIdRef.get(), sender -> sender.sendBinary(ByteBuffer.wrap(textMessageFromServer.getBytes())));
 
-        Assertions.assertTrue(clientReceivedTextMessageFromServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to consume text message.");
-        Assertions.assertTrue(clientReceivedBinaryMessageFromServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to consume binary message.");
+        assertTrue(clientReceivedTextMessageFromServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to consume text message.");
+        assertTrue(clientReceivedBinaryMessageFromServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to consume binary message.");
 
         clientService.deregisterProcessor(clientId, clientProcessor);
         serverService.deregisterProcessor(serverPath, serverProcessor);
@@ -266,10 +267,10 @@ public class ITJettyWebSocketCommunication {
 
     protected Object assertConnectedEvent(CountDownLatch latch, AtomicReference<String> sessionIdRef, InvocationOnMock invocation) {
         final WebSocketSessionInfo sessionInfo = invocation.getArgument(0);
-        Assertions.assertNotNull(sessionInfo.getLocalAddress());
-        Assertions.assertNotNull(sessionInfo.getRemoteAddress());
-        Assertions.assertNotNull(sessionInfo.getSessionId());
-        Assertions.assertEquals(isSecure(), sessionInfo.isSecure());
+        assertNotNull(sessionInfo.getLocalAddress());
+        assertNotNull(sessionInfo.getRemoteAddress());
+        assertNotNull(sessionInfo.getSessionId());
+        assertEquals(isSecure(), sessionInfo.isSecure());
         sessionIdRef.set(sessionInfo.getSessionId());
         latch.countDown();
         return null;
@@ -277,34 +278,34 @@ public class ITJettyWebSocketCommunication {
 
     protected Object assertConsumeTextMessage(CountDownLatch latch, String expectedMessage, InvocationOnMock invocation) {
         final WebSocketSessionInfo sessionInfo = invocation.getArgument(0);
-        Assertions.assertNotNull(sessionInfo.getLocalAddress());
-        Assertions.assertNotNull(sessionInfo.getRemoteAddress());
-        Assertions.assertNotNull(sessionInfo.getSessionId());
-        Assertions.assertEquals(isSecure(), sessionInfo.isSecure());
+        assertNotNull(sessionInfo.getLocalAddress());
+        assertNotNull(sessionInfo.getRemoteAddress());
+        assertNotNull(sessionInfo.getSessionId());
+        assertEquals(isSecure(), sessionInfo.isSecure());
 
         final String receivedMessage = invocation.getArgument(1);
-        Assertions.assertNotNull(receivedMessage);
-        Assertions.assertEquals(expectedMessage, receivedMessage);
+        assertNotNull(receivedMessage);
+        assertEquals(expectedMessage, receivedMessage);
         latch.countDown();
         return null;
     }
 
     protected Object assertConsumeBinaryMessage(CountDownLatch latch, String expectedMessage, InvocationOnMock invocation) {
         final WebSocketSessionInfo sessionInfo = invocation.getArgument(0);
-        Assertions.assertNotNull(sessionInfo.getLocalAddress());
-        Assertions.assertNotNull(sessionInfo.getRemoteAddress());
-        Assertions.assertNotNull(sessionInfo.getSessionId());
-        Assertions.assertEquals(isSecure(), sessionInfo.isSecure());
+        assertNotNull(sessionInfo.getLocalAddress());
+        assertNotNull(sessionInfo.getRemoteAddress());
+        assertNotNull(sessionInfo.getSessionId());
+        assertEquals(isSecure(), sessionInfo.isSecure());
 
         final byte[] receivedMessage = invocation.getArgument(1);
         final byte[] expectedBinary = expectedMessage.getBytes();
         final int offset = invocation.getArgument(2);
         final int length = invocation.getArgument(3);
-        Assertions.assertNotNull(receivedMessage);
-        Assertions.assertEquals(expectedBinary.length, receivedMessage.length);
-        Assertions.assertEquals(expectedMessage, new String(receivedMessage));
-        Assertions.assertEquals(0, offset);
-        Assertions.assertEquals(expectedBinary.length, length);
+        assertNotNull(receivedMessage);
+        assertEquals(expectedBinary.length, receivedMessage.length);
+        assertEquals(expectedMessage, new String(receivedMessage));
+        assertEquals(0, offset);
+        assertEquals(expectedBinary.length, length);
         latch.countDown();
         return null;
     }

@@ -26,7 +26,6 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -42,6 +41,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.eq;
@@ -109,19 +112,19 @@ public class TestGetSplunk {
         runner.assertAllFlowFilesTransferred(GetSplunk.REL_SUCCESS, 1);
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(GetSplunk.REL_SUCCESS);
-        Assertions.assertEquals(1, mockFlowFiles.size());
+        assertEquals(1, mockFlowFiles.size());
 
         final MockFlowFile mockFlowFile = mockFlowFiles.get(0);
         mockFlowFile.assertContentEquals(resultContent);
         mockFlowFile.assertAttributeEquals(GetSplunk.QUERY_ATTR, query);
         mockFlowFile.assertAttributeEquals(GetSplunk.EARLIEST_TIME_ATTR, providedEarliest);
         mockFlowFile.assertAttributeEquals(GetSplunk.LATEST_TIME_ATTR, providedLatest);
-        Assertions.assertEquals(1, proc.count);
+        assertEquals(1, proc.count);
 
         final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
-        Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals(ProvenanceEventType.RECEIVE, events.get(0).getEventType());
-        Assertions.assertEquals("https://localhost:8089", events.get(0).getTransitUri());
+        assertEquals(1, events.size());
+        assertEquals(ProvenanceEventType.RECEIVE, events.get(0).getEventType());
+        assertEquals("https://localhost:8089", events.get(0).getTransitUri());
     }
 
     @Test
@@ -149,7 +152,7 @@ public class TestGetSplunk {
         final int iterations = 3;
         runner.run(iterations, false);
         runner.assertAllFlowFilesTransferred(GetSplunk.REL_SUCCESS, iterations);
-        Assertions.assertEquals(1, proc.count);
+        assertEquals(1, proc.count);
     }
 
     @Test
@@ -175,9 +178,9 @@ public class TestGetSplunk {
 
         // first execution with no previous state and "managed from beginning" should have a latest time and no earliest time
         final JobExportArgs actualArgs1 = capture1.getValue();
-        Assertions.assertNotNull(actualArgs1);
-        Assertions.assertNull(actualArgs1.get("earliest_time"));
-        Assertions.assertNotNull(actualArgs1.get("latest_time"));
+        assertNotNull(actualArgs1);
+        assertNull(actualArgs1.get("earliest_time"));
+        assertNotNull(actualArgs1.get("latest_time"));
 
         // save the latest time from the first run which should be earliest time of next run
         final String lastLatest = (String) actualArgs1.get("latest_time");
@@ -197,9 +200,9 @@ public class TestGetSplunk {
 
         // second execution the earliest time should be the previous latest_time
         final JobExportArgs actualArgs2 = capture2.getValue();
-        Assertions.assertNotNull(actualArgs2);
-        Assertions.assertEquals(expectedLatest, actualArgs2.get("earliest_time"));
-        Assertions.assertNotNull(actualArgs2.get("latest_time"));
+        assertNotNull(actualArgs2);
+        assertEquals(expectedLatest, actualArgs2.get("earliest_time"));
+        assertNotNull(actualArgs2.get("latest_time"));
     }
 
     @Test
@@ -227,9 +230,9 @@ public class TestGetSplunk {
 
         // first execution with no previous state and "managed from beginning" should have a latest time and no earliest time
         final JobExportArgs actualArgs1 = capture1.getValue();
-        Assertions.assertNotNull(actualArgs1);
-        Assertions.assertNull(actualArgs1.get("earliest_time"));
-        Assertions.assertNotNull(actualArgs1.get("latest_time"));
+        assertNotNull(actualArgs1);
+        assertNull(actualArgs1.get("earliest_time"));
+        assertNotNull(actualArgs1.get("latest_time"));
 
         // save the latest time from the first run which should be earliest time of next run
         final String lastLatest = (String) actualArgs1.get("latest_time");
@@ -249,9 +252,9 @@ public class TestGetSplunk {
 
         // second execution the earliest time should be the previous latest_time
         final JobExportArgs actualArgs2 = capture2.getValue();
-        Assertions.assertNotNull(actualArgs2);
-        Assertions.assertEquals(expectedLatest, actualArgs2.get("earliest_time"));
-        Assertions.assertNotNull(actualArgs2.get("latest_time"));
+        assertNotNull(actualArgs2);
+        assertEquals(expectedLatest, actualArgs2.get("earliest_time"));
+        assertNotNull(actualArgs2.get("latest_time"));
     }
 
     @Test
@@ -277,9 +280,9 @@ public class TestGetSplunk {
 
         // first execution with no previous state and "managed from beginning" should have a latest time and no earliest time
         final JobExportArgs actualArgs1 = capture1.getValue();
-        Assertions.assertNotNull(actualArgs1);
-        Assertions.assertNull(actualArgs1.get("earliest_time"));
-        Assertions.assertNotNull(actualArgs1.get("latest_time"));
+        assertNotNull(actualArgs1);
+        assertNull(actualArgs1.get("earliest_time"));
+        assertNotNull(actualArgs1.get("latest_time"));
 
         // save the latest time from the first run which should be earliest time of next run
         final String lastLatest = (String) actualArgs1.get("latest_time");
@@ -299,9 +302,9 @@ public class TestGetSplunk {
 
         // second execution the earliest time should be the previous latest_time
         final JobExportArgs actualArgs2 = capture2.getValue();
-        Assertions.assertNotNull(actualArgs2);
-        Assertions.assertEquals(expectedLatest, actualArgs2.get("earliest_time"));
-        Assertions.assertNotNull(actualArgs2.get("latest_time"));
+        assertNotNull(actualArgs2);
+        assertEquals(expectedLatest, actualArgs2.get("earliest_time"));
+        assertNotNull(actualArgs2.get("latest_time"));
     }
 
     @Test
@@ -325,8 +328,8 @@ public class TestGetSplunk {
         verify(service, times(0)).export(eq(query), any(JobExportArgs.class));
 
         final StateMap state = runner.getStateManager().getState(Scope.CLUSTER);
-        Assertions.assertNotNull(state);
-        Assertions.assertTrue(state.getVersion() > 0);
+        assertNotNull(state);
+        assertTrue(state.getVersion() > 0);
 
         // save the latest time from the first run which should be earliest time of next run
         final String lastLatest = state.get(GetSplunk.LATEST_TIME_KEY);
@@ -346,9 +349,9 @@ public class TestGetSplunk {
 
         // second execution the earliest time should be the previous latest_time
         final JobExportArgs actualArgs = capture.getValue();
-        Assertions.assertNotNull(actualArgs);
-        Assertions.assertEquals(expectedLatest, actualArgs.get("earliest_time"));
-        Assertions.assertNotNull(actualArgs.get("latest_time"));
+        assertNotNull(actualArgs);
+        assertEquals(expectedLatest, actualArgs.get("earliest_time"));
+        assertNotNull(actualArgs.get("latest_time"));
     }
 
     @Test
@@ -373,8 +376,8 @@ public class TestGetSplunk {
         verify(service, times(0)).export(eq(query), any(JobExportArgs.class));
 
         final StateMap state = runner.getStateManager().getState(Scope.CLUSTER);
-        Assertions.assertNotNull(state);
-        Assertions.assertTrue(state.getVersion() > 0);
+        assertNotNull(state);
+        assertTrue(state.getVersion() > 0);
 
         // save the latest time from the first run which should be earliest time of next run
         final String lastLatest = state.get(GetSplunk.LATEST_TIME_KEY);
@@ -394,10 +397,10 @@ public class TestGetSplunk {
 
         // second execution the earliest time should be the previous latest_time
         final JobExportArgs actualArgs = capture.getValue();
-        Assertions.assertNotNull(actualArgs);
+        assertNotNull(actualArgs);
 
-        Assertions.assertEquals(expectedLatest, actualArgs.get("index_earliest"));
-        Assertions.assertNotNull(actualArgs.get("index_latest"));
+        assertEquals(expectedLatest, actualArgs.get("index_earliest"));
+        assertNotNull(actualArgs.get("index_latest"));
     }
 
 

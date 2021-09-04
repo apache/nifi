@@ -33,7 +33,6 @@ import org.apache.nifi.util.TestRunners;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.common.SolrInputDocument;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.xmlunit.matchers.CompareMatcher;
@@ -48,6 +47,9 @@ import java.util.Map;
 import java.util.stream.StreamSupport;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestQuerySolr {
     private static final String DEFAULT_SOLR_CORE = "testCollection";
@@ -140,10 +142,10 @@ public class TestQuerySolr {
         Map<String,String[]> solrParams = SolrUtils.getRequestParams(context, flowFile);
 
         String[] facet_fields = solrParams.get("facet.field");
-        Assertions.assertEquals(2, facet_fields.length);
-        Assertions.assertEquals("123", facet_fields[0]);
-        Assertions.assertEquals("other_field", facet_fields[1]);
-        Assertions.assertEquals("pre", solrParams.get("f.123.facet.prefix")[0]);
+        assertEquals(2, facet_fields.length);
+        assertEquals("123", facet_fields[0]);
+        assertEquals("other_field", facet_fields[1]);
+        assertEquals("pre", solrParams.get("f.123.facet.prefix")[0]);
     }
 
     @Test
@@ -173,22 +175,22 @@ public class TestQuerySolr {
         final int facetQueriesCount = StreamSupport.stream(facetsNode.get("facet_queries").spliterator(), false)
                 .mapToInt(node -> node.get("count").asInt())
                 .sum();
-        Assertions.assertEquals(30, facetQueriesCount, "Facet Queries Count not matched");
+        assertEquals(30, facetQueriesCount, "Facet Queries Count not matched");
 
         final int facetFieldsCount = StreamSupport.stream(facetsNode.get("facet_fields").get("integer_multi").spliterator(), false)
                 .mapToInt(node -> node.get("count").asInt())
                 .sum();
-        Assertions.assertEquals(30, facetFieldsCount, "Facet Fields Count not matched");
+        assertEquals(30, facetFieldsCount, "Facet Fields Count not matched");
 
         final int facetRangesCount = StreamSupport.stream(facetsNode.get("facet_ranges").get("created").spliterator(), false)
                 .mapToInt(node -> node.get("count").asInt())
                 .sum();
-        Assertions.assertEquals(10, facetRangesCount, "Facet Ranges Count not matched");
+        assertEquals(10, facetRangesCount, "Facet Ranges Count not matched");
 
         final int facetIntervalsCount = StreamSupport.stream(facetsNode.get("facet_intervals").get("integer_single").spliterator(), false)
                 .mapToInt(node -> node.get("count").asInt())
                 .sum();
-        Assertions.assertEquals(7, facetIntervalsCount, "Facet Intervals Count not matched");
+        assertEquals(7, facetIntervalsCount, "Facet Intervals Count not matched");
     }
 
     @Test
@@ -207,11 +209,11 @@ public class TestQuerySolr {
 
         final MockFlowFile facetsFlowFile = runner.getFlowFilesForRelationship(QuerySolr.FACETS).get(0);
         final JsonNode facetsNode = OBJECT_MAPPER.readTree(facetsFlowFile.getContent());
-        Assertions.assertTrue(facetsNode.get("facet_queries").isEmpty(), "Facet Queries found");
+        assertTrue(facetsNode.get("facet_queries").isEmpty(), "Facet Queries found");
 
         final MockFlowFile statsFlowFile = runner.getFlowFilesForRelationship(QuerySolr.STATS).get(0);
         final JsonNode statsNode = OBJECT_MAPPER.readTree(statsFlowFile.getContent());
-        Assertions.assertTrue(statsNode.get("stats_fields").isEmpty(), "Stats found");
+        assertTrue(statsNode.get("stats_fields").isEmpty(), "Stats found");
     }
 
     @Test
@@ -232,14 +234,14 @@ public class TestQuerySolr {
         final JsonNode statsNode = OBJECT_MAPPER.readTree(statsFlowFile.getContent());
 
         final JsonNode statsFieldsNode = statsNode.get("stats_fields");
-        Assertions.assertNotNull(statsFieldsNode, "Stats Fields not found");
+        assertNotNull(statsFieldsNode, "Stats Fields not found");
         final JsonNode configuredStatsFieldNode = statsFieldsNode.get(statsField);
 
-        Assertions.assertEquals("0.0", configuredStatsFieldNode.get("min").asText());
-        Assertions.assertEquals("9.0", configuredStatsFieldNode.get("max").asText());
-        Assertions.assertEquals("10", configuredStatsFieldNode.get("count").asText());
-        Assertions.assertEquals("45.0", configuredStatsFieldNode.get("sum").asText());
-        Assertions.assertEquals("4.5", configuredStatsFieldNode.get("mean").asText());
+        assertEquals("0.0", configuredStatsFieldNode.get("min").asText());
+        assertEquals("9.0", configuredStatsFieldNode.get("max").asText());
+        assertEquals("10", configuredStatsFieldNode.get("count").asText());
+        assertEquals("45.0", configuredStatsFieldNode.get("sum").asText());
+        assertEquals("4.5", configuredStatsFieldNode.get("mean").asText());
     }
 
     @Test
@@ -417,7 +419,7 @@ public class TestQuerySolr {
 
         String expectedXml = "<docs><doc><field name=\"id\">doc0</field></doc></docs>";
         assertThat(expectedXml, CompareMatcher.isIdenticalTo(new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(QuerySolr.RESULTS).get(0)))));
-        Assertions.assertEquals(content, new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(QuerySolr.ORIGINAL).get(0))));
+        assertEquals(content, new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(QuerySolr.ORIGINAL).get(0))));
     }
 
     @Test
@@ -442,7 +444,7 @@ public class TestQuerySolr {
 
         for (MockFlowFile flowFile : flowFiles) {
             Map<String,String> attributes = flowFile.getAttributes();
-            Assertions.assertEquals(attributes.get(QuerySolr.ATTRIBUTE_SOLR_START), Integer.toString(startParam));
+            assertEquals(attributes.get(QuerySolr.ATTRIBUTE_SOLR_START), Integer.toString(startParam));
             startParam += 2;
 
             StringBuilder expectedXml = new StringBuilder()
@@ -527,7 +529,7 @@ public class TestQuerySolr {
         final int total = StreamSupport.stream(resultsNode.spliterator(), false)
                 .mapToInt(node -> node.get("integer_single").asInt())
                 .sum();
-        Assertions.assertEquals(45, total);
+        assertEquals(45, total);
     }
 
     @Test
@@ -543,8 +545,8 @@ public class TestQuerySolr {
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(QuerySolr.RESULTS).get(0);
 
-        Assertions.assertEquals("10001", flowFile.getAttribute(QuerySolr.ATTRIBUTE_SOLR_START));
-        Assertions.assertEquals(0, runner.getContentAsByteArray(flowFile).length);
+        assertEquals("10001", flowFile.getAttribute(QuerySolr.ATTRIBUTE_SOLR_START));
+        assertEquals(0, runner.getContentAsByteArray(flowFile).length);
     }
 
     @Test
@@ -598,15 +600,15 @@ public class TestQuerySolr {
         flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_QUERY_TIME);
         flowFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
 
-        Assertions.assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
-        Assertions.assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
+        assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
+        assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
 
-        Assertions.assertEquals("q=*:*&qt=/select&start=0&rows=10&stats=true&facet=true", attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY));
-        Assertions.assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_STATUS));
-        Assertions.assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_START));
-        Assertions.assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_ROWS));
-        Assertions.assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_NUMBER_RESULTS));
-        Assertions.assertEquals(QuerySolr.MIME_TYPE_XML, attributes.get(CoreAttributes.MIME_TYPE.key()));
+        assertEquals("q=*:*&qt=/select&start=0&rows=10&stats=true&facet=true", attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY));
+        assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_STATUS));
+        assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_START));
+        assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_ROWS));
+        assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_NUMBER_RESULTS));
+        assertEquals(QuerySolr.MIME_TYPE_XML, attributes.get(CoreAttributes.MIME_TYPE.key()));
 
         flowFile = runner.getFlowFilesForRelationship(QuerySolr.FACETS).get(0);
         attributes = flowFile.getAttributes();
@@ -622,15 +624,15 @@ public class TestQuerySolr {
         flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_QUERY_TIME);
         flowFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
 
-        Assertions.assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
-        Assertions.assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
+        assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
+        assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
 
-        Assertions.assertEquals("q=*:*&qt=/select&start=0&rows=10&stats=true&facet=true", attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY));
-        Assertions.assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_STATUS));
-        Assertions.assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_START));
-        Assertions.assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_ROWS));
-        Assertions.assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_NUMBER_RESULTS));
-        Assertions.assertEquals(QuerySolr.MIME_TYPE_JSON, attributes.get(CoreAttributes.MIME_TYPE.key()));
+        assertEquals("q=*:*&qt=/select&start=0&rows=10&stats=true&facet=true", attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY));
+        assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_STATUS));
+        assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_START));
+        assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_ROWS));
+        assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_NUMBER_RESULTS));
+        assertEquals(QuerySolr.MIME_TYPE_JSON, attributes.get(CoreAttributes.MIME_TYPE.key()));
 
         flowFile = runner.getFlowFilesForRelationship(QuerySolr.STATS).get(0);
         attributes = flowFile.getAttributes();
@@ -646,15 +648,15 @@ public class TestQuerySolr {
         flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_QUERY_TIME);
         flowFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
 
-        Assertions.assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
-        Assertions.assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
+        assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
+        assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
 
-        Assertions.assertEquals("q=*:*&qt=/select&start=0&rows=10&stats=true&facet=true", attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY));
-        Assertions.assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_STATUS));
-        Assertions.assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_START));
-        Assertions.assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_ROWS));
-        Assertions.assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_NUMBER_RESULTS));
-        Assertions.assertEquals(QuerySolr.MIME_TYPE_JSON, attributes.get(CoreAttributes.MIME_TYPE.key()));
+        assertEquals("q=*:*&qt=/select&start=0&rows=10&stats=true&facet=true", attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY));
+        assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_STATUS));
+        assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_START));
+        assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_ROWS));
+        assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_NUMBER_RESULTS));
+        assertEquals(QuerySolr.MIME_TYPE_JSON, attributes.get(CoreAttributes.MIME_TYPE.key()));
 
         flowFile = runner.getFlowFilesForRelationship(QuerySolr.ORIGINAL).get(0);
         attributes = flowFile.getAttributes();
@@ -663,8 +665,8 @@ public class TestQuerySolr {
         flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_COLLECTION);
         flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_QUERY);
 
-        Assertions.assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
-        Assertions.assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
+        assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
+        assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
     }
 
     private static class TestableProcessor extends QuerySolr {

@@ -23,7 +23,6 @@ import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.TestServer;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -34,6 +33,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_PATH_SUCCESS_FILE_MSG;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PostSlackFileMessageTest {
 
@@ -76,7 +79,7 @@ public class PostSlackFileMessageTest {
         assertRequest("my-file-name", "image/png", null, null);
 
         FlowFile flowFileOut = testRunner.getFlowFilesForRelationship(PutSlack.REL_SUCCESS).get(0);
-        Assertions.assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
+        assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
     }
 
     @Test
@@ -98,7 +101,7 @@ public class PostSlackFileMessageTest {
         assertRequest("my-file-name", "image/png", "my-text", "my-file-title");
 
         FlowFile flowFileOut = testRunner.getFlowFilesForRelationship(PutSlack.REL_SUCCESS).get(0);
-        Assertions.assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
+        assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
     }
 
     @Test
@@ -113,7 +116,7 @@ public class PostSlackFileMessageTest {
 
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_FAILURE);
 
-        Assertions.assertFalse(servlet.hasBeenInteracted());
+        assertFalse(servlet.hasBeenInteracted());
     }
 
     @Test
@@ -134,7 +137,7 @@ public class PostSlackFileMessageTest {
         assertRequest("file", "image/png", null, null);
 
         FlowFile flowFileOut = testRunner.getFlowFilesForRelationship(PutSlack.REL_SUCCESS).get(0);
-        Assertions.assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
+        assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
     }
 
     @Test
@@ -155,7 +158,7 @@ public class PostSlackFileMessageTest {
         assertRequest("my-file-name", "application/octet-stream", null, null);
 
         FlowFile flowFileOut = testRunner.getFlowFilesForRelationship(PutSlack.REL_SUCCESS).get(0);
-        Assertions.assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
+        assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
     }
 
     @Test
@@ -176,7 +179,7 @@ public class PostSlackFileMessageTest {
         assertRequest("my-file-name", "application/octet-stream", null, null);
 
         FlowFile flowFileOut = testRunner.getFlowFilesForRelationship(PutSlack.REL_SUCCESS).get(0);
-        Assertions.assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
+        assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
     }
 
     @Test
@@ -194,47 +197,47 @@ public class PostSlackFileMessageTest {
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_SUCCESS);
 
         Map<String, String> parts = parsePostBodyParts(parseMultipartBoundary(servlet.getLastPostHeaders().get("Content-Type")));
-        Assertions.assertEquals("Iñtërnâtiônàližætiøn", parts.get("initial_comment"));
-        Assertions.assertEquals("Iñtërnâtiônàližætiøn", parts.get("title"));
+        assertEquals("Iñtërnâtiônàližætiøn", parts.get("initial_comment"));
+        assertEquals("Iñtërnâtiônàližætiøn", parts.get("title"));
 
         FlowFile flowFileOut = testRunner.getFlowFilesForRelationship(PutSlack.REL_SUCCESS).get(0);
-        Assertions.assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
+        assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
     }
 
     private void assertRequest(String fileName, String mimeType, String text, String title) {
         Map<String, String> requestHeaders = servlet.getLastPostHeaders();
-        Assertions.assertEquals("Bearer my-access-token", requestHeaders.get("Authorization"));
+        assertEquals("Bearer my-access-token", requestHeaders.get("Authorization"));
 
         String contentType = requestHeaders.get("Content-Type");
-        Assertions.assertTrue(contentType.startsWith("multipart/form-data"));
+        assertTrue(contentType.startsWith("multipart/form-data"));
 
         String boundary = parseMultipartBoundary(contentType);
-        Assertions.assertNotNull(boundary, "Multipart boundary not found in Content-Type header: " + contentType);
+        assertNotNull(boundary, "Multipart boundary not found in Content-Type header: " + contentType);
 
         Map<String, String> parts = parsePostBodyParts(boundary);
 
-        Assertions.assertNotNull(parts.get("channels"), "'channels' parameter not found in the POST request body");
-        Assertions.assertEquals("my-channel", parts.get("channels"), "'channels' parameter has wrong value");
+        assertNotNull(parts.get("channels"), "'channels' parameter not found in the POST request body");
+        assertEquals("my-channel", parts.get("channels"), "'channels' parameter has wrong value");
 
         if (text != null) {
-            Assertions.assertNotNull(parts.get("initial_comment"), "'initial_comment' parameter not found in the POST request body");
-            Assertions.assertEquals(text, parts.get("initial_comment"), "'initial_comment' parameter has wrong value");
+            assertNotNull(parts.get("initial_comment"), "'initial_comment' parameter not found in the POST request body");
+            assertEquals(text, parts.get("initial_comment"), "'initial_comment' parameter has wrong value");
         }
 
-        Assertions.assertNotNull(parts.get("filename"), "'filename' parameter not found in the POST request body");
-        Assertions.assertEquals(fileName, parts.get("filename"), "'fileName' parameter has wrong value");
+        assertNotNull(parts.get("filename"), "'filename' parameter not found in the POST request body");
+        assertEquals(fileName, parts.get("filename"), "'fileName' parameter has wrong value");
 
         if (title != null) {
-            Assertions.assertNotNull(parts.get("title"), "'title' parameter not found in the POST request body");
-            Assertions.assertEquals(title, parts.get("title"), "'title' parameter has wrong value");
+            assertNotNull(parts.get("title"), "'title' parameter not found in the POST request body");
+            assertEquals(title, parts.get("title"), "'title' parameter has wrong value");
         }
 
-        Assertions.assertNotNull(parts.get("file"), "The file part not found in the POST request body");
+        assertNotNull(parts.get("file"), "The file part not found in the POST request body");
 
         Map<String, String> fileParameters = parseFilePart(boundary);
-        Assertions.assertEquals("my-data", fileParameters.get("data"), "File data is wrong in the POST request body");
-        Assertions.assertEquals(fileName, fileParameters.get("filename"), "'filename' attribute of the file part has wrong value");
-        Assertions.assertEquals(mimeType, fileParameters.get("contentType"), "Content-Type of the file part is wrong");
+        assertEquals("my-data", fileParameters.get("data"), "File data is wrong in the POST request body");
+        assertEquals(fileName, fileParameters.get("filename"), "'filename' attribute of the file part has wrong value");
+        assertEquals(mimeType, fileParameters.get("contentType"), "Content-Type of the file part is wrong");
     }
 
     private String parseMultipartBoundary(String contentType) {

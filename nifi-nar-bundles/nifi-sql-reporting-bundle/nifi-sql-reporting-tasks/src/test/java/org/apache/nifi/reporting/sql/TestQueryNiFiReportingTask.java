@@ -48,7 +48,6 @@ import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.db.JdbcProperties;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -68,6 +67,9 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class TestQueryNiFiReportingTask {
@@ -167,7 +169,8 @@ public class TestQueryNiFiReportingTask {
         Map<String, Object> row = rows.get(0);
         assertEquals(3, row.size()); // Only projected 2 columns
         Object id = row.get("id");
-        Assertions.assertTrue(id instanceof String);
+
+        assertTrue(id instanceof String);
         assertEquals("nested", id);
         assertEquals(1001, row.get("queuedCount"));
         // Validate the second row
@@ -213,8 +216,9 @@ public class TestQueryNiFiReportingTask {
         assertEquals(1, rows.size());
         Map<String, Object> row = rows.get(0);
         assertEquals(11, row.size());
-        Assertions.assertTrue(row.get(MetricNames.JVM_DAEMON_THREAD_COUNT.replace(".", "_")) instanceof Integer);
-        Assertions.assertTrue(row.get(MetricNames.JVM_HEAP_USAGE.replace(".", "_")) instanceof Double);
+
+        assertTrue(row.get(MetricNames.JVM_DAEMON_THREAD_COUNT.replace(".", "_")) instanceof Integer);
+        assertTrue(row.get(MetricNames.JVM_HEAP_USAGE.replace(".", "_")) instanceof Double);
     }
 
     @Test
@@ -271,15 +275,16 @@ public class TestQueryNiFiReportingTask {
         assertEquals(0L, row.get("eventId"));
         assertEquals("CREATE", row.get("eventType"));
         assertEquals(12L, row.get("entitySize"));
-        Assertions.assertNull(row.get("contentPath"));
-        Assertions.assertNull(row.get("previousContentPath"));
+
+        assertNull(row.get("contentPath"));
+        assertNull(row.get("previousContentPath"));
 
         Object o = row.get("previousAttributes");
-        Assertions.assertTrue(o instanceof Map);
+        assertTrue(o instanceof Map);
         Map<String, String> previousAttributes = (Map<String, String>) o;
         assertEquals("A", previousAttributes.get("test.value"));
         o = row.get("updatedAttributes");
-        Assertions.assertTrue(o instanceof Map);
+        assertTrue(o instanceof Map);
         Map<String, String> updatedAttributes = (Map<String, String>) o;
         assertEquals("B", updatedAttributes.get("test.value"));
 
@@ -316,11 +321,12 @@ public class TestQueryNiFiReportingTask {
         assertEquals("controller", row.get("bulletinCategory"));
         assertEquals("WARN", row.get("bulletinLevel"));
         assertEquals(flowFileUuid, row.get("bulletinFlowFileUuid"));
+
         // Validate the second row
         row = rows.get(1);
         assertEquals("processor", row.get("bulletinCategory"));
         assertEquals("INFO", row.get("bulletinLevel"));
-        assertEquals(flowFileUuid, row.get("bulletinFlowFileUuid"));
+
         // Validate the third row
         row = rows.get(2);
         assertEquals("controller service", row.get("bulletinCategory"));

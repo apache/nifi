@@ -29,7 +29,6 @@ import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.reporting.s2s.SiteToSiteUtils.NiFiUrlValidator;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
@@ -48,6 +47,10 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteBulletinReportingTask {
@@ -60,15 +63,15 @@ public class TestSiteToSiteBulletinReportingTask {
             return new StandardPropertyValue(value, null, null);
         });
 
-        Assertions.assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi", context).isValid());
-        Assertions.assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080", context).isValid());
-        Assertions.assertFalse(new NiFiUrlValidator().validate("url", "", context).isValid());
-        Assertions.assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi", context).isValid());
-        Assertions.assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi,https://localhost:8080/nifi", context).isValid());
-        Assertions.assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi, https://localhost:8080/nifi", context).isValid());
-        Assertions.assertFalse(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi, https://localhost:8080/nifi", context).isValid());
-        Assertions.assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi,http://localhost:8080/nifi", context).isValid());
-        Assertions.assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi,http://localhost:8080", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080", context).isValid());
+        assertFalse(new NiFiUrlValidator().validate("url", "", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi,https://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi, https://localhost:8080/nifi", context).isValid());
+        assertFalse(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi, https://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi,http://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi,http://localhost:8080", context).isValid());
     }
 
     @Test
@@ -188,7 +191,7 @@ public class TestSiteToSiteBulletinReportingTask {
                     when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
                 } catch (final Exception e) {
                     e.printStackTrace();
-                    Assertions.fail(e.toString());
+                    fail(e.toString());
                 }
                 siteToSiteClient = client;
             }

@@ -30,7 +30,6 @@ import org.apache.nifi.websocket.AbstractWebSocketSession;
 import org.apache.nifi.websocket.WebSocketMessage;
 import org.apache.nifi.websocket.WebSocketServerService;
 import org.apache.nifi.websocket.WebSocketSession;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.net.InetSocketAddress;
@@ -50,6 +49,9 @@ import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_MESSAGE_TYPE;
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_REMOTE_ADDRESS;
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_SESSION_ID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -60,12 +62,12 @@ import static org.mockito.Mockito.when;
 public class TestListenWebSocket {
 
     protected void assertFlowFile(WebSocketSession webSocketSession, String serviceId, String endpointId, MockFlowFile ff, WebSocketMessage.Type messageType) {
-        Assertions.assertEquals(serviceId, ff.getAttribute(ATTR_WS_CS_ID));
-        Assertions.assertEquals(webSocketSession.getSessionId(), ff.getAttribute(ATTR_WS_SESSION_ID));
-        Assertions.assertEquals(endpointId, ff.getAttribute(ATTR_WS_ENDPOINT_ID));
-        Assertions.assertEquals(webSocketSession.getLocalAddress().toString(), ff.getAttribute(ATTR_WS_LOCAL_ADDRESS));
-        Assertions.assertEquals(webSocketSession.getRemoteAddress().toString(), ff.getAttribute(ATTR_WS_REMOTE_ADDRESS));
-        Assertions.assertEquals(messageType != null ? messageType.name() : null, ff.getAttribute(ATTR_WS_MESSAGE_TYPE));
+        assertEquals(serviceId, ff.getAttribute(ATTR_WS_CS_ID));
+        assertEquals(webSocketSession.getSessionId(), ff.getAttribute(ATTR_WS_SESSION_ID));
+        assertEquals(endpointId, ff.getAttribute(ATTR_WS_ENDPOINT_ID));
+        assertEquals(webSocketSession.getLocalAddress().toString(), ff.getAttribute(ATTR_WS_LOCAL_ADDRESS));
+        assertEquals(webSocketSession.getRemoteAddress().toString(), ff.getAttribute(ATTR_WS_REMOTE_ADDRESS));
+        assertEquals(messageType != null ? messageType.name() : null, ff.getAttribute(ATTR_WS_MESSAGE_TYPE));
     }
 
     protected Map<Relationship, List<MockFlowFile>> getAllTransferredFlowFiles(final Collection<MockProcessSession> processSessions, final Processor processor) {
@@ -102,11 +104,10 @@ public class TestListenWebSocket {
 
         try {
             runner.run();
-            Assertions.fail("Should fail with validation error.");
+            fail("Should fail with validation error.");
         } catch (AssertionError e) {
-            Assertions.assertTrue(e.toString().contains("'server-url-path' is invalid because Must starts with"));
+            assertTrue(e.toString().contains("'server-url-path' is invalid because Must starts with"));
         }
-
     }
 
     @Test
@@ -168,44 +169,44 @@ public class TestListenWebSocket {
         Map<Relationship, List<MockFlowFile>> transferredFlowFiles = getAllTransferredFlowFiles(createdSessions, processor);
 
         List<MockFlowFile> connectedFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_CONNECTED);
-        Assertions.assertEquals(1, connectedFlowFiles.size());
+        assertEquals(1, connectedFlowFiles.size());
         connectedFlowFiles.forEach(ff -> {
             assertFlowFile(webSocketSession, serviceId, endpointId, ff, null);
         });
 
         List<MockFlowFile> textFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_TEXT);
-        Assertions.assertEquals(2, textFlowFiles.size());
+        assertEquals(2, textFlowFiles.size());
         textFlowFiles.forEach(ff -> {
             assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.TEXT);
         });
 
         List<MockFlowFile> binaryFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_BINARY);
-        Assertions.assertEquals(3, binaryFlowFiles.size());
+        assertEquals(3, binaryFlowFiles.size());
         binaryFlowFiles.forEach(ff -> {
             assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.BINARY);
         });
 
         final List<ProvenanceEventRecord> provenanceEvents = sharedSessionState.getProvenanceEvents();
-        Assertions.assertEquals(6, provenanceEvents.size());
-        Assertions.assertTrue(provenanceEvents.stream().allMatch(event -> ProvenanceEventType.RECEIVE.equals(event.getEventType())));
+        assertEquals(6, provenanceEvents.size());
+        assertTrue(provenanceEvents.stream().allMatch(event -> ProvenanceEventType.RECEIVE.equals(event.getEventType())));
 
         runner.clearTransferState();
         runner.clearProvenanceEvents();
         createdSessions.clear();
-        Assertions.assertEquals(0, createdSessions.size());
+        assertEquals(0, createdSessions.size());
 
         // Simulate that the processor has started, and it get's triggered again
         processor.onTrigger(runner.getProcessContext(), sessionFactory);
-        Assertions.assertEquals(0, createdSessions.size(), "No session should be created");
+        assertEquals(0, createdSessions.size(), "No session should be created");
 
         // Simulate that the processor is stopped.
         processor.onStopped(runner.getProcessContext());
-        Assertions.assertEquals(0, createdSessions.size(), "No session should be created");
+        assertEquals(0, createdSessions.size(), "No session should be created");
 
         // Simulate that the processor is restarted.
         // And the mock service will emit consume msg events.
         processor.onTrigger(runner.getProcessContext(), sessionFactory);
-        Assertions.assertEquals(6, createdSessions.size(), "Processor should register it with the service again");
+        assertEquals(6, createdSessions.size(), "Processor should register it with the service again");
     }
 
 }

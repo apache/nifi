@@ -23,9 +23,10 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -141,8 +142,8 @@ public class AttributeRollingWindowIT {
 
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     public void testVerifyCount() throws InterruptedException {
-        Assumptions.assumeFalse(isWindowsEnvironment());
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
 
         runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
@@ -197,8 +198,8 @@ public class AttributeRollingWindowIT {
             matches = "true",
             disabledReason = "this test is too unstable in terms of timing on different size/types of testing envs")
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     public void testMicroBatching() throws InterruptedException {
-        Assumptions.assumeFalse(isWindowsEnvironment());
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
 
         runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
