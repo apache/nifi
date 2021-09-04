@@ -17,7 +17,7 @@
 package org.apache.nifi.provenance;
 
 import static org.apache.nifi.provenance.TestUtil.createFlowFile;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -37,21 +38,21 @@ import org.apache.nifi.provenance.toc.NopTocWriter;
 import org.apache.nifi.provenance.toc.TocReader;
 import org.apache.nifi.provenance.toc.TocWriter;
 import org.apache.nifi.stream.io.NullOutputStream;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 @SuppressWarnings("deprecation")
 public class TestStandardRecordReaderWriter extends AbstractTestRecordReaderWriter {
-    private AtomicLong idGenerator = new AtomicLong(0L);
+    private final AtomicLong idGenerator = new AtomicLong(0L);
 
-    @Before
+    @BeforeEach
     public void resetIds() {
         idGenerator.set(0L);
     }
 
     @Test
-    @Ignore("For local testing only")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     public void testWritePerformance() throws IOException {
         // This is a simple micro-benchmarking test so that we can determine how fast the serialization/deserialization is before
         // making significant changes. This allows us to ensure that changes that we make do not have significant adverse effects
@@ -78,14 +79,12 @@ public class TestStandardRecordReaderWriter extends AbstractTestRecordReaderWrit
     }
 
     @Test
-    @Ignore("For local testing only")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     public void testReadPerformance() throws IOException {
         // This is a simple micro-benchmarking test so that we can determine how fast the serialization/deserialization is before
         // making significant changes. This allows us to ensure that changes that we make do not have significant adverse effects
         // on performance of the repository.
         final ProvenanceEventRecord event = createEvent();
-
-        final TocReader tocReader = null;
 
         final byte[] header;
         try (final ByteArrayOutputStream headerOut = new ByteArrayOutputStream();
@@ -110,7 +109,7 @@ public class TestStandardRecordReaderWriter extends AbstractTestRecordReaderWrit
         final int numEvents = 10_000_000;
         final long startNanos = System.nanoTime();
         try (final InputStream in = new LoopingInputStream(header, serializedRecord);
-            final RecordReader reader = new StandardRecordReader(in, "filename", tocReader, 100000)) {
+            final RecordReader reader = new StandardRecordReader(in, "filename", null, 100000)) {
 
             for (int i = 0; i < numEvents; i++) {
                 reader.nextRecord();
@@ -123,7 +122,7 @@ public class TestStandardRecordReaderWriter extends AbstractTestRecordReaderWrit
     }
 
     @Test
-    public void testWriteUtfLargerThan64k() throws IOException, InterruptedException {
+    public void testWriteUtfLargerThan64k() throws IOException {
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "1.txt");
@@ -138,7 +137,7 @@ public class TestStandardRecordReaderWriter extends AbstractTestRecordReaderWrit
         builder.setComponentType("dummy processor");
         final String seventyK = StringUtils.repeat("X", 70000);
         assertTrue(seventyK.length() > 65535);
-        assertTrue(seventyK.getBytes("UTF-8").length > 65535);
+        assertTrue(seventyK.getBytes(StandardCharsets.UTF_8).length > 65535);
         builder.setDetails(seventyK);
         final ProvenanceEventRecord record = builder.build();
 

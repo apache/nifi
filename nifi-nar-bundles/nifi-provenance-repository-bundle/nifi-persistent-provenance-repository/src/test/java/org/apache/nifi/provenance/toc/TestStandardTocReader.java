@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.provenance.toc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -27,13 +27,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.UUID;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestStandardTocReader {
 
     @Test
     public void testDetectsCompression() throws IOException {
-        final File file = new File("target/" + UUID.randomUUID().toString());
+        final File file = new File("target/" + UUID.randomUUID());
         try (final OutputStream out = new FileOutputStream(file)) {
             out.write(0);
             out.write(0);
@@ -65,7 +65,7 @@ public class TestStandardTocReader {
 
     @Test
     public void testGetBlockIndexV1() throws IOException {
-        final File file = new File("target/" + UUID.randomUUID().toString());
+        final File file = new File("target/" + UUID.randomUUID());
         try (final OutputStream out = new FileOutputStream(file);
                 final DataOutputStream dos = new DataOutputStream(out)) {
             out.write(1);
@@ -91,7 +91,7 @@ public class TestStandardTocReader {
 
     @Test
     public void testGetBlockIndexV2() throws IOException {
-        final File file = new File("target/" + UUID.randomUUID().toString());
+        final File file = new File("target/" + UUID.randomUUID());
         try (final OutputStream out = new FileOutputStream(file);
                 final DataOutputStream dos = new DataOutputStream(out)) {
             out.write(2);

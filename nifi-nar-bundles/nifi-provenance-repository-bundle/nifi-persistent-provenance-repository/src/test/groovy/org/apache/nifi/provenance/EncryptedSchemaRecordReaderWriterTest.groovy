@@ -25,18 +25,11 @@ import org.apache.nifi.provenance.toc.TocReader
 import org.apache.nifi.provenance.toc.TocUtil
 import org.apache.nifi.provenance.toc.TocWriter
 import org.apache.nifi.security.kms.KeyProvider
-import org.apache.nifi.util.file.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
-import org.junit.After
-import org.junit.AfterClass
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.ClassRule
-import org.junit.Test
-import org.junit.rules.TemporaryFolder
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -49,13 +42,11 @@ import java.util.concurrent.atomic.AtomicLong
 import static groovy.test.GroovyAssert.shouldFail
 import static org.apache.nifi.provenance.TestUtil.createFlowFile
 
-@RunWith(JUnit4.class)
 class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWriter {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedSchemaRecordReaderWriterTest.class)
 
     private static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210"
-    private static final String KEY_HEX_256 = KEY_HEX_128 * 2
-    private static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
+    private static final String KEY_HEX = KEY_HEX_128
     private static final String KEY_ID = "K1"
 
     private static final String TRANSIT_URI = "nifi://unit-test"
@@ -72,25 +63,12 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
     private static KeyProvider mockKeyProvider
     private static ProvenanceEventEncryptor provenanceEventEncryptor = new AESProvenanceEventEncryptor()
 
-    @ClassRule
-    public static TemporaryFolder tempFolder = new TemporaryFolder()
-
-    private static String ORIGINAL_LOG_LEVEL
-
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
-        ORIGINAL_LOG_LEVEL = System.getProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance")
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", "DEBUG")
-
         Security.addProvider(new BouncyCastleProvider())
-
-        logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
-        }
 
         mockKeyProvider = [
                 getKey            : { String keyId ->
-                    logger.mock("Requesting key ID: ${keyId}")
                     if (keyId == KEY_ID) {
                         new SecretKeySpec(Hex.decode(KEY_HEX), "AES")
                     } else {
@@ -98,46 +76,20 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
                     }
                 },
                 getAvailableKeyIds: { ->
-                    logger.mock("Available key IDs: [${KEY_ID}]")
                     [KEY_ID]
                 },
                 keyExists         : { String keyId ->
-                    logger.mock("Checking availability of key ID: ${keyId}")
                     keyId == KEY_ID
                 }] as KeyProvider
         provenanceEventEncryptor.initialize(mockKeyProvider)
     }
 
-    @Before
+    @BeforeEach
     void setUp() throws Exception {
-        journalFile = new File("target/storage/${UUID.randomUUID()}/testEventIdFirstSchemaRecordReaderWriter")
+        journalFile = File.createTempFile(getClass().simpleName, ".journal")
+        journalFile.deleteOnExit()
         tocFile = TocUtil.getTocFile(journalFile)
         idGenerator.set(0L)
-    }
-
-    @After
-    void tearDown() throws Exception {
-        try {
-            FileUtils.deleteFile(journalFile.getParentFile(), true)
-        } catch (Exception e) {
-            logger.error(e.getMessage())
-        }
-    }
-
-    @AfterClass
-    static void tearDownOnce() throws Exception {
-        if (ORIGINAL_LOG_LEVEL) {
-            System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", ORIGINAL_LOG_LEVEL)
-        }
-        try {
-            FileUtils.deleteFile(new File("target/storage"), true)
-        } catch (Exception e) {
-            logger.error(e)
-        }
-    }
-
-    private static boolean isUnlimitedStrengthCryptoAvailable() {
-        Cipher.getMaxAllowedKeyLength("AES") > 128
     }
 
     private static
@@ -197,7 +149,7 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
         logger.info("Generated encrypted writer: ${encryptedWriter}")
 
         // Act
-        int encryptedRecordId = idGenerator.get()
+        long encryptedRecordId = idGenerator.get()
         encryptedWriter.writeHeader(encryptedRecordId)
         encryptedWriter.writeRecords(Collections.singletonList(record))
         encryptedWriter.close()
@@ -240,13 +192,13 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
         logger.info("Generated encrypted writer: ${encryptedWriter}")
 
         // Act
-        int standardRecordId = idGenerator.get()
+        long standardRecordId = idGenerator.get()
         standardWriter.writeHeader(standardRecordId)
         standardWriter.writeRecords(Collections.singletonList(record))
         standardWriter.close()
         logger.info("Wrote standard record ${standardRecordId} to journal")
 
-        int encryptedRecordId = idGenerator.get()
+        long encryptedRecordId = idGenerator.get()
         encryptedWriter.writeHeader(encryptedRecordId)
         encryptedWriter.writeRecords(Collections.singletonList(record))
         encryptedWriter.close()
@@ -273,10 +225,6 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
         RecordReader incompatibleReader = new EventIdFirstSchemaRecordReader(efis, encryptedJournalFile.getName(), incompatibleTocReader, MAX_ATTRIBUTE_SIZE)
         logger.info("Generated standard reader (attempting to read encrypted file): ${incompatibleReader}")
 
-        def msg = shouldFail(EOFException) {
-            ProvenanceEventRecord encryptedEvent = incompatibleReader.nextRecord()
-        }
-        logger.expected(msg)
-        assert msg =~ "EOFException: Failed to read field"
+        shouldFail(EOFException) { incompatibleReader.nextRecord() }
     }
 }

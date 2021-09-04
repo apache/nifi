@@ -41,14 +41,12 @@ import org.apache.nifi.provenance.store.ArrayListEventStore;
 import org.apache.nifi.provenance.store.EventStore;
 import org.apache.nifi.provenance.store.StorageResult;
 import org.apache.nifi.util.Tuple;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
@@ -64,29 +62,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@DisabledOnOs(OS.WINDOWS)
+@Timeout(value = 5)
 public class TestLuceneEventIndex {
 
     private final AtomicLong idGenerator = new AtomicLong(0L);
 
-    @Rule
-    public TestName testName = new TestName();
-
-    @BeforeClass
-    public static void setLogger() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
-    }
-
-    private boolean isWindowsEnvironment() {
-        return System.getProperty("os.name").toLowerCase().startsWith("windows");
-    }
-
-    @Before
+    @BeforeEach
     public void setup() {
         idGenerator.set(0L);
     }
@@ -115,9 +102,8 @@ public class TestLuceneEventIndex {
 
     }
 
-    @Test(timeout = 60000)
+    @Test
     public void testGetMinimumIdToReindex() throws InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
         final IndexManager indexManager = new StandardIndexManager(repoConfig);
@@ -140,9 +126,8 @@ public class TestLuceneEventIndex {
         assertTrue(id >= 30000L);
     }
 
-    @Test(timeout = 60000)
+    @Test
     public void testUnauthorizedEventsGetPlaceholdersForLineage() throws InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
         final IndexManager indexManager = new StandardIndexManager(repoConfig);
@@ -177,88 +162,8 @@ public class TestLuceneEventIndex {
         }
     }
 
-    @Ignore("This test is unreliable in certain build environments")
-    @Test(timeout = 60000)
-    public void testUnauthorizedEventsGetPlaceholdersForExpandChildren() throws InterruptedException, IOException {
-        assumeFalse(isWindowsEnvironment());
-        final RepositoryConfiguration repoConfig = createConfig(1);
-        repoConfig.setDesiredIndexSize(1L);
-        final IndexManager indexManager = new StandardIndexManager(repoConfig);
-
-        final ArrayListEventStore eventStore = new ArrayListEventStore();
-        final LuceneEventIndex index = new LuceneEventIndex(repoConfig, indexManager, 3, EventReporter.NO_OP);
-        index.initialize(eventStore);
-
-        final ProvenanceEventRecord firstEvent = createEvent("4444");
-
-        final Map<String, String> previousAttributes = new HashMap<>();
-        previousAttributes.put("uuid", "4444");
-        final Map<String, String> updatedAttributes = new HashMap<>();
-        updatedAttributes.put("updated", "true");
-        final ProvenanceEventRecord fork = new StandardProvenanceEventRecord.Builder()
-                .setEventType(ProvenanceEventType.FORK)
-                .setAttributes(previousAttributes, updatedAttributes)
-                .addChildFlowFile("1234")
-                .setComponentId("component-1")
-                .setComponentType("unit test")
-                .setEventId(idGenerator.getAndIncrement())
-                .setEventTime(System.currentTimeMillis())
-                .setFlowFileEntryDate(System.currentTimeMillis())
-                .setFlowFileUUID("4444")
-                .setLineageStartDate(System.currentTimeMillis())
-                .setCurrentContentClaim("container", "section", "unit-test-id", 0L, 1024L)
-                .build();
-
-        index.addEvents(eventStore.addEvent(firstEvent).getStorageLocations());
-        index.addEvents(eventStore.addEvent(fork).getStorageLocations());
-
-        for (int i = 0; i < 3; i++) {
-            final ProvenanceEventRecord event = createEvent("1234");
-            final StorageResult storageResult = eventStore.addEvent(event);
-            index.addEvents(storageResult.getStorageLocations());
-        }
-
-        final NiFiUser user = createUser();
-
-        final EventAuthorizer allowForkEvents = new EventAuthorizer() {
-            @Override
-            public boolean isAuthorized(ProvenanceEventRecord event) {
-                return event.getEventType() == ProvenanceEventType.FORK;
-            }
-
-            @Override
-            public void authorize(ProvenanceEventRecord event) throws AccessDeniedException {
-            }
-        };
-
-        List<LineageNode> nodes = Collections.emptyList();
-        while (nodes.size() < 5) {
-            final ComputeLineageSubmission submission = index.submitExpandChildren(fork.getEventId(), user, allowForkEvents);
-            assertTrue(submission.getResult().awaitCompletion(15, TimeUnit.SECONDS));
-
-            nodes = submission.getResult().getNodes();
-            Thread.sleep(25L);
-        }
-
-        nodes.forEach(System.out::println);
-
-        assertEquals(5, nodes.size());
-
-        assertEquals(1L, nodes.stream().filter(n -> n.getNodeType() == LineageNodeType.FLOWFILE_NODE).count());
-        assertEquals(4L, nodes.stream().filter(n -> n.getNodeType() == LineageNodeType.PROVENANCE_EVENT_NODE).count());
-
-        final Map<ProvenanceEventType, List<LineageNode>> eventMap = nodes.stream()
-                .filter(n -> n.getNodeType() == LineageNodeType.PROVENANCE_EVENT_NODE)
-                .collect(Collectors.groupingBy(n -> ((ProvenanceEventLineageNode) n).getEventType()));
-
-        assertEquals(2, eventMap.size());
-        assertEquals(1, eventMap.get(ProvenanceEventType.FORK).size());
-        assertEquals(3, eventMap.get(ProvenanceEventType.UNKNOWN).size());
-    }
-
-    @Test(timeout = 60000)
+    @Test
     public void testUnauthorizedEventsGetPlaceholdersForFindParents() throws InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
         final IndexManager indexManager = new StandardIndexManager(repoConfig);
@@ -332,9 +237,8 @@ public class TestLuceneEventIndex {
         assertEquals("4444", eventMap.get(ProvenanceEventType.UNKNOWN).get(0).getFlowFileUuid());
     }
 
-    @Test(timeout = 60000)
+    @Test
     public void testUnauthorizedEventsGetFilteredForQuery() throws InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
         final IndexManager indexManager = new StandardIndexManager(repoConfig);
@@ -412,7 +316,7 @@ public class TestLuceneEventIndex {
         };
     }
 
-    @Test(timeout = 60000)
+    @Test
     public void testExpiration() throws IOException {
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
@@ -425,14 +329,11 @@ public class TestLuceneEventIndex {
         events.add(createEvent());
 
         final EventStore eventStore = Mockito.mock(EventStore.class);
-        Mockito.doAnswer(new Answer<List<ProvenanceEventRecord>>() {
-            @Override
-            public List<ProvenanceEventRecord> answer(final InvocationOnMock invocation) {
-                final Long eventId = invocation.getArgument(0);
-                assertEquals(0, eventId.longValue());
-                assertEquals(1, invocation.<Integer>getArgument(1).intValue());
-                return Collections.singletonList(events.get(0));
-            }
+        Mockito.doAnswer((Answer<List<ProvenanceEventRecord>>) invocation -> {
+            final Long eventId = invocation.getArgument(0);
+            assertEquals(0, eventId.longValue());
+            assertEquals(1, invocation.<Integer>getArgument(1).intValue());
+            return Collections.singletonList(events.get(0));
         }).when(eventStore).getEvents(Mockito.anyLong(), Mockito.anyInt());
 
         index.initialize(eventStore);
@@ -453,9 +354,8 @@ public class TestLuceneEventIndex {
         return new StorageSummary(eventId, "1.prov", "1", 1, 2L, 2L);
     }
 
-    @Test(timeout = 60000)
+    @Test
     public void addThenQueryWithEmptyQuery() throws InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig();
         final IndexManager indexManager = new StandardIndexManager(repoConfig);
 
@@ -494,7 +394,7 @@ public class TestLuceneEventIndex {
         assertEquals(event, matchingEvents.get(0));
     }
 
-    @Test(timeout = 50000)
+    @Test
     public void testQuerySpecificField() throws InterruptedException {
         final RepositoryConfiguration repoConfig = createConfig();
         final IndexManager indexManager = new StandardIndexManager(repoConfig);
@@ -537,8 +437,8 @@ public class TestLuceneEventIndex {
         assertEquals(event, matchingEvents.get(0));
     }
 
-    @Test(timeout = 5000)
-    public void testQueryInverseSpecificField() throws InterruptedException, IOException {
+    @Test
+    public void testQueryInverseSpecificField() throws InterruptedException {
         final List<SearchableField> searchableFields = new ArrayList<>();
         searchableFields.add(SearchableFields.ComponentID);
         searchableFields.add(SearchableFields.FlowFileUUID);
@@ -596,8 +496,7 @@ public class TestLuceneEventIndex {
 
     private RepositoryConfiguration createConfig(final int storageDirectoryCount) {
         final RepositoryConfiguration config = new RepositoryConfiguration();
-        final String unitTestName = testName.getMethodName();
-        final File storageDir = new File("target/storage/" + unitTestName + "/" + UUID.randomUUID().toString());
+        final File storageDir = new File("target/storage/" + getClass().getSimpleName() + "/" + UUID.randomUUID());
 
         for (int i = 0; i < storageDirectoryCount; i++) {
             config.addStorageDirectory(String.valueOf(i + 1), new File(storageDir, String.valueOf(i)));
@@ -635,7 +534,7 @@ public class TestLuceneEventIndex {
         final Map<String, String> updatedAttributes = new HashMap<>();
         updatedAttributes.put("updated", "true");
 
-        final ProvenanceEventRecord event = new StandardProvenanceEventRecord.Builder()
+        return new StandardProvenanceEventRecord.Builder()
                 .setEventType(ProvenanceEventType.CONTENT_MODIFIED)
                 .setAttributes(previousAttributes, updatedAttributes)
                 .setComponentId(componentId)
@@ -647,7 +546,5 @@ public class TestLuceneEventIndex {
                 .setLineageStartDate(timestamp)
                 .setCurrentContentClaim("container", "section", "unit-test-id", 0L, 1024L)
                 .build();
-
-        return event;
     }
 }

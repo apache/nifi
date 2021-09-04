@@ -18,7 +18,8 @@ package org.apache.nifi.provenance;
 
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.events.EventReporter;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -30,17 +31,18 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * With NiFi 1.10.0 (?) we changed from Lucene 4.x to Lucene 8.x
  * This test is intended to ensure that we can properly startup even when pointing to a Provenance
  * Repository that was created against the old Lucene.
  */
+@Timeout(value = 5)
 public class StartupAgainstOldLuceneIndexIT {
 
-    @Test(timeout = 30000)
+    @Test
     public void testStartup() throws IOException, InterruptedException {
         // Test startup with old lucene 4 index directory and no temp or migrated directory.
         testStartup(false, false);
@@ -54,7 +56,7 @@ public class StartupAgainstOldLuceneIndexIT {
 
     private void testStartup(final boolean createTempDirectory, final boolean createMigratedDirectory) throws IOException, InterruptedException {
         final File existingRepo = new File("src/test/resources/lucene-4-prov-repo");
-        final File tempDir = new File("target/" + UUID.randomUUID().toString());
+        final File tempDir = new File("target/" + UUID.randomUUID());
 
         copy(existingRepo, tempDir);
         final File oldIndexDir = new File(tempDir, "index-1554304717707");

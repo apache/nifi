@@ -17,11 +17,11 @@
 
 package org.apache.nifi.provenance;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -59,28 +59,26 @@ import org.apache.nifi.repository.schema.RecordSchema;
 import org.apache.nifi.repository.schema.Repetition;
 import org.apache.nifi.repository.schema.SimpleRecordField;
 import org.apache.nifi.stream.io.NullOutputStream;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter {
     private final AtomicLong idGenerator = new AtomicLong(0L);
     private File journalFile;
     private File tocFile;
 
-    @Before
+    @BeforeEach
     public void setup() {
-        journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testFieldAddedToSchema");
+        journalFile = new File("target/storage/" + UUID.randomUUID() + "/testFieldAddedToSchema");
         tocFile = TocUtil.getTocFile(journalFile);
         idGenerator.set(0L);
     }
 
-
     @Test
-    @Ignore("runs forever for performance analysis/profiling")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     public void testPerformanceOfRandomAccessReads() throws Exception {
-        journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testPerformanceOfRandomAccessReads.gz");
+        journalFile = new File("target/storage/" + UUID.randomUUID() + "/testPerformanceOfRandomAccessReads.gz");
         tocFile = TocUtil.getTocFile(journalFile);
 
         try (final RecordWriter writer = createWriter(journalFile, new StandardTocWriter(tocFile, true, false), true, 1024 * 32)) {
@@ -117,14 +115,9 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
     }
 
     private void time(final Callable<StandardProvenanceEventRecord> task, final long id) throws Exception {
-        final long start = System.nanoTime();
         final StandardProvenanceEventRecord event = task.call();
-        Assert.assertNotNull(event);
-        Assert.assertEquals(id, event.getEventId());
-        //        System.out.println(event);
-        final long nanos = System.nanoTime() - start;
-        final long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
-        //        System.out.println("Took " + millis + " ms to " + taskDescription);
+        assertNotNull(event);
+        assertEquals(id, event.getEventId());
     }
 
 
@@ -291,7 +284,7 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
     }
 
     @Test
-    @Ignore("For local testing only")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     public void testWritePerformance() throws IOException {
         // This is a simple micro-benchmarking test so that we can determine how fast the serialization/deserialization is before
         // making significant changes. This allows us to ensure that changes that we make do not have significant adverse effects
@@ -317,16 +310,13 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
         System.out.println("Took " + millis + " millis to write " + numEvents + " events");
     }
 
-
     @Test
-    @Ignore("For local performance testing only")
-    public void testReadPerformance() throws IOException, InterruptedException {
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
+    public void testReadPerformance() throws IOException {
         // This is a simple micro-benchmarking test so that we can determine how fast the serialization/deserialization is before
         // making significant changes. This allows us to ensure that changes that we make do not have significant adverse effects
         // on performance of the repository.
         final ProvenanceEventRecord event = createEvent();
-
-        final TocReader tocReader = null;
 
         final byte[] header;
         try (final ByteArrayOutputStream headerOut = new ByteArrayOutputStream();
@@ -356,7 +346,7 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
 
         final long startNanos = System.nanoTime();
         try (final InputStream in = new LoopingInputStream(header, serializedRecord);
-            final RecordReader reader = new ByteArraySchemaRecordReader(in, "filename", tocReader, 100000)) {
+            final RecordReader reader = new ByteArraySchemaRecordReader(in, "filename", null, 100000)) {
 
             for (int i = 0; i < numEvents; i++) {
                 reader.nextRecord();
@@ -377,10 +367,8 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
         return new ByteArraySchemaRecordWriter(file, idGenerator, tocWriter, compressed, uncompressedBlockSize);
     }
 
-
     @Override
     protected RecordReader createReader(InputStream in, String journalFilename, TocReader tocReader, int maxAttributeSize) throws IOException {
-        final ByteArraySchemaRecordReader reader = new ByteArraySchemaRecordReader(in, journalFilename, tocReader, maxAttributeSize);
-        return reader;
+        return new ByteArraySchemaRecordReader(in, journalFilename, tocReader, maxAttributeSize);
     }
 }

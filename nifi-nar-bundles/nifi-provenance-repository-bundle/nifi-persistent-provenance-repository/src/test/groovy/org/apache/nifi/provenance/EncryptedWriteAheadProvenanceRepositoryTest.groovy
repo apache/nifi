@@ -23,33 +23,20 @@ import org.apache.nifi.reporting.Severity
 import org.apache.nifi.security.kms.StaticKeyProvider
 import org.apache.nifi.util.file.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.AfterClass
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.ClassRule
-import org.junit.Test
-import org.junit.Ignore
-import org.junit.rules.TemporaryFolder
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
-import javax.crypto.Cipher
 import java.security.Security
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 import static org.apache.nifi.provenance.TestUtil.createFlowFile
 
-@RunWith(JUnit4.class)
 class EncryptedWriteAheadProvenanceRepositoryTest {
-    private static final Logger logger = LoggerFactory.getLogger(EncryptedWriteAheadProvenanceRepositoryTest.class)
-
     private static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210"
-    private static final String KEY_HEX_256 = KEY_HEX_128 * 2
-    private static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
+    private static final String KEY_HEX = KEY_HEX_128
     private static final String KEY_ID = "K1"
 
     private static final String TRANSIT_URI = "nifi://unit-test"
@@ -58,37 +45,24 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
 
     private static final AtomicLong recordId = new AtomicLong()
 
-    @ClassRule
-    public static TemporaryFolder tempFolder = new TemporaryFolder()
-
     private ProvenanceRepository repo
     private static RepositoryConfiguration config
 
-    public static final int DEFAULT_ROLLOVER_MILLIS = 2000
     private EventReporter eventReporter
     private List<ReportedEvent> reportedEvents = Collections.synchronizedList(new ArrayList<ReportedEvent>())
 
-    private static String ORIGINAL_LOG_LEVEL
-
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
-        ORIGINAL_LOG_LEVEL = System.getProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance")
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", "DEBUG")
-
         Security.addProvider(new BouncyCastleProvider())
-
-        logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
-        }
     }
 
-    @Before
+    @BeforeEach
     void setUp() throws Exception {
         reportedEvents?.clear()
         eventReporter = createMockEventReporter()
     }
 
-    @After
+    @AfterEach
     void tearDown() throws Exception {
         closeRepo(repo, config)
 
@@ -97,20 +71,9 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
         RecordReaders.isEncryptionAvailable = false
     }
 
-    @AfterClass
-    static void tearDownOnce() throws Exception {
-        if (ORIGINAL_LOG_LEVEL) {
-            System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", ORIGINAL_LOG_LEVEL)
-        }
-    }
-
-    private static boolean isUnlimitedStrengthCryptoAvailable() {
-        Cipher.getMaxAllowedKeyLength("AES") > 128
-    }
-
     private static RepositoryConfiguration createConfiguration() {
         RepositoryConfiguration config = new RepositoryConfiguration()
-        config.addStorageDirectory("1", new File("target/storage/" + UUID.randomUUID().toString()))
+        config.addStorageDirectory("1", File.createTempDir(getClass().simpleName))
         config.setCompressOnRollover(true)
         config.setMaxEventFileLife(2000L, TimeUnit.SECONDS)
         config.setCompressionBlockBytes(100)
@@ -129,7 +92,6 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
         [reportEvent: { Severity s, String c, String m ->
             ReportedEvent event = new ReportedEvent(s, c, m)
             reportedEvents.add(event)
-            logger.mock("Added ${event}")
         }] as EventReporter
     }
 
@@ -235,9 +197,6 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
 
         final List<ProvenanceEventRecord> recoveredRecords = repo.getEvents(0L, RECORD_COUNT + 1)
 
-        logger.info("Recovered ${recoveredRecords.size()} events: ")
-        recoveredRecords.each { logger.info("\t${it}") }
-
         // Assert
         assert recoveredRecords.size() == RECORD_COUNT
         recoveredRecords.eachWithIndex { ProvenanceEventRecord recovered, int i ->
@@ -247,44 +206,6 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
             // The UUID was added later but we care that all attributes we provided are still there
             assert recovered.getAttributes().entrySet().containsAll(attributes.entrySet())
         }
-    }
-
-    @Test
-    @Ignore("test is unstable. NIFI-5624 to improve it")
-    void testShouldRegisterAndGetEvent() {
-        // Arrange
-
-        // Override the boolean determiner
-        RecordReaders.encryptionPropertiesRead = true
-        RecordReaders.isEncryptionAvailable = true
-
-        config = createEncryptedConfiguration()
-        // Needed until NIFI-3605 is implemented
-//        config.setMaxEventFileCapacity(1L)
-        config.setMaxEventFileCount(1)
-        config.setMaxEventFileLife(1, TimeUnit.SECONDS)
-        repo = new EncryptedWriteAheadProvenanceRepository(config)
-        repo.initialize(eventReporter, null, null, IdentifierLookup.EMPTY)
-
-        Map attributes = ["abc": "This is a plaintext attribute.",
-                          "123": "This is another plaintext attribute."]
-        final ProvenanceEventRecord record = buildEventRecord(buildFlowFile(attributes))
-
-        final long LAST_RECORD_ID = repo.getMaxEventId()
-
-        // Act
-        repo.registerEvent(record)
-
-        // Retrieve the event through the interface
-        ProvenanceEventRecord recoveredRecord = repo.getEvent(LAST_RECORD_ID + 1)
-        logger.info("Recovered ${recoveredRecord}")
-
-        // Assert
-        assert recoveredRecord.getEventId() == LAST_RECORD_ID + 1
-        assert recoveredRecord.getTransitUri() == TRANSIT_URI
-        assert recoveredRecord.getEventType() == ProvenanceEventType.RECEIVE
-        // The UUID was added later but we care that all attributes we provided are still there
-        assert recoveredRecord.getAttributes().entrySet().containsAll(attributes.entrySet())
     }
 
     @Test
@@ -310,17 +231,14 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
         RECORD_COUNT.times { int i ->
             records << buildEventRecord(buildFlowFile(attributes + [count: i as String]))
         }
-        logger.info("Generated ${RECORD_COUNT} records")
 
         final long LAST_RECORD_ID = repo.getMaxEventId()
 
         // Act
         repo.registerEvents(records)
-        logger.info("Registered events")
 
         // Retrieve the events through the interface
         List<ProvenanceEventRecord> recoveredRecords = repo.getEvents(LAST_RECORD_ID + 1, RECORD_COUNT * 2)
-        logger.info("Recovered ${recoveredRecords.size()} records")
 
         // Assert
         recoveredRecords.eachWithIndex { ProvenanceEventRecord recoveredRecord, int i ->

@@ -16,21 +16,21 @@
  */
 package org.apache.nifi.provenance.toc;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestStandardTocWriter {
     @Test
     public void testOverwriteEmptyFile() throws IOException {
-        final File tocFile = new File("target/" + UUID.randomUUID().toString() + ".toc");
+        final File tocFile = new File("target/" + UUID.randomUUID() + ".toc");
         try {
-            assertTrue( tocFile.createNewFile() );
+            assertTrue(tocFile.createNewFile());
 
             try (final StandardTocWriter writer = new StandardTocWriter(tocFile, false, false)) {
             }
@@ -38,5 +38,4 @@ public class TestStandardTocWriter {
             FileUtils.deleteFile(tocFile, false);
         }
     }
-
 }
