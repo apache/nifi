@@ -16,36 +16,25 @@
  */
 package org.apache.nifi.reporting.util.provenance
 
-
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-@RunWith(JUnit4.class)
 class ProvenanceEventConsumerTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(ProvenanceEventConsumerTest.class)
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
     }
 
-    @Before
+    @BeforeEach
     void setUp() {
         super.setUp()
-
-    }
-
-    @After
-    void tearDown() {
-
     }
 
     @Test
