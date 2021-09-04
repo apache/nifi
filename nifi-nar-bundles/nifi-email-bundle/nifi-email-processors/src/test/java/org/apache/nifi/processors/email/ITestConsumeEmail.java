@@ -24,7 +24,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.integration.mail.AbstractMailReceiver;
@@ -39,6 +38,7 @@ import java.util.List;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class ITestConsumeEmail {
@@ -99,13 +99,13 @@ public class ITestConsumeEmail {
         String result = new String(runner.getContentAsByteArray(messages.get(0)));
 
         // Verify body
-        Assertions.assertTrue(result.contains("test test test chocolate"));
+        assertTrue(result.contains("test test test chocolate"));
 
         // Verify sender
-        Assertions.assertTrue(result.contains("alice@nifi.org"));
+        assertTrue(result.contains("alice@nifi.org"));
 
         // Verify subject
-        Assertions.assertTrue(result.contains("testConsumeImap1"));
+        assertTrue(result.contains("testConsumeImap1"));
 
     }
 
@@ -130,13 +130,13 @@ public class ITestConsumeEmail {
         String result = new String(runner.getContentAsByteArray(messages.get(0)));
 
         // Verify body
-        Assertions.assertTrue(result.contains("test test test chocolate"));
+        assertTrue(result.contains("test test test chocolate"));
 
         // Verify sender
-        Assertions.assertTrue(result.contains("alice@nifi.org"));
+        assertTrue(result.contains("alice@nifi.org"));
 
         // Verify subject
-        Assertions.assertTrue(result.contains("Pop1"));
+        assertTrue(result.contains("Pop1"));
 
     }
 

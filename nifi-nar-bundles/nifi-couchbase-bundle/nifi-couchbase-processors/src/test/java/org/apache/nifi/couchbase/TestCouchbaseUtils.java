@@ -33,11 +33,14 @@ import com.couchbase.client.java.document.StringDocument;
 import com.couchbase.client.java.document.json.JsonArray;
 import com.couchbase.client.java.document.json.JsonObject;
 import com.couchbase.client.java.error.TranscodingException;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCouchbaseUtils {
 
@@ -75,20 +78,15 @@ public class TestCouchbaseUtils {
 
         for (String[] expectation : expectations) {
             final LegacyDocument document = bucket.get(LegacyDocument.create(expectation[0]));
-            Assertions.assertEquals(expectation[1], document.content().getClass().getSimpleName());
-            Assertions.assertEquals(expectation[2], CouchbaseUtils.getStringContent(document.content()));
+            assertEquals(expectation[1], document.content().getClass().getSimpleName());
+            assertEquals(expectation[2], CouchbaseUtils.getStringContent(document.content()));
         }
 
         final BinaryDocument binaryDocument = bucket.get(BinaryDocument.create("BinaryDocument"));
         final String stringFromByteBuff = CouchbaseUtils.getStringContent(binaryDocument.content());
-        Assertions.assertEquals("value", stringFromByteBuff);
+        assertEquals("value", stringFromByteBuff);
 
-        try {
-            bucket.get(BinaryDocument.create("JsonDocument"));
-            Assertions.fail("Getting a JSON document as a BinaryDocument fails");
-        } catch (TranscodingException e) {
-            Assertions.assertTrue(e.getMessage().contains("Flags (0x2000000) indicate non-binary document for id JsonDocument"));
-        }
-
+        TranscodingException e = assertThrows(TranscodingException.class, () -> bucket.get(BinaryDocument.create("JsonDocument")));
+        assertTrue(e.getMessage().contains("Flags (0x2000000) indicate non-binary document for id JsonDocument"));
     }
 }

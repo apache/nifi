@@ -34,7 +34,6 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -51,6 +50,9 @@ import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.RE
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_RETRY;
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_SUCCESS;
 import static org.apache.nifi.processors.couchbase.CouchbaseAttributes.Exception;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -206,8 +208,8 @@ public class TestPutCouchbaseKey {
 
         ArgumentCaptor<RawJsonDocument> capture = ArgumentCaptor.forClass(RawJsonDocument.class);
         verify(bucket, times(1)).upsert(capture.capture(), eq(PersistTo.NONE), eq(ReplicateTo.NONE));
-        Assertions.assertEquals(somePropertyValue, capture.getValue().id());
-        Assertions.assertEquals(inFileData, capture.getValue().content());
+        assertEquals(somePropertyValue, capture.getValue().id());
+        assertEquals(inFileData, capture.getValue().content());
 
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         testRunner.assertTransferCount(REL_RETRY, 0);
@@ -234,12 +236,9 @@ public class TestPutCouchbaseKey {
         Map<String, String> properties = new HashMap<>();
         properties.put("someProperty", somePropertyValue);
         testRunner.enqueue(inFileDataBytes, properties);
-        try {
-            testRunner.run();
-            Assertions.fail("Exception should be thrown.");
-        } catch (AssertionError e){
-            Assertions.assertTrue(e.getCause().getClass().equals(AttributeExpressionLanguageException.class));
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> testRunner.run());
+        assertTrue(e.getCause().getClass().equals(AttributeExpressionLanguageException.class));
 
         testRunner.assertTransferCount(REL_SUCCESS, 0);
         testRunner.assertTransferCount(REL_RETRY, 0);
@@ -265,7 +264,7 @@ public class TestPutCouchbaseKey {
 
         ArgumentCaptor<RawJsonDocument> capture = ArgumentCaptor.forClass(RawJsonDocument.class);
         verify(bucket, times(1)).upsert(capture.capture(), eq(PersistTo.NONE), eq(ReplicateTo.NONE));
-        Assertions.assertEquals(inFileData, capture.getValue().content());
+        assertEquals(inFileData, capture.getValue().content());
 
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         testRunner.assertTransferCount(REL_RETRY, 0);
@@ -291,12 +290,9 @@ public class TestPutCouchbaseKey {
         testRunner.enqueue(inFileDataBytes);
         testRunner.setProperty(DOC_ID, docId);
         testRunner.setProperty(PutCouchbaseKey.REPLICATE_TO, ReplicateTo.ONE.toString());
-        try {
-            testRunner.run();
-            Assertions.fail("ProcessException should be thrown.");
-        } catch (AssertionError e){
-            Assertions.assertTrue(e.getCause().getClass().equals(ProcessException.class));
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> testRunner.run());
+        assertTrue(e.getCause().getClass().equals(ProcessException.class));
 
         verify(bucket, times(1)).upsert(any(RawJsonDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.ONE));
 

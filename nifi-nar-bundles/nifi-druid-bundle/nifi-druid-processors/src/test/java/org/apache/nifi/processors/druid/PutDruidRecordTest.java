@@ -27,9 +27,10 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 public class PutDruidRecordTest {
@@ -106,7 +107,6 @@ public class PutDruidRecordTest {
         flowFile.assertAttributeEquals(PutDruidRecord.RECORD_COUNT, "2");
 
         // Assert a single SEND event present for the successful flow file
-        Assertions.assertEquals(1, runner.getProvenanceEvents().stream().filter((e) -> ProvenanceEventType.SEND.equals(e.getEventType())).count());
+        assertEquals(1, runner.getProvenanceEvents().stream().filter((e) -> ProvenanceEventType.SEND.equals(e.getEventType())).count());
     }
-
 }

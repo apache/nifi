@@ -35,6 +35,8 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -48,7 +50,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -56,15 +57,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+@DisabledOnOs(OS.WINDOWS)
 public class GetHDFSTest {
-
     private NiFiProperties mockNiFiProperties;
     private KerberosProperties kerberosProperties;
-
-    @BeforeAll
-    public static void setUpSuite() {
-        assumeTrue(!SystemUtils.IS_OS_WINDOWS, "Test only runs on *nix");
-    }
 
     @BeforeEach
     public void setup() {

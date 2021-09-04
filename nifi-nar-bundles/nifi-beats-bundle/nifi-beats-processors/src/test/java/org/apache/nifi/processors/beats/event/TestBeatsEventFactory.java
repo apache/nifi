@@ -20,11 +20,12 @@ package org.apache.nifi.processors.beats.event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.processor.util.listen.response.socket.SocketChannelResponder;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestBeatsEventFactory {
 
@@ -33,7 +34,6 @@ public class TestBeatsEventFactory {
         final String sender = "testsender1";
         final byte[] data = "this is a test line".getBytes();
         final int seqNumber = 1;
-        final String fields = "{\"file\":\"test\"}";
 
 
         final Map<String,String> metadata = new HashMap<>();
@@ -46,8 +46,8 @@ public class TestBeatsEventFactory {
 
         final BeatsEvent event = factory.create(data, metadata, responder);
 
-        Assertions.assertEquals(sender, event.getSender());
-        Assertions.assertEquals(seqNumber, event.getSeqNumber());
-        Assertions.assertEquals(data, event.getData());
+        assertEquals(sender, event.getSender());
+        assertEquals(seqNumber, event.getSeqNumber());
+        assertEquals(data, event.getData());
     }
 }

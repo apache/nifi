@@ -21,9 +21,10 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 public class TestFuzzyHashContent {
@@ -53,7 +54,7 @@ public class TestFuzzyHashContent {
 
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(FuzzyHashContent.REL_SUCCESS).get(0);
 
-        Assertions.assertEquals("6:hERjIfhRrlB63J0FDw1NBQmEH68xwMSELN:hZrlB62IwMS",outFile.getAttribute("fuzzyhash.value") );
+        assertEquals("6:hERjIfhRrlB63J0FDw1NBQmEH68xwMSELN:hZrlB62IwMS",outFile.getAttribute("fuzzyhash.value") );
     }
 
     @Test
@@ -89,7 +90,7 @@ public class TestFuzzyHashContent {
 
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(FuzzyHashContent.REL_SUCCESS).get(0);
 
-        Assertions.assertEquals("E2F0818B7AE7173906A72221570E30979B11C0FC47B518A1E89D257E2343CEC02381ED",
+        assertEquals("E2F0818B7AE7173906A72221570E30979B11C0FC47B518A1E89D257E2343CEC02381ED",
                 outFile.getAttribute("fuzzyhash.value"));
     }
 

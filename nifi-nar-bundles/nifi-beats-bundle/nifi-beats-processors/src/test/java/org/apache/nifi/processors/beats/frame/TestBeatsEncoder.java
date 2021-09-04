@@ -23,6 +23,8 @@ import org.junit.jupiter.api.Test;
 import javax.xml.bind.DatatypeConverter;
 import java.nio.ByteBuffer;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 
 public class TestBeatsEncoder {
     private BeatsEncoder encoder;
@@ -43,6 +45,6 @@ public class TestBeatsEncoder {
 
         byte[] encoded = encoder.encode(frame);
 
-        Assertions.assertArrayEquals(DatatypeConverter.parseHexBinary("31410000007B"), encoded);
+        assertArrayEquals(DatatypeConverter.parseHexBinary("31410000007B"), encoded);
     }
 }

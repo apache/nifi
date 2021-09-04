@@ -38,7 +38,6 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -56,6 +55,9 @@ import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.RE
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_SUCCESS;
 import static org.apache.nifi.processors.couchbase.CouchbaseAttributes.Exception;
 import static org.apache.nifi.processors.couchbase.GetCouchbaseKey.PUT_VALUE_TO_ATTRIBUTE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -183,12 +185,8 @@ public class TestGetCouchbaseKey {
         testRunner.setProperty(DOC_ID, docIdExp);
         testRunner.enqueue(new byte[0]);
 
-        try {
-            testRunner.run();
-            Assertions.fail("Exception should be thrown.");
-        } catch (AssertionError e) {
-            Assertions.assertTrue(e.getCause().getClass().equals(AttributeExpressionLanguageException.class));
-        }
+        AssertionError e = assertThrows(AssertionError.class, () -> testRunner.run());
+        assertTrue(e.getCause().getClass().equals(AttributeExpressionLanguageException.class));
 
         testRunner.assertTransferCount(REL_SUCCESS, 0);
         testRunner.assertTransferCount(REL_ORIGINAL, 0);
@@ -210,12 +208,9 @@ public class TestGetCouchbaseKey {
         Map<String, String> properties = new HashMap<>();
         properties.put("someProperty", "someValue");
         testRunner.enqueue(inFileData, properties);
-        try {
-            testRunner.run();
-            Assertions.fail("Exception should be thrown.");
-        } catch (AssertionError e) {
-            Assertions.assertTrue(e.getCause().getClass().equals(AttributeExpressionLanguageException.class));
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> testRunner.run());
+        assertTrue(e.getCause().getClass().equals(AttributeExpressionLanguageException.class));
 
         testRunner.assertTransferCount(REL_SUCCESS, 0);
         testRunner.assertTransferCount(REL_ORIGINAL, 0);
@@ -272,8 +267,8 @@ public class TestGetCouchbaseKey {
         outFile.assertContentEquals(inFileDataStr);
         outFile.assertAttributeEquals("targetAttribute", content);
 
-        Assertions.assertEquals(1, testRunner.getProvenanceEvents().size());
-        Assertions.assertEquals(ProvenanceEventType.FETCH, testRunner.getProvenanceEvents().get(0).getEventType());
+        assertEquals(1, testRunner.getProvenanceEvents().size());
+        assertEquals(ProvenanceEventType.FETCH, testRunner.getProvenanceEvents().get(0).getEventType());
     }
 
     @Test
@@ -365,12 +360,9 @@ public class TestGetCouchbaseKey {
 
         byte[] inFileData = inFileDataStr.getBytes(StandardCharsets.UTF_8);
         testRunner.enqueue(inFileData);
-        try {
-            testRunner.run();
-            Assertions.fail("ProcessException should be thrown.");
-        } catch (AssertionError e) {
-            Assertions.assertTrue(e.getCause().getClass().equals(ProcessException.class));
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> testRunner.run());
+        assertTrue(e.getCause().getClass().equals(ProcessException.class));
 
         testRunner.assertTransferCount(REL_SUCCESS, 0);
         testRunner.assertTransferCount(REL_ORIGINAL, 0);
@@ -392,13 +384,10 @@ public class TestGetCouchbaseKey {
         String inputFileDataStr = "input FlowFile data";
         byte[] inFileData = inputFileDataStr.getBytes(StandardCharsets.UTF_8);
         testRunner.enqueue(inFileData);
-        try {
-            testRunner.run();
-            Assertions.fail("ProcessException should be thrown.");
-        } catch (AssertionError e) {
-            Assertions.assertTrue(e.getCause().getClass().equals(ProcessException.class));
-            Assertions.assertTrue(e.getCause().getCause().getClass().equals(AuthenticationException.class));
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> testRunner.run());
+        assertTrue(e.getCause().getClass().equals(ProcessException.class));
+        assertTrue(e.getCause().getCause().getClass().equals(AuthenticationException.class));
 
         testRunner.assertTransferCount(REL_SUCCESS, 0);
         testRunner.assertTransferCount(REL_ORIGINAL, 0);
@@ -484,7 +473,7 @@ public class TestGetCouchbaseKey {
         MockFlowFile orgFile = testRunner.getFlowFilesForRelationship(REL_RETRY).get(0);
         orgFile.assertContentEquals(inputFileDataStr);
         orgFile.assertAttributeEquals(Exception.key(), exception.getClass().getName());
-        Assertions.assertEquals(true, orgFile.isPenalized());
+        assertEquals(true, orgFile.isPenalized());
     }
 
     @Test

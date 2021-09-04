@@ -18,19 +18,21 @@
 package org.apache.nifi.processors.evtx.parser.bxml.value;
 
 import org.apache.nifi.processors.evtx.parser.bxml.BxmlNodeTestBase;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class BooleanTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testTrue() throws IOException {
-        Assertions.assertTrue(Boolean.parseBoolean(new BooleanTypeNode(testBinaryReaderBuilder.putDWord(1).build(), chunkHeader, parent, -1).getValue()));
+        assertTrue(Boolean.parseBoolean(new BooleanTypeNode(testBinaryReaderBuilder.putDWord(1).build(), chunkHeader, parent, -1).getValue()));
     }
 
     @Test
     public void testFalse() throws IOException {
-        Assertions.assertFalse(Boolean.parseBoolean(new BooleanTypeNode(testBinaryReaderBuilder.putDWord(-1).build(), chunkHeader, parent, -1).getValue()));
+        assertFalse(Boolean.parseBoolean(new BooleanTypeNode(testBinaryReaderBuilder.putDWord(-1).build(), chunkHeader, parent, -1).getValue()));
     }
 }

@@ -27,7 +27,7 @@ import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javax.mail.Message;
@@ -55,7 +55,7 @@ public class TestListenSMTP {
 
     private static final int MESSAGES = 2;
 
-    @BeforeClass
+    @BeforeAll
     public static void setTlsConfiguration() throws GeneralSecurityException {
         final TlsConfiguration testTlsConfiguration = new TemporaryKeyStoreBuilder().build();
 

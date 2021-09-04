@@ -19,7 +19,6 @@ package org.apache.nifi.processors.cassandra;
 import com.datastax.driver.core.Statement;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.Tuple;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -31,6 +30,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 public class PutCassandraRecordUpdateTest {
@@ -271,7 +272,7 @@ public class PutCassandraRecordUpdateTest {
         when(schema.getFieldNames()).thenReturn(fieldNames);
         Statement actual = testSubject.generateUpdate(table, schema, updateKeys, updateMethod, recordContentMap);
 
-        Assertions.assertEquals(expected, actual.toString());
+        assertEquals(expected, actual.toString());
     }
 
     private <E extends Exception> void testGenerateUpdate(String table, String updateKeys, String updateMethod, List<Tuple<String, Object>> records, E expected) {
@@ -281,12 +282,9 @@ public class PutCassandraRecordUpdateTest {
         List<String> fieldNames = records.stream().map(Tuple::getKey).collect(Collectors.toList());
 
         when(schema.getFieldNames()).thenReturn(fieldNames);
-        try {
-            testSubject.generateUpdate("keyspace.table", schema, updateKeys, updateMethod, recordContentMap);
-            Assertions.fail();
-        } catch (Exception e) {
-            Assertions.assertEquals(expected.getClass(), e.getClass());
-            Assertions.assertEquals(expected.getMessage(), e.getMessage());
-        }
+        Exception e = assertThrows(Exception.class,
+                () -> testSubject.generateUpdate("keyspace.table", schema, updateKeys, updateMethod, recordContentMap));
+        assertEquals(expected.getClass(), e.getClass());
+        assertEquals(expected.getMessage(), e.getMessage());
     }
 }

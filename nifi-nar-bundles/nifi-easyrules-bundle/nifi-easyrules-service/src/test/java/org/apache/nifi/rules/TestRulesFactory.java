@@ -16,156 +16,139 @@
  */
 package org.apache.nifi.rules;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
+
 public class TestRulesFactory {
     @Test
     public void testCreateRulesFromNiFiYaml(){
-        try {
+        assertDoesNotThrow(() -> {
             String testYamlFile = "src/test/resources/test_nifi_rules.yml";
             List<Rule> rules = RulesFactory.createRulesFromFile(testYamlFile,"YAML", "NIFI");
-            Assertions.assertEquals(2, rules.size());
+            assertEquals(2, rules.size());
             assert confirmEntries(rules);
-        }catch (Exception ex){
-            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
-        }
+        }, "Unexpected exception occurred");
     }
 
     @Test
     public void testCreateRulesFromMvelYaml(){
-        try {
+        assertDoesNotThrow(() -> {
             String testYamlFile = "src/test/resources/test_mvel_rules.yml";
-            List<Rule> rules = RulesFactory.createRulesFromFile(testYamlFile,"YAML", "MVEL");
-            Assertions.assertEquals(2, rules.size());
+            List<Rule> rules = RulesFactory.createRulesFromFile(testYamlFile, "YAML", "MVEL");
+            assertEquals(2, rules.size());
             assert confirmEntries(rules);
-            Assertions.assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
-        }catch (Exception ex){
-            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
-        }
+            assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
+        }, "Unexpected exception occurred");
     }
 
     @Test
     public void testCreateRulesFromSpelYaml(){
-        try {
+        assertDoesNotThrow(() -> {
             String testYamlFile = "src/test/resources/test_spel_rules.yml";
-            List<Rule> rules = RulesFactory.createRulesFromFile(testYamlFile,"YAML", "SPEL");
-            Assertions.assertEquals(2, rules.size());
-            Assertions.assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
-        }catch (Exception ex){
-            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
-        }
+            List<Rule> rules = RulesFactory.createRulesFromFile(testYamlFile, "YAML", "SPEL");
+            assertEquals(2, rules.size());
+            assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
+        }, "Unexpected exception occurred");
     }
 
     @Test
-    public void testCreateRulesFromNiFiJson(){
-        try {
+    public void testCreateRulesFromNiFiJson() {
+        assertDoesNotThrow(() -> {
             String testJsonFile = "src/test/resources/test_nifi_rules.json";
-            List<Rule> rules = RulesFactory.createRulesFromFile(testJsonFile,"JSON", "NIFI");
-            Assertions.assertEquals(2, rules.size());
+            List<Rule> rules = RulesFactory.createRulesFromFile(testJsonFile, "JSON", "NIFI");
+            assertEquals(2, rules.size());
             assert confirmEntries(rules);
-        }catch (Exception ex){
-            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
-        }
+        }, "Unexpected exception occurred");
     }
 
     @Test
     public void testCreateRulesFromMvelJson(){
-        try {
+        assertDoesNotThrow(() -> {
             String testJsonFile = "src/test/resources/test_mvel_rules.json";
-            List<Rule> rules = RulesFactory.createRulesFromFile(testJsonFile,"JSON", "MVEL");
-            Assertions.assertEquals(2, rules.size());
-            Assertions.assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
+            List<Rule> rules = RulesFactory.createRulesFromFile(testJsonFile, "JSON", "MVEL");
+            assertEquals(2, rules.size());
+            assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
             assert confirmEntries(rules);
-        }catch (Exception ex){
-            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
-        }
+        }, "Unexpected exception occurred");
     }
 
     @Test
     public void testCreateRulesFromSpelJson(){
-        try {
+        assertDoesNotThrow(() -> {
             String testJsonFile = "src/test/resources/test_spel_rules.json";
             List<Rule> rules = RulesFactory.createRulesFromFile(testJsonFile,"JSON", "SPEL");
-            Assertions.assertEquals(2, rules.size());
-            Assertions.assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
-        }catch (Exception ex){
-            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
-        }
+            assertEquals(2, rules.size());
+            assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
+        }, "Unexpected exception occurred");
     }
 
     @Test
     public void testCreateRulesFromStringSpelJson(){
-        try {
-            String testJson = "[\n" +
-                    "  {\n" +
-                    "    \"name\": \"Queue Size\",\n" +
-                    "    \"description\": \"Queue size check greater than 50\",\n" +
-                    "    \"priority\": 1,\n" +
-                    "    \"condition\": \"#predictedQueuedCount > 50\",\n" +
-                    "    \"actions\": [\"#predictedQueuedCount + 'is large'\"]\n" +
-                    "  },\n" +
-                    "  {\n" +
-                    "    \"name\": \"Time To Back Pressure\",\n" +
-                    "    \"description\": \"Back pressure time less than 5 minutes\",\n" +
-                    "    \"priority\": 2,\n" +
-                    "    \"condition\": \"#predictedTimeToBytesBackpressureMillis < 300000 && #predictedTimeToBytesBackpressureMillis >= 0\",\n" +
-                    "    \"actions\": [\"'System is approaching backpressure! Predicted time left: ' + #predictedTimeToBytesBackpressureMillis\"]\n" +
-                    "  }\n" +
-                    "]";
+        String testJson = "[\n" +
+                "  {\n" +
+                "    \"name\": \"Queue Size\",\n" +
+                "    \"description\": \"Queue size check greater than 50\",\n" +
+                "    \"priority\": 1,\n" +
+                "    \"condition\": \"#predictedQueuedCount > 50\",\n" +
+                "    \"actions\": [\"#predictedQueuedCount + 'is large'\"]\n" +
+                "  },\n" +
+                "  {\n" +
+                "    \"name\": \"Time To Back Pressure\",\n" +
+                "    \"description\": \"Back pressure time less than 5 minutes\",\n" +
+                "    \"priority\": 2,\n" +
+                "    \"condition\": \"#predictedTimeToBytesBackpressureMillis < 300000 && #predictedTimeToBytesBackpressureMillis >= 0\",\n" +
+                "    \"actions\": [\"'System is approaching backpressure! Predicted time left: ' + #predictedTimeToBytesBackpressureMillis\"]\n" +
+                "  }\n" +
+                "]";
+        assertDoesNotThrow(() -> {
             List<Rule> rules = RulesFactory.createRulesFromString(testJson,"JSON", "SPEL");
-            Assertions.assertEquals(2, rules.size());
-            Assertions.assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
-        }catch (Exception ex){
-            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
-        }
+            assertEquals(2, rules.size());
+            assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
+        }, "Unexpected exception occurred");
     }
 
     @Test
     public void testCreateRulesFromStringSpelYaml(){
-        try {
-            String testYaml = "---\n" +
-                    "name: \"Queue Size\"\n" +
-                    "description: \"Queue size check greater than 50\"\n" +
-                    "priority: 1\n" +
-                    "condition: \"#predictedQueuedCount > 50\"\n" +
-                    "actions:\n" +
-                    "  - \"System.out.println(\\\"Queue Size Over 50 is detected!\\\")\"\n" +
-                    "---\n" +
-                    "name: \"Time To Back Pressure\"\n" +
-                    "description: \"Back pressure time less than 5 minutes\"\n" +
-                    "priority: 2\n" +
-                    "condition: \"#predictedTimeToBytesBackpressureMillis < 300000 && #predictedTimeToBytesBackpressureMillis >= 0\"\n" +
-                    "actions:\n" +
-                    "  - \"System.out.println(\\\"Back Pressure prediction less than 5 minutes!\\\")\"";
-            List<Rule> rules = RulesFactory.createRulesFromString(testYaml,"YAML", "SPEL");
-            Assertions.assertEquals(2, rules.size());
-            Assertions.assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
-        }catch (Exception ex){
-            Assertions.fail("Unexpected exception occurred: "+ex.getMessage());
-        }
+        String testYaml = "---\n" +
+                "name: \"Queue Size\"\n" +
+                "description: \"Queue size check greater than 50\"\n" +
+                "priority: 1\n" +
+                "condition: \"#predictedQueuedCount > 50\"\n" +
+                "actions:\n" +
+                "  - \"System.out.println(\\\"Queue Size Over 50 is detected!\\\")\"\n" +
+                "---\n" +
+                "name: \"Time To Back Pressure\"\n" +
+                "description: \"Back pressure time less than 5 minutes\"\n" +
+                "priority: 2\n" +
+                "condition: \"#predictedTimeToBytesBackpressureMillis < 300000 && #predictedTimeToBytesBackpressureMillis >= 0\"\n" +
+                "actions:\n" +
+                "  - \"System.out.println(\\\"Back Pressure prediction less than 5 minutes!\\\")\"";
+        assertDoesNotThrow(() -> {
+                    List<Rule> rules = RulesFactory.createRulesFromString(testYaml, "YAML", "SPEL");
+                    assertEquals(2, rules.size());
+                    assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
+                });
     }
 
     @Test
     public void testFakeTypeNotSupported(){
-        try {
-            RulesFactory.createRulesFromFile("FAKEFILE", "FAKE", "NIFI");
-        }catch (Exception ex){
-            return;
-        }
-        Assertions.fail("Exception should have been thrown for unexpected type");
+        assertThrows(Exception.class,
+                () -> RulesFactory.createRulesFromFile("FAKEFILE", "FAKE", "NIFI"),
+                "Exception should have been thrown for unexpected type");
     }
 
     @Test
     public void testFakeFormatNotSupported(){
-        try {
-            RulesFactory.createRulesFromFile("FAKEFILE", "JSON", "FAKE");
-        }catch (Exception ex){
-            return;
-        }
-        Assertions.fail("Exception should have been thrown for unexpected type");
+        assertThrows(Exception.class,
+                () -> RulesFactory.createRulesFromFile("FAKEFILE", "JSON", "FAKE"),
+                        "Exception should have been thrown for unexpected type");
     }
 
 
@@ -180,6 +163,5 @@ public class TestRulesFactory {
                 && rule2.getPriority() == 2 && rule2.getCondition().equals("predictedTimeToBytesBackpressureMillis < 300000 && predictedTimeToBytesBackpressureMillis >= 0") && checkDiagnostic;
 
         return checkDiagnostic;
-
     }
 }

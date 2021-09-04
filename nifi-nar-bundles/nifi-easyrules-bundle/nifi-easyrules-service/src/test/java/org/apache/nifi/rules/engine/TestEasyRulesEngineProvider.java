@@ -20,7 +20,6 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -28,10 +27,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 public class TestEasyRulesEngineProvider {
 
     @Test
-    public void testGetRulesEngine() throws InitializationException, IOException {
+    public void testGetRulesEngine() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final RulesEngineProvider service = new MockEasyRulesEngineProvider();
         runner.addControllerService("easy-rules-engine-service-test",service);
@@ -44,11 +46,10 @@ public class TestEasyRulesEngineProvider {
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         RulesEngine engine = service.getRulesEngine();
-        Assertions.assertNotNull(engine);
+        assertNotNull(engine);
         List<Action> actions = engine.fireRules(facts);
-        Assertions.assertNotNull(actions);
-        Assertions.assertEquals(actions.size(), 3);
-
+        assertNotNull(actions);
+        assertEquals(actions.size(), 3);
     }
 
     private static class MockEasyRulesEngineProvider extends EasyRulesEngineProvider {

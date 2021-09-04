@@ -21,12 +21,14 @@ import org.apache.nifi.processors.evtx.parser.bxml.BxmlNode;
 import org.apache.nifi.processors.evtx.parser.bxml.BxmlNodeTestBase;
 import org.apache.nifi.processors.evtx.parser.bxml.EndOfStreamNode;
 import org.apache.nifi.processors.evtx.parser.bxml.RootNode;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BXmlTypeNodeTest extends BxmlNodeTestBase {
     private BXmlTypeNode bXmlTypeNode;
@@ -44,9 +46,9 @@ public class BXmlTypeNodeTest extends BxmlNodeTestBase {
     public void testInit() {
         RootNode rootNode = bXmlTypeNode.getRootNode();
         List<BxmlNode> children = rootNode.getChildren();
-        Assertions.assertEquals(1, children.size());
-        Assertions.assertTrue(children.get(0) instanceof EndOfStreamNode);
-        Assertions.assertEquals(0, rootNode.getSubstitutions().size());
-        Assertions.assertEquals(rootNode.toString(), bXmlTypeNode.getValue());
+        assertEquals(1, children.size());
+        assertTrue(children.get(0) instanceof EndOfStreamNode);
+        assertEquals(0, rootNode.getSubstitutions().size());
+        assertEquals(rootNode.toString(), bXmlTypeNode.getValue());
     }
 }

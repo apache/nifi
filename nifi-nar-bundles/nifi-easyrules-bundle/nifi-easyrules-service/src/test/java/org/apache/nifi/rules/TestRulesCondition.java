@@ -18,8 +18,12 @@ package org.apache.nifi.rules;
 
 import org.jeasy.rules.api.Condition;
 import org.jeasy.rules.api.Facts;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestRulesCondition {
 
@@ -33,7 +37,7 @@ public class TestRulesCondition {
         boolean passed = condition.evaluate(facts);
         long end = System.currentTimeMillis();
         System.out.println("Total Time: " + (end - start));
-        Assertions.assertTrue(passed);
+        assertTrue(passed);
     }
 
     @Test
@@ -42,7 +46,7 @@ public class TestRulesCondition {
         Facts facts = new Facts();
         facts.put("predictedQueuedCount",49);
         Condition condition = new RulesMVELCondition(expression, false);
-        Assertions.assertFalse(condition.evaluate(facts));
+        assertFalse(condition.evaluate(facts));
     }
 
     @Test
@@ -51,11 +55,7 @@ public class TestRulesCondition {
         Facts facts = new Facts();
         facts.put("predictedQueued",100);
         Condition condition = new RulesMVELCondition(expression, false);
-        try {
-            condition.evaluate(facts);
-            Assertions.fail();
-        }catch (Exception ignored){
-        }
+        assertThrows(Exception.class, () -> condition.evaluate(facts));
     }
 
     @Test
@@ -68,7 +68,7 @@ public class TestRulesCondition {
         boolean passed = condition.evaluate(facts);
         long end = System.currentTimeMillis();
         System.out.println("Total Time: " + (end - start));
-        Assertions.assertTrue(passed);
+        assertTrue(passed);
     }
 
     @Test
@@ -77,7 +77,7 @@ public class TestRulesCondition {
         Facts facts = new Facts();
         facts.put("predictedQueuedCount",49);
         Condition condition = new RulesSPELCondition(expression, false);
-        Assertions.assertFalse(condition.evaluate(facts));
+        assertFalse(condition.evaluate(facts));
     }
 
     @Test
@@ -86,12 +86,6 @@ public class TestRulesCondition {
         Facts facts = new Facts();
         facts.put("predictedQueuedCount",100);
         Condition condition = new RulesSPELCondition(expression, false);
-        try {
-            condition.evaluate(facts);
-            Assertions.fail();
-        }catch (Exception ignored){
-        }
+        assertThrows(Exception.class, () -> condition.evaluate(facts));
     }
-
-
 }

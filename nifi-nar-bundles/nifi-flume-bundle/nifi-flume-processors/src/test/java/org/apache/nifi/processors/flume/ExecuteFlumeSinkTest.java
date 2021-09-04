@@ -27,9 +27,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.util.security.MessageDigestUtils;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +43,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ExecuteFlumeSinkTest {
 
@@ -61,10 +65,10 @@ public class ExecuteFlumeSinkTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assertions.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             logger.debug(vr.toString());
-            Assertions.assertTrue(vr.toString().contains("is invalid because Sink Type is required"));
+            assertTrue(vr.toString().contains("is invalid because Sink Type is required"));
         }
 
         // non-existent class
@@ -75,10 +79,10 @@ public class ExecuteFlumeSinkTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assertions.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             logger.debug(vr.toString());
-            Assertions.assertTrue(vr.toString().contains("is invalid because unable to load sink"));
+            assertTrue(vr.toString().contains("is invalid because unable to load sink"));
         }
 
         // class doesn't implement Sink
@@ -89,10 +93,10 @@ public class ExecuteFlumeSinkTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assertions.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             logger.debug(vr.toString());
-            Assertions.assertTrue(vr.toString().contains("is invalid because unable to create sink"));
+            assertTrue(vr.toString().contains("is invalid because unable to create sink"));
         }
 
         results = new HashSet<>();
@@ -102,7 +106,7 @@ public class ExecuteFlumeSinkTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assertions.assertEquals(0, results.size());
+        assertEquals(0, results.size());
     }
 
 
@@ -119,7 +123,7 @@ public class ExecuteFlumeSinkTest {
     }
 
     @Test
-    public void testBatchSize() throws IOException {
+    public void testBatchSize() {
         TestRunner runner = TestRunners.newTestRunner(ExecuteFlumeSink.class);
         runner.setProperty(ExecuteFlumeSink.SINK_TYPE, NullSink.class.getName());
         runner.setProperty(ExecuteFlumeSink.FLUME_CONFIG,
@@ -131,7 +135,7 @@ public class ExecuteFlumeSinkTest {
     }
 
     @Test
-    @Disabled("Does not work on Windows")
+    @DisabledOnOs(OS.WINDOWS)
     public void testHdfsSink(@TempDir Path temp) throws IOException {
         File destDir = temp.resolve("hdfs").toFile();
         destDir.mkdirs();
@@ -152,14 +156,14 @@ public class ExecuteFlumeSinkTest {
         }
 
         File[] files = destDir.listFiles((FilenameFilter)HiddenFileFilter.VISIBLE);
-        Assertions.assertEquals(1, files.length, "Unexpected number of destination files.");
+        assertEquals(1, files.length, "Unexpected number of destination files.");
         File dst = files[0];
         byte[] expectedDigest;
         try (InputStream resourceStream = getClass().getResourceAsStream("/testdata/records.txt")) {
             expectedDigest = MessageDigestUtils.getDigest(resourceStream);
         }
         byte[] actualDigest = FileUtils.computeDigest(dst);
-        Assertions.assertArrayEquals(expectedDigest, actualDigest, "Destination file doesn't match source data");
+        assertArrayEquals(expectedDigest, actualDigest, "Destination file doesn't match source data");
     }
 
 }

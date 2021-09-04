@@ -19,15 +19,17 @@ package org.apache.nifi.rules.engine;
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.rules.Rule;
 import org.apache.nifi.rules.RulesFactory;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TestEasyRulesEngine {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+public class TestEasyRulesEngine {
     @Test
     public void testCheckRules() throws Exception {
         String testYamlFile = "src/test/resources/test_nifi_rules.yml";
@@ -37,8 +39,8 @@ public class TestEasyRulesEngine {
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",311111);
         Map<Rule, Boolean> checkedRules = service.checkRules(facts);
-        Assertions.assertNotNull(checkedRules);
-        Assertions.assertEquals(2,checkedRules.values().size());
+        assertNotNull(checkedRules);
+        assertEquals(2,checkedRules.values().size());
     }
 
     @Test
@@ -50,8 +52,8 @@ public class TestEasyRulesEngine {
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
-        Assertions.assertNotNull(actions);
-        Assertions.assertEquals(3,actions.size());
+        assertNotNull(actions);
+        assertEquals(3,actions.size());
     }
 
     @Test
@@ -62,12 +64,7 @@ public class TestEasyRulesEngine {
         Map<String, Object> facts = new HashMap<>();
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressure",311111);
-        try {
-            service.fireRules(facts);
-            Assertions.fail("Error condition exception was not thrown");
-        }catch (Exception ignored){
-        }
-
+        assertThrows(Exception.class, () -> service.fireRules(facts), "Error condition exception was not thrown");
     }
 
     @Test
@@ -78,7 +75,6 @@ public class TestEasyRulesEngine {
         Map<String, Object> facts = new HashMap<>();
         facts.put("predictedQueuedCount",60);
         Map<Rule, Boolean> checkedRules = service.checkRules(facts);
-        Assertions.assertEquals(1, checkedRules.size());
+        assertEquals(1, checkedRules.size());
     }
-
 }

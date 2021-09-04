@@ -25,7 +25,6 @@ import org.apache.nifi.processors.beats.event.BeatsEvent;
 import org.apache.nifi.processors.beats.event.BeatsEventFactory;
 import org.apache.nifi.processors.beats.frame.BeatsEncoder;
 import org.apache.nifi.processors.beats.frame.BeatsFrame;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -39,6 +38,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 public class TestBeatsFrameHandler {
@@ -82,7 +83,7 @@ public class TestBeatsFrameHandler {
         frameHandler.handle(openFrame, responder, sender);
 
         // No response expected
-        Assertions.assertEquals(0, responder.responded);
+        assertEquals(0, responder.responded);
     }
 
     @Test
@@ -120,12 +121,12 @@ public class TestBeatsFrameHandler {
         frameHandler.handle(jsonFrame, responder, sender);
 
         // No response expected
-        Assertions.assertEquals(0, responder.responded);
+        assertEquals(0, responder.responded);
         // But events should contain one event
-        Assertions.assertEquals(1, events.size());
+        assertEquals(1, events.size());
 
         final BeatsEvent event = events.poll();
-        Assertions.assertEquals("{\"message\": \"test-content\", \"field\": \"value\"}", new String(event.getData(), charset));
+        assertEquals("{\"message\": \"test-content\", \"field\": \"value\"}", new String(event.getData(), charset));
     }
 
 

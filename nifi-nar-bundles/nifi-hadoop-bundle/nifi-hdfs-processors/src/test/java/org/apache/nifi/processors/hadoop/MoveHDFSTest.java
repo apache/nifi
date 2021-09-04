@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
@@ -28,9 +27,10 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,10 +44,10 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@DisabledOnOs(OS.WINDOWS)
 public class MoveHDFSTest {
 
     private static final String OUTPUT_DIRECTORY = "target/test-data-output";
@@ -55,11 +55,6 @@ public class MoveHDFSTest {
     private static final String INPUT_DIRECTORY = "target/test-data-input";
     private NiFiProperties mockNiFiProperties;
     private KerberosProperties kerberosProperties;
-
-    @BeforeAll
-    public static void setUpSuite() {
-        assumeTrue(!SystemUtils.IS_OS_WINDOWS, "Test only runs on *nix");
-    }
 
     @BeforeEach
     public void setup() {

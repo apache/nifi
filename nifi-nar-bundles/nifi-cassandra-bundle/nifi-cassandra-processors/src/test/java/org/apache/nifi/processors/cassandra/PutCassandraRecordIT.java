@@ -28,12 +28,13 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class PutCassandraRecordIT {
 
@@ -88,7 +89,7 @@ public class PutCassandraRecordIT {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(PutCassandraRecord.REL_SUCCESS, 1);
-        Assertions.assertEquals(5, getRecordsCount());
+        assertEquals(5, getRecordsCount());
     }
 
     private int getRecordsCount() {

@@ -20,7 +20,6 @@ package org.apache.nifi.processors.kafka.pubsub;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.mock.MockComponentLogger;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -34,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestConsumerPartitionsUtil {
@@ -49,7 +49,7 @@ public class TestConsumerPartitionsUtil {
     public void testNoPartitionAssignments() throws UnknownHostException {
         final Map<String, String> properties = Collections.singletonMap("key", "value");
         final int[] partitions = ConsumerPartitionsUtil.getPartitionsForHost(properties, logger);
-        Assertions.assertNull(partitions);
+        assertNull(partitions);
     }
 
     @Test

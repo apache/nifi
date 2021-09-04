@@ -21,13 +21,14 @@ import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.reporting.datadog.metrics.MetricNames;
 import org.apache.nifi.reporting.datadog.metrics.MetricsService;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestMetricsService {
 
@@ -60,15 +61,15 @@ public class TestMetricsService {
 
         final Map<String, Double> metrics = metricsService.getDataFlowMetrics(status);
 
-        Assertions.assertTrue(metrics.containsKey(MetricNames.FLOW_FILES_RECEIVED));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.BYTES_RECEIVED));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.FLOW_FILES_SENT));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.BYTES_SENT));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.FLOW_FILES_QUEUED));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.BYTES_QUEUED));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.BYTES_READ));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.BYTES_WRITTEN));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.ACTIVE_THREADS));
+        assertTrue(metrics.containsKey(MetricNames.FLOW_FILES_RECEIVED));
+        assertTrue(metrics.containsKey(MetricNames.BYTES_RECEIVED));
+        assertTrue(metrics.containsKey(MetricNames.FLOW_FILES_SENT));
+        assertTrue(metrics.containsKey(MetricNames.BYTES_SENT));
+        assertTrue(metrics.containsKey(MetricNames.FLOW_FILES_QUEUED));
+        assertTrue(metrics.containsKey(MetricNames.BYTES_QUEUED));
+        assertTrue(metrics.containsKey(MetricNames.BYTES_READ));
+        assertTrue(metrics.containsKey(MetricNames.BYTES_WRITTEN));
+        assertTrue(metrics.containsKey(MetricNames.ACTIVE_THREADS));
     }
 
     //test processor status metric retrieving
@@ -81,11 +82,11 @@ public class TestMetricsService {
 
         final Map<String, Double> metrics = metricsService.getProcessorMetrics(procStatus);
 
-        Assertions.assertTrue(metrics.containsKey(MetricNames.BYTES_READ));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.BYTES_WRITTEN));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.FLOW_FILES_RECEIVED));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.FLOW_FILES_SENT));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.ACTIVE_THREADS));
+        assertTrue(metrics.containsKey(MetricNames.BYTES_READ));
+        assertTrue(metrics.containsKey(MetricNames.BYTES_WRITTEN));
+        assertTrue(metrics.containsKey(MetricNames.FLOW_FILES_RECEIVED));
+        assertTrue(metrics.containsKey(MetricNames.FLOW_FILES_SENT));
+        assertTrue(metrics.containsKey(MetricNames.ACTIVE_THREADS));
     }
 
     //test JVM status metric retrieving
@@ -94,17 +95,17 @@ public class TestMetricsService {
         final JmxJvmMetrics virtualMachineMetrics = JmxJvmMetrics.getInstance();
 
         final Map<String, Double> metrics = metricsService.getJVMMetrics(virtualMachineMetrics);
-        Assertions.assertTrue(metrics.containsKey(MetricNames.JVM_UPTIME));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.JVM_HEAP_USED));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.JVM_HEAP_USAGE));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.JVM_NON_HEAP_USAGE));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.JVM_THREAD_STATES_RUNNABLE));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.JVM_THREAD_STATES_BLOCKED));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.JVM_THREAD_STATES_TIMED_WAITING));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.JVM_THREAD_STATES_TERMINATED));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.JVM_THREAD_COUNT));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.JVM_DAEMON_THREAD_COUNT));
-        Assertions.assertTrue(metrics.containsKey(MetricNames.JVM_FILE_DESCRIPTOR_USAGE));
+        assertTrue(metrics.containsKey(MetricNames.JVM_UPTIME));
+        assertTrue(metrics.containsKey(MetricNames.JVM_HEAP_USED));
+        assertTrue(metrics.containsKey(MetricNames.JVM_HEAP_USAGE));
+        assertTrue(metrics.containsKey(MetricNames.JVM_NON_HEAP_USAGE));
+        assertTrue(metrics.containsKey(MetricNames.JVM_THREAD_STATES_RUNNABLE));
+        assertTrue(metrics.containsKey(MetricNames.JVM_THREAD_STATES_BLOCKED));
+        assertTrue(metrics.containsKey(MetricNames.JVM_THREAD_STATES_TIMED_WAITING));
+        assertTrue(metrics.containsKey(MetricNames.JVM_THREAD_STATES_TERMINATED));
+        assertTrue(metrics.containsKey(MetricNames.JVM_THREAD_COUNT));
+        assertTrue(metrics.containsKey(MetricNames.JVM_DAEMON_THREAD_COUNT));
+        assertTrue(metrics.containsKey(MetricNames.JVM_FILE_DESCRIPTOR_USAGE));
     }
 
 }

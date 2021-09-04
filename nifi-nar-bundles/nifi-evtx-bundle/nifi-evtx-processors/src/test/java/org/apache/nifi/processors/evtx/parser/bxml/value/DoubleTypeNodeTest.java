@@ -18,15 +18,16 @@
 package org.apache.nifi.processors.evtx.parser.bxml.value;
 
 import org.apache.nifi.processors.evtx.parser.bxml.BxmlNodeTestBase;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class DoubleTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testDoubleTypeNode() throws IOException {
         double value = 1.23456;
-        Assertions.assertEquals(Double.toString(value), new DoubleTypeNode(testBinaryReaderBuilder.putQWord(Double.doubleToLongBits(value)).build(), chunkHeader, parent, -1).getValue());
+        assertEquals(Double.toString(value), new DoubleTypeNode(testBinaryReaderBuilder.putQWord(Double.doubleToLongBits(value)).build(), chunkHeader, parent, -1).getValue());
     }
 }

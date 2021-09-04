@@ -27,7 +27,6 @@ import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.processors.beats.event.BeatsMetadata;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -46,7 +45,8 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class TestBeatsSocketChannelHandler {
@@ -89,17 +89,17 @@ public class TestBeatsSocketChannelHandler {
         run(messages);
 
         // Check for the 1 frames (from the hex string above) are back...
-        Assertions.assertEquals(1, events.size());
+        assertEquals(1, events.size());
 
         TestEvent event;
         while((event = events.poll()) != null) {
             Map<String, String> metadata = event.metadata;
-            Assertions.assertTrue(metadata.containsKey(BeatsMetadata.SEQNUMBER_KEY));
+            assertTrue(metadata.containsKey(BeatsMetadata.SEQNUMBER_KEY));
 
             final String seqNum = metadata.get(BeatsMetadata.SEQNUMBER_KEY);
             final String line = new String(event.getData());
-            Assertions.assertTrue(seqNum.equals("1"));
-            Assertions.assertEquals("{\"message\": \"test-content\", \"field\": \"value\"}", line);
+            assertTrue(seqNum.equals("1"));
+            assertEquals("{\"message\": \"test-content\", \"field\": \"value\"}", line);
         }
     }
 
@@ -120,7 +120,7 @@ public class TestBeatsSocketChannelHandler {
         run(messages);
 
         // Check for the 2 frames (from the hex string above) are back...
-        Assertions.assertEquals(2, events.size());
+        assertEquals(2, events.size());
 
         boolean found1 = false;
         boolean found2 = false;
@@ -129,7 +129,7 @@ public class TestBeatsSocketChannelHandler {
         TestEvent event;
         while((event = events.poll()) != null) {
             Map<String, String> metadata = event.metadata;
-            Assertions.assertTrue(metadata.containsKey(BeatsMetadata.SEQNUMBER_KEY));
+            assertTrue(metadata.containsKey(BeatsMetadata.SEQNUMBER_KEY));
 
             final String seqNum = metadata.get(BeatsMetadata.SEQNUMBER_KEY);
             final String line = new String(event.getData());
@@ -141,7 +141,7 @@ public class TestBeatsSocketChannelHandler {
                 found2 = true;
             }
         }
-        Assertions.assertTrue(found1 && found2);
+        assertTrue(found1 && found2);
     }
 
 
