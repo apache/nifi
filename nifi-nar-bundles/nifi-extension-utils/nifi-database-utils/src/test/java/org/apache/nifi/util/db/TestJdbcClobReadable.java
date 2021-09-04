@@ -20,30 +20,27 @@ import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestJdbcClobReadable {
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
-
-    @BeforeClass
+    @BeforeAll
     public static void setup() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
     }
@@ -83,9 +80,10 @@ public class TestJdbcClobReadable {
     }
 
     private void validateClob(String someClob) throws SQLException, ClassNotFoundException, IOException {
-        folder.delete();
-
-        final Connection con = createConnection(folder.getRoot().getAbsolutePath());
+        File folder = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()))
+                .resolve("db")
+                .toFile();
+        final Connection con = createConnection(folder.getAbsolutePath());
         final Statement st = con.createStatement();
 
         try {
@@ -120,7 +118,7 @@ public class TestJdbcClobReadable {
             GenericRecord record = null;
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
-                Assert.assertEquals("Unreadable code for this Clob value.", someClob, record.get("SOMECLOB").toString());
+                assertEquals(someClob, record.get("SOMECLOB").toString(), "Unreadable code for this Clob value.");
                 System.out.println(record);
             }
         }

@@ -21,8 +21,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.RecordDataType;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
@@ -35,6 +34,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class InferenceSchemaStrategyTest {
 
@@ -67,7 +71,7 @@ public class InferenceSchemaStrategyTest {
         final RecordSchema result = testSubject.getSchema(null, givenContent(), null);
 
         // then
-        Assert.assertNotNull(result);
+        assertNotNull(result);
         thenFieldsAreConvertedProperly(result, true);
     }
 
@@ -84,14 +88,14 @@ public class InferenceSchemaStrategyTest {
         final RecordSchema result = testSubject.getSchema(null, input, null);
 
         // then
-        Assert.assertNotNull(result);
-        Assert.assertTrue(RecordDataType.class.isInstance(result.getField("f1").get().getDataType()));
+        assertNotNull(result);
+        assertTrue(RecordDataType.class.isInstance(result.getField("f1").get().getDataType()));
         final RecordDataType recordDataType = (RecordDataType) result.getField("f1").get().getDataType();
 
         final RecordSchema childSchema = recordDataType.getChildSchema();
-        Assert.assertNotNull(childSchema);
-        Assert.assertEquals(RecordFieldType.INT.getDataType(), childSchema.getField("a1").get().getDataType());
-        Assert.assertEquals(RecordFieldType.INT.getDataType(), childSchema.getField("a2").get().getDataType());
+        assertNotNull(childSchema);
+        assertEquals(RecordFieldType.INT.getDataType(), childSchema.getField("a1").get().getDataType());
+        assertEquals(RecordFieldType.INT.getDataType(), childSchema.getField("a2").get().getDataType());
     }
 
     @Test
@@ -103,7 +107,7 @@ public class InferenceSchemaStrategyTest {
         final RecordSchema result = testSubject.getSchema(  null, new ByteArrayInputStream(json.getBytes()), null);
 
         // then
-        Assert.assertNotNull(result);
+        assertNotNull(result);
         thenFieldsAreConvertedProperly(result, false);
     }
 
@@ -134,9 +138,10 @@ public class InferenceSchemaStrategyTest {
             final Optional<RecordField> field = fields.stream().filter(f -> f.getFieldName().equals(expected.getKey())).findFirst();
 
             if (field.isPresent()) {
-                Assert.assertEquals("\"" + expected.getKey() + "\" is expected to be converted " + expected.getValue().toString(), expected.getValue(), field.get().getDataType());
+                assertEquals(expected.getValue(), field.get().getDataType(),
+                        "\"" + expected.getKey() + "\" is expected to be converted " + expected.getValue().toString());
             } else if (mustPresent) {
-                Assert.fail();
+                fail();
             }
         }
     }

@@ -16,33 +16,29 @@
  */
 package org.apache.nifi.util.db;
 
-import static org.junit.Assert.assertNotNull;
+import org.apache.avro.file.DataFileStream;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumReader;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.apache.avro.file.DataFileStream;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.DatumReader;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
 public class TestJdbcTypesH2 {
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
-
-    @BeforeClass
+    @BeforeAll
     public static void setup() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
     }
@@ -75,9 +71,19 @@ public class TestJdbcTypesH2 {
 
     String dropTable = "drop table users";
 
+    String dbPath;
+
+    @BeforeEach
+    public void beforeEach() throws IOException {
+        dbPath = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()))
+                .resolve("db")
+                .toFile()
+                .getAbsolutePath();
+    }
+
     @Test
     public void testSQLTypesMapping() throws ClassNotFoundException, SQLException, IOException {
-        final Connection con = createConnection(folder.getRoot().getAbsolutePath());
+        final Connection con = createConnection(dbPath);
         final Statement st = con.createStatement();
 
         try {
@@ -102,7 +108,7 @@ public class TestJdbcTypesH2 {
         JdbcCommon.convertToAvroStream(resultSet, outStream, false);
 
         final byte[] serializedBytes = outStream.toByteArray();
-        assertNotNull(serializedBytes);
+        Assertions.assertNotNull(serializedBytes);
         System.out.println("Avro serialized result size in bytes: " + serializedBytes.length);
 
         st.close();
@@ -127,16 +133,16 @@ public class TestJdbcTypesH2 {
 
     // verify H2 driver loading and get Connections works
     @Test
-    public void testDriverLoad() throws ClassNotFoundException, SQLException {
+    public void testDriverLoad() throws SQLException {
 //        final Class<?> clazz = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
 
-        Connection con = createConnection(folder.getRoot().getAbsolutePath());
+        Connection con = createConnection(dbPath);
 
-        assertNotNull(con);
+        Assertions.assertNotNull(con);
         con.close();
     }
 
-    private Connection createConnection(String location) throws ClassNotFoundException, SQLException {
+    private Connection createConnection(String location) throws SQLException {
 
 //        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
         String connectionString = "jdbc:h2:file:" + location + "/testdb7";

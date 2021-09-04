@@ -21,20 +21,22 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestSchemaNameAsAttribute {
 
     private List<RecordField> fields;
     private SchemaAccessWriter schemaAccessWriter;
 
-    @Before
+    @BeforeEach
     public void setup() {
         fields = new ArrayList<>();
         fields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
@@ -51,10 +53,10 @@ public class TestSchemaNameAsAttribute {
         final RecordSchema schema = new SimpleRecordSchema(fields, schemaIdentifier);
 
         final Map<String,String> attributes = schemaAccessWriter.getAttributes(schema);
-        Assert.assertEquals(3, attributes.size());
-        Assert.assertEquals(schemaIdentifier.getName().get(), attributes.get(SchemaNameAsAttribute.SCHEMA_NAME_ATTRIBUTE));
-        Assert.assertEquals(schemaIdentifier.getBranch().get(), attributes.get(SchemaNameAsAttribute.SCHEMA_BRANCH_ATTRIBUTE));
-        Assert.assertEquals(String.valueOf(schemaIdentifier.getVersion().getAsInt()), attributes.get(SchemaNameAsAttribute.SCHEMA_VERSION_ATTRIBUTE));
+        assertEquals(3, attributes.size());
+        assertEquals(schemaIdentifier.getName().get(), attributes.get(SchemaNameAsAttribute.SCHEMA_NAME_ATTRIBUTE));
+        assertEquals(schemaIdentifier.getBranch().get(), attributes.get(SchemaNameAsAttribute.SCHEMA_BRANCH_ATTRIBUTE));
+        assertEquals(String.valueOf(schemaIdentifier.getVersion().getAsInt()), attributes.get(SchemaNameAsAttribute.SCHEMA_VERSION_ATTRIBUTE));
     }
 
     @Test
@@ -64,8 +66,8 @@ public class TestSchemaNameAsAttribute {
         final RecordSchema schema = new SimpleRecordSchema(fields, schemaIdentifier);
 
         final Map<String,String> attributes = schemaAccessWriter.getAttributes(schema);
-        Assert.assertEquals(1, attributes.size());
-        Assert.assertEquals(schemaIdentifier.getName().get(), attributes.get(SchemaNameAsAttribute.SCHEMA_NAME_ATTRIBUTE));
+        assertEquals(1, attributes.size());
+        assertEquals(schemaIdentifier.getName().get(), attributes.get(SchemaNameAsAttribute.SCHEMA_NAME_ATTRIBUTE));
     }
 
     @Test
@@ -75,16 +77,16 @@ public class TestSchemaNameAsAttribute {
         schemaAccessWriter.validateSchema(schema);
     }
 
-    @Test(expected = SchemaNotFoundException.class)
-    public void testValidateSchemaWhenNoIdentifier() throws SchemaNotFoundException {
+    @Test
+    public void testValidateSchemaWhenNoIdentifier() {
         final RecordSchema schema = new SimpleRecordSchema(fields, null);
-        schemaAccessWriter.validateSchema(schema);
+        assertThrows(SchemaNotFoundException.class, () -> schemaAccessWriter.validateSchema(schema));
     }
 
-    @Test(expected = SchemaNotFoundException.class)
-    public void testValidateSchemaWhenNoName() throws SchemaNotFoundException {
+    @Test
+    public void testValidateSchemaWhenNoName() {
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().id(1L).build();
         final RecordSchema schema = new SimpleRecordSchema(fields, schemaIdentifier);
-        schemaAccessWriter.validateSchema(schema);
+        assertThrows(SchemaNotFoundException.class, () -> schemaAccessWriter.validateSchema(schema));
     }
 }

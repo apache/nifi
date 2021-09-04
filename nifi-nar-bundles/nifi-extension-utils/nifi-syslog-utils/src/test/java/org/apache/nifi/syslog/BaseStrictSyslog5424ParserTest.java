@@ -23,9 +23,8 @@ import org.apache.nifi.syslog.keyproviders.SyslogPrefixedKeyProvider;
 import org.apache.nifi.syslog.parsers.StrictSyslog5424Parser;
 import org.apache.nifi.syslog.utils.NifiStructuredDataPolicy;
 import org.apache.nifi.syslog.utils.NilHandlingPolicy;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -34,6 +33,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class BaseStrictSyslog5424ParserTest {
 
@@ -46,16 +51,16 @@ public abstract class BaseStrictSyslog5424ParserTest {
     protected void validateForPolicy(String expected, Object actual) {
         switch (getPolicy()) {
             case DASH:
-                Assert.assertEquals(actual, NIL_VALUE);
+                assertEquals(actual, NIL_VALUE);
                 break;
             case OMIT:
             case NULL:
-                Assert.assertNull(actual);
+                assertNull(actual);
 
         }
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         parser = new StrictSyslog5424Parser(CHARSET, getPolicy(), NifiStructuredDataPolicy.FLATTEN, new SyslogPrefixedKeyProvider());
     }
@@ -81,30 +86,30 @@ public abstract class BaseStrictSyslog5424ParserTest {
         buffer.put(bytes);
 
         final Syslog5424Event event = parser.parseEvent(buffer);
-        Assert.assertNotNull(event);
-        Assert.assertTrue(event.isValid());
-        Assert.assertFalse(event.getFieldMap().isEmpty());
+        assertNotNull(event);
+        assertTrue(event.isValid());
+        assertFalse(event.getFieldMap().isEmpty());
         Map<String, Object> fieldMap = event.getFieldMap();
-        Assert.assertEquals(pri, fieldMap.get(SyslogAttributes.SYSLOG_PRIORITY.key()));
-        Assert.assertEquals("2", fieldMap.get(SyslogAttributes.SYSLOG_SEVERITY.key()));
-        Assert.assertEquals("4", fieldMap.get(SyslogAttributes.SYSLOG_FACILITY.key()));
-        Assert.assertEquals(version, fieldMap.get(SyslogAttributes.SYSLOG_VERSION.key()));
-        Assert.assertEquals(stamp, fieldMap.get(SyslogAttributes.SYSLOG_TIMESTAMP.key()));
-        Assert.assertEquals(host, fieldMap.get(SyslogAttributes.SYSLOG_HOSTNAME.key()));
-        Assert.assertEquals(appName, fieldMap.get(Syslog5424Attributes.SYSLOG_APP_NAME.key()));
+        assertEquals(pri, fieldMap.get(SyslogAttributes.SYSLOG_PRIORITY.key()));
+        assertEquals("2", fieldMap.get(SyslogAttributes.SYSLOG_SEVERITY.key()));
+        assertEquals("4", fieldMap.get(SyslogAttributes.SYSLOG_FACILITY.key()));
+        assertEquals(version, fieldMap.get(SyslogAttributes.SYSLOG_VERSION.key()));
+        assertEquals(stamp, fieldMap.get(SyslogAttributes.SYSLOG_TIMESTAMP.key()));
+        assertEquals(host, fieldMap.get(SyslogAttributes.SYSLOG_HOSTNAME.key()));
+        assertEquals(appName, fieldMap.get(Syslog5424Attributes.SYSLOG_APP_NAME.key()));
         validateForPolicy(procId, fieldMap.get(Syslog5424Attributes.SYSLOG_PROCID.key()));
-        Assert.assertEquals(msgId, fieldMap.get(Syslog5424Attributes.SYSLOG_MESSAGEID.key()));
+        assertEquals(msgId, fieldMap.get(Syslog5424Attributes.SYSLOG_MESSAGEID.key()));
 
         Pattern structuredPattern = new SyslogPrefixedKeyProvider().getStructuredElementIdParamNamePattern();
         fieldMap.forEach((key, value) -> {
             if (value != null) {
-                Assert.assertFalse(structuredPattern.matcher(key).matches());
+                assertFalse(structuredPattern.matcher(key).matches());
             }
         });
 
-        Assert.assertEquals(body, fieldMap.get(SyslogAttributes.SYSLOG_BODY.key()));
-        Assert.assertEquals(message, event.getFullMessage());
-        Assert.assertNull(event.getSender());
+        assertEquals(body, fieldMap.get(SyslogAttributes.SYSLOG_BODY.key()));
+        assertEquals(message, event.getFullMessage());
+        assertNull(event.getSender());
     }
 
     @Test
@@ -128,7 +133,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
         buffer.put(bytes);
 
         final Syslog5424Event event = parser.parseEvent(buffer);
-        Assert.assertFalse(event.isValid());
+        assertFalse(event.isValid());
     }
 
     @Test
@@ -142,8 +147,8 @@ public abstract class BaseStrictSyslog5424ParserTest {
         buffer.put(bytes);
 
         final Syslog5424Event event = parser.parseEvent(buffer);
-        Assert.assertNotNull(event);
-        Assert.assertTrue(event.isValid());
+        assertNotNull(event);
+        assertTrue(event.isValid());
     }
 
     @Test
@@ -167,7 +172,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
             buffer.put(bytes);
 
             final Syslog5424Event event = parser.parseEvent(buffer);
-            Assert.assertTrue(event.isValid());
+            assertTrue(event.isValid());
         }
     }
 
@@ -191,8 +196,8 @@ public abstract class BaseStrictSyslog5424ParserTest {
             buffer.put(bytes);
 
             final Syslog5424Event event = parser.parseEvent(buffer);
-            Assert.assertTrue(event.isValid());
-            Assert.assertNull(event.getFieldMap().get(SyslogAttributes.SYSLOG_BODY.key()));
+            assertTrue(event.isValid());
+            assertNull(event.getFieldMap().get(SyslogAttributes.SYSLOG_BODY.key()));
         }
 
 
@@ -208,9 +213,9 @@ public abstract class BaseStrictSyslog5424ParserTest {
         buffer.put(bytes);
 
         final Syslog5424Event event = parser.parseEvent(buffer);
-        Assert.assertNotNull(event);
-        Assert.assertFalse(event.isValid());
-        Assert.assertEquals(message, event.getFullMessage());
+        assertNotNull(event);
+        assertFalse(event.isValid());
+        assertEquals(message, event.getFullMessage());
     }
 
     @Test
@@ -227,10 +232,10 @@ public abstract class BaseStrictSyslog5424ParserTest {
         buffer.put(bytes);
 
         final Syslog5424Event event = parser.parseEvent(buffer, sender);
-        Assert.assertNotNull(event);
-        Assert.assertTrue(event.isValid());
-        Assert.assertEquals(sender, event.getSender());
-        Assert.assertEquals("Removing instance", event.getFieldMap().get(SyslogAttributes.SYSLOG_BODY.key()));
+        assertNotNull(event);
+        assertTrue(event.isValid());
+        assertEquals(sender, event.getSender());
+        assertEquals("Removing instance", event.getFieldMap().get(SyslogAttributes.SYSLOG_BODY.key()));
     }
 
     @Test
@@ -246,9 +251,9 @@ public abstract class BaseStrictSyslog5424ParserTest {
         buffer.put(bytes);
 
         final Syslog5424Event event = parser.parseEvent(buffer);
-        Assert.assertNotNull(event);
-        Assert.assertTrue(event.isValid());
-        Assert.assertEquals("Message with some Umlauts äöü", event.getFieldMap().get(SyslogAttributes.SYSLOG_BODY.key()));
+        assertNotNull(event);
+        assertTrue(event.isValid());
+        assertEquals("Message with some Umlauts äöü", event.getFieldMap().get(SyslogAttributes.SYSLOG_BODY.key()));
     }
 }
 
