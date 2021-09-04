@@ -22,13 +22,13 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,7 +56,7 @@ public class TestExpressionHandler {
     @Test
     public void testValidService() {
         runner.assertValid(expressionHandler);
-        MatcherAssert.assertThat(expressionHandler, instanceOf(ExpressionHandler.class));
+        assertThat(expressionHandler, instanceOf(ExpressionHandler.class));
     }
 
     @Test

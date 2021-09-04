@@ -31,7 +31,6 @@ import org.apache.nifi.rules.Action;
 import org.apache.nifi.util.MockBulletinRepository;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -41,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -78,7 +78,7 @@ public class TestAlertHandler {
     @Test
     public void testValidService() {
         runner.assertValid(alertHandler);
-        MatcherAssert.assertThat(alertHandler, instanceOf(AlertHandler.class));
+        assertThat(alertHandler, instanceOf(AlertHandler.class));
     }
 
     @Test

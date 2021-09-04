@@ -30,7 +30,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -42,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -72,7 +72,7 @@ public class TestRecordSinkHandler {
     @Test
     public void testValidService() {
         runner.assertValid(recordSinkHandler);
-        MatcherAssert.assertThat(recordSinkHandler, instanceOf(RecordSinkHandler.class));
+        assertThat(recordSinkHandler, instanceOf(RecordSinkHandler.class));
     }
 
     @Test
