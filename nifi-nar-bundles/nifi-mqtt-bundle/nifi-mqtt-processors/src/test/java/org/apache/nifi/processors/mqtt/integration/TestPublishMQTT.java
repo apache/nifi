@@ -24,11 +24,10 @@ import io.moquette.server.config.MemoryConfig;
 import org.apache.nifi.processors.mqtt.PublishMQTT;
 import org.apache.nifi.processors.mqtt.common.TestPublishMqttCommon;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Properties;
 
@@ -47,7 +46,7 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
         MQTT_server.startServer(server_config);
     }
 
-    @Before
+    @BeforeEach
     public void init() throws IOException {
         startServer();
         testRunner = TestRunners.newTestRunner(PublishMQTT.class);
@@ -57,19 +56,13 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
         testRunner.setProperty(PublishMQTT.PROP_TOPIC, "testTopic");
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (MQTT_server != null) {
             MQTT_server.stopServer();
         }
         final File folder =  new File("./target");
-        final File[] files = folder.listFiles( new FilenameFilter() {
-            @Override
-            public boolean accept( final File dir,
-                                   final String name ) {
-                return name.matches( "moquette_store.mapdb.*" );
-            }
-        } );
+        final File[] files = folder.listFiles((dir, name) -> name.matches( "moquette_store.mapdb.*" ));
         for ( final File file : files ) {
             if ( !file.delete() ) {
                 System.err.println( "Can't remove " + file.getAbsolutePath() );

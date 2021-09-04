@@ -34,20 +34,20 @@ import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.BlockingQueue;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -69,12 +69,12 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         }
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setTlsConfiguration() {
         tlsConfiguration = new TemporaryKeyStoreBuilder().build();
     }
 
-    @Before
+    @BeforeEach
     public void init() {
         PUBLISH_WAIT_MS = 0;
 
@@ -123,36 +123,29 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         when(mock.getTopic()).thenReturn("testTopic");
         BlockingQueue<MQTTQueueMessage> mqttQueue = getMqttQueue(processor);
         mqttQueue.add(mock);
-        try {
+
+        InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> {
             ProcessSession session = testRunner.getProcessSessionFactory().createSession();
             transferQueue(processor,
-                    (ProcessSession) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[] { ProcessSession.class }, (proxy, method, args) -> {
+                    (ProcessSession) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{ProcessSession.class}, (proxy, method, args) -> {
                         if (method.getName().equals("commitAsync")) {
                             throw new RuntimeException();
                         } else {
                             return method.invoke(session, args);
                         }
                     }));
-            fail("Expected runtime exception");
-        } catch (InvocationTargetException e) {
-            assertTrue("Expected generic runtime exception, not " + e, e.getCause() instanceof RuntimeException);
-        }
-        assertTrue("Expected mqttQueue to contain uncommitted message.", mqttQueue.contains(mock));
+        });
+        assertTrue(e.getCause() instanceof RuntimeException, "Expected generic runtime exception, not " + e);
+        assertTrue(mqttQueue.contains(mock), "Expected mqttQueue to contain uncommitted message.");
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (MQTT_server != null) {
             MQTT_server.stopServer();
         }
         final File folder =  new File("./target");
-        final File[] files = folder.listFiles( new FilenameFilter() {
-            @Override
-            public boolean accept( final File dir,
-                                   final String name ) {
-                return name.matches( "moquette_store.mapdb.*" );
-            }
-        } );
+        final File[] files = folder.listFiles((dir, name) -> name.matches( "moquette_store.mapdb.*" ));
         for ( final File file : files ) {
             if ( !file.delete() ) {
                 System.err.println( "Can't remove " + file.getAbsolutePath() );
@@ -167,10 +160,7 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         mqttMessage.setRetained(publishMessage.isRetainFlag());
         mqttMessage.setQos(publishMessage.getQos().ordinal());
 
-        try {
-            mqttTestClient.publish(publishMessage.getTopicName(), mqttMessage);
-        } catch (MqttException e) {
-            fail("Should never get an MqttException when publishing using test client");
-        }
+        assertDoesNotThrow(() -> mqttTestClient.publish(publishMessage.getTopicName(), mqttMessage),
+                "Should never get an MqttException when publishing using test client");
     }
 }

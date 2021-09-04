@@ -27,12 +27,11 @@ import org.apache.nifi.processors.mqtt.ConsumeMQTT;
 import org.apache.nifi.processors.mqtt.common.TestConsumeMqttCommon;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -58,7 +57,7 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         MQTT_server.startServer(server_config);
     }
 
-    @Before
+    @BeforeEach
     public void init() throws IOException {
         startServer();
 
@@ -70,19 +69,13 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         testRunner.setProperty(ConsumeMQTT.PROP_MAX_QUEUE_SIZE, "100");
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterEach
+    public void tearDown() {
         if (MQTT_server != null) {
             MQTT_server.stopServer();
         }
         final File folder =  new File("./target");
-        final File[] files = folder.listFiles( new FilenameFilter() {
-            @Override
-            public boolean accept( final File dir,
-                                   final String name ) {
-                return name.matches( "moquette_store.mapdb.*" );
-            }
-        } );
+        final File[] files = folder.listFiles((dir, name) -> name.matches( "moquette_store.mapdb.*" ));
         for ( final File file : files ) {
             if ( !file.delete() ) {
                 System.err.println( "Can't remove " + file.getAbsolutePath() );
