@@ -90,6 +90,41 @@ public class TestPutSNS {
     }
 
     @Test
+    public void testPublishFIFO() throws IOException {
+        runner.setProperty(PutSNS.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
+        runner.setProperty(PutSNS.ARN, "arn:aws:sns:us-west-2:123456789012:test-topic-1.fifo");
+        runner.setProperty(PutSNS.SUBJECT, "${eval.subject}");
+        runner.setProperty(PutSNS.MESSAGEDEDUPLICATIONID, "${myuuid}");
+        runner.setProperty(PutSNS.MESSAGEGROUPID, "test1234");
+        assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());
+        final Map<String, String> ffAttributes = new HashMap<>();
+        ffAttributes.put("filename", "1.txt");
+        ffAttributes.put("eval.subject", "test-subject");
+        ffAttributes.put("myuuid", "fb0dfed8-092e-40ee-83ce-5b576cd26236");
+        runner.enqueue("Test Message Content", ffAttributes);
+
+        PublishResult mockPublishResult = new PublishResult();
+        Mockito.when(mockSNSClient.publish(Mockito.any(PublishRequest.class))).thenReturn(mockPublishResult);
+
+        runner.run();
+
+        ArgumentCaptor<PublishRequest> captureRequest = ArgumentCaptor.forClass(PublishRequest.class);
+        Mockito.verify(mockSNSClient, Mockito.times(1)).publish(captureRequest.capture());
+        PublishRequest request = captureRequest.getValue();
+        assertEquals("arn:aws:sns:us-west-2:123456789012:test-topic-1.fifo", request.getTopicArn());
+        assertEquals("Test Message Content", request.getMessage());
+        assertEquals("test-subject", request.getSubject());
+        assertEquals("test1234", request.getMessageGroupId());
+        assertEquals("fb0dfed8-092e-40ee-83ce-5b576cd26236", request.getMessageDeduplicationId());
+        assertEquals("hello!", request.getMessageAttributes().get("DynamicProperty").getStringValue());
+
+        runner.assertAllFlowFilesTransferred(PutSNS.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSNS.REL_SUCCESS);
+        MockFlowFile ff0 = flowFiles.get(0);
+        ff0.assertAttributeEquals(CoreAttributes.FILENAME.key(), "1.txt");
+    }
+
+    @Test
     public void testPublishFailure() throws IOException {
         runner.setProperty(PutSNS.ARN, "arn:aws:sns:us-west-2:123456789012:test-topic-1");
         final Map<String, String> ffAttributes = new HashMap<>();
