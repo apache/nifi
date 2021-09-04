@@ -16,18 +16,20 @@
  */
 package org.apache.nifi.processors.lumberjack.frame;
 
-import java.nio.ByteBuffer;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import javax.xml.bind.DatatypeConverter;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import java.nio.ByteBuffer;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 @SuppressWarnings("deprecation")
 public class TestLumberjackEncoder {
     private LumberjackEncoder encoder;
 
 
-    @Before
+    @BeforeEach
     public void setup() {
         this.encoder = new LumberjackEncoder();
     }
@@ -42,6 +44,6 @@ public class TestLumberjackEncoder {
 
         byte[] encoded = encoder.encode(frame);
 
-        Assert.assertArrayEquals(DatatypeConverter.parseHexBinary("3141000000000000007B"), encoded);
+        assertArrayEquals(DatatypeConverter.parseHexBinary("3141000000000000007B"), encoded);
     }
 }

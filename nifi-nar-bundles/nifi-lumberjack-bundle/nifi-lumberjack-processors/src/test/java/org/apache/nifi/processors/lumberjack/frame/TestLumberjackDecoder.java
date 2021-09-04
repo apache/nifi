@@ -16,13 +16,17 @@
  */
 package org.apache.nifi.processors.lumberjack.frame;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import javax.xml.bind.DatatypeConverter;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SuppressWarnings("deprecation")
 public class TestLumberjackDecoder {
@@ -43,7 +47,7 @@ public class TestLumberjackDecoder {
 
     private LumberjackDecoder decoder;
 
-    @Before
+    @BeforeEach
     public void setup() {
         this.decoder = new LumberjackDecoder(StandardCharsets.UTF_8);
     }
@@ -64,12 +68,12 @@ public class TestLumberjackDecoder {
 
         frame = frames.get(frames.size() - 1);
 
-        Assert.assertNotNull(frame);
-        Assert.assertEquals(0x31, frame.getVersion());
-        Assert.assertEquals(0x44, frame.getFrameType());
-        Assert.assertEquals(1, frame.getSeqNumber());
+        assertNotNull(frame);
+        assertEquals(0x31, frame.getVersion());
+        assertEquals(0x44, frame.getFrameType());
+        assertEquals(1, frame.getSeqNumber());
         // Look for a predefined number of bytes for matching of the inner payload
-        Assert.assertArrayEquals(DatatypeConverter.parseHexBinary("000000050000000466696c65000000"), Arrays.copyOfRange(frame.getPayload(), 0, 15));
+        assertArrayEquals(DatatypeConverter.parseHexBinary("000000050000000466696c65000000"), Arrays.copyOfRange(frame.getPayload(), 0, 15));
     }
 
     @Test
@@ -88,12 +92,12 @@ public class TestLumberjackDecoder {
 
         frame = frames.get(1);
 
-        Assert.assertNotNull(frame);
-        Assert.assertEquals(0x31, frame.getVersion());
-        Assert.assertEquals(0x44, frame.getFrameType());
+        assertNotNull(frame);
+        assertEquals(0x31, frame.getVersion());
+        assertEquals(0x44, frame.getFrameType());
         // Load the second frame therefore seqNumber = 2
-        Assert.assertEquals(2, frame.getSeqNumber());
+        assertEquals(2, frame.getSeqNumber());
         // Look for a predefined number of bytes for matching of the inner payload
-        Assert.assertArrayEquals(DatatypeConverter.parseHexBinary("000000050000000466696c65000000"), Arrays.copyOfRange(frame.getPayload(), 0, 15));
+        assertArrayEquals(DatatypeConverter.parseHexBinary("000000050000000466696c65000000"), Arrays.copyOfRange(frame.getPayload(), 0, 15));
     }
 }

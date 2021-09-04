@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.lumberjack.handler;
 
-import java.io.IOException;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
@@ -34,10 +25,21 @@ import org.apache.nifi.processors.lumberjack.event.LumberjackEvent;
 import org.apache.nifi.processors.lumberjack.event.LumberjackEventFactory;
 import org.apache.nifi.processors.lumberjack.frame.LumberjackEncoder;
 import org.apache.nifi.processors.lumberjack.frame.LumberjackFrame;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import java.io.IOException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SuppressWarnings("deprecation")
 public class TestLumberjackFrameHandler {
@@ -52,7 +54,7 @@ public class TestLumberjackFrameHandler {
 
     private LumberjackFrameHandler<LumberjackEvent> frameHandler;
 
-    @Before
+    @BeforeEach
     public void setup() {
         this.charset = StandardCharsets.UTF_8;
         this.eventFactory = new LumberjackEventFactory();
@@ -81,7 +83,7 @@ public class TestLumberjackFrameHandler {
         frameHandler.handle(openFrame, responder, sender);
 
         // No response expected
-        Assert.assertEquals(0, responder.responded);
+        assertEquals(0, responder.responded);
     }
 
 
@@ -119,13 +121,13 @@ public class TestLumberjackFrameHandler {
         frameHandler.handle(dataFrame, responder, sender);
 
         // No response expected
-        Assert.assertEquals(0, responder.responded);
+        assertEquals(0, responder.responded);
         // But events should contain one event
-        Assert.assertEquals(1, events.size());
+        assertEquals(1, events.size());
 
         final LumberjackEvent event = events.poll();
-        Assert.assertEquals("{\"field\":\"value\"}", new String((event.getFields())));
-        Assert.assertEquals("test-content", new String(event.getData(), charset));
+        assertEquals("{\"field\":\"value\"}", new String((event.getFields())));
+        assertEquals("test-content", new String(event.getData(), charset));
     }
 
     private static class CapturingChannelResponder implements ChannelResponder<SocketChannel> {

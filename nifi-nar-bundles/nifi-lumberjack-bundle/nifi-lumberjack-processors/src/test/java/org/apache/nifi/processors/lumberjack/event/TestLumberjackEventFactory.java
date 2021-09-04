@@ -17,13 +17,15 @@
 
 package org.apache.nifi.processors.lumberjack.event;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.processor.util.listen.response.socket.SocketChannelResponder;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SuppressWarnings("deprecation")
 public class TestLumberjackEventFactory {
@@ -47,9 +49,9 @@ public class TestLumberjackEventFactory {
 
         final LumberjackEvent event = factory.create(data, metadata, responder);
 
-        Assert.assertEquals(sender, event.getSender());
-        Assert.assertEquals(seqNumber, event.getSeqNumber());
-        Assert.assertEquals(fields, event.getFields());
-        Assert.assertEquals(data, event.getData());
+        assertEquals(sender, event.getSender());
+        assertEquals(seqNumber, event.getSeqNumber());
+        assertEquals(fields, event.getFields());
+        assertEquals(data, event.getData());
     }
 }

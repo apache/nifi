@@ -16,23 +16,25 @@
  */
 package org.apache.nifi.processors.lumberjack.frame;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SuppressWarnings("deprecation")
 public class TestLumberjackFrame {
 
-    @Test(expected = LumberjackFrameException.class)
+    @Test
     public void testInvalidVersion() {
-        new LumberjackFrame.Builder().seqNumber(1234).dataSize(3).build();
+        assertThrows(LumberjackFrameException.class, () -> new LumberjackFrame.Builder().seqNumber(1234).dataSize(3).build());
     }
 
-    @Test(expected = LumberjackFrameException.class)
+    @Test
     public void testInvalidFrameType() {
-        new LumberjackFrame.Builder().frameType((byte) 0x70).dataSize(5).build();
+        assertThrows(LumberjackFrameException.class, () -> new LumberjackFrame.Builder().frameType((byte) 0x70).dataSize(5).build());
     }
 
-    @Test(expected = LumberjackFrameException.class)
+    @Test
     public void testBlankFrameType() {
-        new LumberjackFrame.Builder().frameType(((byte) 0x00)).dataSize(5).build();
+        assertThrows(LumberjackFrameException.class, () -> new LumberjackFrame.Builder().frameType(((byte) 0x00)).dataSize(5).build());
     }
 }

@@ -27,9 +27,8 @@ import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.processors.lumberjack.event.LumberjackMetadata;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
@@ -46,6 +45,9 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 @SuppressWarnings("deprecation")
 public class ITLumberjackSocketChannelHandler {
     private EventFactory<TestEvent> eventFactory;
@@ -58,7 +60,7 @@ public class ITLumberjackSocketChannelHandler {
     private Charset charset;
     private ChannelDispatcher dispatcher;
 
-    @Before
+    @BeforeEach
     public void setup() {
         eventFactory = new TestEventHolderFactory();
         channelHandlerFactory = new LumberjackSocketChannelHandlerFactory<>();
@@ -91,7 +93,7 @@ public class ITLumberjackSocketChannelHandler {
         run(messages);
 
         // Check for the 4 frames (from the hex string above) are back...
-        Assert.assertEquals(4, events.size());
+        assertEquals(4, events.size());
 
         boolean found1 = false;
         boolean found2 = false;
@@ -101,7 +103,7 @@ public class ITLumberjackSocketChannelHandler {
         TestEvent event;
         while((event = events.poll()) != null) {
             Map<String,String> metadata = event.metadata;
-            Assert.assertTrue(metadata.containsKey(LumberjackMetadata.SEQNUMBER_KEY));
+            assertTrue(metadata.containsKey(LumberjackMetadata.SEQNUMBER_KEY));
 
             final String seqNum = metadata.get(LumberjackMetadata.SEQNUMBER_KEY);
             if (seqNum.equals("1")) {
@@ -115,10 +117,10 @@ public class ITLumberjackSocketChannelHandler {
             }
         }
 
-        Assert.assertTrue(found1);
-        Assert.assertTrue(found2);
-        Assert.assertTrue(found3);
-        Assert.assertTrue(found4);
+        assertTrue(found1);
+        assertTrue(found2);
+        assertTrue(found3);
+        assertTrue(found4);
     }
 
     protected void run(List<String> messages) throws IOException, InterruptedException {
@@ -159,7 +161,7 @@ public class ITLumberjackSocketChannelHandler {
             }
 
             // should have gotten an event for each message sent
-            Assert.assertEquals(4, events.size());
+            assertEquals(4, events.size());
 
         } finally {
             // stop the dispatcher thread and ensure we shut down handler threads
