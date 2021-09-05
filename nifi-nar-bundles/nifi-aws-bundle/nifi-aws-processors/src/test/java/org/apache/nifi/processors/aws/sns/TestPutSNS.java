@@ -111,7 +111,7 @@ public class TestPutSNS {
         ArgumentCaptor<PublishRequest> captureRequest = ArgumentCaptor.forClass(PublishRequest.class);
         Mockito.verify(mockSNSClient, Mockito.times(1)).publish(captureRequest.capture());
         PublishRequest request = captureRequest.getValue();
-        assertEquals("arn:aws:sns:us-west-2:123456789012:test-topic-1", request.getTopicArn());
+        assertEquals("arn:aws:sns:us-west-2:123456789012:test-topic-1.fifo", request.getTopicArn());
         assertEquals("Test Message Content", request.getMessage());
         assertEquals("test-subject", request.getSubject());
         assertEquals("test1234", request.getMessageGroupId());
