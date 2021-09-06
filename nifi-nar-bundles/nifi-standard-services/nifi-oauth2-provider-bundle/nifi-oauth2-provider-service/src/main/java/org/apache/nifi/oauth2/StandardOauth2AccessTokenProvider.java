@@ -222,7 +222,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
                 try {
                     refreshAccessDetails();
                 } catch (Exception e) {
-                    getLogger().info("Couldn't refresh access token.", e);
+                    getLogger().info("Couldn't refresh access token", e);
                     acquireAccessDetails();
                 }
             }
@@ -232,7 +232,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     }
 
     private void acquireAccessDetails() {
-        getLogger().debug("Getting a new access token.");
+        getLogger().debug("Getting a new access token");
 
         FormBody.Builder acquireTokenBuilder = new FormBody.Builder();
 
@@ -260,7 +260,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     }
 
     private void refreshAccessDetails() {
-        getLogger().debug("Refreshing access token.");
+        getLogger().debug("Refreshing access token");
 
         FormBody.Builder refreshTokenBuilder = new FormBody.Builder()
             .add("grant_type", "refresh_token")
@@ -286,15 +286,15 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             Response response = httpClient.newCall(newRequest).execute();
             String responseBody = response.body().string();
             if (response.code() != 200) {
-                getLogger().error(String.format("Bad response from the server during oauth2 request:\n%s", responseBody));
-                throw new ProcessException(String.format("Got HTTP %d during oauth2 request.", response.code()));
+                getLogger().error(String.format("OAuth2 access token request failed [HTTP %d], response:%n%s", response.code(), responseBody));
+                throw new ProcessException(String.format("OAuth2 access token request failed [HTTP %d]", response.code()));
             }
 
             AccessToken accessDetails = ACCESS_DETAILS_MAPPER.readValue(responseBody, AccessToken.class);
 
             return accessDetails;
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new UncheckedIOException("OAuth2 access token request failed", e);
         }
     }
 }
