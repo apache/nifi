@@ -43,6 +43,7 @@ import org.apache.nifi.provenance.store.StorageResult;
 import org.apache.nifi.util.Tuple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.mockito.Mockito;
@@ -67,6 +68,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisabledOnOs(OS.WINDOWS)
+@Timeout(value = 5)
 public class TestLuceneEventIndex {
 
     private final AtomicLong idGenerator = new AtomicLong(0L);

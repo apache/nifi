@@ -19,6 +19,7 @@ package org.apache.nifi.provenance;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.events.EventReporter;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -38,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * This test is intended to ensure that we can properly startup even when pointing to a Provenance
  * Repository that was created against the old Lucene.
  */
+@Timeout(value = 5)
 public class StartupAgainstOldLuceneIndexIT {
 
     @Test
