@@ -53,10 +53,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -766,7 +765,8 @@ public class TestSelectHive3QL {
         final int expectedBirthDate = (int) LocalDate.parse("1956-11-22").toEpochDay();
         final BigDecimal decimal = new BigDecimal("12345678.12").setScale(2, BigDecimal.ROUND_HALF_EVEN);
         final ByteBuffer expectedBigNumber = ByteBuffer.wrap(decimal.unscaledValue().toByteArray());
-        final long expectedCreatedOn = LocalDateTime.parse("1962-09-23T03:23:34.234").atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC")).toInstant().toEpochMilli();
+        final Timestamp timestamp = Timestamp.valueOf("1962-09-23 03:23:34.234");
+        final long expectedCreatedOn = timestamp.getTime();
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
