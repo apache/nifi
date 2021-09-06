@@ -24,14 +24,27 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class StandardOauth2AccessTokenProviderTest {
@@ -51,6 +64,12 @@ public class StandardOauth2AccessTokenProviderTest {
 
     @Mock
     private ComponentLog mockLogger;
+    @Captor
+    private ArgumentCaptor<String> debugCaptor;
+    @Captor
+    private ArgumentCaptor<String> errorCaptor;
+    @Captor
+    private ArgumentCaptor<Throwable> throwableCaptor;
 
     @Before
     public void setUp() throws Exception {
@@ -80,24 +99,15 @@ public class StandardOauth2AccessTokenProviderTest {
 
     @Test
     public void testAcquireNewToken() throws Exception {
-        // GIVEN
-        Request mockRequest = new Request.Builder()
-            .url("http://unimportant_but_required")
-            .build();
-
         String accessTokenValue = "access_token_value";
 
-        Response response1 = new Response.Builder()
-            .request(mockRequest)
-            .protocol(Protocol.HTTP_2)
-            .message("unimportant_but_required")
-            .code(200)
-            .body(ResponseBody.create(
-                ("{ \"access_token\":\"" + accessTokenValue + "\" }").getBytes(),
-                MediaType.parse("application/json")))
-            .build();
+        // GIVEN
+        Response response = buildResponse(
+            200,
+            "{ \"access_token\":\"" + accessTokenValue + "\" }"
+        );
 
-        when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response1);
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);
 
         // WHEN
         String actual = testSubject.getAccessDetails().getAccessToken();
@@ -109,40 +119,251 @@ public class StandardOauth2AccessTokenProviderTest {
     @Test
     public void testRefreshToken() throws Exception {
         // GIVEN
-        Request mockRequest = new Request.Builder()
-            .url("http://unimportant_but_required")
-            .build();
+        String firstToken = "first_token";
+        String expectedToken = "second_token";
 
-        String accessTokenValue1 = "access_token_value1";
-        String accessTokenValue2 = "access_token_value2";
+        Response response1 = buildResponse(
+            200,
+            "{ \"access_token\":\"" + firstToken + "\", \"expires_in\":\"0\", \"refresh_token\":\"not_checking_in_this_test\" }"
+        );
 
-        Response response1 = new Response.Builder()
-            .request(mockRequest)
-            .protocol(Protocol.HTTP_2)
-            .message("unimportant_but_required")
-            .code(200)
-            .body(ResponseBody.create(
-                ("{ \"access_token\":\"" + accessTokenValue1 + "\", \"expires_in\":\"0\", \"refresh_token\":\"not_checking_in_this_test\" }").getBytes(),
-                MediaType.parse("application/json")))
-            .build();
-
-        Response response2 = new Response.Builder()
-            .request(mockRequest)
-            .protocol(Protocol.HTTP_2)
-            .message("unimportant_but_required")
-            .code(200)
-            .body(ResponseBody.create(
-                ("{ \"access_token\":\"" + accessTokenValue2 + "\" }").getBytes(),
-                MediaType.parse("application/json")))
-            .build();
+        Response response2 = buildResponse(
+            200,
+            "{ \"access_token\":\"" + expectedToken + "\" }"
+        );
 
         when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response1, response2);
 
         // WHEN
         testSubject.getAccessDetails();
-        String actual = testSubject.getAccessDetails().getAccessToken();
+        String actualToken = testSubject.getAccessDetails().getAccessToken();
 
         // THEN
-        assertEquals(accessTokenValue2, actual);
+        assertEquals(expectedToken, actualToken);
+    }
+
+    @Test
+    public void testIOExceptionDuringRefreshAndSubsequentAcquire() throws Exception {
+        // GIVEN
+        String refreshErrorMessage = "refresh_error";
+        String acquireErrorMessage = "acquire_error";
+
+        AtomicInteger callCounter = new AtomicInteger(0);
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenAnswer(invocation -> {
+            callCounter.incrementAndGet();
+
+            if (callCounter.get() == 1) {
+                return buildSuccessfulInitResponse();
+            } else if (callCounter.get() == 2) {
+                throw new IOException(refreshErrorMessage);
+            } else if (callCounter.get() == 3) {
+                throw new IOException(acquireErrorMessage);
+            }
+
+            throw new IllegalStateException("Test improperly defined mock HTTP responses.");
+        });
+
+        // Get a good accessDetails so we can have a refresh a second time
+        testSubject.getAccessDetails();
+
+        // WHEN
+        try {
+            testSubject.getAccessDetails();
+            fail();
+        } catch (UncheckedIOException e) {
+            // THEN
+            checkLoggedDebugWhenRefreshThrowsIOException();
+
+            checkLoggedRefreshError(new UncheckedIOException("OAuth2 access token request failed", new IOException(refreshErrorMessage)));
+
+            checkError(new UncheckedIOException("OAuth2 access token request failed", new IOException(acquireErrorMessage)), e);
+        }
+    }
+
+    @Test
+    public void testIOExceptionDuringRefreshSuccessfulSubsequentAcquire() throws Exception {
+        // GIVEN
+        String refreshErrorMessage = "refresh_error";
+        String expectedToken = "expected_token";
+
+        Response successfulAcquireResponse = buildResponse(
+            200,
+            "{ \"access_token\":\"" + expectedToken + "\", \"expires_in\":\"0\", \"refresh_token\":\"not_checking_in_this_test\" }"
+        );
+
+        AtomicInteger callCounter = new AtomicInteger(0);
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenAnswer(invocation -> {
+            callCounter.incrementAndGet();
+
+            if (callCounter.get() == 1) {
+                return buildSuccessfulInitResponse();
+            } else if (callCounter.get() == 2) {
+                throw new IOException(refreshErrorMessage);
+            } else if (callCounter.get() == 3) {
+                return successfulAcquireResponse;
+            }
+
+            throw new IllegalStateException("Test improperly defined mock HTTP responses.");
+        });
+
+        // Get a good accessDetails so we can have a refresh a second time
+        testSubject.getAccessDetails();
+
+        // WHEN
+        String actualToken = testSubject.getAccessDetails().getAccessToken();
+
+        // THEN
+        checkLoggedDebugWhenRefreshThrowsIOException();
+
+        checkLoggedRefreshError(new UncheckedIOException("OAuth2 access token request failed", new IOException(refreshErrorMessage)));
+
+        assertEquals(expectedToken, actualToken);
+    }
+
+    @Test
+    public void testHTTPErrorDuringRefreshAndSubsequentAcquire() throws Exception {
+        // GIVEN
+        String errorRefreshResponseBody = "{ \"error_response\":\"refresh_error\" }";
+        String errorAcquireResponseBody = "{ \"error_response\":\"acquire_error\" }";
+
+        Response errorRefreshResponse = buildResponse(500, errorRefreshResponseBody);
+        Response errorAcquireResponse = buildResponse(503, errorAcquireResponseBody);
+
+        AtomicInteger callCounter = new AtomicInteger(0);
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenAnswer(invocation -> {
+            callCounter.incrementAndGet();
+
+            if (callCounter.get() == 1) {
+                return buildSuccessfulInitResponse();
+            } else if (callCounter.get() == 2) {
+                return errorRefreshResponse;
+            } else if (callCounter.get() == 3) {
+                return errorAcquireResponse;
+            }
+
+            throw new IllegalStateException("Test improperly defined mock HTTP responses.");
+        });
+
+        List<String> expectedLoggedInfo = Arrays.asList(
+            String.format("OAuth2 access token request failed [HTTP %d], response:%n%s", 500, errorRefreshResponseBody),
+            String.format("OAuth2 access token request failed [HTTP %d], response:%n%s", 503, errorAcquireResponseBody)
+        );
+
+        // Get a good accessDetails so we can have a refresh a second time
+        testSubject.getAccessDetails();
+
+        // WHEN
+        try {
+            testSubject.getAccessDetails();
+            fail();
+        } catch (ProcessException e) {
+            // THEN
+            checkLoggedDebugWhenRefreshThrowsIOException();
+
+            checkLoggedRefreshError(new ProcessException("OAuth2 access token request failed [HTTP 500]"));
+
+            checkedLoggedErrorWhenRefreshReturnsBadHTTPResponse(expectedLoggedInfo);
+
+            checkError(new ProcessException("OAuth2 access token request failed [HTTP 503]"), e);
+        }
+    }
+
+    @Test
+    public void testHTTPErrorDuringRefreshSuccessfulSubsequentAcquire() throws Exception {
+        // GIVEN
+        String expectedRefreshErrorResponse = "{ \"error_response\":\"refresh_error\" }";
+        String expectedToken = "expected_token";
+
+        Response errorRefreshResponse = buildResponse(500, expectedRefreshErrorResponse);
+        Response successfulAcquireResponse = buildResponse(
+            200,
+            "{ \"access_token\":\"" + expectedToken + "\", \"expires_in\":\"0\", \"refresh_token\":\"not_checking_in_this_test\" }"
+        );
+
+        AtomicInteger callCounter = new AtomicInteger(0);
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenAnswer(invocation -> {
+            callCounter.incrementAndGet();
+
+            if (callCounter.get() == 1) {
+                return buildSuccessfulInitResponse();
+            } else if (callCounter.get() == 2) {
+                return errorRefreshResponse;
+            } else if (callCounter.get() == 3) {
+                return successfulAcquireResponse;
+            }
+
+            throw new IllegalStateException("Test improperly defined mock HTTP responses.");
+        });
+
+        List<String> expectedLoggedInfo = Arrays.asList(String.format("OAuth2 access token request failed [HTTP %d], response:%n%s", 500, expectedRefreshErrorResponse));
+
+        // Get a good accessDetails so we can have a refresh a second time
+        testSubject.getAccessDetails();
+
+        // WHEN
+        String actualToken = testSubject.getAccessDetails().getAccessToken();
+
+        // THEN
+        checkLoggedDebugWhenRefreshThrowsIOException();
+
+        checkLoggedRefreshError(new ProcessException("OAuth2 access token request failed [HTTP 500]"));
+
+        checkedLoggedErrorWhenRefreshReturnsBadHTTPResponse(expectedLoggedInfo);
+
+        assertEquals(expectedToken, actualToken);
+    }
+
+    private Response buildSuccessfulInitResponse() {
+        return buildResponse(
+            200,
+            "{ \"access_token\":\"exists_but_value_irrelevant\", \"expires_in\":\"0\", \"refresh_token\":\"not_checking_in_this_test\" }"
+        );
+    }
+
+    private Response buildResponse(int code, String body) {
+        return new Response.Builder()
+            .request(new Request.Builder()
+                .url("http://unimportant_but_required")
+                .build()
+            )
+            .protocol(Protocol.HTTP_2)
+            .message("unimportant_but_required")
+            .code(code)
+            .body(ResponseBody.create(
+                body.getBytes(),
+                MediaType.parse("application/json"))
+            )
+            .build();
+    }
+
+    private void checkLoggedDebugWhenRefreshThrowsIOException() {
+        verify(mockLogger, times(3)).debug(debugCaptor.capture());
+        List<String> actualDebugMessages = debugCaptor.getAllValues();
+
+        assertEquals(
+            Arrays.asList("Getting a new access token", "Refreshing access token", "Getting a new access token"),
+            actualDebugMessages
+        );
+    }
+
+    private void checkedLoggedErrorWhenRefreshReturnsBadHTTPResponse(List<String> expectedLoggedError) {
+        verify(mockLogger, times(expectedLoggedError.size())).error(errorCaptor.capture());
+        List<String> actualLoggedError = errorCaptor.getAllValues();
+
+        assertEquals(expectedLoggedError, actualLoggedError);
+    }
+
+    private void checkLoggedRefreshError(Throwable expectedRefreshError) {
+        verify(mockLogger).info(eq("Couldn't refresh access token"), throwableCaptor.capture());
+        Throwable actualRefreshError = throwableCaptor.getValue();
+
+        checkError(expectedRefreshError, actualRefreshError);
+    }
+
+    private void checkError(Throwable expectedError, Throwable actualError) {
+        assertEquals(expectedError.getMessage(), actualError.getMessage());
+        if (expectedError.getCause() != null || actualError.getCause() != null) {
+            assertEquals(expectedError.getCause().getMessage(), actualError.getCause().getMessage());
+        }
     }
 }
