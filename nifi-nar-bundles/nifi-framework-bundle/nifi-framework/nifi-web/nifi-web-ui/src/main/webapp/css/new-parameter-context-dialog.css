@@ -32,12 +32,12 @@
     display: none;
 }
 
-#parameter-context-dialog div.settings-left {
+.parameter-context-tabs-content.split-65-35 div.settings-left {
     float: left;
     width: 65%;
 }
 
-#parameter-context-dialog div.settings-right {
+.parameter-context-tabs-content.split-65-35 div.settings-right {
     float: left;
     width: 33%;
     height: 100%;
@@ -133,4 +133,65 @@ span.parameter-context-referencing-component-name {
 #parameter-context-updating-status .status-message {
     white-space: nowrap;
     margin-left: 6px;
+}
+
+/* inheritance */
+
+#parameter-context-available, #parameter-context-selected {
+    list-style-type: none;
+    margin: 0px;
+    background: #eaeef0;
+    min-height: 32px;
+    margin-bottom: 5px;
+    padding: 2px;
+}
+
+#parameter-context-available li, #parameter-context-selected li {
+    margin: 2px;
+    padding: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    height: 12px;
+    overflow: hidden;
+}
+
+#parameter-context-available li.unauthorized, #parameter-context-selected li.unauthorized {
+    color: #a8a8a8;
+    cursor: not-allowed;
+}
+
+#parameter-context-available li {
+    background: #fff;
+    border-top: 1px solid #CCDADB;
+    border-right: 1px solid #CCDADB;
+    border-bottom: 1px solid #CCDADB;
+    border-left: 1px solid #CCDADB;
+    color: #004849;
+    font-weight: 500;
+    cursor: grab;
+    line-height: 32px;
+    height: 32px;
+    padding: 0px 10px;
+    box-shadow:0 1px 1px rgba(0,0,0,0.4);
+}
+
+#parameter-context-selected li {
+    background: #355B6A;
+    border-top: 1px solid #AAC1CE;
+    border-right: 1px solid #85A6B8;
+    border-bottom: 1px solid #618BA3;
+    border-left: 1px solid #85A6B8;
+    color: #fff;
+    font-weight: bold;
+    line-height: 32px;
+    height: 32px;
+    padding: 0px 10px;
+}
+
+#parameter-context-selected .draggable-control {
+    float: right;
+}
+
+#parameter-context-selected .fa-remove, #parameter-context-selected .fa-question-circle {
+    color: #fff;
 }

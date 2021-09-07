@@ -219,6 +219,7 @@
         parameterData.setItems([]);
 
         resetUsage();
+        resetInheritance();
 
         // reset the last selected parameter
         lastSelectedId = null;
@@ -298,6 +299,31 @@
         });
 
         return parameters;
+    };
+
+    /**
+     * Marshals the inherited parameter contexts.
+     */
+    var marshalInheritedParameterContexts = function () {
+        if ($('#parameter-context-selected').hasClass('contains-unauthorized')) {
+            return null;
+        } else {
+            var parameterContextsGrid = $('#parameter-contexts-table').data('gridInstance');
+            var parameterContextsData = parameterContextsGrid.getData();
+
+            var inheritedParameterContextIds = $('#parameter-context-selected').sortable('toArray');
+
+            return inheritedParameterContextIds.map(function (id) {
+                var parameterContext = parameterContextsData.getItemById(id);
+                return {
+                    id: parameterContext.id,
+                    component: {
+                        id: parameterContext.component.id,
+                        name: parameterContext.component.name
+                    }
+                }
+            });
+        }
     };
 
     /**
@@ -1085,6 +1111,7 @@
         if (parameters.length === 0) {
             // nothing to update
             parameterContextEntity.component.parameters = [];
+
             if ($('#parameter-context-name').val() === parameterContextEntity.component.name &&
                 $('#parameter-context-description-field').val() === parameterContextEntity.component.description) {
                 close();
@@ -1093,6 +1120,12 @@
             }
         } else {
             parameterContextEntity.component.parameters = parameters;
+        }
+
+        // include the inherited parameter contexts
+        var inheritedParameterContexts = marshalInheritedParameterContexts();
+        if (!nfCommon.isNull(inheritedParameterContexts)) {
+            parameterContextEntity.component.inheritedParameterContexts = inheritedParameterContexts;
         }
 
         parameterContextEntity.component.name = $('#parameter-context-name').val();
@@ -1530,6 +1563,50 @@
         }
     };
 
+    /**
+     * Load the parameter context inheritance tab for the current parameterContextEntity. The current parameterContextEntity could be
+     * null if this is a new parameter context.
+     *
+     * @param parameterContextEntity    the parameter context being edited or null if new
+     * @param readOnly                  whether the controls should be read only
+     */
+    var loadParameterContextInheritance = function (parameterContextEntity, readOnly) {
+        var parameterContextsGrid = $('#parameter-contexts-table').data('gridInstance');
+        var parameterContextsData = parameterContextsGrid.getData();
+        var parameterContexts = parameterContextsData.getItems();
+
+        // determine if the specified parameter context contains any selected inherited parameter contexts the current user does not have permissions to
+        var hasSelectedUnauthorized = nfCommon.isNull(parameterContextEntity) ? false : parameterContextEntity.component.inheritedParameterContexts.some((selectedParameterContext) => {
+            return !selectedParameterContext.permissions.canRead;
+        });
+
+        // consider each parameter context and add to the listing of available or selected contexts based on the supplied parameterContextEntity
+        $.each(parameterContexts, function (i, availableParameterContext) {
+            // don't support inheriting from the current context
+            var isCurrent = nfCommon.isNull(parameterContextEntity) ? false : availableParameterContext.id === parameterContextEntity.id;
+
+            // determine if this available parameter context is already selected
+            var isSelected = nfCommon.isNull(parameterContextEntity) ? false : parameterContextEntity.component.inheritedParameterContexts.some((selectedParameterContext) => {
+                return availableParameterContext.id === selectedParameterContext.id;
+            });
+
+            if (isSelected) {
+                addParameterContextInheritanceControl('#parameter-context-selected', availableParameterContext, true);
+            } else if (!isCurrent) {
+                addParameterContextInheritanceControl('#parameter-context-available', availableParameterContext, false);
+            }
+        });
+
+        sortAvailableParameterContexts();
+
+        if (readOnly || hasSelectedUnauthorized) {
+            $('#parameter-context-available, #parameter-context-selected').sortable('disable').sortable('refresh');
+            $('#parameter-context-selected').addClass('contains-unauthorized');
+        } else {
+            $('#parameter-context-available, #parameter-context-selected').sortable('enable').sortable('refresh');
+        }
+    };
+
     var resetUsage = function () {
         // empty the containers
         var processorContainer = $('.parameter-context-referencing-processors');
@@ -1560,6 +1637,94 @@
         // check if border is necessary
         updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
     };
+
+    /**
+     * Reset the inheritance tab.
+     */
+    var resetInheritance = function () {
+        $('#parameter-context-available').empty();
+        $('#parameter-context-selected').removeClass('contains-unauthorized').empty();
+    };
+
+    /**
+     * Sorts the available parameter contexts.
+     */
+    var sortAvailableParameterContexts = function () {
+        var availableParameterContextList = $('#parameter-context-available');
+        availableParameterContextList.children('li')
+            .detach()
+            .sort(function (a, b) {
+                var a = $(a);
+                var b = $(b);
+
+                // put unauthorized last
+                if (a.hasClass('unauthorized') && b.hasClass('unauthorized')) {
+                    return 0;
+                } else if (a.hasClass('unauthorized')) {
+                    return 1;
+                } else if (b.hasClass('unauthorized')) {
+                    return -1;
+                }
+
+                var nameA = a.text();
+                var nameB = b.text();
+                return nameA.localeCompare(nameB);
+            })
+            .appendTo(availableParameterContextList);
+    };
+
+    /**
+     * Adds the specified parameter context to the list of available parameter contexts.
+     *
+     * @argument {jQuery} container                  The container for the parameter context
+     * @argument {object} parameterContext           An available parameter context
+     * @argument {boolean} isSelected                 Whether the parameter context is selected (which is used to decide whether to provide a remove control)
+     */
+    var addParameterContextInheritanceControl = function (container, parameterContext, isSelected) {
+        var label = parameterContext.id;
+        if (parameterContext.permissions.canRead) {
+            label = parameterContext.component.name;
+        }
+
+        // add the parameter context to the specified list
+        var parameterContextElement = $('<li></li>').append($('<span style="float: left;"></span>').text(label)).attr('id', parameterContext.id).addClass('ui-state-default');
+        if (!parameterContext.permissions.canRead) {
+            parameterContextElement.addClass('unauthorized');
+        } else {
+            // add the description if applicable
+            if (!nfCommon.isBlank(parameterContext.component.description)) {
+                $('<div class="fa fa-question-circle"></div>').appendTo(parameterContextElement).qtip($.extend({
+                    content: nfCommon.escapeHtml(parameterContext.component.description)
+                }, nfCommon.config.tooltipConfig));
+            }
+
+            addDraggableControls(parameterContextElement, isSelected);
+        }
+        parameterContextElement.appendTo(container);
+    };
+
+    /**
+     * Adds the controls to the specified draggable element.
+     *
+     * @argument {jQuery} draggableElement
+     * @argument {boolean} isSelected
+     */
+    var addDraggableControls = function (draggableElement, isSelected) {
+        if (isSelected) {
+            var removeIcon = $('<div class="draggable-control"><div class="fa fa-remove"></div></div>')
+                .on('click', function () {
+                    // remove the remove ice
+                    removeIcon.remove();
+
+                    // restore to the available parameter contexts
+                    $('#parameter-context-available').append(draggableElement);
+
+                    // resort the available parameter contexts
+                    sortAvailableParameterContexts();
+                })
+                .appendTo(draggableElement);
+        }
+    }
 
     /**
      * Performs the filtering.
@@ -1914,6 +2079,9 @@
             }, {
                 name: 'Parameters',
                 tabContentId: 'parameter-context-parameters-tab-content'
+            }, {
+                name: 'Inheritance',
+                tabContentId: 'parameter-context-inheritance-tab-content'
             }],
             select: function () {
                 // update the parameters table size in case this is the first time its rendered
@@ -2382,6 +2550,7 @@
             // create a new parameter context
             $('#new-parameter-context').on('click', function () {
                 resetUsage();
+                resetInheritance();
 
                 // new parameter contexts do not have an ID to show
                 if (!$('#parameter-context-id-setting').hasClass('hidden')) {
@@ -2424,9 +2593,46 @@
                     }
                 }]).modal('show');
 
+                loadParameterContextInheritance(null, false);
+
                 // set the initial focus
                 $('#parameter-context-name').focus();
             });
+
+            // work around for https://bugs.jqueryui.com/ticket/6054
+            let shouldAllowDrop = true;
+
+            // make the parameter context containers sortable
+            $('#parameter-context-available').sortable({
+                containment: $('#parameter-context-inheritance-tab-content'),
+                cancel: '.unauthorized',
+                connectWith: '#parameter-context-selected',
+                placeholder: 'available',
+                scroll: true,
+                opacity: 0.6,
+                beforeStop: function (event, ui) {
+                    if ($('#parameter-context-available').find('.ui-sortable-placeholder').length) {
+                        shouldAllowDrop = false;
+                    }
+                },
+                stop: function (event, ui) {
+                    const allowDrop = shouldAllowDrop;
+                    shouldAllowDrop = true;
+                    return allowDrop;
+                }
+            });
+            $('#parameter-context-selected').sortable({
+                containment: $('#parameter-context-inheritance-tab-content'),
+                cancel: '.unauthorized',
+                placeholder: 'selected',
+                scroll: true,
+                opacity: 0.6,
+                receive: function (event, ui) {
+                    addDraggableControls(ui.item, true);
+                    console.log(ui);
+                }
+            });
+            $('#parameter-context-available, #parameter-context-selected').disableSelection();
 
             // initialize the new parameter context dialog
             initNewParameterContextDialog();
@@ -2437,7 +2643,7 @@
                 if ($('#parameter-referencing-components-container').is(':visible')) {
                     updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
                 }
-            })
+            });
         },
 
         /**
@@ -2459,6 +2665,11 @@
                     }
                 })
             };
+
+            var inheritedParameterContexts = marshalInheritedParameterContexts();
+            if (!nfCommon.isNull(inheritedParameterContexts)) {
+                parameterContextEntity.component.inheritedParameterContexts = inheritedParameterContexts;
+            }
 
             var addContext = $.ajax({
                 type: 'POST',
@@ -2578,6 +2789,8 @@
                 loadReferencingProcessGroups(referencingComponentsContainer, parameterContextEntity);
 
                 loadParameters(parameterContextEntity, parameterToSelect, readOnly || !canWrite);
+
+                loadParameterContextInheritance(parameterContextEntity, readOnly || !canWrite);
 
                 var editModeButtonModel = [{
                     buttonText: 'Apply',
