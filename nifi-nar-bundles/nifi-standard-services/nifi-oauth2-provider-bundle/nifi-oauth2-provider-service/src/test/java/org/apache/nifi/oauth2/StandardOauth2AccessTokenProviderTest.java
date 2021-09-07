@@ -244,7 +244,7 @@ public class StandardOauth2AccessTokenProviderTest {
             throw new IllegalStateException("Test improperly defined mock HTTP responses.");
         });
 
-        List<String> expectedLoggedInfo = Arrays.asList(
+        List<String> expectedLoggedError = Arrays.asList(
             String.format("OAuth2 access token request failed [HTTP %d], response:%n%s", 500, errorRefreshResponseBody),
             String.format("OAuth2 access token request failed [HTTP %d], response:%n%s", 503, errorAcquireResponseBody)
         );
@@ -263,7 +263,7 @@ public class StandardOauth2AccessTokenProviderTest {
 
         checkLoggedRefreshError(new ProcessException("OAuth2 access token request failed [HTTP 500]"));
 
-        checkedLoggedErrorWhenRefreshReturnsBadHTTPResponse(expectedLoggedInfo);
+        checkedLoggedErrorWhenRefreshReturnsBadHTTPResponse(expectedLoggedError);
 
         checkError(new ProcessException("OAuth2 access token request failed [HTTP 503]"), actualException);
     }
@@ -295,7 +295,7 @@ public class StandardOauth2AccessTokenProviderTest {
             throw new IllegalStateException("Test improperly defined mock HTTP responses.");
         });
 
-        List<String> expectedLoggedInfo = Arrays.asList(String.format("OAuth2 access token request failed [HTTP %d], response:%n%s", 500, expectedRefreshErrorResponse));
+        List<String> expectedLoggedError = Arrays.asList(String.format("OAuth2 access token request failed [HTTP %d], response:%n%s", 500, expectedRefreshErrorResponse));
 
         // Get a good accessDetails so we can have a refresh a second time
         testSubject.getAccessDetails();
@@ -308,7 +308,7 @@ public class StandardOauth2AccessTokenProviderTest {
 
         checkLoggedRefreshError(new ProcessException("OAuth2 access token request failed [HTTP 500]"));
 
-        checkedLoggedErrorWhenRefreshReturnsBadHTTPResponse(expectedLoggedInfo);
+        checkedLoggedErrorWhenRefreshReturnsBadHTTPResponse(expectedLoggedError);
 
         assertEquals(expectedToken, actualToken);
     }
