@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -167,17 +167,17 @@ public class StandardOauth2AccessTokenProviderTest {
         testSubject.getAccessDetails();
 
         // WHEN
-        try {
-            testSubject.getAccessDetails();
-            fail();
-        } catch (UncheckedIOException e) {
-            // THEN
-            checkLoggedDebugWhenRefreshThrowsIOException();
+        UncheckedIOException actualException = assertThrows(
+            UncheckedIOException.class,
+            () -> testSubject.getAccessDetails()
+        );
 
-            checkLoggedRefreshError(new UncheckedIOException("OAuth2 access token request failed", new IOException(refreshErrorMessage)));
+        // THEN
+        checkLoggedDebugWhenRefreshThrowsIOException();
 
-            checkError(new UncheckedIOException("OAuth2 access token request failed", new IOException(acquireErrorMessage)), e);
-        }
+        checkLoggedRefreshError(new UncheckedIOException("OAuth2 access token request failed", new IOException(refreshErrorMessage)));
+
+        checkError(new UncheckedIOException("OAuth2 access token request failed", new IOException(acquireErrorMessage)), actualException);
     }
 
     @Test
@@ -253,19 +253,19 @@ public class StandardOauth2AccessTokenProviderTest {
         testSubject.getAccessDetails();
 
         // WHEN
-        try {
-            testSubject.getAccessDetails();
-            fail();
-        } catch (ProcessException e) {
-            // THEN
-            checkLoggedDebugWhenRefreshThrowsIOException();
+        ProcessException actualException = assertThrows(
+            ProcessException.class,
+            () -> testSubject.getAccessDetails()
+        );
 
-            checkLoggedRefreshError(new ProcessException("OAuth2 access token request failed [HTTP 500]"));
+        // THEN
+        checkLoggedDebugWhenRefreshThrowsIOException();
 
-            checkedLoggedErrorWhenRefreshReturnsBadHTTPResponse(expectedLoggedInfo);
+        checkLoggedRefreshError(new ProcessException("OAuth2 access token request failed [HTTP 500]"));
 
-            checkError(new ProcessException("OAuth2 access token request failed [HTTP 503]"), e);
-        }
+        checkedLoggedErrorWhenRefreshReturnsBadHTTPResponse(expectedLoggedInfo);
+
+        checkError(new ProcessException("OAuth2 access token request failed [HTTP 503]"), actualException);
     }
 
     @Test
@@ -361,8 +361,10 @@ public class StandardOauth2AccessTokenProviderTest {
     }
 
     private void checkError(Throwable expectedError, Throwable actualError) {
+        assertEquals(expectedError.getClass(), actualError.getClass());
         assertEquals(expectedError.getMessage(), actualError.getMessage());
         if (expectedError.getCause() != null || actualError.getCause() != null) {
+            assertEquals(expectedError.getCause().getClass(), actualError.getCause().getClass());
             assertEquals(expectedError.getCause().getMessage(), actualError.getCause().getMessage());
         }
     }
