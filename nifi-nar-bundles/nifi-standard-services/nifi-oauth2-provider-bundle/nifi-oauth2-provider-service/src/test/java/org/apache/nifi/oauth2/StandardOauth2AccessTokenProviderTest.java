@@ -173,7 +173,7 @@ public class StandardOauth2AccessTokenProviderTest {
         );
 
         // THEN
-        checkLoggedDebugWhenRefreshThrowsIOException();
+        checkLoggedDebugWhenRefreshFails();
 
         checkLoggedRefreshError(new UncheckedIOException("OAuth2 access token request failed", new IOException(refreshErrorMessage)));
 
@@ -213,7 +213,7 @@ public class StandardOauth2AccessTokenProviderTest {
         String actualToken = testSubject.getAccessDetails().getAccessToken();
 
         // THEN
-        checkLoggedDebugWhenRefreshThrowsIOException();
+        checkLoggedDebugWhenRefreshFails();
 
         checkLoggedRefreshError(new UncheckedIOException("OAuth2 access token request failed", new IOException(refreshErrorMessage)));
 
@@ -259,7 +259,7 @@ public class StandardOauth2AccessTokenProviderTest {
         );
 
         // THEN
-        checkLoggedDebugWhenRefreshThrowsIOException();
+        checkLoggedDebugWhenRefreshFails();
 
         checkLoggedRefreshError(new ProcessException("OAuth2 access token request failed [HTTP 500]"));
 
@@ -304,7 +304,7 @@ public class StandardOauth2AccessTokenProviderTest {
         String actualToken = testSubject.getAccessDetails().getAccessToken();
 
         // THEN
-        checkLoggedDebugWhenRefreshThrowsIOException();
+        checkLoggedDebugWhenRefreshFails();
 
         checkLoggedRefreshError(new ProcessException("OAuth2 access token request failed [HTTP 500]"));
 
@@ -336,7 +336,7 @@ public class StandardOauth2AccessTokenProviderTest {
             .build();
     }
 
-    private void checkLoggedDebugWhenRefreshThrowsIOException() {
+    private void checkLoggedDebugWhenRefreshFails() {
         verify(mockLogger, times(3)).debug(debugCaptor.capture());
         List<String> actualDebugMessages = debugCaptor.getAllValues();
 
