@@ -35,7 +35,6 @@ import java.util.Set;
 @SeeAlso(classNames = {
     "org.apache.nifi.processors.script.ScriptedTransformRecord",
     "org.apache.nifi.processors.script.ScriptedValidateRecord",
-    "org.apache.nifi.processors.script.ScriptedRouteRecord",
     "org.apache.nifi.processors.script.ScriptedPartitionRecord"
 })
 public class ScriptedFilterRecord extends ScriptedRouterProcessor<Boolean> {

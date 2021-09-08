@@ -121,6 +121,7 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedRecordProcessor
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         final Map<String, String> originalAttributes = incomingFlowFile.getAttributes();
+        final RecordCounts counts = new RecordCounts();
 
         try {
             session.read(incomingFlowFile, new InputStreamCallback() {
@@ -135,13 +136,12 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedRecordProcessor
                         final Map<Relationship, FlowFile> outgoingFlowFiles = new HashMap<>();
                         final Map<Relationship, RecordSetWriter> recordSetWriters = new HashMap<>();
 
-                        int index = 0;
-
                         // Reading in records and evaluate script
                         while (pushBackSet.isAnotherRecord()) {
                             final Record record = pushBackSet.next();
-                            final Object evaluatedValue = evaluator.evaluate(record, index++);
-                            getLogger().debug("Evaluated scripted against {} (index {}), producing result of {}", record, index - 1, evaluatedValue);
+                            final Object evaluatedValue = evaluator.evaluate(record, counts.getRecordCount());
+                            getLogger().debug("Evaluated scripted against {} (index {}), producing result of {}", record, counts.getRecordCount(), evaluatedValue);
+                            counts.incrementRecordCount();
 
                             if (evaluatedValue != null && scriptResultType.isInstance(evaluatedValue)) {
                                 final Optional<Relationship> outgoingRelationship = resolveRelationship(scriptResultType.cast(evaluatedValue));
@@ -187,18 +187,16 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedRecordProcessor
                             session.putAllAttributes(outgoingFlowFile, attributes);
                             session.transfer(outgoingFlowFile, relationship);
                         }
-
-
-                        session.adjustCounter("Record Processed", index, false);
                     } catch (final ScriptException | SchemaNotFoundException | MalformedRecordException e) {
-                        throw new ProcessException("Failed to parse incoming FlowFile", e);
+                        throw new ProcessException("After processing " + counts.getRecordCount() +  " Records, encountered failure when attempting to process " + incomingFlowFile, e);
                     }
                 }
             });
 
+            session.adjustCounter("Records Processed", counts.getRecordCount(), true);
             return true;
         } catch (final Exception e) {
-            getLogger().error("Failed to route records for {}", incomingFlowFile, e);
+            getLogger().error("Failed to route records due to: " + e.getMessage(), e);
             return false;
         }
     }

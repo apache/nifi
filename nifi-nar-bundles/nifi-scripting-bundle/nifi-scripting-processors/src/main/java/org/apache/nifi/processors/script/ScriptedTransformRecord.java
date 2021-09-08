@@ -135,7 +135,7 @@ public class ScriptedTransformRecord extends ScriptedRecordProcessor {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        final Counts counts = new Counts();
+        final RecordCounts counts = new RecordCounts();
         try {
             final Map<String, String> attributesToAdd = new HashMap<>();
 
@@ -235,7 +235,7 @@ public class ScriptedTransformRecord extends ScriptedRecordProcessor {
         }
     }
 
-    private void processRecord(final Record inputRecord, final FlowFile flowFile, final Counts counts, final RecordWriteAction recordWriteAction,
+    private void processRecord(final Record inputRecord, final FlowFile flowFile, final RecordCounts counts, final RecordWriteAction recordWriteAction,
                                final ScriptEvaluator evaluator) throws IOException, ScriptException {
         final long index = counts.getRecordCount();
 
@@ -280,27 +280,6 @@ public class ScriptedTransformRecord extends ScriptedRecordProcessor {
         // Ensure that the value returned from the script is either null or a Record
         throw new RuntimeException("Evaluated script against Record number " + index + " of " + flowFile
             + " but instead of returning a Record, script returned a value of: " + returnValue);
-    }
-
-    private static class Counts {
-        private long recordCount;
-        private long droppedCount;
-
-        public long getRecordCount() {
-            return recordCount;
-        }
-
-        public long getDroppedCount() {
-            return droppedCount;
-        }
-
-        public void incrementRecordCount() {
-            recordCount++;
-        }
-
-        public void incrementDroppedCount() {
-            droppedCount++;
-        }
     }
 
     private interface RecordWriteAction {
