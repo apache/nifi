@@ -162,9 +162,7 @@ public class StandardParameterContext implements ParameterContext {
             final Parameter parameter = entry.getValue();
             if (parameter == null) {
                 final Optional<Parameter> existingParameter = getParameter(parameterName);
-                if (existingParameter.isPresent()) {
-                    proposedParameters.remove(existingParameter.get().getDescriptor());
-                }
+                existingParameter.ifPresent(value -> proposedParameters.remove(value.getDescriptor()));
             } else {
                 // Remove is necessary first in case sensitivity changes
                 proposedParameters.remove(parameter.getDescriptor());
@@ -544,7 +542,7 @@ public class StandardParameterContext implements ParameterContext {
         if (currentParameterProvider == null && updatedParameterProvider == null) {
             return false;
         }
-        if (currentParameterProvider == null && updatedParameterProvider != null || currentParameterProvider != null && updatedParameterProvider == null) {
+        if (currentParameterProvider == null || updatedParameterProvider == null) {
             return true;
         }
         return !currentParameterProvider.getIdentifier().equals(updatedParameterProvider.getIdentifier());
@@ -569,7 +567,7 @@ public class StandardParameterContext implements ParameterContext {
                         Map.Entry::getValue
                 ));
         final Map<String, Parameter> parametersToRemove = new HashMap<>();
-        matchingParameters.entrySet().forEach(entry -> parametersToRemove.put(entry.getKey().getName(), null));
+        matchingParameters.forEach((key, value) -> parametersToRemove.put(key.getName(), null));
         return parametersToRemove;
     }
 
@@ -876,12 +874,22 @@ public class StandardParameterContext implements ParameterContext {
             for (final ParameterContext parameterContext : inheritedParameterContexts) {
                 parameterContext.authorize(authorizer, action, user);
             }
-            getSensitiveParameterProvider().ifPresent(provider -> authorizeReadParameterProvider(authorizer, provider, user));
-            getNonSensitiveParameterProvider().ifPresent(provider -> authorizeReadParameterProvider(authorizer, provider, user));
+            getSensitiveParameterProvider().ifPresent(provider -> authorizeParameterProviderRead(authorizer, provider, user));
+            getNonSensitiveParameterProvider().ifPresent(provider -> authorizeParameterProviderRead(authorizer, provider, user));
         }
     }
 
-    private void authorizeReadParameterProvider(final Authorizer authorizer, final ParameterProvider parameterProvider, final NiFiUser user) {
+    @Override
+    public boolean isAuthorized(final Authorizer authorizer, final RequestAction action, final NiFiUser user) {
+        try {
+            authorize(authorizer, action, user);
+            return true;
+        } catch (final AccessDeniedException e) {
+            return false;
+        }
+    }
+
+    private void authorizeParameterProviderRead(final Authorizer authorizer, final ParameterProvider parameterProvider, final NiFiUser user) {
         final ParameterProviderNode parameterProviderNode = parameterProviderLookup.getParameterProvider(parameterProvider.getIdentifier());
         if (parameterProviderNode != null) {
             parameterProviderNode.authorize(authorizer, RequestAction.READ, user);
