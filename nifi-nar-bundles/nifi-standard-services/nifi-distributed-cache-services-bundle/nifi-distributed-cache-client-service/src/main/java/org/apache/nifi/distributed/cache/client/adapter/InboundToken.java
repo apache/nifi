@@ -68,7 +68,7 @@ public class InboundToken<T> {
      * @throws IOException on serialization failures
      */
     public void update(final ByteBuf byteBuf, final Deserializer<T> deserializer) throws IOException {
-        if ((length == null) && (byteBuf.readableBytes() >= 4)) {
+        if ((length == null) && (byteBuf.readableBytes() >= Integer.BYTES)) {
             length = byteBuf.readInt();
         }
         if ((length != null) && (byteBuf.readableBytes() >= length)) {

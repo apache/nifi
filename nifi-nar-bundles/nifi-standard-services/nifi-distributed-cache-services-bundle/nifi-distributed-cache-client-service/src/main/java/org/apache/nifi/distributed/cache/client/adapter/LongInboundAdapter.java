@@ -63,7 +63,7 @@ public class LongInboundAdapter implements InboundAdapter {
 
     @Override
     public void dequeue() throws IOException {
-        if (byteBuf.readableBytes() >= 8) {
+        if (byteBuf.readableBytes() >= Long.BYTES) {
             result = byteBuf.readLong();
         }
     }

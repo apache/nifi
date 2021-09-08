@@ -38,7 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * The {@link io.netty.channel.ChannelHandler} responsible for performing the client handshake with the
  * distributed cache server.
  */
-public class NettyHandshakeHandler extends ChannelInboundHandlerAdapter {
+public class CacheClientHandshakeHandler extends ChannelInboundHandlerAdapter {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -68,9 +68,9 @@ public class NettyHandshakeHandler extends ChannelInboundHandlerAdapter {
      * @param channel           the channel to which this {@link io.netty.channel.ChannelHandler} is bound.
      * @param versionNegotiator coordinator used to broker the version of the distributed cache protocol with the service
      */
-    public NettyHandshakeHandler(final Channel channel, final VersionNegotiator versionNegotiator) {
+    public CacheClientHandshakeHandler(final Channel channel, final VersionNegotiator versionNegotiator) {
         this.promiseHandshakeComplete = channel.newPromise();
-        this.protocol = new AtomicInteger(0);
+        this.protocol = new AtomicInteger(PROTOCOL_UNINITIALIZED);
         this.versionNegotiator = versionNegotiator;
     }
 
@@ -86,11 +86,11 @@ public class NettyHandshakeHandler extends ChannelInboundHandlerAdapter {
     public void channelActive(final ChannelHandlerContext ctx) throws IOException {
         final ByteBuf byteBufMagic = Unpooled.wrappedBuffer(MAGIC_HEADER);
         ctx.write(byteBufMagic);
-        logger.info("Magic header written");
+        logger.debug("Magic header written");
         final int currentVersion = versionNegotiator.getVersion();
         final ByteBuf byteBufVersion = Unpooled.wrappedBuffer(new OutboundAdapter().write(currentVersion).toBytes());
         ctx.writeAndFlush(byteBufVersion);
-        logger.info("Protocol version {} proposed", versionNegotiator.getVersion());
+        logger.debug("Protocol version {} proposed", versionNegotiator.getVersion());
     }
 
     @Override
@@ -102,7 +102,7 @@ public class NettyHandshakeHandler extends ChannelInboundHandlerAdapter {
             try {
                 processHandshake(ctx, byteBuf);
             } catch (IOException | HandshakeException e) {
-                throw new IllegalStateException(e);
+                throw new IllegalStateException("Handshake Processing Failed", e);
             } finally {
                 byteBuf.release();
             }
@@ -120,11 +120,11 @@ public class NettyHandshakeHandler extends ChannelInboundHandlerAdapter {
     private void processHandshake(final ChannelHandlerContext ctx, final ByteBuf byteBuf) throws HandshakeException, IOException {
         final short statusCode = byteBuf.readUnsignedByte();
         if (statusCode == ProtocolHandshake.RESOURCE_OK) {
-            logger.info("Protocol version {} accepted", versionNegotiator.getVersion());
+            logger.debug("Protocol version {} accepted", versionNegotiator.getVersion());
             protocol.set(versionNegotiator.getVersion());
         } else if (statusCode == ProtocolHandshake.DIFFERENT_RESOURCE_VERSION) {
             final int newVersion = byteBuf.readInt();
-            logger.info("Protocol version {} counter proposal", newVersion);
+            logger.debug("Protocol version {} counter proposal", newVersion);
             final Integer newPreference = versionNegotiator.getPreferredVersion(newVersion);
             Optional.ofNullable(newPreference).orElseThrow(() -> new HandshakeException("Could not agree on protocol version"));
             versionNegotiator.setVersion(newPreference);
@@ -143,8 +143,10 @@ public class NettyHandshakeHandler extends ChannelInboundHandlerAdapter {
     public void channelReadComplete(final ChannelHandlerContext ctx) {
         if (promiseHandshakeComplete.isSuccess()) {
             ctx.fireChannelReadComplete();
-        } else if (protocol.get() > 0) {
+        } else if (protocol.get() > PROTOCOL_UNINITIALIZED) {
             promiseHandshakeComplete.setSuccess();
         }
     }
+
+    private static final int PROTOCOL_UNINITIALIZED = 0;
 }

@@ -180,7 +180,7 @@ public abstract class AbstractCacheServer implements CacheServer {
             try {
                 serverSocketChannel.close();
             } catch (IOException e) {
-                logger.warn(e.getMessage());
+                logger.warn("Server Socket Close Failed", e);
             }
         }
         // need to close out the created SocketChannels...this is done by interrupting

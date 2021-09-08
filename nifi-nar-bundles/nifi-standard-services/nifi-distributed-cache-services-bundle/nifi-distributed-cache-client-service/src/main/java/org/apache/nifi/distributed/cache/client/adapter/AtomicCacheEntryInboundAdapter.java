@@ -97,7 +97,7 @@ public class AtomicCacheEntryInboundAdapter<K, V> implements InboundAdapter {
 
     @Override
     public void dequeue() throws IOException {
-        if ((revision == null) && (byteBuf.readableBytes() >= 8)) {
+        if ((revision == null) && (byteBuf.readableBytes() >= Long.BYTES)) {
             revision = byteBuf.readLong();
         }
         if (revision != null) {

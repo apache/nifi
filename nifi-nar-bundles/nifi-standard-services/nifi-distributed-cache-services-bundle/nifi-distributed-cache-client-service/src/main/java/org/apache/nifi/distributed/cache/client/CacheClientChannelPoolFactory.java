@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
  * methods.  Cache clients include the NiFi services {@link DistributedSetCacheClientService}
  * and {@link DistributedMapCacheClientService}.
  */
-public class NettyChannelPoolFactory {
+public class CacheClientChannelPoolFactory {
 
     /**
      * Instantiate a new netty pool of channels to be used for distributed cache communications
@@ -49,8 +49,8 @@ public class NettyChannelPoolFactory {
      * @return a channel pool object from which {@link Channel} objects may be obtained
      */
     public static ChannelPool createChannelPool(final ConfigurationContext context, final VersionNegotiator versionNegotiator) {
-        final PropertyValue hostname = context.getProperty(DistributedSetCacheClientService.HOSTNAME);
-        final PropertyValue port = context.getProperty(DistributedSetCacheClientService.PORT);
+        final String hostname = context.getProperty(DistributedSetCacheClientService.HOSTNAME).getValue();
+        final int port = context.getProperty(DistributedSetCacheClientService.PORT).asInteger();
         final PropertyValue timeoutMillis = context.getProperty(DistributedSetCacheClientService.COMMUNICATIONS_TIMEOUT);
         final SSLContextService sslContextService = context.getProperty(
                 DistributedSetCacheClientService.SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
@@ -58,10 +58,10 @@ public class NettyChannelPoolFactory {
 
         final EventLoopGroup group = new NioEventLoopGroup();
         final Bootstrap bootstrap = new Bootstrap();
-        final NettyChannelInitializer initializer = new NettyChannelInitializer(sslContext, versionNegotiator);
+        final CacheClientChannelInitializer initializer = new CacheClientChannelInitializer(sslContext, versionNegotiator);
         bootstrap.group(group)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeoutMillis.asTimePeriod(TimeUnit.MILLISECONDS).intValue())
-                .remoteAddress(hostname.getValue(), port.asInteger())
+                .remoteAddress(hostname, port)
                 .channel(NioSocketChannel.class);
         final ChannelPoolHandler channelPoolHandler = new InitializingChannelPoolHandler(initializer);
         return new SimpleChannelPool(bootstrap, channelPoolHandler);

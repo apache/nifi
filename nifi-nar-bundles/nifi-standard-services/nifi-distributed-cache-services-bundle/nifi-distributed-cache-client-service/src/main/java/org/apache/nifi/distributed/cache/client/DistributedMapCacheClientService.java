@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.distributed.cache.client;
 
-import io.netty.channel.pool.ChannelPool;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -27,23 +26,19 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.client.adapter.AtomicCacheEntryInboundAdapter;
-import org.apache.nifi.distributed.cache.client.adapter.BooleanInboundAdapter;
-import org.apache.nifi.distributed.cache.client.adapter.LongInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.MapInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.MapValuesInboundAdapter;
-import org.apache.nifi.distributed.cache.client.adapter.OutboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.SetInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.ValueInboundAdapter;
-import org.apache.nifi.distributed.cache.client.adapter.VoidInboundAdapter;
+import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.ssl.SSLContextService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -55,8 +50,6 @@ import java.util.Set;
 @CapabilityDescription("Provides the ability to communicate with a DistributedMapCacheServer. This can be used in order to share a Map "
     + "between nodes in a NiFi cluster")
 public class DistributedMapCacheClientService extends AbstractControllerService implements AtomicDistributedMapCacheClient<Long> {
-
-    private static final Logger logger = LoggerFactory.getLogger(DistributedMapCacheClientService.class);
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
         .name("Server Hostname")
@@ -88,14 +81,9 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         .build();
 
     /**
-     * The pool of network connections used to service client requests.
-     */
-    private volatile ChannelPool channelPool = null;
-
-    /**
      * The implementation of the business logic for {@link DistributedSetCacheClientService}.
      */
-    private volatile NettyDistributedCacheClient cacheClient = null;
+    private volatile NettyDistributedMapCacheClient cacheClient = null;
 
     /**
      * Coordinator used to broker the version of the distributed cache protocol with the service.
@@ -113,26 +101,21 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     }
 
     @OnEnabled
-    public void cacheConfig(final ConfigurationContext context) {
-        logger.info("onEnabled()");
-        this.enabled();
-        this.versionNegotiator = new StandardVersionNegotiator(3, 2, 1);
-        this.channelPool = NettyChannelPoolFactory.createChannelPool(context, versionNegotiator);
-        this.cacheClient = new NettyDistributedCacheClient(channelPool);
+    public void onEnabled(final ConfigurationContext context) {
+        super.enabled();
+        getLogger().debug("Enabling Map Cache Client Service [{}]", context.getName());
+        this.versionNegotiator = new StandardVersionNegotiator(
+                ProtocolVersion.V3.value(), ProtocolVersion.V2.value(), ProtocolVersion.V1.value());
+        this.cacheClient = new NettyDistributedMapCacheClient(context, versionNegotiator);
     }
 
     @OnDisabled
-    public void onDisabled()  {
-        logger.info("onDisabled()");
-        try {
-            this.cacheClient.invoke(new OutboundAdapter().write("close"), new VoidInboundAdapter());
-        } catch (IOException e) {
-            logger.warn(e.getMessage());
-        }
-        this.channelPool.close();
+    public void onDisabled() throws IOException {
+        getLogger().debug("Disabling Map Cache Client Service");
+        this.cacheClient.close();
         this.versionNegotiator = null;
-        this.channelPool = null;
         this.cacheClient = null;
+        super.disabled();
     }
 
     @OnStopped
@@ -144,115 +127,84 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
 
     @Override
     public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("putIfAbsent")
-                .write(key, keySerializer)
-                .write(value, valueSerializer);
-        final BooleanInboundAdapter inboundAdapter = new BooleanInboundAdapter();
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        final byte[] bytesKey = CacheClientSerde.serialize(key, keySerializer);
+        final byte[] bytesValue = CacheClientSerde.serialize(value, valueSerializer);
+        return cacheClient.putIfAbsent(bytesKey, bytesValue);
     }
 
     @Override
     public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("put")
-                .write(key, keySerializer)
-                .write(value, valueSerializer);
-        final BooleanInboundAdapter inboundAdapter = new BooleanInboundAdapter();
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        if (!inboundAdapter.getResult()) {
-            throw new IOException("Expected to receive confirmation of 'put' request but received unexpected response");
-        }
+        final byte[] bytesKey = CacheClientSerde.serialize(key, keySerializer);
+        final byte[] bytesValue = CacheClientSerde.serialize(value, valueSerializer);
+        cacheClient.putIfAbsent(bytesKey, bytesValue);
     }
 
     @Override
     public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("containsKey")
-                .write(key, keySerializer);
-        final BooleanInboundAdapter inboundAdapter = new BooleanInboundAdapter();
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        final byte[] bytesKey = CacheClientSerde.serialize(key, keySerializer);
+        return cacheClient.containsKey(bytesKey);
     }
 
     @Override
     public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer, final Deserializer<V> valueDeserializer) throws IOException {
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("getAndPutIfAbsent")
-                .write(key, keySerializer)
-                .write(value, valueSerializer);
+        final byte[] bytesKey = CacheClientSerde.serialize(key, keySerializer);
+        final byte[] bytesValue = CacheClientSerde.serialize(value, valueSerializer);
         final ValueInboundAdapter<V> inboundAdapter = new ValueInboundAdapter<>(valueDeserializer);
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        return cacheClient.getAndPutIfAbsent(bytesKey, bytesValue, inboundAdapter);
     }
 
     @Override
     public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("get")
-                .write(key, keySerializer);
+        final byte[] bytesKey = CacheClientSerde.serialize(key, keySerializer);
         final ValueInboundAdapter<V> inboundAdapter = new ValueInboundAdapter<>(valueDeserializer);
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        return cacheClient.get(bytesKey, inboundAdapter);
     }
 
     @Override
     public <K, V> Map<K, V> subMap(Set<K> keys, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
-        validateProtocolVersion(3);
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("subMap").write(keys.size());
-        for (K key : keys) {
-            outboundAdapter.write(key, keySerializer);
-        }
+        validateProtocolVersion(ProtocolVersion.V3.value());
+        Collection<byte[]> bytesKeys = CacheClientSerde.serialize(keys, keySerializer);
         final MapValuesInboundAdapter<K, V> inboundAdapter =
                 new MapValuesInboundAdapter<>(keys, valueDeserializer, new HashMap<>());
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        return cacheClient.subMap(bytesKeys, inboundAdapter);
     }
 
     @Override
     public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("remove")
-                .write(key, serializer);
-        final BooleanInboundAdapter inboundAdapter = new BooleanInboundAdapter();
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        final byte[] bytesKey = CacheClientSerde.serialize(key, serializer);
+        return cacheClient.remove(bytesKey);
     }
 
     @Override
     public <K, V> V removeAndGet(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
-        validateProtocolVersion(3);
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("removeAndGet")
-                .write(key, keySerializer);
+        validateProtocolVersion(ProtocolVersion.V3.value());
+        final byte[] bytesKey = CacheClientSerde.serialize(key, keySerializer);
         final ValueInboundAdapter<V> inboundAdapter = new ValueInboundAdapter<>(valueDeserializer);
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        return cacheClient.removeAndGet(bytesKey, inboundAdapter);
     }
 
     @Override
     public long removeByPattern(String regex) throws IOException {
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("removeByPattern").write(regex);
-        final LongInboundAdapter inboundAdapter = new LongInboundAdapter();
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        return cacheClient.removeByPattern(regex);
     }
 
     @Override
     public <K, V> Map<K, V> removeByPatternAndGet(String regex, Deserializer<K> keyDeserializer,
                                                   Deserializer<V> valueDeserializer) throws IOException {
-        validateProtocolVersion(3);
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("removeByPatternAndGet").write(regex);
+        validateProtocolVersion(ProtocolVersion.V3.value());
         final MapInboundAdapter<K, V> inboundAdapter =
                 new MapInboundAdapter<>(keyDeserializer, valueDeserializer, new HashMap<>());
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        return cacheClient.removeByPatternAndGet(regex, inboundAdapter);
     }
 
     @Override
     public <K, V> AtomicCacheEntry<K, V, Long> fetch(final K key, final Serializer<K> keySerializer,
                                                      final Deserializer<V> valueDeserializer) throws IOException {
-        validateProtocolVersion(2);
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("fetch")
-                .write(key, keySerializer);
+        validateProtocolVersion(ProtocolVersion.V2.value());
+        final byte[] bytesKey = CacheClientSerde.serialize(key, keySerializer);
         final AtomicCacheEntryInboundAdapter<K, V> inboundAdapter =
                 new AtomicCacheEntryInboundAdapter<>(key, valueDeserializer);
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        return cacheClient.fetch(bytesKey, inboundAdapter);
     }
 
     private void validateProtocolVersion(final int requiredProtocolVersion) {
@@ -263,25 +215,20 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
 
     @Override
     public <K, V> boolean replace(AtomicCacheEntry<K, V, Long> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
-        validateProtocolVersion(2);
-        final OutboundAdapter outboundAdapter = new OutboundAdapter();
-        outboundAdapter.write("replace")
-                .write(entry.getKey(), keySerializer)
-                .write(entry.getRevision().orElse(0L))
-                .write(entry.getValue(), valueSerializer);
-        final BooleanInboundAdapter inboundAdapter = new BooleanInboundAdapter();
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        validateProtocolVersion(ProtocolVersion.V2.value());
+        final byte[] bytesKey = CacheClientSerde.serialize(entry.getKey(), keySerializer);
+        final byte[] bytesValue = CacheClientSerde.serialize(entry.getValue(), valueSerializer);
+        final long revision = entry.getRevision().orElse(DEFAULT_CACHE_REVISION);
+        return cacheClient.replace(bytesKey, bytesValue, revision);
     }
+
+    private static final long DEFAULT_CACHE_REVISION = 0L;
 
     @Override
     public <K> Set<K> keySet(Deserializer<K> keyDeserializer) throws IOException {
-        validateProtocolVersion(3);
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("keySet");
-        final SetInboundAdapter<K> inboundAdapter =
-                new SetInboundAdapter<>(keyDeserializer, new HashSet<>());
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        validateProtocolVersion(ProtocolVersion.V3.value());
+        final SetInboundAdapter<K> inboundAdapter = new SetInboundAdapter<>(keyDeserializer, new HashSet<>());
+        return cacheClient.keySet(inboundAdapter);
     }
 
     @Override

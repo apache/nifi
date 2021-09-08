@@ -89,7 +89,7 @@ public class SetInboundAdapter<T> implements InboundAdapter {
 
     @Override
     public void dequeue() throws IOException {
-        if ((size == null) && (byteBuf.readableBytes() >= 4)) {
+        if ((size == null) && (byteBuf.readableBytes() >= Integer.BYTES)) {
             size = byteBuf.readInt();
         }
         while ((size != null) && (result.size() < size)) {

@@ -61,9 +61,8 @@
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
+            <artifactId>netty-buffer</artifactId>
             <version>4.1.65.Final</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

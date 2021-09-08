@@ -21,6 +21,7 @@ import org.apache.nifi.distributed.cache.client.Serializer;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Collection;
 
 /**
  * Interface to write service request payloads to a {@link io.netty.channel.Channel}.
@@ -89,7 +90,23 @@ public class OutboundAdapter {
      * @throws IOException on write failure
      */
     public OutboundAdapter write(final byte[] value) throws IOException {
+        dos.writeInt(value.length);
         dos.write(value);
+        return this;
+    }
+
+    /**
+     * Write bytes to the service request payload.
+     *
+     * @param values the bytes to be written
+     * @return this object (allow chaining of calls to assemble payload)
+     * @throws IOException on write failure
+     */
+    public OutboundAdapter write(final Collection<byte[]> values) throws IOException {
+        dos.writeInt(values.size());
+        for (byte[] value : values) {
+            write(value);
+        }
         return this;
     }
 

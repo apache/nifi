@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.distributed.cache.client;
 
-import io.netty.channel.pool.ChannelPool;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -26,15 +25,11 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.distributed.cache.client.adapter.BooleanInboundAdapter;
-import org.apache.nifi.distributed.cache.client.adapter.OutboundAdapter;
-import org.apache.nifi.distributed.cache.client.adapter.VoidInboundAdapter;
+import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.ssl.SSLContextService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -45,8 +40,6 @@ import java.util.List;
 @CapabilityDescription("Provides the ability to communicate with a DistributedSetCacheServer. This can be used in order to share a Set "
         + "between nodes in a NiFi cluster")
 public class DistributedSetCacheClientService extends AbstractControllerService implements DistributedSetCacheClient {
-
-    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .name("Server Hostname")
@@ -78,14 +71,9 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
             .build();
 
     /**
-     * The pool of network connections used to service client requests.
-     */
-    private volatile ChannelPool channelPool = null;
-
-    /**
      * The implementation of the business logic for {@link DistributedSetCacheClientService}.
      */
-    private volatile NettyDistributedCacheClient cacheClient = null;
+    private volatile NettyDistributedSetCacheClient cacheClient = null;
 
     /**
      * Coordinator used to broker the version of the distributed cache protocol with the service.
@@ -103,21 +91,20 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
     }
 
     @OnEnabled
-    public void onConfigured(final ConfigurationContext context) {
-        logger.info("onEnabled()");
-        this.versionNegotiator = new StandardVersionNegotiator(1);
-        this.channelPool = NettyChannelPoolFactory.createChannelPool(context, versionNegotiator);
-        this.cacheClient = new NettyDistributedCacheClient(channelPool);
+    public void onEnabled(final ConfigurationContext context) {
+        super.enabled();
+        getLogger().debug("Enabling Set Cache Client Service [{}]", context.getName());
+        this.versionNegotiator = new StandardVersionNegotiator(ProtocolVersion.V1.value());
+        this.cacheClient = new NettyDistributedSetCacheClient(context, versionNegotiator);
     }
 
     @OnDisabled
     public void onDisabled() throws IOException {
-        logger.info("onDisabled()");
-        this.cacheClient.invoke(new OutboundAdapter().write("close"), new VoidInboundAdapter());
-        this.channelPool.close();
+        getLogger().debug("Disabling Set Cache Client Service");
+        this.cacheClient.close();
         this.versionNegotiator = null;
-        this.channelPool = null;
         this.cacheClient = null;
+        super.disabled();
     }
 
     @OnStopped
@@ -129,26 +116,20 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
 
     @Override
     public <T> boolean addIfAbsent(T value, Serializer<T> serializer) throws IOException {
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("addIfAbsent").write(value, serializer);
-        final BooleanInboundAdapter inboundAdapter = new BooleanInboundAdapter();
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        final byte[] bytes = CacheClientSerde.serialize(value, serializer);
+        return cacheClient.addIfAbsent(bytes);
     }
 
     @Override
     public <T> boolean contains(T value, Serializer<T> serializer) throws IOException {
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("contains").write(value, serializer);
-        final BooleanInboundAdapter inboundAdapter = new BooleanInboundAdapter();
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        final byte[] bytes = CacheClientSerde.serialize(value, serializer);
+        return cacheClient.contains(bytes);
     }
 
     @Override
     public <T> boolean remove(T value, Serializer<T> serializer) throws IOException {
-        final OutboundAdapter outboundAdapter = new OutboundAdapter().write("remove").write(value, serializer);
-        final BooleanInboundAdapter inboundAdapter = new BooleanInboundAdapter();
-        cacheClient.invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
+        final byte[] bytes = CacheClientSerde.serialize(value, serializer);
+        return cacheClient.remove(bytes);
     }
 
     @Override

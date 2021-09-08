@@ -29,7 +29,7 @@ import javax.net.ssl.SSLEngine;
  * Bootstrap a new netty connection.  This performs the socket handshake used by the nifi distributed set /
  * distributed map client controller services.
  */
-public class NettyChannelInitializer extends ChannelInitializer<Channel> {
+public class CacheClientChannelInitializer extends ChannelInitializer<Channel> {
 
     /**
      * The (optional) secure context associated with the channel.  If null, channel is not SSL protected.
@@ -47,7 +47,7 @@ public class NettyChannelInitializer extends ChannelInitializer<Channel> {
      * @param sslContext        the secure context (if any) to be associated with the channel
      * @param versionNegotiator coordinator used to broker the version of the distributed cache protocol with the service
      */
-    public NettyChannelInitializer(final SSLContext sslContext, VersionNegotiator versionNegotiator) {
+    public CacheClientChannelInitializer(final SSLContext sslContext, VersionNegotiator versionNegotiator) {
         this.sslContext = sslContext;
         this.versionNegotiator = versionNegotiator;
     }
@@ -63,7 +63,7 @@ public class NettyChannelInitializer extends ChannelInitializer<Channel> {
             channelPipeline.addLast(sslHandler);
         }
 
-        channelPipeline.addLast(new NettyHandshakeHandler(channel, versionNegotiator));
-        channelPipeline.addLast(new NettyRequestHandler());
+        channelPipeline.addLast(new CacheClientHandshakeHandler(channel, versionNegotiator));
+        channelPipeline.addLast(new CacheClientRequestHandler());
     }
 }

@@ -16,8 +16,12 @@
  */
 package org.apache.nifi.distributed.cache.client;
 
+import io.netty.channel.Channel;
+import io.netty.channel.pool.ChannelPool;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.client.adapter.InboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.OutboundAdapter;
+import org.apache.nifi.remote.VersionNegotiator;
 
 import java.io.IOException;
 
@@ -25,7 +29,22 @@ import java.io.IOException;
  * Encapsulate operations which may be performed using a {@link DistributedSetCacheClientService} or a
  * {@link DistributedMapCacheClientService}.
  */
-public interface DistributedCacheClient {
+public class DistributedCacheClient {
+
+    /**
+     * The pool of network connections used to service client requests.
+     */
+    private final ChannelPool channelPool;
+
+    /**
+     * Constructor.
+     *
+     * @param context           the NiFi configuration to be applied to the channel pool
+     * @param versionNegotiator coordinator used to broker the version of the distributed cache protocol with the service
+     */
+    protected DistributedCacheClient(final ConfigurationContext context, final VersionNegotiator versionNegotiator) {
+        this.channelPool = CacheClientChannelPoolFactory.createChannelPool(context, versionNegotiator);
+    }
 
     /**
      * Call a service method.
@@ -34,5 +53,21 @@ public interface DistributedCacheClient {
      * @param inboundAdapter  the object used to interpret the service response byte stream
      * @throws IOException on serialization failure; on communication failure
      */
-    void invoke(OutboundAdapter outboundAdapter, InboundAdapter inboundAdapter) throws IOException;
+    protected void invoke(final OutboundAdapter outboundAdapter, final InboundAdapter inboundAdapter) throws IOException {
+        final Channel channel = channelPool.acquire().syncUninterruptibly().getNow();
+        try {
+            final CacheClientRequestHandler requestHandler = (CacheClientRequestHandler) channel.pipeline().last();
+            final byte[] message = outboundAdapter.toBytes();
+            requestHandler.invoke(channel, message, inboundAdapter);
+        } finally {
+            channelPool.release(channel).syncUninterruptibly();
+        }
+    }
+
+    /**
+     * Shutdown {@link ChannelPool} cleanly.
+     */
+    protected void closeChannelPool() {
+        channelPool.close();
+    }
 }

@@ -30,7 +30,7 @@ import java.io.IOException;
  * The {@link io.netty.channel.ChannelHandler} responsible for sending client requests and receiving server responses
  * in the context of a distributed cache server.
  */
-public class NettyRequestHandler extends ChannelInboundHandlerAdapter {
+public class CacheClientRequestHandler extends ChannelInboundHandlerAdapter {
 
     /**
      * The object used to buffer and interpret the service response byte stream.
@@ -72,7 +72,7 @@ public class NettyRequestHandler extends ChannelInboundHandlerAdapter {
      * @param inboundAdapter the business logic to deserialize the server response
      */
     public void invoke(final Channel channel, final byte[] message, final InboundAdapter inboundAdapter) {
-        final NettyHandshakeHandler handshakeHandler = channel.pipeline().get(NettyHandshakeHandler.class);
+        final CacheClientHandshakeHandler handshakeHandler = channel.pipeline().get(CacheClientHandshakeHandler.class);
         handshakeHandler.waitHandshakeComplete();
         this.inboundAdapter = inboundAdapter;
         channelPromise = channel.newPromise();

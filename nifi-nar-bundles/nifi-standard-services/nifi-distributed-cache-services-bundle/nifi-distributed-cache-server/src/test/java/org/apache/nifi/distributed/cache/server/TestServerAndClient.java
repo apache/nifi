@@ -135,8 +135,8 @@ public class TestServerAndClient {
         final boolean containedAfterRemove = client.contains("test", serializer);
         assertFalse(containedAfterRemove);
 
-        server.shutdownServer();
         client.close();
+        server.shutdownServer();
 
         final DistributedSetCacheServer newServer = new SetServer();
         runner.addControllerService("server2", newServer);
@@ -147,8 +147,8 @@ public class TestServerAndClient {
         assertFalse(client.contains("test", serializer));
         assertTrue(client.contains("test2", serializer));
 
-        newServer.shutdownServer();
         client.close();
+        newServer.shutdownServer();
     }
 
     @Test
@@ -193,6 +193,7 @@ public class TestServerAndClient {
         // ensure that added3 was evicted because it was used least frequently
         assertFalse(client.contains("test3", serializer));
 
+        client.close();
         server.shutdownServer();
 
 
@@ -200,7 +201,6 @@ public class TestServerAndClient {
         runner.addControllerService("server2", newServer);
         runner.setProperty(newServer, DistributedSetCacheServer.PERSISTENCE_PATH, dataFile.getAbsolutePath());
         runner.enableControllerService(newServer);
-        client.close();
         client = createClient(newServer.getPort());
 
         assertTrue(client.contains("test", serializer));
@@ -208,8 +208,8 @@ public class TestServerAndClient {
         assertFalse(client.contains("test3", serializer));
         assertTrue(client.contains("test4", serializer));
 
-        newServer.shutdownServer();
         client.close();
+        newServer.shutdownServer();
     }
 
     @Test
@@ -261,13 +261,13 @@ public class TestServerAndClient {
         // ensure that added3 was evicted because it was used least frequently
         assertFalse(client.containsKey("test3", serializer));
 
+        client.close();
         server.shutdownServer();
 
         final DistributedMapCacheServer newServer = new MapServer();
         runner.addControllerService("server2", newServer);
         runner.setProperty(newServer, DistributedMapCacheServer.PERSISTENCE_PATH, dataFile.getAbsolutePath());
         runner.enableControllerService(newServer);
-        client.close();
         client = createMapClient(newServer.getPort());
 
         assertTrue(client.containsKey("test", serializer));
@@ -298,8 +298,8 @@ public class TestServerAndClient {
         removed = client.removeByPatternAndGet("test\\..*", deserializer, deserializer);
         assertEquals(0, removed.size());
 
-        newServer.shutdownServer();
         client.close();
+        newServer.shutdownServer();
     }
 
     @Test
@@ -349,9 +349,8 @@ public class TestServerAndClient {
         assertFalse(client.contains("test", serializer));
         assertTrue(client.contains("test3", serializer));
 
-        server.shutdownServer();
         client.close();
-
+        server.shutdownServer();
 
         final DistributedSetCacheServer newServer = new SetServer();
         runner.addControllerService("server2", newServer);
@@ -366,8 +365,8 @@ public class TestServerAndClient {
         assertTrue(client.contains("test3", serializer));
         assertTrue(client.contains("test4", serializer));
 
-        newServer.shutdownServer();
         client.close();
+        newServer.shutdownServer();
     }
 
     @Test
@@ -389,7 +388,7 @@ public class TestServerAndClient {
         clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(server.getPort()));
         clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
         MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
-        client.cacheConfig(clientContext);
+        client.onEnabled(clientContext);
         final Serializer<String> valueSerializer = new StringSerializer();
         final Serializer<String> keySerializer = new StringSerializer();
         final Deserializer<String> deserializer = new StringDeserializer();
@@ -452,7 +451,7 @@ public class TestServerAndClient {
 
         MockConfigurationContext clientContext2 = new MockConfigurationContext(clientProperties,
             clientInitContext2.getControllerServiceLookup());
-        client2.cacheConfig(clientContext2);
+        client2.onEnabled(clientContext2);
         assertFalse(client2.putIfAbsent("testKey", "test", keySerializer, valueSerializer));
         assertTrue(client2.containsKey("testKey", keySerializer));
         server.shutdownServer();
@@ -488,7 +487,7 @@ public class TestServerAndClient {
         clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
         clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
         MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
-        client.cacheConfig(clientContext);
+        client.onEnabled(clientContext);
         final Serializer<String> valueSerializer = new StringSerializer();
         final Serializer<String> keySerializer = new StringSerializer();
         final Deserializer<String> deserializer = new StringDeserializer();
@@ -535,7 +534,7 @@ public class TestServerAndClient {
 
         DistributedMapCacheClientService client2 = new DistributedMapCacheClientService();
         MockControllerServiceInitializationContext clientInitContext2 = new MockControllerServiceInitializationContext(client2, "client2");
-        client1.initialize(clientInitContext2);
+        client2.initialize(clientInitContext2);
 
         final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
         clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
@@ -543,9 +542,9 @@ public class TestServerAndClient {
         clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
 
         MockConfigurationContext clientContext1 = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup());
-        client1.cacheConfig(clientContext1);
+        client1.onEnabled(clientContext1);
         MockConfigurationContext clientContext2 = new MockConfigurationContext(clientProperties, clientInitContext2.getControllerServiceLookup());
-        client2.cacheConfig(clientContext2);
+        client2.onEnabled(clientContext2);
 
         final Serializer<String> stringSerializer = new StringSerializer();
         final Deserializer<String> stringDeserializer = new StringDeserializer();
@@ -627,7 +626,7 @@ public class TestServerAndClient {
         clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
 
         MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup());
-        client.cacheConfig(clientContext);
+        client.onEnabled(clientContext);
 
         final Serializer<String> stringSerializer = new StringSerializer();
         final Deserializer<String> stringDeserializer = new StringDeserializer();
@@ -691,7 +690,7 @@ public class TestServerAndClient {
         clientProperties.put(DistributedSetCacheClientService.HOSTNAME, "localhost");
         clientProperties.put(DistributedSetCacheClientService.PORT, String.valueOf(port));
         final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
-        client.onConfigured(clientContext);
+        client.onEnabled(clientContext);
 
         return client;
     }
@@ -705,7 +704,7 @@ public class TestServerAndClient {
         clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
         clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(port));
         final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
-        client.cacheConfig(clientContext);
+        client.onEnabled(clientContext);
 
         return client;
     }
