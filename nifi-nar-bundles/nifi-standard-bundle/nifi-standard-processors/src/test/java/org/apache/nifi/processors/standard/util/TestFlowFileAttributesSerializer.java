@@ -16,17 +16,18 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import org.apache.nifi.distributed.cache.client.exception.SerializationException;
+import org.junit.jupiter.api.Test;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.distributed.cache.client.exception.SerializationException;
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestFlowFileAttributesSerializer {
-
     private FlowFileAttributesSerializer serializer = new FlowFileAttributesSerializer();
 
     @Test
@@ -40,7 +41,7 @@ public class TestFlowFileAttributesSerializer {
         output.flush();
 
         Map<String, String> result = serializer.deserialize(output.toByteArray());
-        Assert.assertEquals(attributes, result);
+        assertEquals(attributes, result);
     }
 
     @Test
@@ -52,18 +53,18 @@ public class TestFlowFileAttributesSerializer {
         output.flush();
 
         Map<String, String> result = serializer.deserialize(output.toByteArray());
-        Assert.assertNull(result);
+        assertNull(result);
     }
 
     @Test
     public void testEmptyIsNull2() throws SerializationException, IOException {
         Map<String, String> result = serializer.deserialize("".getBytes());
-        Assert.assertNull(result);
+        assertNull(result);
     }
 
     @Test
     public void testNullIsNull() throws SerializationException, IOException {
         Map<String, String> result = serializer.deserialize(null);
-        Assert.assertNull(result);
+        assertNull(result);
     }
 }

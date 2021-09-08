@@ -18,8 +18,8 @@ package org.apache.nifi.processors.standard.util;
 
 import net.schmizz.keepalive.KeepAlive;
 import net.schmizz.keepalive.KeepAliveProvider;
-import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.DefaultConfig;
+import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.common.Factory;
 import net.schmizz.sshj.connection.ConnectionImpl;
 import net.schmizz.sshj.sftp.Response;
@@ -38,26 +38,26 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyContext;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -67,7 +67,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestSFTPTransfer {
-
     private static final Logger logger = LoggerFactory.getLogger(TestSFTPTransfer.class);
 
     private SFTPTransfer createSftpTransfer(ProcessContext processContext, SFTPClient sftpClient) {
@@ -311,13 +310,13 @@ public class TestSFTPTransfer {
 
         final SSHClient sshClient = new SSHClient();
         final List<AuthMethod> authMethods = sftpTransfer.getAuthMethods(sshClient, null);
-        assertFalse("Authentication Methods not found", authMethods.isEmpty());
+        assertFalse(authMethods.isEmpty(), "Authentication Methods not found");
 
         final Optional<AuthMethod> authPassword = authMethods.stream().filter(authMethod -> authMethod instanceof AuthPassword).findFirst();
-        assertTrue("Password Authentication not found", authPassword.isPresent());
+        assertTrue(authPassword.isPresent(), "Password Authentication not found");
 
         final Optional<AuthMethod> authKeyboardInteractive = authMethods.stream().filter(authMethod -> authMethod instanceof AuthKeyboardInteractive).findFirst();
-        assertTrue("Keyboard Interactive Authentication not found", authKeyboardInteractive.isPresent());
+        assertTrue(authKeyboardInteractive.isPresent(), "Keyboard Interactive Authentication not found");
     }
 
     @Test
@@ -343,7 +342,7 @@ public class TestSFTPTransfer {
         when(processContext.getProperty(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT)).thenReturn(new MockPropertyValue(Boolean.TRUE.toString()));
 
         final KeepAlive keepAlive = getKeepAlive(processContext);
-        assertNotSame("Keep Alive Interval not configured", 0, keepAlive.getKeepAliveInterval());
+        assertNotSame(0, keepAlive.getKeepAliveInterval(), "Keep Alive Interval not configured");
     }
 
     @Test
@@ -352,7 +351,7 @@ public class TestSFTPTransfer {
         when(processContext.getProperty(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT)).thenReturn(new MockPropertyValue(Boolean.FALSE.toString()));
 
         final KeepAlive keepAlive = getKeepAlive(processContext);
-        assertEquals("Keep Alive Interval configured", 0, keepAlive.getKeepAliveInterval());
+        assertEquals(0, keepAlive.getKeepAliveInterval(), "Keep Alive Interval configured");
     }
 
     private KeepAlive getKeepAlive(final ProcessContext processContext) {

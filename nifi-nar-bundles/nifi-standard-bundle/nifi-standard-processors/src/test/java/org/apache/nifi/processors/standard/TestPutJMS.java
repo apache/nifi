@@ -16,27 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.spy;
-
-import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
-import javax.jms.Connection;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageProducer;
-import javax.jms.Session;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.util.JmsFactory;
@@ -46,13 +25,35 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import javax.jms.Connection;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageProducer;
+import javax.jms.Session;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
+
 @SuppressWarnings("deprecation")
-@Ignore("Processor requires updates to work with Mockito 2.x, but is deprecated.")
+@Disabled("Processor requires updates to work with Mockito 2.x, but is deprecated.")
 public class TestPutJMS {
 
     private final String TEST_PROVIDER = JmsProperties.ACTIVEMQ_PROVIDER;
@@ -428,8 +429,8 @@ public class TestPutJMS {
         assertEquals(0, runnerPut.getFlowFilesForRelationship(PutJMS.REL_SUCCESS).size());
     }
 
-    @Test(expected = NumberFormatException.class)
-    public void testBadMessagePriorityValueFails() throws JMSException {
+    @Test
+    public void testBadMessagePriorityValueFails() {
         final PutJMS putJMS = spy(new PutJMS());
         final TestRunner runnerPut = TestRunners.newTestRunner(putJMS);
         runnerPut.setProperty(JmsProperties.JMS_PROVIDER, TEST_PROVIDER);

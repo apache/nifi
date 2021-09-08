@@ -16,7 +16,16 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertTrue;
+import com.bazaarvoice.jolt.Diffy;
+import com.bazaarvoice.jolt.JsonUtils;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -27,17 +36,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.StringUtils;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
-
-import com.bazaarvoice.jolt.Diffy;
-import com.bazaarvoice.jolt.JsonUtils;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestJoltTransformJSON {
 

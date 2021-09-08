@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
+
 import java.io.IOException;
 import java.nio.file.Paths;
 
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
-import org.xml.sax.SAXException;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestValidateXml {
 
     @Test
-    public void testValid() throws IOException, SAXException {
+    public void testValid() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.SCHEMA_FILE, "src/test/resources/TestXml/XmlBundle.xsd");
 
@@ -38,7 +39,7 @@ public class TestValidateXml {
     }
 
     @Test
-    public void testInvalid() throws IOException, SAXException {
+    public void testInvalid() {
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.SCHEMA_FILE, "src/test/resources/TestXml/XmlBundle.xsd");
 
@@ -50,7 +51,7 @@ public class TestValidateXml {
     }
 
     @Test
-    public void testValidEL() throws IOException, SAXException {
+    public void testValidEL() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.SCHEMA_FILE, "${my.schema}");
         runner.setVariable("my.schema", "src/test/resources/TestXml/XmlBundle.xsd");
@@ -61,16 +62,12 @@ public class TestValidateXml {
         runner.assertAllFlowFilesTransferred(ValidateXml.REL_VALID, 1);
     }
 
-    @Test(expected = AssertionError.class)
-    public void testInvalidEL() throws IOException, SAXException {
+    @Test
+    public void testInvalidEL() {
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.SCHEMA_FILE, "${my.schema}");
 
         runner.enqueue("<this>is an invalid</xml>");
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
-        runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
+        assertThrows(AssertionError.class, () -> runner.run());
     }
-
 }

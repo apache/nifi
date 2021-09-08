@@ -18,24 +18,26 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class TestRetryFlowFile {
     TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void before() {
         runner = TestRunners.newTestRunner(new RetryFlowFile());
     }
 
-    @After
+    @AfterEach
     public void after() {
         runner.shutdown();
     }
@@ -70,7 +72,7 @@ public class TestRetryFlowFile {
             mff.assertAttributeExists("flowfile.retries");
             mff.assertAttributeExists("flowfile.retries.uuid");
             mff.assertAttributeEquals("flowfile.retries", "3");
-            Assert.assertTrue("FlowFile was not penalized!", mff.isPenalized());
+            assertTrue(mff.isPenalized(), "FlowFile was not penalized!");
             return true;
         });
     }
@@ -92,7 +94,7 @@ public class TestRetryFlowFile {
             mff.assertAttributeExists("flowfile.retries");
             mff.assertAttributeExists("flowfile.retries.uuid");
             mff.assertAttributeEquals("flowfile.retries", "3");
-            Assert.assertTrue("FlowFile was not penalized!", mff.isPenalized());
+            assertTrue(mff.isPenalized(), "FlowFile was not penalized!");
             return true;
         });
     }
@@ -111,7 +113,7 @@ public class TestRetryFlowFile {
             mff.assertAttributeExists("flowfile.retries.uuid");
             mff.assertAttributeExists("flowfile.retries");
             mff.assertAttributeEquals("flowfile.retries", "3");
-            Assert.assertFalse("FlowFile was not penalized!", mff.isPenalized());
+            assertFalse(mff.isPenalized(), "FlowFile was not penalized!");
             return true;
         });
     }
@@ -129,7 +131,7 @@ public class TestRetryFlowFile {
             mff.assertAttributeExists("flowfile.retries.uuid");
             mff.assertAttributeExists("flowfile.retries");
             mff.assertAttributeEquals("flowfile.retries", "1");
-            Assert.assertTrue("FlowFile was not penalized!", mff.isPenalized());
+            assertTrue(mff.isPenalized(), "FlowFile was not penalized!");
             return true;
         });
     }
@@ -159,8 +161,7 @@ public class TestRetryFlowFile {
         runner.assertAllConditionsMet(RetryFlowFile.RETRIES_EXCEEDED, mff -> {
             mff.assertAttributeExists("exceeded.time");
             mff.assertAttributeExists("reason");
-            Assert.assertFalse("Expression language not evaluated!",
-                    mff.getAttribute("reason").contains("${uuid}"));
+            assertFalse(mff.getAttribute("reason").contains("${uuid}"), "Expression language not evaluated!");
             return true;
         });
     }
@@ -236,7 +237,7 @@ public class TestRetryFlowFile {
             mff.assertAttributeExists("flowfile.retries");
             mff.assertAttributeExists("flowfile.retries.uuid");
             mff.assertAttributeEquals("flowfile.retries", "3");
-            Assert.assertTrue("FlowFile was not penalized!", mff.isPenalized());
+            assertTrue(mff.isPenalized(), "FlowFile was not penalized!");
             return true;
         });
     }

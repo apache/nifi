@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,20 +33,11 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestMonitorActivity {
 
@@ -79,7 +79,7 @@ public class TestMonitorActivity {
 
         MockFlowFile restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
         String flowFileContent = new String(restoredFlowFile.toByteArray());
-        Assert.assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
+        assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
         restoredFlowFile.assertAttributeNotExists("key");
         restoredFlowFile.assertAttributeNotExists("key1");
 
@@ -106,7 +106,7 @@ public class TestMonitorActivity {
 
         restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
         flowFileContent = new String(restoredFlowFile.toByteArray());
-        Assert.assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
+        assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
         restoredFlowFile.assertAttributeNotExists("key");
         restoredFlowFile.assertAttributeNotExists("key1");
     }
@@ -178,7 +178,7 @@ public class TestMonitorActivity {
         final long t1Cluster = getLastSuccessFromCluster(runner);
 
         // then
-        Assert.assertEquals(t1Local, t1Cluster);
+        assertEquals(t1Local, t1Cluster);
         thenTransfersAre(runner, 1, 0, 0);
 
         // when - At second trigger it's not connected, new last success transfer stored only locally.
@@ -190,8 +190,8 @@ public class TestMonitorActivity {
         final long t2Cluster = getLastSuccessFromCluster(runner);
 
         // then
-        Assert.assertNotEquals(t1Local, t2Local);
-        Assert.assertEquals(t1Local, t2Cluster);
+        assertNotEquals(t1Local, t2Local);
+        assertEquals(t1Local, t2Cluster);
         thenTransfersAre(runner, 2, 0, 0);
 
         // when - The third trigger is without flow file, but reconcile is triggered and value is written ot cluster.
@@ -202,8 +202,8 @@ public class TestMonitorActivity {
         final long t3Cluster = getLastSuccessFromCluster(runner);
 
         // then
-        Assert.assertEquals(t3Local, t2Local);
-        Assert.assertEquals(t3Cluster, t2Local);
+        assertEquals(t3Local, t2Local);
+        assertEquals(t3Cluster, t2Local);
         // Inactive message is being sent after the connection is back.
         thenTransfersAre(runner,2, 1, 0);
     }
@@ -222,7 +222,7 @@ public class TestMonitorActivity {
         final long t1Cluster = getLastSuccessFromCluster(runner);
 
         // then
-        Assert.assertEquals(t1Local, t1Cluster);
+        assertEquals(t1Local, t1Cluster);
         thenTransfersAre(runner, 1, 0, 0);
 
         // when - At second trigger it's not connected, new last success transfer stored only locally.
@@ -234,8 +234,8 @@ public class TestMonitorActivity {
         final long t2Cluster = getLastSuccessFromCluster(runner);
 
         // then
-        Assert.assertNotEquals(t1Local, t2Local);
-        Assert.assertEquals(t1Local, t2Cluster);
+        assertNotEquals(t1Local, t2Local);
+        assertEquals(t1Local, t2Cluster);
         thenTransfersAre(runner, 2, 0, 0);
 
         // when - The third trigger is without flow file, but reconcile is triggered and value is written ot cluster.
@@ -246,8 +246,8 @@ public class TestMonitorActivity {
         final long t3Cluster = getLastSuccessFromCluster(runner);
 
         // then
-        Assert.assertEquals(t3Local, t2Local);
-        Assert.assertEquals(t3Cluster, t2Local);
+        assertEquals(t3Local, t2Local);
+        assertEquals(t3Cluster, t2Local);
         // No inactive message because of the node is not primary
         thenTransfersAre(runner, 2, 0, 0);
     }
@@ -350,19 +350,19 @@ public class TestMonitorActivity {
 
         MockFlowFile restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
         String flowFileContent = new String(restoredFlowFile.toByteArray());
-        Assert.assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
+        assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
         restoredFlowFile.assertAttributeEquals("key", "value");
         restoredFlowFile.assertAttributeEquals("key1", "value1");
 
         // verify the UUIDs are not the same
         restoredFlowFile.assertAttributeNotEquals(CoreAttributes.UUID.key(), originalFlowFile.getAttribute(CoreAttributes.UUID.key()));
         restoredFlowFile.assertAttributeNotEquals(CoreAttributes.FILENAME.key(), originalFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
-        Assert.assertTrue(
+        assertTrue(restoredFlowFile.getSize() != originalFlowFile.getSize(),
                 String.format("file sizes match when they shouldn't original=%1$s restored=%2$s",
-                        originalFlowFile.getSize(), restoredFlowFile.getSize()), restoredFlowFile.getSize() != originalFlowFile.getSize());
-        Assert.assertTrue(
+                        originalFlowFile.getSize(), restoredFlowFile.getSize()));
+        assertTrue(restoredFlowFile.getLineageStartDate() != originalFlowFile.getLineageStartDate(),
                 String.format("lineage start dates match when they shouldn't original=%1$s restored=%2$s",
-                        originalFlowFile.getLineageStartDate(), restoredFlowFile.getLineageStartDate()), restoredFlowFile.getLineageStartDate() != originalFlowFile.getLineageStartDate());
+                        originalFlowFile.getLineageStartDate(), restoredFlowFile.getLineageStartDate()));
 
         runner.clearTransferState();
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "true");
@@ -387,21 +387,22 @@ public class TestMonitorActivity {
 
         restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
         flowFileContent = new String(restoredFlowFile.toByteArray());
-        Assert.assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
+        assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
         restoredFlowFile.assertAttributeEquals("key", "value");
         restoredFlowFile.assertAttributeEquals("key1", "value1");
         restoredFlowFile.assertAttributeNotEquals(CoreAttributes.UUID.key(), originalFlowFile.getAttribute(CoreAttributes.UUID.key()));
         restoredFlowFile.assertAttributeNotEquals(CoreAttributes.FILENAME.key(), originalFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
-        Assert.assertTrue(
+        assertTrue(restoredFlowFile.getSize() != originalFlowFile.getSize(),
                 String.format("file sizes match when they shouldn't original=%1$s restored=%2$s",
-                        originalFlowFile.getSize(), restoredFlowFile.getSize()), restoredFlowFile.getSize() != originalFlowFile.getSize());
-        Assert.assertTrue(
+                        originalFlowFile.getSize(), restoredFlowFile.getSize()));
+        assertTrue(restoredFlowFile.getLineageStartDate() != originalFlowFile.getLineageStartDate(),
                 String.format("lineage start dates match when they shouldn't original=%1$s restored=%2$s",
-                        originalFlowFile.getLineageStartDate(), restoredFlowFile.getLineageStartDate()), restoredFlowFile.getLineageStartDate() != originalFlowFile.getLineageStartDate());
+                        originalFlowFile.getLineageStartDate(), restoredFlowFile.getLineageStartDate()));
     }
 
-    @Test(timeout=5000)
-    public void testFirstRunNoMessages() throws InterruptedException, IOException {
+    @Test
+    @Timeout(unit = TimeUnit.MILLISECONDS, value = 5000)
+    public void testFirstRunNoMessages() throws InterruptedException {
         // don't use the TestableProcessor, we want the real timestamp from @OnScheduled
         final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
@@ -500,8 +501,8 @@ public class TestMonitorActivity {
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS);
 
         final StateMap updatedState = runner.getStateManager().getState(Scope.CLUSTER);
-        assertNull("Latest timestamp should NOT be persisted, because it's running as 'node' scope",
-                updatedState.get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER));
+        assertNull(updatedState.get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER),
+                "Latest timestamp should NOT be persisted, because it's running as 'node' scope");
     }
 
     @Test
@@ -530,9 +531,8 @@ public class TestMonitorActivity {
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS);
 
         final StateMap postProcessedState = runner.getStateManager().getState(Scope.CLUSTER);
-        assertTrue("Existing timestamp should be updated",
-                existingTimestamp < Long.parseLong(postProcessedState.get(
-                        MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER)));
+        assertTrue(existingTimestamp < Long.parseLong(postProcessedState.get(
+                        MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER)), "Existing timestamp should be updated");
         // State should be updated. Null in this case.
         assertNull(postProcessedState.get("key1"));
         assertNull(postProcessedState.get("key2"));
@@ -564,9 +564,9 @@ public class TestMonitorActivity {
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS);
 
         final StateMap postProcessedState = runner.getStateManager().getState(Scope.CLUSTER);
-        assertEquals("Existing timestamp should NOT be updated",
-                String.valueOf(existingTimestamp),
-                postProcessedState.get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER));
+        assertEquals(String.valueOf(existingTimestamp),
+                postProcessedState.get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER),
+                "Existing timestamp should NOT be updated");
         // State should stay the same.
         assertEquals(postProcessedState.get("key1"), existingState.get("key1"));
         assertEquals(postProcessedState.get("key2"), existingState.get("key2"));
@@ -831,7 +831,7 @@ public class TestMonitorActivity {
 
         // Latest activity should NOT be persisted
         final StateMap updatedState = runner.getStateManager().getState(Scope.CLUSTER);
-        assertNull("Latest timestamp should NOT be persisted", updatedState.get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER));
+        assertNull(updatedState.get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER), "Latest timestamp should NOT be persisted");
         runner.clearTransferState();
     }
 
@@ -861,7 +861,7 @@ public class TestMonitorActivity {
         runNext(runner);
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(MonitorActivity.REL_SUCCESS);
         final List<MockFlowFile> activityRestoredFiles = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED);
-        assertEquals("Should be zero since it doesn't have incoming file.", 0, successFiles.size());
+        assertEquals(0, successFiles.size(), "Should be zero since it doesn't have incoming file.");
         assertEquals(1, activityRestoredFiles.size());
         assertEquals("value1", activityRestoredFiles.get(0).getAttribute("key1"));
         assertEquals("value2", activityRestoredFiles.get(0).getAttribute("key2"));
@@ -898,7 +898,7 @@ public class TestMonitorActivity {
         runNext(runner);
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(MonitorActivity.REL_SUCCESS);
         final List<MockFlowFile> activityRestoredFiles = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED);
-        assertEquals("Should be zero since it doesn't have incoming file.", 0, successFiles.size());
+        assertEquals(0, successFiles.size(), "Should be zero since it doesn't have incoming file.");
         assertEquals(1, activityRestoredFiles.size());
         assertEquals("value1", activityRestoredFiles.get(0).getAttribute("key1"));
         assertEquals("value2", activityRestoredFiles.get(0).getAttribute("key2"));

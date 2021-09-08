@@ -16,6 +16,22 @@
  */
 package org.apache.nifi.security.util.crypto;
 
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.SystemUtils;
+import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.security.util.EncryptionMethod;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openpgp.PGPEncryptedData;
+import org.bouncycastle.openpgp.PGPUtil;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -25,28 +41,12 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.Security;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang3.SystemUtils;
-import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.security.util.EncryptionMethod;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openpgp.PGPEncryptedData;
-import org.bouncycastle.openpgp.PGPUtil;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class OpenPGPKeyBasedEncryptorTest {
     private static final Logger logger = LoggerFactory.getLogger(OpenPGPKeyBasedEncryptorTest.class);
 
     private final File plainFile = new File("src/test/resources/TestEncryptContent/text.txt");
     private final File unsignedFile = new File("src/test/resources/TestEncryptContent/text.txt.unsigned.gpg");
-    private final File encryptedFile = new File("src/test/resources/TestEncryptContent/text.txt.gpg");
 
     private static final String SECRET_KEYRING_PATH = "src/test/resources/TestEncryptContent/secring.gpg";
     private static final String PUBLIC_KEYRING_PATH = "src/test/resources/TestEncryptContent/pubring.gpg";
@@ -54,18 +54,18 @@ public class OpenPGPKeyBasedEncryptorTest {
 
     private static final String PASSWORD = "thisIsABadPassword";
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpOnce() throws Exception {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+        Assumptions.assumeTrue(!SystemUtils.IS_OS_WINDOWS, "Test only runs on *nix");
         Security.addProvider(new BouncyCastleProvider());
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
 
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
 
     }
@@ -141,7 +141,7 @@ public class OpenPGPKeyBasedEncryptorTest {
                 byte[] recoveredBytes = ((ByteArrayOutputStream) recoveredStream).toByteArray();
                 String recovered = new String(recoveredBytes, "UTF-8");
                 logger.info("Recovered: {}", recovered);
-                Assert.assertEquals("Recovered text", PLAINTEXT, recovered);
+                Assertions.assertEquals(PLAINTEXT, recovered, "Recovered text");
             }
         }
     }

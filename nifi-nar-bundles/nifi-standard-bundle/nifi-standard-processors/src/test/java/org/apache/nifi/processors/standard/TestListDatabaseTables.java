@@ -24,10 +24,10 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,8 +40,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 /**
@@ -54,7 +54,7 @@ public class TestListDatabaseTables {
 
     private final static String DB_LOCATION = "target/db_ldt";
 
-    @BeforeClass
+    @BeforeAll
     public static void setupBeforeClass() throws IOException {
         System.setProperty("derby.stream.error.file", "target/derby.log");
 
@@ -67,7 +67,7 @@ public class TestListDatabaseTables {
         }
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanUpAfterClass() throws Exception {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
@@ -83,7 +83,7 @@ public class TestListDatabaseTables {
         }
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         processor = new ListDatabaseTables();
         final DBCPService dbcp = new DBCPServiceSimpleImpl();

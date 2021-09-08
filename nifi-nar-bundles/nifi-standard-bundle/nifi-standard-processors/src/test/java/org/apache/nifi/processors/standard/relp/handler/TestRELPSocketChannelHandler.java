@@ -28,9 +28,8 @@ import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.processors.standard.relp.event.RELPMetadata;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
@@ -46,6 +45,9 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class TestRELPSocketChannelHandler {
 
     private EventFactory<TestEvent> eventFactory;
@@ -58,7 +60,7 @@ public class TestRELPSocketChannelHandler {
     private Charset charset;
     private ChannelDispatcher dispatcher;
 
-    @Before
+    @BeforeEach
     public void setup() {
         eventFactory = new TestEventHolderFactory();
         channelHandlerFactory = new RELPSocketChannelHandlerFactory<>();
@@ -85,7 +87,7 @@ public class TestRELPSocketChannelHandler {
         messages.add("3 syslog 21 this is message ABCDE\n");
 
         run(messages);
-        Assert.assertEquals(messages.size(), events.size());
+        assertEquals(messages.size(), events.size());
 
         boolean found1 = false;
         boolean found2 = false;
@@ -94,7 +96,7 @@ public class TestRELPSocketChannelHandler {
         TestEvent event;
         while((event = events.poll()) != null) {
             Map<String,String> metadata = event.metadata;
-            Assert.assertTrue(metadata.containsKey(RELPMetadata.TXNR_KEY));
+            assertTrue(metadata.containsKey(RELPMetadata.TXNR_KEY));
 
             final String txnr = metadata.get(RELPMetadata.TXNR_KEY);
             if (txnr.equals("1")) {
@@ -106,9 +108,9 @@ public class TestRELPSocketChannelHandler {
             }
         }
 
-        Assert.assertTrue(found1);
-        Assert.assertTrue(found2);
-        Assert.assertTrue(found3);
+        assertTrue(found1);
+        assertTrue(found2);
+        assertTrue(found3);
     }
 
     @Test
@@ -121,7 +123,7 @@ public class TestRELPSocketChannelHandler {
         }
 
         run(messages);
-        Assert.assertEquals(messages.size(), events.size());
+        assertEquals(messages.size(), events.size());
     }
 
     protected void run(List<String> messages) throws IOException, InterruptedException {
@@ -162,7 +164,7 @@ public class TestRELPSocketChannelHandler {
             }
 
             // should have gotten an event for each message sent
-            Assert.assertEquals(messages.size(), events.size());
+            assertEquals(messages.size(), events.size());
 
         } finally {
             // stop the dispatcher thread and ensure we shut down handler threads

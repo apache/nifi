@@ -23,37 +23,24 @@ import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.nio.charset.StandardCharsets
 import java.security.Security
 
-@RunWith(JUnit4.class)
 class CryptographicHashContentTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(CryptographicHashContentTest.class)
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     @Test

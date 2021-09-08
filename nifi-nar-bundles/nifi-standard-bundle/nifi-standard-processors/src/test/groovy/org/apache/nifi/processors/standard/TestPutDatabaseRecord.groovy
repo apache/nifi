@@ -31,12 +31,10 @@ import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.apache.nifi.util.file.FileUtils
-import org.junit.AfterClass
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 import java.sql.Blob
 import java.sql.Clob
@@ -53,12 +51,12 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.function.Supplier
 
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertNull
-import static org.junit.Assert.assertTrue
-import static org.junit.Assert.fail
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertNull
+import static org.junit.jupiter.api.Assertions.assertTrue
+import static org.junit.jupiter.api.Assertions.fail
 import static org.mockito.ArgumentMatchers.anyMap
 import static org.mockito.Mockito.doAnswer
 import static org.mockito.Mockito.spy
@@ -68,7 +66,6 @@ import static org.mockito.Mockito.verify
 /**
  * Unit tests for the PutDatabaseRecord processor
  */
-@RunWith(JUnit4.class)
 class TestPutDatabaseRecord {
 
     private static final String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100)," +
@@ -83,7 +80,7 @@ class TestPutDatabaseRecord {
     PutDatabaseRecord processor
     DBCPServiceSimpleImpl dbcp
 
-    @BeforeClass
+    @BeforeAll
     static void setupBeforeClass() throws IOException {
         System.setProperty("derby.stream.error.file", "target/derby.log")
 
@@ -96,7 +93,7 @@ class TestPutDatabaseRecord {
         }
     }
 
-    @AfterClass
+    @AfterAll
     static void cleanUpAfterClass() throws Exception {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true")
@@ -112,7 +109,7 @@ class TestPutDatabaseRecord {
         }
     }
 
-    @Before
+    @BeforeEach
     void setUp() throws Exception {
         processor = new PutDatabaseRecord()
         //Mock the DBCP Controller Service so we can control the Results

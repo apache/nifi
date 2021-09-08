@@ -17,16 +17,15 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestMonitorDiskUsage {
-
     @Test
     public void testGeneratesMessageIfTooFull() {
         final AtomicInteger callCounter = new AtomicInteger(0);
@@ -42,5 +41,4 @@ public class TestMonitorDiskUsage {
         MonitorDiskUsage.checkThreshold("Test Path", Paths.get("."), 0, logger);
         assertEquals(1, callCounter.get());
     }
-
 }

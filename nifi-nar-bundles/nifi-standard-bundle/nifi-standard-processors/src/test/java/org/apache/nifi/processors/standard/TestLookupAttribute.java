@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
@@ -32,11 +25,18 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Assert;
-import org.junit.Test;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLookupAttribute {
 
@@ -182,10 +182,10 @@ public class TestLookupAttribute {
     static class TestService extends AbstractControllerService implements StringLookupService {
         @Override
         public Optional<String> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
-            Assert.assertNotNull(coordinates);
-            Assert.assertNotNull(context);
-            Assert.assertEquals(1, coordinates.size());
-            Assert.assertTrue(context.containsKey("user_defined"));
+            assertNotNull(coordinates);
+            assertNotNull(context);
+            assertEquals(1, coordinates.size());
+            assertTrue(context.containsKey("user_defined"));
 
             return Optional.of("Test!");
         }

@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
 
 /**
  * Unit tests for the GenerateFlowFile processor.

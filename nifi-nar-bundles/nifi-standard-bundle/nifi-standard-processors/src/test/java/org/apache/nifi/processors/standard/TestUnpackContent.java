@@ -16,11 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
-import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import net.lingala.zip4j.io.outputstream.ZipOutputStream;
+import net.lingala.zip4j.model.ZipParameters;
+import net.lingala.zip4j.model.enums.EncryptionMethod;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -34,15 +37,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import net.lingala.zip4j.io.outputstream.ZipOutputStream;
-import net.lingala.zip4j.model.ZipParameters;
-import net.lingala.zip4j.model.enums.EncryptionMethod;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import org.junit.Test;
+import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
+import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestUnpackContent {
 
@@ -507,7 +506,7 @@ public class TestUnpackContent {
 
         final byte[] unpackedBytes = runner.getContentAsByteArray(unpacked);
         final String unpackedContents = new String(unpackedBytes);
-        assertEquals("Unpacked Contents not matched", contents, unpackedContents);
+        assertEquals(contents, unpackedContents, "Unpacked Contents not matched");
     }
 
     private byte[] createZipEncrypted(final EncryptionMethod encryptionMethod, final char[] password, final String contents) throws IOException {

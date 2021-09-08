@@ -17,9 +17,12 @@
 
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import com.google.common.collect.ImmutableMap;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -28,12 +31,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableMap;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestRouteText {
 
@@ -775,8 +775,9 @@ public class TestRouteText {
         runner.enqueue("some other text", ImmutableMap.of("someValue", "a value"));
         runner.run(2);
 
-        assertEquals("Expected 1 elements in the cache for the patterns, got" +
-                routeText.patternsCache.size(), 1, routeText.patternsCache.size());
+        assertEquals(1, routeText.patternsCache.size(),
+                "Expected 1 elements in the cache for the patterns, got" +
+                        routeText.patternsCache.size());
 
         for (int i = 0; i < RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES * 2; ++i) {
             String iString = Long.toString(i);
@@ -785,16 +786,17 @@ public class TestRouteText {
             runner.run();
         }
 
-        assertEquals("Expected " + RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES +
-                " elements in the cache for the patterns, got" + routeText.patternsCache.size(),
-                RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES, routeText.patternsCache.size());
+        assertEquals(RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES, routeText.patternsCache.size(),
+                "Expected " + RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES +
+                        " elements in the cache for the patterns, got" + routeText.patternsCache.size());
 
         runner.assertTransferCount("simple", RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES * 2);
         runner.assertTransferCount("unmatched", 2);
         runner.assertTransferCount("original", RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES * 2 + 2);
 
         runner.setProperty(RouteText.IGNORE_CASE, "true");
-        assertEquals("Pattern cache is not cleared after changing IGNORE_CASE", 0, routeText.patternsCache.size());
+        assertEquals(0, routeText.patternsCache.size(),
+                "Pattern cache is not cleared after changing IGNORE_CASE");
     }
 
 

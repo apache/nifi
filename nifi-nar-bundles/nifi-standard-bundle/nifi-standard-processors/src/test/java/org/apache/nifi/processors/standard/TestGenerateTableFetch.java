@@ -30,10 +30,10 @@ import org.apache.nifi.util.MockSessionFactory;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -55,10 +55,10 @@ import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.FRAGMENT_ID;
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.FRAGMENT_INDEX;
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.REL_SUCCESS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -77,7 +77,7 @@ public class TestGenerateTableFetch {
 
     private final static String DB_LOCATION = "target/db_gtf";
 
-    @BeforeClass
+    @BeforeAll
     public static void setupBeforeClass() throws IOException {
         System.setProperty("derby.stream.error.file", "target/derby.log");
 
@@ -90,7 +90,7 @@ public class TestGenerateTableFetch {
         }
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanUpAfterClass() throws Exception {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
@@ -106,7 +106,7 @@ public class TestGenerateTableFetch {
         }
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         processor = new GenerateTableFetch();
         //Mock the DBCP Controller Service so we can control the Results

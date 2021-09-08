@@ -16,9 +16,20 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.io.FileUtils;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processors.standard.util.ArgumentUtils;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,25 +44,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.SystemUtils;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processors.standard.util.ArgumentUtils;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@DisabledOnOs(OS.WINDOWS)
 public class TestExecuteStreamCommand {
-    @BeforeClass
+    @BeforeAll
     public static void init() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.ExecuteStreamCommand", "debug");
@@ -383,8 +383,8 @@ public class TestExecuteStreamCommand {
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
         byte[] byteArray = flowFiles.get(0).toByteArray();
         String result = new String(byteArray);
-        assertTrue("TestIngestAndUpdate.jar should not have received anything to modify",
-            Pattern.compile("target:ModifiedResult\r?\n$").matcher(result).find());
+        assertTrue(Pattern.compile("target:ModifiedResult\r?\n$").matcher(result).find(),
+                "TestIngestAndUpdate.jar should not have received anything to modify");
     }
 
     @Test
@@ -417,12 +417,12 @@ public class TestExecuteStreamCommand {
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
         byte[] byteArray = flowFiles.get(0).toByteArray();
         String result = new String(byteArray);
-        assertTrue("TestIngestAndUpdate.jar should not have received anything to modify",
-            Pattern.compile("target:ModifiedResult\r?\n$").matcher(result).find());
+        assertTrue(Pattern.compile("target:ModifiedResult\r?\n$").matcher(result).find(),
+                "TestIngestAndUpdate.jar should not have received anything to modify");
     }
 
     // this is dependent on window with cygwin...so it's not enabled
-    @Ignore
+    @Disabled
     @Test
     public void testExecuteTouch() throws Exception {
         File testFile = new File("target/test.txt");
@@ -466,9 +466,9 @@ public class TestExecuteStreamCommand {
         byte[] byteArray = flowFiles.get(0).toByteArray();
         String result = new String(byteArray);
         Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
-        assertFalse("Should contain at least two environment variables starting with NIFI", dynamicEnvironmentVariables.size() < 2);
-        assertTrue("NIFI_TEST_1 environment variable is missing", dynamicEnvironmentVariables.contains("NIFI_TEST_1=testvalue1"));
-        assertTrue("NIFI_TEST_2 environment variable is missing", dynamicEnvironmentVariables.contains("NIFI_TEST_2=testvalue2"));
+        assertFalse(dynamicEnvironmentVariables.size() < 2, "Should contain at least two environment variables starting with NIFI");
+        assertTrue(dynamicEnvironmentVariables.contains("NIFI_TEST_1=testvalue1"), "NIFI_TEST_1 environment variable is missing");
+        assertTrue(dynamicEnvironmentVariables.contains("NIFI_TEST_2=testvalue2"), "NIFI_TEST_2 environment variable is missing");
     }
 
     @Test
@@ -503,9 +503,9 @@ public class TestExecuteStreamCommand {
         byte[] byteArray = flowFiles.get(0).toByteArray();
         String result = new String(byteArray);
         Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
-        assertFalse("Should contain at least two environment variables starting with NIFI", dynamicEnvironmentVariables.size() < 2);
-        assertTrue("NIFI_TEST_1 environment variable is missing", dynamicEnvironmentVariables.contains("NIFI_TEST_1=testvalue1"));
-        assertTrue("NIFI_TEST_2 environment variable is missing", dynamicEnvironmentVariables.contains("NIFI_TEST_2=testvalue2"));
+        assertFalse(dynamicEnvironmentVariables.size() < 2, "Should contain at least two environment variables starting with NIFI");
+        assertTrue(dynamicEnvironmentVariables.contains("NIFI_TEST_1=testvalue1"), "NIFI_TEST_1 environment variable is missing");
+        assertTrue(dynamicEnvironmentVariables.contains("NIFI_TEST_2=testvalue2"), "NIFI_TEST_2 environment variable is missing");
     }
 
     @Test
@@ -1004,8 +1004,8 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
         String result = flowFiles.get(0).getAttribute("executeStreamCommand.output");
-        assertTrue("TestIngestAndUpdate.jar should not have received anything to modify",
-                Pattern.compile("target:ModifiedResult\r?\n?").matcher(result).find());
+        assertTrue(Pattern.compile("target:ModifiedResult\r?\n?").matcher(result).find(),
+                "TestIngestAndUpdate.jar should not have received anything to modify");
     }
 
     @Test
@@ -1037,8 +1037,8 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
         String result = flowFiles.get(0).getAttribute("executeStreamCommand.output");
-        assertTrue("TestIngestAndUpdate.jar should not have received anything to modify",
-            Pattern.compile("target:ModifiedResult\r?\n?").matcher(result).find());
+        assertTrue(Pattern.compile("target:ModifiedResult\r?\n?").matcher(result).find(),
+                "TestIngestAndUpdate.jar should not have received anything to modify");
     }
 
     @Test
@@ -1060,9 +1060,9 @@ public class TestExecuteStreamCommand {
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
         String result = flowFiles.get(0).getAttribute("executeStreamCommand.output");
         Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
-        assertFalse("Should contain at least two environment variables starting with NIFI", dynamicEnvironmentVariables.size() < 2);
-        assertTrue("NIFI_TEST_1 environment variable is missing", dynamicEnvironmentVariables.contains("NIFI_TEST_1=testvalue1"));
-        assertTrue("NIFI_TEST_2 environment variable is missing", dynamicEnvironmentVariables.contains("NIFI_TEST_2=testvalue2"));
+        assertFalse(dynamicEnvironmentVariables.size() < 2, "Should contain at least two environment variables starting with NIFI");
+        assertTrue(dynamicEnvironmentVariables.contains("NIFI_TEST_1=testvalue1"), "NIFI_TEST_1 environment variable is missing");
+        assertTrue(dynamicEnvironmentVariables.contains("NIFI_TEST_2=testvalue2"), "NIFI_TEST_2 environment variable is missing");
     }
 
     @Test
@@ -1096,9 +1096,9 @@ public class TestExecuteStreamCommand {
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
         String result = flowFiles.get(0).getAttribute("executeStreamCommand.output");
         Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
-        assertFalse("Should contain at least two environment variables starting with NIFI", dynamicEnvironmentVariables.size() < 2);
-        assertTrue("NIFI_TEST_1 environment variable is missing", dynamicEnvironmentVariables.contains("NIFI_TEST_1=testvalue1"));
-        assertTrue("NIFI_TEST_2 environment variable is missing", dynamicEnvironmentVariables.contains("NIFI_TEST_2=testvalue2"));
+        assertFalse(dynamicEnvironmentVariables.size() < 2, "Should contain at least two environment variables starting with NIFI");
+        assertTrue(dynamicEnvironmentVariables.contains("NIFI_TEST_1=testvalue1"), "NIFI_TEST_1 environment variable is missing");
+        assertTrue(dynamicEnvironmentVariables.contains("NIFI_TEST_2=testvalue2"), "NIFI_TEST_2 environment variable is missing");
     }
 
     @Test

@@ -16,14 +16,24 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE;
-import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_TERMINATE;
-import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import com.google.common.io.Files;
+import org.apache.commons.lang3.RandomUtils;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
+import javax.xml.bind.DatatypeConverter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -49,32 +59,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import javax.xml.bind.DatatypeConverter;
-
-import org.apache.commons.lang3.RandomUtils;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.processor.FlowFileFilter;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.mockito.Mockito;
+import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_TERMINATE;
+import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestPutSQL {
     private static final String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100), code integer)";
     private static final String createPersonsAutoId = "CREATE TABLE PERSONS_AI (id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1), name VARCHAR(100), code INTEGER check(code <= 100))";
-
-    @ClassRule
-    public static TemporaryFolder folder = new TemporaryFolder();
 
     /**
      * Setting up Connection pooling is expensive operation.
@@ -82,10 +77,10 @@ public class TestPutSQL {
      */
     static protected DBCPService service;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() throws ProcessException, SQLException {
         System.setProperty("derby.stream.error.file", "target/derby.log");
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         service = new MockDBCPService(dbDir.getAbsolutePath());
         try (final Connection conn = service.getConnection()) {

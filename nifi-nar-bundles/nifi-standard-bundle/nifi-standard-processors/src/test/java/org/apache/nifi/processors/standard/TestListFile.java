@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -29,12 +28,13 @@ import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.runner.Description;
 
 import java.io.File;
@@ -58,10 +58,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@DisabledOnOs(OS.WINDOWS)
 public class TestListFile {
 
     private static boolean isMillisecondSupported = false;
@@ -106,24 +107,22 @@ public class TestListFile {
         }
     };
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() throws Exception {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-
         // This only has to be done once.
         final File file = Files.createTempFile(Paths.get("target/"), "TestListFile", null).toFile();
         file.setLastModified(325990917351L);
         isMillisecondSupported = file.lastModified() % 1_000 > 0;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         processor = new ListFile();
         runner = TestRunners.newTestRunner(processor);
         runner.setProperty(AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION, AbstractListProcessor.PRECISION_SECONDS.getValue());
         context = runner.getProcessContext();
         deleteDirectory(testDir);
-        assertTrue("Unable to create test data directory " + testDir.getAbsolutePath(), testDir.exists() || testDir.mkdirs());
+        assertTrue(testDir.exists() || testDir.mkdirs(), "Unable to create test data directory " + testDir.getAbsolutePath());
         resetAges();
     }
 
@@ -175,7 +174,7 @@ public class TestListFile {
 
 
     @Test
-    @Ignore("Intended only for manual testing, as is very expensive to run as a unit test. Performs listing of 1,000,000 files (doesn't actually create the files, though - injects them in) to " +
+    @Disabled("Intended only for manual testing, as is very expensive to run as a unit test. Performs listing of 1,000,000 files (doesn't actually create the files, though - injects them in) to " +
         "ensure performance is not harmed")
     public void testPerformanceOnLargeListing() {
         final List<Path> paths = new ArrayList<>(1_000_000);
@@ -771,7 +770,7 @@ public class TestListFile {
     }
 
     @Test
-    public void testIsListingResetNecessary() throws Exception {
+    public void testIsListingResetNecessary() {
         assertTrue(processor.isListingResetNecessary(ListFile.DIRECTORY));
         assertTrue(processor.isListingResetNecessary(ListFile.RECURSE));
         assertTrue(processor.isListingResetNecessary(ListFile.FILE_FILTER));
@@ -867,7 +866,7 @@ public class TestListFile {
         age5 = Long.toString(age5millis) + " millis";
     }
 
-    private void deleteDirectory(final File directory) throws IOException {
+    private void deleteDirectory(final File directory) {
         if (directory.exists()) {
             File[] files = directory.listFiles();
             if (files != null) {
@@ -875,7 +874,7 @@ public class TestListFile {
                     if (file.isDirectory()) {
                         deleteDirectory(file);
                     }
-                    assertTrue("Could not delete " + file.getAbsolutePath(), file.delete());
+                    assertTrue(file.delete(), "Could not delete " + file.getAbsolutePath());
                 }
             }
         }

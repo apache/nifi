@@ -22,11 +22,10 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.util.MockPropertyContext;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,11 +51,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ITestSFTPTransferWithSSHTestServer {
 
@@ -78,19 +78,24 @@ public class ITestSFTPTransferWithSSHTestServer {
 
     private static SSHTestServer sshTestServer;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() throws IOException {
         sshTestServer = new SSHTestServer();
         sshTestServer.setVirtualFileSystemPath(SFTP_ROOT_DIR);
         sshTestServer.startServer();
     }
 
-    @AfterClass
-    public static void cleanupClass() throws IOException {
-        sshTestServer.stopServer();
+    @AfterAll
+    public static void cleanupClass() {
+        try {
+            sshTestServer.stopServer();
+        } catch (IOException ex) {
+            //Root cause of the IOException is usually an AccessDeniedException, which we can ignore because
+            //this is just a unit test.
+        }
     }
 
-    @Before
+    @BeforeEach
     public void setupFiles() throws IOException {
         final File sftpRootDir = new File(SFTP_ROOT_DIR);
         FileUtils.deleteFilesInDir(sftpRootDir, null, LOGGER, true, true);
@@ -117,7 +122,11 @@ public class ITestSFTPTransferWithSSHTestServer {
         FileUtils.ensureDirectoryExistAndCanAccess(new File(dir3Path));
         final Path linkPath = Paths.get(dir3Path + "/" + DIR_1);
 
-        Files.createSymbolicLink(linkPath, targetPath);
+        try {
+            Files.createSymbolicLink(linkPath, targetPath);
+        } catch (Exception ex) {
+
+        }
 
         // create dir4 for writing files
         final File dir4File = new File(SFTP_ROOT_DIR + "/" + DIR_4);
@@ -127,7 +136,7 @@ public class ITestSFTPTransferWithSSHTestServer {
     private void initializeFile(final String path, final String filename, final String content) throws IOException {
         final File parent = new File(path);
         if (!parent.exists()) {
-            assertTrue("Failed to create parent directory: " + path, parent.mkdirs());
+            assertTrue(parent.mkdirs(), "Failed to create parent directory: " + path);
         }
 
         final File file = new File(parent, filename);
@@ -299,14 +308,14 @@ public class ITestSFTPTransferWithSSHTestServer {
         }
     }
 
-    @Test(expected = FileNotFoundException.class)
+    @Test
     public void testGetListingWhenRemotePathDoesNotExist() throws IOException {
         final Map<PropertyDescriptor, String> properties = createBaseProperties();
         properties.put(SFTPTransfer.REMOTE_PATH, "DOES-NOT-EXIST");
         properties.put(SFTPTransfer.RECURSIVE_SEARCH, "true");
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
-            transfer.getListing();
+            assertThrows(FileNotFoundException.class, () -> transfer.getListing());
         }
     }
 
@@ -358,12 +367,13 @@ public class ITestSFTPTransferWithSSHTestServer {
         }
     }
 
-    @Test(expected = FileNotFoundException.class)
+    @Test
     public void testDeleteFileWhenDoesNotExist() throws IOException {
         final Map<PropertyDescriptor, String> properties = createBaseProperties();
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
-            transfer.deleteFile(null, null, "foo/bar/does-not-exist.txt");
+            assertThrows(FileNotFoundException.class,
+                    () -> transfer.deleteFile(null, null, "foo/bar/does-not-exist.txt"));
         }
     }
 
@@ -381,21 +391,16 @@ public class ITestSFTPTransferWithSSHTestServer {
             transfer.deleteDirectory(null, DIR_4);
 
             // verify the directory no longer exists
-            try {
-                transfer.getListing();
-                Assert.fail("Should have thrown exception");
-            } catch (FileNotFoundException e) {
-                // nothing to do, expected
-            }
+            assertThrows(FileNotFoundException.class, () -> transfer.getListing(), "Should have thrown exception");
         }
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testDeleteDirectoryWhenDoesNotExist() throws IOException {
         final Map<PropertyDescriptor, String> properties = createBaseProperties();
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
-            transfer.deleteDirectory(null, "DOES-NOT-EXIST");
+            assertThrows(IOException.class, () -> transfer.deleteDirectory(null, "DOES-NOT-EXIST"));
         }
     }
 
@@ -407,12 +412,7 @@ public class ITestSFTPTransferWithSSHTestServer {
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
             // verify the directory does not exist
-            try {
-                transfer.getListing();
-                Assert.fail("Should have failed");
-            } catch (FileNotFoundException e) {
-                // Nothing to do, expected
-            }
+            assertThrows(FileNotFoundException.class, () -> transfer.getListing(), "Should have failed");
 
             final String absolutePath = transfer.getAbsolutePath(null, remotePath);
             transfer.ensureDirectoryExists(null, new File(absolutePath));
@@ -432,12 +432,7 @@ public class ITestSFTPTransferWithSSHTestServer {
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
             // verify the directory does not exist
-            try {
-                transfer.getListing();
-                Assert.fail("Should have failed");
-            } catch (FileNotFoundException e) {
-                // Nothing to do, expected
-            }
+            assertThrows(FileNotFoundException.class, () -> transfer.getListing(), "Should have failed");
 
             final String absolutePath = transfer.getAbsolutePath(null, remotePath);
             transfer.ensureDirectoryExists(null, new File(absolutePath));
@@ -474,12 +469,7 @@ public class ITestSFTPTransferWithSSHTestServer {
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
             // verify the directory does not exist
-            try {
-                transfer.getListing();
-                Assert.fail("Should have failed");
-            } catch (FileNotFoundException e) {
-                // Nothing to do, expected
-            }
+            assertThrows(FileNotFoundException.class, () -> transfer.getListing(), "Should have failed");
 
             final String absolutePath = transfer.getAbsolutePath(null, remotePath);
             transfer.ensureDirectoryExists(null, new File(absolutePath));
@@ -491,7 +481,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         }
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testEnsureDirectoryExistsWithDirectoryListingDisabledAndAlreadyExists() throws IOException {
         final Map<PropertyDescriptor, String> properties = createBaseProperties();
         properties.put(SFTPTransfer.REMOTE_PATH, DIR_2);
@@ -504,7 +494,7 @@ public class ITestSFTPTransferWithSSHTestServer {
             assertEquals(2, listing.size());
 
             final String absolutePath = transfer.getAbsolutePath(null, DIR_2);
-            transfer.ensureDirectoryExists(null, new File(absolutePath));
+            assertThrows(IOException.class, () -> transfer.ensureDirectoryExists(null, new File(absolutePath)));
         }
     }
 
@@ -518,12 +508,7 @@ public class ITestSFTPTransferWithSSHTestServer {
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
             // verify the directory does not exist
-            try {
-                transfer.getListing();
-                Assert.fail("Should have failed");
-            } catch (FileNotFoundException e) {
-                // Nothing to do, expected
-            }
+            assertThrows(FileNotFoundException.class, () -> transfer.getListing(), "Should have failed");
 
             // Should swallow exception here
             final String absolutePath = transfer.getAbsolutePath(null, remotePath);
@@ -590,18 +575,18 @@ public class ITestSFTPTransferWithSSHTestServer {
         }
     }
 
-    @Test(expected = FileNotFoundException.class)
+    @Test
     public void testRenameWhenSourceDoesNotExist() throws IOException {
         final Map<PropertyDescriptor, String> properties = createBaseProperties();
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
             final String source = DIR_2 + "/DOES-NOT-EXIST";
             final String target = DIR_2 + "/" + FILE_1 + "-RENAMED";
-            transfer.rename(null, source, target);
+            assertThrows(FileNotFoundException.class, () -> transfer.rename(null, source, target));
         }
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testRenameWhenTargetAlreadyExists() throws IOException {
         final Map<PropertyDescriptor, String> properties = createBaseProperties();
 
@@ -612,7 +597,7 @@ public class ITestSFTPTransferWithSSHTestServer {
             final FileInfo targetInfoBefore = transfer.getRemoteFileInfo(null, DIR_2, FILE_2);
             assertNotNull(targetInfoBefore);
 
-            transfer.rename(null, source, target);
+            assertThrows(IOException.class, () -> transfer.rename(null, source, target));
         }
     }
 
@@ -709,7 +694,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         }
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testPutWhenFileAlreadyExists() throws IOException {
         final String permissions = "rw-rw-rw-";
 
@@ -726,11 +711,11 @@ public class ITestSFTPTransferWithSSHTestServer {
             assertNotNull(fileInfoBefore);
 
             // Should fail because file already exists
-            transfer.put(null, DIR_2, FILE_1, in);
+            assertThrows(IOException.class, () -> transfer.put(null, DIR_2, FILE_1, in));
         }
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testPutWhenDirectoryDoesNotExist() throws IOException {
         final String permissions = "rw-rw-rw-";
 
@@ -741,7 +726,7 @@ public class ITestSFTPTransferWithSSHTestServer {
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties);
             final InputStream in = new ByteArrayInputStream(fileContent.getBytes(StandardCharsets.UTF_8))) {
-            transfer.put(null, "DOES-NOT-EXIST", FILE_1, in);
+            assertThrows(IOException.class, () ->  transfer.put(null, "DOES-NOT-EXIST", FILE_1, in));
         }
     }
 

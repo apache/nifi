@@ -17,15 +17,6 @@
 
 package org.apache.nifi.processors.standard.util;
 
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import org.apache.nifi.processors.standard.util.jolt.TransformFactory;
-import org.junit.Test;
-
 import com.bazaarvoice.jolt.CardinalityTransform;
 import com.bazaarvoice.jolt.Chainr;
 import com.bazaarvoice.jolt.Defaultr;
@@ -35,12 +26,18 @@ import com.bazaarvoice.jolt.Modifier;
 import com.bazaarvoice.jolt.Removr;
 import com.bazaarvoice.jolt.Shiftr;
 import com.bazaarvoice.jolt.Sortr;
+import org.apache.nifi.processors.standard.util.jolt.TransformFactory;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertTrue;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestTransformFactory {
-
-
     @Test
     public void testGetChainTransform() throws Exception{
         final String chainrSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformFactory/chainrSpec.json")));

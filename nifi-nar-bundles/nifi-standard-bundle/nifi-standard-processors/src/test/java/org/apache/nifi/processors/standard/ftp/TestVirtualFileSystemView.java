@@ -27,22 +27,22 @@ import org.apache.nifi.processors.standard.ftp.filesystem.DefaultVirtualFileSyst
 import org.apache.nifi.processors.standard.ftp.filesystem.VirtualFileSystem;
 import org.apache.nifi.processors.standard.ftp.filesystem.VirtualFileSystemFactory;
 import org.apache.nifi.processors.standard.ftp.filesystem.VirtualPath;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.Collections;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class TestVirtualFileSystemView {
 
     private FileSystemView fileSystemView;
     private static VirtualFileSystem fileSystem;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupVirtualFileSystem() {
         fileSystem = new DefaultVirtualFileSystem();
         fileSystem.mkdir(new VirtualPath("/Directory1"));
@@ -54,7 +54,7 @@ public class TestVirtualFileSystemView {
         fileSystem.mkdir(new VirtualPath("/Directory2/SubDirectory4"));
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws FtpException {
         User user = createUser();
         FileSystemFactory fileSystemFactory = new VirtualFileSystemFactory(fileSystem);

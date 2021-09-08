@@ -16,19 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
@@ -45,13 +32,27 @@ import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletHandler;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Integration Test for deprecated PostHTTP Processor
@@ -70,7 +71,7 @@ public class ITPostHTTP {
 
     private static SSLContext trustStoreSslContext;
 
-    @BeforeClass
+    @BeforeAll
     public static void configureServices() throws TlsException {
         keyStoreSslContext = SslContextUtils.createKeyStoreSslContext();
         trustStoreSslContext = SslContextUtils.createTrustStoreSslContext();
@@ -100,7 +101,7 @@ public class ITPostHTTP {
         servlet = (CaptureServlet) handler.getServlets()[0].getServlet();
     }
 
-    @After
+    @AfterEach
     public void cleanup() throws Exception {
         if (server != null) {
             server.stop();
@@ -183,7 +184,7 @@ public class ITPostHTTP {
         assertEquals("World", new String(contentReceived));
         assertEquals("abc", receivedAttrs.get("abc"));
         assertEquals("xyz.txt", receivedAttrs.get("filename"));
-        Assert.assertNull(receivedAttrs.get("Content-Length"));
+        assertNull(receivedAttrs.get("Content-Length"));
     }
 
     @Test
@@ -242,8 +243,8 @@ public class ITPostHTTP {
         runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
-        Assert.assertEquals("17",lastPostHeaders.get("Content-Length"));
+        assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
+        assertEquals("17",lastPostHeaders.get("Content-Length"));
     }
 
     @Test
@@ -260,7 +261,7 @@ public class ITPostHTTP {
         runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(org.apache.nifi.processors.standard.PostHTTP.DEFAULT_CONTENT_TYPE, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
+        assertEquals(org.apache.nifi.processors.standard.PostHTTP.DEFAULT_CONTENT_TYPE, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
     }
 
     @Test
@@ -279,7 +280,7 @@ public class ITPostHTTP {
         runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
+        assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
     }
 
     @Test
@@ -299,10 +300,10 @@ public class ITPostHTTP {
         runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
+        assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
         // Ensure that a 'Content-Encoding' header was set with a 'gzip' value
-        Assert.assertEquals(org.apache.nifi.processors.standard.PostHTTP.CONTENT_ENCODING_GZIP_VALUE, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_ENCODING_HEADER));
-        Assert.assertNull(lastPostHeaders.get("Content-Length"));
+        assertEquals(org.apache.nifi.processors.standard.PostHTTP.CONTENT_ENCODING_GZIP_VALUE, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_ENCODING_HEADER));
+        assertNull(lastPostHeaders.get("Content-Length"));
     }
 
     @Test
@@ -323,10 +324,10 @@ public class ITPostHTTP {
         runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
+        assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
         // Ensure that the request was not sent with a 'Content-Encoding' header
-        Assert.assertNull(lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_ENCODING_HEADER));
-        Assert.assertEquals("2100",lastPostHeaders.get("Content-Length"));
+        assertNull(lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_ENCODING_HEADER));
+        assertEquals("2100",lastPostHeaders.get("Content-Length"));
     }
 
     @Test
@@ -351,9 +352,9 @@ public class ITPostHTTP {
         runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
+        assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
         // Ensure that the request was not sent with a 'Content-Encoding' header
-        Assert.assertNull(lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_ENCODING_HEADER));
+        assertNull(lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_ENCODING_HEADER));
     }
 
     @Test
@@ -373,12 +374,12 @@ public class ITPostHTTP {
         runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         byte[] postValue = servlet.getLastPost();
-        Assert.assertArrayEquals(StringUtils.repeat("Lines of sample text.", 100).getBytes(),postValue);
+        assertArrayEquals(StringUtils.repeat("Lines of sample text.", 100).getBytes(),postValue);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
-        Assert.assertNull(lastPostHeaders.get("Content-Length"));
-        Assert.assertEquals("chunked",lastPostHeaders.get("Transfer-Encoding"));
+        assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
+        assertNull(lastPostHeaders.get("Content-Length"));
+        assertEquals("chunked",lastPostHeaders.get("Transfer-Encoding"));
     }
 
     @Test
@@ -400,17 +401,17 @@ public class ITPostHTTP {
         runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         byte[] postValue = servlet.getLastPost();
-        Assert.assertArrayEquals(StringUtils.repeat("This is a line of sample text. Here is another.", 100).getBytes(),postValue);
+        assertArrayEquals(StringUtils.repeat("This is a line of sample text. Here is another.", 100).getBytes(),postValue);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
-        Assert.assertEquals("4700",lastPostHeaders.get("Content-Length"));
+        assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
+        assertEquals("4700",lastPostHeaders.get("Content-Length"));
     }
 
     @Test
     public void testDefaultUserAgent() throws Exception {
         setup(null, null);
-        Assert.assertTrue(runner.getProcessContext().getProperty(org.apache.nifi.processors.standard.PostHTTP.USER_AGENT).getValue().startsWith("Apache-HttpClient"));
+        assertTrue(runner.getProcessContext().getProperty(org.apache.nifi.processors.standard.PostHTTP.USER_AGENT).getValue().startsWith("Apache-HttpClient"));
     }
 
     @Test

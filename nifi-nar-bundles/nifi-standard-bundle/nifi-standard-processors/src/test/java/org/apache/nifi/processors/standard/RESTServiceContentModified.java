@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.processors.standard;
 
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.TimeZone;
-
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 public class RESTServiceContentModified extends HttpServlet {
 

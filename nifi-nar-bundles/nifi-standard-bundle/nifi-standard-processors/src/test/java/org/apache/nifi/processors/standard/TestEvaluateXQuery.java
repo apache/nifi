@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
+import javax.xml.transform.OutputKeys;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,14 +34,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
-import javax.xml.transform.OutputKeys;
-import javax.xml.xpath.XPathFactoryConfigurationException;
-
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestEvaluateXQuery {
 
@@ -179,9 +177,10 @@ public class TestEvaluateXQuery {
         return resultStrings;
     }
 
-    @Test(expected = java.lang.AssertionError.class)
-    public void testBadXQuery() throws Exception {
-        doXqueryTest(XML_SNIPPET, "counttttttt(*:fruitbasket/fruit)", Arrays.asList("7"));
+    @Test
+    public void testBadXQuery() {
+        assertThrows(AssertionError.class,
+                () -> doXqueryTest(XML_SNIPPET, "counttttttt(*:fruitbasket/fruit)", Arrays.asList("7")));
     }
 
     @Test
@@ -376,7 +375,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testRootPath() throws XPathFactoryConfigurationException, IOException {
+    public void testRootPath() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("xquery.result1", "/");
@@ -393,7 +392,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testCheckIfElementExists() throws XPathFactoryConfigurationException, IOException {
+    public void testCheckIfElementExists() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("xquery.result.exist.1", "boolean(/*:fruitbasket/fruit[1])");
@@ -409,7 +408,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testUnmatchedContent() throws XPathFactoryConfigurationException, IOException {
+    public void testUnmatchedContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty("xquery.result.exist.2", "/*:fruitbasket/node2");
@@ -422,7 +421,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testUnmatchedAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testUnmatchedAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("xquery.result.exist.2", "/*:fruitbasket/node2");
@@ -437,7 +436,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testNoXQueryAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testNoXQueryAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
 
@@ -448,17 +447,17 @@ public class TestEvaluateXQuery {
         testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_NO_MATCH).get(0).assertContentEquals(XML_SNIPPET);
     }
 
-    @Test(expected = java.lang.AssertionError.class)
-    public void testNoXQueryContent() throws XPathFactoryConfigurationException, IOException {
+    @Test
+    public void testNoXQueryContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
 
         testRunner.enqueue(XML_SNIPPET);
-        testRunner.run();
+        assertThrows(AssertionError.class, () -> testRunner.run());
     }
 
     @Test
-    public void testOneMatchOneUnmatchAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testOneMatchOneUnmatchAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("some.property", "//fruit/name/text()");
@@ -481,7 +480,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testMatchedEmptyStringAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testMatchedEmptyStringAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("xquery.result.exist.2", "/*:fruitbasket/*[name='none']/color/text()");
@@ -496,7 +495,7 @@ public class TestEvaluateXQuery {
         testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_NO_MATCH).get(0).assertContentEquals(XML_SNIPPET);
     }
 
-    @Test(expected = java.lang.AssertionError.class)
+    @Test
     public void testMultipleXPathForContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
@@ -504,11 +503,11 @@ public class TestEvaluateXQuery {
         testRunner.setProperty("some.property.2", "/*:fruitbasket/fruit[2]");
 
         testRunner.enqueue(XML_SNIPPET);
-        testRunner.run();
+        assertThrows(AssertionError.class, () -> testRunner.run());
     }
 
     @Test
-    public void testWriteStringToAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testWriteStringToAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("xquery.result2", "/*:fruitbasket/fruit[1]/name/text()");
@@ -523,7 +522,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testWriteStringToContent() throws XPathFactoryConfigurationException, IOException {
+    public void testWriteStringToContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty("some.property", "/*:fruitbasket/fruit[1]/name/text()");
@@ -539,7 +538,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testWriteXmlToAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testWriteXmlToAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("some.property", "/*:fruitbasket/fruit[1]/name");
@@ -555,7 +554,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testWriteXmlToContent() throws XPathFactoryConfigurationException, IOException {
+    public void testWriteXmlToContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty("some.property", "/*:fruitbasket/fruit[1]/name");
@@ -571,7 +570,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testMatchesMultipleStringContent() throws XPathFactoryConfigurationException, IOException {
+    public void testMatchesMultipleStringContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty("some.property", "//fruit/name/text()");
@@ -592,7 +591,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testMatchesMultipleStringAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testMatchesMultipleStringAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("some.property", "//fruit/name/text()");
@@ -612,7 +611,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testMatchesMultipleXmlContent() throws XPathFactoryConfigurationException, IOException {
+    public void testMatchesMultipleXmlContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty("some.property", "//fruit/name");
@@ -634,7 +633,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testMatchesMultipleXmlAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testMatchesMultipleXmlAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("some.property", "//fruit/name");
@@ -655,7 +654,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testSuccessForEmbeddedDocTypeValidation() throws XPathFactoryConfigurationException, IOException {
+    public void testSuccessForEmbeddedDocTypeValidation() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty(EvaluateXQuery.VALIDATE_DTD, "true");
@@ -672,7 +671,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testSuccessForEmbeddedDocTypeValidationDisabled() throws XPathFactoryConfigurationException, IOException {
+    public void testSuccessForEmbeddedDocTypeValidationDisabled() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty(EvaluateXQuery.VALIDATE_DTD, "false");
@@ -690,7 +689,7 @@ public class TestEvaluateXQuery {
 
 
     @Test
-    public void testFailureForExternalDocTypeWithDocTypeValidationEnabled() throws XPathFactoryConfigurationException, IOException {
+    public void testFailureForExternalDocTypeWithDocTypeValidationEnabled() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
@@ -703,7 +702,7 @@ public class TestEvaluateXQuery {
 
 
     @Test
-    public void testSuccessForExternalDocTypeWithDocTypeValidationDisabled() throws XPathFactoryConfigurationException, IOException {
+    public void testSuccessForExternalDocTypeWithDocTypeValidationDisabled() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty(EvaluateXQuery.VALIDATE_DTD, "false");

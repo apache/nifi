@@ -16,10 +16,23 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.http.HttpContextMap;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.standard.util.HTTPUtils;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
+import javax.servlet.AsyncContext;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.WriteListener;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
@@ -31,24 +44,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.servlet.AsyncContext;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.WriteListener;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.http.HttpContextMap;
-import org.apache.nifi.processor.exception.FlowFileAccessException;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.standard.util.HTTPUtils;
-import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
-import org.mockito.Mockito;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestHandleHttpResponse {
 
@@ -261,7 +260,7 @@ public class TestHandleHttpResponse {
         @Override
         public HttpServletResponse getResponse(final String identifier) {
             if (!id.equals(identifier)) {
-                Assert.fail("attempting to respond to wrong request; should have been " + id + " but was " + identifier);
+                fail("attempting to respond to wrong request; should have been " + id + " but was " + identifier);
             }
 
             try {
@@ -316,7 +315,7 @@ public class TestHandleHttpResponse {
                 return response;
             } catch (final Exception e) {
                 e.printStackTrace();
-                Assert.fail(e.toString());
+                fail(e.toString());
                 return null;
             }
         }
@@ -324,7 +323,7 @@ public class TestHandleHttpResponse {
         @Override
         public void complete(final String identifier) {
             if (!id.equals(identifier)) {
-                Assert.fail("attempting to respond to wrong request; should have been " + id + " but was " + identifier);
+                fail("attempting to respond to wrong request; should have been " + id + " but was " + identifier);
             }
 
             if (completeException != null) {

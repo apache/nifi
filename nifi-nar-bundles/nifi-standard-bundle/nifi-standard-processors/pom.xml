@@ -413,6 +413,25 @@
             <version>${okhttp.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.github.stefanbirkner</groupId>
+            <artifactId>fake-sftp-server-lambda</artifactId>
+            <version>1.0.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sshd</groupId>
+            <artifactId>sshd-common</artifactId>
+            <version>2.7.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sshd</groupId>
+            <artifactId>sshd-core</artifactId>
+            <version>2.7.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

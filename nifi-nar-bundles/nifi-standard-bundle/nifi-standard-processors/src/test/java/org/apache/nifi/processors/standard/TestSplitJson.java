@@ -16,18 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
-import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
-import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
-import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
-
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
@@ -36,20 +24,35 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestSplitJson {
 
     private static final Path JSON_SNIPPET = Paths.get("src/test/resources/TestJson/json-sample.json");
     private static final Path XML_SNIPPET = Paths.get("src/test/resources/TestXml/xml-snippet.xml");
 
-    @Test(expected = AssertionError.class)
+    @Test
     public void testInvalidJsonPath() {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
-        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$..");
-
-        Assert.fail("An improper JsonPath expression was not detected as being invalid.");
+        assertThrows(AssertionError.class, () -> {
+                    testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$..");
+                    testRunner.assertValid();
+                },
+                "An improper JsonPath expression was not detected as being invalid.");
     }
 
     @Test

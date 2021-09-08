@@ -25,11 +25,8 @@ import org.apache.nifi.security.util.KeyDerivationFunction
 import org.apache.nifi.stream.io.ByteCountingInputStream
 import org.apache.nifi.stream.io.ByteCountingOutputStream
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -37,6 +34,8 @@ import javax.crypto.Cipher
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.Security
+
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 
 class PasswordBasedEncryptorGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(PasswordBasedEncryptorGroovyTest.class)
@@ -48,21 +47,13 @@ class PasswordBasedEncryptorGroovyTest {
     private static final String PASSWORD = "thisIsABadPassword"
     private static final String LEGACY_PASSWORD = "Hello, World!"
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     @Test
@@ -167,7 +158,7 @@ class PasswordBasedEncryptorGroovyTest {
     @Test
     void testShouldDecryptLegacyOpenSSLSaltedCipherText() throws Exception {
         // Arrange
-        Assume.assumeTrue("Skipping test because unlimited strength crypto policy not installed", CipherUtility.isUnlimitedStrengthCryptoSupported())
+        assumeTrue(CipherUtility.isUnlimitedStrengthCryptoSupported(), "Skipping test because unlimited strength crypto policy not installed")
 
         final String PLAINTEXT = new File("${TEST_RESOURCES_PREFIX}/plain.txt").text
         logger.info("Plaintext: {}", PLAINTEXT)
@@ -196,7 +187,7 @@ class PasswordBasedEncryptorGroovyTest {
     @Test
     void testShouldDecryptLegacyOpenSSLUnsaltedCipherText() throws Exception {
         // Arrange
-        Assume.assumeTrue("Skipping test because unlimited strength crypto policy not installed", CipherUtility.isUnlimitedStrengthCryptoSupported())
+        assumeTrue(CipherUtility.isUnlimitedStrengthCryptoSupported(), "Skipping test because unlimited strength crypto policy not installed")
 
         final String PLAINTEXT = new File("${TEST_RESOURCES_PREFIX}/plain.txt").text
         logger.info("Plaintext: {}", PLAINTEXT)

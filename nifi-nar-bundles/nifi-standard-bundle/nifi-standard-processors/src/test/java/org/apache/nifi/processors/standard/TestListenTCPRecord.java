@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Optional;
-import javax.net.ssl.SSLContext;
-
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
@@ -40,13 +32,27 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestListenTCPRecord {
     static final String SCHEMA_TEXT = "{\n" +
@@ -80,13 +86,13 @@ public class TestListenTCPRecord {
 
     private TestRunner runner;
 
-    @BeforeClass
+    @BeforeAll
     public static void configureServices() throws TlsException {
         keyStoreSslContext = SslContextUtils.createKeyStoreSslContext();
         trustStoreSslContext = SslContextUtils.createTrustStoreSslContext();
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(ListenTCPRecord.class);
 
@@ -119,7 +125,8 @@ public class TestListenTCPRecord {
         runner.assertValid();
     }
 
-    @Test(timeout = TEST_TIMEOUT)
+    @Test
+    @Timeout(value = TEST_TIMEOUT, unit = TimeUnit.MILLISECONDS)
     public void testRunOneRecordPerFlowFile() throws IOException, InterruptedException {
         runner.setProperty(ListenTCPRecord.RECORD_BATCH_SIZE, "1");
 
@@ -131,31 +138,33 @@ public class TestListenTCPRecord {
             flowFile.assertAttributeEquals("record.count", "1");
 
             final String content = new String(flowFile.toByteArray(), StandardCharsets.UTF_8);
-            Assert.assertNotNull(content);
-            Assert.assertTrue(content.contains("This is a test " + (i + 1)));
+            assertNotNull(content);
+            assertTrue(content.contains("This is a test " + (i + 1)));
         }
     }
 
-    @Test(timeout = TEST_TIMEOUT)
+    @Test
+    @Timeout(value = TEST_TIMEOUT, unit = TimeUnit.MILLISECONDS)
     public void testRunMultipleRecordsPerFlowFileLessThanBatchSize() throws IOException, InterruptedException {
         runner.setProperty(ListenTCPRecord.RECORD_BATCH_SIZE, "5");
 
         run(1, null);
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
-        Assert.assertEquals(1, mockFlowFiles.size());
+        assertEquals(1, mockFlowFiles.size());
 
         final MockFlowFile flowFile = mockFlowFiles.get(0);
         flowFile.assertAttributeEquals("record.count", "3");
 
         final String content = new String(flowFile.toByteArray(), StandardCharsets.UTF_8);
-        Assert.assertNotNull(content);
-        Assert.assertTrue(content.contains("This is a test " + 1));
-        Assert.assertTrue(content.contains("This is a test " + 2));
-        Assert.assertTrue(content.contains("This is a test " + 3));
+        assertNotNull(content);
+        assertTrue(content.contains("This is a test " + 1));
+        assertTrue(content.contains("This is a test " + 2));
+        assertTrue(content.contains("This is a test " + 3));
     }
 
-    @Test(timeout = TEST_TIMEOUT)
+    @Test
+    @Timeout(value = TEST_TIMEOUT, unit = TimeUnit.MILLISECONDS)
     public void testRunClientAuthRequired() throws InitializationException, IOException, InterruptedException {
         runner.setProperty(ListenTCPRecord.CLIENT_AUTH, ClientAuth.REQUIRED.name());
         enableSslContextService(keyStoreSslContext);
@@ -163,16 +172,17 @@ public class TestListenTCPRecord {
         run(1, keyStoreSslContext);
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
-        Assert.assertEquals(1, mockFlowFiles.size());
+        assertEquals(1, mockFlowFiles.size());
 
         final String content = new String(mockFlowFiles.get(0).toByteArray(), StandardCharsets.UTF_8);
-        Assert.assertNotNull(content);
-        Assert.assertTrue(content.contains("This is a test " + 1));
-        Assert.assertTrue(content.contains("This is a test " + 2));
-        Assert.assertTrue(content.contains("This is a test " + 3));
+        assertNotNull(content);
+        assertTrue(content.contains("This is a test " + 1));
+        assertTrue(content.contains("This is a test " + 2));
+        assertTrue(content.contains("This is a test " + 3));
     }
 
-    @Test(timeout = TEST_TIMEOUT)
+    @Test
+    @Timeout(value = TEST_TIMEOUT, unit = TimeUnit.MILLISECONDS)
     public void testRunClientAuthNone() throws InitializationException, IOException, InterruptedException {
         runner.setProperty(ListenTCPRecord.CLIENT_AUTH, ClientAuth.NONE.name());
         enableSslContextService(keyStoreSslContext);
@@ -180,13 +190,13 @@ public class TestListenTCPRecord {
         run(1, trustStoreSslContext);
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
-        Assert.assertEquals(1, mockFlowFiles.size());
+        assertEquals(1, mockFlowFiles.size());
 
         final String content = new String(mockFlowFiles.get(0).toByteArray(), StandardCharsets.UTF_8);
-        Assert.assertNotNull(content);
-        Assert.assertTrue(content.contains("This is a test " + 1));
-        Assert.assertTrue(content.contains("This is a test " + 2));
-        Assert.assertTrue(content.contains("This is a test " + 3));
+        assertNotNull(content);
+        assertTrue(content.contains("This is a test " + 1));
+        assertTrue(content.contains("This is a test " + 2));
+        assertTrue(content.contains("This is a test " + 3));
     }
 
     protected void run(final int expectedTransferred, final SSLContext sslContext) throws IOException, InterruptedException {
@@ -214,7 +224,7 @@ public class TestListenTCPRecord {
             iterations++;
 
             final Optional<LogMessage> firstErrorMessage = runner.getLogger().getErrorMessages().stream().findFirst();
-            Assert.assertNull(firstErrorMessage.orElse(null));
+            assertNull(firstErrorMessage.orElse(null));
         }
         LOGGER.info("Completed after iterations [{}]", iterations);
     }

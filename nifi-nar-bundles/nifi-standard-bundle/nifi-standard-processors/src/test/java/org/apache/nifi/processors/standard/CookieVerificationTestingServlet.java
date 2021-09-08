@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.FileInputStream;
-import java.io.IOException;
+import org.apache.nifi.stream.io.StreamUtils;
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
@@ -25,8 +24,8 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import org.apache.nifi.stream.io.StreamUtils;
+import java.io.FileInputStream;
+import java.io.IOException;
 
 public class CookieVerificationTestingServlet extends HttpServlet {
 

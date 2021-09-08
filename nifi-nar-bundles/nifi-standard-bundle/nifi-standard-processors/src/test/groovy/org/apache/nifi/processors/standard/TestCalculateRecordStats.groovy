@@ -25,16 +25,18 @@ import org.apache.nifi.serialization.record.RecordFieldType
 import org.apache.nifi.serialization.record.RecordSchema
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
 
 class TestCalculateRecordStats {
     TestRunner runner
     MockRecordParser recordParser
     RecordSchema personSchema
 
-    @Before
+    @BeforeEach
     void setup() {
         runner = TestRunners.newTestRunner(CalculateRecordStats.class)
         recordParser = new MockRecordParser()
@@ -144,8 +146,8 @@ class TestCalculateRecordStats {
         def flowFiles = runner.getFlowFilesForRelationship(CalculateRecordStats.REL_SUCCESS)
         def ff = flowFiles[0]
         expectedAttributes.each { kv ->
-            Assert.assertNotNull("Missing ${kv.key}", ff.getAttribute(kv.key))
-            Assert.assertEquals(kv.value, ff.getAttribute(kv.key))
+            assertNotNull("Missing ${kv.key}", ff.getAttribute(kv.key))
+            assertEquals(kv.value, ff.getAttribute(kv.key))
         }
     }
 }

@@ -16,26 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.avro.file.DataFileConstants;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
@@ -53,12 +33,32 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.db.AvroUtil;
 import org.apache.nifi.util.db.SimpleCommerceDataSet;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestExecuteSQL {
 
@@ -100,14 +100,14 @@ public class TestExecuteSQL {
             + " where PER.ID < ? AND REL.ID < ?";
 
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
     }
 
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         final DBCPService dbcp = new DBCPServiceSimpleImpl();
         final Map<String, String> dbcpProperties = new HashMap<>();
@@ -119,7 +119,7 @@ public class TestExecuteSQL {
     }
 
     @Test
-    public void testIncomingConnectionWithNoFlowFile() throws InitializationException {
+    public void testIncomingConnectionWithNoFlowFile() {
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "SELECT * FROM persons");
         runner.run();
@@ -128,17 +128,17 @@ public class TestExecuteSQL {
     }
 
     @Test
-    public void testIncomingConnectionWithNoFlowFileAndNoQuery() throws InitializationException {
+    public void testIncomingConnectionWithNoFlowFileAndNoQuery() {
         runner.setIncomingConnection(true);
         runner.run();
         runner.assertTransferCount(ExecuteSQL.REL_SUCCESS, 0);
         runner.assertTransferCount(ExecuteSQL.REL_FAILURE, 0);
     }
 
-    @Test(expected = AssertionError.class)
-    public void testNoIncomingConnectionAndNoQuery() throws InitializationException {
+    @Test
+    public void testNoIncomingConnectionAndNoQuery() {
         runner.setIncomingConnection(false);
-        runner.run();
+        assertThrows(AssertionError.class, () -> runner.run());
     }
 
     @Test
@@ -537,7 +537,7 @@ public class TestExecuteSQL {
 
         // Assert exception message has been put to flow file attribute
         MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_FAILURE).get(0);
-        Assert.assertEquals("java.sql.SQLException: test execute statement failed",failedFlowFile.getAttribute(ExecuteSQL.RESULT_ERROR_MESSAGE));
+        assertEquals("java.sql.SQLException: test execute statement failed",failedFlowFile.getAttribute(ExecuteSQL.RESULT_ERROR_MESSAGE));
     }
 
     public void invokeOnTrigger(final Integer queryTimeout, final String query, final boolean incomingFlowFile, final Map<String,String> attrs, final boolean setQueryProperty)

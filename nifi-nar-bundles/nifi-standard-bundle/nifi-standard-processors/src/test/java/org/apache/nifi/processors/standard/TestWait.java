@@ -16,11 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.standard.TestNotify.MockCacheClient;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,21 +36,18 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
 
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.standard.TestNotify.MockCacheClient;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestWait {
 
     private TestRunner runner;
     private MockCacheClient service;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(Wait.class);
 
@@ -58,7 +58,7 @@ public class TestWait {
     }
 
     @Test
-    public void testWait() throws InitializationException {
+    public void testWait() {
         runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
 
         final Map<String, String> props = new HashMap<>();
@@ -409,11 +409,11 @@ public class TestWait {
         assertEquals("waitValue", outputFlowFile.getAttribute("both"));
         runner.clearTransferState();
 
-        assertNull("The key no longer exist", protocol.getSignal("key"));
+        assertNull(protocol.getSignal("key"), "The key no longer exist");
     }
 
     @Test
-    public void testWaitForSpecificCount() throws InitializationException, IOException {
+    public void testWaitForSpecificCount() throws IOException {
         Map<String, String> cachedAttributes = new HashMap<>();
         cachedAttributes.put("both", "notifyValue");
         cachedAttributes.put("uuid", "notifyUuid");
@@ -565,7 +565,7 @@ public class TestWait {
         // All counters are consumed.
         outputFlowFile.assertAttributeEquals("wait.counter.counter", "0");
 
-        assertNull("The key no longer exist", protocol.getSignal("key"));
+        assertNull(protocol.getSignal("key"), "The key no longer exist");
         runner.clearTransferState();
     }
 

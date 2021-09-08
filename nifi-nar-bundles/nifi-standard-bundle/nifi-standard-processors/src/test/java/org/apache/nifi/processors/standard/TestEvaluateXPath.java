@@ -16,19 +16,17 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import javax.xml.xpath.XPathFactoryConfigurationException;
-
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestEvaluateXPath {
 
@@ -37,7 +35,7 @@ public class TestEvaluateXPath {
     private static final Path XML_SNIPPET_NONEXISTENT_DOCTYPE = Paths.get("src/test/resources/TestXml/xml-snippet-external-doctype.xml");
 
     @Test
-    public void testAsAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testAsAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("xpath.result1", "/");
@@ -53,7 +51,7 @@ public class TestEvaluateXPath {
     }
 
     @Test
-    public void testCheckIfElementExists() throws XPathFactoryConfigurationException, IOException {
+    public void testCheckIfElementExists() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("xpath.result1", "/");
@@ -71,7 +69,7 @@ public class TestEvaluateXPath {
     }
 
     @Test
-    public void testUnmatched() throws XPathFactoryConfigurationException, IOException {
+    public void testUnmatched() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
         testRunner.setProperty("xpath.result.exist.2", "/*:bundle/node2");
@@ -83,7 +81,7 @@ public class TestEvaluateXPath {
         testRunner.getFlowFilesForRelationship(EvaluateXPath.REL_NO_MATCH).get(0).assertContentEquals(XML_SNIPPET);
     }
 
-    @Test(expected = java.lang.AssertionError.class)
+    @Test
     public void testMultipleXPathForContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
@@ -92,11 +90,11 @@ public class TestEvaluateXPath {
         testRunner.setProperty("some.property.2", "/*:bundle/node/subNode[2]");
 
         testRunner.enqueue(XML_SNIPPET);
-        testRunner.run();
+        assertThrows(AssertionError.class, () -> testRunner.run());
     }
 
     @Test
-    public void testWriteToContent() throws XPathFactoryConfigurationException, IOException {
+    public void testWriteToContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
         testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]");
@@ -113,7 +111,7 @@ public class TestEvaluateXPath {
     }
 
     @Test
-    public void testFailureIfContentMatchesMultipleNodes() throws XPathFactoryConfigurationException, IOException {
+    public void testFailureIfContentMatchesMultipleNodes() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
         testRunner.setProperty("some.property", "/*:bundle/node/subNode");
@@ -125,7 +123,7 @@ public class TestEvaluateXPath {
     }
 
     @Test
-    public void testWriteStringToContent() throws XPathFactoryConfigurationException, IOException {
+    public void testWriteStringToContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
         testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);
@@ -142,7 +140,7 @@ public class TestEvaluateXPath {
     }
 
     @Test
-    public void testWriteNodeSetToAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testWriteNodeSetToAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_ATTRIBUTE);
         testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_NODESET);
@@ -159,7 +157,7 @@ public class TestEvaluateXPath {
     }
 
     @Test
-    public void testSuccessForEmbeddedDocTypeValidation() throws XPathFactoryConfigurationException, IOException {
+    public void testSuccessForEmbeddedDocTypeValidation() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
         testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);
@@ -177,7 +175,7 @@ public class TestEvaluateXPath {
     }
 
     @Test
-    public void testSuccessForEmbeddedDocTypeValidationDisabled() throws XPathFactoryConfigurationException, IOException {
+    public void testSuccessForEmbeddedDocTypeValidationDisabled() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
         testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);
@@ -195,7 +193,7 @@ public class TestEvaluateXPath {
     }
 
     @Test
-    public void testFailureForExternalDocTypeWithDocTypeValidationEnabled() throws XPathFactoryConfigurationException, IOException {
+    public void testFailureForExternalDocTypeWithDocTypeValidationEnabled() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
         testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);
@@ -208,7 +206,7 @@ public class TestEvaluateXPath {
     }
 
     @Test
-    public void testSuccessForExternalDocTypeWithDocTypeValidationDisabled() throws XPathFactoryConfigurationException, IOException {
+    public void testSuccessForExternalDocTypeWithDocTypeValidationDisabled() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
         testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);

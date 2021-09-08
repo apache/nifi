@@ -33,14 +33,8 @@ import org.apache.nifi.util.MockProcessContext
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Assert
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -52,7 +46,10 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-@RunWith(JUnit4.class)
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
+
 class TestEncryptContentGroovy {
     private static final Logger logger = LoggerFactory.getLogger(TestEncryptContentGroovy.class)
 
@@ -61,7 +58,7 @@ class TestEncryptContentGroovy {
 
     private static final List<EncryptionMethod> SUPPORTED_KEYED_ENCRYPTION_METHODS = EncryptionMethod.values().findAll { it.isKeyedCipher() && it != EncryptionMethod.AES_CBC_NO_PADDING }
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -70,19 +67,11 @@ class TestEncryptContentGroovy {
         }
     }
 
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
-    }
-
     @Test
     void testShouldValidateMaxKeySizeForAlgorithmsOnUnlimitedStrengthJVM() throws IOException {
         // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                CipherUtility.isUnlimitedStrengthCryptoSupported())
+        assumeTrue(CipherUtility.isUnlimitedStrengthCryptoSupported(),
+                "Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.")
 
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
         Collection<ValidationResult> results
@@ -107,20 +96,19 @@ class TestEncryptContentGroovy {
         results = pc.validate()
 
         // Assert
-        Assert.assertEquals(1, results.size())
+        assertEquals(1, results.size())
         logger.expected(results)
         ValidationResult vr = results.first()
 
         String expectedResult = "'raw-key-hex' is invalid because Key must be valid length [128, 192, 256]"
         String message = "'" + vr.toString() + "' contains '" + expectedResult + "'"
-        Assert.assertTrue(message, vr.toString().contains(expectedResult))
+        assertTrue(vr.toString().contains(expectedResult), message)
     }
 
     @Test
     void testShouldValidateMaxKeySizeForAlgorithmsOnLimitedStrengthJVM() throws IOException {
         // Arrange
-        Assume.assumeTrue("Test is being skipped because this JVM supports unlimited strength crypto.",
-                !CipherUtility.isUnlimitedStrengthCryptoSupported())
+        assumeTrue(!CipherUtility.isUnlimitedStrengthCryptoSupported(), "Test is being skipped because this JVM supports unlimited strength crypto.")
 
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
         Collection<ValidationResult> results
@@ -146,18 +134,18 @@ class TestEncryptContentGroovy {
         // Assert
 
         // Two validation problems -- max key size and key length is invalid
-        Assert.assertEquals(2, results.size())
+        assertEquals(2, results.size())
         logger.expected(results)
         ValidationResult maxKeyLengthVR = results.first()
 
         String expectedResult = "'raw-key-hex' is invalid because Key length greater than ${MAX_KEY_LENGTH} bits is not supported"
         String message = "'" + maxKeyLengthVR.toString() + "' contains '" + expectedResult + "'"
-        Assert.assertTrue(message, maxKeyLengthVR.toString().contains(expectedResult))
+        assertTrue(message, maxKeyLengthVR.toString().contains(expectedResult))
 
         expectedResult = "'raw-key-hex' is invalid because Key must be valid length [128, 192, 256]"
         ValidationResult keyLengthInvalidVR = results.last()
         message = "'" + keyLengthInvalidVR.toString() + "' contains '" + expectedResult + "'"
-        Assert.assertTrue(message, keyLengthInvalidVR.toString().contains(expectedResult))
+        assertTrue(message, keyLengthInvalidVR.toString().contains(expectedResult))
     }
 
     @Test
@@ -185,13 +173,13 @@ class TestEncryptContentGroovy {
         results = pc.validate()
 
         // Assert
-        Assert.assertEquals(1, results.size())
+        assertEquals(1, results.size())
         logger.expected(results)
         ValidationResult keyLengthInvalidVR = results.first()
 
         String expectedResult = "'raw-key-hex' is invalid because Key must be valid length [128, 192, 256]"
         String message = "'" + keyLengthInvalidVR.toString() + "' contains '" + expectedResult + "'"
-        Assert.assertTrue(message, keyLengthInvalidVR.toString().contains(expectedResult))
+        assertTrue(keyLengthInvalidVR.toString().contains(expectedResult), message)
     }
 
     @Test
@@ -406,13 +394,13 @@ class TestEncryptContentGroovy {
 
                 // Assert
                 logger.expected(results)
-                Assert.assertEquals(1, results.size())
+                assertEquals(1, results.size())
                 ValidationResult keyLengthInvalidVR = results.first()
 
                 String expectedResult = "'Key Derivation Function' is invalid because Key Derivation Function is required to be NIFI_LEGACY, OPENSSL_EVP_BYTES_TO_KEY when using " +
                         "algorithm ${encryptionMethod.algorithm}"
                 String message = "'" + keyLengthInvalidVR.toString() + "' contains '" + expectedResult + "'"
-                Assert.assertTrue(message, keyLengthInvalidVR.toString().contains(expectedResult))
+                assertTrue(keyLengthInvalidVR.toString().contains(expectedResult), message)
             }
 
             final def VALID_KDFS = [KeyDerivationFunction.NIFI_LEGACY, KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY]
@@ -428,7 +416,7 @@ class TestEncryptContentGroovy {
                 results = pc.validate()
 
                 // Assert
-                Assert.assertEquals(0, results.size())
+                assertEquals(0, results.size())
             }
         }
     }
@@ -828,7 +816,7 @@ class TestEncryptContentGroovy {
     @Test
     void testShouldCheckMaximumLengthOfPasswordOnLimitedStrengthCryptoJVM() throws IOException {
         // Arrange
-        Assume.assumeTrue("Only run on systems with limited strength crypto", !CipherUtility.isUnlimitedStrengthCryptoSupported())
+        assumeTrue(!CipherUtility.isUnlimitedStrengthCryptoSupported(), "Only run on systems with limited strength crypto")
 
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
         testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NIFI_LEGACY.name())
@@ -862,13 +850,13 @@ class TestEncryptContentGroovy {
 
             // Assert
             logger.expected(results)
-            Assert.assertEquals(1, results.size())
+            assertEquals(1, results.size())
             ValidationResult passwordLengthVR = results.first()
 
             String expectedResult = "'Password' is invalid because Password length greater than ${invalidPasswordLength - 1} characters is not supported by" +
                     " this JVM due to lacking JCE Unlimited Strength Jurisdiction Policy files."
             String message = "'" + passwordLengthVR.toString() + "' contains '" + expectedResult + "'"
-            Assert.assertTrue(message, passwordLengthVR.toString().contains(expectedResult))
+            assertTrue(message, passwordLengthVR.toString().contains(expectedResult))
         }
     }
 
@@ -912,13 +900,13 @@ class TestEncryptContentGroovy {
 
             // Assert
             logger.expected(results)
-            Assert.assertEquals(1, results.size())
+            assertEquals(1, results.size())
             ValidationResult passwordLengthVR = results.first()
 
             String expectedResult = "'Password' is invalid because Password length less than ${PasswordBasedEncryptor.getMinimumSafePasswordLength()} characters is potentially unsafe. " +
                     "See Admin Guide."
             String message = "'" + passwordLengthVR.toString() + "' contains '" + expectedResult + "'"
-            Assert.assertTrue(message, passwordLengthVR.toString().contains(expectedResult))
+            assertTrue(passwordLengthVR.toString().contains(expectedResult), message)
         }
     }
 
@@ -961,7 +949,7 @@ class TestEncryptContentGroovy {
             results = pc.validate()
 
             // Assert
-            Assert.assertEquals(results.toString(), 0, results.size())
+            assertEquals(0, results.size(), results.toString())
         }
     }
 
@@ -985,7 +973,7 @@ class TestEncryptContentGroovy {
         pc = (MockProcessContext) testRunner.getProcessContext()
 
         results = pc.validate()
-        Assert.assertEquals(results.toString(), 0, results.size())
+        assertEquals(0, results.size(), results.toString())
 
         final String passphraseWithEL = "\${literal('thisIsABadPassword')}"
         testRunner.setProperty(EncryptContent.PRIVATE_KEYRING_PASSPHRASE, passphraseWithEL)
@@ -997,7 +985,7 @@ class TestEncryptContentGroovy {
         results = pc.validate()
 
         // Assert
-        Assert.assertEquals(results.toString(), 0, results.size())
+        assertEquals(0, results.size(), results.toString())
     }
 
     @Test

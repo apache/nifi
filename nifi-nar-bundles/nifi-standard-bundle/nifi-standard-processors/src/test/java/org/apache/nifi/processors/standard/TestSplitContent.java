@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.util.List;
-
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Test;
+import java.io.IOException;
+import java.util.List;
 
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;

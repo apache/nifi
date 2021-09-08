@@ -38,11 +38,11 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -62,10 +62,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for the QueryDatabaseTable processor
@@ -81,8 +82,8 @@ public class QueryDatabaseTableTest {
     private final static String MAX_ROWS_KEY = "maxRows";
 
 
-    @BeforeClass
-    public static void setupBeforeClass() throws IOException {
+    @BeforeAll
+    public static void setupBeforeClass() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
 
         // remove previous test database, if any
@@ -94,7 +95,7 @@ public class QueryDatabaseTableTest {
         }
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanUpAfterClass() throws Exception {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
@@ -111,7 +112,7 @@ public class QueryDatabaseTableTest {
     }
 
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException, IOException {
         final DBCPService dbcp = new DBCPServiceSimpleImpl();
         final Map<String, String> dbcpProperties = new HashMap<>();
@@ -127,7 +128,7 @@ public class QueryDatabaseTableTest {
         runner.getStateManager().clear(Scope.CLUSTER);
     }
 
-    @After
+    @AfterEach
     public void teardown() throws IOException {
         runner.getStateManager().clear(Scope.CLUSTER);
         runner = null;
@@ -221,13 +222,14 @@ public class QueryDatabaseTableTest {
         assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED >= '2016-03-07 12:34:56' AND TIME_CREATED >= '12:34:57' AND (type = \"CUSTOMER\")", query);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testGetQueryNoTable() throws Exception {
-        processor.getQuery(dbAdapter, null, null, null, null, null);
+    @Test
+    public void testGetQueryNoTable() {
+        assertThrows(IllegalArgumentException.class,
+                () ->processor.getQuery(dbAdapter, null, null, null, null, null));
     }
 
     @Test
-    public void testAddedRows() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testAddedRows() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -369,7 +371,7 @@ public class QueryDatabaseTableTest {
     }
 
     @Test
-    public void testAddedRowsTwoTables() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testAddedRowsTwoTables() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -448,7 +450,7 @@ public class QueryDatabaseTableTest {
     }
 
     @Test
-    public void testMultiplePartitions() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testMultiplePartitions() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -509,7 +511,7 @@ public class QueryDatabaseTableTest {
     }
 
     @Test
-    public void testTimestampNanos() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testTimestampNanos() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -640,7 +642,7 @@ public class QueryDatabaseTableTest {
     }
 
     @Test
-    public void testOutputBatchSize() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testOutputBatchSize() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -696,7 +698,7 @@ public class QueryDatabaseTableTest {
     }
 
     @Test
-    public void testMaxRowsPerFlowFile() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testMaxRowsPerFlowFile() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -800,7 +802,7 @@ public class QueryDatabaseTableTest {
     }
 
     @Test
-    public void testMaxRowsPerFlowFileWithMaxFragments() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testMaxRowsPerFlowFileWithMaxFragments() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -846,7 +848,7 @@ public class QueryDatabaseTableTest {
     }
 
     @Test
-    public void testInitialMaxValue() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testInitialMaxValue() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -901,7 +903,7 @@ public class QueryDatabaseTableTest {
     }
 
     @Test
-    public void testInitialMaxValueWithEL() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testInitialMaxValueWithEL() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -970,7 +972,7 @@ public class QueryDatabaseTableTest {
     }
 
     @Test
-    public void testAddedRowsCustomWhereClause() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testAddedRowsCustomWhereClause() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -1247,8 +1249,8 @@ public class QueryDatabaseTableTest {
         runner.clearTransferState();
     }
 
-    @Test(expected = AssertionError.class)
-    public void testMissingColumn() throws ProcessException, ClassNotFoundException, SQLException, InitializationException, IOException {
+    @Test
+    public void testMissingColumn() throws ProcessException, SQLException {
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -1282,7 +1284,7 @@ public class QueryDatabaseTableTest {
         runner.setProperty(QueryDatabaseTable.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "2");
 
-        runner.run();
+        assertThrows(AssertionError.class, () -> runner.run());
     }
 
     @Test

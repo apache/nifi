@@ -16,28 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import javax.servlet.http.HttpServletResponse;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
@@ -61,18 +39,41 @@ import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
+
 import static org.apache.nifi.processors.standard.ListenHTTP.RELATIONSHIP_SUCCESS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class TestListenHTTP {
 
@@ -112,7 +113,7 @@ public class TestListenHTTP {
 
     private int availablePort;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpSuite() throws GeneralSecurityException, IOException {
         // generate new keystore and truststore
         tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
@@ -170,7 +171,7 @@ public class TestListenHTTP {
         );
     }
 
-    @AfterClass
+    @AfterAll
     public static void afterClass() throws Exception {
         if (tlsConfiguration != null) {
             try {
@@ -191,7 +192,7 @@ public class TestListenHTTP {
         }
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         proc = new ListenHTTP();
         runner = TestRunners.newTestRunner(proc);
@@ -200,7 +201,7 @@ public class TestListenHTTP {
         runner.setVariable(BASEPATH_VARIABLE, HTTP_BASE_PATH);
     }
 
-    @After
+    @AfterEach
     public void shutdownServer() {
         proc.shutdownHttpServer();
     }
@@ -383,7 +384,7 @@ public class TestListenHTTP {
 
         sslSocket.startHandshake();
         final SSLSession sslSession = sslSocket.getSession();
-        assertEquals("SSL Session Protocol not matched", currentProtocol, sslSession.getProtocol());
+        assertEquals(currentProtocol, sslSession.getProtocol(), "SSL Session Protocol not matched");
     }
 
     @Test
@@ -405,7 +406,7 @@ public class TestListenHTTP {
     public void testSecureServerRejectsUnsupportedTlsProtocolVersion() throws Exception {
         final String currentProtocol = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion();
         final String protocolMessage = String.format("TLS Protocol required [%s] found [%s]", TLS_1_3, currentProtocol);
-        Assume.assumeTrue(protocolMessage, TLS_1_3.equals(currentProtocol));
+        assumeTrue(TLS_1_3.equals(currentProtocol), protocolMessage);
 
         configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverTls_1_3_Configuration);
 
@@ -588,7 +589,7 @@ public class TestListenHTTP {
 
         for (final String message : messages) {
             final int statusCode = postMessage(message, secure, clientAuthRequired);
-            assertEquals("HTTP Status Code not matched", expectedStatusCode, statusCode);
+            assertEquals(expectedStatusCode, statusCode, "HTTP Status Code not matched");
         }
     }
 
@@ -642,7 +643,7 @@ public class TestListenHTTP {
         try (Response response = client.newCall(request).execute()) {
             Files.deleteIfExists(Paths.get(String.valueOf(file1)));
             Files.deleteIfExists(Paths.get(String.valueOf(file2)));
-            Assert.assertTrue(String.format("Unexpected code: %s, body: %s", response.code(), response.body()), response.isSuccessful());
+            assertTrue(response.isSuccessful(), String.format("Unexpected code: %s, body: %s", response.code(), response.body()));
         }
 
         runner.assertAllFlowFilesTransferred(ListenHTTP.RELATIONSHIP_SUCCESS, 5);

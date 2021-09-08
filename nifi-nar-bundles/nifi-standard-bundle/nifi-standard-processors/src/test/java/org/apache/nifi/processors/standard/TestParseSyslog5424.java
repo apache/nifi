@@ -22,10 +22,12 @@ import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestParseSyslog5424 {
     private static final String SYSLOG_LINE_ALL = "<14>1 2014-06-20T09:14:07+00:00 loggregator"
@@ -73,7 +75,7 @@ public class TestParseSyslog5424 {
         runner.run();
         runner.assertAllFlowFilesTransferred(ParseSyslog5424.REL_SUCCESS,1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
-        Assert.assertNotNull(results.get(0).getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
+        assertNotNull(results.get(0).getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
     }
 
     @Test
@@ -85,7 +87,7 @@ public class TestParseSyslog5424 {
         runner.run();
         runner.assertAllFlowFilesTransferred(ParseSyslog5424.REL_SUCCESS,1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
-        Assert.assertNotNull(results.get(0).getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
+        assertNotNull(results.get(0).getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
     }
 
     @Test
@@ -97,6 +99,6 @@ public class TestParseSyslog5424 {
         runner.run();
         runner.assertAllFlowFilesTransferred(ParseSyslog5424.REL_SUCCESS,1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
-        Assert.assertNull(results.get(0).getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
+        assertNull(results.get(0).getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
     }
 }

@@ -24,8 +24,8 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,7 +42,7 @@ public class TestFetchDistributedMapCache {
     private TestRunner runner;
     private MockCacheClient service;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(FetchDistributedMapCache.class);
 

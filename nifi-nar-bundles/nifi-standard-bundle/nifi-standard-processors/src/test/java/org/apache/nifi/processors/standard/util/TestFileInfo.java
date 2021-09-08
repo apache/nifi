@@ -17,11 +17,11 @@
 
 package org.apache.nifi.processors.standard.util;
 
-import static org.junit.Assert.assertEquals;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestFileInfo {
-
     @Test
     public void testPermissionModeToString() {
         String rwxPerm = FileInfo.permissionToString(0567);
@@ -35,5 +35,4 @@ public class TestFileInfo {
         assertEquals("-------wx", rwxPerm);
 
     }
-
 }

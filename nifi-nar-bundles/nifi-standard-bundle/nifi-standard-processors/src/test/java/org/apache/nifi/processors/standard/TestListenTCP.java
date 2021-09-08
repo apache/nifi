@@ -27,9 +27,9 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
@@ -51,13 +51,13 @@ public class TestListenTCP {
 
     private TestRunner runner;
 
-    @BeforeClass
+    @BeforeAll
     public static void configureServices() throws TlsException {
         keyStoreSslContext = SslContextUtils.createKeyStoreSslContext();
         trustStoreSslContext = SslContextUtils.createTrustStoreSslContext();
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         runner = TestRunners.newTestRunner(ListenTCP.class);
     }

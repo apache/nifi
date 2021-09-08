@@ -21,18 +21,18 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestAbstractExecuteSQL {
     private AbstractExecuteSQL testSubject;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         testSubject = new AbstractExecuteSQL() {
             @Override

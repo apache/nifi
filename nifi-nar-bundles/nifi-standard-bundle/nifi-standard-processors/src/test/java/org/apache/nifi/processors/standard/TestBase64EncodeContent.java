@@ -16,15 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Test;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
 
 public class TestBase64EncodeContent {
 

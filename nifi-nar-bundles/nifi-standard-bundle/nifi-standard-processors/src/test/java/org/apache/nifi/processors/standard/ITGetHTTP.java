@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.net.URLEncoder;
-import javax.net.ssl.SSLContext;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
@@ -36,9 +30,16 @@ import org.apache.nifi.web.util.JettyServerUtils;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletHandler;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import javax.net.ssl.SSLContext;
+import javax.servlet.http.HttpServletResponse;
+import java.net.URLEncoder;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration Test for deprecated GetHTTP Processor
@@ -57,7 +58,7 @@ public class ITGetHTTP {
 
     private TestRunner controller;
 
-    @BeforeClass
+    @BeforeAll
     public static void configureServices() throws TlsException {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");

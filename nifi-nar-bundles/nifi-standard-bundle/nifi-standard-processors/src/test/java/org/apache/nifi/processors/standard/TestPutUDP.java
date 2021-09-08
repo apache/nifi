@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
@@ -33,10 +24,21 @@ import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestPutUDP {
 
@@ -71,7 +73,7 @@ public class TestPutUDP {
     private final static String[] EMPTY_FILE = { "" };
     private final static String[] VALID_FILES = { "abcdefghijklmnopqrstuvwxyz", "zyxwvutsrqponmlkjihgfedcba", "12345678", "343424222", "!@£$%^&*()_+:|{}[];\\" };
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         runner = TestRunners.newTestRunner(PutUDP.class);
         runner.setVariable(SERVER_VARIABLE, UDP_SERVER_ADDRESS);
@@ -87,8 +89,8 @@ public class TestPutUDP {
         eventServer = serverFactory.getEventServer();
     }
 
-    @After
-    public void cleanup() throws Exception {
+    @AfterEach
+    public void cleanup() {
         runner.shutdown();
         removeTestServer();
     }
@@ -100,7 +102,8 @@ public class TestPutUDP {
         }
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testValidFiles() throws Exception {
         configureProperties(UDP_SERVER_ADDRESS, true);
         sendTestData(VALID_FILES);
@@ -108,7 +111,8 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testValidFilesEL() throws Exception {
         configureProperties(UDP_SERVER_ADDRESS_EL, true);
         sendTestData(VALID_FILES);
@@ -116,7 +120,8 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testEmptyFile() throws Exception {
         configureProperties(UDP_SERVER_ADDRESS, true);
         sendTestData(EMPTY_FILE);
@@ -125,7 +130,8 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
-    @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testLargeValidFile() throws Exception {
         configureProperties(UDP_SERVER_ADDRESS, true);
         final String[] testData = createContent(VALID_LARGE_FILE_SIZE);
@@ -134,7 +140,8 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
-    @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testLargeInvalidFile() throws Exception {
         configureProperties(UDP_SERVER_ADDRESS, true);
         String[] testData = createContent(INVALID_LARGE_FILE_SIZE);
@@ -144,8 +151,9 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
-    @Ignore("This test is failing intermittently as documented in NIFI-4288")
-    @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
+    @Disabled("This test is failing intermittently as documented in NIFI-4288")
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testInvalidIPAddress() throws Exception {
         configureProperties(INVALID_IP_ADDRESS, true);
         sendTestData(VALID_FILES);
@@ -154,8 +162,9 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
-    @Ignore("This test is failing incorrectly as documented in NIFI-1795")
-    @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
+    @Disabled("This test is failing incorrectly as documented in NIFI-1795")
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testUnknownHostname() throws Exception {
         configureProperties(UNKNOWN_HOST, true);
         sendTestData(VALID_FILES);
@@ -164,7 +173,8 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
-    @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = LONG_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testReconfiguration() throws Exception {
         configureProperties(UDP_SERVER_ADDRESS, true);
         sendTestData(VALID_FILES);
@@ -180,7 +190,8 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
-    @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testLoadTest() throws Exception {
         final String[] testData = createContent(VALID_SMALL_FILE_SIZE);
         configureProperties(UDP_SERVER_ADDRESS, true);
@@ -232,7 +243,7 @@ public class TestPutUDP {
 
     private void checkNoDataReceived() throws Exception {
         Thread.sleep(DATA_WAIT_PERIOD);
-        assertNull("Unexpected extra messages found", messages.poll());
+        assertNull(messages.poll(), "Unexpected extra messages found");
     }
 
     private void checkInputQueueIsEmpty() {
@@ -255,7 +266,7 @@ public class TestPutUDP {
 
         runner.assertTransferCount(PutUDP.REL_SUCCESS, sentData.length * iterations);
 
-        assertNull("Unexpected extra messages found", messages.poll());
+        assertNull(messages.poll(), "Unexpected extra messages found");
     }
 
     private String[] createContent(final int size) {

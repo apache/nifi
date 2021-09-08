@@ -23,11 +23,10 @@ import org.apache.nifi.processors.standard.util.SSHTestServer;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +38,8 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class TestPutSFTP {
 
     private static final Logger logger = LoggerFactory.getLogger(TestPutSFTP.class);
@@ -48,18 +49,18 @@ public class TestPutSFTP {
 
     private final String testFile = "src" + File.separator + "test" + File.separator + "resources" + File.separator + "hello.txt";
 
-    @BeforeClass
+    @BeforeAll
     public static void setupSSHD() throws IOException {
         sshTestServer = new SSHTestServer();
         sshTestServer.startServer();
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanupSSHD() throws IOException {
         sshTestServer.stopServer();
     }
 
-    @Before
+    @BeforeEach
     public void setup(){
         putSFTPRunner = TestRunners.newTestRunner(PutSFTP.class);
         putSFTPRunner.setProperty(SFTPTransfer.HOSTNAME, "localhost");
@@ -91,8 +92,8 @@ public class TestPutSFTP {
         //verify directory exists
         Path newDirectory = Paths.get(sshTestServer.getVirtualFileSystemPath() + "nifi_test/");
         Path newFile = Paths.get(sshTestServer.getVirtualFileSystemPath() + "nifi_test/testfile.txt");
-        Assert.assertTrue("New directory not created.", newDirectory.toAbsolutePath().toFile().exists());
-        Assert.assertTrue("New File not created.", newFile.toAbsolutePath().toFile().exists());
+        assertTrue(newDirectory.toAbsolutePath().toFile().exists(), "New directory not created.");
+        assertTrue(newFile.toAbsolutePath().toFile().exists(), "New File not created.");
         putSFTPRunner.clearTransferState();
     }
 

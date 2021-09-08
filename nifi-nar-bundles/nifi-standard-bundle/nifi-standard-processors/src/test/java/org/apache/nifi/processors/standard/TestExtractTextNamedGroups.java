@@ -16,22 +16,23 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.nifi.processors.standard.ExtractText.ENABLE_NAMED_GROUPS;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import static org.apache.nifi.processors.standard.ExtractText.ENABLE_NAMED_GROUPS;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestExtractTextNamedGroups {
 
     final String SAMPLE_STRING = "foo\r\nbar1\r\nbar2\r\nbar3\r\nhello\r\nworld\r\n";
 
     @Test
-    public void testProcessor() throws Exception {
+    public void testProcessor() {
 
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
 
@@ -82,7 +83,7 @@ public class TestExtractTextNamedGroups {
     }
 
     @Test
-    public void testProcessorWithDotall() throws Exception {
+    public void testProcessorWithDotall() {
 
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.setProperty(ENABLE_NAMED_GROUPS, "true");
@@ -113,7 +114,7 @@ public class TestExtractTextNamedGroups {
     }
 
     @Test
-    public void testProcessorWithMultiline() throws Exception {
+    public void testProcessorWithMultiline() {
 
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.setProperty(ENABLE_NAMED_GROUPS, "true");
@@ -147,7 +148,7 @@ public class TestExtractTextNamedGroups {
     }
 
     @Test
-    public void testProcessorWithMultilineAndDotall() throws Exception {
+    public void testProcessorWithMultilineAndDotall() {
 
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.setProperty(ENABLE_NAMED_GROUPS, "true");
@@ -183,7 +184,7 @@ public class TestExtractTextNamedGroups {
     }
 
     @Test
-    public void testProcessorWithNoMatches() throws Exception {
+    public void testProcessorWithNoMatches() {
 
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.setProperty(ENABLE_NAMED_GROUPS, "true");
@@ -226,7 +227,7 @@ public class TestExtractTextNamedGroups {
     }
 
     @Test
-    public void testMatchOutsideBuffer() throws Exception {
+    public void testMatchOutsideBuffer() {
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.setProperty(ENABLE_NAMED_GROUPS, "true");
 
@@ -246,7 +247,7 @@ public class TestExtractTextNamedGroups {
     }
 
     @Test
-    public void testIncludeZeroCaptureGroupProperty() throws Exception {
+    public void testIncludeZeroCaptureGroupProperty() {
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.setProperty(ENABLE_NAMED_GROUPS, "true");
 
@@ -268,7 +269,7 @@ public class TestExtractTextNamedGroups {
     }
 
     @Test
-    public void testFindAll() throws Exception {
+    public void testFindAll() {
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.setProperty(ENABLE_NAMED_GROUPS, "true");
         testRunner.setProperty(ExtractText.ENABLE_REPEATING_CAPTURE_GROUP, "true");
@@ -292,7 +293,7 @@ public class TestExtractTextNamedGroups {
     }
 
     @Test
-    public void testFindAllPair() throws Exception {
+    public void testFindAllPair() {
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.setProperty(ENABLE_NAMED_GROUPS, "true");
         testRunner.setProperty(ExtractText.ENABLE_REPEATING_CAPTURE_GROUP, "true");
@@ -322,7 +323,7 @@ public class TestExtractTextNamedGroups {
     }
 
     @Test
-    public void testIgnoreZeroCaptureGroupProperty() throws Exception {
+    public void testIgnoreZeroCaptureGroupProperty() {
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.setProperty(ENABLE_NAMED_GROUPS, "true");
 
@@ -344,7 +345,7 @@ public class TestExtractTextNamedGroups {
     }
 
     @Test
-    public void testShouldAllowNoCaptureGroups() throws Exception {
+    public void testShouldAllowNoCaptureGroups() {
         // Arrange
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.setProperty(ENABLE_NAMED_GROUPS, "true");
@@ -364,8 +365,8 @@ public class TestExtractTextNamedGroups {
         out.assertAttributeEquals(attributeKey , SAMPLE_STRING);
     }
 
-    @Test(expected = AssertionError.class)
-    public void testShouldNotAllowNoCaptureGroupsIfZeroDisabled() throws Exception {
+    @Test
+    public void testShouldNotAllowNoCaptureGroupsIfZeroDisabled() {
         // Arrange
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.setProperty(ENABLE_NAMED_GROUPS, "true");
@@ -377,10 +378,10 @@ public class TestExtractTextNamedGroups {
         testRunner.enqueue(SAMPLE_STRING.getBytes(StandardCharsets.UTF_8));
 
         // Validation should fail because nothing will match
-        testRunner.run();
+        assertThrows(AssertionError.class, () -> testRunner.run());
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     public void testInvalidIfGroupCountsDoNotMatch() {
         final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.setProperty(ENABLE_NAMED_GROUPS, "true");
@@ -392,6 +393,6 @@ public class TestExtractTextNamedGroups {
         testRunner.enqueue("beginning middle end".getBytes(StandardCharsets.UTF_8));
 
         // Validation should fail because number of groups does not match number of named groups
-        testRunner.run();
+        assertThrows(AssertionError.class, () -> testRunner.run());
     }
 }

@@ -38,9 +38,8 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -58,11 +57,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipInputStream;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestMergeContent {
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "DEBUG");
     }
@@ -143,10 +144,10 @@ public class TestMergeContent {
         byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
-        Assert.assertEquals(3, users.size());
-        Assert.assertTrue(users.containsKey("Alyssa"));
-        Assert.assertTrue(users.containsKey("Ben"));
-        Assert.assertTrue(users.containsKey("John"));
+        assertEquals(3, users.size());
+        assertTrue(users.containsKey("Alyssa"));
+        assertTrue(users.containsKey("Ben"));
+        assertTrue(users.containsKey("John"));
     }
 
     @Test
@@ -191,15 +192,15 @@ public class TestMergeContent {
 
         final byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema1, "name");
-        Assert.assertEquals(2, users.size());
-        Assert.assertTrue(users.containsKey("Alyssa"));
-        Assert.assertTrue(users.containsKey("John"));
+        assertEquals(2, users.size());
+        assertTrue(users.containsKey("Alyssa"));
+        assertTrue(users.containsKey("John"));
 
         final MockFlowFile failure = runner.getFlowFilesForRelationship(MergeContent.REL_FAILURE).get(0);
         final byte[] failureData = runner.getContentAsByteArray(failure);
         final Map<String, GenericRecord> places = getGenericRecordMap(failureData, schema2, "name");
-        Assert.assertEquals(1, places.size());
-        Assert.assertTrue(places.containsKey("Some Place"));
+        assertEquals(1, places.size());
+        assertTrue(places.containsKey("Some Place"));
     }
 
     @Test
@@ -258,8 +259,8 @@ public class TestMergeContent {
         byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
-        Assert.assertEquals(1, users.size());
-        Assert.assertTrue(users.containsKey("Alyssa"));
+        assertEquals(1, users.size());
+        assertTrue(users.containsKey("Alyssa"));
     }
 
     @Test
@@ -318,10 +319,10 @@ public class TestMergeContent {
         byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
-        Assert.assertEquals(3, users.size());
-        Assert.assertTrue(users.containsKey("Alyssa"));
-        Assert.assertTrue(users.containsKey("Ben"));
-        Assert.assertTrue(users.containsKey("John"));
+        assertEquals(3, users.size());
+        assertTrue(users.containsKey("Alyssa"));
+        assertTrue(users.containsKey("Ben"));
+        assertTrue(users.containsKey("John"));
     }
 
     @Test
@@ -380,10 +381,10 @@ public class TestMergeContent {
         byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
-        Assert.assertEquals(3, users.size());
-        Assert.assertTrue(users.containsKey("Alyssa"));
-        Assert.assertTrue(users.containsKey("Ben"));
-        Assert.assertTrue(users.containsKey("John"));
+        assertEquals(3, users.size());
+        assertTrue(users.containsKey("Alyssa"));
+        assertTrue(users.containsKey("Ben"));
+        assertTrue(users.containsKey("John"));
     }
 
     @Test
@@ -442,9 +443,9 @@ public class TestMergeContent {
         byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
-        Assert.assertEquals(2, users.size());
-        Assert.assertTrue(users.containsKey("Alyssa"));
-        Assert.assertTrue(users.containsKey("John"));
+        assertEquals(2, users.size());
+        assertTrue(users.containsKey("Alyssa"));
+        assertTrue(users.containsKey("John"));
     }
 
     private Map<String, GenericRecord> getGenericRecordMap(byte[] data, Schema schema, String key) throws IOException {
@@ -613,9 +614,9 @@ public class TestMergeContent {
             results = mockContext.validate();
         }
 
-        Assert.assertEquals(3, results.size());
+        assertEquals(3, results.size());
         for (ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString().contains("cannot be empty"));
+            assertTrue(vr.toString().contains("cannot be empty"));
         }
     }
 
@@ -637,9 +638,9 @@ public class TestMergeContent {
             results = mockContext.validate();
         }
 
-        Assert.assertEquals(3, results.size());
+        assertEquals(3, results.size());
         for (ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString().contains("is invalid because File " + new File(doesNotExistFile).toString() + " does not exist"));
+            assertTrue(vr.toString().contains("is invalid because File " + new File(doesNotExistFile).toString() + " does not exist"));
         }
     }
 
@@ -742,17 +743,17 @@ public class TestMergeContent {
 
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         try (final InputStream rawIn = new ByteArrayInputStream(runner.getContentAsByteArray(bundle)); final ZipInputStream in = new ZipInputStream(rawIn)) {
-            Assert.assertNotNull(in.getNextEntry());
+            assertNotNull(in.getNextEntry());
             final byte[] part1 = IOUtils.toByteArray(in);
-            Assert.assertTrue(Arrays.equals("Hello".getBytes("UTF-8"), part1));
+            assertTrue(Arrays.equals("Hello".getBytes("UTF-8"), part1));
 
             in.getNextEntry();
             final byte[] part2 = IOUtils.toByteArray(in);
-            Assert.assertTrue(Arrays.equals(", ".getBytes("UTF-8"), part2));
+            assertTrue(Arrays.equals(", ".getBytes("UTF-8"), part2));
 
             in.getNextEntry();
             final byte[] part3 = IOUtils.toByteArray(in);
-            Assert.assertTrue(Arrays.equals("World!".getBytes("UTF-8"), part3));
+            assertTrue(Arrays.equals("World!".getBytes("UTF-8"), part3));
         }
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/zip");
     }
@@ -803,20 +804,20 @@ public class TestMergeContent {
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         try (final InputStream rawIn = new ByteArrayInputStream(runner.getContentAsByteArray(bundle)); final TarArchiveInputStream in = new TarArchiveInputStream(rawIn)) {
             ArchiveEntry entry = in.getNextEntry();
-            Assert.assertNotNull(entry);
+            assertNotNull(entry);
             assertEquals("AShortFileName", entry.getName());
             final byte[] part1 = IOUtils.toByteArray(in);
-            Assert.assertTrue(Arrays.equals("Hello".getBytes("UTF-8"), part1));
+            assertTrue(Arrays.equals("Hello".getBytes("UTF-8"), part1));
 
             entry = in.getNextEntry();
             assertEquals("ALongerrrFileName", entry.getName());
             final byte[] part2 = IOUtils.toByteArray(in);
-            Assert.assertTrue(Arrays.equals(", ".getBytes("UTF-8"), part2));
+            assertTrue(Arrays.equals(", ".getBytes("UTF-8"), part2));
 
             entry = in.getNextEntry();
             assertEquals("AReallyLongggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggFileName", entry.getName());
             final byte[] part3 = IOUtils.toByteArray(in);
-            Assert.assertTrue(Arrays.equals("World!".getBytes("UTF-8"), part3));
+            assertTrue(Arrays.equals("World!".getBytes("UTF-8"), part3));
         }
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/tar");
     }
@@ -1120,7 +1121,7 @@ public class TestMergeContent {
         final String attr2 = merged2.getAttribute("attr");
 
         if ("c".equals(attr1)) {
-            Assert.assertEquals("b", attr2);
+            assertEquals("b", attr2);
             merged1.assertContentEquals("A Canal ", "UTF-8");
             merged2.assertContentEquals("A Man A Plan Panama", "UTF-8");
         } else {

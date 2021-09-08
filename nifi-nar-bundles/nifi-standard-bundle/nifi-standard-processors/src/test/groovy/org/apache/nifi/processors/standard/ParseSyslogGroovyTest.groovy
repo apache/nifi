@@ -20,33 +20,21 @@ import org.apache.nifi.syslog.parsers.SyslogParser
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.bouncycastle.util.encoders.Hex
-import org.junit.After
-import org.junit.Assert
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-@RunWith(JUnit4.class)
-class ParseSyslogGroovyTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertEquals
+
+class ParseSyslogGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(ParseSyslogGroovyTest.class)
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     @Test
@@ -78,6 +66,6 @@ class ParseSyslogGroovyTest extends GroovyTestCase {
         // Assert
 
         // all messages should be transferred to invalid
-        Assert.assertEquals("Did not process all the messages", numMessages, numFailed)
+        assertEquals(numMessages, numFailed, "Did not process all the messages")
     }
 }

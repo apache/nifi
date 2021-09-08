@@ -19,12 +19,13 @@ package org.apache.nifi.processors.standard.relp.event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.processor.util.listen.response.socket.SocketChannelResponder;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestRELPEventFactory {
 
@@ -46,10 +47,10 @@ public class TestRELPEventFactory {
         final EventFactory<RELPEvent> factory = new RELPEventFactory();
 
         final RELPEvent event = factory.create(data, metadata, responder);
-        Assert.assertEquals(data, event.getData());
-        Assert.assertEquals(sender, event.getSender());
-        Assert.assertEquals(txnr, event.getTxnr());
-        Assert.assertEquals(command, event.getCommand());
-        Assert.assertEquals(responder, event.getResponder());
+        assertEquals(data, event.getData());
+        assertEquals(sender, event.getSender());
+        assertEquals(txnr, event.getTxnr());
+        assertEquals(command, event.getCommand());
+        assertEquals(responder, event.getResponder());
     }
 }

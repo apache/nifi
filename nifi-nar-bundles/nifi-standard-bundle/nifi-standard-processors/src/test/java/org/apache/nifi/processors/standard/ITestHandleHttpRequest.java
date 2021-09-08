@@ -16,39 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.IntStream;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.servlet.AsyncContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -72,12 +39,46 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.jetbrains.annotations.NotNull;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.servlet.AsyncContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.IntStream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class ITestHandleHttpRequest {
 
@@ -87,25 +88,26 @@ public class ITestHandleHttpRequest {
 
     private static SSLContext trustStoreSslContext;
 
-    @BeforeClass
+    @BeforeAll
     public static void configureServices() throws TlsException  {
         keyStoreSslContext = SslContextUtils.createKeyStoreSslContext();
         trustStoreSslContext = SslContextUtils.createTrustStoreSslContext();
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
 
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         if (processor != null) {
             processor.shutdown();
         }
     }
 
-    @Test(timeout = 30000)
+    @Test
+    @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
     public void testRequestAddedToService() throws InitializationException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
@@ -160,7 +162,8 @@ public class ITestHandleHttpRequest {
         mff.assertAttributeEquals("http.headers.header3", "apple=orange");
     }
 
-    @Test(timeout = 30000)
+    @Test
+    @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
     public void testMultipartFormDataRequest() throws InitializationException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
@@ -273,7 +276,8 @@ public class ITestHandleHttpRequest {
         mff.assertAttributeExists("http.headers.multipart.content-disposition");
     }
 
-    @Test(timeout = 30000)
+    @Test
+    @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
     public void testMultipartFormDataRequestCaptureFormAttributes() throws InitializationException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
@@ -341,7 +345,8 @@ public class ITestHandleHttpRequest {
         }
     }
 
-    @Test(timeout = 30000)
+    @Test
+    @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
     public void testMultipartFormDataRequestFailToRegisterContext() throws InitializationException, InterruptedException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
@@ -413,7 +418,7 @@ public class ITestHandleHttpRequest {
 
         runner.assertAllFlowFilesTransferred(HandleHttpRequest.REL_SUCCESS, 0);
         assertEquals(0, contextMap.size());
-        Assert.assertEquals(503, responseCode.get());
+        assertEquals(503, responseCode.get());
     }
 
     private byte[] generateRandomBinaryData() {
@@ -437,12 +442,13 @@ public class ITestHandleHttpRequest {
 
     protected MockFlowFile findFlowFile(List<MockFlowFile> flowFilesForRelationship, String attributeName, String attributeValue) {
         Optional<MockFlowFile> optional = flowFilesForRelationship.stream().filter(ff -> ff.getAttribute(attributeName).equals(attributeValue)).findFirst();
-        Assert.assertTrue(optional.isPresent());
+        assertTrue(optional.isPresent());
         return optional.get();
     }
 
 
-    @Test(timeout = 30000)
+    @Test
+    @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
     public void testFailToRegister() throws InitializationException, InterruptedException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
@@ -594,7 +600,8 @@ public class ITestHandleHttpRequest {
         }
     }
 
-    @Test(timeout = 15000)
+    @Test
+    @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
     public void testOnPrimaryNodeChangePrimaryNodeRevoked() throws Exception {
         processor = new HandleHttpRequest();
         final TestRunner runner = TestRunners.newTestRunner(processor);
@@ -645,8 +652,8 @@ public class ITestHandleHttpRequest {
         processor.onPrimaryNodeChange(PrimaryNodeState.PRIMARY_NODE_REVOKED);
         requestCompleted.await();
 
-        assertNull("HTTP Request Exception found", requestException.get());
-        assertEquals("HTTP Status not matched", HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseStatus.get());
+        assertNull(requestException.get(), "HTTP Request Exception found");
+        assertEquals(HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseStatus.get(), "HTTP Status not matched");
     }
 
     @Test

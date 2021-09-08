@@ -21,11 +21,11 @@ import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestPutRecord {
 
@@ -33,7 +33,7 @@ public class TestPutRecord {
     private MockRecordParser recordReader;
     private MockRecordSinkService mockRecordSinkService;
 
-    @Before
+    @BeforeEach
     public void setup() {
         PutRecord processor = new PutRecord();
         testRunner = TestRunners.newTestRunner(processor);

@@ -20,7 +20,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,9 +33,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestGetFile {
 
@@ -43,7 +43,7 @@ public class TestGetFile {
     public void testFilePickedUp() throws IOException {
         final File directory = new File("target/test/data/in");
         deleteDirectory(directory);
-        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+        assertTrue(directory.exists() || directory.mkdirs(), "Unable to create test data directory " + directory.getAbsolutePath());
 
         final File inFile = new File("src/test/resources/hello.txt");
         final Path inPath = inFile.toPath();
@@ -74,7 +74,7 @@ public class TestGetFile {
                     deleteDirectory(file);
                 }
 
-                assertTrue("Could not delete " + file.getAbsolutePath(), file.delete());
+                assertTrue(file.delete(), "Could not delete " + file.getAbsolutePath());
             }
         }
     }
@@ -86,7 +86,7 @@ public class TestGetFile {
 
         final File directory = new File("target/test/data/in/" + dirStruc);
         deleteDirectory(directory);
-        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+        assertTrue(directory.exists() || directory.mkdirs(), "Unable to create test data directory " + directory.getAbsolutePath());
 
         final File inFile = new File("src/test/resources/hello.txt");
         final Path inPath = inFile.toPath();
@@ -110,7 +110,7 @@ public class TestGetFile {
 
         final File directory = new File("target/test/data/in/" + dirStruc);
         deleteDirectory(new File("target/test/data/in"));
-        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+        assertTrue(directory.exists() || directory.mkdirs(), "Unable to create test data directory " + directory.getAbsolutePath());
 
         final File inFile = new File("src/test/resources/hello.txt");
         final Path inPath = inFile.toPath();
@@ -138,7 +138,7 @@ public class TestGetFile {
     public void testAttributes() throws IOException {
         final File directory = new File("target/test/data/in/");
         deleteDirectory(directory);
-        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+        assertTrue(directory.exists() || directory.mkdirs(), "Unable to create test data directory " + directory.getAbsolutePath());
 
         final File inFile = new File("src/test/resources/hello.txt");
         final Path inPath = inFile.toPath();

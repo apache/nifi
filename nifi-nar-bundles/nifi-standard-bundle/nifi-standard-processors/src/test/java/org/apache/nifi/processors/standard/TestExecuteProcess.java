@@ -16,26 +16,26 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.File;
-import java.lang.reflect.Field;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import java.io.File;
+import java.lang.reflect.Field;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestExecuteProcess {
 
@@ -83,7 +83,7 @@ public class TestExecuteProcess {
         assertEquals("", twoArgOneWholeQuotedArgOneEmptyArg.get(3));
     }
 
-    @Ignore   // won't run under Windows
+    @Disabled   // won't run under Windows
     @Test
     public void testEcho() {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "TRACE");
@@ -242,8 +242,9 @@ public class TestExecuteProcess {
             }
         }
         final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
-        assertEquals("If redirect error stream is false, " +
-                "the output should be logged as a warning so that user can notice on bulletin.", expectedWarningMessages, warnMessages.size());
+        assertEquals(expectedWarningMessages, warnMessages.size(),
+                "If redirect error stream is false, " +
+                        "the output should be logged as a warning so that user can notice on bulletin.");
         final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
         assertEquals(0, succeeded.size());
     }
@@ -267,8 +268,9 @@ public class TestExecuteProcess {
         if (isCommandFailed(runner)) return;
 
         final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
-        assertEquals("If redirect error stream is true " +
-                "the output should be sent as a content of flow-file.", 0, warnMessages.size());
+        assertEquals(0, warnMessages.size(),
+                "If redirect error stream is true " +
+                        "the output should be sent as a content of flow-file.");
         final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
         assertEquals(1, succeeded.size());
     }
@@ -291,8 +293,8 @@ public class TestExecuteProcess {
         if (isCommandFailed(runner)) return;
 
         final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
-        assertEquals("If redirect error stream is true " +
-                "the output should be sent as a content of flow-file.", 0, warnMessages.size());
+        assertEquals(0, warnMessages.size(), "If redirect error stream is true " +
+                "the output should be sent as a content of flow-file.");
         final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
         assertEquals(1, succeeded.size());
         assertTrue(new String(succeeded.get(0).toByteArray()).contains("DOES-NOT-EXIST"));

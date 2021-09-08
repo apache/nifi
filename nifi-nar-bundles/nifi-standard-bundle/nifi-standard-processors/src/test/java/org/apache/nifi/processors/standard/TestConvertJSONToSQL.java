@@ -16,7 +16,20 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
+import com.google.common.io.Files;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,40 +45,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestConvertJSONToSQL {
-
-    @ClassRule
-    public static TemporaryFolder folder = new TemporaryFolder();
-
     /**
      * Setting up Connection pooling is expensive operation.
      * So let's do this only once and reuse MockDBCPService in each test.
      */
     static protected DBCPService service;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() throws ProcessException, SQLException {
         System.setProperty("derby.stream.error.file", "target/derby.log");
-        final File tempDir = folder.getRoot();
+        final File tempDir = Files.createTempDir();
         final File dbDir = new File(tempDir, "db");
         service = new MockDBCPService(dbDir.getAbsolutePath());
         final String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100), code integer)";

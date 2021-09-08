@@ -19,10 +19,12 @@ package org.apache.nifi.processors.standard
 
 import groovy.json.JsonSlurper
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
-import org.junit.Test
+import org.junit.jupiter.api.Test
+
+import static org.junit.jupiter.api.Assertions.assertEquals
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class TestFlattenJson {
     @Test
@@ -41,10 +43,10 @@ class TestFlattenJson {
             ]
         ]))
         baseTest(testRunner, json, 2) { parsed ->
-            Assert.assertEquals("test.msg should exist, but doesn't", parsed["test.msg"], "Hello, world")
-            Assert.assertEquals("Three level block doesn't exist.", parsed["first.second.third"], [
+            assertEquals(parsed["test.msg"], "Hello, world", "test.msg should exist, but doesn't")
+            assertEquals(parsed["first.second.third"], [
                     "one", "two", "three", "four", "five"
-            ])
+            ], "Three level block doesn't exist.")
         }
     }
 
@@ -64,7 +66,7 @@ class TestFlattenJson {
         def slurper   = new JsonSlurper()
         def parsed    = slurper.parseText(asJson) as Map
 
-        Assert.assertEquals("Too many keys", keyCount, parsed.size())
+        assertEquals(keyCount, parsed.size(), "Too many keys")
         c.call(parsed)
     }
 
@@ -86,9 +88,9 @@ class TestFlattenJson {
 
         def expected = ["Hello", "World"]
         baseTest(testRunner, json, 2) { parsed ->
-            Assert.assertTrue("Not a list", parsed instanceof List)
+            assertTrue(parsed instanceof List, "Not a list")
             0.upto(parsed.size() - 1) {
-                Assert.assertEquals("Missing values.", parsed[it]["first.second"], expected[it])
+                assertEquals(parsed[it]["first.second"], expected[it], "Missing values.")
             }
         }
     }
@@ -107,9 +109,9 @@ class TestFlattenJson {
         ]))
         testRunner.setProperty(FlattenJson.SEPARATOR, "_")
         baseTest(testRunner, json, 1) { parsed ->
-            Assert.assertEquals("Separator not applied.", parsed["first_second_third"], [
+            assertEquals(parsed["first_second_third"], [
                 "one", "two", "three", "four", "five"
-            ])
+            ], "Separator not applied.")
         }
     }
 
@@ -129,9 +131,9 @@ class TestFlattenJson {
         testRunner.setValidateExpressionUsage(true);
         testRunner.setProperty(FlattenJson.SEPARATOR, '${separator.char}')
         baseTest(testRunner, json, ["separator.char": "_"], 1) { parsed ->
-            Assert.assertEquals("Separator not applied.", parsed["first_second_third"], [
+            assertEquals(parsed["first_second_third"], [
                 "one", "two", "three", "four", "five"
-            ])
+            ], "Separator not applied.")
         }
     }
 
@@ -150,7 +152,7 @@ class TestFlattenJson {
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_NORMAL)
         baseTest(testRunner, json,5) { parsed ->
-            Assert.assertEquals("Separator not applied.", "one", parsed["first.second.third[0]"])
+            assertEquals("one", parsed["first.second.third[0]"], "Separator not applied.")
         }
     }
 
@@ -184,7 +186,7 @@ class TestFlattenJson {
         baseTest(testRunner, json,4) { parsed ->
             assert parsed["first.second"] instanceof List   // [{x=1, y=2, z=[3, 4, 5]}, [6, 7, 8], [[9, 10], 11, 12]]
             assert parsed["first.second"][1] == [6, 7, 8]
-            Assert.assertEquals("Separator not applied.", "b", parsed["first.third.a"])
+            assertEquals("b", parsed["first.third.a"], "Separator not applied.")
         }
     }
 
@@ -216,12 +218,12 @@ class TestFlattenJson {
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_KEEP_PRIMITIVE_ARRAYS)
         baseTest(testRunner, json,10) { parsed ->
-            Assert.assertEquals("Separator not applied.", 1, parsed["first.second[0].x"])
-            Assert.assertEquals("Separator not applied.", [3, 4, 5], parsed["first.second[0].z"])
-            Assert.assertEquals("Separator not applied.", [9, 10], parsed["first.second[2][0]"])
-            Assert.assertEquals("Separator not applied.", 11, parsed["first.second[2][1]"])
-            Assert.assertEquals("Separator not applied.", 12, parsed["first.second[2][2]"])
-            Assert.assertEquals("Separator not applied.", "d", parsed["first.third.c"])
+            assertEquals(1, parsed["first.second[0].x"], "Separator not applied.")
+            assertEquals([3, 4, 5], parsed["first.second[0].z"], "Separator not applied.")
+            assertEquals([9, 10], parsed["first.second[2][0]"], "Separator not applied.")
+            assertEquals(11, parsed["first.second[2][1]"], "Separator not applied.")
+            assertEquals(12, parsed["first.second[2][2]"], "Separator not applied.")
+            assertEquals("d", parsed["first.third.c"], "Separator not applied.")
         }
     }
 
@@ -240,7 +242,7 @@ class TestFlattenJson {
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_DOT_NOTATION)
         baseTest(testRunner, json,5) { parsed ->
-            Assert.assertEquals("Separator not applied.", "one", parsed["first.second.third.0"])
+            assertEquals("one", parsed["first.second.third.0"], "Separator not applied.")
         }
     }
 
@@ -259,7 +261,7 @@ class TestFlattenJson {
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_NORMAL)
         baseTest(testRunner, json,2) { parsed ->
-            Assert.assertEquals("Separator not applied.", "http://localhost/value1", parsed["first.second.third[0]"])
+            assertEquals("http://localhost/value1", parsed["first.second.third[0]"], "Separator not applied.")
         }
     }
 
@@ -271,7 +273,7 @@ class TestFlattenJson {
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_NORMAL)
         baseTest(testRunner, json,1) { parsed ->
-            Assert.assertEquals("Separator not applied.", "José", parsed["name"])
+            assertEquals("José", parsed["name"], "Separator not applied.")
         }
     }
 

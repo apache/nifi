@@ -21,10 +21,8 @@ import org.apache.nifi.processor.io.StreamCallback
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.KeyDerivationFunction
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -43,21 +41,13 @@ class KeyedEncryptorGroovyTest {
     private static final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
     private static final SecretKey KEY = new SecretKeySpec(Hex.decodeHex(KEY_HEX as char[]), "AES")
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     @Test

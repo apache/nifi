@@ -24,10 +24,10 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,7 +60,7 @@ public class PutDatabaseRecordTest {
     PutDatabaseRecord processor;
     DBCPServiceSimpleImpl dbcp;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupBeforeClass() throws IOException {
         System.setProperty("derby.stream.error.file", "target/derby.log");
 
@@ -73,7 +73,7 @@ public class PutDatabaseRecordTest {
         }
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanUpAfterClass() throws Exception {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
@@ -89,7 +89,7 @@ public class PutDatabaseRecordTest {
         }
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         processor = new PutDatabaseRecord();
         //Mock the DBCP Controller Service so we can control the Results

@@ -24,9 +24,8 @@ import org.apache.nifi.processor.util.listen.response.ChannelResponse;
 import org.apache.nifi.processors.standard.relp.event.RELPEvent;
 import org.apache.nifi.processors.standard.relp.event.RELPEventFactory;
 import org.apache.nifi.processors.standard.relp.frame.RELPFrame;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -39,6 +38,9 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class TestRELPFrameHandler {
 
     private Charset charset;
@@ -50,7 +52,7 @@ public class TestRELPFrameHandler {
 
     private RELPFrameHandler<RELPEvent> frameHandler;
 
-    @Before
+    @BeforeEach
     public void setup() {
         this.charset = StandardCharsets.UTF_8;
         this.eventFactory = new RELPEventFactory();
@@ -81,15 +83,15 @@ public class TestRELPFrameHandler {
 
         // call the handler and verify respond() was called once with once response
         frameHandler.handle(openFrame, responder, sender);
-        Assert.assertEquals(1, responder.responded);
-        Assert.assertEquals(1, responder.responses.size());
+        assertEquals(1, responder.responded);
+        assertEquals(1, responder.responses.size());
 
         // verify the response sent back the offers that were received
         final ChannelResponse response = responder.responses.get(0);
         final String responseData = new String(response.toByteArray(), charset);
-        Assert.assertTrue(responseData.contains(offer1));
-        Assert.assertTrue(responseData.contains(offer2));
-        Assert.assertTrue(responseData.contains(offer3));
+        assertTrue(responseData.contains(offer1));
+        assertTrue(responseData.contains(offer2));
+        assertTrue(responseData.contains(offer3));
     }
 
     @Test
@@ -105,13 +107,13 @@ public class TestRELPFrameHandler {
 
         // call the handler and verify respond() was called once with once response
         frameHandler.handle(openFrame, responder, sender);
-        Assert.assertEquals(1, responder.responded);
-        Assert.assertEquals(1, responder.responses.size());
+        assertEquals(1, responder.responded);
+        assertEquals(1, responder.responses.size());
 
         // verify the response sent back the offers that were received
         final ChannelResponse response = responder.responses.get(0);
         final String responseData = new String(response.toByteArray(), charset);
-        Assert.assertTrue(responseData.contains("200 OK"));
+        assertTrue(responseData.contains("200 OK"));
     }
 
     @Test
@@ -129,12 +131,12 @@ public class TestRELPFrameHandler {
 
         // call the handler and verify respond() was called once with once response
         frameHandler.handle(openFrame, responder, sender);
-        Assert.assertEquals(0, responder.responded);
-        Assert.assertEquals(0, responder.responses.size());
-        Assert.assertEquals(1, events.size());
+        assertEquals(0, responder.responded);
+        assertEquals(0, responder.responses.size());
+        assertEquals(1, events.size());
 
         final RELPEvent event = events.poll();
-        Assert.assertEquals(data, new String(event.getData(), charset));
+        assertEquals(data, new String(event.getData(), charset));
     }
 
     private static class CapturingChannelResponder implements ChannelResponder<SocketChannel> {

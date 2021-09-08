@@ -28,8 +28,8 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -71,7 +71,7 @@ public class TestListenUDPRecord {
     private TestRunner runner;
     private MockRecordWriter mockRecordWriter;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         proc = new TestableListenUDPRecord();
         runner = TestRunners.newTestRunner(proc);
