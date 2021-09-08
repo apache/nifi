@@ -1088,10 +1088,12 @@
         var parameters = marshalParameters();
         var proposedParamContextName = $('#parameter-context-name').val();
         var proposedParamContextDesc = $('#parameter-context-description-field').val();
+        var inheritedParameterContexts = marshalInheritedParameterContexts();
 
         if (_.isEmpty(parameters) &&
             proposedParamContextName === _.get(parameterContextEntity, 'component.name') &&
-            proposedParamContextDesc === _.get(parameterContextEntity, 'component.description')) {
+            proposedParamContextDesc === _.get(parameterContextEntity, 'component.description') &&
+            _.isEqual(_.get(parameterContextEntity, 'component.inheritedParameterContexts'), inheritedParameterContexts)) {
 
             return false;
         } else {
@@ -1721,6 +1723,9 @@
 
                     // resort the available parameter contexts
                     sortAvailableParameterContexts();
+
+                    // update the buttons to possibly trigger the disabled state
+                    $('#parameter-context-dialog').modal('refreshButtons');
                 })
                 .appendTo(draggableElement);
         }
@@ -2629,7 +2634,9 @@
                 opacity: 0.6,
                 receive: function (event, ui) {
                     addDraggableControls(ui.item, true);
-                    console.log(ui);
+
+                    // update the buttons to possibly trigger the disabled state
+                    $('#parameter-context-dialog').modal('refreshButtons');
                 }
             });
             $('#parameter-context-available, #parameter-context-selected').disableSelection();
