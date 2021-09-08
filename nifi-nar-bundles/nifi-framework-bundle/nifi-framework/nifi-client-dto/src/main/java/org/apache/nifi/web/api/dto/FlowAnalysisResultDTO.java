@@ -28,6 +28,7 @@ public class FlowAnalysisResultDTO {
     private String scope;
     private String subjectId;
     private String ruleId;
+    private String issueId;
     private String violationMessage;
 
     private boolean enabled;
@@ -44,7 +45,7 @@ public class FlowAnalysisResultDTO {
     }
 
     /**
-     * @return the scope of the result.
+     * @return the scope of the result
      */
     public String getScope() {
         return scope;
@@ -55,7 +56,7 @@ public class FlowAnalysisResultDTO {
     }
 
     /**
-     * @return the id of the subject that violated the rule.
+     * @return the id of the subject that violated the rule
      */
     public String getSubjectId() {
         return subjectId;
@@ -74,6 +75,17 @@ public class FlowAnalysisResultDTO {
 
     public void setRuleId(String ruleId) {
         this.ruleId = ruleId;
+    }
+
+    /**
+     * @return a rule-defined id that corresponds to a unique type of issue recognized by the rule
+     */
+    public String getIssueId() {
+        return issueId;
+    }
+
+    public void setIssueId(String issueId) {
+        this.issueId = issueId;
     }
 
     /**

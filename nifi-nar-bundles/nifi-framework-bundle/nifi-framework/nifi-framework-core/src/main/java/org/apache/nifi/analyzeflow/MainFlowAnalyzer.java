@@ -21,6 +21,7 @@ import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flowanalysis.AnalyzeFlowRequest;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleProvider;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisUtil;
 import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -56,7 +57,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -305,7 +305,7 @@ public class MainFlowAnalyzer implements FlowAnalyzer {
     }
 
     private NiFiRegistryFlowMapper createMapper() {
-        NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(extensionManager, Function.identity());
+        NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(extensionManager);
 
         return mapper;
     }

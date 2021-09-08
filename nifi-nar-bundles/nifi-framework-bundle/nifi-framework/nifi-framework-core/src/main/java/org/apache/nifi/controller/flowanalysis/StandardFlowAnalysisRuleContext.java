@@ -34,7 +34,6 @@ import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
 
 public class StandardFlowAnalysisRuleContext extends AbstractFlowAnalysisRuleContext implements FlowAnalysisRuleContext {
     private final String ruleName;
@@ -80,7 +79,7 @@ public class StandardFlowAnalysisRuleContext extends AbstractFlowAnalysisRuleCon
             ControllerServiceProvider controllerServiceProvider = flowController.getControllerServiceProvider();
             ExtensionManager extensionManager = flowController.getExtensionManager();
 
-            NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(extensionManager, Function.identity());
+            NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(extensionManager);
 
             ControllerServiceNode controllerServiceNode = controllerServiceProvider.getControllerServiceNode(id);
 

@@ -18,6 +18,7 @@ package org.apache.nifi.analyzeflow;
 
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisUtil;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.groups.ProcessGroup;
@@ -32,7 +33,6 @@ import org.junit.Before;
 
 import java.util.Collections;
 import java.util.UUID;
-import java.util.function.Function;
 
 public abstract class AbstractFlowAnalysisIT extends FrameworkIntegrationTest {
     protected FlowAnalysisContext flowAnalysisContext = new FlowAnalysisContextImpl();
@@ -41,7 +41,7 @@ public abstract class AbstractFlowAnalysisIT extends FrameworkIntegrationTest {
 
     @Before
     public void setUpAbstract() throws Exception {
-        mapper = new NiFiRegistryFlowMapper(getFlowController().getExtensionManager(), Function.identity());
+        mapper = FlowAnalysisUtil.createMapper(getFlowController().getExtensionManager());
 
         getFlowController().setFlowAnalysisContext(flowAnalysisContext);
     }
