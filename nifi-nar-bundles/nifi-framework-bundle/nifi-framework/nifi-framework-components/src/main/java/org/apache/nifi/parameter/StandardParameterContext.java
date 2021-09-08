@@ -679,6 +679,22 @@ public class StandardParameterContext implements ParameterContext {
     }
 
     @Override
+    public boolean isAuthorized(final Authorizer authorizer, final RequestAction action, final NiFiUser user) {
+        boolean isAuthorized = ParameterContext.super.isAuthorized(authorizer, action, user);
+
+        if (RequestAction.READ == action) {
+            for (final ParameterContext parameterContext : inheritedParameterContexts) {
+                isAuthorized &= parameterContext.isAuthorized(authorizer, action, user);
+                if (!isAuthorized) {
+                    break;
+                }
+            }
+        }
+
+        return isAuthorized;
+    }
+
+    @Override
     public Authorizable getParentAuthorizable() {
         return new Authorizable() {
             @Override

@@ -575,7 +575,7 @@ public final class EntityFactory {
         final ParameterContextEntity entity = new ParameterContextEntity();
         entity.setRevision(revision);
         if (dto != null) {
-            entity.setPermissions(permissions);;
+            entity.setPermissions(permissions);
             entity.setId(dto.getId());
 
             if (permissions != null && permissions.getCanRead()) {
