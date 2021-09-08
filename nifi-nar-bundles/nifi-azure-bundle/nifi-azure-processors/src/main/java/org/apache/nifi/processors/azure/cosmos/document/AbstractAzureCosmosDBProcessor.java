@@ -24,14 +24,19 @@ import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosDatabase;
 import com.azure.cosmos.CosmosException;
+import com.azure.cosmos.TransactionalBatch;
+import com.azure.cosmos.TransactionalBatchResponse;
 import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosContainerResponse;
 import com.azure.cosmos.models.CosmosDatabaseResponse;
+import com.azure.cosmos.models.CosmosItemRequestOptions;
+import com.azure.cosmos.models.PartitionKey;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -42,6 +47,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.azure.cosmos.AzureCosmosDBConnectionService;
 
@@ -301,4 +307,54 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
     protected void setConnectionService(AzureCosmosDBConnectionService connectionService) {
         this.connectionService = connectionService;
     }
+
+    protected void chooseInsertMethodAndRun(final List<Map<String, Object>> bin, final String partitionKeyField, final String conflictHandlingStrategy) throws CosmosException, ProcessException {
+        final ComponentLog logger = getLogger();
+        final CosmosContainer container = getContainer();
+        if (bin.size() == 1) {
+            final Map<String, Object> record = bin.get(0);
+            final CosmosItemRequestOptions cosmosItemRequestOptions = new CosmosItemRequestOptions();
+            cosmosItemRequestOptions.setContentResponseOnWriteEnabled(false);
+            try {
+                container.createItem(record, new PartitionKey((String)record.get(partitionKeyField)), cosmosItemRequestOptions);
+            } catch (final CosmosException e) {
+                if (e.getStatusCode() == 409) {
+                    // insert with an unique id is expected. In case conflict occurs, use the selected strategy.
+                    // By default, it will ignore.
+                    if (conflictHandlingStrategy != null && conflictHandlingStrategy.equals(AzureCosmosDBUtils.UPSERT_CONFLICT.getValue())){
+                        container.upsertItem(record);
+                    } else {
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Ignoring duplicate based on selected conflict resolution strategy");
+                        }
+                    }
+                } else {
+                    throw e;
+                }
+            }
+        } else if (bin.size() > 1) {
+            final Map<String, Object> firstRecord = bin.get(0);
+            final String recordPartitionKeyValue = (String)firstRecord.get(partitionKeyField);
+            final TransactionalBatch tBatch = TransactionalBatch.createTransactionalBatch(new PartitionKey(recordPartitionKeyValue));
+            for (Map<String, Object> record : bin) {
+                if (conflictHandlingStrategy != null && conflictHandlingStrategy.equals(AzureCosmosDBUtils.UPSERT_CONFLICT.getValue())){
+                    tBatch.upsertItemOperation(record);
+                } else {
+                    tBatch.createItemOperation(record);
+                }
+            }
+            final TransactionalBatchResponse response = container.executeTransactionalBatch(tBatch);
+            if (!response.isSuccessStatusCode()) {
+                if (response.getStatusCode() == 409) {
+                    if (conflictHandlingStrategy != null && conflictHandlingStrategy.equals(AzureCosmosDBUtils.IGNORE_CONFLICT.getValue())) {
+                        // ignore conflict
+                        return;
+                    }
+                }
+                final String errMsg = String.format("%d: %s", response.getStatusCode(), response.getErrorMessage());
+                throw new ProcessException(errMsg);
+            }
+        }
+    }
+
 }

@@ -18,6 +18,7 @@
  */
 package org.apache.nifi.processors.azure.cosmos.document;
 
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -27,6 +28,8 @@ public final class AzureCosmosDBUtils {
     public static final String CONSISTENCY_SESSION = "SESSION";
     public static final String CONSISTENCY_CONSISTENT_PREFIX = "CONSISTENT_PREFIX";
     public static final String CONSISTENCY_EVENTUAL = "EVENTUAL";
+    public static final AllowableValue IGNORE_CONFLICT = new AllowableValue("IGNORE", "Ignore", "Conflicting records will not be inserted, and FlowFile will not be routed to failure");
+    public static final AllowableValue UPSERT_CONFLICT = new AllowableValue("UPSERT", "Upsert", "Conflicting records will be upserted, and FlowFile will not be routed to failure");
 
     public static final PropertyDescriptor URI = new PropertyDescriptor.Builder()
         .name("azure-cosmos-db-uri")
@@ -36,6 +39,7 @@ public final class AzureCosmosDBUtils {
             + " from Azure Portal (Overview->URI)")
         .required(false)
         .addValidator(StandardValidators.URI_VALIDATOR)
+        .sensitive(true)
         .build();
 
     public static final PropertyDescriptor DB_ACCESS_KEY = new PropertyDescriptor.Builder()
