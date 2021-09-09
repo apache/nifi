@@ -49,21 +49,27 @@ public abstract class AbstractCacheServer implements CacheServer {
 
     private final String identifier;
     private final int port;
+    private final int maxReadSize;
     private final SSLContext sslContext;
     protected volatile boolean stopped = false;
     private final Set<Thread> processInputThreads = new CopyOnWriteArraySet<>();
 
     private volatile ServerSocketChannel serverSocketChannel;
 
-    public AbstractCacheServer(final String identifier, final SSLContext sslContext, final int port) {
+    public AbstractCacheServer(final String identifier, final SSLContext sslContext, final int port, final int maxReadSize) {
         this.identifier = identifier;
         this.port = port;
         this.sslContext = sslContext;
+        this.maxReadSize = maxReadSize;
     }
 
     @Override
     public int getPort() {
         return serverSocketChannel == null ? this.port : serverSocketChannel.socket().getLocalPort();
+    }
+
+    protected int getMaxReadSize() {
+        return maxReadSize;
     }
 
     @Override

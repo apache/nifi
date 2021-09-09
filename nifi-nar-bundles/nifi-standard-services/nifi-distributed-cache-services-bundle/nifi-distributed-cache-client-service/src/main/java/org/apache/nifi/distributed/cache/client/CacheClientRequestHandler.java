@@ -64,6 +64,18 @@ public class CacheClientRequestHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
+    @Override
+    public void channelUnregistered(ChannelHandlerContext ctx) {
+        if (!inboundAdapter.isComplete()) {
+            channelPromise.setFailure(new IOException("channelUnregistered during request - " + ctx.channel().toString()));
+        }
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        channelPromise.setFailure(cause);
+    }
+
     /**
      * Perform a synchronous method call to the server.  The server is expected to write
      * a byte stream response to the channel, which may be deserialized into a Java object
@@ -86,5 +98,8 @@ public class CacheClientRequestHandler extends ChannelInboundHandlerAdapter {
         channel.writeAndFlush(Unpooled.wrappedBuffer(outboundAdapter.toBytes()));
         channelPromise.awaitUninterruptibly();
         this.inboundAdapter = new NullInboundAdapter();
+        if (channelPromise.cause() != null) {
+            throw new IOException(channelPromise.cause());
+        }
     }
 }

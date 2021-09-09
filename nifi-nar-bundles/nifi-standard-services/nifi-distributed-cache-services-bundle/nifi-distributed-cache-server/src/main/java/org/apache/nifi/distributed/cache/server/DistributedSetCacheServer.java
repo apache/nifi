@@ -35,6 +35,7 @@ public class DistributedSetCacheServer extends DistributedCacheServer {
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final int maxSize = context.getProperty(MAX_CACHE_ENTRIES).asInteger();
         final String evictionPolicyName = context.getProperty(EVICTION_POLICY).getValue();
+        final int maxReadSize = context.getProperty(MAX_READ_SIZE).asInteger();
 
         final SSLContext sslContext;
         if (sslContextService == null) {
@@ -61,7 +62,7 @@ public class DistributedSetCacheServer extends DistributedCacheServer {
         try {
             final File persistenceDir = persistencePath == null ? null : new File(persistencePath);
 
-            return new SetCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir);
+            return new SetCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir, maxReadSize);
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }

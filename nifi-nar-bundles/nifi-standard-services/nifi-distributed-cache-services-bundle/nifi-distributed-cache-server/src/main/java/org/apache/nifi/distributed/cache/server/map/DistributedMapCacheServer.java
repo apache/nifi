@@ -41,6 +41,7 @@ public class DistributedMapCacheServer extends DistributedCacheServer {
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final int maxSize = context.getProperty(MAX_CACHE_ENTRIES).asInteger();
         final String evictionPolicyName = context.getProperty(EVICTION_POLICY).getValue();
+        final int maxReadSize = context.getProperty(MAX_READ_SIZE).asInteger();
 
         final SSLContext sslContext;
         if (sslContextService == null) {
@@ -67,14 +68,14 @@ public class DistributedMapCacheServer extends DistributedCacheServer {
         try {
             final File persistenceDir = persistencePath == null ? null : new File(persistencePath);
 
-            return createMapCacheServer(port, maxSize, sslContext, evictionPolicy, persistenceDir);
+            return createMapCacheServer(port, maxSize, sslContext, evictionPolicy, persistenceDir, maxReadSize);
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    protected MapCacheServer createMapCacheServer(int port, int maxSize, SSLContext sslContext, EvictionPolicy evictionPolicy, File persistenceDir) throws IOException {
-        return new MapCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir);
+    protected MapCacheServer createMapCacheServer(int port, int maxSize, SSLContext sslContext, EvictionPolicy evictionPolicy, File persistenceDir, int maxReadSize) throws IOException {
+        return new MapCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir, maxReadSize);
     }
 
 }

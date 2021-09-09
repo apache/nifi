@@ -68,6 +68,13 @@ public abstract class DistributedCacheServer extends AbstractControllerService {
         .required(false)
         .addValidator(StandardValidators.createDirectoryExistsValidator(true, true))
         .build();
+    public static final PropertyDescriptor MAX_READ_SIZE = new PropertyDescriptor.Builder()
+        .name("Maximum Read Size")
+        .description("The maximum number of network bytes to read for a single cache item")
+        .required(false)
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .defaultValue("1000000")
+        .build();
 
     private volatile CacheServer cacheServer;
 
@@ -79,6 +86,7 @@ public abstract class DistributedCacheServer extends AbstractControllerService {
         properties.add(EVICTION_POLICY);
         properties.add(PERSISTENCE_PATH);
         properties.add(SSL_CONTEXT_SERVICE);
+        properties.add(MAX_READ_SIZE);
         return properties;
     }
 
