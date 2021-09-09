@@ -32,7 +32,7 @@ public class NullInboundAdapter implements InboundAdapter {
 
     @Override
     public boolean isComplete() {
-        return false;
+        return true;
     }
 
     @Override

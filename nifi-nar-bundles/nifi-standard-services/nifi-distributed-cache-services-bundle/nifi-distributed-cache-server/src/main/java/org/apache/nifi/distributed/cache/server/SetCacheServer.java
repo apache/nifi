@@ -36,8 +36,8 @@ public class SetCacheServer extends AbstractCacheServer {
     private final SetCache cache;
 
     public SetCacheServer(final String identifier, final SSLContext sslContext, final int port, final int maxSize,
-            final EvictionPolicy evictionPolicy, final File persistencePath) throws IOException {
-        super(identifier, sslContext, port);
+                          final EvictionPolicy evictionPolicy, final File persistencePath, final int maxReadSize) throws IOException {
+        super(identifier, sslContext, port, maxReadSize);
 
         final SetCache simpleCache = new SimpleSetCache(identifier, maxSize, evictionPolicy);
 
@@ -60,9 +60,7 @@ public class SetCacheServer extends AbstractCacheServer {
             return false;
         }
 
-        final int valueLength = dis.readInt();
-        final byte[] value = new byte[valueLength];
-        dis.readFully(value);
+        final byte[] value = readValue(dis);
         final ByteBuffer valueBuffer = ByteBuffer.wrap(value);
 
         final SetCacheResult response;
@@ -101,5 +99,4 @@ public class SetCacheServer extends AbstractCacheServer {
             stop();
         }
     }
-
 }

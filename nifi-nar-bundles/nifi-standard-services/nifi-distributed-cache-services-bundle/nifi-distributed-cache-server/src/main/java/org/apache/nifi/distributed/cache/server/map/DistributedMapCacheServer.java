@@ -26,6 +26,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.server.CacheServer;
 import org.apache.nifi.distributed.cache.server.DistributedCacheServer;
 import org.apache.nifi.distributed.cache.server.EvictionPolicy;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.ssl.SSLContextService;
 
 @Tags({"distributed", "cluster", "map", "cache", "server", "key/value"})
@@ -41,6 +42,7 @@ public class DistributedMapCacheServer extends DistributedCacheServer {
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final int maxSize = context.getProperty(MAX_CACHE_ENTRIES).asInteger();
         final String evictionPolicyName = context.getProperty(EVICTION_POLICY).getValue();
+        final int maxReadSize = context.getProperty(MAX_READ_SIZE).asDataSize(DataUnit.B).intValue();
 
         final SSLContext sslContext;
         if (sslContextService == null) {
@@ -67,14 +69,16 @@ public class DistributedMapCacheServer extends DistributedCacheServer {
         try {
             final File persistenceDir = persistencePath == null ? null : new File(persistencePath);
 
-            return createMapCacheServer(port, maxSize, sslContext, evictionPolicy, persistenceDir);
+            return createMapCacheServer(port, maxSize, sslContext, evictionPolicy, persistenceDir, maxReadSize);
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    protected MapCacheServer createMapCacheServer(int port, int maxSize, SSLContext sslContext, EvictionPolicy evictionPolicy, File persistenceDir) throws IOException {
-        return new MapCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir);
+    protected MapCacheServer createMapCacheServer(
+            final int port, final int maxSize, final SSLContext sslContext, final EvictionPolicy evictionPolicy,
+            final File persistenceDir, final int maxReadSize) throws IOException {
+        return new MapCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir, maxReadSize);
     }
 
 }
