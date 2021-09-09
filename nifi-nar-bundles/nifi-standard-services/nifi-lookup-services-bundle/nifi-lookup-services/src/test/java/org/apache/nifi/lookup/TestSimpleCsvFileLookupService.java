@@ -20,7 +20,8 @@ import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -28,10 +29,9 @@ import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSimpleCsvFileLookupService {
 
@@ -55,7 +55,7 @@ public class TestSimpleCsvFileLookupService {
                         .getControllerServiceLookup()
                         .getControllerService("csv-file-lookup-service");
 
-        assertThat(lookupService, instanceOf(LookupService.class));
+        MatcherAssert.assertThat(lookupService, instanceOf(LookupService.class));
 
         final Optional<String> property1 = lookupService.lookup(Collections.singletonMap("key", "property.1"));
         assertEquals(Optional.of("this is property 1"), property1);
@@ -82,8 +82,8 @@ public class TestSimpleCsvFileLookupService {
         runner.assertValid(service);
 
         final Optional<String> property1 = service.lookup(Collections.singletonMap("key", "property.1"));
-        assertThat(property1.isPresent(), is(true));
-        assertThat(property1.get(), is("this is property \uff11"));
+        MatcherAssert.assertThat(property1.isPresent(), is(true));
+        MatcherAssert.assertThat(property1.get(), is("this is property \uff11"));
     }
 
     @Test

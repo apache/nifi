@@ -27,17 +27,17 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class OAuth2TokenProviderImplTest {
     private TestRunner runner;
@@ -46,7 +46,7 @@ public class OAuth2TokenProviderImplTest {
 
     private OAuth2TokenProvider oAuth2TokenProvider;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         mockWebServer = new MockWebServer();
         final String url = mockWebServer.url("/").toString();

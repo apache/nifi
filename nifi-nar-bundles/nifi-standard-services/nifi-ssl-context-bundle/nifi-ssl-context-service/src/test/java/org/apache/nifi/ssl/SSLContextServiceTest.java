@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.ssl;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.reporting.InitializationException;
@@ -35,14 +25,25 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SSLContextServiceTest {
     private static TlsConfiguration tlsConfiguration;
 
-    @BeforeClass
+    @BeforeAll
     public static void setTlsConfiguration() {
         tlsConfiguration = new TemporaryKeyStoreBuilder().build();
     }
@@ -127,7 +128,7 @@ public class SSLContextServiceTest {
         runner.setProperty("SSL Context Svc ID", "test-good1");
         runner.assertValid(service);
         service = (SSLContextService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-good1");
-        Assert.assertNotNull(service);
+        assertNotNull(service);
         SSLContextService sslService = service;
         sslService.createContext();
     }
@@ -150,7 +151,7 @@ public class SSLContextServiceTest {
         runner.setProperty("SSL Context Svc ID", "test-good1");
         runner.assertValid(service);
         service = (SSLContextService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-good1");
-        Assert.assertNotNull(service);
+        assertNotNull(service);
         SSLContextService sslService = service;
         sslService.createContext();
     }
@@ -223,18 +224,18 @@ public class SSLContextServiceTest {
 
         // Even though the keystore file is no longer present, because no property changed, the cached result is still valid
         Collection<ValidationResult> validationResults = service.customValidate(validationContext);
-        assertTrue("validation results is not empty", validationResults.isEmpty());
+        assertTrue(validationResults.isEmpty(), "validation results is not empty");
 
         // Assert
 
         // Have to exhaust the cached result by checking n-1 more times
         for (int i = 2; i < service.getValidationCacheExpiration(); i++) {
             validationResults = service.customValidate(validationContext);
-            assertTrue("validation results is not empty", validationResults.isEmpty());
+            assertTrue(validationResults.isEmpty(), "validation results is not empty");
         }
 
         validationResults = service.customValidate(validationContext);
-        assertFalse("validation results is empty", validationResults.isEmpty());
+        assertFalse(validationResults.isEmpty(), "validation results is empty");
     }
 
     @Test
@@ -250,7 +251,7 @@ public class SSLContextServiceTest {
 
         runner.setProperty("SSL Context Svc ID", "test-good2");
         runner.assertValid();
-        Assert.assertNotNull(service);
+        assertNotNull(service);
         service.createContext();
     }
 
@@ -268,7 +269,7 @@ public class SSLContextServiceTest {
 
         runner.setProperty("SSL Context Svc ID", "test-good3");
         runner.assertValid();
-        Assert.assertNotNull(service);
+        assertNotNull(service);
         service.createContext();
     }
 }

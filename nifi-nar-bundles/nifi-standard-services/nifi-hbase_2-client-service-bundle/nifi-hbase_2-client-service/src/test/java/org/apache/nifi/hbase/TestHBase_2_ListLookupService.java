@@ -27,8 +27,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -38,21 +38,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 public class TestHBase_2_ListLookupService {
 
     static final String TABLE_NAME = "guids";
-    static final String ROW = "row1";
-    static final String COLS = "cf1:cq1,cf2:cq2";
 
     private TestRunner runner;
     private HBase_2_ListLookupService lookupService;
     private MockHBaseClientService clientService;
     private NoOpProcessor processor;
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         processor = new NoOpProcessor();
         runner = TestRunners.newTestRunner(processor);

@@ -21,7 +21,8 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -29,10 +30,9 @@ import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCSVRecordLookupService {
 
@@ -55,7 +55,7 @@ public class TestCSVRecordLookupService {
                         .getControllerServiceLookup()
                         .getControllerService("csv-record-lookup-service");
 
-        assertThat(lookupService, instanceOf(LookupService.class));
+        MatcherAssert.assertThat(lookupService, instanceOf(LookupService.class));
 
         final Optional<Record> property1 = lookupService.lookup(Collections.singletonMap("key", "property.1"));
         assertEquals("this is property 1", property1.get().getAsString("value"));
@@ -83,9 +83,9 @@ public class TestCSVRecordLookupService {
         runner.assertValid(service);
 
         final Optional<Record> property1 = service.lookup(Collections.singletonMap("key", "property.1"));
-        assertThat(property1.isPresent(), is(true));
-        assertThat(property1.get().getAsString("value"), is("this is property \uff11"));
-        assertThat(property1.get().getAsString("created_at"), is("2017-04-01"));
+        MatcherAssert.assertThat(property1.isPresent(), is(true));
+        MatcherAssert.assertThat(property1.get().getAsString("value"), is("this is property \uff11"));
+        MatcherAssert.assertThat(property1.get().getAsString("created_at"), is("2017-04-01"));
     }
 
     @Test

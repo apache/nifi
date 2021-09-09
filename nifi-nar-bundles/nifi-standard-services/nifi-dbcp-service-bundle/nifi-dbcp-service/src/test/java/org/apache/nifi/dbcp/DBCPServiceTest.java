@@ -35,6 +35,7 @@ import org.junit.jupiter.api.BeforeAll;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -85,6 +86,7 @@ public class DBCPServiceTest {
 
         final String url = String.format("jdbc:derby:%s;create=true", databaseDirectory);
         runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, url);
+
         runner.setProperty(service, DBCPConnectionPool.DB_USER, String.class.getSimpleName());
         runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, String.class.getName());
         runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
