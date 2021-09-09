@@ -17,7 +17,7 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
-import org.apache.nifi.registry.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedConnection;
 
 public class InstantiatedVersionedConnection extends VersionedConnection implements InstantiatedVersionedComponent {
     private final String instanceId;

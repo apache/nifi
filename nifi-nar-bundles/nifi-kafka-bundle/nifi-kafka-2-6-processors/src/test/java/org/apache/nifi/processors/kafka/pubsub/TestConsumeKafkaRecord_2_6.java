@@ -201,7 +201,7 @@ public class TestConsumeKafkaRecord_2_6 {
         runner.assertNotValid();
 
         runner.setProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME, "kafka");
-        runner.assertValid();
+        runner.assertNotValid();
 
         runner.setProperty(KafkaProcessorUtils.USER_PRINCIPAL, "nifi@APACHE.COM");
         runner.assertNotValid();

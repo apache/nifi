@@ -22,23 +22,26 @@
         define(['jquery',
                 'nf.Common',
                 'nf.Dialog',
+                'nf.AuthorizationStorage',
                 'nf.Storage'],
-            function ($, nfCommon, nfDialog, nfStorage) {
-                return (nf.Login = factory($, nfCommon, nfDialog, nfStorage));
+            function ($, nfCommon, nfDialog, nfAuthorizationStorage, nfStorage) {
+                return (nf.Login = factory($, nfCommon, nfDialog, nfAuthorizationStorage, nfStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Login =
             factory(require('jquery'),
                 require('nf.Common'),
                 require('nf.Dialog'),
+                require('nf.AuthorizationStorage'),
                 require('nf.Storage')));
     } else {
         nf.Login = factory(root.$,
             root.nf.Common,
             root.nf.Dialog,
+            root.nf.AuthorizationStorage,
             root.nf.Storage);
     }
-}(this, function ($, nfCommon, nfDialog, nfStorage) {
+}(this, function ($, nfCommon, nfDialog, nfAuthorizationStorage, nfStorage) {
     'use strict';
 
     $(document).ready(function () {
@@ -99,10 +102,7 @@
                 'password': $('#password').val()
             }
         }).done(function (jwt) {
-            // Get the payload and store the token with the appropriate expiration. JWT is also stored automatically in a cookie.
-            var token = nfCommon.getJwtPayload(jwt);
-            var expiration = parseInt(token['exp'], 10) * nfCommon.MILLIS_PER_SECOND;
-            nfStorage.setItem('jwt', jwt, expiration);
+            nfAuthorizationStorage.setToken(jwt);
 
             // check to see if they actually have access now
             $.ajax({

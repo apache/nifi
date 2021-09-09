@@ -19,7 +19,7 @@ package org.apache.nifi.minifi.toolkit.configuration.registry;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
-import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
+import org.apache.nifi.flow.VersionedRemoteGroupPort;
 
 import java.util.HashMap;
 import java.util.Map;

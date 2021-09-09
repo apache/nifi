@@ -16,24 +16,24 @@
  */
 package org.apache.nifi.rules.handlers;
 
-import junit.framework.TestCase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLogHandler {
 
@@ -41,7 +41,7 @@ public class TestLogHandler {
     MockComponentLog mockComponentLog;
     LogHandler logHandler;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(TestProcessor.class);
         mockComponentLog = new MockComponentLog();
@@ -159,12 +159,7 @@ public class TestLogHandler {
         final Action action = new Action();
         action.setType("FAKE");
         action.setAttributes(attributes);
-        try {
-            logHandler.execute(action, metrics);
-            fail();
-        } catch (UnsupportedOperationException ex) {
-            assertTrue(true);
-        }
+        assertThrows(UnsupportedOperationException.class, () -> logHandler.execute(action, metrics));
     }
 
     @Test
@@ -191,15 +186,11 @@ public class TestLogHandler {
         final Action action = new Action();
         action.setType("FAKE");
         action.setAttributes(attributes);
-        try {
-            logHandler.execute(action, metrics);
-        } catch (UnsupportedOperationException ex) {
-            fail();
-        }
+        assertDoesNotThrow(() -> logHandler.execute(action, metrics));
 
         final String warnMessage = mockComponentLog.getWarnMessage();
         assertTrue(StringUtils.isNotEmpty(warnMessage));
-        TestCase.assertEquals("This Action Handler does not support actions with the provided type: FAKE",warnMessage);
+        assertEquals("This Action Handler does not support actions with the provided type: FAKE",warnMessage);
     }
 
     @Test
@@ -226,15 +217,12 @@ public class TestLogHandler {
         final Action action = new Action();
         action.setType("FAKE");
         action.setAttributes(attributes);
-        try {
-            logHandler.execute(action, metrics);
-        } catch (UnsupportedOperationException ex) {
-            fail();
-        }
+
+        assertDoesNotThrow(() -> logHandler.execute(action, metrics));
 
         final String debugMessage = mockComponentLog.getDebugMessage();
         assertTrue(StringUtils.isNotEmpty(debugMessage));
-        TestCase.assertEquals("This Action Handler does not support actions with the provided type: FAKE",debugMessage);
+        assertEquals("This Action Handler does not support actions with the provided type: FAKE",debugMessage);
     }
 
     @Test
@@ -260,12 +248,8 @@ public class TestLogHandler {
         final Action action = new Action();
         action.setType("LOG");
         action.setAttributes(attributes);
-        try {
-            logHandler.execute(action, metrics);
-            assertTrue(true);
-        } catch (UnsupportedOperationException ex) {
-            fail();
-        }
+
+        assertDoesNotThrow(() -> logHandler.execute(action, metrics));
     }
 
     private static class MockLogHandler extends LogHandler {

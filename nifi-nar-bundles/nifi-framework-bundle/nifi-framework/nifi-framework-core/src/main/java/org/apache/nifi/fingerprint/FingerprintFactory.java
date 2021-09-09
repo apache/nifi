@@ -312,6 +312,15 @@ public class FingerprintFactory {
             }
         }
 
+        final List<Element> inheritedParameterContexts = DomUtils.getChildElementsByTagName(parameterContextElement, "inheritedParameterContextId");
+        if (inheritedParameterContexts == null || inheritedParameterContexts.isEmpty()) {
+            builder.append("NO_INHERITED_PARAMETER_CONTEXT_IDS");
+        } else {
+            for (final Element inheritedParameterContextId : inheritedParameterContexts) {
+                builder.append(inheritedParameterContextId.getTextContent());
+            }
+        }
+
         return builder;
     }
 

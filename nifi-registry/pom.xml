@@ -43,7 +43,7 @@
         <flyway.version>6.5.7</flyway.version>
         <flyway.tests.version>6.4.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
-        <testcontainers.version>1.15.1</testcontainers.version>
+        <testcontainers.version>1.16.0</testcontainers.version>
 	    <h2.version>1.4.199</h2.version>
         <groovy.eclipse.compiler.version>3.4.0-01</groovy.eclipse.compiler.version>
         <jaxb.version>2.3.2</jaxb.version>
@@ -447,7 +447,7 @@
                             <goal>integration-test</goal>
                             <goal>verify</goal>
                         </goals>
-                        <phase>verify</phase>
+                        <phase>none</phase>
                     </execution>
                 </executions>
             </plugin>
@@ -565,8 +565,8 @@
             </build>
         </profile>
         <profile>
-            <!-- Disables execution of integration tests managed by the Maven FailSafe plugin. -->
-            <id>nifi-registry-no-integration-tests</id>
+            <!-- Enables execution of integration tests managed by the Maven FailSafe plugin. -->
+            <id>nifi-registry-integration-tests</id>
             <build>
                 <plugins>
                     <plugin>
@@ -579,7 +579,7 @@
                                     <goal>integration-test</goal>
                                     <goal>verify</goal>
                                 </goals>
-                                <phase>none</phase>
+                                <phase>verify</phase>
                             </execution>
                         </executions>
                     </plugin>

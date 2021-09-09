@@ -56,7 +56,7 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -176,8 +176,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
         // Map existing parameter contexts by name
         final Set<ParameterContext> parameterContexts = flowManager.getParameterContextManager().getParameterContexts();
-        final Map<String, ParameterContext> parameterContextMap = parameterContexts.stream()
-            .collect(Collectors.toMap(ParameterContext::getName, context -> context));
+        final Map<String, ParameterContext> parameterContextMap = flowManager.getParameterContextManager().getParameterContextNameMapping();
 
         // Update Parameters to match those that are provided in the flow configuration, plus those overrides provided
         final List<ParameterContextDefinition> parameterContextDefinitions = dataflowDefinition.getParameterContexts();
@@ -345,7 +344,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         }
     }
 
-    private BundleCoordinate toBundleCoordinate(final org.apache.nifi.registry.flow.Bundle bundle) {
+    private BundleCoordinate toBundleCoordinate(final org.apache.nifi.flow.Bundle bundle) {
         return new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
     }
 

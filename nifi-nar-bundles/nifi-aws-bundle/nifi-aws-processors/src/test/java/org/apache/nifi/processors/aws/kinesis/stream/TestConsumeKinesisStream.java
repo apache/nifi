@@ -366,6 +366,7 @@ public class TestConsumeKinesisStream {
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, "test-stream");
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, "test-application");
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.REGION, Regions.EU_WEST_2.getName());
+        mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.TIMEOUT, "5 secs");
 
         final AWSCredentialsProviderService awsCredentialsProviderService = new AWSCredentialsProviderControllerService();
         mockConsumeKinesisStreamRunner.addControllerService("aws-credentials", awsCredentialsProviderService);

@@ -30,22 +30,21 @@ import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.security.MessageDigestUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestInvokeGroovy extends BaseScriptTest {
-
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setupInvokeScriptProcessor();
     }
@@ -53,10 +52,9 @@ public class TestInvokeGroovy extends BaseScriptTest {
     /**
      * Tests a script that has a Groovy Processor that that reads the first line of text from the flowfiles content and stores the value in an attribute of the outgoing flowfile.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
+    public void testReadFlowFileContentAndStoreInFlowFileAttribute() {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
         runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/groovy");
@@ -74,10 +72,9 @@ public class TestInvokeGroovy extends BaseScriptTest {
      * Tests a script that has a Groovy Processor that that reads the first line of text from the flowfiles content and
      * stores the value in an attribute of the outgoing flowfile.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testScriptDefinedAttribute() throws Exception {
+    public void testScriptDefinedAttribute() {
         InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
         MockProcessContext context = new MockProcessContext(processor);
         MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(processor, context);
@@ -108,10 +105,9 @@ public class TestInvokeGroovy extends BaseScriptTest {
      * Tests a script that has a Groovy Processor that that reads the first line of text from the flowfiles content and
      * stores the value in an attribute of the outgoing flowfile.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testScriptDefinedRelationship() throws Exception {
+    public void testScriptDefinedRelationship() {
         InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
         MockProcessContext context = new MockProcessContext(processor);
         MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(processor, context);
@@ -141,10 +137,9 @@ public class TestInvokeGroovy extends BaseScriptTest {
      * Tests a script that throws a ProcessException within. The expected result is that the exception will be
      * propagated
      *
-     * @throws Exception Any error encountered while testing
      */
-    @Test(expected = AssertionError.class)
-    public void testInvokeScriptCausesException() throws Exception {
+    @Test
+    public void testInvokeScriptCausesException() {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
@@ -152,17 +147,15 @@ public class TestInvokeGroovy extends BaseScriptTest {
         );
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
-        runner.run();
-
+        assertThrows(AssertionError.class, () -> runner.run());
     }
 
     /**
      * Tests a script that routes the FlowFile to failure.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testScriptRoutesToFailure() throws Exception {
+    public void testScriptRoutesToFailure() {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "groovy/testScriptRoutesToFailure.groovy")
@@ -177,7 +170,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
     }
 
     @Test
-    public void testValidationResultsReset() throws Exception {
+    public void testValidationResultsReset() {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
         runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/groovy");
@@ -190,10 +183,9 @@ public class TestInvokeGroovy extends BaseScriptTest {
     /**
      * Tests a script that derive from AbstractProcessor as base class
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testAbstractProcessorImplementationWithBodyScriptFile() throws Exception {
+    public void testAbstractProcessorImplementationWithBodyScriptFile() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(TEST_RESOURCE_LOCATION + "groovy/test_implementingabstractProcessor.groovy"));

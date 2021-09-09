@@ -38,7 +38,7 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 public class MockFlowFile implements FlowFileRecord {
 
@@ -217,21 +217,21 @@ public class MockFlowFile implements FlowFileRecord {
     }
 
     public void assertAttributeExists(final String attributeName) {
-        Assert.assertTrue("Attribute " + attributeName + " does not exist", attributes.containsKey(attributeName));
+        Assertions.assertTrue(attributes.containsKey(attributeName), "Attribute " + attributeName + " does not exist");
     }
 
     public void assertAttributeNotExists(final String attributeName) {
-        Assert.assertFalse("Attribute " + attributeName + " should not exist on FlowFile, but exists with value "
-                + attributes.get(attributeName), attributes.containsKey(attributeName));
+        Assertions.assertFalse(attributes.containsKey(attributeName), "Attribute " + attributeName + " should not exist on FlowFile, but exists with value "
+                + attributes.get(attributeName));
     }
 
     public void assertAttributeEquals(final String attributeName, final String expectedValue) {
-        Assert.assertEquals("Expected attribute " + attributeName + " to be " + expectedValue + " but instead it was " + attributes.get(attributeName),
-            expectedValue, attributes.get(attributeName));
+        Assertions.assertEquals(expectedValue, attributes.get(attributeName), "Expected attribute " + attributeName + " to be " +
+                expectedValue + " but instead it was " + attributes.get(attributeName));
     }
 
     public void assertAttributeNotEquals(final String attributeName, final String expectedValue) {
-        Assert.assertNotSame(expectedValue, attributes.get(attributeName));
+        Assertions.assertNotSame(expectedValue, attributes.get(attributeName));
     }
 
     /**
@@ -281,7 +281,7 @@ public class MockFlowFile implements FlowFileRecord {
 
     public void assertContentEquals(final String data, final Charset charset) {
         final String value = new String(this.data, charset);
-        Assert.assertEquals(data, value);
+        Assertions.assertEquals(data, value);
     }
 
     /**
@@ -298,11 +298,11 @@ public class MockFlowFile implements FlowFileRecord {
             for (int i = 0; i < data.length; i++) {
                 final int fromStream = buffered.read();
                 if (fromStream < 0) {
-                    Assert.fail("FlowFile content is " + data.length + " bytes but provided input is only " + bytesRead + " bytes");
+                    Assertions.fail("FlowFile content is " + data.length + " bytes but provided input is only " + bytesRead + " bytes");
                 }
 
                 if ((fromStream & 0xFF) != (data[i] & 0xFF)) {
-                    Assert.fail("FlowFile content differs from input at byte " + bytesRead + " with input having value "
+                    Assertions.fail("FlowFile content differs from input at byte " + bytesRead + " with input having value "
                             + (fromStream & 0xFF) + " and FlowFile having value " + (data[i] & 0xFF));
                 }
 
@@ -311,7 +311,7 @@ public class MockFlowFile implements FlowFileRecord {
 
             final int nextByte = buffered.read();
             if (nextByte >= 0) {
-                Assert.fail("Contents of input and FlowFile were the same through byte " + data.length + "; however, FlowFile's content ended at this point, and input has more data");
+                Assertions.fail("Contents of input and FlowFile were the same through byte " + data.length + "; however, FlowFile's content ended at this point, and input has more data");
             }
         }
     }

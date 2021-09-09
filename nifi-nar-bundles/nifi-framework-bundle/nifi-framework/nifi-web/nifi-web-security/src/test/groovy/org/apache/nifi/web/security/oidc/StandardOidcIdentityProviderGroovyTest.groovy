@@ -43,16 +43,10 @@ import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator
 import groovy.json.JsonOutput
-import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.SignatureAlgorithm
 import net.minidev.json.JSONObject
 import org.apache.commons.codec.binary.Base64
-import org.apache.nifi.admin.service.KeyService
-import org.apache.nifi.key.Key
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.StringUtils
-import org.apache.nifi.web.security.jwt.JwtService
-import org.apache.nifi.web.security.token.LoginAuthenticationToken
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -66,7 +60,6 @@ import org.slf4j.LoggerFactory
 class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(StandardOidcIdentityProviderGroovyTest.class)
 
-    private static final Key SIGNING_KEY = new Key(id: 1, identity: "signingKey", key: "mock-signing-key-value")
     private static final Map<String, Object> DEFAULT_NIFI_PROPERTIES = [
             "nifi.security.user.oidc.discovery.url"           : "https://localhost/oidc",
             "nifi.security.user.login.identity.provider"      : "provider",
@@ -81,7 +74,6 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
 
     // Mock collaborators
     private static NiFiProperties mockNiFiProperties
-    private static JwtService mockJwtService = [:] as JwtService
 
     private static final String MOCK_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZ" +
             "SI6Ik5pRmkgT0lEQyBVbml0IFRlc3RlciIsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjoxNTE2MzM5MDIyLCJpc3MiOiJuaWZp" +
@@ -107,34 +99,6 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     private static NiFiProperties buildNiFiProperties(Map<String, Object> props = [:]) {
         def combinedProps = DEFAULT_NIFI_PROPERTIES + props
         new NiFiProperties(combinedProps)
-    }
-
-    private static JwtService buildJwtService() {
-        def mockJS = new JwtService([:] as KeyService) {
-            @Override
-            String generateSignedToken(LoginAuthenticationToken lat) {
-                signNiFiToken(lat)
-            }
-        }
-        mockJS
-    }
-
-    private static String signNiFiToken(LoginAuthenticationToken lat) {
-        String identity = "mockUser"
-        String USERNAME_CLAIM = "username"
-        String KEY_ID_CLAIM = "keyId"
-        Calendar expiration = Calendar.getInstance()
-        expiration.setTimeInMillis(System.currentTimeMillis() + 10_000)
-        String username = lat.getName()
-
-        return Jwts.builder().setSubject(identity)
-                .setIssuer(lat.getIssuer())
-                .setAudience(lat.getIssuer())
-                .claim(USERNAME_CLAIM, username)
-                .claim(KEY_ID_CLAIM, SIGNING_KEY.getId())
-                .setExpiration(expiration.getTime())
-                .setIssuedAt(Calendar.getInstance().getTime())
-                .signWith(SignatureAlgorithm.HS256, SIGNING_KEY.key.getBytes("UTF-8")).compact()
     }
 
     @Test
@@ -168,7 +132,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     @Test
     void testShouldCreateClientAuthenticationFromPost() {
         // Arrange
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiProperties)
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNiFiProperties)
 
         Issuer mockIssuer = new Issuer("https://localhost/oidc")
         URI mockURI = new URI("https://localhost/oidc")
@@ -205,7 +169,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     void testShouldCreateClientAuthenticationFromBasic() {
         // Arrange
         // Mock collaborators
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiProperties)
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNiFiProperties)
 
         Issuer mockIssuer = new Issuer("https://localhost/oidc")
         URI mockURI = new URI("https://localhost/oidc")
@@ -241,7 +205,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     @Test
     void testShouldCreateTokenHTTPRequest() {
         // Arrange
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiProperties)
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNiFiProperties)
 
         // Mock AuthorizationGrant
         Issuer mockIssuer = new Issuer("https://localhost/oidc")
@@ -280,7 +244,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     @Test
     void testShouldLookupIdentityInUserInfo() {
         // Arrange
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiProperties)
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNiFiProperties)
 
         Issuer mockIssuer = new Issuer("https://localhost/oidc")
         URI mockURI = new URI("https://localhost/oidc")
@@ -304,7 +268,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     @Test
     void testLookupIdentityUserInfoShouldHandleMissingIdentity() {
         // Arrange
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiProperties)
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNiFiProperties)
 
         Issuer mockIssuer = new Issuer("https://localhost/oidc")
         URI mockURI = new URI("https://localhost/oidc")
@@ -329,7 +293,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     @Test
     void testLookupIdentityUserInfoShouldHandle500() {
         // Arrange
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiProperties)
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNiFiProperties)
 
         Issuer mockIssuer = new Issuer("https://localhost/oidc")
         URI mockURI = new URI("https://localhost/oidc")
@@ -698,9 +662,8 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     }
 
     private StandardOidcIdentityProvider buildIdentityProviderWithMockTokenValidator(Map<String, String> additionalProperties = [:]) {
-        JwtService mockJS = buildJwtService()
         NiFiProperties mockNFP = buildNiFiProperties(additionalProperties)
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJS, mockNFP)
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNFP)
 
         // Mock OIDC provider metadata
         Issuer mockIssuer = new Issuer("mockIssuer")

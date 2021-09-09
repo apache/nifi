@@ -17,11 +17,11 @@
 
 package org.apache.nifi.stateless.flow;
 
-import org.apache.nifi.registry.flow.Bundle;
-import org.apache.nifi.registry.flow.VersionedControllerService;
+import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
 import org.apache.nifi.stateless.config.ParameterValueProviderDefinition;
 import org.apache.nifi.stateless.config.ReportingTaskDefinition;

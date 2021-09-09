@@ -645,26 +645,53 @@ public class StandardValidators {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
             }
         };
-
     }
 
+
     public static Validator createRegexMatchingValidator(final Pattern pattern) {
+        return createRegexMatchingValidator(pattern, false, "Value does not match regular expression: " + pattern.pattern());
+    }
+
+    public static Validator createRegexMatchingValidator(final Pattern pattern, final boolean evaluateExpressions, final String validationMessage) {
         return new Validator() {
             @Override
             public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+                String value = input;
                 if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+                    if (evaluateExpressions) {
+                        try {
+                            value = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
+                        } catch (final Exception e) {
+                            return new ValidationResult.Builder()
+                                    .subject(subject)
+                                    .input(input)
+                                    .valid(false)
+                                    .explanation("Failed to evaluate the Attribute Expression Language due to " + e.toString())
+                                    .build();
+                        }
+                    } else {
+                        return new ValidationResult.Builder()
+                                .subject(subject)
+                                .input(input)
+                                .explanation("Expression Language Present")
+                                .valid(true)
+                                .build();
+                    }
                 }
 
-                final boolean matches = pattern.matcher(input).matches();
+                final boolean matches = value != null && pattern.matcher(value).matches();
                 return new ValidationResult.Builder()
                         .input(input)
                         .subject(subject)
                         .valid(matches)
-                        .explanation(matches ? null : "Value does not match regular expression: " + pattern.pattern())
+                        .explanation(matches ? null : validationMessage)
                         .build();
             }
         };
+    }
+
+    public static Validator createRegexMatchingValidator(final Pattern pattern, final boolean evaluateExpressions) {
+        return createRegexMatchingValidator(pattern, evaluateExpressions, "Value does not match regular expression: " + pattern.pattern());
     }
 
     /**

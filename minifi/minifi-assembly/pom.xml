@@ -148,6 +148,11 @@ limitations under the License.
             <artifactId>minifi-update-attribute-nar</artifactId>
             <type>nar</type>
         </dependency>
+        <dependency> <!-- handling this explicitly  Must be in root lib -->
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
 
         <!-- NiFi Assembly Dependencies-->
         <dependency>

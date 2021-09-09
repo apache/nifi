@@ -23,8 +23,8 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -39,7 +39,7 @@ public class TestInvokeJython extends BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setupInvokeScriptProcessor();
     }
@@ -47,10 +47,9 @@ public class TestInvokeJython extends BaseScriptTest {
     /**
      * Tests a script that has a Jython processor that is always invalid.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testAlwaysInvalid() throws Exception {
+    public void testAlwaysInvalid() {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
@@ -64,10 +63,9 @@ public class TestInvokeJython extends BaseScriptTest {
     /**
      * Tests a script that has a Jython processor that begins invalid then is fixed.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testInvalidThenFixed() throws Exception {
+    public void testInvalidThenFixed() {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
@@ -94,10 +92,9 @@ public class TestInvokeJython extends BaseScriptTest {
      * This may seem contrived but it verifies that the Jython processors properties are being considered and are able to be set and validated. It verifies the processor is able to access the property
      * values and flowfile attribute values during onTrigger. Lastly, it verifies the processor is able to route the flowfile to a relationship it specified.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testUpdateAttributeFromProcessorPropertyAndFlowFileAttribute() throws Exception {
+    public void testUpdateAttributeFromProcessorPropertyAndFlowFileAttribute() {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
@@ -124,10 +121,9 @@ public class TestInvokeJython extends BaseScriptTest {
     /**
      * Tests a script that has a Jython Processor that that reads the first line of text from the flowfiles content and stores the value in an attribute of the outgoing flowfile.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
+    public void testReadFlowFileContentAndStoreInFlowFileAttribute() {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
@@ -147,10 +143,9 @@ public class TestInvokeJython extends BaseScriptTest {
     /**
      * Tests compression and decompression using two different InvokeScriptedProcessor processor instances. A string is compressed and decompressed and compared.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testCompressor() throws Exception {
+    public void testCompressor() {
         final TestRunner one = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         one.setValidateExpressionUsage(false);
         one.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
@@ -185,10 +180,9 @@ public class TestInvokeJython extends BaseScriptTest {
     /**
      * Tests a script file that creates and transfers a new flow file.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testInvalidConfiguration() throws Exception {
+    public void testInvalidConfiguration() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION);

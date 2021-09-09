@@ -18,8 +18,8 @@
 package org.apache.nifi.stateless.basics;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.registry.flow.VersionedPort;
-import org.apache.nifi.registry.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
@@ -73,7 +73,6 @@ public class SplittingIT extends StatelessSystemIT {
         final DataflowTrigger trigger = dataflow.trigger();
         final TriggerResult result = trigger.getResult();
         assertTrue(result.isSuccessful());
-        result.acknowledge();
 
         final List<FlowFile> flowFiles = result.getOutputFlowFiles("Out");
         assertEquals(4, flowFiles.size());
@@ -83,8 +82,10 @@ public class SplittingIT extends StatelessSystemIT {
             final String expected = expectedContent[i];
 
             final FlowFile flowFile = flowFiles.get(i);
-            final String outputContent = new String(result.readContent(flowFile));
+            final String outputContent = new String(result.readContentAsByteArray(flowFile));
             assertEquals(expected, outputContent);
         }
+
+        result.acknowledge();
     }
 }
