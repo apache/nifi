@@ -17,12 +17,6 @@
 
 package org.apache.nifi.avro;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileStream;
@@ -31,6 +25,12 @@ import org.apache.avro.generic.GenericData.StringType;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.nifi.serialization.RecordSetWriter;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TestWriteAvroResultWithSchema extends TestWriteAvroResult {
 

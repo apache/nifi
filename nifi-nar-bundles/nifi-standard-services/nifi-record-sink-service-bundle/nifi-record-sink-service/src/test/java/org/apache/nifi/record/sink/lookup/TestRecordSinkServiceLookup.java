@@ -29,8 +29,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,9 +39,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestRecordSinkServiceLookup {
 
@@ -50,7 +51,7 @@ public class TestRecordSinkServiceLookup {
     private MockRecordSinkService sinkA, sinkB;
     private RecordSet recordSet;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         sinkA = new MockRecordSinkService("a");
         sinkB = new MockRecordSinkService("b");
@@ -96,31 +97,26 @@ public class TestRecordSinkServiceLookup {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(RecordSinkServiceLookup.RECORD_SINK_NAME_ATTRIBUTE, "a");
 
-        try {
+        assertDoesNotThrow(() -> {
             final WriteResult writeResult = sinkLookup.sendData(recordSet, attributes, false);
             assertNotNull(writeResult);
             assertEquals(2, writeResult.getRecordCount());
             String returnedName = writeResult.getAttributes().get("my.name");
             assertEquals("a", returnedName);
-        } catch (IOException ioe) {
-            fail("Should have completed successfully");
-        }
+        }, "Should have completed successfully");
     }
 
     @Test
     public void testLookupServiceB() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(RecordSinkServiceLookup.RECORD_SINK_NAME_ATTRIBUTE, "b");
-
-        try {
+        assertDoesNotThrow(() -> {
             final WriteResult writeResult = sinkLookup.sendData(recordSet, attributes, false);
             assertNotNull(writeResult);
             assertEquals(2, writeResult.getRecordCount());
             String returnedName = writeResult.getAttributes().get("my.name");
             assertEquals("b", returnedName);
-        } catch (IOException ioe) {
-            fail("Should have completed successfully");
-        }
+        }, "Should have completed successfully");
     }
 
     @Test
@@ -128,25 +124,21 @@ public class TestRecordSinkServiceLookup {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(RecordSinkServiceLookup.RECORD_SINK_NAME_ATTRIBUTE, "a");
 
-        try {
+        assertDoesNotThrow(() -> {
             final WriteResult writeResult = sinkLookup.sendData(recordSet, attributes, false);
             String returnedName = writeResult.getAttributes().get("my.name");
             assertEquals("a", returnedName);
             assertEquals(1, sinkA.getResetCount());
-        } catch (IOException ioe) {
-            fail("Should have completed successfully");
-        }
+        }, "Should have completed successfully");
 
         attributes.put(RecordSinkServiceLookup.RECORD_SINK_NAME_ATTRIBUTE, "b");
 
-        try {
+        assertDoesNotThrow(() -> {
             final WriteResult writeResult = sinkLookup.sendData(recordSet, attributes, false);
             String returnedName = writeResult.getAttributes().get("my.name");
             assertEquals("b", returnedName);
             assertEquals(1, sinkB.getResetCount());
-        } catch (IOException ioe) {
-            fail("Should have completed successfully");
-        }
+        }, "Should have completed successfully");
         // reset() was called on the retrieved sinks (not the lookup itself) in sendData() when the sink changed
         assertEquals(0, sinkLookup.getResetCount());
         sinkLookup.reset();
@@ -158,7 +150,7 @@ public class TestRecordSinkServiceLookup {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(RecordSinkServiceLookup.RECORD_SINK_NAME_ATTRIBUTE, "a");
 
-        try {
+        assertDoesNotThrow(() -> {
             WriteResult writeResult = sinkLookup.sendData(recordSet, attributes, false);
             String returnedName = writeResult.getAttributes().get("my.name");
             assertEquals("a", returnedName);
@@ -167,10 +159,7 @@ public class TestRecordSinkServiceLookup {
             returnedName = writeResult.getAttributes().get("my.name");
             assertEquals("a", returnedName);
             assertEquals(1, sinkA.getResetCount());
-
-        } catch (IOException ioe) {
-            fail("Should have completed successfully");
-        }
+        }, "Should have completed successfully");
 
         // reset() was called on the retrieved sinks (not the lookup itself) in sendData() when the sink changed
         assertEquals(0, sinkLookup.getResetCount());
@@ -178,21 +167,21 @@ public class TestRecordSinkServiceLookup {
         assertEquals(1, sinkLookup.getResetCount());
     }
 
-    @Test(expected = IOException.class)
-    public void testLookupWithoutAttributes() throws IOException {
-        sinkLookup.sendData(recordSet, Collections.emptyMap(), false);
+    @Test
+    public void testLookupWithoutAttributes() {
+        assertThrows(IOException.class, () -> sinkLookup.sendData(recordSet, Collections.emptyMap(), false));
     }
 
-    @Test(expected = IOException.class)
-    public void testLookupMissingRecordSinkNameAttribute() throws IOException {
-        sinkLookup.sendData(recordSet, Collections.emptyMap(), false);
+    @Test
+    public void testLookupMissingRecordSinkNameAttribute() {
+        assertThrows(IOException.class, () -> sinkLookup.sendData(recordSet, Collections.emptyMap(), false));
     }
 
-    @Test(expected = IOException.class)
-    public void testLookupWithDatabaseNameThatDoesNotExist() throws IOException {
+    @Test
+    public void testLookupWithDatabaseNameThatDoesNotExist() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(RecordSinkServiceLookup.RECORD_SINK_NAME_ATTRIBUTE, "DOES-NOT-EXIST");
-        sinkLookup.sendData(recordSet, attributes, false);
+        assertThrows(IOException.class, () -> sinkLookup.sendData(recordSet, attributes, false));
     }
 
     public static class MockRecordSinkServiceLookup extends RecordSinkServiceLookup {

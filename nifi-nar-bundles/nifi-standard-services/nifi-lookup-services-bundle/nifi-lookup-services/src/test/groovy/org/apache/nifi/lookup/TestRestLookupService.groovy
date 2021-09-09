@@ -31,12 +31,13 @@ import org.apache.nifi.serialization.record.RecordFieldType
 import org.apache.nifi.serialization.record.RecordSchema
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 
 import static groovy.json.JsonOutput.toJson
-import static org.junit.Assert.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class TestRestLookupService {
     TestRunner runner
@@ -76,17 +77,17 @@ class TestRestLookupService {
 
         lookupService.response = buildResponse(toJson([ simpleTest: true]), JSON_TYPE)
         def result = lookupService.lookup(getCoordinates(JSON_TYPE, "get"), ['test.ff.attribute' : 'Hello'])
-        Assert.assertTrue(result.isPresent())
+        assertTrue(result.isPresent())
         def headers = lookupService.getHeaders()
         assertNotNull(headers)
         def headerValue = headers.get('test')
         assertNotNull(headerValue)
-        Assert.assertEquals(1, headerValue.size())
-        Assert.assertEquals('Hello', headerValue.get(0))
+        assertEquals(1, headerValue.size())
+        assertEquals('Hello', headerValue.get(0))
         def record = result.get()
-        Assert.assertEquals("John Doe", record.getAsString("name"))
-        Assert.assertEquals(48, record.getAsInt("age"))
-        Assert.assertEquals("Soccer", record.getAsString("sport"))
+        assertEquals("John Doe", record.getAsString("name"))
+        assertEquals(48, record.getAsInt("age"))
+        assertEquals("Soccer", record.getAsString("sport"))
     }
 
     @Test
@@ -114,12 +115,12 @@ class TestRestLookupService {
 
         lookupService.response = buildResponse(toJson([ simpleTest: true]), JSON_TYPE)
         def result = lookupService.lookup(getCoordinates(JSON_TYPE, "get"))
-        Assert.assertTrue(result.isPresent())
+        assertTrue(result.isPresent())
         def record = result.get()
 
-        Assert.assertEquals("John Doe", record.getAsString("name"))
-        Assert.assertEquals(48, record.getAsInt("age"))
-        Assert.assertEquals("Soccer", record.getAsString("sport"))
+        assertEquals("John Doe", record.getAsString("name"))
+        assertEquals(48, record.getAsInt("age"))
+        assertEquals("Soccer", record.getAsString("sport"))
 
         /*
          * Test deep lookup
@@ -131,10 +132,10 @@ class TestRestLookupService {
         runner.assertValid()
 
         result = lookupService.lookup(getCoordinates(JSON_TYPE, "get"))
-        Assert.assertTrue(result.isPresent())
+        assertTrue(result.isPresent())
         record = result.get()
         assertNotNull(record.getAsString("sport"))
-        Assert.assertEquals("Soccer", record.getAsString("sport"))
+        assertEquals("Soccer", record.getAsString("sport"))
     }
 
     private static Map<String, Object> getCoordinates(String mimeType, String method) {

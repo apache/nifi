@@ -38,7 +38,6 @@ import java.util.Optional;
 import java.util.Set;
 
 public class TestRecordLookupProcessor extends AbstractProcessor {
-
     static final PropertyDescriptor HBASE_LOOKUP_SERVICE = new PropertyDescriptor.Builder()
             .name("HBase Lookup Service")
             .description("HBaseLookupService")
@@ -110,9 +109,4 @@ public class TestRecordLookupProcessor extends AbstractProcessor {
     public List<Record> getLookedupRecords() {
         return new ArrayList<>(lookedupRecords);
     }
-
-    public void clearLookedupRecords() {
-        this.lookedupRecords.clear();
-    }
-
 }

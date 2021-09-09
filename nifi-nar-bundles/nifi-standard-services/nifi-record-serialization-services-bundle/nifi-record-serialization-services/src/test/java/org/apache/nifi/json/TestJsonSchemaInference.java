@@ -21,7 +21,7 @@ import org.apache.nifi.schema.inference.InferSchemaAccessStrategy;
 import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.BufferedInputStream;
@@ -32,8 +32,8 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 public class TestJsonSchemaInference {
 

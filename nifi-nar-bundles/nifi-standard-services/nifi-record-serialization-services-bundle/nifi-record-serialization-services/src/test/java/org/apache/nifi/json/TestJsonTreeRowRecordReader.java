@@ -34,9 +34,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.util.EqualsWrapper;
 import org.apache.nifi.util.MockComponentLog;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -56,10 +55,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class TestJsonTreeRowRecordReader {
@@ -127,7 +128,7 @@ public class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    @Ignore("Intended only for manual testing to determine performance before/after modifications")
+    @Disabled("Intended only for manual testing to determine performance before/after modifications")
     public void testPerformanceOnLocalFile() throws IOException, MalformedRecordException {
         final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList());
 
@@ -156,7 +157,7 @@ public class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    @Ignore("Intended only for manual testing to determine performance before/after modifications")
+    @Disabled("Intended only for manual testing to determine performance before/after modifications")
     public void testPerformanceOnIndividualMessages() throws IOException, MalformedRecordException {
         final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList());
 
@@ -257,10 +258,10 @@ public class TestJsonTreeRowRecordReader {
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+            assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
 
             final Object[] secondRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
+            assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
 
             assertNull(reader.nextRecord());
         }
@@ -283,10 +284,10 @@ public class TestJsonTreeRowRecordReader {
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+            assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
 
             final Object[] secondRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
+            assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
 
             assertNull(reader.nextRecord());
         }
@@ -310,10 +311,10 @@ public class TestJsonTreeRowRecordReader {
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", BigDecimal.valueOf(4750.89), "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+            assertArrayEquals(new Object[] {1, "John Doe", BigDecimal.valueOf(4750.89), "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
 
             final Object[] secondRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", BigDecimal.valueOf(4820.09), "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
+            assertArrayEquals(new Object[] {2, "Jane Doe", BigDecimal.valueOf(4820.09), "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
 
             assertNull(reader.nextRecord());
         }
@@ -336,16 +337,16 @@ public class TestJsonTreeRowRecordReader {
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+            assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
 
             final Object[] secondRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
+            assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
 
             final Object[] thirdRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {3, "Maria Doe", 4750.89, "123 My Street", "My City", "ME", "11111", "USA"}, thirdRecordValues);
+            assertArrayEquals(new Object[] {3, "Maria Doe", 4750.89, "123 My Street", "My City", "ME", "11111", "USA"}, thirdRecordValues);
 
             final Object[] fourthRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {4, "Xi Doe", 4820.09, "321 Your Street", "Your City", "NV", "33333", "USA"}, fourthRecordValues);
+            assertArrayEquals(new Object[] {4, "Xi Doe", 4820.09, "321 Your Street", "Your City", "NV", "33333", "USA"}, fourthRecordValues);
 
             assertNull(reader.nextRecord());
         }
@@ -368,16 +369,16 @@ public class TestJsonTreeRowRecordReader {
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+            assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
 
             final Object[] secondRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
+            assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
 
             final Object[] thirdRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {3, "Maria Doe", 4750.89, "123 My Street", "My City", "ME", "11111", "USA"}, thirdRecordValues);
+            assertArrayEquals(new Object[] {3, "Maria Doe", 4750.89, "123 My Street", "My City", "ME", "11111", "USA"}, thirdRecordValues);
 
             final Object[] fourthRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {4, "Xi Doe", 4820.09, "321 Your Street", "Your City", "NV", "33333", "USA"}, fourthRecordValues);
+            assertArrayEquals(new Object[] {4, "Xi Doe", 4820.09, "321 Your Street", "Your City", "NV", "33333", "USA"}, fourthRecordValues);
 
 
             assertNull(reader.nextRecord());
@@ -466,7 +467,7 @@ public class TestJsonTreeRowRecordReader {
 
                 final Record record = reader.nextRecord(coerceTypes, false);
                 final Object value = record.getValue(dateField);
-                assertTrue("With coerceTypes set to " + coerceTypes + ", value is not a Date", value instanceof java.sql.Date);
+                assertTrue(value instanceof java.sql.Date, "With coerceTypes set to " + coerceTypes + ", value is not a Date");
                 assertEquals(date, value.toString());
             }
         }
@@ -483,7 +484,7 @@ public class TestJsonTreeRowRecordReader {
 
                 final Record record = reader.nextRecord(coerceTypes, false);
                 final Object value = record.getValue("timestamp");
-                assertTrue("With coerceTypes set to " + coerceTypes + ", value is not a Timestamp", value instanceof java.sql.Timestamp);
+                assertTrue(value instanceof java.sql.Timestamp, "With coerceTypes set to " + coerceTypes + ", value is not a Timestamp");
             }
         }
     }
@@ -505,7 +506,7 @@ public class TestJsonTreeRowRecordReader {
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+            assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
 
             assertNull(reader.nextRecord());
         }
@@ -535,7 +536,7 @@ public class TestJsonTreeRowRecordReader {
             }
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+            assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
 
             assertNull(reader.nextRecord());
         }
@@ -559,7 +560,7 @@ public class TestJsonTreeRowRecordReader {
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
             final Object[] allButLast = Arrays.copyOfRange(firstRecordValues, 0, firstRecordValues.length - 1);
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", "123 My Street", "My City", "MS", "11111", "USA"}, allButLast);
+            assertArrayEquals(new Object[] {1, "John Doe", "123 My Street", "My City", "MS", "11111", "USA"}, allButLast);
 
             final Object last = firstRecordValues[firstRecordValues.length - 1];
             assertTrue(Record.class.isAssignableFrom(last.getClass()));
@@ -596,7 +597,7 @@ public class TestJsonTreeRowRecordReader {
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
             final Object[] nonArrayValues = Arrays.copyOfRange(firstRecordValues, 0, firstRecordValues.length - 1);
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", "123 My Street", "My City", "MS", "11111", "USA"}, nonArrayValues);
+            assertArrayEquals(new Object[] {1, "John Doe", "123 My Street", "My City", "MS", "11111", "USA"}, nonArrayValues);
 
             final Object lastRecord = firstRecordValues[firstRecordValues.length - 1];
             assertTrue(Object[].class.isAssignableFrom(lastRecord.getClass()));
@@ -622,13 +623,13 @@ public class TestJsonTreeRowRecordReader {
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+            assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
 
             final Object[] secondRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", null}, secondRecordValues);
+            assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", null}, secondRecordValues);
 
             final Object[] thirdRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {3, "Jake Doe", 4751.89, "124 My Street", "My City", "MS", "11111", "USA"}, thirdRecordValues);
+            assertArrayEquals(new Object[] {3, "Jake Doe", 4751.89, "124 My Street", "My City", "MS", "11111", "USA"}, thirdRecordValues);
 
             assertNull(reader.nextRecord());
         }
@@ -656,13 +657,13 @@ public class TestJsonTreeRowRecordReader {
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA", null}, firstRecordValues);
+            assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA", null}, firstRecordValues);
 
             final Object[] secondRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", null, null}, secondRecordValues);
+            assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", null, null}, secondRecordValues);
 
             final Object[] thirdRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {3, "Jake Doe", 4751.89, "124 My Street", "My City", "MS", "11111", "USA", "Apt. #12"}, thirdRecordValues);
+            assertArrayEquals(new Object[] {3, "Jake Doe", 4751.89, "124 My Street", "My City", "MS", "11111", "USA", "Apt. #12"}, thirdRecordValues);
 
             assertNull(reader.nextRecord());
         }
@@ -685,13 +686,13 @@ public class TestJsonTreeRowRecordReader {
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+            assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
 
             final Object[] secondRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", null, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
+            assertArrayEquals(new Object[] {2, "Jane Doe", null, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
 
             final Object[] thirdRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {3, "Jimmy Doe", null, "321 Your Street", "Your City", "NY", "33333", "USA"}, thirdRecordValues);
+            assertArrayEquals(new Object[] {3, "Jimmy Doe", null, "321 Your Street", "Your City", "NY", "33333", "USA"}, thirdRecordValues);
 
             assertNull(reader.nextRecord());
         }
@@ -731,7 +732,7 @@ public class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    public void testIncorrectSchema() throws IOException, MalformedRecordException {
+    public void testIncorrectSchema() {
         final DataType accountType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
         final List<RecordField> fields = getDefaultFields();
         fields.add(new RecordField("account", accountType));
@@ -739,19 +740,19 @@ public class TestJsonTreeRowRecordReader {
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-bank-account-wrong-field-type.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+        MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> {
+            try (final InputStream in = new FileInputStream("src/test/resources/json/single-bank-account-wrong-field-type.json");
+                 final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
-            reader.nextRecord().getValues();
-            Assert.fail("Was able to read record with invalid schema.");
+                reader.nextRecord().getValues();
+            }
+        });
 
-        } catch (final MalformedRecordException mre) {
-            final String msg = mre.getCause().getMessage();
-            assertTrue(msg.contains("account.balance"));
-            assertTrue(msg.contains("true"));
-            assertTrue(msg.contains("Double"));
-            assertTrue(msg.contains("Boolean"));
-        }
+        final String msg = mre.getCause().getMessage();
+        assertTrue(msg.contains("account.balance"));
+        assertTrue(msg.contains("true"));
+        assertTrue(msg.contains("Double"));
+        assertTrue(msg.contains("Boolean"));
     }
 
     @Test
