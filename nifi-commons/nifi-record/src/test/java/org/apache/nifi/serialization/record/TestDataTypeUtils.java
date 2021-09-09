@@ -997,31 +997,6 @@ public class TestDataTypeUtils {
         assertToLocalDateEquals(ISO_8601_YEAR_MONTH_DAY, epochMillis);
     }
 
-    @Test
-    public void testToTimestampFromOracleTimestamp() {
-        String[] orcTimestamps = new String[]{
-                "2021-08-19 10:58:50",
-                "2021-08-19 10:58:50.1",
-                "2021-08-19 10:58:50.01",
-                "2021-08-19 10:58:50.001",
-                "2021-08-19 10:58:50.0001",
-                "2021-08-19 10:58:50.00001",
-                "2021-08-19 10:58:50.000001",
-                "2021-08-19 10:58:50.0000001",
-                "2021-08-19 10:58:50.00000001",
-                "2021-08-19 10:58:50.000000001",
-        };
-        boolean exception = false;
-        for (String orcTimestamp : orcTimestamps) {
-            try {
-                DataTypeUtils.toTimestampForOracle(orcTimestamp, "");
-            } catch (Exception e) {
-                exception = true;
-            }
-        }
-        assertFalse(exception);
-    }
-
     private long toEpochMilliSystemDefaultZone(final LocalDate localDate) {
         final LocalTime localTime = LocalTime.of(0, 0);
         final Instant instantSystemDefaultZone = ZonedDateTime.of(localDate, localTime, SYSTEM_DEFAULT_ZONE_ID).toInstant();
