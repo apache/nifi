@@ -99,6 +99,81 @@
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
+            <artifactId>hive-exec</artifactId>
+            <version>${hive.version}</version>
+            <classifier>core</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- hive-exec:core doesn't contain these dependencies (as opposed to regular hive-exec) so these need to be pulled in -->
+        <dependency>
+            <groupId>com.esotericsoftware</groupId>
+            <artifactId>kryo-shaded</artifactId>
+            <version>3.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro-mapred</artifactId>
+            <classifier>hadoop2</classifier>
+            <version>1.8.1</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>servlet-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.googlecode.javaewah</groupId>
+            <artifactId>JavaEWAH</artifactId>
+            <version>0.3.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-spark-client</artifactId>
+            <version>${hive.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.orc</groupId>
+            <artifactId>orc-tools</artifactId>
+            <version>1.5.6</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.jodd</groupId>
+            <artifactId>jodd-core</artifactId>
+            <version>3.5.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-storage-api</artifactId>
+            <version>2.7.0</version>
+        </dependency>
+        <!-- /hive-exec:core doesn't contain these dependencies (as opposed to regular hive-exec) so these need to be pulled in -->
+
+        <dependency>
+            <groupId>org.apache.hive</groupId>
             <artifactId>hive-streaming</artifactId>
             <version>${hive.version}</version>
             <exclusions>
@@ -110,6 +185,10 @@
                     <groupId>log4j</groupId>
                     <artifactId>log4j</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-exec</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -120,6 +199,10 @@
                 <exclusion>
                     <groupId>log4j</groupId>
                     <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-exec</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
