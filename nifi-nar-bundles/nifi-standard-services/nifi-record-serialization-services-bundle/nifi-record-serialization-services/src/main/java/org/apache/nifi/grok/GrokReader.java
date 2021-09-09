@@ -55,6 +55,7 @@ import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -191,7 +192,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     }
 
     static RecordSchema createRecordSchema(final Grok grok) {
-        final List<RecordField> fields = new ArrayList<>();
+        final Set<RecordField> fields = new LinkedHashSet<>();
 
         String grokExpression = grok.getOriginalGrokPattern();
         populateSchemaFieldNames(grok, grokExpression, fields);
@@ -199,11 +200,12 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         fields.add(new RecordField(GrokRecordReader.STACK_TRACE_COLUMN_NAME, RecordFieldType.STRING.getDataType(), true));
         fields.add(new RecordField(GrokRecordReader.RAW_MESSAGE_NAME, RecordFieldType.STRING.getDataType(), true));
 
-        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final RecordSchema schema = new SimpleRecordSchema(new ArrayList<>(fields));
+
         return schema;
     }
 
-    private static void populateSchemaFieldNames(final Grok grok, String grokExpression, final List<RecordField> fields) {
+    private static void populateSchemaFieldNames(final Grok grok, String grokExpression, final Collection<RecordField> fields) {
         final Set<String> namedGroups = GrokUtils.getNameGroups(GrokUtils.GROK_PATTERN.pattern());
         while (grokExpression.length() > 0) {
             final Matcher matcher = GrokUtils.GROK_PATTERN.matcher(grokExpression);

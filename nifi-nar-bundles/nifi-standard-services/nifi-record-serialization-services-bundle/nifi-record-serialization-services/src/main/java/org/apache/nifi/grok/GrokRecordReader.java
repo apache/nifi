@@ -24,8 +24,10 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -142,12 +144,19 @@ public class GrokRecordReader implements RecordReader {
                 final Object normalizedValue;
                 if (rawValue instanceof List) {
                     final List<?> list = (List<?>) rawValue;
-                    final String[] array = new String[list.size()];
-                    for (int i = 0; i < list.size(); i++) {
-                        final Object rawObject = list.get(i);
-                        array[i] = rawObject == null ? null : rawObject.toString();
+                    List<?> nonNullElements = list.stream().filter(Objects::nonNull).collect(Collectors.toList());
+                    if (nonNullElements.size() == 0) {
+                        normalizedValue = null;
+                    } else if (nonNullElements.size() == 1) {
+                        normalizedValue = nonNullElements.get(0).toString();
+                    } else {
+                        final String[] array = new String[list.size()];
+                        for (int i = 0; i < list.size(); i++) {
+                            final Object rawObject = list.get(i);
+                            array[i] = rawObject == null ? null : rawObject.toString();
+                        }
+                        normalizedValue = array;
                     }
-                    normalizedValue = array;
                 } else {
                     normalizedValue = rawValue == null ? null : rawValue.toString();
                 }
