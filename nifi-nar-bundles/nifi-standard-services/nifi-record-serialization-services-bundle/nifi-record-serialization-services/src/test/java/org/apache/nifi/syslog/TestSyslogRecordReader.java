@@ -22,8 +22,7 @@ import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.syslog.parsers.SyslogParser;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -32,8 +31,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestSyslogRecordReader {
     private static final Charset CHARSET = Charset.forName("UTF-8");
@@ -79,13 +79,13 @@ public class TestSyslogRecordReader {
             final Record record = deserializer.nextRecord();
             assertNotNull(record.getValues());
 
-            Assert.assertEquals(BODY, record.getAsString(SyslogAttributes.BODY.key()));
-            Assert.assertEquals(HOST, record.getAsString(SyslogAttributes.HOSTNAME.key()));
-            Assert.assertEquals(PRI, record.getAsString(SyslogAttributes.PRIORITY.key()));
-            Assert.assertEquals(SEV, record.getAsString(SyslogAttributes.SEVERITY.key()));
-            Assert.assertEquals(FAC, record.getAsString(SyslogAttributes.FACILITY.key()));
-            Assert.assertEquals(TIME, record.getAsString(SyslogAttributes.TIMESTAMP.key()));
-            Assert.assertNull(record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
+            assertEquals(BODY, record.getAsString(SyslogAttributes.BODY.key()));
+            assertEquals(HOST, record.getAsString(SyslogAttributes.HOSTNAME.key()));
+            assertEquals(PRI, record.getAsString(SyslogAttributes.PRIORITY.key()));
+            assertEquals(SEV, record.getAsString(SyslogAttributes.SEVERITY.key()));
+            assertEquals(FAC, record.getAsString(SyslogAttributes.FACILITY.key()));
+            assertEquals(TIME, record.getAsString(SyslogAttributes.TIMESTAMP.key()));
+            assertNull(record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
             assertNull(deserializer.nextRecord());
             deserializer.close();
         }
@@ -100,12 +100,12 @@ public class TestSyslogRecordReader {
             final Record record = deserializer.nextRecord();
             assertNotNull(record.getValues());
 
-            Assert.assertEquals(BODY, record.getAsString(SyslogAttributes.BODY.key()));
-            Assert.assertEquals(IPV6SRC, record.getAsString(SyslogAttributes.HOSTNAME.key()));
-            Assert.assertEquals(PRI, record.getAsString(SyslogAttributes.PRIORITY.key()));
-            Assert.assertEquals(SEV, record.getAsString(SyslogAttributes.SEVERITY.key()));
-            Assert.assertEquals(FAC, record.getAsString(SyslogAttributes.FACILITY.key()));
-            Assert.assertEquals(TIME, record.getAsString(SyslogAttributes.TIMESTAMP.key()));
+            assertEquals(BODY, record.getAsString(SyslogAttributes.BODY.key()));
+            assertEquals(IPV6SRC, record.getAsString(SyslogAttributes.HOSTNAME.key()));
+            assertEquals(PRI, record.getAsString(SyslogAttributes.PRIORITY.key()));
+            assertEquals(SEV, record.getAsString(SyslogAttributes.SEVERITY.key()));
+            assertEquals(FAC, record.getAsString(SyslogAttributes.FACILITY.key()));
+            assertEquals(TIME, record.getAsString(SyslogAttributes.TIMESTAMP.key()));
             assertNull(deserializer.nextRecord());
             deserializer.close();
         }
@@ -120,12 +120,12 @@ public class TestSyslogRecordReader {
             final Record record = deserializer.nextRecord();
             assertNotNull(record.getValues());
 
-            Assert.assertEquals(BODY, record.getAsString(SyslogAttributes.BODY.key()));
-            Assert.assertEquals(IPV4SRC, record.getAsString(SyslogAttributes.HOSTNAME.key()));
-            Assert.assertEquals(PRI, record.getAsString(SyslogAttributes.PRIORITY.key()));
-            Assert.assertEquals(SEV, record.getAsString(SyslogAttributes.SEVERITY.key()));
-            Assert.assertEquals(FAC, record.getAsString(SyslogAttributes.FACILITY.key()));
-            Assert.assertEquals(TIME, record.getAsString(SyslogAttributes.TIMESTAMP.key()));
+            assertEquals(BODY, record.getAsString(SyslogAttributes.BODY.key()));
+            assertEquals(IPV4SRC, record.getAsString(SyslogAttributes.HOSTNAME.key()));
+            assertEquals(PRI, record.getAsString(SyslogAttributes.PRIORITY.key()));
+            assertEquals(SEV, record.getAsString(SyslogAttributes.SEVERITY.key()));
+            assertEquals(FAC, record.getAsString(SyslogAttributes.FACILITY.key()));
+            assertEquals(TIME, record.getAsString(SyslogAttributes.TIMESTAMP.key()));
             assertNull(deserializer.nextRecord());
             deserializer.close();
         }
@@ -144,7 +144,7 @@ public class TestSyslogRecordReader {
                 count++;
                 record = deserializer.nextRecord();
             }
-            Assert.assertEquals(count, 3);
+            assertEquals(count, 3);
             deserializer.close();
         }
     }
@@ -167,8 +167,8 @@ public class TestSyslogRecordReader {
                     exceptionCount++;
                 }
             }
-            Assert.assertEquals(count, 3);
-            Assert.assertEquals(exceptionCount,1);
+            assertEquals(count, 3);
+            assertEquals(exceptionCount,1);
             deserializer.close();
         }
     }
@@ -182,14 +182,14 @@ public class TestSyslogRecordReader {
             final Record record = deserializer.nextRecord();
             assertNotNull(record.getValues());
 
-            Assert.assertEquals(expectedVersion, record.getAsString(SyslogAttributes.VERSION.key()));
-            Assert.assertEquals(expectedMessage, record.getAsString(SyslogAttributes.BODY.key()));
-            Assert.assertEquals(expectedHostName, record.getAsString(SyslogAttributes.HOSTNAME.key()));
-            Assert.assertEquals(expectedPri, record.getAsString(SyslogAttributes.PRIORITY.key()));
-            Assert.assertEquals(expectedSeverity, record.getAsString(SyslogAttributes.SEVERITY.key()));
-            Assert.assertEquals(expectedFacility, record.getAsString(SyslogAttributes.FACILITY.key()));
-            Assert.assertEquals(expectedTimestamp, record.getAsString(SyslogAttributes.TIMESTAMP.key()));
-            Assert.assertEquals(expectedRawMessage, record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
+            assertEquals(expectedVersion, record.getAsString(SyslogAttributes.VERSION.key()));
+            assertEquals(expectedMessage, record.getAsString(SyslogAttributes.BODY.key()));
+            assertEquals(expectedHostName, record.getAsString(SyslogAttributes.HOSTNAME.key()));
+            assertEquals(expectedPri, record.getAsString(SyslogAttributes.PRIORITY.key()));
+            assertEquals(expectedSeverity, record.getAsString(SyslogAttributes.SEVERITY.key()));
+            assertEquals(expectedFacility, record.getAsString(SyslogAttributes.FACILITY.key()));
+            assertEquals(expectedTimestamp, record.getAsString(SyslogAttributes.TIMESTAMP.key()));
+            assertEquals(expectedRawMessage, record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
 
             assertNull(deserializer.nextRecord());
             deserializer.close();

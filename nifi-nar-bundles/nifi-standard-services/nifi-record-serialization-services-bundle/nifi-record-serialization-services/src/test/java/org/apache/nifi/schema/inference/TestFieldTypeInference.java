@@ -21,8 +21,8 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -30,12 +30,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestFieldTypeInference {
     private FieldTypeInference testSubject;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         testSubject = new FieldTypeInference();
     }

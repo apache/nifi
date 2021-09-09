@@ -23,9 +23,9 @@ import io.krakens.grok.api.exception.GrokException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -35,15 +35,15 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestGrokRecordReader {
     private static GrokCompiler grokCompiler;
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() throws Exception {
         try (final InputStream fis = new FileInputStream(new File("src/main/resources/default-grok-patterns.txt"))) {
             grokCompiler = GrokCompiler.newInstance();
@@ -51,7 +51,7 @@ public class TestGrokRecordReader {
         }
     }
 
-    @AfterClass
+    @AfterAll
     public static void afterClass() throws Exception {
         grokCompiler = null;
     }

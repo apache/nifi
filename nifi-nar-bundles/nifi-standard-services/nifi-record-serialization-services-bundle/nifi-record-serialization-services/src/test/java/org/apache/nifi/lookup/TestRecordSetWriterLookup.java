@@ -32,16 +32,17 @@ import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestRecordSetWriterLookup {
     private final String DEFAULT_ATTRIBUTE_NAME = "recordsetwriter.name";
@@ -52,7 +53,7 @@ public class TestRecordSetWriterLookup {
     private RecordSetWriterLookup recordSetWriterLookup;
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         recordSetWriterA = new MockRecordSetWriterFactory("A");
         recordSetWriterB = new MockRecordSetWriterFactory("B");
@@ -99,30 +100,30 @@ public class TestRecordSetWriterLookup {
         assertEquals(recordSetWriterB.name, writer.name);
     }
 
-    @Test(expected = ProcessException.class)
-    public void testLookupMissingNameAttribute() throws SchemaNotFoundException, IOException {
+    @Test
+    public void testLookupMissingNameAttribute() {
         final Map<String,String> attributes = new HashMap<>();
-        recordSetWriterLookup.createWriter(null, null, null, attributes);
+        assertThrows(ProcessException.class, () -> recordSetWriterLookup.createWriter(null, null, null, attributes));
     }
 
-    @Test(expected = ProcessException.class)
-    public void testLookupSchemaMissingNameAttribute() throws SchemaNotFoundException, IOException {
+    @Test
+    public void testLookupSchemaMissingNameAttribute() {
         final Map<String,String> attributes = new HashMap<>();
-        recordSetWriterLookup.getSchema(attributes, null);
+        assertThrows(ProcessException.class, () -> recordSetWriterLookup.getSchema(attributes, null));
     }
 
-    @Test(expected = ProcessException.class)
-    public void testLookupWithNameThatDoesNotExist() throws SchemaNotFoundException, IOException {
+    @Test
+    public void testLookupWithNameThatDoesNotExist() {
         final Map<String,String> attributes = new HashMap<>();
         attributes.put(DEFAULT_ATTRIBUTE_NAME, "DOES-NOT-EXIST");
-        recordSetWriterLookup.createWriter(null, null, null, attributes);
+        assertThrows(ProcessException.class, () -> recordSetWriterLookup.createWriter(null, null, null, attributes));
     }
 
-    @Test(expected = ProcessException.class)
-    public void testLookupSchemaWithNameThatDoesNotExist() throws SchemaNotFoundException, IOException {
+    @Test
+    public void testLookupSchemaWithNameThatDoesNotExist() {
         final Map<String,String> attributes = new HashMap<>();
         attributes.put(DEFAULT_ATTRIBUTE_NAME, "DOES-NOT-EXIST");
-        recordSetWriterLookup.getSchema(attributes, null);
+        assertThrows(ProcessException.class, () -> recordSetWriterLookup.getSchema(attributes, null));
     }
 
     @Test

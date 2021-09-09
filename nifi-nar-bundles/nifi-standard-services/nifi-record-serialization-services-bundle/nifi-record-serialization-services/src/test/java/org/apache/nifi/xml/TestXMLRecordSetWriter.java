@@ -29,8 +29,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.xmlunit.diff.DefaultNodeMatcher;
 import org.xmlunit.diff.ElementSelectors;
 import org.xmlunit.matchers.CompareMatcher;
@@ -41,7 +40,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestXMLRecordSetWriter {
 
@@ -218,16 +219,13 @@ public class TestXMLRecordSetWriter {
         runner.enableControllerService(writer);
         runner.enqueue("");
 
-        String message = "Processor has 1 validation failures:\n" +
-                "'xml_writer' validated against 'xml_writer' is invalid because Controller Service is not valid: " +
-                "'array_tag_name' is invalid because if property 'array_wrapping' is defined as 'Use Property as Wrapper' " +
-                "or 'Use Property for Elements' the property 'Array Tag Name' has to be set.\n";
-
-        try {
-            runner.run();
-        } catch (AssertionError e) {
-            Assert.assertEquals(message, e.getMessage());
-        }
+        // +
+        runner.disableControllerService(writer);
+        runner.removeProperty(writer, XMLRecordSetWriter.ARRAY_TAG_NAME);
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> runner.enableControllerService(writer));
+        assertTrue(e.getMessage().contains("array_tag_name")
+            && e.getMessage().contains("array_wrapping")
+            && e.getMessage().endsWith("has to be set."));
     }
 
     static class _XMLRecordSetWriter extends XMLRecordSetWriter{

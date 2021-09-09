@@ -16,17 +16,18 @@
  */
 package org.apache.nifi.lookup;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Collections;
-import java.util.Optional;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.Optional;
+
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestXMLFileLookupService {
 
@@ -47,7 +48,7 @@ public class TestXMLFileLookupService {
                 .getControllerServiceLookup()
                 .getControllerService("xml-file-lookup-service");
 
-        assertThat(lookupService, instanceOf(LookupService.class));
+        MatcherAssert.assertThat(lookupService, instanceOf(LookupService.class));
 
         final Optional<String> property1 = lookupService.lookup(Collections.singletonMap("key", "properties.property(0)"));
         assertEquals(Optional.of("this is property 1"), property1);

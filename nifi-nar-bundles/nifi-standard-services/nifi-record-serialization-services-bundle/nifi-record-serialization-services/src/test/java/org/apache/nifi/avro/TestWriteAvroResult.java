@@ -33,8 +33,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -59,9 +58,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class TestWriteAvroResult {
 
@@ -86,11 +86,7 @@ public abstract class TestWriteAvroResult {
             final GenericRecord avroRecord = reader.nextAvroRecord();
             final Map<String, Object> recordMap = AvroTypeUtil.convertAvroRecordToMap(avroRecord, recordSchema);
             final Record record = new MapRecord(recordSchema, recordMap);
-            try {
-                writer.write(record);
-            } catch (StackOverflowError soe) {
-                Assert.fail("Recursive schema resulted in infinite loop during write");
-            }
+            assertDoesNotThrow(() -> writer.write(record));
         }
     }
 
@@ -202,7 +198,7 @@ public abstract class TestWriteAvroResult {
             for (final Object[] decimal : decimals) {
                 final Schema decimalSchema = schema.getField("decimal" + decimal[0]).schema();
                 final LogicalType logicalType = decimalSchema.getLogicalType();
-                Assert.assertEquals(decimal[3], new Conversions.DecimalConversion().fromBytes((ByteBuffer) avroRecord.get("decimal" + decimal[0]), decimalSchema, logicalType));
+                assertEquals(decimal[3], new Conversions.DecimalConversion().fromBytes((ByteBuffer) avroRecord.get("decimal" + decimal[0]), decimalSchema, logicalType));
             }
         }
     }
@@ -334,42 +330,49 @@ public abstract class TestWriteAvroResult {
             final Object recordValue = record.getValue(fieldName);
 
             if (recordValue instanceof String) {
-                assertNotNull(fieldName + " should not have been null", avroValue);
+                assertNotNull(avroValue, fieldName + " should not have been null");
                 avroValue = avroValue.toString();
             }
 
             if (recordValue instanceof Object[] && avroValue instanceof ByteBuffer) {
                 final ByteBuffer bb = (ByteBuffer) avroValue;
                 final Object[] objectArray = (Object[]) recordValue;
-                assertEquals("For field " + fieldName + ", byte buffer remaining should have been " + objectArray.length + " but was " + bb.remaining(),
-                    objectArray.length, bb.remaining());
+                assertEquals(objectArray.length, bb.remaining(),
+                        "For field " + fieldName + ", byte buffer remaining should have been " + objectArray.length + " but was " + bb.remaining());
 
                 for (int i = 0; i < objectArray.length; i++) {
                     assertEquals(objectArray[i], bb.get());
                 }
             } else if (recordValue instanceof Object[]) {
-                assertTrue(fieldName + " should have been instanceof Array", avroValue instanceof Array);
+                assertTrue(avroValue instanceof Array,
+                        fieldName + " should have been instanceof Array");
                 final Array<?> avroArray = (Array<?>) avroValue;
                 final Object[] recordArray = (Object[]) recordValue;
-                assertEquals(fieldName + " not equal", recordArray.length, avroArray.size());
+                assertEquals(recordArray.length, avroArray.size(),
+                        fieldName + " not equal");
                 for (int i = 0; i < recordArray.length; i++) {
-                    assertEquals(fieldName + "[" + i + "] not equal", recordArray[i], avroArray.get(i));
+                    assertEquals(recordArray[i], avroArray.get(i),
+                            fieldName + "[" + i + "] not equal");
                 }
             } else if (recordValue instanceof byte[]) {
                 final ByteBuffer bb = ByteBuffer.wrap((byte[]) recordValue);
-                assertEquals(fieldName + " not equal", bb, avroValue);
+                assertEquals(bb, avroValue,
+                        fieldName + " not equal");
             } else if (recordValue instanceof Map) {
-               assertTrue(fieldName + " should have been instanceof Map", avroValue instanceof Map);
+               assertTrue(avroValue instanceof Map,
+                       fieldName + " should have been instanceof Map");
                final Map<?, ?> avroMap = (Map<?, ?>) avroValue;
                final Map<?, ?> recordMap = (Map<?, ?>) recordValue;
-               assertEquals(fieldName + " not equal", recordMap.size(), avroMap.size());
+               assertEquals(recordMap.size(), avroMap.size(),
+                       fieldName + " not equal");
                for (Object s : avroMap.keySet()) {
                   assertMatch((Record) recordMap.get(s.toString()), (GenericRecord) avroMap.get(s));
                }
             } else if (recordValue instanceof Record) {
                 assertMatch((Record) recordValue, (GenericRecord) avroValue);
             } else {
-                assertEquals(fieldName + " not equal", recordValue, avroValue);
+                assertEquals(recordValue, avroValue,
+                        fieldName + " not equal");
             }
         }
     }

@@ -60,7 +60,6 @@ import org.apache.nifi.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -91,7 +90,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .displayName("URL")
         .description("The URL for the REST endpoint. Expression language is evaluated against the lookup key/value pairs, " +
                 "not flowfile attributes.")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();

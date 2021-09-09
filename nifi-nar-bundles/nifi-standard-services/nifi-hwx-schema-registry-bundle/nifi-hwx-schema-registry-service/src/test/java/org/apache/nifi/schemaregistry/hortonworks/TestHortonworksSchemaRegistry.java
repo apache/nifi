@@ -28,11 +28,10 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.util.MockConfigurationContext;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.lang.reflect.Constructor;
@@ -41,7 +40,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -53,38 +52,32 @@ public class TestHortonworksSchemaRegistry {
     private final Map<String, SchemaVersionInfo> schemaVersionInfoMap = new HashMap<>();
     private final Map<String, SchemaMetadataInfo> schemaMetadataInfoMap = new HashMap<>();
 
-    @Before
+    @BeforeEach
     public void setup() throws SchemaNotFoundException {
         schemaVersionInfoMap.clear();
         schemaMetadataInfoMap.clear();
 
         client = mock(SchemaRegistryClient.class);
-        doAnswer(new Answer<SchemaVersionInfo>() {
-            @Override
-            public SchemaVersionInfo answer(final InvocationOnMock invocation) throws Throwable {
-                final String schemaName = invocation.getArgument(0);
-                final SchemaVersionInfo info = schemaVersionInfoMap.get(schemaName);
+        doAnswer((Answer<SchemaVersionInfo>) invocation -> {
+            final String schemaName = invocation.getArgument(0);
+            final SchemaVersionInfo info = schemaVersionInfoMap.get(schemaName);
 
-                if (info == null) {
-                    throw new SchemaNotFoundException();
-                }
-
-                return info;
+            if (info == null) {
+                throw new SchemaNotFoundException();
             }
+
+            return info;
         }).when(client).getLatestSchemaVersionInfo(any(String.class));
 
-        doAnswer(new Answer<SchemaMetadataInfo>() {
-            @Override
-            public SchemaMetadataInfo answer(InvocationOnMock invocation) throws Throwable {
-                final String schemaName = invocation.getArgument(0);
-                final SchemaMetadataInfo info = schemaMetadataInfoMap.get(schemaName);
+        doAnswer((Answer<SchemaMetadataInfo>) invocation -> {
+            final String schemaName = invocation.getArgument(0);
+            final SchemaMetadataInfo info = schemaMetadataInfoMap.get(schemaName);
 
-                if (info == null) {
-                    throw new SchemaNotFoundException();
-                }
-
-                return info;
+            if (info == null) {
+                throw new SchemaNotFoundException();
             }
+
+            return info;
         }).when(client).getSchemaMetadataInfo(any(String.class));
 
         registry = new HortonworksSchemaRegistry() {
@@ -133,7 +126,7 @@ public class TestHortonworksSchemaRegistry {
     }
 
     @Test
-    @Ignore("This can be useful for manual testing/debugging, but will keep ignored for now because we don't want automated builds to run this, since it depends on timing")
+    @Disabled("This can be useful for manual testing/debugging, but will keep ignored for now because we don't want automated builds to run this, since it depends on timing")
     public void testCacheExpires() throws Exception {
         final String text = new String(Files.readAllBytes(Paths.get("src/test/resources/empty-schema.avsc")));
         final SchemaVersionInfo info = new SchemaVersionInfo(1L, "unit-test", 2,  text, System.currentTimeMillis(), "description");
@@ -179,5 +172,4 @@ public class TestHortonworksSchemaRegistry {
 
         Mockito.verify(client, Mockito.times(2)).getLatestSchemaVersionInfo(any(String.class));
     }
-
 }
