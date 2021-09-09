@@ -18,6 +18,7 @@ package org.apache.nifi.distributed.cache.server;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -49,16 +50,18 @@ public abstract class AbstractCacheServer implements CacheServer {
 
     private final String identifier;
     private final int port;
+    private final int maxReadSize;
     private final SSLContext sslContext;
     protected volatile boolean stopped = false;
     private final Set<Thread> processInputThreads = new CopyOnWriteArraySet<>();
 
     private volatile ServerSocketChannel serverSocketChannel;
 
-    public AbstractCacheServer(final String identifier, final SSLContext sslContext, final int port) {
+    public AbstractCacheServer(final String identifier, final SSLContext sslContext, final int port, final int maxReadSize) {
         this.identifier = identifier;
         this.port = port;
         this.sslContext = sslContext;
+        this.maxReadSize = maxReadSize;
     }
 
     @Override
@@ -108,14 +111,14 @@ public abstract class AbstractCacheServer implements CacheServer {
                                     rawInputStream = new SSLSocketChannelInputStream(sslSocketChannel);
                                     rawOutputStream = new SSLSocketChannelOutputStream(sslSocketChannel);
                                 }
-                            } catch (IOException e) {
+                            } catch (final IOException e) {
                                 logger.error("Cannot create input and/or output streams for {}", new Object[]{identifier}, e);
                                 if (logger.isDebugEnabled()) {
                                     logger.error("", e);
                                 }
                                 try {
                                     socketChannel.close();
-                                } catch (IOException swallow) {
+                                } catch (final IOException swallow) {
                                 }
 
                                 return;
@@ -179,19 +182,19 @@ public abstract class AbstractCacheServer implements CacheServer {
         if (serverSocketChannel != null && serverSocketChannel.isOpen()) {
             try {
                 serverSocketChannel.close();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 logger.warn("Server Socket Close Failed", e);
             }
         }
         // need to close out the created SocketChannels...this is done by interrupting
         // the created threads that loop on listen().
-        for (Thread processInputThread : processInputThreads) {
+        for (final Thread processInputThread : processInputThreads) {
             processInputThread.interrupt();
             int i = 0;
             while (!processInputThread.isInterrupted() && i++ < 5) {
                 try {
                     Thread.sleep(50); // allow thread to gracefully terminate
-                } catch (InterruptedException e) {
+                } catch (final InterruptedException e) {
                 }
             }
         }
@@ -213,4 +216,32 @@ public abstract class AbstractCacheServer implements CacheServer {
      * @throws IOException ex
      */
     protected abstract boolean listen(InputStream in, OutputStream out, int version) throws IOException;
+
+    /**
+     * Read a length-prefixed value from the {@link DataInputStream}.
+     *
+     * @param dis the {@link DataInputStream} from which to read the value
+     * @return the serialized representation of the value
+     * @throws IOException on failure to read from the input stream
+     */
+    protected byte[] readValue(final DataInputStream dis) throws IOException {
+        final int numBytes = validateSize(dis.readInt());
+        final byte[] buffer = new byte[numBytes];
+        dis.readFully(buffer);
+        return buffer;
+    }
+
+    /**
+     * Validate a size value received from the {@link DataInputStream} against the configured maximum.
+     *
+     * @param size the size value received from the {@link DataInputStream}
+     * @return the size value, iff it passes validation; otherwise, an exception is thrown
+     */
+    protected int validateSize(final int size) {
+        if (size <= maxReadSize) {
+            return size;
+        } else {
+            throw new IllegalStateException(String.format("Size [%d] exceeds maximum configured read [%d]", size, maxReadSize));
+        }
+    }
 }

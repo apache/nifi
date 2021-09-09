@@ -84,7 +84,7 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         .build();
 
     /**
-     * The implementation of the business logic for {@link DistributedSetCacheClientService}.
+     * The implementation of the business logic for {@link DistributedMapCacheClientService}.
      */
     private volatile NettyDistributedMapCacheClient cacheClient = null;
 

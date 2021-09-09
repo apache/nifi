@@ -19,6 +19,7 @@ package org.apache.nifi.distributed.cache.server;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -33,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.SerializationException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.Deserializer;
@@ -42,12 +44,14 @@ import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer;
 import org.apache.nifi.distributed.cache.server.map.MapCacheServer;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
+import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
@@ -597,8 +601,8 @@ public class TestServerAndClient {
         // Create a server that only supports protocol version 1.
         final DistributedMapCacheServer server = new MapServer() {
             @Override
-            protected MapCacheServer createMapCacheServer(int port, int maxSize, SSLContext sslContext, EvictionPolicy evictionPolicy, File persistenceDir) throws IOException {
-                return new MapCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir) {
+            protected MapCacheServer createMapCacheServer(int port, int maxSize, SSLContext sslContext, EvictionPolicy evictionPolicy, File persistenceDir, int maxReadSize) throws IOException {
+                return new MapCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir, maxReadSize) {
                     @Override
                     protected StandardVersionNegotiator getVersionNegotiator() {
                         return new StandardVersionNegotiator(1);
@@ -666,6 +670,45 @@ public class TestServerAndClient {
         server.shutdownServer();
     }
 
+    @Test
+    public void testLimitServiceReadSizeMap() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        final DistributedMapCacheServer server = new MapServer();
+        runner.addControllerService("server", server);
+        runner.enableControllerService(server);
+
+        final DistributedMapCacheClientService client = createMapClient(server.getPort());
+        final Serializer<String> serializer = new StringSerializer();
+
+        final String key = "key";
+        final int maxReadSize = new MockPropertyValue(DistributedCacheServer.MAX_READ_SIZE.getDefaultValue()).asDataSize(DataUnit.B).intValue();
+        final int belowThreshold = maxReadSize / key.length();
+        final int aboveThreshold = belowThreshold + 1;
+        final String keyBelowThreshold = StringUtils.repeat(key, belowThreshold);
+        final String keyAboveThreshold = StringUtils.repeat(key, aboveThreshold);
+        assertFalse(client.containsKey(keyBelowThreshold, serializer));
+        assertThrows(IOException.class, () -> client.containsKey(keyAboveThreshold, serializer));
+    }
+
+    @Test
+    public void testLimitServiceReadSizeSet() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        final DistributedSetCacheServer server = new SetServer();
+        runner.addControllerService("server", server);
+        runner.enableControllerService(server);
+
+        final DistributedSetCacheClientService client = createClient(server.getPort());
+        final Serializer<String> serializer = new StringSerializer();
+
+        final String value = "value";
+        final int maxReadSize = new MockPropertyValue(DistributedCacheServer.MAX_READ_SIZE.getDefaultValue()).asDataSize(DataUnit.B).intValue();
+        final int belowThreshold = maxReadSize / value.length();
+        final int aboveThreshold = belowThreshold + 1;
+        final String valueBelowThreshold = StringUtils.repeat(value, belowThreshold);
+        final String valueAboveThreshold = StringUtils.repeat(value, aboveThreshold);
+        assertFalse(client.contains(valueBelowThreshold, serializer));
+        assertThrows(IOException.class, () -> client.contains(valueAboveThreshold, serializer));
+    }
 
     private void waitABit() {
         try {
