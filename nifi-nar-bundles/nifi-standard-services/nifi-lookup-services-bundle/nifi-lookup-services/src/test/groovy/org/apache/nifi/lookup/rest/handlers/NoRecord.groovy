@@ -20,11 +20,12 @@ package org.apache.nifi.lookup.rest.handlers
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import static groovy.json.JsonOutput.*
-
 import javax.servlet.http.HttpServlet
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
+
+import static groovy.json.JsonOutput.prettyPrint
+import static groovy.json.JsonOutput.toJson
 
 class NoRecord extends HttpServlet {
     Logger logger = LoggerFactory.getLogger(NoRecord.class)

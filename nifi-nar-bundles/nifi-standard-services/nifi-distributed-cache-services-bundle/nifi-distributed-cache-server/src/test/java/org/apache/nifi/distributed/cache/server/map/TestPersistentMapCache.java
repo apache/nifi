@@ -16,27 +16,26 @@
  */
 package org.apache.nifi.distributed.cache.server.map;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.channels.OverlappingFileLockException;
 import org.apache.nifi.distributed.cache.server.EvictionPolicy;
-import static org.junit.Assert.fail;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import java.io.File;
+import java.nio.channels.OverlappingFileLockException;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestPersistentMapCache {
 
     /**
      * Test OverlappingFileLockException is caught when persistent path is duplicated.
      */
-    @Test(expected=OverlappingFileLockException.class)
+    @Test
     public void testDuplicatePersistenceDirectory() {
-        try {
+        assertThrows(OverlappingFileLockException.class, () -> {
             File duplicatedFilePath = new File("/tmp/path1");
             final MapCache cache = new SimpleMapCache("simpleCache", 2, EvictionPolicy.FIFO);
             PersistentMapCache pmc1 = new PersistentMapCache("id1", duplicatedFilePath, cache);
             PersistentMapCache pmc2 = new PersistentMapCache("id2", duplicatedFilePath, cache);
-        } catch (IOException ex) {
-            fail("Unexpected IOException thrown: " + ex.getMessage());
-        }
+        });
     }
 }

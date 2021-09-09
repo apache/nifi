@@ -40,9 +40,10 @@ import org.apache.nifi.state.MockStateManager
 import org.apache.nifi.util.MockControllerServiceInitializationContext
 import org.apache.nifi.util.MockPropertyValue
 import org.apache.nifi.util.file.FileUtils
-import org.junit.AfterClass
-import org.junit.BeforeClass
-import org.junit.Test
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.function.Executable
 
 import java.sql.DriverManager
 import java.sql.ResultSet
@@ -68,14 +69,14 @@ import static org.apache.nifi.dbcp.DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME
 import static org.apache.nifi.dbcp.DBCPConnectionPool.MIN_IDLE
 import static org.apache.nifi.dbcp.DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME
 import static org.apache.nifi.dbcp.DBCPConnectionPool.VALIDATION_QUERY
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertTrue
-import static org.junit.Assert.fail
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
+
 import static org.mockito.Mockito.mock
 import static org.mockito.Mockito.when
-
 
 class DatabaseRecordSinkTest {
 
@@ -83,12 +84,12 @@ class DatabaseRecordSinkTest {
 
     DBCPService dbcpService
 
-    @BeforeClass
+    @BeforeAll
     static void setup() {
         System.setProperty("derby.stream.error.file", "target/derby.log")
     }
 
-    @AfterClass
+    @AfterAll
     static void cleanUpAfterClass() throws Exception {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true")
@@ -115,7 +116,7 @@ class DatabaseRecordSinkTest {
         def con = DriverManager.getConnection("jdbc:derby:${DB_LOCATION};create=true")
         final Statement stmt = con.createStatement()
         try {
-            stmt.execute("drop table TESTTABLE");
+            stmt.execute("drop table TESTTABLE")
         } catch (final SQLException sqle) {
             // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
         }
@@ -176,7 +177,7 @@ class DatabaseRecordSinkTest {
         assertFalse(resultSet.next())
     }
 
-    @Test(expected = IOException.class)
+    @Test
     void testMissingTable() throws IOException, InitializationException {
         DatabaseRecordSink task = initTask('NO_SUCH_TABLE')
 
@@ -191,11 +192,11 @@ class DatabaseRecordSinkTest {
         row1.put('field2', 'Hello')
 
         RecordSet recordSet = new ListRecordSet(recordSchema, Collections.singletonList(new MapRecord(recordSchema, row1)))
-        task.sendData(recordSet, new HashMap<>(), true)
-        fail('Should have generated an exception for table not present')
+        assertThrows(IOException.class, { task.sendData(recordSet, new HashMap<>(), true) } as Executable,
+            'Should have generated an exception for table not present')
     }
 
-    @Test(expected = IOException.class)
+    @Test
     void testMissingField() throws IOException, InitializationException {
         DatabaseRecordSink task = initTask('TESTTABLE')
 
@@ -204,7 +205,7 @@ class DatabaseRecordSinkTest {
         def con = DriverManager.getConnection("jdbc:derby:${DB_LOCATION};create=true")
         final Statement stmt = con.createStatement()
         try {
-            stmt.execute("drop table TESTTABLE");
+            stmt.execute("drop table TESTTABLE")
         } catch (final SQLException sqle) {
             // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
         }
@@ -225,11 +226,11 @@ class DatabaseRecordSinkTest {
         row1.put('field3', 'fail')
 
         RecordSet recordSet = new ListRecordSet(recordSchema, Collections.singletonList(new MapRecord(recordSchema, row1)))
-        task.sendData(recordSet, new HashMap<>(), true)
-        fail('Should have generated an exception for column not present')
+        assertThrows(IOException.class, { task.sendData(recordSet, new HashMap<>(), true) } as Executable,
+            'Should have generated an exception for column not present')
     }
 
-    @Test(expected = IOException.class)
+    @Test
     void testMissingColumn() throws IOException, InitializationException {
         DatabaseRecordSink task = initTask('TESTTABLE')
 
@@ -238,7 +239,7 @@ class DatabaseRecordSinkTest {
         def con = DriverManager.getConnection("jdbc:derby:${DB_LOCATION};create=true")
         final Statement stmt = con.createStatement()
         try {
-            stmt.execute("drop table TESTTABLE");
+            stmt.execute("drop table TESTTABLE")
         } catch (final SQLException sqle) {
             // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
         }
@@ -259,8 +260,8 @@ class DatabaseRecordSinkTest {
         row1.put('field1', 15)
 
         RecordSet recordSet = new ListRecordSet(recordSchema, Collections.singletonList(new MapRecord(recordSchema, row1)))
-        task.sendData(recordSet, new HashMap<>(), true)
-        fail('Should have generated an exception for field not present')
+        assertThrows(IOException.class, { task.sendData(recordSet, new HashMap<>(), true) } as Executable,
+            'Should have generated an exception for field not present')
     }
 
     DatabaseRecordSink initTask(String tableName) throws InitializationException, IOException {

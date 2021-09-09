@@ -26,8 +26,8 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockKerberosContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 
@@ -40,7 +40,7 @@ public class HadoopDBCPConnectionPoolTest {
     private KerberosProperties kerberosProps;
     private KerberosContext kerberosContext;
 
-    @Before
+    @BeforeEach
     public void setup() {
         krbConfFile = new File("src/test/resources/krb5.conf");
         kerberosProps = new KerberosProperties(krbConfFile);

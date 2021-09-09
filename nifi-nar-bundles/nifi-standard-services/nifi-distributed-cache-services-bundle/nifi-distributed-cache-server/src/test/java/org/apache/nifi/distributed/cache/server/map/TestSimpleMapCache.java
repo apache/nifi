@@ -17,20 +17,19 @@
 package org.apache.nifi.distributed.cache.server.map;
 
 import org.apache.nifi.distributed.cache.server.EvictionPolicy;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSimpleMapCache {
-
     @Test
     public void testBasicOperations() throws Exception {
         final SimpleMapCache cache = new SimpleMapCache("service-id", 2, EvictionPolicy.FIFO);
@@ -74,7 +73,7 @@ public class TestSimpleMapCache {
         putResult = cache.put(key3, value3);
         assertTrue(putResult.isSuccessful());
         assertNull(putResult.getExisting());
-        assertNotNull("The first key should be evicted", putResult.getEvicted());
+        assertNotNull(putResult.getEvicted(), "The first key should be evicted");
         assertEquals("key1", new String(putResult.getEvicted().getKey().array()));
         assertEquals("value1-1", new String(putResult.getEvicted().getValue().array()));
         assertEquals(0, putResult.getRecord().getRevision());
@@ -89,7 +88,7 @@ public class TestSimpleMapCache {
         assertTrue(putResult.isSuccessful());
         assertNull(putResult.getExisting());
         assertNull(putResult.getEvicted());
-        assertEquals("Revision should start from 0", 0, putResult.getRecord().getRevision());
+        assertEquals(0, putResult.getRecord().getRevision(), "Revision should start from 0");
 
         // Get multiple keys
         Map<ByteBuffer, ByteBuffer> results = cache.subMap(Arrays.asList(key1, key2, key3));
@@ -106,16 +105,16 @@ public class TestSimpleMapCache {
         ByteBuffer valueC1 = ByteBuffer.wrap("valueC1-0".getBytes());
         ByteBuffer valueC2 = ByteBuffer.wrap("valueC2-0".getBytes());
 
-        assertNull("If there's no existing key, fetch should return null.", cache.fetch(key));
+        assertNull(cache.fetch(key), "If there's no existing key, fetch should return null.");
 
         // Client 1 inserts the key.
         MapCacheRecord c1 = new MapCacheRecord(key, valueC1);
         MapPutResult putResult = cache.replace(c1);
-        assertTrue("Replace should succeed if there's no existing key.", putResult.isSuccessful());
+        assertTrue(putResult.isSuccessful(), "Replace should succeed if there's no existing key.");
 
         MapCacheRecord c2 = new MapCacheRecord(key, valueC2);
         putResult = cache.replace(c2);
-        assertFalse("Replace should fail.", putResult.isSuccessful());
+        assertFalse(putResult.isSuccessful(), "Replace should fail.");
 
         // Client 1 and 2 fetch the key
         c1 = cache.fetch(key);
@@ -126,13 +125,12 @@ public class TestSimpleMapCache {
         // Client 1 replace
         valueC1 = ByteBuffer.wrap("valueC1-1".getBytes());
         putResult = cache.replace(new MapCacheRecord(key, valueC1, c1.getRevision()));
-        assertTrue("Replace should succeed since revision matched.", putResult.isSuccessful());
+        assertTrue(putResult.isSuccessful(), "Replace should succeed since revision matched.");
         assertEquals(1, putResult.getRecord().getRevision());
 
         // Client 2 replace with the old revision
         valueC2 = ByteBuffer.wrap("valueC2-1".getBytes());
         putResult = cache.replace(new MapCacheRecord(key, valueC2, c2.getRevision()));
-        assertFalse("Replace should fail.", putResult.isSuccessful());
+        assertFalse(putResult.isSuccessful(), "Replace should fail.");
     }
-
 }

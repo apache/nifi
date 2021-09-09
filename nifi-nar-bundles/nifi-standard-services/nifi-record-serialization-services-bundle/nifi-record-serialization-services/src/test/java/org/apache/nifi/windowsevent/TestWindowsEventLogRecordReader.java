@@ -20,7 +20,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.BufferedInputStream;
@@ -30,10 +30,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestWindowsEventLogRecordReader {
 
@@ -189,9 +190,10 @@ public class TestWindowsEventLogRecordReader {
         assertNull(reader.nextRecord());
     }
 
-    @Test(expected = MalformedRecordException.class)
-    public void testNotXmlInput() throws IOException, MalformedRecordException {
+    @Test
+    public void testNotXmlInput() {
         InputStream is = new ByteArrayInputStream("I am not XML" .getBytes(StandardCharsets.UTF_8));
-        WindowsEventLogRecordReader reader = new WindowsEventLogRecordReader(is, DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, Mockito.mock(ComponentLog.class));
+        assertThrows(MalformedRecordException.class,
+                () -> new WindowsEventLogRecordReader(is, DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, Mockito.mock(ComponentLog.class)));
     }
 }

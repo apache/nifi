@@ -31,8 +31,8 @@ import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
@@ -49,8 +49,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -63,7 +64,7 @@ public class TestHBase_2_ClientService {
     private KerberosProperties kerberosPropsWithFile;
     private KerberosProperties kerberosPropsWithoutFile;
 
-    @Before
+    @BeforeEach
     public void setup() {
         // needed for calls to UserGroupInformation.setConfiguration() to work when passing in
         // config with Kerberos authentication enabled
@@ -76,7 +77,7 @@ public class TestHBase_2_ClientService {
     }
 
     @Test
-    public void testCustomValidate() throws InitializationException, IOException {
+    public void testCustomValidate() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
 
         final String tableName = "nifi";
@@ -455,8 +456,8 @@ public class TestHBase_2_ClientService {
         hBaseClientService.scan(tableName, new ArrayList<Column>(), filter, System.currentTimeMillis(), handler);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testScanWithInvalidFilter() throws InitializationException, IOException {
+    @Test
+    public void testScanWithInvalidFilter() throws InitializationException {
         final String tableName = "nifi";
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
 
@@ -475,7 +476,8 @@ public class TestHBase_2_ClientService {
 
         // this should throw IllegalArgumentException
         final String filter = "this is not a filter";
-        hBaseClientService.scan(tableName, new ArrayList<Column>(), filter, System.currentTimeMillis(), handler);
+        assertThrows(IllegalArgumentException.class,
+                () -> hBaseClientService.scan(tableName, new ArrayList<Column>(), filter, System.currentTimeMillis(), handler));
     }
 
     private MockHBaseClientService configureHBaseClientService(final TestRunner runner, final Table table) throws InitializationException {

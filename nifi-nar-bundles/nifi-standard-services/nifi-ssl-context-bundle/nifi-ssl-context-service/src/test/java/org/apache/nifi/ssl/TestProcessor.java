@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.ssl;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class TestProcessor extends AbstractProcessor {
 

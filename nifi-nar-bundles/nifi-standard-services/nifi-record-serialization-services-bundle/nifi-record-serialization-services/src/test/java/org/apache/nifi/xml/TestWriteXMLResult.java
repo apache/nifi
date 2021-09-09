@@ -26,8 +26,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.xmlunit.diff.DefaultNodeMatcher;
 import org.xmlunit.diff.ElementSelectors;
 import org.xmlunit.matchers.CompareMatcher;
@@ -70,7 +69,8 @@ import static org.apache.nifi.xml.TestWriteXMLResultUtils.getSimpleRecordsWithCh
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.getSimpleRecordsWithNullValues;
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.getSimpleRecordsWithoutIdentifierInSchema;
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.getSingleRecord;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestWriteXMLResult {
 
@@ -89,7 +89,7 @@ public class TestWriteXMLResult {
         } catch (IOException e) {
             actualMessage.append(e.getMessage());
         }
-        Assert.assertEquals(expectedMessage, actualMessage.toString());
+        assertEquals(expectedMessage, actualMessage.toString());
 
     }
 
@@ -127,7 +127,7 @@ public class TestWriteXMLResult {
         } catch (IOException e) {
             actualMessage.append(e.getMessage());
         }
-        Assert.assertEquals(expectedMessage, actualMessage.toString());
+        assertEquals(expectedMessage, actualMessage.toString());
     }
 
     @Test
@@ -292,7 +292,7 @@ public class TestWriteXMLResult {
         String xmlResult = "<?xml version=\"1.0\" ?><ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
-        Assert.assertEquals(xmlResult, out.toString().trim());
+        assertEquals(xmlResult, out.toString().trim());
     }
 
     @Test
@@ -308,7 +308,7 @@ public class TestWriteXMLResult {
         String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
-        Assert.assertEquals(xmlResult, out.toString().trim());
+        assertEquals(xmlResult, out.toString().trim());
     }
 
     @Test

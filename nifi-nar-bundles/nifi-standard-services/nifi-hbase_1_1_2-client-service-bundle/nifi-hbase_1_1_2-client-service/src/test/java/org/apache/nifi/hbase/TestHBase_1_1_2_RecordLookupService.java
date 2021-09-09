@@ -23,9 +23,8 @@ import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -33,6 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 
 public class TestHBase_1_1_2_RecordLookupService {
@@ -46,7 +47,7 @@ public class TestHBase_1_1_2_RecordLookupService {
     private MockHBaseClientService clientService;
     private TestRecordLookupProcessor testLookupProcessor;
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         testLookupProcessor = new TestRecordLookupProcessor();
         runner = TestRunners.newTestRunner(testLookupProcessor);
@@ -87,12 +88,12 @@ public class TestHBase_1_1_2_RecordLookupService {
         runner.assertAllFlowFilesTransferred(TestRecordLookupProcessor.REL_SUCCESS);
 
         final List<Record> records = testLookupProcessor.getLookedupRecords();
-        Assert.assertNotNull(records);
-        Assert.assertEquals(1, records.size());
+        assertNotNull(records);
+        assertEquals(1, records.size());
 
         final Record record = records.get(0);
-        Assert.assertEquals("v1", record.getAsString("cq1"));
-        Assert.assertEquals("v2", record.getAsString("cq2"));
+        assertEquals("v1", record.getAsString("cq1"));
+        assertEquals("v2", record.getAsString("cq2"));
     }
 
     @Test
@@ -103,8 +104,8 @@ public class TestHBase_1_1_2_RecordLookupService {
         runner.assertAllFlowFilesTransferred(TestRecordLookupProcessor.REL_FAILURE);
 
         final List<Record> records = testLookupProcessor.getLookedupRecords();
-        Assert.assertNotNull(records);
-        Assert.assertEquals(0, records.size());
+        assertNotNull(records);
+        assertEquals(0, records.size());
     }
 
     @Test
@@ -117,7 +118,7 @@ public class TestHBase_1_1_2_RecordLookupService {
         runner.assertAllFlowFilesTransferred(TestRecordLookupProcessor.REL_FAILURE);
 
         final List<Record> records = testLookupProcessor.getLookedupRecords();
-        Assert.assertNotNull(records);
-        Assert.assertEquals(0, records.size());
+        assertNotNull(records);
+        assertEquals(0, records.size());
     }
 }

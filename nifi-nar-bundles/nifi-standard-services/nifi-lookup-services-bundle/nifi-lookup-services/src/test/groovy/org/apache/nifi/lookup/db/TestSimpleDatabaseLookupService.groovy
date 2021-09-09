@@ -26,9 +26,9 @@ import org.apache.nifi.reporting.InitializationException
 import org.apache.nifi.serialization.record.Record
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 import java.sql.Connection
 import java.sql.DriverManager
@@ -36,7 +36,9 @@ import java.sql.SQLException
 import java.sql.Statement
 
 import static org.hamcrest.CoreMatchers.instanceOf
-import static org.junit.Assert.*
+import static org.hamcrest.MatcherAssert.assertThat
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
 
 class TestSimpleDatabaseLookupService {
 
@@ -45,12 +47,12 @@ class TestSimpleDatabaseLookupService {
     private final static Optional<Record> EMPTY_RECORD = Optional.empty()
     private final static String DB_LOCATION = "target/db"
 
-    @BeforeClass
+    @BeforeAll
     static void setupClass() {
         System.setProperty("derby.stream.error.file", "target/derby.log")
     }
 
-    @Before
+    @BeforeEach
     void setup() throws InitializationException {
         final DBCPService dbcp = new DBCPServiceSimpleImpl()
         final Map<String, String> dbcpProperties = new HashMap<>()

@@ -29,16 +29,17 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestReaderLookup {
     private final String DEFAULT_ATTRIBUTE_NAME = "recordreader.name";
@@ -49,7 +50,7 @@ public class TestReaderLookup {
     private ReaderLookup readerLookup;
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         recordReaderA = new MockRecordReaderFactory("A");
         recordReaderB = new MockRecordReaderFactory("B");
@@ -88,17 +89,17 @@ public class TestReaderLookup {
         assertEquals(recordReaderB.name, recordReader.name);
     }
 
-    @Test(expected = ProcessException.class)
-    public void testLookupMissingNameAttribute() throws SchemaNotFoundException, MalformedRecordException, IOException {
+    @Test
+    public void testLookupMissingNameAttribute() {
         final Map<String,String> attributes = new HashMap<>();
-        readerLookup.createRecordReader(attributes, null, -1, null);
+        assertThrows(ProcessException.class, () -> readerLookup.createRecordReader(attributes, null, -1, null));
     }
 
-    @Test(expected = ProcessException.class)
-    public void testLookupWithNameThatDoesNotExist() throws SchemaNotFoundException, MalformedRecordException, IOException {
+    @Test
+    public void testLookupWithNameThatDoesNotExist() {
         final Map<String,String> attributes = new HashMap<>();
         attributes.put(DEFAULT_ATTRIBUTE_NAME, "DOES-NOT-EXIST");
-        readerLookup.createRecordReader(attributes, null, -1, null);
+        assertThrows(ProcessException.class, () -> readerLookup.createRecordReader(attributes, null, -1, null));
     }
 
     @Test
