@@ -121,8 +121,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .build();
 
     public static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
-        .name("ssl-context")
-        .displayName("SSL Context")
+        .name("ssl-context-service")
+        .displayName("SSL Context Servuce")
         .addValidator(Validator.VALID)
         .identifiesControllerService(SSLContextService.class)
         .required(false)

@@ -24,7 +24,11 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -95,6 +99,42 @@ public class StandardOauth2AccessTokenProviderTest {
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_SECRET).getValue()).thenReturn(CLIENT_SECRET);
 
         testSubject.onEnabled(mockContext);
+    }
+
+    @Test
+    public void testInvalidWhenClientCredentialsGrantTypeSetWithoutClientId() throws Exception {
+        // GIVEN
+        Processor processor = new NoOpProcessor();
+        TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.addControllerService("testSubject", testSubject);
+
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.AUTHORIZATION_SERVER_URL, "http://unimportant");
+
+        // WHEN
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.GRANT_TYPE, StandardOauth2AccessTokenProvider.CLIENT_CREDENTIALS_GRANT_TYPE);
+
+        // THEN
+        runner.assertNotValid(testSubject);
+    }
+
+    @Test
+    public void testValidWhenClientCredentialsGrantTypeSetWithClientId() throws Exception {
+        // GIVEN
+        Processor processor = new NoOpProcessor();
+        TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.addControllerService("testSubject", testSubject);
+
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.AUTHORIZATION_SERVER_URL, "http://unimportant");
+
+        // WHEN
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.GRANT_TYPE, StandardOauth2AccessTokenProvider.CLIENT_CREDENTIALS_GRANT_TYPE);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.CLIENT_ID, "clientId");
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.CLIENT_SECRET, "clientSecret");
+
+        // THEN
+        runner.assertValid(testSubject);
     }
 
     @Test

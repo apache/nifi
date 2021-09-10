@@ -741,7 +741,7 @@ public class InvokeHTTP extends AbstractProcessor {
         }
 
         boolean usingUserNamePasswordAuthorization = validationContext.getProperty(PROP_BASIC_AUTH_USERNAME).isSet()
-            || validationContext.getProperty(PROP_BASIC_AUTH_USERNAME).isSet();
+            || validationContext.getProperty(PROP_BASIC_AUTH_PASSWORD).isSet();
 
         boolean usingOAuth2Authorization = validationContext.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet();
 
