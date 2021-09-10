@@ -195,3 +195,7 @@ span.parameter-context-referencing-component-name {
 #parameter-context-selected .fa-remove, #parameter-context-selected .fa-question-circle {
     color: #fff;
 }
+
+#parameter-context-selected-read-only {
+    list-style: inside none decimal;
+}

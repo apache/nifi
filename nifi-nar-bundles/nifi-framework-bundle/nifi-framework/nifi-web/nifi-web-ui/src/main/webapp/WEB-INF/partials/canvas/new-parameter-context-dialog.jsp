@@ -97,26 +97,41 @@
                 </div>
             </div>
             <div id="parameter-context-inheritance-tab-content" class="configuration-tab">
-                <div class="settings-left">
-                    <div class="setting">
-                        <div class="setting-name">
-                            Available Parameter Contexts
-                            <div class="fa fa-question-circle" alt="Info" title="Available Parameter Contexts that could be inherited from."></div>
+                <div id="parameter-context-inheritance-container">
+                    <div class="settings-left">
+                        <div class="setting">
+                            <div class="setting-name">
+                                Available Parameter Contexts
+                                <div class="fa fa-question-circle" alt="Info" title="Available Parameter Contexts that could be inherited from."></div>
+                            </div>
+                            <div class="setting-field">
+                                <ol id="parameter-context-available"></ol>
+                            </div>
                         </div>
-                        <div class="setting-field">
-                            <ol id="parameter-context-available"></ol>
+                    </div>
+                    <div class="spacer">&nbsp;</div>
+                    <div class="settings-right">
+                        <div class="setting">
+                            <div class="setting-name">
+                                Selected Parameter Context
+                                <div class="fa fa-question-circle" alt="Info" title="Parameter Contexts selected for inheritance."></div>
+                            </div>
+                            <div class="setting-field">
+                                <ol id="parameter-context-selected"></ol>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="spacer">&nbsp;</div>
-                <div class="settings-right">
-                    <div class="setting">
-                        <div class="setting-name">
-                            Selected Parameter Context
-                            <div class="fa fa-question-circle" alt="Info" title="Parameter Contexts selected for inheritance."></div>
-                        </div>
-                        <div class="setting-field">
-                            <ol id="parameter-context-selected"></ol>
+                <div id="parameter-context-inheritance-container-read-only" style="display: none;">
+                    <div class="settings-left">
+                        <div class="setting">
+                            <div class="setting-name">
+                                Selected Parameter Context
+                                <div class="fa fa-question-circle" alt="Info" title="Parameter Contexts selected for inheritance."></div>
+                            </div>
+                            <div class="setting-field">
+                                <ol id="parameter-context-selected-read-only"></ol>
+                            </div>
                         </div>
                     </div>
                 </div>
