@@ -18,6 +18,7 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.type.DecimalDataType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,8 +33,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,6 +57,7 @@ public class ResultSetRecordSetTest {
     private static final String COLUMN_NAME_BOOLEAN = "boolean";
     private static final String COLUMN_NAME_CHAR = "char";
     private static final String COLUMN_NAME_DATE = "date";
+    private static final String COLUMN_NAME_TIMESTAMP = "timestamp";
     private static final String COLUMN_NAME_INTEGER = "integer";
     private static final String COLUMN_NAME_DOUBLE = "double";
     private static final String COLUMN_NAME_REAL = "real";
@@ -86,6 +90,7 @@ public class ResultSetRecordSetTest {
             {16, COLUMN_NAME_BIG_DECIMAL_3, Types.JAVA_OBJECT, RecordFieldType.DECIMAL.getDecimalDataType(501, 1)},
             {17, COLUMN_NAME_BIG_DECIMAL_4, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(10, 3)},
             {18, COLUMN_NAME_BIG_DECIMAL_5, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(3, 10)},
+            {19, COLUMN_NAME_TIMESTAMP, Types.TIMESTAMP, RecordFieldType.TIMESTAMP.getDataType()},
     };
 
     @Mock
@@ -176,6 +181,7 @@ public class ResultSetRecordSetTest {
         final RecordSchema recordSchema = givenRecordSchema();
 
         LocalDate testDate = LocalDate.of(2021, 1, 26);
+        LocalDateTime testDateTime = LocalDateTime.of(2021, 9, 10, 11, 11, 11);
 
         final String varcharValue = "varchar";
         final Long bigintValue = 1234567890123456789L;
@@ -184,6 +190,7 @@ public class ResultSetRecordSetTest {
         final Boolean booleanValue = Boolean.TRUE;
         final Character charValue = 'c';
         final Date dateValue = Date.valueOf(testDate);
+        final Timestamp timestampValue = Timestamp.valueOf(testDateTime);
         final Integer integerValue = 1234567890;
         final Double doubleValue = 0.12;
         final Double realValue = 3.45;
@@ -203,6 +210,7 @@ public class ResultSetRecordSetTest {
         when(resultSet.getObject(COLUMN_NAME_BOOLEAN)).thenReturn(booleanValue);
         when(resultSet.getObject(COLUMN_NAME_CHAR)).thenReturn(charValue);
         when(resultSet.getObject(COLUMN_NAME_DATE)).thenReturn(dateValue);
+        when(resultSet.getTimestamp(COLUMN_NAME_TIMESTAMP)).thenReturn(timestampValue);
         when(resultSet.getObject(COLUMN_NAME_INTEGER)).thenReturn(integerValue);
         when(resultSet.getObject(COLUMN_NAME_DOUBLE)).thenReturn(doubleValue);
         when(resultSet.getObject(COLUMN_NAME_REAL)).thenReturn(realValue);
@@ -230,6 +238,7 @@ public class ResultSetRecordSetTest {
         // Date is expected in UTC normalized form
         Date expectedDate = new Date(testDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli());
         assertEquals(expectedDate, record.getAsDate(COLUMN_NAME_DATE, null));
+        assertEquals(timestampValue, DataTypeUtils.toTimestamp(record.getValue(COLUMN_NAME_TIMESTAMP), null, COLUMN_NAME_TIMESTAMP));
 
         assertEquals(integerValue, record.getAsInt(COLUMN_NAME_INTEGER));
         assertEquals(doubleValue, record.getAsDouble(COLUMN_NAME_DOUBLE));
