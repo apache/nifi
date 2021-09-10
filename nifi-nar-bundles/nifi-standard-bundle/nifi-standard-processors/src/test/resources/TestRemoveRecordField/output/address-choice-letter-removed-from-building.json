@@ -1,0 +1,20 @@
+[ {
+  "id" : 11,
+  "address" : "11 Main Street, Aville"
+}, {
+  "id" : 22,
+  "address" : {
+    "zip" : 2222,
+    "street" : "Turner Street",
+    "building" : 222
+  }
+}, {
+  "id" : 33,
+  "address" : {
+    "zip" : 3333,
+    "street" : "West Street",
+    "building" : {
+      "number" : 333
+    }
+  }
+} ]

@@ -268,6 +268,11 @@ public class ForkRecord extends AbstractProcessor {
                                                     + "of type " + fieldType + " when the type ARRAY is expected.");
                                             continue;
                                         }
+                                        if (fieldValue.getValue() == null) {
+                                            getLogger().debug("The record path " + recordPath.getPath() + " is matching a field "
+                                                    + "the value of which is null.");
+                                            continue;
+                                        }
 
                                         if(isSplitMode) {
 

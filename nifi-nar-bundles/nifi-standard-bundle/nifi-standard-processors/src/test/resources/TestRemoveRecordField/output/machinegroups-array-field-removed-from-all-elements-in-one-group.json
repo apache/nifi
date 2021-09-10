@@ -1,0 +1,40 @@
+[ {
+  "name" : "Factory_1",
+  "machineGroups" : [ {
+    "name" : "Group_1",
+    "machines" : [ {
+      "id" : 11,
+      "units" : 111
+    }, {
+      "id" : 12,
+      "units" : 112
+    }, {
+      "id" : 13,
+      "units" : 113
+    } ]
+  }, {
+    "name" : "Group_2",
+    "machines" : [ {
+      "id" : 21,
+      "units" : null
+    }, {
+      "id" : 22,
+      "units" : null
+    }, {
+      "id" : 23,
+      "units" : null
+    } ]
+  }, {
+    "name" : "Group_3",
+    "machines" : [ {
+      "id" : 31,
+      "units" : 331
+    }, {
+      "id" : 32,
+      "units" : 332
+    }, {
+      "id" : 33,
+      "units" : 333
+    } ]
+  } ]
+} ]

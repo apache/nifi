@@ -21,7 +21,11 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class ArrayIndexFieldValue extends StandardFieldValue {
     private final int index;
@@ -57,6 +61,19 @@ public class ArrayIndexFieldValue extends StandardFieldValue {
     @Override
     public void updateValue(final Object newValue, final DataType dataType) {
         getParentRecord().get().setArrayValue(getField().getFieldName(), getArrayIndex(), newValue);
+    }
+
+    @Override
+    public void remove(boolean modifySchema) {
+        Optional<FieldValue> parentOptional = getParent();
+        if (parentOptional.isPresent()) {
+            FieldValue parent = parentOptional.get();
+            if (parent.getValue() instanceof Object[]) {
+                List<Object> elements = new ArrayList<>(Arrays.asList((Object[]) parent.getValue()));
+                elements.remove(index);
+                parent.updateValue(elements.toArray());
+            }
+        }
     }
 
     @Override

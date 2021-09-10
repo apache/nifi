@@ -1,0 +1,26 @@
+[ {
+  "id" : 11,
+  "name" : "John",
+  "addresses" : [ {
+    "zip" : 1111,
+    "street" : "Main",
+    "building" : {
+      "number" : 1,
+      "letter" : "A"
+    }
+  }, {
+    "zip" : null,
+    "street" : "Ocean",
+    "building" : {
+      "number" : 2,
+      "letter" : "B"
+    }
+  }, {
+    "zip" : 3333,
+    "street" : "Sunset",
+    "building" : {
+      "number" : 3,
+      "letter" : "C"
+    }
+  } ]
+} ]

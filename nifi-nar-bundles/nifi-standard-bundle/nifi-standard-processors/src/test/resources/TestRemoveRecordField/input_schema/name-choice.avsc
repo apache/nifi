@@ -1,0 +1,31 @@
+{
+    "type": "record",
+    "name": "nameRecord",
+    "namespace": "org.apache.nifi",
+    "fields": [
+        {
+            "name": "id",
+            "type": "int"
+        },
+        {
+            "name": "name",
+            "type": [
+                "string",
+                {
+                    "type": "record",
+                    "name": "nameType",
+                    "fields": [
+                        {
+                            "name": "firstName",
+                            "type": "string"
+                        },
+                        {
+                            "name": "lastName",
+                            "type": "string"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

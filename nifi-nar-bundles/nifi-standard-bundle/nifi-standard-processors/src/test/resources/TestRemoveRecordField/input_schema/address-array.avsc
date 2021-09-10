@@ -1,0 +1,52 @@
+{
+    "type": "record",
+    "name": "nifiRecord",
+    "namespace": "org.apache.nifi",
+    "fields": [
+        {
+            "name": "id",
+            "type": "int"
+        },
+        {
+            "name": "name",
+            "type": "string"
+        },
+        {
+            "name": "addresses",
+            "type": {
+                "type": "array",
+                "items": {
+                    "name": "address",
+                    "type": "record",
+                    "fields": [
+                        {
+                            "name": "zip",
+                            "type": "int"
+                        },
+                        {
+                            "name": "street",
+                            "type": "string"
+                        },
+                        {
+                            "name": "building",
+                            "type": {
+                                "name": "buildingID",
+                                "type": "record",
+                                "fields": [
+                                    {
+                                        "name": "number",
+                                        "type": "int"
+                                    },
+                                    {
+                                        "name": "letter",
+                                        "type": "string"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

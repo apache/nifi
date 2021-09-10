@@ -87,4 +87,9 @@ public interface RecordSchema {
      */
     Optional<String> getSchemaNamespace();
 
+    /**
+     * @param fieldName the name of the field to be removed from the schema
+     */
+    void removeField(String fieldName);
+
 }

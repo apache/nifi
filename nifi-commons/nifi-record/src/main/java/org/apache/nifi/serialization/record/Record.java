@@ -142,6 +142,10 @@ public interface Record {
      */
     void setValue(RecordField field, Object value);
 
+    void remove(RecordField field, boolean modifySchema);
+
+    void regenerateSchema();
+
     /**
      * Updates the value of a the specified index of a field. If the field specified
      * is not present in this Record's schema, this method will do nothing. If the field specified

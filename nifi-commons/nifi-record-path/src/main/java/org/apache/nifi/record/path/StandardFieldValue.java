@@ -128,6 +128,45 @@ public class StandardFieldValue implements FieldValue {
         updateValue(newValue, recordField);
     }
 
+    @Override
+    public void remove(boolean modifySchema) {
+        Optional<FieldValue> parentOptional = getParent();
+        if (parentOptional.isPresent()) {
+            FieldValue parent = parentOptional.get();
+            if (Filters.isChoice(parent)) {
+                parent.getField().remove(field);
+            }
+            if (Filters.isRecord(parent)) {
+                Record parentRecord = (Record) parent.getValue();
+                if ((parentRecord == null) && modifySchema) {
+                    parent.getField().remove(field);
+                } else if (parentRecord != null) {
+                    parentRecord.remove(field, modifySchema);
+                }
+            }
+
+            if (modifySchema) {
+                Optional<FieldValue> ancestorOptional = parent.getParent();
+                while (ancestorOptional.isPresent()) {
+                    FieldValue ancestor = ancestorOptional.get();
+                    if (Filters.isRecord(ancestor)) {
+                        Record ancestorRecord = (Record) ancestor.getValue();
+                        if (ancestorRecord == null) {
+                            ancestor.getField().remove(field);
+                        } else {
+                            ancestorRecord.regenerateSchema();
+                        }
+                    } else if (Filters.isArray(ancestor)) {
+                        ancestor.getField().remove(field);
+                    } else if (Filters.isMap(ancestor)) {
+                        ancestor.getField().remove(field);
+                    }
+                    ancestorOptional = ancestor.getParent();
+                }
+            }
+        }
+    }
+
     private void updateValue(final Object newValue, final RecordField field) {
         final Optional<Record> parentRecord = getParentRecord();
         if (!parentRecord.isPresent()) {

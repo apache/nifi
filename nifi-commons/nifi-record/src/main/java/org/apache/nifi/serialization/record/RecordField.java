@@ -101,6 +101,10 @@ public class RecordField {
         return nullable;
     }
 
+    public void remove(RecordField field) {
+        dataType.remove(field);
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;

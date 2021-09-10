@@ -20,6 +20,7 @@ package org.apache.nifi.record.path;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 
+import java.util.Map;
 import java.util.Objects;
 
 public class MapEntryFieldValue extends StandardFieldValue {
@@ -42,6 +43,11 @@ public class MapEntryFieldValue extends StandardFieldValue {
     @Override
     public void updateValue(final Object newValue, final DataType dataType) {
         getParentRecord().get().setMapValue(getField().getFieldName(), getMapKey(), newValue);
+    }
+
+    @Override
+    public void remove(boolean modifySchema) {
+        ((Map<String, Object>) getParent().get().getValue()).remove(mapKey);
     }
 
     @Override

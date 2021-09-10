@@ -34,10 +34,10 @@ import java.util.stream.Collectors;
 public class SimpleRecordSchema implements RecordSchema {
     private List<RecordField> fields = null;
     private Map<String, RecordField> fieldMap = null;
-    private final boolean textAvailable;
+    private boolean textAvailable;
     private final AtomicReference<String> text = new AtomicReference<>();
-    private final String schemaFormat;
-    private final SchemaIdentifier schemaIdentifier;
+    private String schemaFormat;
+    private SchemaIdentifier schemaIdentifier;
     private String schemaName;
     private String schemaNamespace;
     private volatile int hashCode;
@@ -251,5 +251,25 @@ public class SimpleRecordSchema implements RecordSchema {
     @Override
     public Optional<String> getSchemaNamespace() {
         return Optional.ofNullable(schemaNamespace);
+    }
+
+    @Override
+    public void removeField(String fieldName) {
+        List<RecordField> remainingFields = new ArrayList<>(fields.size());
+        for (RecordField field : fields) {
+            if (!field.getFieldName().equals(fieldName)) {
+                remainingFields.add(field);
+            }
+        }
+        if (remainingFields.size() != fields.size()) {
+            fields = null;
+            setFields(remainingFields);
+            text.set(createText(fields));
+            textAvailable = true;
+            schemaFormat = null;
+            schemaIdentifier = SchemaIdentifier.EMPTY;
+            hashCode = 0;
+            hashCode = hashCode();
+        }
     }
 }

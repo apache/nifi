@@ -18,6 +18,7 @@
 package org.apache.nifi.serialization.record.type;
 
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
@@ -52,6 +53,13 @@ public class RecordDataType extends DataType {
             }
         }
         return childSchema;
+    }
+
+    @Override
+    public void remove(RecordField field) {
+        if (childSchema != null) {
+            childSchema.removeField(field.getFieldName());
+        }
     }
 
     @Override

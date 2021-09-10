@@ -1,0 +1,23 @@
+[ {
+  "id" : 11,
+  "name" : "John",
+  "addresses" : [ {
+    "street" : "Main",
+    "building" : {
+      "number" : 1,
+      "letter" : "A"
+    }
+  }, {
+    "street" : "Ocean",
+    "building" : {
+      "number" : 2,
+      "letter" : "B"
+    }
+  }, {
+    "street" : "Sunset",
+    "building" : {
+      "number" : 3,
+      "letter" : "C"
+    }
+  } ]
+} ]
