@@ -38,8 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class StatelessNiFiSourceTaskIT {
 
@@ -129,7 +129,7 @@ public class StatelessNiFiSourceTaskIT {
     }
 
     @Test
-    public void testTransferToWrongPort(TestInfo testInfo) throws InterruptedException {
+    public void testTransferToWrongPort(TestInfo testInfo) {
         final StatelessNiFiSourceTask sourceTask = new StatelessNiFiSourceTask();
         sourceTask.initialize(createContext());
 
@@ -137,12 +137,7 @@ public class StatelessNiFiSourceTaskIT {
         properties.put(StatelessNiFiSourceConnector.OUTPUT_PORT_NAME, "Another");
         sourceTask.start(properties);
 
-        try {
-            sourceTask.poll();
-            fail("Expected RetriableException to be thrown");
-        } catch (final RetriableException re) {
-            // Expected
-        }
+        assertThrows(RetriableException.class, () -> sourceTask.poll(), "Expected RetriableException to be thrown");
     }
 
     @Test

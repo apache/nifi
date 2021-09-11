@@ -33,8 +33,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class StatelessNiFiSinkTaskIT {
     private final File DEFAULT_OUTPUT_DIRECTORY = new File("target/sink-output");
@@ -121,13 +121,10 @@ public class StatelessNiFiSinkTaskIT {
             }
         }
 
-        try {
-            sinkTask.put(Collections.singleton(record));
-            sinkTask.flush(Collections.emptyMap());
-            fail("Expected RetriableException to be thrown");
-        } catch (final RetriableException re) {
-            // Expected
-        }
+        assertThrows(RetriableException.class, () -> {
+                    sinkTask.put(Collections.singleton(record));
+                    sinkTask.flush(Collections.emptyMap());
+                }, "Expected RetriableException to be thrown");
     }
 
     private Map<String, String> createDefaultProperties(TestInfo testInfo) {
@@ -140,5 +137,4 @@ public class StatelessNiFiSinkTaskIT {
         properties.put(StatelessKafkaConnectorUtil.DATAFLOW_NAME, testInfo.getTestMethod().get().getName());
         return properties;
     }
-
 }
