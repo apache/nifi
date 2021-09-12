@@ -66,6 +66,8 @@ public class StringNettyEventSenderFactoryTest {
 
     private static final int SINGLE_THREAD = 1;
 
+    private static final long QUIET_PERIOD_QUICK = 100L;
+
     @Mock
     private ComponentLog log;
 
@@ -137,6 +139,7 @@ public class StringNettyEventSenderFactoryTest {
         final StringNettyEventSenderFactory senderFactory = new StringNettyEventSenderFactory(log,
                 ADDRESS, port, TransportProtocol.TCP, CHARSET, LineEnding.UNIX);
         senderFactory.setTimeout(DEFAULT_TIMEOUT);
+        senderFactory.setShutdownQuietPeriod(QUIET_PERIOD_QUICK);
         return senderFactory;
     }
 
@@ -144,6 +147,7 @@ public class StringNettyEventSenderFactoryTest {
         final ByteArrayMessageNettyEventServerFactory factory = new ByteArrayMessageNettyEventServerFactory(log,
                 ADDRESS, port, TransportProtocol.TCP, DELIMITER.getBytes(), MAX_FRAME_LENGTH, messages);
         factory.setWorkerThreads(SINGLE_THREAD);
+        factory.setShutdownQuietPeriod(QUIET_PERIOD_QUICK);
         return factory;
     }
 

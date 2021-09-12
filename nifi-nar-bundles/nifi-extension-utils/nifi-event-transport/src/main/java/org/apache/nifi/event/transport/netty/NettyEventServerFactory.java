@@ -38,6 +38,7 @@ import javax.net.ssl.SSLContext;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
@@ -57,6 +58,12 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     private SSLContext sslContext;
 
     private ClientAuth clientAuth = ClientAuth.NONE;
+
+    private long shutdownQuietPeriod = NettyEventServer.SHUTDOWN_QUIET_PERIOD;
+
+    private long shutdownTimeout = NettyEventServer.SHUTDOWN_TIMEOUT;
+
+    private final TimeUnit shutdownTimeUnit = NettyEventServer.SHUTDOWN_TIME_UNIT;
 
     public NettyEventServerFactory(final String address, final int port, final TransportProtocol protocol) {
         this.address = address;
@@ -98,6 +105,24 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
      */
     public void setClientAuth(final ClientAuth clientAuth) {
         this.clientAuth = clientAuth;
+    }
+
+    /**
+     * Set shutdown quiet period
+     *
+     * @param quietPeriod shutdown quiet period
+     */
+    public void setShutdownQuietPeriod(final long quietPeriod) {
+        this.shutdownQuietPeriod = quietPeriod;
+    }
+
+    /**
+     * Set shutdown timeout
+     *
+     * @param timeout shutdown timeout
+     */
+    public void setShutdownTimeout(long timeout) {
+        this.shutdownTimeout = timeout;
     }
 
     /**
@@ -145,7 +170,7 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
         final ChannelFuture bindFuture = bootstrap.bind(address, port);
         try {
             final ChannelFuture channelFuture = bindFuture.syncUninterruptibly();
-            return new NettyEventServer(group, channelFuture.channel());
+            return new NettyEventServer(group, channelFuture.channel(), shutdownQuietPeriod, shutdownTimeout, shutdownTimeUnit);
         } catch (final Exception e) {
             group.shutdownGracefully();
             throw new EventException(String.format("Channel Bind Failed [%s:%d]", address, port), e);

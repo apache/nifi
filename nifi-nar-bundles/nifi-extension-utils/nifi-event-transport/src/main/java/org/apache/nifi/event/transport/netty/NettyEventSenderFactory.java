@@ -42,6 +42,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
@@ -66,6 +67,12 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
     private SSLContext sslContext;
 
     private boolean singleEventPerConnection = false;
+
+    private long shutdownQuietPeriod = NettyEventSender.SHUTDOWN_QUIET_PERIOD;
+
+    private long shutdownTimeout = NettyEventSender.SHUTDOWN_TIMEOUT;
+
+    private final TimeUnit shutdownTimeUnit = NettyEventSender.SHUTDOWN_TIME_UNIT;
 
     public NettyEventSenderFactory(final String address, final int port, final TransportProtocol protocol) {
         this.address = address;
@@ -107,6 +114,24 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
      */
     public void setTimeout(final Duration timeout) {
         this.timeout = Objects.requireNonNull(timeout, "Timeout required");
+    }
+
+    /**
+     * Set shutdown quiet period
+     *
+     * @param quietPeriod shutdown quiet period
+     */
+    public void setShutdownQuietPeriod(final long quietPeriod) {
+        this.shutdownQuietPeriod = quietPeriod;
+    }
+
+    /**
+     * Set shutdown timeout
+     *
+     * @param timeout shutdown timeout
+     */
+    public void setShutdownTimeout(final long timeout) {
+        this.shutdownTimeout = timeout;
     }
 
     /**
@@ -160,7 +185,8 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
     private EventSender<T> getConfiguredEventSender(final Bootstrap bootstrap) {
         final SocketAddress remoteAddress = bootstrap.config().remoteAddress();
         final ChannelPool channelPool = getChannelPool(bootstrap);
-        return new NettyEventSender<>(bootstrap.config().group(), channelPool, remoteAddress, singleEventPerConnection);
+        return new NettyEventSender<>(bootstrap.config().group(), channelPool, remoteAddress, singleEventPerConnection,
+                shutdownQuietPeriod, shutdownTimeout, shutdownTimeUnit);
     }
 
     private ChannelPool getChannelPool(final Bootstrap bootstrap) {

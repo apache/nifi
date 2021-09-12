@@ -17,10 +17,10 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.event.transport.EventServer;
-import org.apache.nifi.event.transport.EventServerFactory;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
@@ -69,6 +69,8 @@ public class TestPutSyslog {
     private static final String DELIMITER = "\n";
 
     private static final int POLL_TIMEOUT_SECONDS = 5;
+
+    private static final long QUIET_PERIOD_QUICK = 100L;
 
     private TestRunner runner;
 
@@ -130,7 +132,8 @@ public class TestPutSyslog {
     private void assertSyslogMessageSuccess(final String expectedSyslogMessage, final Map<String, String> attributes) throws InterruptedException {
         final BlockingQueue<ByteArrayMessage> messages = new LinkedBlockingQueue<>();
         final byte[] delimiter = DELIMITER.getBytes(CHARSET);
-        final EventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), ADDRESS, port, protocol, delimiter, MAX_FRAME_LENGTH, messages);
+        final NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), ADDRESS, port, protocol, delimiter, MAX_FRAME_LENGTH, messages);
+        serverFactory.setShutdownQuietPeriod(QUIET_PERIOD_QUICK);
         final EventServer eventServer = serverFactory.getEventServer();
 
         try {

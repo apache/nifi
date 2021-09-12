@@ -52,6 +52,8 @@ public class TestPutSplunk {
     private static final Charset CHARSET = StandardCharsets.UTF_8;
     private final static int VALID_LARGE_FILE_SIZE = 32768;
     private static final String LOCALHOST = "localhost";
+    private static final long QUIET_PERIOD_QUICK = 100L;
+
 
     @Before
     public void setup() throws Exception {
@@ -281,6 +283,7 @@ public class TestPutSplunk {
         if (sslContext != null) {
             serverFactory.setSslContext(sslContext);
         }
+        serverFactory.setShutdownQuietPeriod(QUIET_PERIOD_QUICK);
         eventServer = serverFactory.getEventServer();
     }
 
