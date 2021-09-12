@@ -19,6 +19,8 @@ package org.apache.nifi.event.transport.netty;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.configuration.LineEnding;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
@@ -137,6 +139,8 @@ public class StringNettyEventSenderFactoryTest {
         final StringNettyEventSenderFactory senderFactory = new StringNettyEventSenderFactory(log,
                 ADDRESS, port, TransportProtocol.TCP, CHARSET, LineEnding.UNIX);
         senderFactory.setTimeout(DEFAULT_TIMEOUT);
+        senderFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        senderFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         return senderFactory;
     }
 
@@ -144,6 +148,8 @@ public class StringNettyEventSenderFactoryTest {
         final ByteArrayMessageNettyEventServerFactory factory = new ByteArrayMessageNettyEventServerFactory(log,
                 ADDRESS, port, TransportProtocol.TCP, DELIMITER.getBytes(), MAX_FRAME_LENGTH, messages);
         factory.setWorkerThreads(SINGLE_THREAD);
+        factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        factory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         return factory;
     }
 

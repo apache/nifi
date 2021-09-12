@@ -21,6 +21,8 @@ import io.netty.buffer.ByteBufAllocator;
 
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventSender;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.junit.Test;
@@ -43,6 +45,8 @@ public class NettyEventSenderFactoryTest {
         final NettyEventSenderFactory<ByteBuf> factory = new NettyEventSenderFactory<>(ADDRESS, port, TransportProtocol.TCP);
         factory.setTimeout(DEFAULT_TIMEOUT);
         factory.setWorkerThreads(SINGLE_THREAD);
+        factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        factory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         factory.setThreadNamePrefix(NettyEventSenderFactoryTest.class.getSimpleName());
         final SSLContext sslContext = SSLContext.getDefault();
         factory.setSslContext(sslContext);
@@ -57,6 +61,8 @@ public class NettyEventSenderFactoryTest {
         final NettyEventSenderFactory<ByteBuf> factory = new NettyEventSenderFactory<>(ADDRESS, port, TransportProtocol.UDP);
         factory.setTimeout(DEFAULT_TIMEOUT);
         factory.setWorkerThreads(SINGLE_THREAD);
+        factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        factory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         final EventSender<ByteBuf> eventSender = factory.getEventSender();
         eventSender.sendEvent(ByteBufAllocator.DEFAULT.buffer());
         eventSender.close();

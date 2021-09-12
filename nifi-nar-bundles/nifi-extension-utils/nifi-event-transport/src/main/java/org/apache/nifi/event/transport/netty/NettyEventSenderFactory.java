@@ -30,10 +30,12 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.EventSenderFactory;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.netty.channel.StandardChannelInitializer;
 import org.apache.nifi.event.transport.netty.channel.pool.InitializingChannelPoolHandler;
 import org.apache.nifi.event.transport.netty.channel.ssl.ClientSslStandardChannelInitializer;
-import org.apache.nifi.event.transport.netty.channel.StandardChannelInitializer;
 
 import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
@@ -66,6 +68,10 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
     private SSLContext sslContext;
 
     private boolean singleEventPerConnection = false;
+
+    private Duration shutdownQuietPeriod = ShutdownQuietPeriod.DEFAULT.getDuration();
+
+    private Duration shutdownTimeout = ShutdownTimeout.DEFAULT.getDuration();
 
     public NettyEventSenderFactory(final String address, final int port, final TransportProtocol protocol) {
         this.address = address;
@@ -107,6 +113,24 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
      */
     public void setTimeout(final Duration timeout) {
         this.timeout = Objects.requireNonNull(timeout, "Timeout required");
+    }
+
+    /**
+     * Set shutdown quiet period
+     *
+     * @param quietPeriod shutdown quiet period
+     */
+    public void setShutdownQuietPeriod(final Duration quietPeriod) {
+        this.shutdownQuietPeriod = quietPeriod;
+    }
+
+    /**
+     * Set shutdown timeout
+     *
+     * @param timeout shutdown timeout
+     */
+    public void setShutdownTimeout(final Duration timeout) {
+        this.shutdownTimeout = timeout;
     }
 
     /**
@@ -160,7 +184,8 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
     private EventSender<T> getConfiguredEventSender(final Bootstrap bootstrap) {
         final SocketAddress remoteAddress = bootstrap.config().remoteAddress();
         final ChannelPool channelPool = getChannelPool(bootstrap);
-        return new NettyEventSender<>(bootstrap.config().group(), channelPool, remoteAddress, singleEventPerConnection);
+        return new NettyEventSender<>(bootstrap.config().group(), channelPool, remoteAddress, singleEventPerConnection,
+                shutdownQuietPeriod, shutdownTimeout);
     }
 
     private ChannelPool getChannelPool(final Bootstrap bootstrap) {

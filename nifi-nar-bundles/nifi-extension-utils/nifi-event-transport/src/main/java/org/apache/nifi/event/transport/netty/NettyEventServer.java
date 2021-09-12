@@ -19,6 +19,11 @@ package org.apache.nifi.event.transport.netty;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
+
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Netty Event Server
@@ -28,6 +33,10 @@ class NettyEventServer implements EventServer {
 
     private final Channel channel;
 
+    private final Duration shutdownQuietPeriod;
+
+    private final Duration shutdownTimeout;
+
     /**
      * Netty Event Server with Event Loop Group and bound Channel
      *
@@ -35,8 +44,22 @@ class NettyEventServer implements EventServer {
      * @param channel Bound Channel
      */
     NettyEventServer(final EventLoopGroup group, final Channel channel) {
+        this(group, channel, ShutdownQuietPeriod.DEFAULT.getDuration(), ShutdownTimeout.DEFAULT.getDuration());
+    }
+
+    /**
+     * Netty Event Server with Event Loop Group, bound Channel, and Shutdown Configuration
+     *
+     * @param group Event Loop Group
+     * @param channel Bound Channel
+     * @param quietPeriod server shutdown quiet period
+     * @param timeout server shutdown timeout
+     */
+    NettyEventServer(final EventLoopGroup group, final Channel channel, final Duration quietPeriod, final Duration timeout) {
         this.group = group;
         this.channel = channel;
+        this.shutdownQuietPeriod = quietPeriod;
+        this.shutdownTimeout = timeout;
     }
 
     /**
@@ -49,7 +72,7 @@ class NettyEventServer implements EventServer {
                 channel.close().syncUninterruptibly();
             }
         } finally {
-            group.shutdownGracefully().syncUninterruptibly();
+            group.shutdownGracefully(shutdownQuietPeriod.toMillis(), shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS).syncUninterruptibly();
         }
     }
 }
