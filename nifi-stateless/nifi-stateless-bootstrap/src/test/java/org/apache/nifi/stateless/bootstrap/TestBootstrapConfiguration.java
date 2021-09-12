@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestBootstrapConfiguration {
-
     private final String engineConfigPropertiesFilename = "src/test/resources/nifi-stateless.properties";
 
     @Test

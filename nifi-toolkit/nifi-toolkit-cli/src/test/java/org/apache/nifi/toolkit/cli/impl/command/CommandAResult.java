@@ -25,7 +25,6 @@ import org.apache.nifi.toolkit.cli.api.Result;
 import java.util.List;
 
 public class CommandAResult implements Result<List<String>>, Referenceable {
-
     private final List<String> results;
 
     public CommandAResult(final List<String> results) {
@@ -55,5 +54,4 @@ public class CommandAResult implements Result<List<String>>, Referenceable {
             }
         };
     }
-
 }

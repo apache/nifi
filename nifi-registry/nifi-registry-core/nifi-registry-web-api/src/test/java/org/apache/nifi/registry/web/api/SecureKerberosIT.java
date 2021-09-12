@@ -19,9 +19,10 @@ package org.apache.nifi.registry.web.api;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.NiFiRegistryTestApiApplication;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
@@ -33,17 +34,13 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.kerberos.authentication.KerberosTicketValidation;
 import org.springframework.security.kerberos.authentication.KerberosTicketValidator;
 import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import javax.ws.rs.core.Response;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Base64;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Deploy the Web API Application using an embedded Jetty Server for local integration testing, with the follow characteristics:
@@ -53,7 +50,7 @@ import static org.junit.Assert.assertTrue;
  * - The database is embed H2 using volatile (in-memory) persistence
  * - Custom SQL is clearing the DB before each test method by default, unless method overrides this behavior
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "spring.profiles.include=ITSecureKerberos")
@@ -102,7 +99,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
 
     private String adminAuthToken;
 
-    @Before
+    @BeforeEach
     public void generateAuthToken() {
         String validTicket = new String(Base64.getEncoder().encode(validKerberosTicket.getBytes(Charset.forName("UTF-8"))));
         final String token = client
@@ -136,10 +133,10 @@ public class SecureKerberosIT extends IntegrationTestBase {
                 .post(null, Response.class);
 
         // Then: the server returns 401 Unauthorized with an authenticate challenge header
-        assertEquals(401, tokenResponse1.getStatus());
-        assertNotNull(tokenResponse1.getHeaders().get("www-authenticate"));
-        assertEquals(1, tokenResponse1.getHeaders().get("www-authenticate").size());
-        assertEquals("Negotiate", tokenResponse1.getHeaders().get("www-authenticate").get(0));
+        Assertions.assertEquals(401, tokenResponse1.getStatus());
+        Assertions.assertNotNull(tokenResponse1.getHeaders().get("www-authenticate"));
+        Assertions.assertEquals(1, tokenResponse1.getHeaders().get("www-authenticate").size());
+        Assertions.assertEquals("Negotiate", tokenResponse1.getHeaders().get("www-authenticate").get(0));
 
         // When: the /access/token/kerberos endpoint is accessed again with an invalid ticket
         String invalidTicket = new String(java.util.Base64.getEncoder().encode(invalidKerberosTicket.getBytes(Charset.forName("UTF-8"))));
@@ -150,7 +147,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
                 .post(null, Response.class);
 
         // Then: the server returns 401 Unauthorized
-        assertEquals(401, tokenResponse2.getStatus());
+        Assertions.assertEquals(401, tokenResponse2.getStatus());
 
         // When: the /access/token/kerberos endpoint is accessed with a valid ticket
         String validTicket = new String(Base64.getEncoder().encode(validKerberosTicket.getBytes(Charset.forName("UTF-8"))));
@@ -161,11 +158,11 @@ public class SecureKerberosIT extends IntegrationTestBase {
                 .post(null, Response.class);
 
         // Then: the server returns 200 OK with a JWT in the body
-        assertEquals(201, tokenResponse3.getStatus());
+        Assertions.assertEquals(201, tokenResponse3.getStatus());
         String token = tokenResponse3.readEntity(String.class);
-        assertTrue(StringUtils.isNotEmpty(token));
+        Assertions.assertTrue(StringUtils.isNotEmpty(token));
         String[] jwtParts = token.split("\\.");
-        assertEquals(3, jwtParts.length);
+        Assertions.assertEquals(3, jwtParts.length);
         String jwtPayload = new String(Base64.getDecoder().decode(jwtParts[1]), "UTF-8");
         JSONAssert.assertEquals(expectedJwtPayloadJson, jwtPayload, false);
 
@@ -177,7 +174,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
                 .get(Response.class);
 
         // Then: the server acknowledges the client has access
-        assertEquals(200, accessResponse.getStatus());
+        Assertions.assertEquals(200, accessResponse.getStatus());
         String accessStatus = accessResponse.readEntity(String.class);
         JSONAssert.assertEquals(expectedAccessStatusJson, accessStatus, false);
 
@@ -206,7 +203,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
                 .get(Response.class);
 
         // Then: the server returns a 200 OK with the expected current user
-        assertEquals(200, response.getStatus());
+        Assertions.assertEquals(200, response.getStatus());
         String actualJson = response.readEntity(String.class);
         JSONAssert.assertEquals(expectedJson, actualJson, false);
 

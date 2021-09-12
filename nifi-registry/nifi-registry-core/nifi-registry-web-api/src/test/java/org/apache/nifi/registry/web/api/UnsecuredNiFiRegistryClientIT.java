@@ -19,6 +19,9 @@ package org.apache.nifi.registry.web.api;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.registry.authorization.CurrentUser;
 import org.apache.nifi.registry.authorization.Permissions;
 import org.apache.nifi.registry.bucket.Bucket;
@@ -66,16 +69,13 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedParameter;
 import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.flow.VersionedProcessGroup;
-import org.apache.nifi.flow.VersionedProcessor;
-import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
 import org.apache.nifi.registry.util.FileUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,11 +102,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Test all basic functionality of JerseyNiFiRegistryClient.
@@ -119,7 +119,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
 
     private NiFiRegistryClient client;
 
-    @Before
+    @BeforeEach
     public void setup() {
         final String baseUrl = createBaseURL();
         LOGGER.info("Using base url = " + baseUrl);
@@ -148,7 +148,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         }
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         try {
             client.close();
@@ -345,12 +345,11 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         assertEquals(2, latestMetadata.getVersion());
 
         // get latest metadata that doesn't exist
-        try {
-            snapshotClient.getLatestMetadata(snapshotFlow.getBucketIdentifier(), "DOES-NOT-EXIST");
-            fail("Should have thrown exception");
-        } catch (NiFiRegistryException nfe) {
-            assertEquals("Error retrieving latest snapshot metadata: The specified flow ID does not exist in this bucket.", nfe.getMessage());
-        }
+
+        NiFiRegistryException nfe = assertThrows(NiFiRegistryException.class,
+                () -> snapshotClient.getLatestMetadata(snapshotFlow.getBucketIdentifier(), "DOES-NOT-EXIST"));
+        assertEquals("Error retrieving latest snapshot metadata: The specified flow ID does not exist in this bucket.",
+                nfe.getMessage());
 
         // get latest metadata without bucket
         final VersionedFlowSnapshotMetadata latestMetadataWithoutBucket = snapshotClient.getLatestMetadata(snapshotFlow.getIdentifier());
@@ -418,12 +417,8 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
 
         // try to create version 2.0.0 of nifi-test-nar when the supplied SHA-256 does not match server's
         final String madeUpSha256 = "MADE-UP-SHA-256";
-        try {
-            createExtensionBundleVersionWithStream(bundlesBucket, bundleVersionClient, testNar2, madeUpSha256);
-            fail("Should have thrown exception");
-        } catch (Exception e) {
-            // should have thrown exception from mismatched SHA-256
-        }
+        assertThrows(Exception.class,
+                () -> createExtensionBundleVersionWithStream(bundlesBucket, bundleVersionClient, testNar2, madeUpSha256));
 
         // create version 2.0.0 of nifi-test-nar using correct supplied SHA-256
         final String testNar2Sha256 = calculateSha256Hex(testNar2);
@@ -445,12 +440,9 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         assertFalse(bundlesBucket.isAllowBundleRedeploy());
 
         // try to re-deploy version 1.0.0 of nifi-foo-nar, should fail
-        try {
-            createExtensionBundleVersionWithFile(bundlesBucket, bundleVersionClient, fooNar, null);
-            fail("Should have thrown exception when re-deploying foo nar");
-        } catch (Exception e) {
-            // Should throw exception
-        }
+
+        assertThrows(Exception.class,
+                () -> createExtensionBundleVersionWithFile(bundlesBucket, bundleVersionClient, fooNar, null));
 
         // now update bucket 1 to allow redeploy
         bundlesBucket.setAllowBundleRedeploy(true);
@@ -564,12 +556,8 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         assertEquals(testNarV1Bundle.getIdentifier(), deletedBundleVersion2.getBundle().getIdentifier());
         assertEquals("2.0.0", deletedBundleVersion2.getVersionMetadata().getVersion());
 
-        try {
-            bundleVersionClient.getBundleVersion(testNarV1Bundle.getIdentifier(), "2.0.0");
-            fail("Should have thrown exception");
-        } catch (Exception e) {
-            // should catch exception
-        }
+        assertThrows(Exception.class,
+                () -> bundleVersionClient.getBundleVersion(testNarV1Bundle.getIdentifier(), "2.0.0"));
 
         // Verify getting bundles with filter params
         assertEquals(3, bundleClient.getAll(BundleFilterParams.empty()).size());

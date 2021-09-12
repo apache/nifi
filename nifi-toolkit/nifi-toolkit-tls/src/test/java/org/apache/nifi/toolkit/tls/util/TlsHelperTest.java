@@ -34,15 +34,13 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.bouncycastle.util.IPAddress;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +54,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -92,7 +91,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TlsHelperTest {
     public static final Logger logger = LoggerFactory.getLogger(TlsHelperTest.class);
 
@@ -120,9 +119,6 @@ public class TlsHelperTest {
 
     @Mock
     OutputStreamFactory outputStreamFactory;
-
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
 
     private ByteArrayOutputStream tmpFileOutputStream;
 
@@ -162,7 +158,7 @@ public class TlsHelperTest {
         return loadCertificate(new FileReader(file));
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         days = 360;
         keySize = 2048;
@@ -178,7 +174,7 @@ public class TlsHelperTest {
         when(outputStreamFactory.create(file)).thenReturn(tmpFileOutputStream);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         setUnlimitedCrypto(originalUnlimitedCrypto);
         file.delete();
@@ -475,10 +471,18 @@ public class TlsHelperTest {
         return ks;
     }
 
+    private File createFolder(String path) throws IOException {
+        File root = Files.createTempDirectory(String.valueOf(System.currentTimeMillis())).toFile();
+        File newFolder = new File(root, path);
+        newFolder.mkdirs();
+
+        return newFolder;
+    }
+
     @Test
     public void testOutputToFileTwoCertsAsPem() throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
+        File folder = createFolder("splitKeystoreOutputDir");
 
         KeyStore keyStore = setupKeystore();
         HashMap<String, Certificate> certs = TlsHelper.extractCerts(keyStore);
@@ -498,7 +502,7 @@ public class TlsHelperTest {
     // Keystore contains two certificates, but one key. This is to test the edge case where a certificate does not have a key.
     @Test
     public void testOutputToFileOneKeyAsPem() throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException {
-        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
+        File folder = createFolder("splitKeystoreOutputDir");
         KeyStore keyStore = setupKeystore();
         HashMap<String, Key> keys = TlsHelper.extractKeys(keyStore, password.toCharArray());
         TlsHelper.outputKeysAsPem(keys, folder, ".key");

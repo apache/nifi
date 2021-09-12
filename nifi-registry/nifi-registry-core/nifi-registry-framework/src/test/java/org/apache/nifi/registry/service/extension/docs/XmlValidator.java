@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.registry.service.extension.docs;
 
-import org.junit.Assert;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -24,6 +23,10 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.StringReader;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class XmlValidator {
 
@@ -33,15 +36,15 @@ public class XmlValidator {
             dbf.setNamespaceAware(true);
             dbf.newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
         } catch (SAXException | IOException | ParserConfigurationException e) {
-            Assert.fail(e.getMessage());
+            fail(e.getMessage());
         }
     }
 
     public static void assertContains(String original, String subword) {
-        Assert.assertTrue(original + " did not contain: " + subword, original.contains(subword));
+        assertTrue(original.contains(subword), original + " did not contain: " + subword);
     }
 
     public static void assertNotContains(String original, String subword) {
-        Assert.assertFalse(original + " did contain: " + subword, original.contains(subword));
+        assertFalse(original.contains(subword), original + " did contain: " + subword);
     }
 }

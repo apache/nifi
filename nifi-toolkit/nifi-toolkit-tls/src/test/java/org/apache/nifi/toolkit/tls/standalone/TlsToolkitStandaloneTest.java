@@ -20,21 +20,21 @@ package org.apache.nifi.toolkit.tls.standalone;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.toolkit.tls.SystemExitCapturer;
 import org.apache.nifi.toolkit.tls.commandLine.BaseTlsToolkitCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
-import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.configuration.InstanceIdentifier;
+import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.TlsCertificateAuthorityTest;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.toolkit.tls.util.TlsHelperTest;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.asn1.x509.GeneralName;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,10 +60,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TlsToolkitStandaloneTest {
     public static final String NIFI_FAKE_PROPERTY = "nifi.fake.property";
@@ -74,7 +74,7 @@ public class TlsToolkitStandaloneTest {
 
     private File tempDir;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         tempDir = File.createTempFile("tls-test", UUID.randomUUID().toString());
         if (!tempDir.delete()) {
@@ -87,7 +87,7 @@ public class TlsToolkitStandaloneTest {
         systemExitCapturer = new SystemExitCapturer();
     }
 
-    @After
+    @AfterEach
     public void teardown() throws IOException {
         systemExitCapturer.close();
         FileUtils.deleteDirectory(tempDir);

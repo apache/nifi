@@ -18,8 +18,8 @@
 package org.apache.nifi.toolkit.tls.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.client.TlsCertificateAuthorityClient;
@@ -28,8 +28,8 @@ import org.apache.nifi.toolkit.tls.service.server.TlsCertificateAuthorityService
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -57,9 +57,9 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.AdditionalMatchers.or;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -80,7 +80,7 @@ public class TlsCertificateAuthorityTest {
     private ByteArrayOutputStream clientConfigFileOutputStream;
     private String subjectAlternativeName;
 
-    @Before
+    @BeforeEach
     public void setup() throws FileNotFoundException {
         objectMapper = new ObjectMapper();
         serverConfigFile = new File("fake.server.config");

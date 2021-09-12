@@ -43,11 +43,10 @@ import org.apache.nifi.registry.security.crypto.BootstrapFileCryptoKeyProvider;
 import org.apache.nifi.registry.security.crypto.CryptoKeyProvider;
 import org.apache.nifi.registry.security.identity.IdentityMapper;
 import org.apache.nifi.registry.service.RegistryService;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +59,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import javax.sql.DataSource;
 import javax.ws.rs.client.Entity;
@@ -77,9 +76,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Deploy the Web API Application using an embedded Jetty Server for local integration testing, with the follow characteristics:
@@ -89,7 +89,7 @@ import static org.junit.Assert.assertTrue;
  * - The database is embed H2 using volatile (in-memory) persistence
  * - Custom SQL is clearing the DB before each test method by default, unless method overrides this behavior
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(
         classes = SecureLdapTestApiApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -152,7 +152,7 @@ public class SecureLdapIT extends IntegrationTestBase {
     private String adminAuthToken;
     private List<AccessPolicy> beforeTestAccessPoliciesSnapshot;
 
-    @Before
+    @BeforeEach
     public void setup() {
         final String basicAuthCredentials = encodeCredentialsForBasicAuth("nifiadmin", "password");
         final String token = client
@@ -165,7 +165,7 @@ public class SecureLdapIT extends IntegrationTestBase {
         beforeTestAccessPoliciesSnapshot = createAccessPoliciesSnapshot();
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         restoreAccessPoliciesSnapshot(beforeTestAccessPoliciesSnapshot);
     }
@@ -632,7 +632,7 @@ public class SecureLdapIT extends IntegrationTestBase {
         LOGGER.info("Using base url = " + baseUrl);
 
         final NiFiRegistryClientConfig clientConfig = createClientConfig(baseUrl);
-        Assert.assertNotNull(clientConfig);
+        assertNotNull(clientConfig);
 
         final NiFiRegistryClient client = new JerseyNiFiRegistryClient.Builder()
                 .config(clientConfig)
@@ -657,20 +657,10 @@ public class SecureLdapIT extends IntegrationTestBase {
         // check the status of the current user again and should be unauthorized
         LOGGER.info("*** THE FOLLOWING JwtException IS EXPECTED ***");
         LOGGER.info("*** We are validating the access token no longer works following logout ***");
-        try {
-            userClient.getAccessStatus();
-            Assert.fail("Should have failed with an unauthorized exception");
-        } catch (Exception e) {
-            //LOGGER.error(e.getMessage(), e);
-        }
+        assertThrows(Exception.class, () -> userClient.getAccessStatus());
 
         // try to get a token with an invalid username and password
-        try {
-            accessClient.getToken("user-does-not-exist", "bad-password");
-            Assert.fail("Should have failed with an unauthorized exception");
-        } catch (Exception e) {
-
-        }
+        assertThrows(Exception.class, () -> accessClient.getToken("user-does-not-exist", "bad-password"));
     }
 
     /** A helper method to lookup identifiers for tenant identities using the REST API

@@ -26,13 +26,17 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
+@Timeout(value = 5, unit = TimeUnit.MINUTES)
 public class RemoteProcessGroupIT extends NiFiSystemIT {
 
     @Test
@@ -83,7 +87,7 @@ public class RemoteProcessGroupIT extends NiFiSystemIT {
                 return false;
             } catch (Exception e) {
                 e.printStackTrace();
-                Assert.fail("Could not retrieve RPG with ID " + rpgId);
+                fail("Could not retrieve RPG with ID " + rpgId);
                 return false;
             }
         });

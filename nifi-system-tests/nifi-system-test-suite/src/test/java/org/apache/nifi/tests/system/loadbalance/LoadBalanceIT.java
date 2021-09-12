@@ -34,8 +34,7 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -45,8 +44,9 @@ import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.Set;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class LoadBalanceIT extends NiFiSystemIT {
     @Override
@@ -215,7 +215,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
         assertEquals(10, nodesByAttribute.size());
         for (final Map.Entry<String, Set<String>> entry : nodesByAttribute.entrySet()) {
             final Set<String> nodes = entry.getValue();
-            assertEquals("FlowFile with attribute number=" + entry.getKey() + " went to nodes " + nodes, 1, nodes.size());
+            assertEquals(1, nodes.size(), "FlowFile with attribute number=" + entry.getKey() + " went to nodes " + nodes);
         }
     }
 
@@ -320,7 +320,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
         try {
             return getNifiClient().getFlowClient().getConnectionStatus(connectionId, true);
         } catch (final Exception e) {
-            Assert.fail("Failed to obtain connection status");
+            fail("Failed to obtain connection status");
             return null;
         }
     }

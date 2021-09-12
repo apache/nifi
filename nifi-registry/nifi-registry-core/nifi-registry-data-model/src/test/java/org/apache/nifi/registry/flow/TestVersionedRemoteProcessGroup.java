@@ -17,9 +17,9 @@
 package org.apache.nifi.registry.flow;
 
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestVersionedRemoteProcessGroup {
 

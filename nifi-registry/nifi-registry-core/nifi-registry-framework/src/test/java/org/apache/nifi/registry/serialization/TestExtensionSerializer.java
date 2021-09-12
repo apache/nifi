@@ -17,20 +17,20 @@
 package org.apache.nifi.registry.serialization;
 
 import org.apache.nifi.extension.manifest.Extension;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestExtensionSerializer {
 
     private Serializer<Extension> serializer;
 
-    @Before
+    @BeforeEach
     public void setup() {
         serializer = new ExtensionSerializer();
     }

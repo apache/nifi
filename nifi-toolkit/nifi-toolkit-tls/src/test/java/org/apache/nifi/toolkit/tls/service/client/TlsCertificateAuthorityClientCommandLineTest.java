@@ -23,23 +23,22 @@ import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.InetAddress;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TlsCertificateAuthorityClientCommandLineTest {
 
     private TlsCertificateAuthorityClientCommandLine tlsCertificateAuthorityClientCommandLine;
     private String testToken;
 
-    @Before
+    @BeforeEach
     public void setup() {
         tlsCertificateAuthorityClientCommandLine = new TlsCertificateAuthorityClientCommandLine();
         testToken = "testToken16bytes";
@@ -61,7 +60,7 @@ public class TlsCertificateAuthorityClientCommandLineTest {
         TlsClientConfig clientConfig = tlsCertificateAuthorityClientCommandLine.createClientConfig();
 
         assertEquals(TlsConfig.DEFAULT_HOSTNAME, clientConfig.getCaHostname());
-        Assert.assertEquals(new TlsConfig().calcDefaultDn(InetAddress.getLocalHost().getHostName()), clientConfig.getDn());
+        assertEquals(new TlsConfig().calcDefaultDn(InetAddress.getLocalHost().getHostName()), clientConfig.getDn());
         assertEquals(TlsCertificateAuthorityClientCommandLine.KEYSTORE + TlsConfig.DEFAULT_KEY_STORE_TYPE.toLowerCase(), clientConfig.getKeyStore());
         assertEquals(TlsConfig.DEFAULT_KEY_STORE_TYPE, clientConfig.getKeyStoreType());
         assertNull(clientConfig.getKeyStorePassword());

@@ -23,11 +23,11 @@ import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriter;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,11 +36,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class NifiPropertiesTlsClientConfigWriterTest {
     @Mock
     NiFiPropertiesWriterFactory niFiPropertiesWriterFactory;
@@ -62,7 +63,7 @@ public class NifiPropertiesTlsClientConfigWriterTest {
     private String keyStoreType;
     private String trustStoreType;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         testHostname = "testHostname";
         hostNum = 22;
@@ -103,10 +104,11 @@ public class NifiPropertiesTlsClientConfigWriterTest {
         assertNotEquals(0, nifiPropertiesTlsClientConfigWriter.getIncrementingPropertyMap().size());
     }
 
-    @Test(expected = NumberFormatException.class)
-    public void testBadPortNum() throws IOException {
+    @Test
+    public void testBadPortNum() {
         nifiPropertiesTlsClientConfigWriter.getOverlayProperties().setProperty(nifiPropertiesTlsClientConfigWriter.getIncrementingPropertyMap().keySet().iterator().next(), "notAnInt");
-        nifiPropertiesTlsClientConfigWriter.write(tlsClientConfig, outputStreamFactory);
+        assertThrows(NumberFormatException.class,
+                () -> nifiPropertiesTlsClientConfigWriter.write(tlsClientConfig, outputStreamFactory));
     }
 
     @Test

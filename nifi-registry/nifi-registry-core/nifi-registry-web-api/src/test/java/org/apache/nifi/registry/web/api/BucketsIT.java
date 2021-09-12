@@ -18,7 +18,7 @@ package org.apache.nifi.registry.web.api;
 
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.context.jdbc.Sql;
@@ -26,13 +26,12 @@ import org.springframework.test.context.jdbc.Sql;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
 import java.util.UUID;
 
 import static org.apache.nifi.registry.web.api.IntegrationTestUtils.assertBucketsEqual;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BucketsIT extends UnsecuredITBase {
 

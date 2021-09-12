@@ -19,13 +19,14 @@ package org.apache.nifi.toolkit.cli.impl.command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.ParseException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestCommandProcessor {
 
@@ -53,7 +54,7 @@ public class TestCommandProcessor {
                 command);
 
         final CommandLine cli1 = command.getCli();
-        Assert.assertEquals("foo1", cli1.getOptionValue(CommandOption.BUCKET_ID.getShortName()));
+        assertEquals("foo1", cli1.getOptionValue(CommandOption.BUCKET_ID.getShortName()));
 
         // run it again and &2 should be resolved to foo1
         processor.processCommand(
@@ -64,7 +65,7 @@ public class TestCommandProcessor {
                 command);
 
         final CommandLine cli2 = command.getCli();
-        Assert.assertEquals("foo2", cli2.getOptionValue(CommandOption.BUCKET_ID.getShortName()));
+        assertEquals("foo2", cli2.getOptionValue(CommandOption.BUCKET_ID.getShortName()));
 
         // run it again and &1 should be resolved to foo1
         processor.processCommand(
@@ -77,7 +78,7 @@ public class TestCommandProcessor {
                 command);
 
         final CommandLine cli3 = command.getCli();
-        Assert.assertEquals("foo1", cli3.getOptionValue(CommandOption.FLOW_ID.getShortName()));
+        assertEquals("foo1", cli3.getOptionValue(CommandOption.FLOW_ID.getShortName()));
     }
 
 }

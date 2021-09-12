@@ -20,8 +20,12 @@ import org.apache.nifi.tests.system.InstanceConfiguration;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
+import java.util.concurrent.TimeUnit;
+
+@Timeout(value = 5, unit = TimeUnit.MINUTES)
 public class JoinClusterWithMissingConnectionNoData extends NiFiSystemIT {
     @Override
     protected NiFiInstanceFactory getInstanceFactory() {

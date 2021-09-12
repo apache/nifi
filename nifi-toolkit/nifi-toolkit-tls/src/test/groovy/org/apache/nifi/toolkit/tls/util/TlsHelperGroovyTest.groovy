@@ -20,10 +20,8 @@ package org.apache.nifi.toolkit.tls.util
 import org.bouncycastle.crypto.params.RSAKeyParameters
 import org.bouncycastle.jcajce.provider.asymmetric.rsa.BCRSAPublicKey
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -33,13 +31,12 @@ import java.security.PrivateKey
 import java.security.Security
 import java.security.cert.X509Certificate
 
-@RunWith(JUnit4.class)
-class TlsHelperGroovyTest extends GroovyTestCase {
+class TlsHelperGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(TlsHelperGroovyTest.class)
     private
     final BCRSAPublicKey BAD_PUBLIC_KEY = new BCRSAPublicKey(new RSAKeyParameters(false, new BigInteger("1", 10), new BigInteger("1", 10)))
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 

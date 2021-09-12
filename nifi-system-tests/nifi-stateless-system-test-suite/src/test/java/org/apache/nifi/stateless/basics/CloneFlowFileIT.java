@@ -17,27 +17,30 @@
 
 package org.apache.nifi.stateless.basics;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TriggerResult;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+@Timeout(value = 30, unit = TimeUnit.MINUTES)
 public class CloneFlowFileIT extends StatelessSystemIT {
 
     @Test
@@ -95,7 +98,7 @@ public class CloneFlowFileIT extends StatelessSystemIT {
             return new String(result.readContentAsByteArray(flowFile), StandardCharsets.UTF_8);
         } catch (final IOException e) {
             e.printStackTrace();
-            Assert.fail("Could not read content");
+            fail("Could not read content");
             return null;
         }
     }

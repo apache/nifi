@@ -24,8 +24,8 @@ import org.apache.nifi.registry.revision.entity.RevisionInfo;
 import org.apache.nifi.registry.revision.web.ClientIdParameter;
 import org.apache.nifi.registry.revision.web.LongParameter;
 import org.apache.nifi.registry.web.service.ServiceFacade;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -43,7 +43,7 @@ public class TenantResourceTest {
     private EventService eventService;
     private ServiceFacade serviceFacade;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         eventService = mock(EventService.class);
         serviceFacade = mock(ServiceFacade.class);

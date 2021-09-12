@@ -24,9 +24,8 @@ import org.apache.nifi.registry.extension.BundlePersistenceProvider;
 import org.apache.nifi.registry.extension.BundleVersionCoordinate;
 import org.apache.nifi.registry.extension.BundleVersionType;
 import org.apache.nifi.registry.provider.ProviderConfigurationContext;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
@@ -40,25 +39,25 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 public class TestFileSystemBundlePersistenceProvider {
-
     static final String EXTENSION_STORAGE_DIR = "target/extension_storage";
 
-    static final ProviderConfigurationContext CONFIGURATION_CONTEXT = new ProviderConfigurationContext() {
-        @Override
-        public Map<String, String> getProperties() {
-            final Map<String,String> props = new HashMap<>();
-            props.put(FileSystemBundlePersistenceProvider.BUNDLE_STORAGE_DIR_PROP, EXTENSION_STORAGE_DIR);
-            return props;
-        }
+    static final ProviderConfigurationContext CONFIGURATION_CONTEXT = () -> {
+        final Map<String,String> props = new HashMap<>();
+        props.put(FileSystemBundlePersistenceProvider.BUNDLE_STORAGE_DIR_PROP, EXTENSION_STORAGE_DIR);
+        return props;
     };
 
     private File bundleStorageDir;
     private BundlePersistenceProvider fileSystemBundleProvider;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         bundleStorageDir = new File(EXTENSION_STORAGE_DIR);
         if (bundleStorageDir.exists()) {
@@ -66,11 +65,11 @@ public class TestFileSystemBundlePersistenceProvider {
             bundleStorageDir.delete();
         }
 
-        Assert.assertFalse(bundleStorageDir.exists());
+        assertFalse(bundleStorageDir.exists());
 
         fileSystemBundleProvider = new FileSystemBundlePersistenceProvider();
         fileSystemBundleProvider.onConfigured(CONFIGURATION_CONTEXT);
-        Assert.assertTrue(bundleStorageDir.exists());
+        assertTrue(bundleStorageDir.exists());
     }
 
     @Test
@@ -106,13 +105,9 @@ public class TestFileSystemBundlePersistenceProvider {
         verifyBundleVersion(bundleStorageDir, versionCoordinate, content1);
 
         // try to save same bundle version that already exists
-        try {
-            final String newContent = "new content";
-            createBundleVersion(fileSystemBundleProvider, versionCoordinate, newContent);
-            Assert.fail("Should have thrown exception");
-        } catch (BundlePersistenceException e) {
-            // expected
-        }
+        final String newContent = "new content";
+        assertThrows(BundlePersistenceException.class,
+                () -> createBundleVersion(fileSystemBundleProvider, versionCoordinate, newContent));
 
         // verify existing content wasn't modified
         verifyBundleVersion(bundleStorageDir, versionCoordinate, content1);
@@ -136,7 +131,7 @@ public class TestFileSystemBundlePersistenceProvider {
         try (final OutputStream out = new ByteArrayOutputStream()) {
             fileSystemBundleProvider.getBundleVersionContent(versionCoordinate, out);
             final String retrievedContent = new String(((ByteArrayOutputStream) out).toByteArray(), StandardCharsets.UTF_8);
-            Assert.assertEquals(newContent, retrievedContent);
+            assertEquals(newContent, retrievedContent);
         }
     }
 
@@ -159,18 +154,18 @@ public class TestFileSystemBundlePersistenceProvider {
             fileSystemBundleProvider.getBundleVersionContent(versionCoordinate1, out);
 
             final String retrievedContent1 = new String(((ByteArrayOutputStream) out).toByteArray(), StandardCharsets.UTF_8);
-            Assert.assertEquals(content1, retrievedContent1);
+            assertEquals(content1, retrievedContent1);
         }
 
         try (final OutputStream out = new ByteArrayOutputStream()) {
             fileSystemBundleProvider.getBundleVersionContent(versionCoordinate2, out);
 
             final String retrievedContent2 = new String(((ByteArrayOutputStream) out).toByteArray(), StandardCharsets.UTF_8);
-            Assert.assertEquals(content2, retrievedContent2);
+            assertEquals(content2, retrievedContent2);
         }
     }
 
-    @Test(expected = BundlePersistenceException.class)
+    @Test
     public void testGetWhenDoesNotExist() throws IOException {
         final String bucketId = "b1";
         final String groupId = "g1";
@@ -180,8 +175,8 @@ public class TestFileSystemBundlePersistenceProvider {
 
         try (final OutputStream out = new ByteArrayOutputStream()) {
             final BundleVersionCoordinate versionCoordinate = getVersionCoordinate(bucketId, groupId, artifactId, version, type);
-            fileSystemBundleProvider.getBundleVersionContent(versionCoordinate, out);
-            Assert.fail("Should have thrown exception");
+            assertThrows(BundlePersistenceException.class,
+                    () -> fileSystemBundleProvider.getBundleVersionContent(versionCoordinate, out));
         }
     }
 
@@ -206,7 +201,7 @@ public class TestFileSystemBundlePersistenceProvider {
         // verify it was deleted
         final File bundleVersionDir = FileSystemBundlePersistenceProvider.getBundleVersionDirectory(bundleStorageDir, versionCoordinate);
         final File bundleFile = FileSystemBundlePersistenceProvider.getBundleFile(bundleVersionDir, versionCoordinate);
-        Assert.assertFalse(bundleFile.exists());
+        assertFalse(bundleFile.exists());
     }
 
     @Test
@@ -222,7 +217,7 @@ public class TestFileSystemBundlePersistenceProvider {
         // verify the bundle version does not already exist
         final File bundleVersionDir = FileSystemBundlePersistenceProvider.getBundleVersionDirectory(bundleStorageDir, versionCoordinate);
         final File bundleFile = FileSystemBundlePersistenceProvider.getBundleFile(bundleVersionDir, versionCoordinate);
-        Assert.assertFalse(bundleFile.exists());
+        assertFalse(bundleFile.exists());
 
         // delete the bundle version
         fileSystemBundleProvider.deleteBundleVersion(versionCoordinate);
@@ -249,10 +244,10 @@ public class TestFileSystemBundlePersistenceProvider {
         createBundleVersion(fileSystemBundleProvider, versionCoordinate2, content2);
         verifyBundleVersion(bundleStorageDir, versionCoordinate2, content2);
 
-        Assert.assertEquals(1, bundleStorageDir.listFiles().length);
+        assertEquals(1, bundleStorageDir.listFiles().length);
         final BundleCoordinate bundleCoordinate = getBundleCoordinate(bucketId, groupId, artifactId);
         fileSystemBundleProvider.deleteAllBundleVersions(bundleCoordinate);
-        Assert.assertEquals(0, bundleStorageDir.listFiles().length);
+        assertEquals(0, bundleStorageDir.listFiles().length);
     }
 
     @Test
@@ -261,10 +256,10 @@ public class TestFileSystemBundlePersistenceProvider {
         final String groupId = "g1";
         final String artifactId = "a1";
 
-        Assert.assertEquals(0, bundleStorageDir.listFiles().length);
+        assertEquals(0, bundleStorageDir.listFiles().length);
         final BundleCoordinate bundleCoordinate = getBundleCoordinate(bucketId, groupId, artifactId);
         fileSystemBundleProvider.deleteAllBundleVersions(bundleCoordinate);
-        Assert.assertEquals(0, bundleStorageDir.listFiles().length);
+        assertEquals(0, bundleStorageDir.listFiles().length);
     }
 
     private void createBundleVersion(final BundlePersistenceProvider persistenceProvider,
@@ -316,11 +311,10 @@ public class TestFileSystemBundlePersistenceProvider {
 
         final File bundleVersionDir = FileSystemBundlePersistenceProvider.getBundleVersionDirectory(storageDir, versionCoordinate);
         final File bundleFile = FileSystemBundlePersistenceProvider.getBundleFile(bundleVersionDir, versionCoordinate);
-        Assert.assertTrue(bundleFile.exists());
+        assertTrue(bundleFile.exists());
 
         try (InputStream in = new FileInputStream(bundleFile)) {
-            Assert.assertEquals(contentString, IOUtils.toString(in, StandardCharsets.UTF_8));
+            assertEquals(contentString, IOUtils.toString(in, StandardCharsets.UTF_8));
         }
     }
-
 }

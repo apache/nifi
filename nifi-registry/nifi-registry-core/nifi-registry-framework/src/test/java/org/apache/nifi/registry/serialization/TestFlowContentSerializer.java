@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.registry.serialization;
 
-import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -30,17 +30,17 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestFlowContentSerializer {
 
     private FlowContentSerializer serializer;
 
-    @Before
+    @BeforeEach
     public void setup() {
         serializer = new FlowContentSerializer();
     }
@@ -153,12 +153,8 @@ public class TestFlowContentSerializer {
     public void testDeserializeJsonNonIntegerVersion() throws IOException {
         final String file = "/serialization/json/non-integer-version.snapshot";
         try (final InputStream is = this.getClass().getResourceAsStream(file)) {
-            try {
-                serializer.readDataModelVersion(is);
-                fail("Should fail");
-            } catch (SerializationException e) {
-                assertEquals("Unable to read the data model version for the flow content.", e.getMessage());
-            }
+            SerializationException e = assertThrows(SerializationException.class, () -> serializer.readDataModelVersion(is));
+            assertEquals("Unable to read the data model version for the flow content.", e.getMessage());
         }
     }
 
@@ -166,12 +162,8 @@ public class TestFlowContentSerializer {
     public void testDeserializeJsonNoVersion() throws IOException {
         final String file = "/serialization/json/no-version.snapshot";
         try (final InputStream is = this.getClass().getResourceAsStream(file)) {
-            try {
-                serializer.readDataModelVersion(is);
-                fail("Should fail");
-            } catch (SerializationException e) {
-                assertEquals("Unable to read the data model version for the flow content.", e.getMessage());
-            }
+            SerializationException e = assertThrows(SerializationException.class, () -> serializer.readDataModelVersion(is));
+            assertEquals("Unable to read the data model version for the flow content.", e.getMessage());
         }
     }
 
@@ -250,19 +242,11 @@ public class TestFlowContentSerializer {
             assertEquals(9999, version.intValue());
             assertFalse(serializer.isProcessGroupVersion(version));
 
-            try {
-                serializer.deserializeFlowContent(version, is);
-                fail("Should fail");
-            } catch (IllegalArgumentException e) {
-                assertEquals("No FlowContent serializer exists for data model version: " + version, e.getMessage());
-            }
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> serializer.deserializeFlowContent(version, is));
+            assertEquals("No FlowContent serializer exists for data model version: " + version, e.getMessage());
 
-            try {
-                serializer.deserializeProcessGroup(version, is);
-                fail("Should fail");
-            } catch (IllegalArgumentException e) {
-                assertEquals("No VersionedProcessGroup serializer exists for data model version: " + version, e.getMessage());
-            }
+            e = assertThrows(IllegalArgumentException.class, () -> serializer.deserializeProcessGroup(version, is));
+            assertEquals("No VersionedProcessGroup serializer exists for data model version: " + version, e.getMessage());
         }
     }
 

@@ -17,34 +17,7 @@
 
 package org.apache.nifi.toolkit.tls.service.server;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.security.InvalidKeyException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.List;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
@@ -61,14 +34,43 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
 public class TlsCertificateAuthorityServiceHandlerTest {
     X509Certificate caCert;
 
@@ -108,7 +110,7 @@ public class TlsCertificateAuthorityServiceHandlerTest {
     private static final String SUBJECT_DN = "CN=NiFi Test Server,OU=Security,O=Apache,ST=CA,C=US";
     private static final List<String> SUBJECT_ALT_NAMES = Arrays.asList("127.0.0.1", "nifi.nifi.apache.org");
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         testToken = "testTokenTestToken";
         testPemEncodedSignedCertificate = "testPemEncodedSignedCertificate";
@@ -174,9 +176,10 @@ public class TlsCertificateAuthorityServiceHandlerTest {
         assertEquals(TlsCertificateAuthorityServiceHandler.FORBIDDEN, getResponse().getError());
     }
 
-    @Test(expected = ServletException.class)
-    public void testServletException() throws IOException, ServletException {
-        tlsCertificateAuthorityServiceHandler.handle(null, baseRequest, httpServletRequest, httpServletResponse);
+    @Test
+    public void testServletException() {
+        assertThrows(ServletException.class,
+                () -> tlsCertificateAuthorityServiceHandler.handle(null, baseRequest, httpServletRequest, httpServletResponse));
     }
 
     @Test
@@ -203,12 +206,12 @@ public class TlsCertificateAuthorityServiceHandlerTest {
         baseRequest.setHandled(true);
 
         // Assert
-        assertNotNull("The extensions parsed from the CSR were found to be null when they should have been present.", extensions);
-        assertNotNull("The Subject Alternate Name parsed from the CSR was found to be null when it should have been present.", extensions.getExtension(Extension.subjectAlternativeName));
+        assertNotNull(extensions, "The extensions parsed from the CSR were found to be null when they should have been present.");
+        assertNotNull(extensions.getExtension(Extension.subjectAlternativeName), "The Subject Alternate Name parsed from the CSR was found to be null when it should have been present.");
         assertTrue(extensions.equivalent(exts));
     }
 
-    @After
+    @AfterEach
     public void verifyHandled() {
         verify(baseRequest).setHandled(true);
     }

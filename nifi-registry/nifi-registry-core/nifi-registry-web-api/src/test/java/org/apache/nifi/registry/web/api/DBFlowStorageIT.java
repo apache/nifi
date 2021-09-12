@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.web.api;
 
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.NiFiRegistryTestApiApplication;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
@@ -25,25 +26,24 @@ import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.io.IOException;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(
         classes = NiFiRegistryTestApiApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -55,7 +55,7 @@ public class DBFlowStorageIT extends IntegrationTestBase {
 
     private NiFiRegistryClient client;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         final String baseUrl = createBaseURL();
         LOGGER.info("Using base url = " + baseUrl);
@@ -72,7 +72,7 @@ public class DBFlowStorageIT extends IntegrationTestBase {
         this.client = client;
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         try {
             client.close();
@@ -154,11 +154,8 @@ public class DBFlowStorageIT extends IntegrationTestBase {
         client.getFlowClient().delete(createdB1.getIdentifier(), createdF1.getIdentifier(), createdF1.getRevision());
 
         // All versions of f1 should be deleted
-        try {
-            client.getFlowSnapshotClient().get(createdF1.getIdentifier(), 1);
-            fail("Should have thrown exception");
-        } catch (NiFiRegistryException nre) {
-        }
+        assertThrows(NiFiRegistryException.class,
+                () -> client.getFlowSnapshotClient().get(createdF1.getIdentifier(), 1));
 
         // Versions of f2 should still exist...
         final VersionedFlowSnapshot retrievedSnapshotF2V1 = client.getFlowSnapshotClient().get(createdF2.getIdentifier(), 1);

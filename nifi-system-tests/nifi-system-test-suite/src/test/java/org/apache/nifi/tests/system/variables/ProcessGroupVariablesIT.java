@@ -22,15 +22,14 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ProcessGroupVariablesIT extends NiFiSystemIT {
-
     @Test
     public void testChangeVariableWhileProcessorRunning() throws NiFiClientException, IOException, InterruptedException {
         // Add variable abc=123 to the root group

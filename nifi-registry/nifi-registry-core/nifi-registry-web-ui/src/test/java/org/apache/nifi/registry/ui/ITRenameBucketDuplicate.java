@@ -17,9 +17,10 @@
 
 package org.apache.nifi.registry.ui;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import io.github.bonigarcia.wdm.WebDriverManager;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -31,12 +32,11 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import io.github.bonigarcia.wdm.WebDriverManager;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class ITRenameBucketDuplicate {
     private WebDriver driver;
@@ -45,7 +45,7 @@ public class ITRenameBucketDuplicate {
     private WebDriverWait wait;
     private StringBuffer verificationErrors = new StringBuffer();
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         WebDriverManager.chromedriver().setup();
         driver = new ChromeDriver();
@@ -180,8 +180,8 @@ public class ITRenameBucketDuplicate {
         assertEquals(2, bucketCount.size());
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterEach
+    public void tearDown() {
         // wait for side nav to close
         wait.until(ExpectedConditions.invisibilityOfElementLocated(By.className("mat-sidenav")));
 

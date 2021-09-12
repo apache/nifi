@@ -17,7 +17,7 @@
 
 package org.apache.nifi.toolkit.tls.configuration;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
@@ -28,7 +28,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class InstanceIdentifierTest {
 
@@ -62,9 +63,10 @@ public class InstanceIdentifierTest {
         testExtractHostnames("test[002]", "test001", "test002");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testExtractHostnamesNoNumber() {
-        testExtractHostnames("test[]", "test");
+        assertThrows(IllegalArgumentException.class,
+                () -> testExtractHostnames("test[]", "test"));
     }
 
     @Test
@@ -72,19 +74,22 @@ public class InstanceIdentifierTest {
         testExtractHostnames("test[1-3]name[1-3]", "test1name1", "test1name2", "test1name3", "test2name1", "test2name2", "test2name3", "test3name1", "test3name2", "test3name3");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testExtractHostnamesUnmatched() {
-        testExtractHostnames("test[");
+        assertThrows(IllegalArgumentException.class,
+                () -> testExtractHostnames("test["));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testExtractHostnamesSpace() {
-        testExtractHostnames("test[ 1-2]");
+        assertThrows(IllegalArgumentException.class,
+                () -> testExtractHostnames("test[ 1-2]"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testExtractHostnamesMultipleHyphens() {
-        testExtractHostnames("test[1-2-3]");
+        assertThrows(IllegalArgumentException.class,
+                () -> testExtractHostnames("test[1-2-3]"));
     }
 
     @Test
@@ -137,9 +142,9 @@ public class InstanceIdentifierTest {
         InstanceIdentifier.extractHostnames(b).map(s -> new InstanceIdentifier(s, 1)).forEach(action);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testCreateIdentifiersCharactersAfterNumber() {
-        InstanceIdentifier.createIdentifiers(Stream.of("test(2)a")).count();
+        assertThrows(IllegalArgumentException.class, () -> InstanceIdentifier.createIdentifiers(Stream.of("test(2)a")).count());
     }
 
     private Stream<Integer> integerRange(int start, int endInclusive) {

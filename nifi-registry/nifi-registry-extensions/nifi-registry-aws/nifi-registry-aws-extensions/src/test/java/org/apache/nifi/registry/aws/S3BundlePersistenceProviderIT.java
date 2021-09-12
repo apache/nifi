@@ -22,10 +22,10 @@ import org.apache.nifi.registry.extension.BundlePersistenceProvider;
 import org.apache.nifi.registry.extension.BundleVersionCoordinate;
 import org.apache.nifi.registry.extension.BundleVersionType;
 import org.apache.nifi.registry.provider.ProviderConfigurationContext;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
@@ -39,8 +39,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -51,7 +51,7 @@ public class S3BundlePersistenceProviderIT {
     private BundlePersistenceProvider provider;
     private ProviderConfigurationContext configurationContext;
 
-    @Before
+    @BeforeEach
     public void setup() {
         final Region region = Region.US_EAST_1;
         final String bucketName = "integration-test-" + System.currentTimeMillis();
@@ -84,7 +84,7 @@ public class S3BundlePersistenceProviderIT {
 
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         try {
             provider.preDestruction();
@@ -100,7 +100,7 @@ public class S3BundlePersistenceProviderIT {
     }
 
     @Test
-    @Ignore // Remove to run this against S3, assumes you have setup external credentials
+    @Disabled // Remove to run this against S3, assumes you have setup external credentials
     public void testS3PersistenceProvider() throws IOException {
         final File narFile = new File("src/test/resources/nars/nifi-foo-nar-1.0.0.nar");
 
@@ -148,12 +148,7 @@ public class S3BundlePersistenceProviderIT {
 
         // Verify we can no longer retrieve version #1
         final ByteArrayOutputStream outputStream2 = new ByteArrayOutputStream();
-        try {
-            provider.getBundleVersionContent(versionCoordinate1, outputStream2);
-            fail("Should have thrown exception");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        assertThrows(Exception.class, () -> provider.getBundleVersionContent(versionCoordinate1, outputStream2));
 
         // Call delete all bundle versions which should leave an empty bucket
         final BundleCoordinate bundleCoordinate = mock(BundleCoordinate.class);
@@ -163,5 +158,4 @@ public class S3BundlePersistenceProviderIT {
 
         provider.deleteAllBundleVersions(bundleCoordinate);
     }
-
 }

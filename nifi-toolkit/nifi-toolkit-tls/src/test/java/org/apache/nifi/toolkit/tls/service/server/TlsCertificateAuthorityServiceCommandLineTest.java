@@ -21,18 +21,18 @@ import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TlsCertificateAuthorityServiceCommandLineTest {
     @Mock
     InputStreamFactory inputStreamFactory;
@@ -41,7 +41,7 @@ public class TlsCertificateAuthorityServiceCommandLineTest {
 
     String testToken;
 
-    @Before
+    @BeforeEach
     public void setup() {
         tlsCertificateAuthorityServiceCommandLine = new TlsCertificateAuthorityServiceCommandLine(inputStreamFactory);
         testToken = "testToken16bytes";

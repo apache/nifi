@@ -18,12 +18,12 @@ package org.apache.nifi.registry.client.impl.request;
 
 import org.apache.nifi.registry.client.RequestConfig;
 import org.apache.nifi.registry.security.util.ProxiedEntitiesUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestProxiedEntityRequestConfig {
 

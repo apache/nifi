@@ -26,5 +26,4 @@ public class ClusteredRemoteProcessGroupIT extends RemoteProcessGroupIT {
             "src/test/resources/conf/clustered/node1/bootstrap.conf",
             "src/test/resources/conf/clustered/node2/bootstrap.conf");
     }
-
 }

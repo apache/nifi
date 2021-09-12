@@ -22,12 +22,8 @@ import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator
 import org.bouncycastle.util.io.pem.PemWriter
-import org.junit.BeforeClass
-import org.junit.Rule
-import org.junit.Test
-import org.junit.rules.TemporaryFolder
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -38,18 +34,16 @@ import java.security.Security
 import java.security.SignatureException
 import java.security.cert.X509Certificate
 
-@RunWith(JUnit4.class)
-class TlsToolkitStandaloneGroovyTest extends GroovyTestCase {
+import static groovy.test.GroovyAssert.shouldFail
+
+class TlsToolkitStandaloneGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(TlsToolkitStandaloneGroovyTest.class)
 
     private final String TEST_SRC_DIR = "src/test/resources/"
     private final String DEFAULT_KEY_PAIR_ALGORITHM = "RSA"
     private final String DEFAULT_SIGNING_ALGORITHM = "SHA256WITHRSA"
 
-    @Rule
-    public TemporaryFolder tmpDir = new TemporaryFolder()
-
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -219,7 +213,8 @@ class TlsToolkitStandaloneGroovyTest extends GroovyTestCase {
     }
 
     private File createBaseDir() {
-        File baseDir = tmpDir.newFolder()
+        File baseDir = Files.createTempDirectory(String.valueOf(System.currentTimeMillis())).toFile()
+        baseDir.mkdirs()
         logger.info("Created base dir at ${baseDir.path}")
         baseDir
     }

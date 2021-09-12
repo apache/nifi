@@ -25,8 +25,8 @@ import org.apache.nifi.registry.metadata.BucketMetadata;
 import org.apache.nifi.registry.metadata.FlowMetadata;
 import org.apache.nifi.registry.metadata.FlowSnapshotMetadata;
 import org.apache.nifi.registry.service.MetadataService;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,7 +46,7 @@ public class TestFlowMetadataSynchronizer {
     private List<BucketMetadata> metadata;
     private FlowMetadataSynchronizer synchronizer;
 
-    @Before
+    @BeforeEach
     public void setup() {
         metadataService = mock(MetadataService.class);
         metadataAwareflowPersistenceProvider = mock(MetadataAwareFlowPersistenceProvider.class);

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.event;
 
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.extension.bundle.Bundle;
 import org.apache.nifi.registry.extension.bundle.BundleType;
@@ -24,16 +25,15 @@ import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.hook.Event;
 import org.apache.nifi.registry.hook.EventFieldName;
 import org.apache.nifi.registry.hook.EventType;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestEventFactory {
 
@@ -43,7 +43,7 @@ public class TestEventFactory {
     private Bundle bundle;
     private BundleVersion bundleVersion;
 
-    @Before
+    @BeforeEach
     public void setup() {
         bucket = new Bucket();
         bucket.setName("Bucket1");

@@ -23,15 +23,18 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Timeout(value = 5, unit = TimeUnit.MINUTES)
 public class JoinClusterAdjustStateIT extends NiFiSystemIT {
     @Override
     protected NiFiInstanceFactory getInstanceFactory() {
@@ -101,5 +104,4 @@ public class JoinClusterAdjustStateIT extends NiFiSystemIT {
 
         getClientUtil().waitForCounter(fileProcessor.getId(), "Triggered", 2);
     }
-
 }

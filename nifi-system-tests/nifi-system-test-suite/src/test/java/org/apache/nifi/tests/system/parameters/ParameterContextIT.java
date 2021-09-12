@@ -31,7 +31,9 @@ import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,31 +48,31 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ParameterContextIT extends NiFiSystemIT {
     @Test
-    public void testCreateParameterContext() throws NiFiClientException, IOException {
+    public void testCreateParameterContext(TestInfo testInfo) throws NiFiClientException, IOException {
         final Set<ParameterEntity> parameterEntities = new HashSet<>();
         parameterEntities.add(createParameterEntity("foo", null, false, "bar"));
-        final ParameterContextEntity entity = createParameterContextEntity(getTestName(), "System Test for verifying creation of Parameter Context", parameterEntities);
+        final ParameterContextEntity entity = createParameterContextEntity(getTestName(testInfo), "System Test for verifying creation of Parameter Context", parameterEntities);
 
         final ParamContextClient paramContextClient = getNifiClient().getParamContextClient();
         final ParameterContextEntity returned = paramContextClient.createParamContext(entity);
-        assertSingleFooCreation(returned);
+        assertSingleFooCreation(returned, testInfo);
 
         final String contextId = returned.getId();
         final ParameterContextEntity fetched = paramContextClient.getParamContext(contextId, false);
-        assertSingleFooCreation(fetched);
+        assertSingleFooCreation(fetched, testInfo);
     }
 
-    private void assertSingleFooCreation(final ParameterContextEntity entity) {
+    private void assertSingleFooCreation(final ParameterContextEntity entity, TestInfo testInfo) {
         final ParameterContextDTO returnedDto = entity.getComponent();
-        assertEquals(getTestName(), returnedDto.getName());
+        assertEquals(getTestName(testInfo), returnedDto.getName());
 
         final Set<ParameterEntity> returnedParamEntities = returnedDto.getParameters();
         assertEquals(1, returnedParamEntities.size());
@@ -82,23 +84,23 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testSensitiveParametersNotReturned() throws NiFiClientException, IOException {
+    public void testSensitiveParametersNotReturned(TestInfo testInfo) throws NiFiClientException, IOException {
         final Set<ParameterEntity> parameterEntities = new HashSet<>();
         parameterEntities.add(createParameterEntity("foo", null, true, "bar"));
 
-        final ParameterContextEntity entity = createParameterContextEntity(getTestName(), null, parameterEntities);
+        final ParameterContextEntity entity = createParameterContextEntity(getTestName(testInfo), null, parameterEntities);
         final ParamContextClient paramContextClient = getNifiClient().getParamContextClient();
         final ParameterContextEntity returned = paramContextClient.createParamContext(entity);
-        assertSensitiveParametersNotReturned(returned);
+        assertSensitiveParametersNotReturned(returned, testInfo);
 
         final String contextId = returned.getId();
         final ParameterContextEntity fetched = paramContextClient.getParamContext(contextId, false);
-        assertSensitiveParametersNotReturned(fetched);
+        assertSensitiveParametersNotReturned(fetched, testInfo);
     }
 
-    private void assertSensitiveParametersNotReturned(final ParameterContextEntity entity) {
+    private void assertSensitiveParametersNotReturned(final ParameterContextEntity entity, TestInfo testInfo) {
         final ParameterContextDTO dto = entity.getComponent();
-        assertEquals(getTestName(), dto.getName());
+        assertEquals(getTestName(testInfo), dto.getName());
 
         final Set<ParameterEntity> returnedParamEntities = dto.getParameters();
         assertEquals(1, returnedParamEntities.size());
@@ -112,7 +114,7 @@ public class ParameterContextIT extends NiFiSystemIT {
 
 
     @Test
-    public void testAddingMissingParameterMakesProcessorValid() throws NiFiClientException, IOException, InterruptedException {
+    public void testAddingMissingParameterMakesProcessorValid(TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity createdProcessorEntity = createProcessor(TEST_PROCESSORS_PACKAGE + ".CountEvents", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
         final String processorId = createdProcessorEntity.getId();
 
@@ -124,7 +126,7 @@ public class ParameterContextIT extends NiFiSystemIT {
 
         final Set<ParameterEntity> parameters = new HashSet<>();
         parameters.add(createParameterEntity("foo", null, false, "bar"));
-        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, parameters);
+        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(testInfo), null, parameters);
         final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
 
         setParameterContext("root", createdContextEntity);
@@ -132,7 +134,7 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testValidationWithRequiredPropertiesAndDefault() throws NiFiClientException, IOException, InterruptedException {
+    public void testValidationWithRequiredPropertiesAndDefault(TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
         getClientUtil().updateProcessorProperties(generate, Collections.singletonMap("File Size", "#{foo}"));
         getClientUtil().setAutoTerminatedRelationships(generate, "success");
@@ -144,7 +146,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         final ParameterEntity fooKB = createParameterEntity("foo", null, false, "1 KB");
         final Set<ParameterEntity> parameters = new HashSet<>();
         parameters.add(fooKB);
-        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, parameters);
+        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(testInfo), null, parameters);
         final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
 
         setParameterContext("root", createdContextEntity);
@@ -158,7 +160,7 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testValidationWithNestedParameterContexts() throws NiFiClientException, IOException, InterruptedException {
+    public void testValidationWithNestedParameterContexts(TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
         getClientUtil().updateProcessorProperties(generate, Collections.singletonMap("File Size", "#{foo}"));
         getClientUtil().setAutoTerminatedRelationships(generate, "success");
@@ -170,10 +172,10 @@ public class ParameterContextIT extends NiFiSystemIT {
         final ParameterEntity fooKB = createParameterEntity("foo", null, false, "1 KB");
         final Set<ParameterEntity> parameters = new HashSet<>();
         parameters.add(fooKB);
-        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, parameters);
+        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(testInfo), null, parameters);
         final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
 
-        final ParameterContextEntity parentContextEntity = createParameterContextEntity(getTestName() + " Parent", null,
+        final ParameterContextEntity parentContextEntity = createParameterContextEntity(getTestName(testInfo) + " Parent", null,
                 null, Arrays.asList(createdContextEntity));
         final ParameterContextEntity createdParentContextEntity = getNifiClient().getParamContextClient().createParamContext(parentContextEntity);
 
@@ -181,8 +183,9 @@ public class ParameterContextIT extends NiFiSystemIT {
         waitForValidProcessor(processorId);
     }
 
-    @Test(timeout=30000)
-    public void testValidationWithRequiredPropertiesAndNoDefault() throws NiFiClientException, IOException, InterruptedException {
+    @Test
+    @Timeout(30)
+    public void testValidationWithRequiredPropertiesAndNoDefault(TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("DependOnProperties");
         final Map<String, String> properties = new HashMap<>();
         properties.put("Always Required", "#{foo}");
@@ -195,7 +198,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         final ParameterEntity fooBar = createParameterEntity("foo", null, false, "bar");
         final Set<ParameterEntity> parameters = new HashSet<>();
         parameters.add(fooBar);
-        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, parameters);
+        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(testInfo), null, parameters);
         final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
 
         setParameterContext("root", createdContextEntity);
@@ -213,7 +216,7 @@ public class ParameterContextIT extends NiFiSystemIT {
 
 
     @Test
-    public void testParametersReferencingEL() throws NiFiClientException, IOException, InterruptedException {
+    public void testParametersReferencingEL(TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
         getClientUtil().updateProcessorProperties(generate, Collections.singletonMap("a", "1"));
         getClientUtil().updateProcessorSchedulingPeriod(generate, "10 min");
@@ -232,7 +235,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         parameters.add(createParameterEntity("A", null, false, "${a}"));
         parameters.add(createParameterEntity("A Replace With 5", null, false, "${a:replaceNull(5)}"));
         parameters.add(createParameterEntity("Eleven A", null, false, "11${a}"));
-        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, parameters);
+        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(testInfo), null, parameters);
         final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
 
         setParameterContext("root", createdContextEntity);
@@ -260,7 +263,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         updatedParameters.add(createParameterEntity("A", null, false, "${a}"));
         updatedParameters.add(createParameterEntity("A Replace With 5", null, false, "${a:replaceNull(5)}"));
         updatedParameters.add(createParameterEntity("Eleven A", null, false, "11"));
-        final ParameterContextEntity updatedContextEntity = createParameterContextEntity(getTestName() + "-2", null, updatedParameters);
+        final ParameterContextEntity updatedContextEntity = createParameterContextEntity(getTestName(testInfo) + "-2", null, updatedParameters);
         final ParameterContextEntity secondContextEntity = getNifiClient().getParamContextClient().createParamContext(updatedContextEntity);
 
         // Stop process group so we can change the Parameter Context, then change the context and restart.
@@ -279,7 +282,7 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testParameterWithOptionalProperty() throws NiFiClientException, IOException, InterruptedException {
+    public void testParameterWithOptionalProperty(TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
         getClientUtil().updateProcessorSchedulingPeriod(generate, "10 min");
 
@@ -296,7 +299,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         getClientUtil().setAutoTerminatedRelationships(writeFile, new HashSet<>(Arrays.asList("success", "failure")));
 
         final Set<ParameterEntity> parameters = new HashSet<>();
-        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, parameters);
+        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(testInfo), null, parameters);
         final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
 
         setParameterContext("root", createdContextEntity);
@@ -351,8 +354,8 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testProcessorStartedAfterLongValidationPeriod() throws NiFiClientException, IOException, InterruptedException {
-        final ParameterContextEntity createdContextEntity = createParameterContext("sleep", "6 secs");
+    public void testProcessorStartedAfterLongValidationPeriod(TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity createdContextEntity = createParameterContext("sleep", "6 secs", testInfo);
 
         // Set the Parameter Context on the root Process Group
         setParameterContext("root", createdContextEntity);
@@ -394,8 +397,8 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testProcessorRestartedAfterLongDependentServiceValidationPeriod() throws NiFiClientException, IOException, InterruptedException {
-        final ParameterContextEntity createdContextEntity = createParameterContext("sleep", "0 secs");
+    public void testProcessorRestartedAfterLongDependentServiceValidationPeriod(TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity createdContextEntity = createParameterContext("sleep", "0 secs", testInfo);
 
         // Set the Parameter Context on the root Process Group
         setParameterContext("root", createdContextEntity);
@@ -444,8 +447,8 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testParamChangeWhileReferencingControllerServiceEnabling() throws NiFiClientException, IOException, InterruptedException {
-        final ParameterContextEntity createdContextEntity = createParameterContext("sleep", "7 sec");
+    public void testParamChangeWhileReferencingControllerServiceEnabling(TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity createdContextEntity = createParameterContext("sleep", "7 sec", testInfo);
 
         // Set the Parameter Context on the root Process Group
         setParameterContext("root", createdContextEntity);
@@ -470,17 +473,17 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testParamChangeWhileReferencingControllerServiceDisabling() throws NiFiClientException, IOException, InterruptedException {
-        testParamChangeWhileReferencingControllerServiceDisabling(true);
+    public void testParamChangeWhileReferencingControllerServiceDisabling(TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
+        testParamChangeWhileReferencingControllerServiceDisabling(true, testInfo);
     }
 
     @Test
-    public void testParamChangeWhileReferencingControllerServiceEnabled() throws NiFiClientException, IOException, InterruptedException {
-        testParamChangeWhileReferencingControllerServiceDisabling(false);
+    public void testParamChangeWhileReferencingControllerServiceEnabled(TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
+        testParamChangeWhileReferencingControllerServiceDisabling(false, testInfo);
     }
 
-    private void testParamChangeWhileReferencingControllerServiceDisabling(final boolean disableServiceBeforeUpdate) throws NiFiClientException, IOException, InterruptedException {
-        final ParameterContextEntity createdContextEntity = createParameterContext("sleep", "7 sec");
+    private void testParamChangeWhileReferencingControllerServiceDisabling(final boolean disableServiceBeforeUpdate, TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity createdContextEntity = createParameterContext("sleep", "7 sec", testInfo);
 
         // Set the Parameter Context on the root Process Group
         final ProcessGroupEntity childGroup = getClientUtil().createProcessGroup("child", "root");
@@ -515,8 +518,8 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testParamChangeWhileReferencingProcessorStartingButInvalid() throws NiFiClientException, IOException, InterruptedException {
-        final ParameterContextEntity contextEntity = createParameterContext("clone", "true");
+    public void testParamChangeWhileReferencingProcessorStartingButInvalid(TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity contextEntity = createParameterContext("clone", "true", testInfo);
 
         // Set the Parameter Context on the root Process Group
         setParameterContext("root", contextEntity);
@@ -542,19 +545,19 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testProcessorRestartedWhenParameterChanged() throws NiFiClientException, IOException, InterruptedException {
-        testProcessorRestartedWhenParameterChanged("#{name}");
+    public void testProcessorRestartedWhenParameterChanged(TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
+        testProcessorRestartedWhenParameterChanged("#{name}", testInfo);
     }
 
     @Test
-    public void testProcessorRestartedWhenParameterChangedWhenReferencedThroughEL() throws NiFiClientException, IOException, InterruptedException {
-        testProcessorRestartedWhenParameterChanged("${'hello':equals(#{name})}");
+    public void testProcessorRestartedWhenParameterChangedWhenReferencedThroughEL(TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
+        testProcessorRestartedWhenParameterChanged("${'hello':equals(#{name})}", testInfo);
     }
 
-    private void testProcessorRestartedWhenParameterChanged(final String propertyValue) throws NiFiClientException, IOException, InterruptedException {
+    private void testProcessorRestartedWhenParameterChanged(final String propertyValue, TestInfo testInfo) throws NiFiClientException, IOException, InterruptedException {
         final Set<ParameterEntity> parameters = new HashSet<>();
         parameters.add(createParameterEntity("name", null, false, "bar"));
-        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, parameters);
+        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(testInfo), null, parameters);
         final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
 
         // Set the Parameter Context on the root Process Group
@@ -661,12 +664,12 @@ public class ParameterContextIT extends NiFiSystemIT {
         return getClientUtil().setParameterContext(groupId, parameterContext);
     }
 
-    public ParameterContextEntity createParameterContext(final String parameterName, final String parameterValue) throws NiFiClientException, IOException {
-        return createParameterContext(Collections.singletonMap(parameterName, parameterValue));
+    public ParameterContextEntity createParameterContext(final String parameterName, final String parameterValue, TestInfo testInfo) throws NiFiClientException, IOException {
+        return createParameterContext(Collections.singletonMap(parameterName, parameterValue), testInfo);
     }
 
-    public ParameterContextEntity createParameterContext(final Map<String, String> parameters) throws NiFiClientException, IOException {
-        return getClientUtil().createParameterContext(getTestName(), parameters);
+    public ParameterContextEntity createParameterContext(final Map<String, String> parameters, TestInfo testInfo) throws NiFiClientException, IOException {
+        return getClientUtil().createParameterContext(getTestName(testInfo), parameters);
     }
 
     public ParameterContextUpdateRequestEntity updateParameterContext(final ParameterContextEntity existingEntity, final String paramName, final String paramValue)

@@ -17,18 +17,19 @@
 
 package org.apache.nifi.stateless.basics;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TriggerResult;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,17 +39,19 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Timeout(value = 30, unit = TimeUnit.MINUTES)
 public class AsyncCommitCallbackIT extends StatelessSystemIT {
     private final File inputFile = new File("target/input.txt");
     private final File replacementFile = new File("target/replacement.txt");
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         Files.write(inputFile.toPath(), "Hello World".getBytes(), StandardOpenOption.CREATE);
         Files.deleteIfExists(replacementFile.toPath());
@@ -98,12 +101,14 @@ public class AsyncCommitCallbackIT extends StatelessSystemIT {
         assertTrue(failureOutputFile.exists());
     }
 
-    @Test(timeout = 10_000)
+    @Test
+    @Timeout(10)
     public void testCleanupAfterFlowFilesTerminated() throws IOException, StatelessConfigurationException, InterruptedException {
         testCleanupAfterFlowFilesTerminated("asynchronous");
     }
 
-    @Test(timeout = 10_000)
+    @Test
+    @Timeout(10)
     public void testSynchronousCommitCleanupAFterFlowFilesTerminated() throws IOException, StatelessConfigurationException, InterruptedException {
         testCleanupAfterFlowFilesTerminated("synchronous");
     }

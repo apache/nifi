@@ -19,14 +19,14 @@ package org.apache.nifi.registry.web.security.authentication.oidc;
 import com.nimbusds.oauth2.sdk.Scope;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

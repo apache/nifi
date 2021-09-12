@@ -18,10 +18,10 @@ package org.apache.nifi.toolkit.cli.impl.command.registry;
 
 import org.apache.nifi.toolkit.cli.CLIMain;
 import org.apache.nifi.util.StringUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -33,9 +33,9 @@ import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RegistryManualIT {
     public static final String TRUSTSTORE = "";
@@ -60,20 +60,20 @@ public class RegistryManualIT {
     private PrintStream originalStdOut;
     private ByteArrayOutputStream out;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
-        assertFalse("truststore not set", StringUtils.isBlank(TRUSTSTORE));
-        assertFalse("truststorePasswd not set", StringUtils.isBlank(TRUSTSTORE_PASSWD));
-        assertFalse("keystore not set", StringUtils.isBlank(KEYSTORE));
-        assertFalse("keystorePassed not set", StringUtils.isBlank(KEYSTORE_PASSWD));
+        assertFalse(StringUtils.isBlank(TRUSTSTORE), "truststore not set");
+        assertFalse(StringUtils.isBlank(TRUSTSTORE_PASSWD), "truststorePasswd not set");
+        assertFalse(StringUtils.isBlank(KEYSTORE), "keystore not set");
+        assertFalse(StringUtils.isBlank(KEYSTORE_PASSWD), "keystorePassed not set");
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         resetStdOut();
     }
 
-    @Ignore("Run first and only once")
+    @Disabled("Run first and only once")
     @Test
     public void testCreateUser() throws Exception {
         String userName = TEST_USER_NAME;
@@ -85,7 +85,7 @@ public class RegistryManualIT {
         testListUsers(userName);
     }
 
-    @Ignore("Run first and only once")
+    @Disabled("Run first and only once")
     @Test
     public void testCreateUseGroup() throws Exception {
         String expectedUserGroup = TEST_USER_GROUP_NAME;
@@ -99,7 +99,7 @@ public class RegistryManualIT {
        testListUserGroup(expectedUserGroup);
     }
 
-    @Ignore("Run first and only once")
+    @Disabled("Run first and only once")
     @Test
     public void testCreateBucket() throws Exception {
         runRegistryCommand("create-bucket", "--bucketName " + TEST_BUCKET_NAME);
@@ -236,7 +236,7 @@ public class RegistryManualIT {
             },
             () -> {
                 assertNotNull(testUserId);
-                assertTrue("User id shouldn't be blank!", !StringUtils.isBlank(testUserId));
+                assertTrue(!StringUtils.isBlank(testUserId), "User id shouldn't be blank!");
             }
         );
     }
@@ -252,7 +252,7 @@ public class RegistryManualIT {
             },
             () -> {
                 assertNotNull(testUserGroupId);
-                assertTrue("Group id shouldn't be blank!", !StringUtils.isBlank(testUserGroupId));
+                assertTrue(!StringUtils.isBlank(testUserGroupId), "Group id shouldn't be blank!");
             }
         );
     }
@@ -267,7 +267,7 @@ public class RegistryManualIT {
                 },
                 () -> {
                     assertNotNull(testBucketId);
-                    assertTrue("Bucket ID should not be blank!", !StringUtils.isBlank(testBucketId));
+                    assertTrue(!StringUtils.isBlank(testBucketId), "Bucket ID should not be blank!");
                 });
     }
 

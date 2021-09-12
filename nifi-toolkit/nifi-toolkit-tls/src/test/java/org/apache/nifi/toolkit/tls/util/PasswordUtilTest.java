@@ -17,7 +17,7 @@
 
 package org.apache.nifi.toolkit.tls.util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -26,7 +26,8 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.function.Supplier;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -53,11 +54,13 @@ public class PasswordUtilTest {
         assertEquals(expected, actual);
     }
 
-    @Test(expected = PasswordsExhaustedException.class)
+    @Test
     public void testPasswordExhausted() {
-        Supplier<String> supplier = PasswordUtil.passwordSupplier("exhausted", new String[]{"a", "b"});
-        supplier.get();
-        supplier.get();
-        supplier.get();
+        assertThrows(PasswordsExhaustedException.class, () -> {
+            Supplier<String> supplier = PasswordUtil.passwordSupplier("exhausted", new String[]{"a", "b"});
+            supplier.get();
+            supplier.get();
+            supplier.get();
+        });
     }
 }

@@ -24,11 +24,11 @@ import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransactionCompletion;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -37,11 +37,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.function.Supplier;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class SiteToSiteReceiverTest {
     private final ObjectMapper objectMapper = new ObjectMapper().setDefaultPropertyInclusion(Value.construct(Include.NON_NULL, Include.ALWAYS));;
     @Mock
@@ -54,7 +54,7 @@ public class SiteToSiteReceiverTest {
     private final Supplier<SiteToSiteReceiver> receiverSupplier = () -> new SiteToSiteReceiver(siteToSiteClient, data);
     ByteArrayOutputStream expectedData;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         data = new ByteArrayOutputStream();
         expectedData = new ByteArrayOutputStream();

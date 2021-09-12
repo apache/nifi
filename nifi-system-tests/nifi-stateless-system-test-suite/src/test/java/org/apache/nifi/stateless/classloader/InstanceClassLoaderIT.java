@@ -17,13 +17,14 @@
 
 package org.apache.nifi.stateless.classloader;
 
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -31,10 +32,12 @@ import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@Timeout(value = 30, unit = TimeUnit.MINUTES)
 public class InstanceClassLoaderIT extends StatelessSystemIT {
 
     @Test

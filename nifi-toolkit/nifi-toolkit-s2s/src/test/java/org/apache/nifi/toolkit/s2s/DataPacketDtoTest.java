@@ -19,7 +19,7 @@ package org.apache.nifi.toolkit.s2s;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.remote.protocol.DataPacket;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -30,8 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class DataPacketDtoTest {
     public static DataPacketDto create(byte[] data) {

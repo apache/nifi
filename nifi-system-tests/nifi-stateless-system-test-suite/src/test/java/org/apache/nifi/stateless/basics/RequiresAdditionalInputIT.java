@@ -29,8 +29,9 @@ import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.apache.nifi.stateless.flow.TriggerResult;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -44,10 +45,11 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.TimeUnit;
 
-import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Timeout(value = 30, unit = TimeUnit.MINUTES)
 public class RequiresAdditionalInputIT extends StatelessSystemIT {
 
     @Test
@@ -75,11 +77,11 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
         assertTrue(result.isSuccessful());
 
         final List<FlowFile> flowFiles = result.getOutputFlowFiles("Out");
-        Assert.assertEquals(1, flowFiles.size());
+        assertEquals(1, flowFiles.size());
 
         final FlowFile first = flowFiles.get(0);
         final String outputContent = new String(result.readContentAsByteArray(first));
-        Assert.assertEquals("123", outputContent);
+        assertEquals("123", outputContent);
 
         result.acknowledge();
     }

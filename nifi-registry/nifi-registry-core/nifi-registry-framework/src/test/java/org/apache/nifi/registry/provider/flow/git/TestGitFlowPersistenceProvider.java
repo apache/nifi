@@ -26,7 +26,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +39,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestGitFlowPersistenceProvider {
 
@@ -48,14 +48,10 @@ public class TestGitFlowPersistenceProvider {
 
     private void assertCreationFailure(final Map<String, String> properties, final Consumer<ProviderCreationException> assertion) {
         final GitFlowPersistenceProvider persistenceProvider = new GitFlowPersistenceProvider();
-
-        try {
-            final ProviderConfigurationContext configurationContext = new StandardProviderConfigurationContext(properties);
-            persistenceProvider.onConfigured(configurationContext);
-            fail("Should fail");
-        } catch (ProviderCreationException e) {
-            assertion.accept(e);
-        }
+        final ProviderConfigurationContext configurationContext = new StandardProviderConfigurationContext(properties);
+        ProviderCreationException e = assertThrows(ProviderCreationException.class,
+                () -> persistenceProvider.onConfigured(configurationContext));
+        assertion.accept(e);
     }
 
     @Test

@@ -21,8 +21,13 @@ import org.apache.nifi.registry.authorization.User
 import org.apache.nifi.registry.authorization.UserGroup
 import org.apache.nifi.registry.bucket.Bucket
 import org.apache.nifi.registry.exception.ResourceNotFoundException
-import org.apache.nifi.registry.security.authorization.*
 import org.apache.nifi.registry.security.authorization.AccessPolicy as AuthAccessPolicy
+import org.apache.nifi.registry.security.authorization.AuthorizableLookup
+import org.apache.nifi.registry.security.authorization.ConfigurableAccessPolicyProvider
+import org.apache.nifi.registry.security.authorization.ConfigurableUserGroupProvider
+import org.apache.nifi.registry.security.authorization.Group
+import org.apache.nifi.registry.security.authorization.RequestAction
+import org.apache.nifi.registry.security.authorization.StandardManagedAuthorizer
 import org.apache.nifi.registry.security.authorization.User as AuthUser
 import org.apache.nifi.registry.security.authorization.exception.AccessDeniedException
 import org.apache.nifi.registry.security.authorization.resource.Authorizable

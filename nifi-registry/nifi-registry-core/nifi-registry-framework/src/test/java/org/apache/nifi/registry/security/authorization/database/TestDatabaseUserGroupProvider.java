@@ -27,8 +27,8 @@ import org.apache.nifi.registry.security.authorization.UserGroupProviderInitiali
 import org.apache.nifi.registry.security.authorization.util.UserGroupProviderUtils;
 import org.apache.nifi.registry.security.identity.DefaultIdentityMapper;
 import org.apache.nifi.registry.security.identity.IdentityMapper;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -39,10 +39,10 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -55,7 +55,7 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
 
     private ConfigurableUserGroupProvider userGroupProvider;
 
-    @Before
+    @BeforeEach
     public void setup() {
         properties = new NiFiRegistryProperties();
         identityMapper = new DefaultIdentityMapper(properties);

@@ -27,10 +27,13 @@ import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
+@Timeout(value = 5, unit = TimeUnit.MINUTES)
 public class JoinClusterWithMissingConnectionWithData extends NiFiSystemIT {
     private static final String GENERATE_UUID = "6be9a7e7-016e-1000-0000-00004700499d";
     private static final String CONNECTION_UUID = "6be9a991-016e-1000-ffff-fffffebf0217";

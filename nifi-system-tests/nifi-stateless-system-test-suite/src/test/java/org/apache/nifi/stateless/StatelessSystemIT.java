@@ -32,11 +32,9 @@ import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TransactionThresholds;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.TestName;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -48,7 +46,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class StatelessSystemIT {
@@ -58,19 +55,12 @@ public class StatelessSystemIT {
     // up finding a "compatible bundle" and using that, regardless of the specified version.
     protected static final Bundle SYSTEM_TEST_EXTENSIONS_BUNDLE = new Bundle("org.apache.nifi", "nifi-system-test-extensions-nar", "1.13.0-SNAPSHOT");
 
-    @Rule
-    public TestName name = new TestName();
-
-    @Rule
-    public Timeout defaultTimeout = new Timeout(30, TimeUnit.MINUTES);
-
-
-    @Before
+    @BeforeEach
     public void clearFlows() {
         createdFlows.clear();
     }
 
-    @After
+    @AfterEach
     public void shutdownFlows() {
         createdFlows.forEach(StatelessDataflow::shutdown);
     }
@@ -226,7 +216,7 @@ public class StatelessSystemIT {
         return dataflow;
     }
 
-    protected String getTestName() {
-        return name.getMethodName();
+    protected String getTestName(TestInfo testInfo) {
+        return testInfo.getTestMethod().get().getName();
     }
 }

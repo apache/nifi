@@ -17,14 +17,14 @@
 
 package org.apache.nifi.stateless.parameters;
 
+import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedParameter;
 import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.flow.VersionedPort;
-import org.apache.nifi.flow.VersionedProcessGroup;
-import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
@@ -35,8 +35,7 @@ import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.apache.nifi.stateless.flow.TriggerResult;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -45,8 +44,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ParameterContextIT extends StatelessSystemIT {
 
@@ -105,7 +105,7 @@ public class ParameterContextIT extends StatelessSystemIT {
         parameterContext.getParameters().add(createVersionedParameter("three", "-1"));  // Set value to -1. This should be overridden by the Numeric Parameter Context.
         flowBuilder.getRootGroup().setParameterContextName("Context 1");
 
-        Assert.assertThrows(IllegalStateException.class, () -> {
+        assertThrows(IllegalStateException.class, () -> {
             loadDataflow(flowSnapshot, Collections.emptyList(), parameterValueProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE);
         });
     }
@@ -133,7 +133,7 @@ public class ParameterContextIT extends StatelessSystemIT {
         parameterContext.getParameters().add(createVersionedParameter("three", "1"));  // Set value to -1. This should be overridden by the Numeric Parameter Context.
         flowBuilder.getRootGroup().setParameterContextName("Context 1");
 
-        Assert.assertThrows(IllegalStateException.class, () -> {
+        assertThrows(IllegalStateException.class, () -> {
             loadDataflow(flowSnapshot, Collections.emptyList(), parameterValueProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE);
         });
     }

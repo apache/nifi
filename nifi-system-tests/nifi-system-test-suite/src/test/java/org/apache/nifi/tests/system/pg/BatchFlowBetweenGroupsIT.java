@@ -25,13 +25,15 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
+@Timeout(value = 5, unit = TimeUnit.MINUTES)
 public class BatchFlowBetweenGroupsIT extends NiFiSystemIT {
-
     @Test
     public void testSingleConcurrencyAndBatchOutputToBatchInputOutput() throws NiFiClientException, IOException, InterruptedException {
         // Create Flow such as:

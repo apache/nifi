@@ -20,7 +20,8 @@ package org.apache.nifi.tests.system.validation;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -28,8 +29,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class DependentPropertyValidationIT extends NiFiSystemIT {
-
-    @Test(timeout = 20_000)
+    @Test
+    @Timeout(20)
     public void testPropertyDependenciesAreValidatedProperly() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity processor = getClientUtil().createProcessor("DependOnProperties");
         getClientUtil().updateProcessorProperties(processor, Collections.singletonMap("Always Required", "foo"));

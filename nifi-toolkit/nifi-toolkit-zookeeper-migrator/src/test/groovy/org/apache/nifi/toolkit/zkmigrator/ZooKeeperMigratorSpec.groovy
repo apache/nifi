@@ -34,7 +34,7 @@ import spock.lang.Unroll
 import java.nio.charset.StandardCharsets
 
 @Unroll
-class ZooKeeperMigratorTest extends Specification {
+class ZooKeeperMigratorSpec extends Specification {
 
     def "Test auth and jaas usage simultaneously"() {
         when:

@@ -16,15 +16,13 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.registry.BucketsResult;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -34,17 +32,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@DisabledOnOs(OS.WINDOWS)
 public class TestBucketsResult {
 
     private ByteArrayOutputStream outputStream;
     private PrintStream printStream;
 
-    @BeforeClass
-    public static void setupCompleter() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-    }
-
-    @Before
+    @BeforeEach
     public void setup() {
         this.outputStream = new ByteArrayOutputStream();
         this.printStream = new PrintStream(outputStream, true);
@@ -79,7 +75,6 @@ public class TestBucketsResult {
                 "2   Bucket 2   ddf5f289-7502-46df-9798-4b0457c1816b   (empty)            \n" +
                 "\n";
 
-        Assert.assertEquals(expected, resultOut);
+        assertEquals(expected, resultOut);
     }
-
 }

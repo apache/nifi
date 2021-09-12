@@ -18,8 +18,8 @@ package org.apache.nifi.registry.db.migration;
 
 import org.apache.nifi.registry.db.entity.BucketItemEntityType;
 import org.flywaydb.core.Flyway;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -27,7 +27,7 @@ import javax.sql.DataSource;
 import java.util.Date;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Test running the legacy Flyway migrations against an in-memory H2 and then using the LegacyDatabaseService to
@@ -43,7 +43,7 @@ public class TestLegacyDatabaseService {
     private FlowEntityV1 flowEntityV1;
     private FlowSnapshotEntityV1 flowSnapshotEntityV1;
 
-    @Before
+    @BeforeEach
     public void setup() {
         dataSource = DataSourceBuilder.create()
                 .url("jdbc:h2:mem:legacydb")
@@ -139,5 +139,4 @@ public class TestLegacyDatabaseService {
         assertEquals(flowSnapshotEntityV1.getCreatedBy(), fs.getCreatedBy());
         assertEquals(flowSnapshotEntityV1.getCreated(), fs.getCreated());
     }
-
 }

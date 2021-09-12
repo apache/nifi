@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.tests.system.parameters;
 
-import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
+import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
 
 /**
  * Repeats all tests in ParameterContextIT but in a clustered mode

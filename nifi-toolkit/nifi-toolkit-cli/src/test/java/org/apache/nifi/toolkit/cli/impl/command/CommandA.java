@@ -25,7 +25,6 @@ import org.apache.nifi.toolkit.cli.api.Context;
 import java.util.List;
 
 public class CommandA implements Command<CommandAResult> {
-
     private final List<String> results;
 
     private CommandLine cli;

@@ -16,17 +16,18 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.writer;
 
-import org.apache.commons.lang3.SystemUtils;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@DisabledOnOs(OS.WINDOWS)
 public class TestDynamicTableWriter {
 
     private Table table;
@@ -35,12 +36,7 @@ public class TestDynamicTableWriter {
     private ByteArrayOutputStream outputStream;
     private PrintStream printStream;
 
-    @BeforeClass
-    public static void setupCompleter() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-    }
-
-    @Before
+    @BeforeEach
     public void setup() {
         this.table = new Table.Builder()
                 .column("#", 3, 3, false)
@@ -67,7 +63,7 @@ public class TestDynamicTableWriter {
                 "---   --------------------   ------------------------------------   -----------   \n" +
                 "\n";
 
-        Assert.assertEquals(expected, result);
+        assertEquals(expected, result);
     }
 
     @Test
@@ -106,7 +102,7 @@ public class TestDynamicTableWriter {
                 "3   Bucket 3                               12345-12345-12345-12345-12345-12345   (empty)                                    \n" +
                 "\n";
 
-        Assert.assertEquals(expected, result);
+        assertEquals(expected, result);
     }
 
     @Test
@@ -125,7 +121,6 @@ public class TestDynamicTableWriter {
                 "2   Bucket 2   12345-12345-12345-12345-12345-12345   (empty)       \n" +
                 "\n";
 
-        Assert.assertEquals(expected, result);
+        assertEquals(expected, result);
     }
-
 }

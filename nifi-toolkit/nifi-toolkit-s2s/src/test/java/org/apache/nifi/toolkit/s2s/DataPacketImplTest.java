@@ -18,8 +18,8 @@
 package org.apache.nifi.toolkit.s2s;
 
 import org.apache.commons.io.IOUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,13 +30,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class DataPacketImplTest {
     private Map<String, String> testAttributes;
 
-    @Before
+    @BeforeEach
     public void setup() {
         testAttributes = new HashMap<>();
         testAttributes.put("testKey", "testVal");
