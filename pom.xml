@@ -1109,7 +1109,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>6.1.5</version>
+                        <version>6.3.1</version>
                         <executions>
                             <execution>
                                 <inherited>false</inherited>
@@ -1118,6 +1118,8 @@
                                 </goals>
                                 <configuration>
                                     <suppressionFiles>nifi-dependency-check-maven/suppressions.xml</suppressionFiles>
+                                    <!-- Skip System Scope to avoid dependency resolution errors with jdk.tools on Java 8 -->
+                                    <skipSystemScope>true</skipSystemScope>
                                 </configuration>
                             </execution>
                         </executions>
