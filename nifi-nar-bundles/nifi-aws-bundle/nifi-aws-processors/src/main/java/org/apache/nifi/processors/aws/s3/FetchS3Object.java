@@ -171,9 +171,23 @@ public class FetchS3Object extends AbstractS3Processor {
             request = new GetObjectRequest(bucket, key, versionId);
         }
         request.setRequesterPays(requesterPays);
+
+        // tl;dr don't setRange(0) on GetObjectRequest because it results in
+        // InvalidRange errors on zero byte objects.
+        //
+        // Amazon S3 sets byte ranges using HTTP Range headers as described in
+        // https://datatracker.ietf.org/doc/html/rfc2616#section-14.35 and
+        // https://datatracker.ietf.org/doc/html/rfc7233#section-2.1. There
+        // isn't a satisfiable byte range specification for zero length objects
+        // so 416 (Request range not satisfiable) is returned.
+        //
+        // Since the effect of the byte range 0- is equivalent to not sending a
+        // byte range and works for both zero and non-zero length objects,
+        // the single argument setRange() only needs to be called when the
+        // first byte position is greater than zero.
         if (rangeLength != null) {
             request.setRange(rangeStart, rangeStart + rangeLength - 1);
-        } else {
+        } else if (rangeStart > 0) {
             request.setRange(rangeStart);
         }
 
