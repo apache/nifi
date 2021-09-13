@@ -243,7 +243,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String CLUSTER_IS_NODE = "nifi.cluster.is.node";
     public static final String CLUSTER_NODE_ADDRESS = "nifi.cluster.node.address";
     public static final String CLUSTER_NODE_PROTOCOL_PORT = "nifi.cluster.node.protocol.port";
-    public static final String CLUSTER_NODE_PROTOCOL_THREADS = "nifi.cluster.node.protocol.threads";
     public static final String CLUSTER_NODE_PROTOCOL_MAX_THREADS = "nifi.cluster.node.protocol.max.threads";
     public static final String CLUSTER_NODE_CONNECTION_TIMEOUT = "nifi.cluster.node.connection.timeout";
     public static final String CLUSTER_NODE_READ_TIMEOUT = "nifi.cluster.node.read.timeout";
@@ -878,15 +877,7 @@ public class NiFiProperties extends ApplicationProperties {
      */
     @Deprecated()
     public int getClusterNodeProtocolThreads() {
-        return getClusterNodeProtocolCorePoolSize();
-    }
-
-    public int getClusterNodeProtocolCorePoolSize() {
-        try {
-            return Integer.parseInt(getProperty(CLUSTER_NODE_PROTOCOL_THREADS));
-        } catch (NumberFormatException nfe) {
-            return DEFAULT_CLUSTER_NODE_PROTOCOL_THREADS;
-        }
+        return getClusterNodeProtocolMaxPoolSize();
     }
 
     public int getClusterNodeProtocolMaxPoolSize() {

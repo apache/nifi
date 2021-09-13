@@ -1239,7 +1239,7 @@
                             processGroupName.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the process group name as necessary
-                            nfCanvasUtils.ellipsis(processGroupName, d.component.name);
+                            nfCanvasUtils.ellipsis(processGroupName, d.component.name, 'group-name');
                         })
                         .append('title')
                         .text(function (d) {

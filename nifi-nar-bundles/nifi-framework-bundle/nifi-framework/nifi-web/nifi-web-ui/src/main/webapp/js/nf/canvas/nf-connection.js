@@ -931,7 +931,7 @@
                                     connectionFromLabel.text(null).selectAll('title').remove();
 
                                     // apply ellipsis to the label as necessary
-                                    nfCanvasUtils.ellipsis(connectionFromLabel, d.component.source.name);
+                                    nfCanvasUtils.ellipsis(connectionFromLabel, d.component.source.name, 'connection-from');
                                 }).append('title').text(function () {
                                 return d.component.source.name;
                             });
@@ -1040,7 +1040,7 @@
                                     connectionToLabel.text(null).selectAll('title').remove();
 
                                     // apply ellipsis to the label as necessary
-                                    nfCanvasUtils.ellipsis(connectionToLabel, d.component.destination.name);
+                                    nfCanvasUtils.ellipsis(connectionToLabel, d.component.destination.name, 'connection-to');
                                 }).append('title').text(function (d) {
                                 return d.component.destination.name;
                             });
@@ -1145,7 +1145,7 @@
                                     connectionToLabel.text(null).selectAll('title').remove();
 
                                     // apply ellipsis to the label as necessary
-                                    nfCanvasUtils.ellipsis(connectionToLabel, connectionNameValue);
+                                    nfCanvasUtils.ellipsis(connectionToLabel, connectionNameValue, 'connection-name');
                                 }).append('title').text(function () {
                                 return connectionNameValue;
                             });

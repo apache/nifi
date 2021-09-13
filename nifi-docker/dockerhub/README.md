@@ -167,7 +167,6 @@ volume to provide certificates on the host system to the container instance.
 | nifi.cluster.is.node                      | NIFI_CLUSTER_IS_NODE                   |
 | nifi.cluster.node.address                 | NIFI_CLUSTER_ADDRESS                   |
 | nifi.cluster.node.protocol.port           | NIFI_CLUSTER_NODE_PROTOCOL_PORT        |
-| nifi.cluster.node.protocol.threads        | NIFI_CLUSTER_NODE_PROTOCOL_THREADS     |
 | nifi.cluster.node.protocol.max.threads    | NIFI_CLUSTER_NODE_PROTOCOL_MAX_THREADS |
 | nifi.zookeeper.connect.string             | NIFI_ZK_CONNECT_STRING                 |
 | nifi.zookeeper.root.node                  | NIFI_ZK_ROOT_NODE                      |
