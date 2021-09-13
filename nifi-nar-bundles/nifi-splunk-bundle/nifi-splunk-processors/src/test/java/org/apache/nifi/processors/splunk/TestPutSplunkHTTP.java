@@ -167,7 +167,6 @@ public class TestPutSplunkHTTP {
 
         assertEquals(EVENT, processor.getLastContent());
         assertEquals(attributes.get("ff_content_type"), processor.getLastContentType());
-        assertEquals("%2Fservices%2Fcollector%2Fraw%3Fsourcetype%3Dtest_source_type%26source%3Dtest_source", path.getValue());
     }
 
     @Test
