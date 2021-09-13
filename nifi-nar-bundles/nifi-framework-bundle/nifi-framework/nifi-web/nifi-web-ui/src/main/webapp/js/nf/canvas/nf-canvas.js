@@ -231,6 +231,9 @@
         var currentProcessGroup = nfCanvas.getGroupId();
         var currentParameterContext = nfCanvas.getParameterContext();
 
+        // clear caches because what is in the cache may not be applicable and we don't want the caches to grow indefinitely.
+        nfCanvasUtils.clearEllipsisCache();
+
         // update process group id and attempt to reload
         nfCanvas.setGroupId(processGroupId);
         var processGroupXhr = reloadProcessGroup(options);
