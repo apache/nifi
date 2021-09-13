@@ -749,7 +749,7 @@ public class InvokeHTTP extends AbstractProcessor {
             results.add(new ValidationResult.Builder()
                 .subject("Authorization properties")
                 .valid(false)
-                .explanation("Can't use username+password and OAuth2 authorization at the same time")
+                .explanation("OAuth2 Authorization cannot be configured together with Username and Password properties")
                 .build());
         }
 
