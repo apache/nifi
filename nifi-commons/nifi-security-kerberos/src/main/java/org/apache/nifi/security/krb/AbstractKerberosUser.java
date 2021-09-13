@@ -263,16 +263,18 @@ public abstract class AbstractKerberosUser implements KerberosUser {
     private long getRefreshTime(final KerberosTicket tgt) {
         final long start = tgt.getStartTime().getTime();
         final long end = tgt.getEndTime().getTime();
-        final long renewUntil = tgt.getRenewTill().getTime();
 
         if (LOGGER.isTraceEnabled()) {
             final SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
             final String startDate = dateFormat.format(new Date(start));
             final String endDate = dateFormat.format(new Date(end));
-            final String renewUntilDate = dateFormat.format(new Date(renewUntil));
             LOGGER.trace("TGT for {} is valid starting at [{}]", principal, startDate);
             LOGGER.trace("TGT for {} expires at [{}]", principal, endDate);
-            LOGGER.trace("TGT for {} renews until [{}]", principal, renewUntilDate);
+            if (tgt.getRenewTill() == null) {
+                LOGGER.trace("TGT for {} is non-renewable", principal);
+            } else {
+                LOGGER.trace("TGT for {} renews until [{}]", principal,  dateFormat.format(tgt.getRenewTill()));
+            }
         }
 
         return start + (long) ((end - start) * TICKET_RENEW_WINDOW);
