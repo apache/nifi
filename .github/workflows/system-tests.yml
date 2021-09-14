@@ -19,6 +19,13 @@ on:
   # Run every day at 00:00
   schedule:
     - cron: "0 0 * * *"
+  # Run on pull requests for selected modules
+  pull_request:
+    paths:
+      - 'nifi-api/**'
+      - 'nifi-framework-api/**'
+      - 'nifi-nar-bundles/nifi-framework-bundle/**'
+      - 'nifi-system-tests/**'
 
 env:
   DEFAULT_MAVEN_OPTS: >-
