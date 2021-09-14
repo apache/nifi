@@ -232,7 +232,7 @@ public class FrameworkIntegrationTest {
         systemBundle = SystemBundle.create(nifiProperties);
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
-        statusHistoryRepository = new VolatileComponentStatusRepository();
+        statusHistoryRepository = Mockito.mock(StatusHistoryRepository.class);
 
         final PropertyEncryptor encryptor = createEncryptor();
         final Authorizer authorizer = new AlwaysAuthorizedAuthorizer();

@@ -559,7 +559,7 @@ public class ProcessorLifecycleIT {
         final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
-        final StatusHistoryRepository statusHistoryRepository = new VolatileComponentStatusRepository();
+        final StatusHistoryRepository statusHistoryRepository = mock(StatusHistoryRepository.class);
 
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
             mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),

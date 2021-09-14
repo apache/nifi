@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.web.server;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.util.DefaultIndenter;
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections4.CollectionUtils;
@@ -31,9 +27,7 @@ import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
-import org.apache.nifi.controller.status.history.StatusHistory;
-import org.apache.nifi.controller.status.history.StatusHistoryRepository;
-import org.apache.nifi.controller.status.history.StatusHistoryUtil;
+import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
 import org.apache.nifi.diagnostics.DiagnosticsDump;
 import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
@@ -60,7 +54,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.UiExtensionType;
-import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.security.headers.ContentSecurityPolicyFilter;
 import org.apache.nifi.web.security.headers.StrictTransportSecurityFilter;
 import org.apache.nifi.web.security.headers.XContentTypeOptionsFilter;
@@ -118,10 +111,8 @@ import java.net.SocketException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -175,7 +166,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private DiagnosticsFactory diagnosticsFactory;
     private SslContextFactory.Server sslContextFactory;
     private DecommissionTask decommissionTask;
-    private StatusHistoryRepository statusHistoryRepository;
+    private StatusHistoryDumpFactory statusHistoryDumpFactory;
 
     private WebAppContext webApiContext;
     private WebAppContext webDocsContext;
@@ -1197,7 +1188,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
                 diagnosticsFactory = webApplicationContext.getBean("diagnosticsFactory", DiagnosticsFactory.class);
                 decommissionTask = webApplicationContext.getBean("decommissionTask", DecommissionTask.class);
-                statusHistoryRepository = webApplicationContext.getBean("statusHistoryRepository", StatusHistoryRepository.class);
+                statusHistoryDumpFactory = webApplicationContext.getBean("statusHistoryDumpFactory", StatusHistoryDumpFactory.class);
             }
 
             // ensure the web document war was loaded and provide the extension mapping
@@ -1277,27 +1268,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     }
 
     @Override
-    public String getNodeStatusHistoryJson(final int days) {
-        final Date now = new Date();
-        final Calendar calendar = Calendar.getInstance();
-        calendar.setTime(now);
-        calendar.add(Calendar.DATE, days);
-        final Date daysBefore = calendar.getTime();
-        final StatusHistory nodeStatusHistory = statusHistoryRepository.getNodeStatusHistory(daysBefore, now);
-
-        final ObjectMapper objectMapper = new ObjectMapper();
-        final DefaultPrettyPrinter prettyPrinter = new DefaultPrettyPrinter();
-        prettyPrinter.indentArraysWith(DefaultIndenter.SYSTEM_LINEFEED_INSTANCE);
-
-        final StatusHistoryDTO statusHistoryDTO = StatusHistoryUtil.createStatusHistoryDTO(nodeStatusHistory);
-        try {
-            return objectMapper.writer(prettyPrinter).writeValueAsString(statusHistoryDTO);
-        } catch (JsonProcessingException e) {
-            final String errorMessage = "Could not serialize node status history to json.";
-            logger.error(errorMessage, e);
-            return String.format("%s %s", errorMessage, e.getMessage());
-        }
+    public StatusHistoryDumpFactory getStatusHistoryDumpFactory() {
+        return statusHistoryDumpFactory;
     }
+
 
     private void performInjectionForComponentUis(final Collection<WebAppContext> componentUiExtensionWebContexts,
                                                  final NiFiWebConfigurationContext configurationContext, final FilterHolder securityFilter) {

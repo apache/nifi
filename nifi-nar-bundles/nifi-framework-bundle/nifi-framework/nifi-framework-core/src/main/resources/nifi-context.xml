@@ -83,4 +83,8 @@
         <property name="nifiProperties" ref="nifiProperties"/>
         <property name="extensionManager" ref="extensionManager" />
     </bean>
+
+    <bean id="statusHistoryDumpFactory" class="org.apache.nifi.controller.status.history.NodeStatusHistoryDumpFactory">
+        <property name="statusHistoryRepository" ref="statusHistoryRepository" />
+    </bean>
 </beans>

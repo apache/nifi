@@ -44,6 +44,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileAttribute;
@@ -177,7 +178,7 @@ public class RunNiFi {
         System.out.println("Dump : Write a Thread Dump to the file specified by [options], or to the log if no file is given");
         System.out.println("Diagnostics : Write diagnostic information to the file specified by [options], or to the log if no file is given. The --verbose flag may be provided as an option before " +
                 "the filename, which may result in additional diagnostic information being written.");
-        System.out.println("Status-history : Save the status history to the file specified by [options], or to the log if no file is given");
+        System.out.println("Status-history : Save the status history to the file specified by [options], or to the bootstrap log if no file is given");
         System.out.println("Run : Start a new instance of Apache NiFi and monitor the Process, restarting if the instance dies");
         System.out.println();
     }
@@ -220,7 +221,28 @@ public class RunNiFi {
                 verbose = false;
             }
         } else if (cmd.equalsIgnoreCase("status-history")) {
+            if (args.length != 4) {
+                System.err.printf("Wrong number of arguments: %d instead of 4, the command parameters are: " +
+                        "status-history --days <number of days> <dumpFile>%n", args.length);
+                System.exit(0);
+            }
             statusHistoryDays = args[2];
+            try {
+                final int numberOfDays = Integer.parseInt(statusHistoryDays);
+                if (numberOfDays < 1) {
+                    System.err.println("The number of days must be positive and greater than zero.");
+                    System.exit(0);
+                }
+            } catch (NumberFormatException e) {
+                System.err.println("The --days parameter value is not a number. The command parameters are: status-history --days <number of days> <dumpFile>");
+                System.exit(0);
+            }
+            try {
+                Paths.get(args[3]);
+            } catch(InvalidPathException e) {
+                System.err.println("Invalid filename. The command parameters are: status-history --days <number of days> <dumpFile>");
+                System.exit(0);
+            }
             dumpFile = new File(args[3]);
         }
 
@@ -233,9 +255,9 @@ public class RunNiFi {
             case "is_loaded":
             case "dump":
             case "diagnostics":
+            case "status-history":
             case "restart":
             case "env":
-            case "status-history":
                 break;
             default:
                 printUsage();
@@ -279,11 +301,11 @@ public class RunNiFi {
             case "diagnostics":
                 runNiFi.diagnostics(dumpFile, verbose);
                 break;
-            case "env":
-                runNiFi.env();
-                break;
             case "status-history":
                 runNiFi.statusHistory(dumpFile, statusHistoryDays);
+                break;
+            case "env":
+                runNiFi.env();
                 break;
         }
         if (exitStatus != null) {
@@ -742,9 +764,11 @@ public class RunNiFi {
     /**
      * Writes NiFi status history information to the given file; if file is null, logs at
      * INFO level instead.
+     *
+     * @param dumpFile the file to write the dump content to
+     * @throws IOException if any issues occur while writing the dump file
      */
     public void statusHistory(final File dumpFile, final String days) throws IOException {
-        ;
         makeRequest(STATUS_HISTORY_CMD, days, dumpFile, "status history information");
     }
 

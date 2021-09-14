@@ -34,6 +34,8 @@ import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
+import org.apache.nifi.controller.status.history.NodeStatusHistoryDumpFactory;
+import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.controller.status.history.VolatileComponentStatusRepository;
 import org.apache.nifi.diagnostics.DiagnosticsDump;
@@ -204,7 +206,7 @@ public class HeadlessNiFiServer implements NiFiServer {
     }
 
     @Override
-    public String getNodeStatusHistoryJson(int days) {
+    public StatusHistoryDumpFactory getStatusHistoryDumpFactory() {
         return null;
     }
 

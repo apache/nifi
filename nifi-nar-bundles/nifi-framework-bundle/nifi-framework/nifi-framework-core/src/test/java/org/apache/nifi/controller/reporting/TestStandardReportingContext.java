@@ -90,7 +90,7 @@ public class TestStandardReportingContext {
         extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
-        statusHistoryRepository = new VolatileComponentStatusRepository();
+        statusHistoryRepository = Mockito.mock(StatusHistoryRepository.class);
 
         User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
         User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();

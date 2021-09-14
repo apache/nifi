@@ -143,7 +143,7 @@ public class Cluster {
         final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager, sensitiveValueEncoder);
         final FlowElection flowElection = new PopularVoteFlowElection(flowElectionTimeoutMillis, TimeUnit.MILLISECONDS, flowElectionMaxNodes, fingerprintFactory);
-        final StatusHistoryRepository statusHistoryRepository = new VolatileComponentStatusRepository();
+        final StatusHistoryRepository statusHistoryRepository = new VolatileComponentStatusRepository(nifiProperties);
         final Node node = new Node(nifiProperties, extensionManager, flowElection, statusHistoryRepository);
         node.start();
         nodes.add(node);
