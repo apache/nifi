@@ -73,10 +73,12 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         if (inheritedParameterContexts != null) {
             resolveInheritedParameterContexts(parameterContextDto);
             // This will throw an exception if one is not found
-            inheritedParameterContexts.stream().forEach(entity -> flowManager.getParameterContextManager()
+            inheritedParameterContexts.forEach(entity -> flowManager.getParameterContextManager()
                     .getParameterContext(entity.getComponent().getId()));
         }
         authorizeReferences(parameterContextDto);
+
+
     }
 
     @Override
@@ -243,6 +245,10 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         verifyInheritedParameterContextRefs(parameterContextDto);
 
         final ParameterContext currentContext = getParameterContext(parameterContextDto.getId());
+
+        final List<ParameterContext> inheritedParameterContexts = getInheritedParameterContexts(parameterContextDto);
+        currentContext.verifyCanSetInheritedParameterContexts(inheritedParameterContexts);
+
         for (final ParameterEntity parameterEntity : parameterContextDto.getParameters()) {
             final ParameterDTO parameterDto = parameterEntity.getParameter();
             final String parameterName = parameterDto.getName();

@@ -457,30 +457,43 @@ public class StandardParameterContext implements ParameterContext {
     }
 
     @Override
+    public void verifyCanSetInheritedParameterContexts(final List<ParameterContext> inheritedParameterContexts) {
+        if (inheritedParameterContexts == null) {
+            return;
+        }
+        verifyNoCycles(inheritedParameterContexts);
+
+        final Map<ParameterDescriptor, Parameter> currentEffectiveParameters = getEffectiveParameters();
+        final Map<ParameterDescriptor, Parameter> effectiveProposedParameters = getEffectiveParameters(inheritedParameterContexts);
+        final Map<String, Parameter> effectiveParameterUpdates = getEffectiveParameterUpdates(currentEffectiveParameters, effectiveProposedParameters);
+
+        try {
+            verifyCanSetParameters(currentEffectiveParameters, effectiveParameterUpdates);
+        } catch (final IllegalStateException e) {
+            // Wrap with a more accurate message
+            throw new IllegalStateException(String.format("Could not update inherited Parameter Contexts for Parameter Context [%s] because: %s",
+                    name, e.getMessage()), e);
+        }
+    }
+
+    @Override
     public void setInheritedParameterContexts(final List<ParameterContext> inheritedParameterContexts) {
-        if (inheritedParameterContexts.equals(this.inheritedParameterContexts)) {
+        if (inheritedParameterContexts == null || inheritedParameterContexts.equals(this.inheritedParameterContexts)) {
             // No changes
             return;
         }
+
+        verifyCanSetInheritedParameterContexts(inheritedParameterContexts);
 
         final Map<String, ParameterUpdate> parameterUpdates = new HashMap<>();
 
         writeLock.lock();
         try {
             this.version++;
-            verifyNoCycles(inheritedParameterContexts);
 
             final Map<ParameterDescriptor, Parameter> currentEffectiveParameters = getEffectiveParameters();
             final Map<ParameterDescriptor, Parameter> effectiveProposedParameters = getEffectiveParameters(inheritedParameterContexts);
             final Map<String, Parameter> effectiveParameterUpdates = getEffectiveParameterUpdates(currentEffectiveParameters, effectiveProposedParameters);
-
-            try {
-                verifyCanSetParameters(currentEffectiveParameters, effectiveParameterUpdates);
-            } catch (final IllegalStateException e) {
-                // Wrap with a more accurate message
-                throw new IllegalStateException(String.format("Could not update inherited Parameter Contexts for Parameter Context [%s] because: %s",
-                        name, e.getMessage()), e);
-            }
 
             this.inheritedParameterContexts.clear();
 

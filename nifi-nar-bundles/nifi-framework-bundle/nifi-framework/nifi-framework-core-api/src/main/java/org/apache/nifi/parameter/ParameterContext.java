@@ -116,6 +116,13 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
     ParameterReferenceManager getParameterReferenceManager();
 
     /**
+     * Verifies whether the given list of inherited parameter contexts can be set.  This includes checking for
+     * circular references.
+     * @param inheritedParameterContexts the list of ParameterContexts from which to inherit parameters
+     */
+    void verifyCanSetInheritedParameterContexts(List<ParameterContext> inheritedParameterContexts);
+
+    /**
      * Updates the ParameterContexts within this context to match the given list of ParameterContexts. All parameter in these
      * ParameterContexts are inherited by this ParameterContext, and can be referenced as if they were actually in this ParameterContext.
      * The order of the list specifies the priority of parameter overriding, where parameters in the first ParameterContext in the list have
@@ -125,7 +132,7 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
      *
      * @param inheritedParameterContexts the list of ParameterContexts from which to inherit parameters, in priority order first to last
      * @throws IllegalStateException if the list of ParameterContexts is invalid (in case of a circular reference or
-     * in case {@link #verifyCanSetParameters(Map)} verifyCanSetParameters} would throw an exception)
+     * in case {@link #verifyCanSetParameters(Map) verifyCanSetParameters} would throw an exception)
      */
     void setInheritedParameterContexts(List<ParameterContext> inheritedParameterContexts);
 
