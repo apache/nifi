@@ -227,7 +227,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 if (readerSchema != null) {
                     Optional<DataType> dataType = readerSchema.getDataType(columnName);
                     if (dataType.isPresent()) {
-                        return dataType.get();
+                        return determineDataTypeToReturn(dataType.get(), useLogicalTypes);
                     }
                 }
 

@@ -132,7 +132,7 @@ public class ResultSetRecordSetTest {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("column", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
         final RecordSchema recordSchema = new SimpleRecordSchema(fields);
-        final ResultSet resultSet = givenResultSetForOther();
+        final ResultSet resultSet = givenResultSetForOther(fields);
 
         // when
         final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema);
@@ -143,9 +143,30 @@ public class ResultSetRecordSetTest {
     }
 
     @Test
+    public void testCreateSchemaWhenOtherTypeAndNoLogicalTypes() throws SQLException {
+        // given
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
+        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
+        fields.add(new RecordField("time", RecordFieldType.TIME.getDataType()));
+        fields.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
+        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
+        final ResultSet resultSet = givenResultSetForOther(fields);
+
+        // when
+        final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10, 0, false);
+        final RecordSchema resultSchema = testSubject.getSchema();
+
+        // then
+        assertEquals(RecordFieldType.STRING.getDataType(), resultSchema.getField(0).getDataType());
+    }
+
+    @Test
     public void testCreateSchemaWhenOtherTypeWithoutSchema() throws SQLException {
         // given
-        final ResultSet resultSet = givenResultSetForOther();
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("column", RecordFieldType.STRING.getDataType()));
+        final ResultSet resultSet = givenResultSetForOther(fields);
 
         // when
         final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, null);
@@ -339,14 +360,17 @@ public class ResultSetRecordSetTest {
         return resultSet;
     }
 
-    private ResultSet givenResultSetForOther() throws SQLException {
+    private ResultSet givenResultSetForOther(List<RecordField> fields) throws SQLException {
         final ResultSet resultSet = Mockito.mock(ResultSet.class);
         final ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
         when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
-        when(resultSetMetaData.getColumnCount()).thenReturn(1);
-        when(resultSetMetaData.getColumnLabel(1)).thenReturn("column");
-        when(resultSetMetaData.getColumnName(1)).thenReturn("column");
-        when(resultSetMetaData.getColumnType(1)).thenReturn(Types.OTHER);
+        when(resultSetMetaData.getColumnCount()).thenReturn(fields.size());
+        for (int i = 0; i < fields.size(); ++i) {
+            int columnIndex = i + 1;
+            when(resultSetMetaData.getColumnLabel(columnIndex)).thenReturn(fields.get(i).getFieldName());
+            when(resultSetMetaData.getColumnName(columnIndex)).thenReturn(fields.get(i).getFieldName());
+            when(resultSetMetaData.getColumnType(columnIndex)).thenReturn(Types.OTHER);
+        }
         return resultSet;
     }
 
