@@ -307,8 +307,7 @@ public class ResultSetRecordSetTest {
         ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
         ResultSet resultSet = Mockito.mock(ResultSet.class);
 
-        RecordSchema expectedSchema = useLogicalTypes ?
-                givenRecordSchema(columns) : givenRecordSchemaWithOnlyStringType(columns);
+        RecordSchema expectedSchema = useLogicalTypes ? givenRecordSchema(columns) : givenRecordSchemaWithOnlyStringType(columns);
 
         // WHEN
         setUpMocks(columns, resultSetMetaData, resultSet);

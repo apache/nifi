@@ -274,11 +274,11 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
 
     private DataType determineDataTypeToReturn(DataType dataType, boolean useLogicalTypes) {
         RecordFieldType fieldType = dataType.getFieldType();
-        if (!useLogicalTypes &&
-                (fieldType == RecordFieldType.DECIMAL ||
-                 fieldType == RecordFieldType.DATE ||
-                 fieldType == RecordFieldType.TIME ||
-                 fieldType == RecordFieldType.TIMESTAMP)) {
+        if (!useLogicalTypes
+                && (fieldType == RecordFieldType.DECIMAL
+                || fieldType == RecordFieldType.DATE
+                || fieldType == RecordFieldType.TIME
+                || fieldType == RecordFieldType.TIMESTAMP)) {
             return RecordFieldType.STRING.getDataType();
         } else {
             return dataType;
