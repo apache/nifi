@@ -32,6 +32,7 @@ public class ParameterDTO {
     private Boolean valueRemoved;
     private Set<AffectedComponentEntity> referencingComponents;
     private ParameterContextReferenceEntity parameterContext;
+    private Boolean inherited;
 
     @ApiModelProperty("The name of the Parameter")
     public String getName() {
@@ -40,6 +41,15 @@ public class ParameterDTO {
 
     public void setName(final String name) {
         this.name = name;
+    }
+
+    @ApiModelProperty(value = "Whether or not the Parameter is inherited from another context", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    public Boolean getInherited() {
+        return inherited;
+    }
+
+    public void setInherited(final Boolean inherited) {
+        this.inherited = inherited;
     }
 
     @ApiModelProperty("The description of the Parameter")

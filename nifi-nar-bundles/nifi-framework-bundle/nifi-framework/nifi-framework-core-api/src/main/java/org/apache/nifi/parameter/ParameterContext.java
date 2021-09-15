@@ -110,6 +110,16 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
     Map<ParameterDescriptor, Parameter> getEffectiveParameters();
 
     /**
+     * Returns the resulting map of effective parameter updates if the given parameter updates and inherited parameter contexts were to be applied.
+     * This allows potential changes to be detected before actually applying the parameter updates.
+     * @param parameterUpdates A map from parameter name to updated parameter (null if removal is desired)
+     * @param inheritedParameterContexts An ordered list of parameter contexts to inherit from
+     * @return The effective map of parameter updates that would result if these changes were applied.  This includes only parameters that would
+     * be effectively updated or removed, and is mapped by parameter name
+     */
+    Map<String, Parameter> getEffectiveParameterUpdates(Map<String, Parameter> parameterUpdates, List<ParameterContext> inheritedParameterContexts);
+
+    /**
      * Returns the ParameterReferenceManager that is associated with this ParameterContext
      * @return the ParameterReferenceManager that is associated with this ParameterContext
      */

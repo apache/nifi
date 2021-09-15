@@ -138,7 +138,8 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         }
     }
 
-    private Map<String, Parameter> getParameters(final ParameterContextDTO parameterContextDto, final ParameterContext context) {
+    @Override
+    public Map<String, Parameter> getParameters(final ParameterContextDTO parameterContextDto, final ParameterContext context) {
         final Set<ParameterEntity> parameterEntities = parameterContextDto.getParameters();
         if (parameterEntities == null) {
             return Collections.emptyMap();
@@ -147,6 +148,11 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         final Map<String, Parameter> parameterMap = new HashMap<>();
         for (final ParameterEntity parameterEntity : parameterEntities) {
             final ParameterDTO parameterDto = parameterEntity.getParameter();
+
+            // Inherited parameters are only included for referencing components, but we should not save them as direct parameters
+            if (parameterDto.getInherited() != null && parameterDto.getInherited()) {
+                continue;
+            }
 
             if (parameterDto.getName() == null) {
                 throw new IllegalArgumentException("Cannot specify a Parameter without a name");
@@ -228,7 +234,8 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         return context;
     }
 
-    private List<ParameterContext> getInheritedParameterContexts(final ParameterContextDTO parameterContextDto) {
+    @Override
+    public List<ParameterContext> getInheritedParameterContexts(final ParameterContextDTO parameterContextDto) {
         resolveInheritedParameterContexts(parameterContextDto);
 
         final List<ParameterContext> inheritedParameterContexts = new ArrayList<>();
