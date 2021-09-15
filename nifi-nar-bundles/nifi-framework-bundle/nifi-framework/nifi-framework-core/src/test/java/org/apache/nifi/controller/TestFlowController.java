@@ -45,7 +45,6 @@ import org.apache.nifi.controller.service.mock.DummyReportingTask;
 import org.apache.nifi.controller.service.mock.ServiceA;
 import org.apache.nifi.controller.service.mock.ServiceB;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
-import org.apache.nifi.controller.status.history.VolatileComponentStatusRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.groups.ProcessGroup;
@@ -188,7 +187,7 @@ public class TestFlowController {
 
         bulletinRepo = mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-            auditService, encryptor, bulletinRepo, variableRegistry, mock(FlowRegistryClient.class), extensionManager, statusHistoryRepository);
+                auditService, encryptor, bulletinRepo, variableRegistry, mock(FlowRegistryClient.class), extensionManager, statusHistoryRepository);
     }
 
     @After
@@ -291,10 +290,10 @@ public class TestFlowController {
             // verify the processor is still pointing at the controller service that got moved to the root group
             final ProcessorNode processorNode = processorNodes.stream().findFirst().get();
             final PropertyDescriptor procControllerServiceProp = processorNode.getRawPropertyValues().entrySet().stream()
-                .filter(e -> e.getValue().equals(rootGroupCs.getIdentifier()))
-                .map(Map.Entry::getKey)
-                .findFirst()
-                .get();
+                    .filter(e -> e.getValue().equals(rootGroupCs.getIdentifier()))
+                    .map(Map.Entry::getKey)
+                    .findFirst()
+                    .get();
             assertNotNull(procControllerServiceProp);
         } finally {
             purgeFlow();
@@ -524,7 +523,7 @@ public class TestFlowController {
 
         controller.shutdown(true);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-            auditService, encryptor, bulletinRepo, variableRegistry, mock(FlowRegistryClient.class), extensionManager, statusHistoryRepository);
+                auditService, encryptor, bulletinRepo, variableRegistry, mock(FlowRegistryClient.class), extensionManager, statusHistoryRepository);
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }
