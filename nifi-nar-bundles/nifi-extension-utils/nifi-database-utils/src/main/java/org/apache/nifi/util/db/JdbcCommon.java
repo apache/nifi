@@ -189,7 +189,7 @@ public class JdbcCommon {
             return defaultScale;
         }
 
-        public boolean getUseLogicalTypes() {
+        public boolean isUseLogicalTypes() {
             return useLogicalTypes;
         }
 
