@@ -256,7 +256,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 if (readerSchema != null) {
                     Optional<DataType> dataType = readerSchema.getDataType(columnName);
                     if (dataType.isPresent()) {
-                        return dataType.get();
+                        return determineDataTypeToReturn(dataType.get(), useLogicalTypes);
                     }
                 }
 
@@ -269,6 +269,19 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                     return fieldType.getDataType();
                 }
             }
+        }
+    }
+
+    private DataType determineDataTypeToReturn(DataType dataType, boolean useLogicalTypes) {
+        RecordFieldType fieldType = dataType.getFieldType();
+        if (!useLogicalTypes &&
+                (fieldType == RecordFieldType.DECIMAL ||
+                 fieldType == RecordFieldType.DATE ||
+                 fieldType == RecordFieldType.TIME ||
+                 fieldType == RecordFieldType.TIMESTAMP)) {
+            return RecordFieldType.STRING.getDataType();
+        } else {
+            return dataType;
         }
     }
 
