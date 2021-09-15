@@ -1578,7 +1578,7 @@
             var isCurrent = nfCommon.isNull(parameterContextEntity) ? false : availableParameterContext.id === parameterContextEntity.id;
 
             // determine if this available parameter context is already selected
-            var isSelected = nfCommon.isNull(parameterContextEntity) ? false : parameterContextEntity.component.inheritedParameterContexts.some((selectedParameterContext) => {
+            var isSelected = nfCommon.isNull(parameterContextEntity) ? false : parameterContextEntity.component.inheritedParameterContexts.some(function (selectedParameterContext) {
                 return availableParameterContext.id === selectedParameterContext.id;
             });
 
@@ -2606,7 +2606,7 @@
             });
 
             // work around for https://bugs.jqueryui.com/ticket/6054
-            let shouldAllowDrop = true;
+            var shouldAllowDrop = true;
 
             // make the parameter context containers sortable
             $('#parameter-context-available').sortable({
