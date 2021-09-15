@@ -96,49 +96,34 @@ public class ResultSetRecordSetTest {
 
     @Before
     public void setUp() throws SQLException {
-        when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
-        when(resultSetMetaData.getColumnCount()).thenReturn(COLUMNS.length);
-
-        for (final Object[] column : COLUMNS) {
-            when(resultSetMetaData.getColumnLabel((Integer) column[0])).thenReturn((String) (column[1]));
-            when(resultSetMetaData.getColumnName((Integer) column[0])).thenReturn((String) column[1]);
-            when(resultSetMetaData.getColumnType((Integer) column[0])).thenReturn((Integer) column[2]);
-
-            if(column[3] instanceof DecimalDataType) {
-                DecimalDataType ddt = (DecimalDataType)column[3];
-                when(resultSetMetaData.getPrecision((Integer) column[0])).thenReturn(ddt.getPrecision());
-                when(resultSetMetaData.getScale((Integer) column[0])).thenReturn(ddt.getScale());
-            }
-        }
-
-        // Big decimal values are necessary in order to determine precision and scale
-        when(resultSet.getBigDecimal(16)).thenReturn(new BigDecimal(String.join("", Collections.nCopies(500, "1")) + ".1"));
-
-        // This will be handled by a dedicated branch for Java Objects, needs some further details
-        when(resultSetMetaData.getColumnClassName(16)).thenReturn(BigDecimal.class.getName());
+        setUpMocks(COLUMNS, resultSetMetaData, resultSet);
     }
 
     @Test
     public void testCreateSchema() throws SQLException {
         // given
-        final RecordSchema recordSchema = givenRecordSchema();
+        final RecordSchema recordSchema = givenRecordSchema(COLUMNS);
+        final RecordSchema expectedSchema = givenRecordSchema(COLUMNS);
 
         // when
         final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema);
-        final RecordSchema resultSchema = testSubject.getSchema();
+        final RecordSchema actualSchema = testSubject.getSchema();
 
         // then
-        thenAllColumnDataTypesAreCorrect(resultSchema);
+        thenAllColumnDataTypesAreCorrect(COLUMNS, expectedSchema, actualSchema);
     }
 
     @Test
     public void testCreateSchemaWhenNoRecordSchema() throws SQLException {
+        // given
+        final RecordSchema expectedSchema = givenRecordSchema(COLUMNS);
+
         // when
         final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, null);
-        final RecordSchema resultSchema = testSubject.getSchema();
+        final RecordSchema actualSchema = testSubject.getSchema();
 
         // then
-        thenAllColumnDataTypesAreCorrect(resultSchema);
+        thenAllColumnDataTypesAreCorrect(COLUMNS, expectedSchema, actualSchema);
     }
 
     @Test
@@ -173,7 +158,7 @@ public class ResultSetRecordSetTest {
     @Test
     public void testCreateRecord() throws SQLException {
         // given
-        final RecordSchema recordSchema = givenRecordSchema();
+        final RecordSchema recordSchema = givenRecordSchema(COLUMNS);
 
         LocalDate testDate = LocalDate.of(2021, 1, 26);
 
@@ -272,6 +257,77 @@ public class ResultSetRecordSetTest {
         assertEquals(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()), resultSchema.getField(0).getDataType());
     }
 
+    @Test
+    public void testCreateSchemaWithLogicalTypes() throws SQLException {
+        testCreateSchemaLogicalTypes(true);
+    }
+
+    @Test
+    public void testCreateSchemaNoLogicalTypes() throws SQLException {
+        testCreateSchemaLogicalTypes(false);
+    }
+
+    private void testCreateSchemaLogicalTypes(boolean useLogicalTypes) throws SQLException {
+        // GIVEN
+        Object[][] columns = new Object[][] {
+                {1, COLUMN_NAME_DATE, Types.DATE, RecordFieldType.DATE.getDataType()},
+                {2, "time", Types.TIME, RecordFieldType.TIME.getDataType()},
+                {3, "time_with_timezone", Types.TIME_WITH_TIMEZONE, RecordFieldType.TIME.getDataType()},
+                {4, "timestamp", Types.TIMESTAMP, RecordFieldType.TIMESTAMP.getDataType()},
+                {5, "timestamp_with_timezone", Types.TIMESTAMP_WITH_TIMEZONE, RecordFieldType.TIMESTAMP.getDataType()},
+                {6, COLUMN_NAME_BIG_DECIMAL_1, Types.DECIMAL,RecordFieldType.DECIMAL.getDecimalDataType(7, 3)},
+                {7, COLUMN_NAME_BIG_DECIMAL_2, Types.NUMERIC, RecordFieldType.DECIMAL.getDecimalDataType(4, 0)},
+                {8, COLUMN_NAME_BIG_DECIMAL_3, Types.JAVA_OBJECT, RecordFieldType.DECIMAL.getDecimalDataType(501, 1)},
+                {9, COLUMN_NAME_BIG_DECIMAL_4, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(10, 3)},
+                {10, COLUMN_NAME_BIG_DECIMAL_5, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(3, 10)}
+        };
+        final RecordSchema recordSchema = givenRecordSchema(columns);
+
+        ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
+        ResultSet resultSet = Mockito.mock(ResultSet.class);
+
+        RecordSchema expectedSchema = useLogicalTypes ?
+                givenRecordSchema(columns) : givenRecordSchemaWithOnlyStringType(columns);
+
+        // WHEN
+        setUpMocks(columns, resultSetMetaData, resultSet);
+
+        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10,0, useLogicalTypes);
+        RecordSchema actualSchema = testSubject.getSchema();
+
+        // THEN
+        thenAllColumnDataTypesAreCorrect(columns, expectedSchema, actualSchema);
+    }
+
+    private void setUpMocks(Object[][] columns, ResultSetMetaData resultSetMetaData, ResultSet resultSet) throws SQLException {
+        when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+        when(resultSetMetaData.getColumnCount()).thenReturn(columns.length);
+
+        int indexOfBigDecimal = -1;
+        int index = 0;
+        for (final Object[] column : columns) {
+            when(resultSetMetaData.getColumnLabel((Integer) column[0])).thenReturn((String) column[1]);
+            when(resultSetMetaData.getColumnName((Integer) column[0])).thenReturn((String) column[1]);
+            when(resultSetMetaData.getColumnType((Integer) column[0])).thenReturn((Integer) column[2]);
+
+            if (column[3] instanceof DecimalDataType) {
+                DecimalDataType ddt = (DecimalDataType)column[3];
+                when(resultSetMetaData.getPrecision((Integer) column[0])).thenReturn(ddt.getPrecision());
+                when(resultSetMetaData.getScale((Integer) column[0])).thenReturn(ddt.getScale());
+            }
+            if (((int)column[2]) == Types.JAVA_OBJECT) {
+                indexOfBigDecimal = index + 1;
+            }
+            ++index;
+        }
+
+        // Big decimal values are necessary in order to determine precision and scale
+        when(resultSet.getBigDecimal(indexOfBigDecimal)).thenReturn(new BigDecimal(String.join("", Collections.nCopies(500, "1")) + ".1"));
+
+        // This will be handled by a dedicated branch for Java Objects, needs some further details
+        when(resultSetMetaData.getColumnClassName(indexOfBigDecimal)).thenReturn(BigDecimal.class.getName());
+    }
+
     private ResultSet givenResultSetForArrayThrowsException(boolean featureSupported) throws SQLException {
         final ResultSet resultSet = Mockito.mock(ResultSet.class);
         final ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
@@ -294,23 +350,34 @@ public class ResultSetRecordSetTest {
         return resultSet;
     }
 
-    private RecordSchema givenRecordSchema() {
-        final List<RecordField> fields = new ArrayList<>();
+    private RecordSchema givenRecordSchema(Object[][] columns) {
+        final List<RecordField> fields = new ArrayList<>(columns.length);
 
-        for (final Object[] column : COLUMNS) {
+        for (final Object[] column : columns) {
             fields.add(new RecordField((String) column[1], (DataType) column[3]));
         }
 
         return new SimpleRecordSchema(fields);
     }
 
-    private void thenAllColumnDataTypesAreCorrect(final RecordSchema resultSchema) {
-        assertNotNull(resultSchema);
+    private RecordSchema givenRecordSchemaWithOnlyStringType(Object[][] columns) {
+        final List<RecordField> fields = new ArrayList<>(columns.length);
 
-        for (final Object[] column : COLUMNS) {
+        for (final Object[] column : columns) {
+            fields.add(new RecordField((String) column[1], RecordFieldType.STRING.getDataType()));
+        }
+
+        return new SimpleRecordSchema(fields);
+    }
+
+    private void thenAllColumnDataTypesAreCorrect(Object[][] columns, RecordSchema expectedSchema, RecordSchema actualSchema) {
+        assertNotNull(actualSchema);
+
+        for (final Object[] column : columns) {
+            int fieldIndex = (int) column[0] - 1;
             // The DECIMAL column with scale larger than precision will not match so verify that instead
-            DataType actualDataType = resultSchema.getField((Integer) column[0] - 1).getDataType();
-            DataType expectedDataType = (DataType) column[3];
+            DataType actualDataType = actualSchema.getField(fieldIndex).getDataType();
+            DataType expectedDataType = expectedSchema.getField(fieldIndex).getDataType();
             if (expectedDataType.equals(RecordFieldType.DECIMAL.getDecimalDataType(3, 10))) {
                 DecimalDataType decimalDataType = (DecimalDataType) expectedDataType;
                 if (decimalDataType.getScale() > decimalDataType.getPrecision()) {
