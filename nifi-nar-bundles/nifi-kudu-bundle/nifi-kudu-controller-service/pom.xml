@@ -125,7 +125,7 @@
                 <dependency>
                     <groupId>org.apache.kudu</groupId>
                     <artifactId>kudu-binary</artifactId>
-                    <version>${kudu.apache.version}</version>
+                    <version>${kudu.version}</version>
                     <classifier>${os.detected.classifier}</classifier>
                     <scope>test</scope>
                 </dependency>
@@ -142,7 +142,7 @@
                 <dependency>
                     <groupId>org.apache.kudu</groupId>
                     <artifactId>kudu-binary</artifactId>
-                    <version>${kudu.apache.version}</version>
+                    <version>${kudu.version}</version>
                     <classifier>${os.detected.classifier}</classifier>
                     <scope>test</scope>
                 </dependency>
