@@ -484,7 +484,7 @@ public class StandardParameterContext implements ParameterContext {
     @Override
     public void verifyCanSetSensitiveParameterProvider(final SensitiveParameterProvider parameterProvider) {
         if (isParameterProviderUpdate(sensitiveParameterProvider, parameterProvider)) {
-            verifyCanSetParameters(getParameterProviderEffectiveUpdates(parameterProvider, true));
+            verifyCanSetParameters(getParameterProviderEffectiveUpdates(parameterProvider, true), false);
         }
     }
 
@@ -521,7 +521,7 @@ public class StandardParameterContext implements ParameterContext {
     @Override
     public void verifyCanSetNonSensitiveParameterProvider(final NonSensitiveParameterProvider parameterProvider) {
         if (isParameterProviderUpdate(nonSensitiveParameterProvider, parameterProvider)) {
-            verifyCanSetParameters(getParameterProviderEffectiveUpdates(parameterProvider, false));
+            verifyCanSetParameters(getParameterProviderEffectiveUpdates(parameterProvider, false), false);
         }
     }
 
@@ -767,7 +767,7 @@ public class StandardParameterContext implements ParameterContext {
      *                     assumed that these will be stopped prior to the actual update.
      * @throws IllegalStateException if setting the given set of Parameters is not legal
      */
-    public void verifyCanSetParameters(final Map<String, Parameter> updatedParameters, final boolean duringUpdate) {
+    private void verifyCanSetParameters(final Map<String, Parameter> updatedParameters, final boolean duringUpdate) {
         verifyCanSetParameters(parameters, updatedParameters, duringUpdate);
     }
 
@@ -894,22 +894,6 @@ public class StandardParameterContext implements ParameterContext {
         if (parameterProviderNode != null) {
             parameterProviderNode.authorize(authorizer, RequestAction.READ, user);
         }
-    }
-
-    @Override
-    public boolean isAuthorized(final Authorizer authorizer, final RequestAction action, final NiFiUser user) {
-        boolean isAuthorized = ParameterContext.super.isAuthorized(authorizer, action, user);
-
-        if (RequestAction.READ == action) {
-            for (final ParameterContext parameterContext : inheritedParameterContexts) {
-                isAuthorized &= parameterContext.isAuthorized(authorizer, action, user);
-                if (!isAuthorized) {
-                    break;
-                }
-            }
-        }
-
-        return isAuthorized;
     }
 
     @Override
