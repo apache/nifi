@@ -224,8 +224,8 @@ public class TestPutTCP {
         if (sslContext != null) {
             serverFactory.setSslContext(sslContext);
         }
-        serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.value());
-        serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.value());
+        serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         eventServer = serverFactory.getEventServer();
     }
 

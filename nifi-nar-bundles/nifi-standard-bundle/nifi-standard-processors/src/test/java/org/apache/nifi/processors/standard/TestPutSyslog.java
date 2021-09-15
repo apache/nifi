@@ -133,8 +133,8 @@ public class TestPutSyslog {
         final BlockingQueue<ByteArrayMessage> messages = new LinkedBlockingQueue<>();
         final byte[] delimiter = DELIMITER.getBytes(CHARSET);
         final NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), ADDRESS, port, protocol, delimiter, MAX_FRAME_LENGTH, messages);
-        serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.value());
-        serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.value());
+        serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         final EventServer eventServer = serverFactory.getEventServer();
 
         try {

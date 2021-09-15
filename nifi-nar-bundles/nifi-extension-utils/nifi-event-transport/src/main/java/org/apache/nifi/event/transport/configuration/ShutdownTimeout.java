@@ -22,13 +22,13 @@ public enum ShutdownTimeout {
     QUICK(Duration.ofMillis(5000)),
     DEFAULT(Duration.ofMillis(15000));
 
-    private final Duration value;
+    private final Duration duration;
 
-    ShutdownTimeout(final Duration value) {
-        this.value = value;
+    ShutdownTimeout(final Duration duration) {
+        this.duration = duration;
     }
 
-    public Duration value() {
-        return value;
+    public Duration getDuration() {
+        return duration;
     }
 }

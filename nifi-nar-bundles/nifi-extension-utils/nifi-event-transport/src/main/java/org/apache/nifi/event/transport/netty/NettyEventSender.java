@@ -57,7 +57,7 @@ class NettyEventSender<T> implements EventSender<T> {
      * @param singleEventPerConnection If true, send a single event per connection, and then close it.
      */
     NettyEventSender(final EventLoopGroup group, final ChannelPool channelPool, final SocketAddress remoteAddress, final boolean singleEventPerConnection) {
-        this(group, channelPool, remoteAddress, singleEventPerConnection, ShutdownQuietPeriod.DEFAULT.value(), ShutdownTimeout.DEFAULT.value());
+        this(group, channelPool, remoteAddress, singleEventPerConnection, ShutdownQuietPeriod.DEFAULT.getDuration(), ShutdownTimeout.DEFAULT.getDuration());
     }
 
     /**

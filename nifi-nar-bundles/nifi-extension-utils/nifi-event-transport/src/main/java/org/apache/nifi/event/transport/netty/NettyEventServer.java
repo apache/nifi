@@ -44,7 +44,7 @@ class NettyEventServer implements EventServer {
      * @param channel Bound Channel
      */
     NettyEventServer(final EventLoopGroup group, final Channel channel) {
-        this(group, channel, ShutdownQuietPeriod.DEFAULT.value(), ShutdownTimeout.DEFAULT.value());
+        this(group, channel, ShutdownQuietPeriod.DEFAULT.getDuration(), ShutdownTimeout.DEFAULT.getDuration());
     }
 
     /**

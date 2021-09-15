@@ -69,9 +69,9 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
 
     private boolean singleEventPerConnection = false;
 
-    private Duration shutdownQuietPeriod = ShutdownQuietPeriod.DEFAULT.value();
+    private Duration shutdownQuietPeriod = ShutdownQuietPeriod.DEFAULT.getDuration();
 
-    private Duration shutdownTimeout = ShutdownTimeout.DEFAULT.value();
+    private Duration shutdownTimeout = ShutdownTimeout.DEFAULT.getDuration();
 
     public NettyEventSenderFactory(final String address, final int port, final TransportProtocol protocol) {
         this.address = address;

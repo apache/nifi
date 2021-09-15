@@ -22,13 +22,13 @@ public enum ShutdownQuietPeriod {
     QUICK(Duration.ofMillis(100)),
     DEFAULT(Duration.ofMillis(2000));
 
-    private final Duration value;
+    private final Duration duration;
 
-    ShutdownQuietPeriod(final Duration value) {
-        this.value = value;
+    ShutdownQuietPeriod(final Duration duration) {
+        this.duration = duration;
     }
 
-    public Duration value() {
-        return value;
+    public Duration getDuration() {
+        return duration;
     }
 }

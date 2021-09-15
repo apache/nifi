@@ -61,9 +61,9 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
 
     private ClientAuth clientAuth = ClientAuth.NONE;
 
-    private Duration shutdownQuietPeriod = ShutdownQuietPeriod.DEFAULT.value();
+    private Duration shutdownQuietPeriod = ShutdownQuietPeriod.DEFAULT.getDuration();
 
-    private Duration shutdownTimeout = ShutdownTimeout.DEFAULT.value();
+    private Duration shutdownTimeout = ShutdownTimeout.DEFAULT.getDuration();
 
     public NettyEventServerFactory(final String address, final int port, final TransportProtocol protocol) {
         this.address = address;

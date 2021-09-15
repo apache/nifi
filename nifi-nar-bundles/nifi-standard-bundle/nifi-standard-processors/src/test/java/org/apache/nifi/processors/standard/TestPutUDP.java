@@ -86,8 +86,8 @@ public class TestPutUDP {
         final byte[] delimiter = DELIMITER.getBytes(CHARSET);
         NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), address, port, PROTOCOL, delimiter, frameSize, messages);
         serverFactory.setSocketReceiveBuffer(MAX_FRAME_LENGTH);
-        serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.value());
-        serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.value());
+        serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         eventServer = serverFactory.getEventServer();
     }
 

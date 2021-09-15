@@ -45,8 +45,8 @@ public class NettyEventSenderFactoryTest {
         final NettyEventSenderFactory<ByteBuf> factory = new NettyEventSenderFactory<>(ADDRESS, port, TransportProtocol.TCP);
         factory.setTimeout(DEFAULT_TIMEOUT);
         factory.setWorkerThreads(SINGLE_THREAD);
-        factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.value());
-        factory.setShutdownTimeout(ShutdownTimeout.QUICK.value());
+        factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        factory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         factory.setThreadNamePrefix(NettyEventSenderFactoryTest.class.getSimpleName());
         final SSLContext sslContext = SSLContext.getDefault();
         factory.setSslContext(sslContext);
@@ -61,8 +61,8 @@ public class NettyEventSenderFactoryTest {
         final NettyEventSenderFactory<ByteBuf> factory = new NettyEventSenderFactory<>(ADDRESS, port, TransportProtocol.UDP);
         factory.setTimeout(DEFAULT_TIMEOUT);
         factory.setWorkerThreads(SINGLE_THREAD);
-        factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.value());
-        factory.setShutdownTimeout(ShutdownTimeout.QUICK.value());
+        factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        factory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         final EventSender<ByteBuf> eventSender = factory.getEventSender();
         eventSender.sendEvent(ByteBufAllocator.DEFAULT.buffer());
         eventSender.close();
