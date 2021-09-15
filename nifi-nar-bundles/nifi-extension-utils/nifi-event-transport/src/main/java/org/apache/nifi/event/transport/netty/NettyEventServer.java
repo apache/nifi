@@ -19,26 +19,23 @@ package org.apache.nifi.event.transport.netty;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Netty Event Server
  */
 class NettyEventServer implements EventServer {
-    static final long SHUTDOWN_QUIET_PERIOD = 2000;  // netty default
-    static final long SHUTDOWN_TIMEOUT = 15000;  // netty default
-    static final TimeUnit SHUTDOWN_TIME_UNIT = TimeUnit.MILLISECONDS;
-
     private final EventLoopGroup group;
 
     private final Channel channel;
 
-    private final long quietPeriod;
+    private final Duration shutdownQuietPeriod;
 
-    private final long timeout;
-
-    private final TimeUnit timeUnit;
+    private final Duration shutdownTimeout;
 
     /**
      * Netty Event Server with Event Loop Group and bound Channel
@@ -47,7 +44,7 @@ class NettyEventServer implements EventServer {
      * @param channel Bound Channel
      */
     NettyEventServer(final EventLoopGroup group, final Channel channel) {
-        this(group, channel, SHUTDOWN_QUIET_PERIOD, SHUTDOWN_TIMEOUT, SHUTDOWN_TIME_UNIT);
+        this(group, channel, ShutdownQuietPeriod.DEFAULT.value(), ShutdownTimeout.DEFAULT.value());
     }
 
     /**
@@ -57,15 +54,12 @@ class NettyEventServer implements EventServer {
      * @param channel Bound Channel
      * @param quietPeriod server shutdown quiet period
      * @param timeout server shutdown timeout
-     * @param timeUnit server shutdown parameter time unit
      */
-    NettyEventServer(final EventLoopGroup group, final Channel channel,
-                     final long quietPeriod, final long timeout, final TimeUnit timeUnit) {
+    NettyEventServer(final EventLoopGroup group, final Channel channel, final Duration quietPeriod, final Duration timeout) {
         this.group = group;
         this.channel = channel;
-        this.quietPeriod = quietPeriod;
-        this.timeout = timeout;
-        this.timeUnit = timeUnit;
+        this.shutdownQuietPeriod = quietPeriod;
+        this.shutdownTimeout = timeout;
     }
 
     /**
@@ -78,7 +72,7 @@ class NettyEventServer implements EventServer {
                 channel.close().syncUninterruptibly();
             }
         } finally {
-            group.shutdownGracefully(quietPeriod, timeout, timeUnit).syncUninterruptibly();
+            group.shutdownGracefully(shutdownQuietPeriod.toMillis(), shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS).syncUninterruptibly();
         }
     }
 }

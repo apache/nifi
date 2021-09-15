@@ -18,6 +18,8 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
@@ -64,7 +66,6 @@ public class TestPutTCP {
     private final static String OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR = "{delimiter}\r\n";
     private final static String[] EMPTY_FILE = { "" };
     private final static String[] VALID_FILES = { "abcdefghijklmnopqrstuvwxyz", "zyxwvutsrqponmlkjihgfedcba", "12345678", "343424222", "!@£$%^&*()_+:|{}[];\\" };
-    private static final long QUIET_PERIOD_QUICK = 100L;
 
     @Rule
     public Timeout timeout = new Timeout(30, TimeUnit.SECONDS);
@@ -223,7 +224,8 @@ public class TestPutTCP {
         if (sslContext != null) {
             serverFactory.setSslContext(sslContext);
         }
-        serverFactory.setShutdownQuietPeriod(QUIET_PERIOD_QUICK);
+        serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.value());
+        serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.value());
         eventServer = serverFactory.getEventServer();
     }
 

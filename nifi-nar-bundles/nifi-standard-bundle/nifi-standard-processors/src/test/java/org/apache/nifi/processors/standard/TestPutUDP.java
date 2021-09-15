@@ -26,6 +26,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
@@ -59,7 +61,6 @@ public class TestPutUDP {
     private final static int DATA_WAIT_PERIOD = 1000;
     private final static int DEFAULT_TEST_TIMEOUT_PERIOD = 10000;
     private final static int LONG_TEST_TIMEOUT_PERIOD = 100000;
-    private static final long QUIET_PERIOD_QUICK = 100L;
 
     private TestRunner runner;
     private int port;
@@ -85,7 +86,8 @@ public class TestPutUDP {
         final byte[] delimiter = DELIMITER.getBytes(CHARSET);
         NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), address, port, PROTOCOL, delimiter, frameSize, messages);
         serverFactory.setSocketReceiveBuffer(MAX_FRAME_LENGTH);
-        serverFactory.setShutdownQuietPeriod(QUIET_PERIOD_QUICK);
+        serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.value());
+        serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.value());
         eventServer = serverFactory.getEventServer();
     }
 

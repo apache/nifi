@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
@@ -69,8 +71,6 @@ public class TestPutSyslog {
     private static final String DELIMITER = "\n";
 
     private static final int POLL_TIMEOUT_SECONDS = 5;
-
-    private static final long QUIET_PERIOD_QUICK = 100L;
 
     private TestRunner runner;
 
@@ -133,7 +133,8 @@ public class TestPutSyslog {
         final BlockingQueue<ByteArrayMessage> messages = new LinkedBlockingQueue<>();
         final byte[] delimiter = DELIMITER.getBytes(CHARSET);
         final NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), ADDRESS, port, protocol, delimiter, MAX_FRAME_LENGTH, messages);
-        serverFactory.setShutdownQuietPeriod(QUIET_PERIOD_QUICK);
+        serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.value());
+        serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.value());
         final EventServer eventServer = serverFactory.getEventServer();
 
         try {

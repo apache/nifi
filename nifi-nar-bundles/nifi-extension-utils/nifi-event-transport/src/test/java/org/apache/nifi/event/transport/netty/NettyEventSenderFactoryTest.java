@@ -21,6 +21,8 @@ import io.netty.buffer.ByteBufAllocator;
 
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventSender;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.junit.Test;
@@ -37,15 +39,14 @@ public class NettyEventSenderFactoryTest {
 
     private static final int SINGLE_THREAD = 1;
 
-    private static final long QUIET_PERIOD_QUICK = 100L;
-
     @Test
     public void testSendEventTcpException() throws Exception {
         final int port = NetworkUtils.getAvailableTcpPort();
         final NettyEventSenderFactory<ByteBuf> factory = new NettyEventSenderFactory<>(ADDRESS, port, TransportProtocol.TCP);
         factory.setTimeout(DEFAULT_TIMEOUT);
         factory.setWorkerThreads(SINGLE_THREAD);
-        factory.setShutdownQuietPeriod(QUIET_PERIOD_QUICK);
+        factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.value());
+        factory.setShutdownTimeout(ShutdownTimeout.QUICK.value());
         factory.setThreadNamePrefix(NettyEventSenderFactoryTest.class.getSimpleName());
         final SSLContext sslContext = SSLContext.getDefault();
         factory.setSslContext(sslContext);
@@ -60,7 +61,8 @@ public class NettyEventSenderFactoryTest {
         final NettyEventSenderFactory<ByteBuf> factory = new NettyEventSenderFactory<>(ADDRESS, port, TransportProtocol.UDP);
         factory.setTimeout(DEFAULT_TIMEOUT);
         factory.setWorkerThreads(SINGLE_THREAD);
-        factory.setShutdownQuietPeriod(QUIET_PERIOD_QUICK);
+        factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.value());
+        factory.setShutdownTimeout(ShutdownTimeout.QUICK.value());
         final EventSender<ByteBuf> eventSender = factory.getEventSender();
         eventSender.sendEvent(ByteBufAllocator.DEFAULT.buffer());
         eventSender.close();
