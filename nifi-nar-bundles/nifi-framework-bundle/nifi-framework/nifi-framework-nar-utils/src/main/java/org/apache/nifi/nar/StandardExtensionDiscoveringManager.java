@@ -129,7 +129,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     }
 
     @Override
-    public void discoverExtensions(final Set<Bundle> narBundles) {
+    public void discoverExtensions(final Set<Bundle> narBundles, final boolean logDetails) {
         // get the current context class loader
         ClassLoader currentContextClassLoader = Thread.currentThread().getContextClassLoader();
 
@@ -143,7 +143,9 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             final long loadStart = System.currentTimeMillis();
             loadExtensions(bundle);
             final long loadMillis = System.currentTimeMillis() - loadStart;
-            logger.info("Loaded extensions for {} in {} millis", bundle.getBundleDetails(), loadMillis);
+            if (logDetails) {
+                logger.info("Loaded extensions for {} in {} millis", bundle.getBundleDetails(), loadMillis);
+            }
 
             // Create a look-up from coordinate to bundle
             bundleCoordinateBundleLookup.put(bundle.getBundleDetails().getCoordinate(), bundle);

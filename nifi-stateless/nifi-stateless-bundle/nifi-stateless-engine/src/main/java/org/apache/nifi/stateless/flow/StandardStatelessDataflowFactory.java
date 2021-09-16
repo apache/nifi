@@ -108,8 +108,9 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
         try {
             final BulletinRepository bulletinRepository = new VolatileBulletinRepository();
             final File workingDir = engineConfiguration.getWorkingDirectory();
-            if (!workingDir.exists() && !workingDir.mkdirs()) {
-                throw new IOException("Working Directory " + workingDir + " does not exist and could not be created");
+            final File narExpansionDirectory = new File(workingDir, "nar");
+            if (!narExpansionDirectory.exists() && !narExpansionDirectory.mkdirs()) {
+                throw new IOException("Working Directory " + narExpansionDirectory + " does not exist and could not be created");
             }
 
             final InMemoryFlowRegistry flowRegistry = new InMemoryFlowRegistry();
@@ -118,9 +119,9 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             flowRegistryClient.addFlowRegistry(flowRegistry);
 
             final NarClassLoaders narClassLoaders = new NarClassLoaders();
-            final File extensionsWorkingDir = new File(workingDir, "extensions");
+            final File extensionsWorkingDir = new File(narExpansionDirectory, "extensions");
             final ClassLoader systemClassLoader = createSystemClassLoader(engineConfiguration.getNarDirectory());
-            final ExtensionDiscoveringManager extensionManager = ExtensionDiscovery.discover(extensionsWorkingDir, systemClassLoader, narClassLoaders);
+            final ExtensionDiscoveringManager extensionManager = ExtensionDiscovery.discover(extensionsWorkingDir, systemClassLoader, narClassLoaders, engineConfiguration.isLogExtensionDiscovery());
 
             flowFileEventRepo = new RingBufferEventRepository(5);
 

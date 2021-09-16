@@ -107,6 +107,7 @@
 	    <module>nifi-asn1-bundle</module>
         <module>nifi-pgp-bundle</module>
         <module>nifi-hashicorp-vault-bundle</module>
+        <module>nifi-stateless-processor-bundle</module>
     </modules>
 
     <build>

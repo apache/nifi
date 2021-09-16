@@ -33,11 +33,12 @@ import java.util.concurrent.TimeUnit;
 public class ExtensionDiscovery {
     private static final Logger logger = LoggerFactory.getLogger(ExtensionDiscovery.class);
 
-    public static ExtensionDiscoveringManager discover(final File narWorkingDirectory, final ClassLoader systemClassLoader, final NarClassLoaders narClassLoaders) throws IOException {
+    public static ExtensionDiscoveringManager discover(final File narWorkingDirectory, final ClassLoader systemClassLoader, final NarClassLoaders narClassLoaders,
+                                                       final boolean logExtensionDiscovery) throws IOException {
         logger.info("Initializing NAR ClassLoaders");
 
         try {
-            narClassLoaders.init(systemClassLoader, null, narWorkingDirectory);
+            narClassLoaders.init(systemClassLoader, null, narWorkingDirectory, logExtensionDiscovery);
         } catch (final ClassNotFoundException cnfe) {
             throw new IOException("Could not initialize Class Loaders", cnfe);
         }
@@ -46,7 +47,7 @@ public class ExtensionDiscovery {
 
         final long discoveryStart = System.nanoTime();
         final StandardExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager(Collections.singleton(ParameterValueProvider.class));
-        extensionManager.discoverExtensions(narBundles);
+        extensionManager.discoverExtensions(narBundles, logExtensionDiscovery);
 
         final long discoveryMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - discoveryStart);
         logger.info("Successfully discovered extensions in {} milliseconds", discoveryMillis);

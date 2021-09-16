@@ -70,6 +70,16 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
     }
 
     @Override
+    public ProvenanceEventRepository getProvenanceRepository() {
+        return provenanceEventRepository;
+    }
+
+    @Override
+    public CounterRepository getCounterRepository() {
+        return counterRepository;
+    }
+
+    @Override
     public void shutdown() {
         contentRepository.shutdown();
 

@@ -18,8 +18,11 @@
 package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
@@ -91,7 +94,12 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
                 completionReached = !tracker.isAnyReady();
             }
         } catch (final Throwable t) {
-            logger.error("Failed to trigger {}", currentComponent, t);
+            if (t instanceof TerminatedTaskException) {
+                logger.debug("Encountered TerminatedTaskException when triggering {}", currentComponent, t);
+            } else {
+                logger.error("Failed to trigger {}", currentComponent, t);
+            }
+
             executionProgress.notifyExecutionFailed(t);
             tracker.triggerFailureCallbacks(t);
             throw t;
@@ -135,6 +143,17 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
                 continue;
             }
 
+            // If we've made no progress, check the condition of this being an Output Port with Batch Output. In such a case, we will make no progress
+            // until data has been processed elsewhere in the flow, so return NEXT_READY.
+            if (connectable.getConnectableType() == ConnectableType.OUTPUT_PORT && connectable.getProcessGroup().getFlowFileOutboundPolicy() == FlowFileOutboundPolicy.BATCH_OUTPUT
+                    && connectable.getProcessGroup().isDataQueuedForProcessing()) {
+
+                logger.debug("{} was triggered but unable to make process. Data is still available for processing, so continue triggering components within the Process Group", connectable);
+                return NextConnectable.NEXT_READY;
+            }
+
+            // Check if we've reached out threshold for how much data we are willing to bring into a single transaction. If so, we will not drop back to
+            // triggering source components
             final boolean thresholdMet = transactionThresholdMeter.isThresholdMet();
             if (thresholdMet) {
                 logger.debug("{} was triggered but unable to make progress. The transaction thresholds {} have been met (currently at {}). Will not " +

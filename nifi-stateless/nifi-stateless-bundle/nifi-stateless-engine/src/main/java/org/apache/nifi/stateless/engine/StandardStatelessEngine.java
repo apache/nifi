@@ -175,7 +175,6 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         final ParameterValueProvider parameterValueProvider = createParameterValueProvider(dataflowDefinition);
 
         // Map existing parameter contexts by name
-        final Set<ParameterContext> parameterContexts = flowManager.getParameterContextManager().getParameterContexts();
         final Map<String, ParameterContext> parameterContextMap = flowManager.getParameterContextManager().getParameterContextNameMapping();
 
         // Update Parameters to match those that are provided in the flow configuration, plus those overrides provided
@@ -188,7 +187,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
         final List<ReportingTaskNode> reportingTaskNodes = createReportingTasks(dataflowDefinition);
         final StandardStatelessFlow dataflow = new StandardStatelessFlow(childGroup, reportingTaskNodes, controllerServiceProvider, processContextFactory,
-            repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler);
+            repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler, bulletinRepository);
 
         final LogComponentStatuses logComponentStatuses = new LogComponentStatuses(flowFileEventRepository, counterRepository, flowManager);
         dataflow.scheduleBackgroundTask(logComponentStatuses, 1, TimeUnit.MINUTES);
@@ -223,6 +222,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         final String providerId = UUID.randomUUID().toString();
         final InstanceClassLoader classLoader = extensionManager.createInstanceClassLoader(providerType, providerId, bundle, Collections.emptySet());
 
+        final ClassLoader initialClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final Class<?> rawClass = Class.forName(providerType, true, classLoader);
             Thread.currentThread().setContextClassLoader(classLoader);
@@ -243,6 +243,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             return parameterValueProvider;
         } catch (final Exception e) {
             throw new IllegalStateException("Could not create Parameter Value Provider " + definition.getName() + " of type " + definition.getType(), e);
+        } finally {
+            Thread.currentThread().setContextClassLoader(initialClassLoader);
         }
     }
 

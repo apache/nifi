@@ -146,8 +146,9 @@ public class ReflectionUtils {
                 } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
                     isSuccess = false;
                     if (quietly) {
+                        final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
                         logErrorMessage("Failed while invoking annotated method '" + method + "' with arguments '"
-                            + Arrays.asList(modifiedArgs) + "'.", logger, e);
+                            + Arrays.asList(modifiedArgs) + "'.", logger, cause);
                     } else {
                         throw e;
                     }
@@ -267,7 +268,7 @@ public class ReflectionUtils {
         return updatedArguments;
     }
 
-    private static void logErrorMessage(String message, ComponentLog processLogger, Exception e) {
+    private static void logErrorMessage(String message, ComponentLog processLogger, Throwable e) {
         if (processLogger != null) {
             if (e != null) {
                 processLogger.error(message, e);

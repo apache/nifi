@@ -54,6 +54,7 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -69,6 +70,12 @@ import java.util.regex.Pattern;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_CONSUMER_GROUP_ID;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_LEADER_EPOCH;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_MAX_OFFSET;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_OFFSET;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_PARTITION;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_TOPIC;
 
 @Tags({"Apache", "Kafka", "Put", "Send", "Message", "PubSub", "2.5"})
 @CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka using the Kafka 2.5 Producer API."
@@ -252,6 +259,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements VerifiablePro
         .description("When Use Transaction is set to true, KafkaProducer config 'transactional.id' will be a generated UUID and will be prefixed with this string.")
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+        .dependsOn(USE_TRANSACTIONS, "true")
         .required(false)
         .build();
     static final PropertyDescriptor MESSAGE_HEADER_ENCODING = new PropertyDescriptor.Builder()
@@ -281,17 +289,28 @@ public class PublishKafka_2_6 extends AbstractProcessor implements VerifiablePro
 
     static {
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.addAll(KafkaProcessorUtils.getCommonPropertyDescriptors());
+        properties.add(KafkaProcessorUtils.BOOTSTRAP_SERVERS);
         properties.add(TOPIC);
-        properties.add(DELIVERY_GUARANTEE);
-        properties.add(FAILURE_STRATEGY);
         properties.add(USE_TRANSACTIONS);
         properties.add(TRANSACTIONAL_ID_PREFIX);
+        properties.add(MESSAGE_DEMARCATOR);
+        properties.add(KafkaProcessorUtils.FAILURE_STRATEGY);
+        properties.add(DELIVERY_GUARANTEE);
         properties.add(ATTRIBUTE_NAME_REGEX);
         properties.add(MESSAGE_HEADER_ENCODING);
+        properties.add(KafkaProcessorUtils.SECURITY_PROTOCOL);
+        properties.add(KafkaProcessorUtils.SASL_MECHANISM);
+        properties.add(KafkaProcessorUtils.KERBEROS_CREDENTIALS_SERVICE);
+        properties.add(KafkaProcessorUtils.SELF_CONTAINED_KERBEROS_USER_SERVICE);
+        properties.add(KafkaProcessorUtils.JAAS_SERVICE_NAME);
+        properties.add(KafkaProcessorUtils.USER_PRINCIPAL);
+        properties.add(KafkaProcessorUtils.USER_KEYTAB);
+        properties.add(KafkaProcessorUtils.USERNAME);
+        properties.add(KafkaProcessorUtils.PASSWORD);
+        properties.add(KafkaProcessorUtils.TOKEN_AUTH);
+        properties.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
         properties.add(KEY);
         properties.add(KEY_ATTRIBUTE_ENCODING);
-        properties.add(MESSAGE_DEMARCATOR);
         properties.add(MAX_REQUEST_SIZE);
         properties.add(ACK_WAIT_TIME);
         properties.add(METADATA_WAIT_TIME);
@@ -405,7 +424,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements VerifiablePro
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final boolean useDemarcator = context.getProperty(MESSAGE_DEMARCATOR).isSet();
 
-        final List<FlowFile> flowFiles = session.get(FlowFileFilters.newSizeBasedFilter(250, DataUnit.KB, 500));
+        final List<FlowFile> flowFiles = pollFlowFiles(context, session);
         if (flowFiles.isEmpty()) {
             return;
         }
@@ -460,6 +479,11 @@ public class PublishKafka_2_6 extends AbstractProcessor implements VerifiablePro
                             }
                         }
                     });
+
+                    // If consumer offsets haven't been committed, add them to the transaction.
+                    if (useTransactions && "false".equals(flowFile.getAttribute(KafkaProcessorUtils.KAFKA_CONSUMER_OFFSETS_COMMITTED))) {
+                        addConsumerOffsets(lease, flowFile);
+                    }
                 }
 
                 // Complete the send
@@ -490,6 +514,82 @@ public class PublishKafka_2_6 extends AbstractProcessor implements VerifiablePro
                 failureStrategy.routeFlowFiles(session, flowFiles);
                 context.yield();
             }
+        }
+    }
+
+    private List<FlowFile> pollFlowFiles(final ProcessContext context, final ProcessSession session) {
+        final List<FlowFile> initialFlowFiles = session.get(FlowFileFilters.newSizeBasedFilter(1, DataUnit.MB, 500));
+        if (initialFlowFiles.isEmpty()) {
+            return initialFlowFiles;
+        }
+
+        // Check if any of the FlowFiles indicate that the consumer offsets have yet to be committed.
+        boolean offsetsCommitted = true;
+        for (final FlowFile flowFile : initialFlowFiles) {
+            if ("false".equals(flowFile.getAttribute(KafkaProcessorUtils.KAFKA_CONSUMER_OFFSETS_COMMITTED))) {
+                offsetsCommitted = false;
+                break;
+            }
+        }
+
+        if (offsetsCommitted) {
+            return initialFlowFiles;
+        }
+
+        // If we need to commit consumer offsets, it is important that we retrieve all FlowFiles that may be available. Otherwise, we could
+        // have a situation in which there are 2 FlowFiles for Topic MyTopic and Partition 1. The first FlowFile may have an offset of 100,000
+        // while the second has an offset of 98,000. If we gather only the first, we could commit 100,000 offset before processing offset 98,000.
+        // To avoid that, we consume all FlowFiles in the queue. It's important also that all FlowFiles that have been consumed from Kafka are made
+        // available in the queue. This can be done by using a ProcessGroup with Batch Output, as described in the additionalDetails of the Kafka Processors.
+        return pollAllFlowFiles(session, initialFlowFiles);
+    }
+
+    private List<FlowFile> pollAllFlowFiles(final ProcessSession session, final List<FlowFile> initialFlowFiles) {
+        final List<FlowFile> polled = new ArrayList<>(initialFlowFiles);
+        while (true) {
+            final List<FlowFile> flowFiles = session.get(10_000);
+            if (flowFiles.isEmpty()) {
+                break;
+            }
+
+            polled.addAll(flowFiles);
+        }
+
+        return polled;
+    }
+
+
+    private void addConsumerOffsets(final PublisherLease lease, final FlowFile flowFile) {
+        final String topic = flowFile.getAttribute(KafkaProcessorUtils.KAFKA_TOPIC);
+        final Long partition = getNumericAttribute(flowFile, KafkaProcessorUtils.KAFKA_PARTITION);
+        Long maxOffset = getNumericAttribute(flowFile, KafkaProcessorUtils.KAFKA_MAX_OFFSET);
+        if (maxOffset == null) {
+            maxOffset = getNumericAttribute(flowFile, KafkaProcessorUtils.KAFKA_OFFSET);
+        }
+
+        final Long epoch = getNumericAttribute(flowFile, KafkaProcessorUtils.KAFKA_LEADER_EPOCH);
+        final String consumerGroupId = flowFile.getAttribute(KAFKA_CONSUMER_GROUP_ID);
+
+        if (topic == null || partition == null || maxOffset == null || consumerGroupId == null) {
+            getLogger().warn("Cannot commit consumer offsets because at least one of the following FlowFile attributes is missing from {}: {}", flowFile,
+                Arrays.asList(KAFKA_TOPIC, KAFKA_PARTITION, KAFKA_MAX_OFFSET + " (or " + KAFKA_OFFSET + ")", KAFKA_LEADER_EPOCH, KAFKA_CONSUMER_GROUP_ID));
+            return;
+        }
+
+        lease.ackConsumerOffsets(topic, partition.intValue(), maxOffset, epoch == null ? null : epoch.intValue(), consumerGroupId);
+    }
+
+    private Long getNumericAttribute(final FlowFile flowFile, final String attributeName) {
+        final String attributeValue = flowFile.getAttribute(attributeName);
+        if (attributeValue == null) {
+            return null;
+        }
+
+        try {
+            return Long.parseLong(attributeValue);
+        } catch (final NumberFormatException nfe) {
+            getLogger().warn("Expected a numeric value for attribute '{}' but found non-numeric value for {}", attributeName, flowFile);
+            return null;
         }
     }
 
