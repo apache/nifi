@@ -50,6 +50,7 @@
         <module>nifi-aws-service-api</module>
         <module>nifi-aws-service-api-nar</module>
         <module>nifi-aws-abstract-processors</module>
+        <module>nifi-aws-parameter-value-providers</module>
     </modules>
 
 </project>

@@ -515,3 +515,31 @@ nifi.stateless.parameter.provider.Vault.name=HashiCorp Vault Provider
 nifi.stateless.parameter.provider.Vault.type=org.apache.nifi.stateless.parameter.HashiCorpVaultParameterValueProvider
 nifi.stateless.parameter.provider.Vault.properties.vault-configuration-file=./conf/bootstrap-hashicorp-vault.conf
 ```
+
+**AWS SecretsManagerParameterValueProvider**
+
+This provider reads parameter values from AWS SecretsManager.  The AWS credentials can be configured
+via the `./conf/bootstrap-aws.conf` file, which comes with NiFi.
+
+An example of creating a single secret in the correct format is:
+
+```
+aws secretsmanager create-secret --name "Context/Param" --secret-string '{ "value": "secretValue" }'
+```
+
+In this example, `Context` is the name of a Parameter Context, `Param` is the name of the parameter whose value
+should be retrieved from the Vault server, and `secretValue` is the actual value of the parameter.
+
+This Parameter Provider requires the following properties:
+
+| Property Name | Description | Example Value |
+|---------------|-------------|---------------|
+| nifi.stateless.parameter.provider.\<key>.properties.aws-configuration-file | The filename of a configuration file optionally specifying the AWS credentials.  If this property is not provided, or if the credentials are not provided in the file, the default AWS credentials chain will be followed. | `./conf/bootstrap-aws.conf` |
+
+An example of configuring this provider in the dataflow configuration file is:
+
+```
+nifi.stateless.parameter.provider.AWSSecretsManager.name=AWS SecretsManager Provider
+nifi.stateless.parameter.provider.AWSSecretsManager.type=org.apache.nifi.stateless.parameter.aws.SecretsManagerParameterValueProvider
+nifi.stateless.parameter.provider.AWSSecretsManager.properties.vault-configuration-file=./conf/bootstrap-aws.conf
+```
