@@ -34,6 +34,7 @@ import org.apache.nifi.processor.util.listen.event.Event;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -178,16 +179,10 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         charset = Charset.forName(context.getProperty(CHARSET).getValue());
         port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         events = new LinkedBlockingQueue<>(context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger());
-
         final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
+        final InetAddress nicIPAddress = getNICIPAddress(nicIPAddressStr);
+
         final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-
-        InetAddress nicIPAddress = null;
-        if (!StringUtils.isEmpty(nicIPAddressStr)) {
-            NetworkInterface netIF = NetworkInterface.getByName(nicIPAddressStr);
-            nicIPAddress = netIF.getInetAddresses().nextElement();
-        }
-
         // create the dispatcher and call open() to bind to the given port
         dispatcher = createDispatcher(context, events);
         dispatcher.open(nicIPAddress, port, maxChannelBufferSize);
@@ -197,6 +192,15 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         readerThread.setName(getClass().getName() + " [" + getIdentifier() + "]");
         readerThread.setDaemon(true);
         readerThread.start();
+    }
+
+    public static InetAddress getNICIPAddress(final String nicIPAddressStr) throws SocketException {
+        InetAddress nicIPAddress = null;
+        if (!StringUtils.isEmpty(nicIPAddressStr)) {
+            NetworkInterface netIF = NetworkInterface.getByName(nicIPAddressStr);
+            nicIPAddress = netIF.getInetAddresses().nextElement();
+        }
+        return nicIPAddress;
     }
 
     /**

@@ -27,26 +27,28 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.event.transport.EventSender;
+import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.netty.NettyEventSenderFactory;
+import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FlowFileAttributeKey;
+import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.listen.AbstractListenEventBatchingProcessor;
-import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
-import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferPool;
-import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferSource;
-import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
-import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelDispatcher;
-import org.apache.nifi.processor.util.listen.event.EventFactory;
-import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
-import org.apache.nifi.processor.util.listen.response.ChannelResponder;
-import org.apache.nifi.processor.util.listen.response.ChannelResponse;
-import org.apache.nifi.processors.standard.relp.event.RELPEvent;
-import org.apache.nifi.processors.standard.relp.event.RELPEventFactory;
-import org.apache.nifi.processors.standard.relp.frame.RELPEncoder;
-import org.apache.nifi.processors.standard.relp.handler.RELPSocketChannelHandlerFactory;
-import org.apache.nifi.processors.standard.relp.response.RELPChannelResponse;
+import org.apache.nifi.processor.util.listen.AbstractListenEventProcessor;
+import org.apache.nifi.processor.util.listen.EventBatcher;
+import org.apache.nifi.processor.util.listen.FlowFileNettyEventBatch;
+import org.apache.nifi.processors.standard.relp.event.RELPNettyEvent;
+import org.apache.nifi.processors.standard.relp.handler.RELPNettyEventSenderFactory;
+import org.apache.nifi.processors.standard.relp.handler.RELPNettyEventServerFactory;
 import org.apache.nifi.processors.standard.relp.response.RELPResponse;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
@@ -54,14 +56,20 @@ import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"listen", "relp", "tcp", "logs"})
@@ -77,7 +85,7 @@ import java.util.concurrent.BlockingQueue;
         @WritesAttribute(attribute="mime.type", description="The mime.type of the content which is text/plain")
     })
 @SeeAlso({ParseSyslog.class})
-public class ListenRELP extends AbstractListenEventBatchingProcessor<RELPEvent> {
+public class ListenRELP extends AbstractProcessor {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
@@ -87,6 +95,7 @@ public class ListenRELP extends AbstractListenEventBatchingProcessor<RELPEvent> 
             .required(false)
             .identifiesControllerService(RestrictedSSLContextService.class)
             .build();
+
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("Client Auth")
             .displayName("Client Auth")
@@ -96,19 +105,60 @@ public class ListenRELP extends AbstractListenEventBatchingProcessor<RELPEvent> 
             .defaultValue(ClientAuth.REQUIRED.name())
             .build();
 
-    private volatile RELPEncoder relpEncoder;
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Messages received successfully will be sent out this relationship.")
+            .build();
 
-    @Override
-    protected List<PropertyDescriptor> getAdditionalProperties() {
-        return Arrays.asList(MAX_CONNECTIONS, SSL_CONTEXT_SERVICE, CLIENT_AUTH);
+    protected List<PropertyDescriptor> descriptors;
+    protected Set<Relationship> relationships;
+    protected volatile int port;
+    protected volatile Charset charset;
+    protected volatile BlockingQueue<RELPNettyEvent> events;
+    protected volatile BlockingQueue<RELPNettyEvent> errorEvents;
+    protected volatile String hostname;
+    protected EventServer eventServer;
+    protected EventSender eventSender;
+    protected volatile byte[] messageDemarcatorBytes;
+
+    @OnScheduled
+    public void onScheduled(ProcessContext context) throws IOException {
+        final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
+        final InetAddress nicIPAddress = AbstractListenEventProcessor.getNICIPAddress(nicIPAddressStr);
+
+        hostname = nicIPAddress.getHostName();
+        charset = Charset.forName(context.getProperty(AbstractListenEventProcessor.CHARSET).getValue());
+        port = context.getProperty(AbstractListenEventProcessor.PORT).evaluateAttributeExpressions().asInteger();
+        events = new LinkedBlockingQueue<>(context.getProperty(AbstractListenEventProcessor.MAX_MESSAGE_QUEUE_SIZE).asInteger());
+        errorEvents = new LinkedBlockingQueue<>();
+
+        final String msgDemarcator = context.getProperty(AbstractListenEventBatchingProcessor.MESSAGE_DELIMITER)
+                                            .getValue()
+                                            .replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
+        messageDemarcatorBytes = msgDemarcator.getBytes(charset);
+
+        initializeRELPServer(context);
     }
 
     @Override
-    @OnScheduled
-    public void onScheduled(ProcessContext context) throws IOException {
-        super.onScheduled(context);
-        // wanted to ensure charset was already populated here
-        relpEncoder = new RELPEncoder(charset);
+    protected void init(final ProcessorInitializationContext context) {
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(AbstractListenEventProcessor.PORT);
+        descriptors.add(AbstractListenEventProcessor.RECV_BUFFER_SIZE);
+        descriptors.add(AbstractListenEventProcessor.MAX_MESSAGE_QUEUE_SIZE);
+        descriptors.add(AbstractListenEventProcessor.MAX_SOCKET_BUFFER_SIZE);
+        descriptors.add(AbstractListenEventProcessor.CHARSET);
+        descriptors.add(AbstractListenEventProcessor.MAX_CONNECTIONS);
+        descriptors.add(AbstractListenEventBatchingProcessor.MAX_BATCH_SIZE);
+        descriptors.add(AbstractListenEventBatchingProcessor.MESSAGE_DELIMITER);
+        descriptors.add(NETWORK_INTF_NAME);
+        descriptors.add(CLIENT_AUTH);
+        descriptors.add(SSL_CONTEXT_SERVICE);
+        this.descriptors = Collections.unmodifiableList(descriptors);
+
+        final Set<Relationship> relationships = new HashSet<>();
+        relationships.add(REL_SUCCESS);
+        this.relationships = Collections.unmodifiableSet(relationships);
     }
 
     @Override
@@ -127,67 +177,48 @@ public class ListenRELP extends AbstractListenEventBatchingProcessor<RELPEvent> 
         return results;
     }
 
-    @Override
-    protected ChannelDispatcher createDispatcher(final ProcessContext context, final BlockingQueue<RELPEvent> events) throws IOException {
-        final EventFactory<RELPEvent> eventFactory = new RELPEventFactory();
-        final ChannelHandlerFactory<RELPEvent,AsyncChannelDispatcher> handlerFactory = new RELPSocketChannelHandlerFactory<>();
+    private void initializeRELPServer(final ProcessContext context) throws IOException {
+        final NettyEventServerFactory eventFactory = getNettyEventServerFactory();
+        final NettyEventSenderFactory eventSenderFactory = getNettyEventSenderFactory();
 
-        final int maxConnections = context.getProperty(MAX_CONNECTIONS).asInteger();
-        final int bufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-        final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
+        final int maxConnections = context.getProperty(AbstractListenEventProcessor.MAX_CONNECTIONS).asInteger();
+        final int bufferSize = context.getProperty(AbstractListenEventProcessor.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
 
-        // initialize the buffer pool based on max number of connections and the buffer size
-        final ByteBufferSource byteBufferSource = new ByteBufferPool(maxConnections, bufferSize);
+        eventFactory.setSocketReceiveBuffer(bufferSize);
+        eventSenderFactory.setSocketSendBufferSize(bufferSize);
+        eventSenderFactory.setMaxConnections(maxConnections);
 
         // if an SSLContextService was provided then create an SSLContext to pass down to the dispatcher
-        SSLContext sslContext = null;
-        ClientAuth clientAuth = null;
+        SSLContext sslContext;
+        ClientAuth clientAuth;
 
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
             final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
             sslContext = sslContextService.createContext();
             clientAuth = ClientAuth.valueOf(clientAuthValue);
+
+            eventFactory.setSslContext(sslContext);
+            eventFactory.setClientAuth(clientAuth);
+            eventSenderFactory.setSslContext(sslContext);
         }
 
-        // if we decide to support SSL then get the context and pass it in here
-        return new SocketChannelDispatcher<>(eventFactory, handlerFactory, byteBufferSource, events,
-                getLogger(), maxConnections, sslContext, clientAuth, charSet);
+        eventServer = eventFactory.getEventServer();
+        eventSender = eventSenderFactory.getEventSender();
     }
 
     @Override
-    protected String getBatchKey(RELPEvent event) {
-        return event.getSender() + "_" + event.getCommand();
+    public final Set<Relationship> getRelationships() {
+        return this.relationships;
     }
 
     @Override
-    protected void postProcess(final ProcessContext context, final ProcessSession session, final List<RELPEvent> events) {
-        // first commit the session so we guarantee we have all the events successfully
-        // written to FlowFiles and transferred to the success relationship
-        session.commitAsync(() -> {
-            // respond to each event to acknowledge successful receipt
-            for (final RELPEvent event : events) {
-                respond(event, RELPResponse.ok(event.getTxnr()));
-            }
-        });
+    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return descriptors;
     }
 
-    protected void respond(final RELPEvent event, final RELPResponse relpResponse) {
-        final ChannelResponse response = new RELPChannelResponse(relpEncoder, relpResponse);
-
-        final ChannelResponder responder = event.getResponder();
-        responder.addResponse(response);
-        try {
-            responder.respond();
-        } catch (IOException e) {
-            getLogger().error("Error sending response for transaction {} due to {}",
-                    new Object[] {event.getTxnr(), e.getMessage()}, e);
-        }
-    }
-
-    @Override
-    protected Map<String, String> getAttributes(FlowFileEventBatch batch) {
-        final List<RELPEvent> events = batch.getEvents();
+    protected Map<String, String> getAttributes(FlowFileNettyEventBatch batch) {
+        final List<RELPNettyEvent> events = batch.getEvents();
 
         // the sender and command will be the same for all events based on the batch key
         final String sender = events.get(0).getSender();
@@ -209,13 +240,77 @@ public class ListenRELP extends AbstractListenEventBatchingProcessor<RELPEvent> 
         return attributes;
     }
 
-    @Override
-    protected String getTransitUri(FlowFileEventBatch batch) {
-        final String sender = batch.getEvents().get(0).getSender();
+    protected String getTransitUri(FlowFileNettyEventBatch batch) {
+        final List<RELPNettyEvent> events = batch.getEvents();
+        final String sender = events.get(0).getSender();
         final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
         final String transitUri = new StringBuilder().append("relp").append("://").append(senderHost).append(":")
                 .append(port).toString();
         return transitUri;
+    }
+
+    @Override
+    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        EventBatcher eventBatcher = new EventBatcher<RELPNettyEvent>(getLogger(), events, errorEvents) {
+            @Override
+            protected String getBatchKey(RELPNettyEvent event) {
+                return getRELPBatchKey(event);
+            }
+        };
+
+        final int batchSize = context.getProperty(AbstractListenEventBatchingProcessor.MAX_BATCH_SIZE).asInteger();
+        Map<String, FlowFileNettyEventBatch> batches = eventBatcher.getBatches(session, batchSize, messageDemarcatorBytes);
+
+        final List<RELPNettyEvent> eventsAwaitingResponse = new ArrayList<>();
+        getEventsAwaitingResponse(session, batches, eventsAwaitingResponse);
+        respondToEvents(session, eventsAwaitingResponse);
+    }
+
+
+    private void getEventsAwaitingResponse(final ProcessSession session, final Map<String, FlowFileNettyEventBatch> batches, final List<RELPNettyEvent> allEvents) {
+        for (Map.Entry<String, FlowFileNettyEventBatch> entry : batches.entrySet()) {
+            FlowFile flowFile = entry.getValue().getFlowFile();
+            final List<RELPNettyEvent> events = entry.getValue().getEvents();
+
+            if (flowFile.getSize() == 0L || events.size() == 0) {
+                session.remove(flowFile);
+                getLogger().debug("No data written to FlowFile from batch {}; removing FlowFile", new Object[] {entry.getKey()});
+                continue;
+            }
+
+            final Map<String,String> attributes = getAttributes(entry.getValue());
+            flowFile = session.putAllAttributes(flowFile, attributes);
+
+            getLogger().debug("Transferring {} to success", new Object[] {flowFile});
+            session.transfer(flowFile, REL_SUCCESS);
+            session.adjustCounter("FlowFiles Transferred to Success", 1L, false);
+
+            // the sender and command will be the same for all events based on the batch key
+            final String transitUri = getTransitUri(entry.getValue());
+            session.getProvenanceReporter().receive(flowFile, transitUri);
+
+            allEvents.addAll(events);
+        }
+    }
+
+    /**
+     * Respond to RELP events awaiting response.
+     * @param session
+     * @param events
+     */
+    protected void respondToEvents(final ProcessSession session, final List<RELPNettyEvent> events) {
+        // first commit the session so we guarantee we have all the events successfully
+        // written to FlowFiles and transferred to the success relationship
+        session.commitAsync(() -> {
+            // respond to each event to acknowledge successful receipt
+            for (final RELPNettyEvent event : events) {
+                eventSender.sendEvent(RELPResponse.ok(event.getTxnr()));
+            }
+        });
+    }
+
+    private String getRELPBatchKey(RELPNettyEvent event) {
+        return event.getSender() + "_" + event.getCommand();
     }
 
     public enum RELPAttributes implements FlowFileAttributeKey {
@@ -234,5 +329,13 @@ public class ListenRELP extends AbstractListenEventBatchingProcessor<RELPEvent> 
         public String key() {
             return key;
         }
+    }
+
+    private NettyEventServerFactory getNettyEventServerFactory() {
+        return new RELPNettyEventServerFactory(getLogger(), hostname, port, charset, events);
+    }
+
+    private NettyEventSenderFactory getNettyEventSenderFactory() {
+        return new RELPNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.TCP, charset);
     }
 }

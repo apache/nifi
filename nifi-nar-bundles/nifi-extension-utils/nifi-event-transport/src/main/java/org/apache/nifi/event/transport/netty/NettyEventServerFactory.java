@@ -57,6 +57,7 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     private Supplier<List<ChannelHandler>> handlerSupplier = () -> Collections.emptyList();
 
     private Integer socketReceiveBuffer;
+    private Integer maximumConnections;
 
     private SSLContext sslContext;
 
@@ -89,6 +90,7 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     public void setSocketReceiveBuffer(final Integer socketReceiveBuffer) {
         this.socketReceiveBuffer = socketReceiveBuffer;
     }
+
 
     /**
      * Set SSL Context to enable TLS Channel Handler
