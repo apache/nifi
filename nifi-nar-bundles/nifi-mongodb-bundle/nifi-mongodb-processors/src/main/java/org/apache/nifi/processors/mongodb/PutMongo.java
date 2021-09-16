@@ -20,7 +20,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.util.JSON;
+import com.mongodb.client.model.ReplaceOptions;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -206,7 +206,7 @@ public class PutMongo extends AbstractMongoProcessor {
 
             // parse
             final Object doc = (mode.equals(MODE_INSERT) || (mode.equals(MODE_UPDATE) && updateMode.equals(UPDATE_WITH_DOC.getValue())))
-                    ? Document.parse(new String(content, charset)) : JSON.parse(new String(content, charset));
+                    ? Document.parse(new String(content, charset)) : BasicDBObject.parse(new String(content, charset));
 
             if (MODE_INSERT.equalsIgnoreCase(mode)) {
                 collection.insertOne((Document)doc);
@@ -226,7 +226,7 @@ public class PutMongo extends AbstractMongoProcessor {
                 }
 
                 if (updateMode.equals(UPDATE_WITH_DOC.getValue())) {
-                    collection.replaceOne(query, (Document)doc, new UpdateOptions().upsert(upsert));
+                    collection.replaceOne(query, (Document)doc, new ReplaceOptions().upsert(upsert));
                 } else {
                     BasicDBObject update = (BasicDBObject)doc;
                     update.remove(updateKey);
@@ -288,16 +288,25 @@ public class PutMongo extends AbstractMongoProcessor {
             writeConcern = WriteConcern.UNACKNOWLEDGED;
             break;
         case WRITE_CONCERN_FSYNCED:
-            writeConcern = WriteConcern.FSYNCED;
+            writeConcern = WriteConcern.JOURNALED;
             break;
         case WRITE_CONCERN_JOURNALED:
             writeConcern = WriteConcern.JOURNALED;
             break;
         case WRITE_CONCERN_REPLICA_ACKNOWLEDGED:
-            writeConcern = WriteConcern.REPLICA_ACKNOWLEDGED;
+            writeConcern = WriteConcern.W2;
             break;
         case WRITE_CONCERN_MAJORITY:
             writeConcern = WriteConcern.MAJORITY;
+            break;
+        case WRITE_CONCERN_W1:
+            writeConcern = WriteConcern.W1;
+            break;
+        case WRITE_CONCERN_W2:
+            writeConcern = WriteConcern.W2;
+            break;
+        case WRITE_CONCERN_W3:
+            writeConcern = WriteConcern.W3;
             break;
         default:
             writeConcern = WriteConcern.ACKNOWLEDGED;
