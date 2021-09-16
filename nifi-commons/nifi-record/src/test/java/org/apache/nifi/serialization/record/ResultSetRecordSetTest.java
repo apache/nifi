@@ -17,6 +17,7 @@
 package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,17 +28,22 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.math.BigDecimal;
+import java.sql.Array;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -279,6 +285,16 @@ public class ResultSetRecordSetTest {
     }
 
     @Test
+    public void testArrayTypeWithLogicalTypes() throws SQLException {
+        testArrayType(true);
+    }
+
+    @Test
+    public void testArrayTypeNoLogicalTypes() throws SQLException {
+        testArrayType(false);
+    }
+
+    @Test
     public void testCreateSchemaWithLogicalTypes() throws SQLException {
         testCreateSchemaLogicalTypes(true);
     }
@@ -348,6 +364,67 @@ public class ResultSetRecordSetTest {
         when(resultSetMetaData.getColumnClassName(indexOfBigDecimal)).thenReturn(BigDecimal.class.getName());
     }
 
+    private void testArrayType(boolean useLogicalTypes) throws SQLException {
+        // GIVEN
+        List<ArrayTestData> testData = new ArrayList<>();
+        testData.add(new ArrayTestData("arrayBigDecimal",
+                new BigDecimalDummy[]{new BigDecimalDummy(), new BigDecimalDummy()}));
+        testData.add(new ArrayTestData("arrayDate",
+                new Date[]{new Date(1631809132516L), new Date(1631809132516L)}));
+        testData.add(new ArrayTestData("arrayTime",
+                new Time[]{new Time(1631809132516L), new Time(1631809132516L)}));
+        testData.add(new ArrayTestData("arrayTimestamp",
+                new Timestamp[]{new Timestamp(1631809132516L), new Timestamp(1631809132516L)}));
+
+        Map<String, DataType> expectedTypes = new HashMap<>(testData.size());
+        if (useLogicalTypes) {
+            expectedTypes.put("arrayBigDecimal", RecordFieldType.DECIMAL.getDecimalDataType(BigDecimalDummy.PRECISION, BigDecimalDummy.SCALE));
+            expectedTypes.put("arrayDate", RecordFieldType.DATE.getDataType());
+            expectedTypes.put("arrayTime", RecordFieldType.TIME.getDataType());
+            expectedTypes.put("arrayTimestamp", RecordFieldType.TIMESTAMP.getDataType());
+        } else {
+            expectedTypes.put("arrayBigDecimal", RecordFieldType.STRING.getDataType());
+            expectedTypes.put("arrayDate", RecordFieldType.STRING.getDataType());
+            expectedTypes.put("arrayTime", RecordFieldType.STRING.getDataType());
+            expectedTypes.put("arrayTimestamp", RecordFieldType.STRING.getDataType());
+        }
+
+        // WHEN
+        ResultSet resultSet = Mockito.mock(ResultSet.class);
+        ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
+        when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+        when(resultSetMetaData.getColumnCount()).thenReturn(testData.size());
+
+        List<RecordField> fields = new ArrayList<>();
+        for (int i = 0; i < testData.size(); ++i) {
+            ArrayTestData testDatum = testData.get(i);
+            int columnIndex = i + 1;
+            SqlArrayDummy arrayDummy = Mockito.mock(SqlArrayDummy.class);
+            when(arrayDummy.getArray()).thenReturn(testDatum.getTestArray());
+            when(resultSet.getArray(columnIndex)).thenReturn(arrayDummy);
+            when(resultSetMetaData.getColumnLabel(columnIndex)).thenReturn(testDatum.getFieldName());
+            when(resultSetMetaData.getColumnType(columnIndex)).thenReturn(Types.ARRAY);
+            fields.add(new RecordField(testDatum.getFieldName(), RecordFieldType.ARRAY.getDataType()));
+        }
+        RecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10,0, useLogicalTypes);
+        RecordSchema actualSchema = testSubject.getSchema();
+
+        // THEN
+        for (RecordField recordField : actualSchema.getFields()) {
+            if (recordField.getDataType() instanceof ArrayDataType) {
+                ArrayDataType arrayType = (ArrayDataType) recordField.getDataType();
+                if (!arrayType.getElementType().equals(expectedTypes.get(recordField.getFieldName()))) {
+                    throw new AssertionError("Array element type for " + recordField.getFieldName()
+                            + " is not of expected type " + expectedTypes.get(recordField.getFieldName()).toString());
+                }
+            } else {
+                throw new AssertionError("RecordField " + recordField.getFieldName() + " is not instance of ArrayDataType");
+            }
+        }
+    }
+
     private ResultSet givenResultSetForArrayThrowsException(boolean featureSupported) throws SQLException {
         final ResultSet resultSet = Mockito.mock(ResultSet.class);
         final ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
@@ -408,6 +485,90 @@ public class ResultSetRecordSetTest {
                 }
             }
             assertEquals("For column " + column[0] + " the converted type is not matching", expectedDataType, actualDataType);
+        }
+    }
+
+    private static class SqlArrayDummy implements Array {
+
+        @Override
+        public String getBaseTypeName() throws SQLException {
+            return null;
+        }
+
+        @Override
+        public int getBaseType() throws SQLException {
+            return 0;
+        }
+
+        @Override
+        public Object getArray() throws SQLException {
+            return null;
+        }
+
+        @Override
+        public Object getArray(Map<String, Class<?>> map) throws SQLException {
+            return null;
+        }
+
+        @Override
+        public Object getArray(long index, int count) throws SQLException {
+            return null;
+        }
+
+        @Override
+        public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
+            return null;
+        }
+
+        @Override
+        public ResultSet getResultSet() throws SQLException {
+            return null;
+        }
+
+        @Override
+        public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
+            return null;
+        }
+
+        @Override
+        public ResultSet getResultSet(long index, int count) throws SQLException {
+            return null;
+        }
+
+        @Override
+        public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SQLException {
+            return null;
+        }
+
+        @Override
+        public void free() throws SQLException {
+
+        }
+    }
+
+    private static class BigDecimalDummy extends BigDecimal {
+        public static int PRECISION = 3;
+        public static int SCALE = 0;
+        public BigDecimalDummy() {
+            super("123");
+        }
+    }
+
+    private static class ArrayTestData {
+        final private String fieldName;
+        final private Object[] testArray;
+
+        public ArrayTestData(String fieldName, Object[] testArray) {
+            this.fieldName = fieldName;
+            this.testArray = testArray;
+        }
+
+        public String getFieldName() {
+            return fieldName;
+        }
+
+        public Object[] getTestArray() {
+            return testArray;
         }
     }
 }
