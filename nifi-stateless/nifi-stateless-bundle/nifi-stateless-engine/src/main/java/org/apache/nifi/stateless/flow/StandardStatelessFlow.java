@@ -24,15 +24,18 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StatelessStateManagerProvider;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.LocalPort;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
@@ -45,8 +48,10 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
 import org.apache.nifi.stateless.engine.ExecutionProgress.CompletionAction;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
@@ -54,10 +59,14 @@ import org.apache.nifi.stateless.engine.StandardExecutionProgress;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.stateless.session.AsynchronousCommitTracker;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.Connectables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -83,6 +92,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessFlow.class);
     private static final long COMPONENT_ENABLE_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(10);
     private static final long TEN_MILLIS_IN_NANOS = TimeUnit.MILLISECONDS.toNanos(10);
+    private static final String PARENT_FLOW_GROUP_ID = "stateless-flow";
 
     private final ProcessGroup rootGroup;
     private final List<Connection> allConnections;
@@ -99,6 +109,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker();
     private final TransactionThresholdMeter transactionThresholdMeter;
     private final List<BackgroundTask> backgroundTasks = new ArrayList<>();
+    private final BulletinRepository bulletinRepository;
 
     private volatile ExecutorService runDataflowExecutor;
     private volatile ScheduledExecutorService backgroundTaskExecutor;
@@ -106,7 +117,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
     public StandardStatelessFlow(final ProcessGroup rootGroup, final List<ReportingTaskNode> reportingTasks, final ControllerServiceProvider controllerServiceProvider,
                                  final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition<?> dataflowDefinition,
-                                 final StatelessStateManagerProvider stateManagerProvider, final ProcessScheduler processScheduler) {
+                                 final StatelessStateManagerProvider stateManagerProvider, final ProcessScheduler processScheduler, final BulletinRepository bulletinRepository) {
         this.rootGroup = rootGroup;
         this.allConnections = rootGroup.findAllConnections();
         this.reportingTasks = reportingTasks;
@@ -117,6 +128,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         this.stateManagerProvider = stateManagerProvider;
         this.processScheduler = processScheduler;
         this.transactionThresholdMeter = new TransactionThresholdMeter(dataflowDefinition.getTransactionThresholds());
+        this.bulletinRepository = bulletinRepository;
 
         rootConnectables = new HashSet<>();
 
@@ -145,7 +157,9 @@ public class StandardStatelessFlow implements StatelessDataflow {
         for (final Port port : processGroup.getInputPorts()) {
             for (final Connection connection : port.getConnections()) {
                 final Connectable connectable = connection.getDestination();
-                rootComponents.add(connectable);
+                if (!isTerminalPort(connectable)) {
+                    rootComponents.add(connectable);
+                }
             }
         }
     }
@@ -169,6 +183,21 @@ public class StandardStatelessFlow implements StatelessDataflow {
                 }
             }
         }
+    }
+
+    public static boolean isTerminalPort(final Connectable connectable) {
+        final ConnectableType connectableType = connectable.getConnectableType();
+        if (connectableType != ConnectableType.OUTPUT_PORT) {
+            return false;
+        }
+
+        final ProcessGroup portGroup = connectable.getProcessGroup();
+        if (PARENT_FLOW_GROUP_ID.equals(portGroup.getIdentifier())) {
+            logger.debug("FlowFiles queued for {} but this is a Terminal Port. Will not trigger Port to run.", connectable);
+            return true;
+        }
+
+        return false;
     }
 
     @Override
@@ -396,7 +425,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     }
 
     @Override
-    public DataflowTrigger trigger() {
+    public DataflowTrigger trigger(final DataflowTriggerContext triggerContext) {
         if (!initialized) {
             throw new IllegalStateException("Must initialize dataflow before triggering it");
         }
@@ -404,8 +433,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         final BlockingQueue<TriggerResult> resultQueue = new LinkedBlockingQueue<>();
 
         final ExecutionProgress executionProgress = new StandardExecutionProgress(rootGroup, internalFlowFileQueues, resultQueue,
-            repositoryContextFactory.getContentRepository(), dataflowDefinition.getFailurePortNames(), tracker,
-            stateManagerProvider);
+            repositoryContextFactory, dataflowDefinition.getFailurePortNames(), tracker, stateManagerProvider, triggerContext);
 
         final AtomicReference<Future<?>> processFuture = new AtomicReference<>();
         final DataflowTrigger trigger = new DataflowTrigger() {
@@ -471,9 +499,11 @@ public class StandardStatelessFlow implements StatelessDataflow {
                     break;
                 case COMPLETE:
                 default:
-                    final long nanos = System.nanoTime() - startNanos;
-                    final String prettyPrinted = (nanos > TEN_MILLIS_IN_NANOS) ? (TimeUnit.NANOSECONDS.toMillis(nanos) + " millis") : NumberFormat.getInstance().format(nanos) + " nanos";
-                    logger.info("Ran dataflow in {}", prettyPrinted);
+                    if (logger.isDebugEnabled()) {
+                        final long nanos = System.nanoTime() - startNanos;
+                        final String prettyPrinted = (nanos > TEN_MILLIS_IN_NANOS) ? (TimeUnit.NANOSECONDS.toMillis(nanos) + " millis") : NumberFormat.getInstance().format(nanos) + " nanos";
+                        logger.debug("Ran dataflow in {}", prettyPrinted);
+                    }
                     break;
             }
         } catch (final TerminatedTaskException tte) {
@@ -509,6 +539,17 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
     @Override
     public QueueSize enqueue(final byte[] flowFileContents, final Map<String, String> attributes, final String portName) {
+        try {
+            try (final InputStream bais = new ByteArrayInputStream(flowFileContents)) {
+                return enqueue(bais, attributes, portName);
+            }
+        } catch (final IOException e) {
+            throw new FlowFileAccessException("Failed to enqueue FlowFile", e);
+        }
+    }
+
+    @Override
+    public QueueSize enqueue(final InputStream flowFileContents, final Map<String, String> attributes, final String portName) {
         final Port inputPort = rootGroup.getInputPortByName(portName);
         if (inputPort == null) {
             throw new IllegalArgumentException("No Input Port exists with name <" + portName + ">. Valid Port names are " + getInputPortNames());
@@ -526,7 +567,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
             }
 
             FlowFile flowFile = session.create();
-            flowFile = session.write(flowFile, out -> out.write(flowFileContents));
+            flowFile = session.write(flowFile, out -> StreamUtils.copy(flowFileContents, out));
             flowFile = session.putAllAttributes(flowFile, attributes);
             session.transfer(flowFile, LocalPort.PORT_RELATIONSHIP);
             session.commitAsync();
@@ -650,6 +691,33 @@ public class StandardStatelessFlow implements StatelessDataflow {
         }
 
         return latest;
+    }
+
+    @Override
+    public void resetCounters() {
+        final CounterRepository counterRepo = repositoryContextFactory.getCounterRepository();
+        counterRepo.getCounters().forEach(counter -> counterRepo.resetCounter(counter.getIdentifier()));
+    }
+
+    @Override
+    public Map<String, Long> getCounters(final boolean includeGlobalContext) {
+        final Map<String, Long> counters = new HashMap<>();
+        for (final Counter counter : repositoryContextFactory.getCounterRepository().getCounters()) {
+            // Counter context is either of the format `componentName (componentId)` or `All componentType's` (global context). We only want the
+            // those of the first type - for individual components - unless includeGlobalContext == true
+            final boolean isGlobalContext = !counter.getContext().endsWith(")");
+            if (includeGlobalContext || !isGlobalContext) {
+                final String counterName = isGlobalContext ? counter.getName() : (counter.getName() + " - " + counter.getContext());
+                counters.put(counterName, counter.getValue());
+            }
+        }
+
+        return counters;
+    }
+
+    @Override
+    public BulletinRepository getBulletinRepository() {
+        return bulletinRepository;
     }
 
     @SuppressWarnings("unused")

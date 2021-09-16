@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.controller.scheduling;
 
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.controller.repository.ActiveProcessSessionFactory;
+import org.apache.nifi.processor.exception.TerminatedTaskException;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -23,10 +27,6 @@ import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.controller.repository.ActiveProcessSessionFactory;
-import org.apache.nifi.processor.exception.TerminatedTaskException;
 
 public class LifecycleState {
 
@@ -70,7 +70,7 @@ public class LifecycleState {
         return scheduled.get();
     }
 
-    void setScheduled(final boolean scheduled) {
+    public void setScheduled(final boolean scheduled) {
         this.scheduled.set(scheduled);
         mustCallOnStoppedMethods.set(true);
 

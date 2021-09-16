@@ -62,7 +62,7 @@ public class ConsumerPool implements Closeable {
     private final List<String> topics;
     private final Pattern topicPattern;
     private final Map<String, Object> kafkaProperties;
-    private final long maxWaitMillis;
+    private final Long maxWaitMillis;
     private final ComponentLog logger;
     private final byte[] demarcatorBytes;
     private final String keyEncoding;
@@ -75,6 +75,7 @@ public class ConsumerPool implements Closeable {
     private final Pattern headerNamePattern;
     private final boolean separateByKey;
     private final int[] partitionsToConsume;
+    private final boolean commitOffsets;
     private final AtomicLong consumerCreatedCountRef = new AtomicLong();
     private final AtomicLong consumerClosedCountRef = new AtomicLong();
     private final AtomicLong leasesObtainedCountRef = new AtomicLong();
@@ -106,7 +107,7 @@ public class ConsumerPool implements Closeable {
             final boolean separateByKey,
             final Map<String, Object> kafkaProperties,
             final List<String> topics,
-            final long maxWaitMillis,
+            final Long maxWaitMillis,
             final String keyEncoding,
             final String securityProtocol,
             final String bootstrapServers,
@@ -114,7 +115,8 @@ public class ConsumerPool implements Closeable {
             final boolean honorTransactions,
             final Charset headerCharacterSet,
             final Pattern headerNamePattern,
-            final int[] partitionsToConsume) {
+            final int[] partitionsToConsume,
+            final boolean commitOffsets) {
         this.pooledLeases = new LinkedBlockingQueue<>();
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
@@ -132,6 +134,7 @@ public class ConsumerPool implements Closeable {
         this.headerNamePattern = headerNamePattern;
         this.separateByKey = separateByKey;
         this.partitionsToConsume = partitionsToConsume;
+        this.commitOffsets = commitOffsets;
         enqueueAssignedPartitions(partitionsToConsume);
     }
 
@@ -141,7 +144,7 @@ public class ConsumerPool implements Closeable {
             final boolean separateByKey,
             final Map<String, Object> kafkaProperties,
             final Pattern topics,
-            final long maxWaitMillis,
+            final Long maxWaitMillis,
             final String keyEncoding,
             final String securityProtocol,
             final String bootstrapServers,
@@ -149,7 +152,8 @@ public class ConsumerPool implements Closeable {
             final boolean honorTransactions,
             final Charset headerCharacterSet,
             final Pattern headerNamePattern,
-            final int[] partitionsToConsume) {
+            final int[] partitionsToConsume,
+            final boolean commitOffsets) {
         this.pooledLeases = new LinkedBlockingQueue<>();
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
@@ -167,6 +171,7 @@ public class ConsumerPool implements Closeable {
         this.headerNamePattern = headerNamePattern;
         this.separateByKey = separateByKey;
         this.partitionsToConsume = partitionsToConsume;
+        this.commitOffsets = commitOffsets;
         enqueueAssignedPartitions(partitionsToConsume);
     }
 
@@ -176,7 +181,7 @@ public class ConsumerPool implements Closeable {
             final RecordSetWriterFactory writerFactory,
             final Map<String, Object> kafkaProperties,
             final Pattern topics,
-            final long maxWaitMillis,
+            final Long maxWaitMillis,
             final String securityProtocol,
             final String bootstrapServers,
             final ComponentLog logger,
@@ -185,7 +190,8 @@ public class ConsumerPool implements Closeable {
             final Pattern headerNamePattern,
             final boolean separateByKey,
             final String keyEncoding,
-            final int[] partitionsToConsume) {
+            final int[] partitionsToConsume,
+            final boolean commitOffsets) {
         this.pooledLeases = new LinkedBlockingQueue<>();
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
@@ -203,6 +209,7 @@ public class ConsumerPool implements Closeable {
         this.separateByKey = separateByKey;
         this.keyEncoding = keyEncoding;
         this.partitionsToConsume = partitionsToConsume;
+        this.commitOffsets = commitOffsets;
         enqueueAssignedPartitions(partitionsToConsume);
     }
 
@@ -212,7 +219,7 @@ public class ConsumerPool implements Closeable {
             final RecordSetWriterFactory writerFactory,
             final Map<String, Object> kafkaProperties,
             final List<String> topics,
-            final long maxWaitMillis,
+            final Long maxWaitMillis,
             final String securityProtocol,
             final String bootstrapServers,
             final ComponentLog logger,
@@ -221,7 +228,8 @@ public class ConsumerPool implements Closeable {
             final Pattern headerNamePattern,
             final boolean separateByKey,
             final String keyEncoding,
-            final int[] partitionsToConsume) {
+            final int[] partitionsToConsume,
+            final boolean commitOffsets) {
         this.pooledLeases = new LinkedBlockingQueue<>();
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
@@ -239,6 +247,7 @@ public class ConsumerPool implements Closeable {
         this.separateByKey = separateByKey;
         this.keyEncoding = keyEncoding;
         this.partitionsToConsume = partitionsToConsume;
+        this.commitOffsets = commitOffsets;
         enqueueAssignedPartitions(partitionsToConsume);
     }
 
@@ -552,7 +561,7 @@ public class ConsumerPool implements Closeable {
     public void close() {
         final List<SimpleConsumerLease> leases = new ArrayList<>();
         pooledLeases.drainTo(leases);
-        leases.stream().forEach((lease) -> {
+        leases.forEach((lease) -> {
             lease.close(true);
         });
     }
@@ -585,7 +594,7 @@ public class ConsumerPool implements Closeable {
 
         private SimpleConsumerLease(final Consumer<byte[], byte[]> consumer, final List<TopicPartition> assignedPartitions) {
             super(maxWaitMillis, consumer, demarcatorBytes, keyEncoding, securityProtocol, bootstrapServers,
-                readerFactory, writerFactory, logger, headerCharacterSet, headerNamePattern, separateByKey);
+                readerFactory, writerFactory, logger, headerCharacterSet, headerNamePattern, separateByKey, commitOffsets);
             this.consumer = consumer;
             this.assignedPartitions = assignedPartitions;
         }

@@ -18,9 +18,15 @@
 package org.apache.nifi.stateless.flow;
 
 public class FailurePortEncounteredException extends RuntimeException {
+    private final String portName;
 
-    public FailurePortEncounteredException(String message) {
+    public FailurePortEncounteredException(final String message, final String portName) {
         super(message);
+        this.portName = portName;
+    }
+
+    public String getPortName() {
+        return portName;
     }
 
 }

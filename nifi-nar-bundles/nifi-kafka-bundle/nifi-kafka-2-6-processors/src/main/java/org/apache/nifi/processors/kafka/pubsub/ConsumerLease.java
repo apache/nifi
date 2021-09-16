@@ -52,10 +52,12 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -74,7 +76,7 @@ import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_E
  */
 public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListener {
 
-    private final long maxWaitMillis;
+    private final Long maxWaitMillis;
     private final Consumer<byte[], byte[]> kafkaConsumer;
     private final ComponentLog logger;
     private final byte[] demarcatorBytes;
@@ -86,6 +88,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     private final Charset headerCharacterSet;
     private final Pattern headerNamePattern;
     private final boolean separateByKey;
+    private final boolean commitOffsets;
     private boolean poisoned = false;
     //used for tracking demarcated flowfiles to their TopicPartition so we can append
     //to them on subsequent poll calls
@@ -96,7 +99,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     private int totalMessages = 0;
 
     ConsumerLease(
-            final long maxWaitMillis,
+            final Long maxWaitMillis,
             final Consumer<byte[], byte[]> kafkaConsumer,
             final byte[] demarcatorBytes,
             final String keyEncoding,
@@ -107,7 +110,8 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             final ComponentLog logger,
             final Charset headerCharacterSet,
             final Pattern headerNamePattern,
-            final boolean separateByKey) {
+            final boolean separateByKey,
+            final boolean commitMessageOffsets) {
         this.maxWaitMillis = maxWaitMillis;
         this.kafkaConsumer = kafkaConsumer;
         this.demarcatorBytes = demarcatorBytes;
@@ -120,6 +124,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         this.headerCharacterSet = headerCharacterSet;
         this.headerNamePattern = headerNamePattern;
         this.separateByKey = separateByKey;
+        this.commitOffsets = commitMessageOffsets;
     }
 
     /**
@@ -148,7 +153,6 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     @Override
     public void onPartitionsRevoked(final Collection<TopicPartition> partitions) {
         logger.debug("Rebalance Alert: Partitions '{}' revoked for lease '{}' with consumer '{}'", new Object[]{partitions, this, kafkaConsumer});
-        //force a commit here.  Can reuse the session and consumer after this but must commit now to avoid duplicates if kafka reassigns partition
         commit();
     }
 
@@ -173,7 +177,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
      * flowfiles necessary or appends to existing ones if in demarcation mode.
      */
     void poll() {
-        /**
+        /*
          * Implementation note:
          * Even if ConsumeKafka is not scheduled to poll due to downstream connection back-pressure is engaged,
          * for longer than session.timeout.ms (defaults to 10 sec), Kafka consumer sends heartbeat from background thread.
@@ -194,6 +198,15 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         }
     }
 
+    void abort() {
+        rollback(kafkaConsumer.assignment());
+        final ProcessSession session = getProcessSession();
+        if (session != null) {
+            session.rollback();
+        }
+        resetInternalState();
+    }
+
     /**
      * Notifies Kafka to commit the offsets for the specified topic/partition
      * pairs to the specified offsets w/the given metadata. This can offer
@@ -210,8 +223,15 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             resetInternalState();
             return false;
         }
+
+        if (isPoisoned()) {
+            // Failed to commit the session. Rollback the offsets.
+            abort();
+            return false;
+        }
+
         try {
-            /**
+            /*
              * Committing the nifi session then the offsets means we have an at
              * least once guarantee here. If we reversed the order we'd have at
              * most once.
@@ -219,12 +239,29 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             final Collection<FlowFile> bundledFlowFiles = getBundles();
             if (!bundledFlowFiles.isEmpty()) {
                 getProcessSession().transfer(bundledFlowFiles, REL_SUCCESS);
+
+                if (logger.isDebugEnabled()) {
+                    for (final FlowFile flowFile : bundledFlowFiles) {
+                        final String recordCountAttribute = flowFile.getAttribute("record.count");
+                        final String recordCount = recordCountAttribute == null ? "1" : recordCountAttribute;
+                        logger.debug("Transferred {} with {} records, max offset of {}", flowFile, recordCount, flowFile.getAttribute(KafkaProcessorUtils.KAFKA_MAX_OFFSET));
+                    }
+                }
             }
 
+            final Map<TopicPartition, OffsetAndMetadata> offsetsMap = new HashMap<>(uncommittedOffsetsMap);
+            final Set<TopicPartition> assignedPartitions = kafkaConsumer.assignment();
+
             getProcessSession().commitAsync(() -> {
-                final Map<TopicPartition, OffsetAndMetadata> offsetsMap = uncommittedOffsetsMap;
-                kafkaConsumer.commitSync(offsetsMap);
+                if (commitOffsets) {
+                    kafkaConsumer.commitSync(offsetsMap);
+                }
                 resetInternalState();
+            }, failureCause -> {
+                // Failed to commit the session. Rollback the offsets.
+                logger.error("Failed to commit ProcessSession after consuming records from Kafka. Will rollback Kafka Offsets", failureCause);
+                resetInternalState();
+                rollback(assignedPartitions);
             });
 
             return true;
@@ -271,7 +308,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             leaseStartNanos = System.nanoTime();
         }
         final long durationMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - leaseStartNanos);
-        if (durationMillis > maxWaitMillis) {
+        if (maxWaitMillis == null || durationMillis > maxWaitMillis) {
             return false;
         }
 
@@ -326,12 +363,12 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     public abstract void yield();
 
     private void processRecords(final ConsumerRecords<byte[], byte[]> records) {
-        records.partitions().stream().forEach(partition -> {
+        records.partitions().forEach(partition -> {
             List<ConsumerRecord<byte[], byte[]>> messages = records.records(partition);
             if (!messages.isEmpty()) {
                 //update maximum offset map for this topic partition
                 long maxOffset = messages.stream()
-                        .mapToLong(record -> record.offset())
+                        .mapToLong(ConsumerRecord::offset)
                         .max()
                         .getAsLong();
 
@@ -341,7 +378,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                 } else if (readerFactory != null && writerFactory != null) {
                     writeRecordData(getProcessSession(), messages, partition);
                 } else {
-                    messages.stream().forEach(message -> {
+                    messages.forEach(message -> {
                         writeData(getProcessSession(), message, partition);
                     });
                 }
@@ -407,7 +444,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     private void writeData(final ProcessSession session, ConsumerRecord<byte[], byte[]> record, final TopicPartition topicPartition) {
         FlowFile flowFile = session.create();
         final BundleTracker tracker = new BundleTracker(record, topicPartition, keyEncoding);
-        tracker.incrementRecordCount(1);
+        tracker.incrementRecordCount(1, record.offset(), record.leaderEpoch().orElse(null));
         final byte[] value = record.value();
         if (value != null) {
             flowFile = session.write(flowFile, out -> {
@@ -445,7 +482,16 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             }
             flowFile = tracker.flowFile;
 
-            tracker.incrementRecordCount(recordList.size());
+            // Determine max offset of any record to provide to the MessageTracker.
+            long maxOffset = recordList.get(0).offset();
+            int leaderEpoch = -1;
+            for (final ConsumerRecord<byte[], byte[]> record : recordList) {
+                maxOffset = Math.max(maxOffset, record.offset());
+                leaderEpoch = Math.max(record.leaderEpoch().orElse(leaderEpoch), leaderEpoch);
+            }
+
+            tracker.incrementRecordCount(recordList.size(), maxOffset, leaderEpoch >= 0 ? leaderEpoch : null);
+
             flowFile = session.append(flowFile, out -> {
                 boolean useDemarcator = demarcateFirstRecord;
                 for (final ConsumerRecord<byte[], byte[]> record : recordList) {
@@ -588,7 +634,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                                 continue;
                             }
 
-                            tracker.incrementRecordCount(1L);
+                            tracker.incrementRecordCount(1L, consumerRecord.offset(), consumerRecord.leaderEpoch().orElse(null));
                             session.adjustCounter("Records Received", 1L, false);
                         }
                     } catch (final IOException | MalformedRecordException | SchemaValidationException e) {
@@ -618,25 +664,42 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     }
 
     private void rollback(final TopicPartition topicPartition) {
-        try {
-            OffsetAndMetadata offsetAndMetadata = uncommittedOffsetsMap.get(topicPartition);
-            if (offsetAndMetadata == null) {
-                offsetAndMetadata = kafkaConsumer.committed(topicPartition);
-            }
-
-            final long offset = offsetAndMetadata == null ? 0L : offsetAndMetadata.offset();
-            kafkaConsumer.seek(topicPartition, offset);
-        } catch (final Exception rollbackException) {
-            logger.warn("Attempted to rollback Kafka message offset but was unable to do so", rollbackException);
-        }
+        rollback(Collections.singleton(topicPartition));
     }
 
+    private void rollback(final Set<TopicPartition> topicPartitions) {
+        try {
+            final Map<TopicPartition, OffsetAndMetadata> metadataMap = kafkaConsumer.committed(topicPartitions);
+            for (final Map.Entry<TopicPartition, OffsetAndMetadata> entry : metadataMap.entrySet()) {
+                final TopicPartition topicPartition = entry.getKey();
+                final OffsetAndMetadata offsetAndMetadata = entry.getValue();
+
+                if (offsetAndMetadata == null) {
+                    kafkaConsumer.seekToBeginning(Collections.singleton(topicPartition));
+                    logger.info("Rolling back offsets so that {}-{} it is at the beginning", topicPartition.topic(), topicPartition.partition());
+                } else {
+                    kafkaConsumer.seek(topicPartition, offsetAndMetadata.offset());
+                    logger.info("Rolling back offsets so that {}-{} has offset of {}", topicPartition.topic(), topicPartition.partition(), offsetAndMetadata.offset());
+                }
+            }
+        } catch (final Exception rollbackException) {
+            logger.warn("Attempted to rollback Kafka message offset but was unable to do so", rollbackException);
+            poison();
+        }
+    }
 
 
     private void populateAttributes(final BundleTracker tracker) {
         final Map<String, String> kafkaAttrs = new HashMap<>();
         kafkaAttrs.put(KafkaProcessorUtils.KAFKA_OFFSET, String.valueOf(tracker.initialOffset));
         kafkaAttrs.put(KafkaProcessorUtils.KAFKA_TIMESTAMP, String.valueOf(tracker.initialTimestamp));
+        kafkaAttrs.put(KafkaProcessorUtils.KAFKA_MAX_OFFSET, String.valueOf(tracker.maxOffset));
+        if (tracker.leaderEpoch != null) {
+            kafkaAttrs.put(KafkaProcessorUtils.KAFKA_LEADER_EPOCH, String.valueOf(tracker.leaderEpoch));
+        }
+
+        kafkaAttrs.put(KafkaProcessorUtils.KAFKA_CONSUMER_GROUP_ID, kafkaConsumer.groupMetadata().groupId());
+        kafkaAttrs.put(KafkaProcessorUtils.KAFKA_CONSUMER_OFFSETS_COMMITTED, String.valueOf(commitOffsets));
 
         // If we have a kafka key, we will add it as an attribute only if
         // the FlowFile contains a single Record, or if the Records have been separated by Key,
@@ -658,6 +721,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                 kafkaAttrs.put("record.count", String.valueOf(tracker.totalRecords));
             }
         }
+
         final FlowFile newFlowFile = getProcessSession().putAllAttributes(tracker.flowFile, kafkaAttrs);
         final long executionDurationMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - leaseStartNanos);
         final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, tracker.topic);
@@ -675,6 +739,8 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         final RecordSetWriter recordWriter;
         FlowFile flowFile;
         long totalRecords = 0;
+        long maxOffset;
+        Integer leaderEpoch;
 
         private BundleTracker(final ConsumerRecord<byte[], byte[]> initialRecord, final TopicPartition topicPartition, final String keyEncoding) {
             this(initialRecord, topicPartition, keyEncoding, null);
@@ -682,15 +748,21 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
         private BundleTracker(final ConsumerRecord<byte[], byte[]> initialRecord, final TopicPartition topicPartition, final String keyEncoding, final RecordSetWriter recordWriter) {
             this.initialOffset = initialRecord.offset();
+            this.maxOffset = initialOffset;
             this.initialTimestamp = initialRecord.timestamp();
             this.partition = topicPartition.partition();
             this.topic = topicPartition.topic();
             this.recordWriter = recordWriter;
             this.key = encodeKafkaKey(initialRecord.key(), keyEncoding);
+            this.leaderEpoch = initialRecord.leaderEpoch().orElse(null);
         }
 
-        private void incrementRecordCount(final long count) {
+        private void incrementRecordCount(final long count, final long maxOffset, final Integer leaderEpoch) {
             totalRecords += count;
+            this.maxOffset = Math.max(this.maxOffset, maxOffset);
+            if (leaderEpoch != null) {
+                this.leaderEpoch = (this.leaderEpoch == null) ? leaderEpoch : Math.max(this.leaderEpoch, leaderEpoch);
+            }
         }
 
         private void updateFlowFile(final FlowFile flowFile) {

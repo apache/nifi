@@ -18,6 +18,7 @@
 package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -82,4 +83,10 @@ public interface TriggerResult {
      * @param cause the cause for aborting the dataflow, or <code>null</code> if no cause is to be specified
      */
     void abort(Throwable cause);
+
+    /**
+     * Returns all Provenance Events that were created during this invocation of the dataflow
+     * @return the list of Provenance events
+     */
+    List<ProvenanceEventRecord> getProvenanceEvents() throws IOException;
 }

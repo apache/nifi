@@ -602,11 +602,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         final long yieldMillis = getYieldPeriod(TimeUnit.MILLISECONDS);
         yield(yieldMillis, TimeUnit.MILLISECONDS);
 
-        final String yieldDuration = (yieldMillis > 1000) ? (yieldMillis / 1000) + " seconds"
-                : yieldMillis + " milliseconds";
-        LoggerFactory.getLogger(processor.getClass()).debug(
-                "{} has chosen to yield its resources; will not be scheduled to run again for {}", processor,
-                yieldDuration);
+        final String yieldDuration = (yieldMillis > 1000) ? (yieldMillis / 1000) + " seconds" : yieldMillis + " milliseconds";
+        LoggerFactory.getLogger(processor.getClass()).trace("{} has chosen to yield its resources; will not be scheduled to run again for {}", processor, yieldDuration);
     }
 
     @Override

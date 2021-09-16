@@ -17,16 +17,20 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.FencedInstanceIdException;
+import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.header.Headers;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -48,6 +52,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -262,6 +267,14 @@ public class PublisherLease implements Closeable {
         tracker.incrementSentCount(flowFile);
     }
 
+    void ackConsumerOffsets(final String topic, final int partition, final long offset, final Integer leaderEpoch, final String consumerGroupId) {
+        final TopicPartition topicPartition = new TopicPartition(topic, partition);
+        final OffsetAndMetadata offsetAndMetadata = new OffsetAndMetadata(offset + 1, Optional.ofNullable(leaderEpoch), null);
+        final Map<TopicPartition, OffsetAndMetadata> offsetMap = Collections.singletonMap(topicPartition, offsetAndMetadata);
+
+        logger.debug("Acknowledging Consumer Offsets for topic={}, partition={}, offset={}, consumerGroup={}, leaderEpoch={}", topic, partition, offset, consumerGroupId, leaderEpoch);
+        producer.sendOffsetsToTransaction(offsetMap, consumerGroupId);
+    }
 
     public PublishResult complete() {
         if (tracker == null) {
@@ -280,6 +293,8 @@ public class PublisherLease implements Closeable {
                 producer.commitTransaction();
                 activeTransaction = false;
             }
+        } catch (final ProducerFencedException | FencedInstanceIdException e) {
+            throw e;
         } catch (final Exception e) {
             poison();
             throw e;
