@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.ClientAuth;
@@ -94,7 +95,7 @@ public class TestListenTCP {
 
     @Test
     public void testRunBatching() throws IOException {
-        runner.setProperty(ListenTCP.MAX_BATCH_SIZE, "3");
+        runner.setProperty(ListenerProperties.MAX_BATCH_SIZE, "3");
 
         final List<String> messages = new ArrayList<>();
         messages.add("This is message 1\n");

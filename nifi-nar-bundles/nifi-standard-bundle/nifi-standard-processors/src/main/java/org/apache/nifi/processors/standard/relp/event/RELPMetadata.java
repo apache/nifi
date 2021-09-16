@@ -23,5 +23,6 @@ public interface RELPMetadata {
 
     String TXNR_KEY = "relp.txnr";
     String COMMAND_KEY = "relp.command";
+    String SENDER_KEY = "sender";
 
 }

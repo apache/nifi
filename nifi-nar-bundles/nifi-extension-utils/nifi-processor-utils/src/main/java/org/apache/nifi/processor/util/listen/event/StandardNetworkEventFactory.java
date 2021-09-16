@@ -14,28 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.event.transport.message;
+package org.apache.nifi.processor.util.listen.event;
 
-import org.apache.nifi.event.transport.NetworkEvent;
+import org.apache.nifi.event.transport.message.ByteArrayMessage;
+
+import java.util.Map;
 
 /**
- * Byte Array Message with Sender
+ * An EventFactory implementation to create NettyEvents.
  */
-public class ByteArrayMessage implements NetworkEvent {
-    private final byte[] message;
+public class StandardNetworkEventFactory implements NetworkEventFactory<ByteArrayMessage> {
 
-    private final String sender;
-
-    public ByteArrayMessage(final byte[] message, final String sender) {
-        this.message = message;
-        this.sender = sender;
+    @Override
+    public ByteArrayMessage create(final byte[] data, final Map<String, String> metadata) {
+        return new ByteArrayMessage(data, metadata.get(EventFactory.SENDER_KEY));
     }
 
-    public byte[] getMessage() {
-        return message;
-    }
-
-    public String getSender() {
-        return sender;
-    }
 }

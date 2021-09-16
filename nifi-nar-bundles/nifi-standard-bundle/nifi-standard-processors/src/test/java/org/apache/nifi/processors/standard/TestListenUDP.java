@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.StandardEvent;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
@@ -111,8 +112,8 @@ public class TestListenUDP {
     @Test
     public void testBatchingSingleSender() throws IOException, InterruptedException {
         final String delimiter = "NN";
-        runner.setProperty(ListenUDP.MESSAGE_DELIMITER, delimiter);
-        runner.setProperty(ListenUDP.MAX_BATCH_SIZE, "3");
+        runner.setProperty(ListenerProperties.MESSAGE_DELIMITER, delimiter);
+        runner.setProperty(ListenerProperties.MAX_BATCH_SIZE, "3");
 
         final List<String> messages = getMessages(5);
         final int expectedTransferred = 2;
@@ -146,7 +147,7 @@ public class TestListenUDP {
         MockListenUDP mockListenUDP = new MockListenUDP(mockEvents);
         runner = TestRunners.newTestRunner(mockListenUDP);
         runner.setProperty(ListenUDP.PORT, "1");
-        runner.setProperty(ListenUDP.MAX_BATCH_SIZE, "10");
+        runner.setProperty(ListenerProperties.MAX_BATCH_SIZE, "10");
 
         // sending 4 messages with a batch size of 10, but should get 2 FlowFiles because of different senders
         runner.run();
@@ -162,7 +163,7 @@ public class TestListenUDP {
         MockListenUDP mockListenUDP = new MockListenUDP(mockEvents);
         runner = TestRunners.newTestRunner(mockListenUDP);
         runner.setProperty(ListenUDP.PORT, "1");
-        runner.setProperty(ListenUDP.MAX_BATCH_SIZE, "10");
+        runner.setProperty(ListenerProperties.MAX_BATCH_SIZE, "10");
 
         runner.run(5);
         runner.assertAllFlowFilesTransferred(ListenUDP.REL_SUCCESS, 0);

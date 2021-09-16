@@ -16,11 +16,8 @@
  */
 package org.apache.nifi.processor.util.listen;
 
-import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
-
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -28,7 +25,6 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.listen.event.Event;
 
 import java.io.IOException;
@@ -41,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
+
 /**
  * An abstract processor that extends from AbstractListenEventProcessor and adds common functionality for
  * batching events into a single FlowFile.
@@ -48,25 +46,6 @@ import java.util.Set;
  * @param <E> the type of Event
  */
 public abstract class AbstractListenEventBatchingProcessor<E extends Event> extends AbstractListenEventProcessor<E> {
-
-    public static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("Max Batch Size")
-            .description(
-                    "The maximum number of messages to add to a single FlowFile. If multiple messages are available, they will be concatenated along with "
-                            + "the <Message Delimiter> up to this configured maximum number of messages")
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .defaultValue("1")
-            .required(true)
-            .build();
-    public static final PropertyDescriptor MESSAGE_DELIMITER = new PropertyDescriptor.Builder()
-            .name("Message Delimiter")
-            .displayName("Batching Message Delimiter")
-            .description("Specifies the delimiter to place between messages when multiple messages are bundled together (see <Max Batch Size> property).")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue("\\n")
-            .required(true)
-            .build();
 
     // it is only the array reference that is volatile - not the contents.
     protected volatile byte[] messageDemarcatorBytes;
@@ -80,8 +59,8 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
         descriptors.add(MAX_MESSAGE_QUEUE_SIZE);
         descriptors.add(MAX_SOCKET_BUFFER_SIZE);
         descriptors.add(CHARSET);
-        descriptors.add(MAX_BATCH_SIZE);
-        descriptors.add(MESSAGE_DELIMITER);
+        descriptors.add(ListenerProperties.MAX_BATCH_SIZE);
+        descriptors.add(ListenerProperties.MESSAGE_DELIMITER);
         descriptors.addAll(getAdditionalProperties());
         this.descriptors = Collections.unmodifiableList(descriptors);
 
@@ -95,13 +74,13 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
     @OnScheduled
     public void onScheduled(ProcessContext context) throws IOException {
         super.onScheduled(context);
-        final String msgDemarcator = context.getProperty(MESSAGE_DELIMITER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
+        final String msgDemarcator = context.getProperty(ListenerProperties.MESSAGE_DELIMITER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
         messageDemarcatorBytes = msgDemarcator.getBytes(charset);
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
+        final int maxBatchSize = context.getProperty(ListenerProperties.MAX_BATCH_SIZE).asInteger();
         final Map<String,FlowFileEventBatch> batches = getBatches(session, maxBatchSize, messageDemarcatorBytes);
 
         // if the size is 0 then there was nothing to process so return
@@ -169,7 +148,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
 
     /**
      * Batches together up to the batchSize events. Events are grouped together based on a batch key which
-     * by default is the sender of the event, but can be override by sub-classes.
+     * by default is the sender of the event, but can be overriden by sub-classes.
      *
      * This method will return when batchSize has been reached, or when no more events are available on the queue.
      *

@@ -16,22 +16,20 @@
  */
 package org.apache.nifi.processors.standard.relp.event;
 
-import org.apache.nifi.processor.util.listen.event.EventFactory;
-import org.apache.nifi.processor.util.listen.response.ChannelResponder;
+import org.apache.nifi.processor.util.listen.event.NetworkEventFactory;
 
 import java.util.Map;
 
 /**
  * An EventFactory implementation to create RELPEvents.
  */
-public class RELPEventFactory implements EventFactory<RELPEvent> {
+public class RELPMessageFactory implements NetworkEventFactory<RELPMessage> {
 
     @Override
-    public RELPEvent create(final byte[] data, final Map<String, String> metadata, final ChannelResponder responder) {
+    public RELPMessage create(final byte[] data, final Map<String, String> metadata) {
         final long txnr = Long.valueOf(metadata.get(RELPMetadata.TXNR_KEY));
         final String command = metadata.get(RELPMetadata.COMMAND_KEY);
-        final String sender = metadata.get(EventFactory.SENDER_KEY);
-        return new RELPEvent(sender, data, responder, txnr, command);
+        final String sender = metadata.get(RELPMetadata.SENDER_KEY);
+        return new RELPMessage(sender, data, txnr, command);
     }
-
 }
