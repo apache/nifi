@@ -31,10 +31,13 @@ import org.bson.Document;
 public interface MongoDBClientService extends ControllerService {
      String WRITE_CONCERN_ACKNOWLEDGED = "ACKNOWLEDGED";
      String WRITE_CONCERN_UNACKNOWLEDGED = "UNACKNOWLEDGED";
-     String WRITE_CONCERN_FSYNCED = "FSYNCED";
+     String WRITE_CONCERN_FSYNCED = "FSYNCED (Deprecated)";
      String WRITE_CONCERN_JOURNALED = "JOURNALED";
-     String WRITE_CONCERN_REPLICA_ACKNOWLEDGED = "REPLICA_ACKNOWLEDGED";
+     String WRITE_CONCERN_REPLICA_ACKNOWLEDGED = "REPLICA_ACKNOWLEDGED (Deprecated)";
      String WRITE_CONCERN_MAJORITY = "MAJORITY";
+     String WRITE_CONCERN_W1 = "W1";
+     String WRITE_CONCERN_W2 = "W2";
+     String WRITE_CONCERN_W3 = "W3";
 
      PropertyDescriptor URI = new PropertyDescriptor.Builder()
             .name("mongo-uri")
@@ -86,7 +89,7 @@ public interface MongoDBClientService extends ControllerService {
             .description("The write concern to use")
             .required(true)
             .allowableValues(WRITE_CONCERN_ACKNOWLEDGED, WRITE_CONCERN_UNACKNOWLEDGED, WRITE_CONCERN_FSYNCED, WRITE_CONCERN_JOURNALED,
-                    WRITE_CONCERN_REPLICA_ACKNOWLEDGED, WRITE_CONCERN_MAJORITY)
+                    WRITE_CONCERN_REPLICA_ACKNOWLEDGED, WRITE_CONCERN_MAJORITY, WRITE_CONCERN_W1, WRITE_CONCERN_W2, WRITE_CONCERN_W3)
             .defaultValue(WRITE_CONCERN_ACKNOWLEDGED)
             .build();
 
