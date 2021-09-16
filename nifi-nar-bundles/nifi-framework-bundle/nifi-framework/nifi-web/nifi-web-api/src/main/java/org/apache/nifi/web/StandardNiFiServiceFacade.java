@@ -118,12 +118,14 @@ import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.history.PreviousValue;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.NonSensitiveParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.SensitiveParameterProvider;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.prometheus.util.AbstractMetricsRegistry;
@@ -1510,7 +1512,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Map<String, Parameter> parameterUpdates = parameterContextDAO.getParameters(parameterContextDto, parameterContext);
         final List<ParameterContext> inheritedParameterContexts = parameterContextDAO.getInheritedParameterContexts(parameterContextDto);
-        final Map<String, Parameter> proposedParameterUpdates = parameterContext.getEffectiveParameterUpdates(parameterUpdates, inheritedParameterContexts);
+        final SensitiveParameterProvider sensitiveParameterProvider = parameterContextDAO.getSensitiveParameterProvider(parameterContextDto);
+        final NonSensitiveParameterProvider nonSensitiveParameterProvider = parameterContextDAO.getNonSensitiveParameterProvider(parameterContextDto);
+        final Map<String, Parameter> proposedParameterUpdates = parameterContext.getEffectiveParameterUpdates(parameterUpdates, inheritedParameterContexts,
+                sensitiveParameterProvider, nonSensitiveParameterProvider);
         final Map<String, ParameterEntity> parameterEntities = parameterContextDto.getParameters().stream()
                 .collect(Collectors.toMap(entity -> entity.getParameter().getName(), Function.identity()));
         parameterContextDto.getParameters().clear();

@@ -356,11 +356,11 @@ public class StandardParameterContext implements ParameterContext {
     }
 
     @Override
-    public Map<String, Parameter> getEffectiveParameterUpdates(final Map<String, Parameter> parameters, final List<ParameterContext> inheritedParameterContexts,
+    public Map<String, Parameter> getEffectiveParameterUpdates(final Map<String, Parameter> parameterUpdates, final List<ParameterContext> inheritedParameterContexts,
                                                                final SensitiveParameterProvider sensitiveParameterProvider, final NonSensitiveParameterProvider nonSensitiveParameterProvider) {
-        Objects.requireNonNull(parameters, "Parameter Updates must be specified");
+        Objects.requireNonNull(parameterUpdates, "Parameter Updates must be specified");
         Objects.requireNonNull(inheritedParameterContexts, "Inherited parameter contexts must be specified");
-        final Map<String, Parameter> allProposedUpdates = new HashMap<>(parameters);
+        final Map<String, Parameter> allProposedUpdates = new HashMap<>(parameterUpdates);
         final Map<String, Parameter> sensitiveProviderEffectiveUpdates = getParameterProviderEffectiveUpdates(sensitiveParameterProvider, true);
         final Map<String, Parameter> nonSensitiveProviderEffectiveUpdates = getParameterProviderEffectiveUpdates(nonSensitiveParameterProvider, false);
         allProposedUpdates.putAll(sensitiveProviderEffectiveUpdates);
@@ -484,7 +484,7 @@ public class StandardParameterContext implements ParameterContext {
     @Override
     public void verifyCanSetSensitiveParameterProvider(final SensitiveParameterProvider parameterProvider) {
         if (isParameterProviderUpdate(sensitiveParameterProvider, parameterProvider)) {
-            verifyCanSetParameters(getParameterProviderEffectiveUpdates(parameterProvider, true), false);
+            verifyCanSetParameters(getParameterProviderEffectiveUpdates(parameterProvider, true));
         }
     }
 
@@ -521,7 +521,7 @@ public class StandardParameterContext implements ParameterContext {
     @Override
     public void verifyCanSetNonSensitiveParameterProvider(final NonSensitiveParameterProvider parameterProvider) {
         if (isParameterProviderUpdate(nonSensitiveParameterProvider, parameterProvider)) {
-            verifyCanSetParameters(getParameterProviderEffectiveUpdates(parameterProvider, false), false);
+            verifyCanSetParameters(getParameterProviderEffectiveUpdates(parameterProvider, false));
         }
     }
 

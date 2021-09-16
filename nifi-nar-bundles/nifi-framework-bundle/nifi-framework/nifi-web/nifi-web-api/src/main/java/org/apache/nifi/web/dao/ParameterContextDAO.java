@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.web.dao;
 
+import org.apache.nifi.parameter.NonSensitiveParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
+import org.apache.nifi.parameter.SensitiveParameterProvider;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 
 import java.util.List;
@@ -80,6 +82,20 @@ public interface ParameterContextDAO extends ParameterContextLookup {
      * context is disabled. If <code>false</code>, these verifications will not be performed.
      */
     void verifyUpdate(ParameterContextDTO parameterContextDto, boolean verifyComponentStates);
+
+    /**
+     * Returns the SensitiveParameterProvider if the provided DTO contains a valid reference.
+     * @param parameterContextDTO The parameter context DTO
+     * @return A SensitiveParameterProvider, if relevant, or null if not specified
+     */
+    SensitiveParameterProvider getSensitiveParameterProvider(final ParameterContextDTO parameterContextDTO);
+
+    /**
+     * Returns the NonSensitiveParameterProvider if the provided DTO contains a valid reference.
+     * @param parameterContextDTO The parameter context DTO
+     * @return A NonSensitiveParameterProvider, if relevant, or null if not specified
+     */
+    NonSensitiveParameterProvider getNonSensitiveParameterProvider(final ParameterContextDTO parameterContextDTO);
 
     /**
      * Determines whether this parameter context can be removed.

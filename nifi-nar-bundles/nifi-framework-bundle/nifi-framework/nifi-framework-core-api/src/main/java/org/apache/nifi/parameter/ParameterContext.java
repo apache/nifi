@@ -111,23 +111,11 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
     Map<ParameterDescriptor, Parameter> getEffectiveParameters();
 
     /**
-     * Returns the ParameterReferenceManager that is associated with this ParameterContext
-     * @return the ParameterReferenceManager that is associated with this ParameterContext
-     */
-    ParameterReferenceManager getParameterReferenceManager();
-
-    /**
      * Verifies whether the parameter context can be updated with the provided parameters and inherited parameter contexts.
      * @param parameterUpdates A map from parameter name to updated parameter (null if removal is desired)
      * @param inheritedParameterContexts the list of ParameterContexts from which to inherit parameters
      */
     void verifyCanUpdateParameterContext(Map<String, Parameter> parameterUpdates, List<ParameterContext> inheritedParameterContexts);
-
-    /**
-     * Returns the ParameterProviderLookup that is associated with this ParameterContext
-     * @return the ParameterProviderLookup that is associated with this ParameterContext
-     */
-    ParameterProviderLookup getParameterProviderLookup();
 
     /**
      * Returns a map from parameter name to Parameter, representing all parameters that would be effectively
@@ -141,6 +129,18 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
      */
     Map<String, Parameter> getEffectiveParameterUpdates(final Map<String, Parameter> parameters, final List<ParameterContext> inheritedParameterContexts,
                                                         final SensitiveParameterProvider sensitiveParameterProvider, final NonSensitiveParameterProvider nonSensitiveParameterProvider);
+
+    /**
+     * Returns the ParameterReferenceManager that is associated with this ParameterContext
+     * @return the ParameterReferenceManager that is associated with this ParameterContext
+     */
+    ParameterReferenceManager getParameterReferenceManager();
+
+    /**
+     * Returns the ParameterProviderLookup that is associated with this ParameterContext
+     * @return the ParameterProviderLookup that is associated with this ParameterContext
+     */
+    ParameterProviderLookup getParameterProviderLookup();
 
     /**
      *

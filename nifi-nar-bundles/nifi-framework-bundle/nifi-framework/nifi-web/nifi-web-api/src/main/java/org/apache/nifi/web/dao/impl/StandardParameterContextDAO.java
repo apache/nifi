@@ -78,6 +78,8 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
                     .getParameterContext(entity.getComponent().getId()));
         }
         authorizeReferences(parameterContextDto);
+
+
     }
 
     @Override
@@ -294,10 +296,8 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         final Map<String, Parameter> parameters = parameterContextDto.getParameters() == null ? Collections.emptyMap() : getParameters(parameterContextDto, currentContext);
         currentContext.verifyCanUpdateParameterContext(parameters, inheritedParameterContexts);
 
-        final SensitiveParameterProvider sensitiveParameterProvider = (SensitiveParameterProvider) getParameterProvider(parameterContextDto
-                .getSensitiveParameterProviderRef(), true);
-        final NonSensitiveParameterProvider nonSensitiveParameterProvider = (NonSensitiveParameterProvider) getParameterProvider(parameterContextDto
-                .getNonSensitiveParameterProviderRef(), false);
+        final SensitiveParameterProvider sensitiveParameterProvider = getSensitiveParameterProvider(parameterContextDto);
+        final NonSensitiveParameterProvider nonSensitiveParameterProvider = getNonSensitiveParameterProvider(parameterContextDto);
 
         final Map<String, Parameter> proposedParameters = new HashMap<>();
         if (parameterContextDto.getParameters() != null) {
@@ -306,6 +306,16 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
         verifyParameterSourceConflicts(sensitiveParameterProvider, proposedParameters);
         verifyParameterSourceConflicts(nonSensitiveParameterProvider, proposedParameters);
+    }
+
+    @Override
+    public SensitiveParameterProvider getSensitiveParameterProvider(final ParameterContextDTO parameterContextDTO) {
+        return (SensitiveParameterProvider) getParameterProvider(parameterContextDTO.getSensitiveParameterProviderRef(), true);
+    }
+
+    @Override
+    public NonSensitiveParameterProvider getNonSensitiveParameterProvider(final ParameterContextDTO parameterContextDTO) {
+        return (NonSensitiveParameterProvider) getParameterProvider(parameterContextDTO.getNonSensitiveParameterProviderRef(), false);
     }
 
     private void verifyParameterSourceConflicts(final ParameterProvider parameterProvider, final Map<String, Parameter> parameterUpdates) {
