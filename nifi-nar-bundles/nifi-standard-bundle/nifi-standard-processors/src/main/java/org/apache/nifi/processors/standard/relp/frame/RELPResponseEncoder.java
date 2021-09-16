@@ -14,28 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.event.transport.message;
+package org.apache.nifi.processors.standard.relp.frame;
 
-import org.apache.nifi.event.transport.NetworkEvent;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.MessageToMessageEncoder;
+import org.apache.nifi.processors.standard.relp.response.RELPResponse;
+
+import java.nio.charset.Charset;
+import java.util.List;
 
 /**
- * Byte Array Message with Sender
+ * Message encoder for a RELPResponse
  */
-public class ByteArrayMessage implements NetworkEvent {
-    private final byte[] message;
+@ChannelHandler.Sharable
+public class RELPResponseEncoder extends MessageToMessageEncoder<RELPResponse> {
 
-    private final String sender;
+    private Charset charset;
 
-    public ByteArrayMessage(final byte[] message, final String sender) {
-        this.message = message;
-        this.sender = sender;
+    public RELPResponseEncoder(final Charset charset) {
+        this.charset = charset;
     }
 
-    public byte[] getMessage() {
-        return message;
-    }
-
-    public String getSender() {
-        return sender;
+    @Override
+    protected void encode(ChannelHandlerContext context, RELPResponse event, List<Object> out) throws Exception {
+        out.add(new RELPEncoder(charset).encode(event.toFrame(charset)));
     }
 }

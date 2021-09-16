@@ -16,21 +16,18 @@
  */
 package org.apache.nifi.processors.standard.relp.event;
 
-import org.apache.nifi.processor.util.listen.event.StandardEvent;
-import org.apache.nifi.processor.util.listen.response.ChannelResponder;
-
-import java.nio.channels.SocketChannel;
+import org.apache.nifi.event.transport.message.ByteArrayMessage;
 
 /**
- * A RELP event which adds the transaction number and command to the StandardEvent.
+ * A RELP message which adds a transaction number and command to the ByteArrayMessage.
  */
-public class RELPEvent extends StandardEvent<SocketChannel> {
+public class RELPMessage extends ByteArrayMessage {
 
     private final long txnr;
     private final String command;
 
-    public RELPEvent(final String sender, final byte[] data, final ChannelResponder<SocketChannel> responder, final long txnr, final String command) {
-        super(sender, data, responder);
+    public RELPMessage(final String sender, final byte[] data, final long txnr, final String command) {
+        super(data, sender);
         this.txnr = txnr;
         this.command = command;
     }
@@ -42,5 +39,4 @@ public class RELPEvent extends StandardEvent<SocketChannel> {
     public String getCommand() {
         return command;
     }
-
 }

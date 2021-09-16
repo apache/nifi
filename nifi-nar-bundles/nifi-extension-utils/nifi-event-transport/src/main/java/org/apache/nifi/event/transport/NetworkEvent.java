@@ -14,28 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.event.transport.message;
-
-import org.apache.nifi.event.transport.NetworkEvent;
+package org.apache.nifi.event.transport;
 
 /**
- * Byte Array Message with Sender
+ * An interface to represent network delivered event/messages
  */
-public class ByteArrayMessage implements NetworkEvent {
-    private final byte[] message;
+public interface NetworkEvent {
 
-    private final String sender;
+    /**
+     * @return the sending host of the data, as a socket
+     */
+    String getSender();
 
-    public ByteArrayMessage(final byte[] message, final String sender) {
-        this.message = message;
-        this.sender = sender;
-    }
+    /**
+     * @return raw data for this event
+     */
+    byte[] getMessage();
 
-    public byte[] getMessage() {
-        return message;
-    }
-
-    public String getSender() {
-        return sender;
-    }
 }

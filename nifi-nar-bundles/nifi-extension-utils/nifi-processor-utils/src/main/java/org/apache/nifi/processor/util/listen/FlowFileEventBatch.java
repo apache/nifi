@@ -14,28 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.event.transport.message;
+package org.apache.nifi.processor.util.listen;
 
 import org.apache.nifi.event.transport.NetworkEvent;
+import org.apache.nifi.flowfile.FlowFile;
 
-/**
- * Byte Array Message with Sender
- */
-public class ByteArrayMessage implements NetworkEvent {
-    private final byte[] message;
+import java.util.List;
 
-    private final String sender;
+public final class FlowFileEventBatch<E extends NetworkEvent> {
 
-    public ByteArrayMessage(final byte[] message, final String sender) {
-        this.message = message;
-        this.sender = sender;
-    }
+        private FlowFile flowFile;
+        private List<E> events;
 
-    public byte[] getMessage() {
-        return message;
-    }
+        public FlowFileEventBatch(final FlowFile flowFile, final List<E> events) {
+            this.flowFile = flowFile;
+            this.events = events;
+        }
 
-    public String getSender() {
-        return sender;
-    }
+        public FlowFile getFlowFile() {
+            return flowFile;
+        }
+
+        public List<E> getEvents() {
+            return events;
+        }
+
+        public void setFlowFile(FlowFile flowFile) {
+            this.flowFile = flowFile;
+        }
 }

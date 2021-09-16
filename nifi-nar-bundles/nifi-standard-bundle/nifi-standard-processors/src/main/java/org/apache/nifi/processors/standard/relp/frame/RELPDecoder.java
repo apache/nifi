@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.processors.standard.relp.frame;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.Charset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.Charset;
 
 /**
  * Decodes a RELP frame by maintaining a state based on each byte that has been processed. This class
@@ -40,6 +41,13 @@ public class RELPDecoder {
      */
     public RELPDecoder(final Charset charset) {
         this(charset, new ByteArrayOutputStream(4096));
+    }
+
+    /**
+     * @param charset the charset to decode bytes from the RELP frame
+     */
+    public RELPDecoder(final Charset charset, final int bufferSize) {
+        this(charset, new ByteArrayOutputStream(bufferSize));
     }
 
     /**
@@ -139,7 +147,7 @@ public class RELPDecoder {
         if (b == RELPFrame.SEPARATOR) {
             final String command = new String(currBytes.toByteArray(), charset);
             frameBuilder.command(command);
-            logger.debug("Command is {}", new Object[] {command});
+            logger.debug("Command is {}", command);
 
             currBytes.reset();
             currState = RELPState.LENGTH;
@@ -152,7 +160,7 @@ public class RELPDecoder {
         if (b == RELPFrame.SEPARATOR || (currBytes.size() > 0 && b == RELPFrame.DELIMITER)) {
             final int dataLength = Integer.parseInt(new String(currBytes.toByteArray(), charset));
             frameBuilder.dataLength(dataLength);
-            logger.debug("Length is {}", new Object[] {dataLength});
+            logger.debug("Length is {}", dataLength);
 
             currBytes.reset();
 
