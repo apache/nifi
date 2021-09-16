@@ -289,14 +289,12 @@ public class PutMongo extends AbstractMongoProcessor {
             break;
         case WRITE_CONCERN_FSYNCED:
             writeConcern = WriteConcern.JOURNALED;
-            getLogger().warn("Using deprecated write concern FSYNCED");
             break;
         case WRITE_CONCERN_JOURNALED:
             writeConcern = WriteConcern.JOURNALED;
             break;
         case WRITE_CONCERN_REPLICA_ACKNOWLEDGED:
             writeConcern = WriteConcern.W2;
-            getLogger().warn("Using deprecated write concern REPLICA_ACKNOWLEDGED");
             break;
         case WRITE_CONCERN_MAJORITY:
             writeConcern = WriteConcern.MAJORITY;
