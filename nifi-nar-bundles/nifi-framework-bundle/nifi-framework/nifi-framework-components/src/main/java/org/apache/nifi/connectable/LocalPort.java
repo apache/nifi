@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -230,34 +231,53 @@ public class LocalPort extends AbstractPort {
         final Map<String, Integer> counts = getProcessGroup().getBatchCounts().captureCounts();
         counts.forEach((k, v) -> attributes.put("batch.output." + k, String.valueOf(v)));
 
-        Set<Relationship> available = context.getAvailableRelationships();
-        int iterations = 0;
-        while (!available.isEmpty()) {
-            final List<FlowFile> flowFiles = session.get(1000);
-            if (flowFiles.isEmpty()) {
-                break;
+        final List<Connection> outgoingConnections = new ArrayList<>(getConnections());
+
+        final boolean batchOutput = getProcessGroup().getFlowFileOutboundPolicy() == FlowFileOutboundPolicy.BATCH_OUTPUT && getConnectableType() == ConnectableType.OUTPUT_PORT;
+        if (batchOutput) {
+            // Lock the outgoing connections so that the destination of the connection is unable to pull any data until all
+            // data has finished transferring. Before locking, we must sort by identifier so that if there are two arbitrary connections, we always lock them in the same order.
+            // (I.e., anywhere that we lock connections, we must always first sort by ID).
+            // Otherwise, we could encounter a deadlock, if another thread were to lock the same two connections in a different order.
+            outgoingConnections.sort(Comparator.comparing(Connection::getIdentifier));
+            outgoingConnections.forEach(Connection::lock);
+        }
+
+        try {
+            Set<Relationship> available = context.getAvailableRelationships();
+            int iterations = 0;
+            while (!available.isEmpty()) {
+                final List<FlowFile> flowFiles = session.get(1000);
+                if (flowFiles.isEmpty()) {
+                    break;
+                }
+
+                if (!attributes.isEmpty()) {
+                    flowFiles.forEach(ff -> session.putAllAttributes(ff, attributes));
+                }
+
+                session.transfer(flowFiles, Relationship.ANONYMOUS);
+                session.commitAsync();
+
+                logger.debug("{} Transferred {} FlowFiles", this, flowFiles.size());
+
+                // If there are fewer than 1,000 FlowFiles available to transfer, or if we
+                // have hit the configured FlowFile cap, we want to stop. This prevents us from
+                // holding the Timer-Driven Thread for an excessive amount of time.
+                if (flowFiles.size() < 1000 || ++iterations >= maxIterations) {
+                    break;
+                }
+
+                available = context.getAvailableRelationships();
             }
-
-            if (!attributes.isEmpty()) {
-                flowFiles.forEach(ff -> session.putAllAttributes(ff, attributes));
+        } finally {
+            if (batchOutput) {
+                // Reverse ordering in order to unlock.
+                outgoingConnections.sort(Comparator.comparing(Connection::getIdentifier).reversed());
+                outgoingConnections.forEach(Connection::unlock);
             }
-
-            session.transfer(flowFiles, Relationship.ANONYMOUS);
-            session.commitAsync();
-
-            logger.debug("{} Transferred {} FlowFiles", this, flowFiles.size());
-
-            // If there are fewer than 1,000 FlowFiles available to transfer, or if we
-            // have hit the configured FlowFile cap, we want to stop. This prevents us from
-            // holding the Timer-Driven Thread for an excessive amount of time.
-            if (flowFiles.size() < 1000 || ++iterations >= maxIterations) {
-                break;
-            }
-
-            available = context.getAvailableRelationships();
         }
     }
-
 
     @Override
     public void updateConnection(final Connection connection) throws IllegalStateException {

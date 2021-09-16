@@ -80,9 +80,24 @@ public class PublisherPool implements Closeable {
 
         final Producer<byte[], byte[]> producer = new KafkaProducer<>(properties);
         final PublisherLease lease = new PublisherLease(producer, maxMessageSize, maxAckWaitMillis, logger, useTransactions, attributeNameRegex, headerCharacterSet) {
+            private volatile boolean closed = false;
+
             @Override
             public void close() {
+                if (isPoisoned() && useTransactions && !closed) {
+                    try {
+                        producer.abortTransaction();
+                    } catch (final Exception e) {
+                        logger.error("Failed to abort producer transaction", e);
+                    }
+                }
+
                 if (isPoisoned() || isClosed()) {
+                    if (closed) {
+                        return;
+                    }
+
+                    closed = true;
                     super.close();
                 } else {
                     publisherQueue.offer(this);

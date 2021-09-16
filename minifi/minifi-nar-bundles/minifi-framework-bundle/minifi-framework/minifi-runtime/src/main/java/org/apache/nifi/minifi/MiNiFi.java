@@ -130,7 +130,7 @@ public class MiNiFi {
         // load the extensions classloaders
         NarClassLoaders narClassLoaders = NarClassLoadersHolder.getInstance();
         narClassLoaders.init(rootClassLoader,
-                properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory(), FRAMEWORK_NAR_ID);
+                properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory(), FRAMEWORK_NAR_ID, true);
 
         /// load the framework classloader
         final ClassLoader frameworkClassLoader = narClassLoaders.getFrameworkBundle().getClassLoader();

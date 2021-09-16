@@ -31,6 +31,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class VolatileBulletinRepository implements BulletinRepository {
 
@@ -42,10 +43,19 @@ public class VolatileBulletinRepository implements BulletinRepository {
 
     private final ConcurrentMap<String, ConcurrentMap<String, RingBuffer<Bulletin>>> bulletinStoreMap = new ConcurrentHashMap<>();
     private volatile BulletinProcessingStrategy processingStrategy = new DefaultBulletinProcessingStrategy();
+    private final AtomicLong maxId = new AtomicLong(-1L);
 
     @Override
     public void addBulletin(final Bulletin bulletin) {
         processingStrategy.update(bulletin);
+
+        final long bulletinId = bulletin.getId();
+        maxId.getAndAccumulate(bulletinId, Math::max);
+    }
+
+    @Override
+    public long getMaxBulletinId() {
+        return maxId.get();
     }
 
     @Override

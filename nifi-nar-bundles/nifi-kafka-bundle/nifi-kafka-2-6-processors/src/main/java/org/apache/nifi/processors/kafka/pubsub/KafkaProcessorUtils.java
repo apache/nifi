@@ -47,7 +47,6 @@ import javax.security.auth.login.AppConfigurationEntry;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -75,8 +74,12 @@ public final class KafkaProcessorUtils {
     static final String KAFKA_TOPIC = "kafka.topic";
     static final String KAFKA_PARTITION = "kafka.partition";
     static final String KAFKA_OFFSET = "kafka.offset";
+    static final String KAFKA_MAX_OFFSET = "kafka.max.offset";
+    static final String KAFKA_LEADER_EPOCH = "kafka.leader.epoch";
     static final String KAFKA_TIMESTAMP = "kafka.timestamp";
     static final String KAFKA_COUNT = "kafka.count";
+    static final String KAFKA_CONSUMER_GROUP_ID = "kafka.consumer.id";
+    static final String KAFKA_CONSUMER_OFFSETS_COMMITTED = "kafka.consumer.offsets.committed";
 
     static final AllowableValue SEC_PLAINTEXT = new AllowableValue("PLAINTEXT", "PLAINTEXT", "PLAINTEXT");
     static final AllowableValue SEC_SSL = new AllowableValue("SSL", "SSL", "SSL");
@@ -222,22 +225,6 @@ public final class KafkaProcessorUtils {
 
     public static final String JAVA_SECURITY_AUTH_LOGIN_CONFIG = "java.security.auth.login.config";
 
-    static List<PropertyDescriptor> getCommonPropertyDescriptors() {
-        return Arrays.asList(
-                BOOTSTRAP_SERVERS,
-                SECURITY_PROTOCOL,
-                SASL_MECHANISM,
-                JAAS_SERVICE_NAME,
-                KERBEROS_CREDENTIALS_SERVICE,
-                SELF_CONTAINED_KERBEROS_USER_SERVICE,
-                USER_PRINCIPAL,
-                USER_KEYTAB,
-                USERNAME,
-                PASSWORD,
-                TOKEN_AUTH,
-                SSL_CONTEXT_SERVICE
-        );
-    }
 
     public static Collection<ValidationResult> validateCommonProperties(final ValidationContext validationContext) {
         List<ValidationResult> results = new ArrayList<>();

@@ -51,8 +51,12 @@ import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
+import org.apache.nifi.logging.ControllerServiceLogObserver;
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
+import org.apache.nifi.logging.ProcessorLogObserver;
+import org.apache.nifi.logging.ReportingTaskLogObserver;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContextManager;
@@ -60,6 +64,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.StandardRemoteProcessGroup;
+import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.stateless.queue.StatelessFlowFileQueue;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
@@ -84,14 +89,16 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     private final StatelessEngine<VersionedFlowSnapshot> statelessEngine;
     private final SSLContext sslContext;
+    private final BulletinRepository bulletinRepository;
 
     public StatelessFlowManager(final FlowFileEventRepository flowFileEventRepository, final ParameterContextManager parameterContextManager,
                                 final StatelessEngine<VersionedFlowSnapshot> statelessEngine, final BooleanSupplier flowInitializedCheck,
-                                final SSLContext sslContext) {
+                                final SSLContext sslContext, final BulletinRepository bulletinRepository) {
         super(flowFileEventRepository, parameterContextManager, statelessEngine.getFlowRegistryClient(), flowInitializedCheck);
 
         this.statelessEngine = statelessEngine;
         this.sslContext = sslContext;
+        this.bulletinRepository = bulletinRepository;
     }
 
     @Override
@@ -163,15 +170,16 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, procNode.getProcessor());
             } catch (final Exception e) {
-                if (registerLogObserver) {
-                    logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
-                }
-
                 throw new ComponentLifeCycleException("Failed to invoke @OnAdded methods of " + procNode.getProcessor(), e);
             }
 
             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, procNode.getProcessor());
+            }
+
+            LogRepositoryFactory.getRepository(procNode.getIdentifier()).setLogger(procNode.getLogger());
+            if (registerLogObserver) {
+                logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, procNode.getBulletinLevel(), new ProcessorLogObserver(bulletinRepository, procNode));
             }
 
             logger.debug("Processor with id {} successfully created", id);
@@ -258,6 +266,8 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
                 + ", bundle coordinate = " + bundleCoordinate);
         }
 
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+
         final ReportingTaskNode taskNode;
         try {
             taskNode = new ComponentBuilder()
@@ -291,6 +301,9 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
         if (register) {
             onReportingTaskAdded(taskNode);
+
+            // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
+            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ReportingTaskLogObserver(bulletinRepository, taskNode));
         }
 
         return taskNode;
@@ -314,7 +327,10 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     @Override
     public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls,
                                                          final boolean firstTimeAdded, final boolean registerLogObserver) {
+
         logger.debug("Creating Controller Service of type {} with id {}", type, id);
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+
         final ControllerServiceNode serviceNode = new ComponentBuilder()
             .identifier(id)
             .type(type)
@@ -335,6 +351,12 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, serviceImpl);
         } catch (final Exception e) {
             throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + serviceImpl, e);
+        }
+
+        LogRepositoryFactory.getRepository(serviceNode.getIdentifier()).setLogger(serviceNode.getLogger());
+        if (registerLogObserver) {
+            // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
+            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ControllerServiceLogObserver(bulletinRepository, serviceNode));
         }
 
         statelessEngine.getControllerServiceProvider().onControllerServiceAdded(serviceNode);

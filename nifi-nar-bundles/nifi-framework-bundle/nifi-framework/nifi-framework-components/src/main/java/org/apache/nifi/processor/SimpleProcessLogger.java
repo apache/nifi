@@ -95,7 +95,7 @@ public class SimpleProcessLogger implements ComponentLog {
             return;
         }
 
-        os = addProcessorAndThrowable(os, t, logger.isDebugEnabled());
+        os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
         logger.warn(msg, os);
         logRepository.addLogMessage(LogLevel.WARN, msg, os, t);
@@ -155,7 +155,7 @@ public class SimpleProcessLogger implements ComponentLog {
             return;
         }
 
-        os = addProcessorAndThrowable(os, t, true);
+        os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
 
         logger.trace(msg, os);
@@ -235,7 +235,7 @@ public class SimpleProcessLogger implements ComponentLog {
             return;
         }
 
-        os = addProcessorAndThrowable(os, t, logger.isDebugEnabled());
+        os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
 
         logger.info(msg, os);
@@ -293,16 +293,16 @@ public class SimpleProcessLogger implements ComponentLog {
             return;
         }
 
-        os = addProcessorAndThrowable(os, t, true);
+        os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
 
         logger.error(msg, os);
         logRepository.addLogMessage(LogLevel.ERROR, msg, os, t);
     }
 
-    private Object[] addProcessorAndThrowable(final Object[] os, final Throwable t, final boolean includeStackTrace) {
+    private Object[] addProcessorAndThrowable(final Object[] os, final Throwable t) {
         final Object[] modifiedArgs;
-        if (t == null || !includeStackTrace) {
+        if (t == null) {
             modifiedArgs = new Object[os.length + 2];
             modifiedArgs[0] = component.toString();
             System.arraycopy(os, 0, modifiedArgs, 1, os.length);
@@ -350,7 +350,7 @@ public class SimpleProcessLogger implements ComponentLog {
             return;
         }
 
-        os = addProcessorAndThrowable(os, t, true);
+        os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
 
         logger.debug(msg, os);

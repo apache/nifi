@@ -158,6 +158,17 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor COMMIT_OFFSETS = new Builder()
+            .name("Commit Offsets")
+            .displayName("Commit Offsets")
+            .description("Specifies whether or not this Processor should commit the offsets to Kafka after receiving messages. This value should be false when a PublishKafkaRecord processor is " +
+                "expected to commit the offsets using Exactly Once semantics, and should be reserved for dataflows that are designed to run within Stateless NiFi. See Processor's Usage / " +
+                "Additional Details for more information. Note that setting this value to false can lead to significant data duplication or potentially even data loss if the dataflow " +
+                "is not properly configured.")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
+
     static final PropertyDescriptor MAX_UNCOMMITTED_TIME = new Builder()
             .name("max-uncommit-offset-wait")
             .displayName("Max Uncommitted Time")
@@ -170,6 +181,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
             .required(false)
             .defaultValue("1 secs")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .dependsOn(COMMIT_OFFSETS, "true")
             .build();
     static final PropertyDescriptor COMMS_TIMEOUT = new Builder()
         .name("Communications Timeout")
@@ -249,12 +261,15 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
     private final Set<ConsumerLease> activeLeases = Collections.synchronizedSet(new HashSet<>());
 
     static {
-        List<PropertyDescriptor> descriptors = new ArrayList<>();
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(KafkaProcessorUtils.BOOTSTRAP_SERVERS);
         descriptors.add(TOPICS);
         descriptors.add(TOPIC_TYPE);
         descriptors.add(RECORD_READER);
         descriptors.add(RECORD_WRITER);
+        descriptors.add(GROUP_ID);
+        descriptors.add(COMMIT_OFFSETS);
+        descriptors.add(MAX_UNCOMMITTED_TIME);
         descriptors.add(HONOR_TRANSACTIONS);
         descriptors.add(KafkaProcessorUtils.SECURITY_PROTOCOL);
         descriptors.add(KafkaProcessorUtils.SASL_MECHANISM);
@@ -266,14 +281,12 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         descriptors.add(KafkaProcessorUtils.PASSWORD);
         descriptors.add(KafkaProcessorUtils.TOKEN_AUTH);
         descriptors.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
-        descriptors.add(GROUP_ID);
         descriptors.add(SEPARATE_BY_KEY);
         descriptors.add(KEY_ATTRIBUTE_ENCODING);
         descriptors.add(AUTO_OFFSET_RESET);
         descriptors.add(MESSAGE_HEADER_ENCODING);
         descriptors.add(HEADER_NAME_REGEX);
         descriptors.add(MAX_POLL_RECORDS);
-        descriptors.add(MAX_UNCOMMITTED_TIME);
         descriptors.add(COMMS_TIMEOUT);
         DESCRIPTORS = Collections.unmodifiableList(descriptors);
 
@@ -368,7 +381,8 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
 
     protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
         final int maxLeases = context.getMaxConcurrentTasks();
-        final long maxUncommittedTime = context.getProperty(MAX_UNCOMMITTED_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long maxUncommittedTime = context.getProperty(MAX_UNCOMMITTED_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
+        final boolean commitOffsets = context.getProperty(COMMIT_OFFSETS).asBoolean();
 
         final Map<String, Object> props = new HashMap<>();
         KafkaProcessorUtils.buildCommonKafkaProperties(context, ConsumerConfig.class, props);
@@ -412,11 +426,11 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
             }
 
             return new ConsumerPool(maxLeases, readerFactory, writerFactory, props, topics, maxUncommittedTime, securityProtocol,
-                bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding, partitionsToConsume);
+                bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding, partitionsToConsume, commitOffsets);
         } else if (topicType.equals(TOPIC_PATTERN.getValue())) {
             final Pattern topicPattern = Pattern.compile(topicListing.trim());
             return new ConsumerPool(maxLeases, readerFactory, writerFactory, props, topicPattern, maxUncommittedTime, securityProtocol,
-                bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding, partitionsToConsume);
+                bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding, partitionsToConsume, commitOffsets);
         } else {
             getLogger().error("Subscription type has an unknown value {}", new Object[] {topicType});
             return null;
@@ -473,7 +487,8 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
                 while (this.isScheduled() && lease.continuePolling()) {
                     lease.poll();
                 }
-                if (this.isScheduled() && !lease.commit()) {
+
+                if (!lease.commit()) {
                     context.yield();
                 }
             } catch (final WakeupException we) {

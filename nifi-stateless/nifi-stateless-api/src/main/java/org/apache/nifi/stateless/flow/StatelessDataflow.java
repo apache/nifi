@@ -19,18 +19,32 @@ package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.reporting.BulletinRepository;
 
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Set;
 
 public interface StatelessDataflow {
     /**
-     * Triggers the dataflow to run, returning a DataflowTrigger that can be used to wait for the result
+     * Triggers the dataflow to run, returning a DataflowTrigger that can be used to wait for the result. Uses the {@link DataflowTriggerContext#IMPLICIT_CONTEXT}.
      * @return a DataflowTrigger that can be used to wait for the result
      *
      * @throws IllegalStateException if called before {@link #initialize()} is called.
      */
-    DataflowTrigger trigger();
+    default DataflowTrigger trigger() {
+        return trigger(DataflowTriggerContext.IMPLICIT_CONTEXT);
+    }
+
+    /**
+     * Triggers the dataflow to run, returning a DataflowTrigger that can be used to wait for the result
+     *
+     * @param triggerContext the trigger context to use
+     * @return a DataflowTrigger that can be used to wait for the result
+     *
+     * @throws IllegalStateException if called before {@link #initialize()} is called.
+     */
+    DataflowTrigger trigger(DataflowTriggerContext triggerContext);
 
     /**
      * <p>
@@ -61,6 +75,8 @@ public interface StatelessDataflow {
 
     QueueSize enqueue(byte[] flowFileContents, Map<String, String> attributes, String portName);
 
+    QueueSize enqueue(InputStream flowFileContents, Map<String, String> attributes, String portName);
+
     boolean isFlowFileQueued();
 
     void purge();
@@ -72,4 +88,10 @@ public interface StatelessDataflow {
     boolean isSourcePrimaryNodeOnly();
 
     long getSourceYieldExpiration();
+
+    void resetCounters();
+
+    Map<String, Long> getCounters(boolean includeGlobalContext);
+
+    BulletinRepository getBulletinRepository();
 }

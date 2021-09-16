@@ -96,10 +96,7 @@ public class StatelessSystemIT {
 
             @Override
             public Optional<File> getContentRepositoryDirectory() {
-                return Optional.empty();
-
-                // Can be used to enable file-based content repository.
-//                return Optional.of(new File("target/nifi-stateless-content-repo"));
+                return getContentRepoDirectory();
             }
 
             @Override
@@ -117,6 +114,10 @@ public class StatelessSystemIT {
                 return Collections.emptyList();
             }
         };
+    }
+
+    protected Optional<File> getContentRepoDirectory() {
+        return Optional.empty();
     }
 
     protected StatelessDataflow loadDataflow(final File versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts) throws IOException, StatelessConfigurationException {

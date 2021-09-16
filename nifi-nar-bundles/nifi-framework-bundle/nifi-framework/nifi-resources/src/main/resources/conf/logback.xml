@@ -97,6 +97,7 @@
     <logger name="org.apache.zookeeper.server.quorum" level="ERROR" />
     <logger name="org.apache.zookeeper.ZooKeeper" level="ERROR" />
     <logger name="org.apache.zookeeper.server.PrepRequestProcessor" level="ERROR" />
+    <logger name="org.apache.nifi.controller.reporting.LogComponentStatuses" level="ERROR" />
 
     <logger name="org.apache.calcite.runtime.CalciteException" level="OFF" />
 

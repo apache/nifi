@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.util;
 
-import java.util.List;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
+
+import java.util.List;
 
 public class MockBulletinRepository implements BulletinRepository {
 
@@ -75,5 +76,10 @@ public class MockBulletinRepository implements BulletinRepository {
     public List<Bulletin> findBulletinsForController(int max) {
         // TODO: Implement
         return null;
+    }
+
+    @Override
+    public long getMaxBulletinId() {
+        return -1L;
     }
 }

@@ -35,8 +35,12 @@ public class LogRepositoryFactory {
         Class<LogRepository> clazz = null;
         try {
             clazz = (Class<LogRepository>) Class.forName(LOG_REPOSITORY_CLASS_NAME, true, LogRepositoryFactory.class.getClassLoader());
-        } catch (ClassNotFoundException e) {
-            LoggerFactory.getLogger(LogRepositoryFactory.class).error("Unable to find class {}; logging may not work properly", LOG_REPOSITORY_CLASS_NAME);
+        } catch (final ClassNotFoundException e) {
+            try {
+                clazz = (Class<LogRepository>) Class.forName(LOG_REPOSITORY_CLASS_NAME, true, Thread.currentThread().getContextClassLoader());
+            } catch (final ClassNotFoundException e1) {
+                LoggerFactory.getLogger(LogRepositoryFactory.class).error("Unable to find class {}; logging may not work properly", LOG_REPOSITORY_CLASS_NAME);
+            }
         }
         logRepositoryClass = clazz;
     }
@@ -57,6 +61,10 @@ public class LogRepositoryFactory {
         }
 
         return repository;
+    }
+
+    public static void purge() {
+        repositoryMap.clear();
     }
 
     public static LogRepository removeRepository(final String componentId) {

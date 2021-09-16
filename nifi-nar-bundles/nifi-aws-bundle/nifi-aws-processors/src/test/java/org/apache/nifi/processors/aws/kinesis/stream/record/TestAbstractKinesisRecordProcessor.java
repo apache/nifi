@@ -48,6 +48,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -106,10 +108,6 @@ public class TestAbstractKinesisRecordProcessor {
 
         assertThat(fixture.getNextCheckpointTimeInMillis() > System.currentTimeMillis(), is(true));
         assertThat(fixture.getKinesisShardId(), equalTo("shard-id"));
-
-        // DEBUG messages don't have their fields replaced in the MockComponentLog
-        assertThat(runner.getLogger().getDebugMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .endsWith("Initializing record processor for stream: {} / shard: {}; from sequence number: {}")), is(true));
     }
 
     @Test
@@ -125,12 +123,6 @@ public class TestAbstractKinesisRecordProcessor {
 
         assertThat(fixture.getNextCheckpointTimeInMillis() > System.currentTimeMillis(), is(true));
         assertThat(fixture.getKinesisShardId(), equalTo("shard-id"));
-
-        assertThat(runner.getLogger().getWarnMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .contains(String.format(
-                        "Initializing record processor for stream: %s / shard %s; from sequence number: %s; indicates previously uncheckpointed sequence number: %s",
-                        "kinesis-test", "shard-id", esn, prev
-                ))), is(true));
     }
 
     @Test
@@ -143,9 +135,6 @@ public class TestAbstractKinesisRecordProcessor {
         fixture.shutdown(shutdownInput);
 
         verify(checkpointer, times(1)).checkpoint();
-
-        assertThat(runner.getLogger().getDebugMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .endsWith("Checkpointing shard test-shard")), is(true));
     }
 
     @Test
@@ -159,16 +148,6 @@ public class TestAbstractKinesisRecordProcessor {
         fixture.shutdown(shutdownInput);
 
         verify(checkpointer, times(2)).checkpoint();
-
-        assertThat(runner.getLogger().getWarnMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .endsWith(String.format(
-                        "Transient issue when checkpointing - attempt %d of %d: %s: %s",
-                        1, 2, ThrottlingException.class.getName(), "throttled"
-                ))), is(true));
-
-        // ERROR messages don't have their fields replaced in the MockComponentLog
-        assertThat(runner.getLogger().getErrorMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .endsWith("Checkpoint failed after {} attempts.: {}")), is(true));
     }
 
     @Test
@@ -182,9 +161,6 @@ public class TestAbstractKinesisRecordProcessor {
         fixture.shutdown(shutdownInput);
 
         verify(checkpointer, times(1)).checkpoint();
-
-        assertThat(runner.getLogger().getInfoMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .endsWith("Caught shutdown exception, skipping checkpoint.")), is(true));
     }
 
     @Test
@@ -199,8 +175,7 @@ public class TestAbstractKinesisRecordProcessor {
 
         verify(checkpointer, times(1)).checkpoint();
 
-        assertThat(runner.getLogger().getErrorMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .endsWith("Cannot save checkpoint to the DynamoDB table used by the Amazon Kinesis Client Library.")), is(true));
+        assertFalse(runner.getLogger().getErrorMessages().isEmpty());
     }
 
     @Test
@@ -215,18 +190,7 @@ public class TestAbstractKinesisRecordProcessor {
 
         verify(checkpointer, times(1)).checkpoint();
 
-        assertThat(runner.getLogger().getDebugMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .endsWith("Checkpointing shard test-shard")), is(true));
-
-        // DEBUG messages don't have their fields replaced in the MockComponentLog
-        assertThat(runner.getLogger().getDebugMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .endsWith("Shutting down Record Processor for shard: {} with reason: {}")), is(true));
-
-        // no waiting loop when records aren't processing
-        assertThat(runner.getLogger().getDebugMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .endsWith("Record Processor for shard {} still processing records, waiting before shutdown")), is(false));
-
-        assertThat(runner.getLogger().getWarnMessages().size(), is(0));
+        assertTrue(runner.getLogger().getWarnMessages().isEmpty());
     }
 
     @Test
@@ -241,20 +205,6 @@ public class TestAbstractKinesisRecordProcessor {
 
         verify(checkpointer, times(1)).checkpoint();
 
-        assertThat(runner.getLogger().getDebugMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .endsWith("Checkpointing shard test-shard")), is(true));
-
-        // DEBUG messages don't have their fields replaced in the MockComponentLog
-        assertThat(runner.getLogger().getDebugMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .endsWith("Shutting down Record Processor for shard: {} with reason: {}")), is(true));
-
-        // wait loop when records are processing
-        assertThat(runner.getLogger().getDebugMessages().stream().filter(logMessage -> logMessage.getMsg()
-                .endsWith("Record Processor for shard {} still processing records, waiting before shutdown"))
-                .count(), is(2L));
-
-        assertThat(runner.getLogger().getWarnMessages().stream().filter(logMessage -> logMessage.getMsg()
-                .endsWith("Record Processor for shard test-shard still running, but maximum wait time elapsed, checkpoint will be attempted"))
-                .count(), is(1L));
+        assertFalse(runner.getLogger().getWarnMessages().isEmpty());
     }
 }

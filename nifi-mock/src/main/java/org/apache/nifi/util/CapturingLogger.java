@@ -1,11 +1,12 @@
 package org.apache.nifi.util;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.Marker;
 import org.slf4j.helpers.MessageFormatter;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -361,24 +362,28 @@ public class CapturingLogger implements Logger {
 
     @Override
     public void error(String format, Object arg) {
-        errorMessages.add(new LogMessage(null, format, null, arg));
+        final String message = MessageFormatter.arrayFormat(format, new Object[] {arg}).getMessage();
+        errorMessages.add(new LogMessage(null, message, null, arg));
         logger.error(format, arg);
     }
 
     @Override
     public void error(String format, Object arg1, Object arg2) {
-        errorMessages.add(new LogMessage(null, format, null, arg1, arg2));
+        final String message = MessageFormatter.arrayFormat(format, new Object[] {arg1, arg2}).getMessage();
+        errorMessages.add(new LogMessage(null, message, null, arg1, arg2));
         logger.error(format, arg1, arg2);
     }
 
     public void error(String format, Object arg1, Throwable t) {
-        errorMessages.add(new LogMessage(null, format, t, arg1));
+        final String message = MessageFormatter.arrayFormat(format, new Object[] {arg1}).getMessage();
+        errorMessages.add(new LogMessage(null, message, t, arg1));
         logger.error(format, arg1, t);
     }
 
     @Override
     public void error(String format, Object... arguments) {
-        errorMessages.add(new LogMessage(null, format, null, arguments));
+        final String message = MessageFormatter.arrayFormat(format, arguments).getMessage();
+        errorMessages.add(new LogMessage(null, message, null, arguments));
         logger.error(format, arguments);
     }
 
@@ -402,20 +407,22 @@ public class CapturingLogger implements Logger {
 
     @Override
     public void error(Marker marker, String format, Object arg) {
-        errorMessages.add(new LogMessage(marker, format, null, arg));
+        final String message = MessageFormatter.arrayFormat(format, new Object[] {arg}).getMessage();
+        errorMessages.add(new LogMessage(marker, message, null, arg));
         logger.error(marker, format, arg);
-
     }
 
     @Override
     public void error(Marker marker, String format, Object arg1, Object arg2) {
-        errorMessages.add(new LogMessage(marker, format, null, arg1, arg2));
+        final String message = MessageFormatter.arrayFormat(format, new Object[] {arg1, arg2}).getMessage();
+        errorMessages.add(new LogMessage(marker, message, null, arg1, arg2));
         logger.error(marker, format, arg1, arg2);
     }
 
     @Override
     public void error(Marker marker, String format, Object... argArray) {
-        errorMessages.add(new LogMessage(marker, format, null, argArray));
+        final String message = MessageFormatter.arrayFormat(format, argArray).getMessage();
+        errorMessages.add(new LogMessage(marker, message, null, argArray));
         logger.error(marker, format, argArray);
     }
 

@@ -26,14 +26,17 @@ org.apache.nifi.processors.tests.system.FakeDynamicPropertiesProcessor
 org.apache.nifi.processors.tests.system.GenerateFlowFile
 org.apache.nifi.processors.tests.system.IngestFile
 org.apache.nifi.processors.tests.system.LoopFlowFile
+org.apache.nifi.processors.tests.system.PartitionText
 org.apache.nifi.processors.tests.system.PassThrough
 org.apache.nifi.processors.tests.system.PassThroughRequiresInstanceClassLoading
 org.apache.nifi.processors.tests.system.ReplaceWithFile
 org.apache.nifi.processors.tests.system.ReverseContents
+org.apache.nifi.processors.tests.system.RoundRobinFlowFiles
 org.apache.nifi.processors.tests.system.SetAttribute
 org.apache.nifi.processors.tests.system.Sleep
 org.apache.nifi.processors.tests.system.SplitByLine
 org.apache.nifi.processors.tests.system.TerminateFlowFile
+org.apache.nifi.processors.tests.system.TransferBatch
 org.apache.nifi.processors.tests.system.ThrowProcessException
 org.apache.nifi.processors.tests.system.ValidateFileExists
 org.apache.nifi.processors.tests.system.VerifyContents

@@ -29,6 +29,8 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.stateless.engine.DataflowAbortedException;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
+import org.apache.nifi.stateless.flow.FailurePortEncounteredException;
+import org.apache.nifi.stateless.flow.StandardStatelessFlow;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.slf4j.Logger;
@@ -41,7 +43,6 @@ import java.util.function.Consumer;
 
 public class StatelessProcessSession extends StandardProcessSession {
     private static final Logger logger = LoggerFactory.getLogger(StatelessProcessSession.class);
-    private static final String PARENT_FLOW_GROUP_ID = "stateless-flow";
 
     private final Connectable connectable;
     private final RepositoryContextFactory repositoryContextFactory;
@@ -163,7 +164,11 @@ public class StatelessProcessSession extends StandardProcessSession {
             // until they have consumed all created FlowFiles.
             while (!connection.getFlowFileQueue().isEmpty()) {
                 final Connectable connectable = connection.getDestination();
-                if (isTerminalPort(connectable)) {
+                if (isFailurePortGuaranteed(connectable)) {
+                    throw new FailurePortEncounteredException("FlowFile was transferred to Port " + connectable.getName() + ", which is marked as a Failure Port", connectable.getName());
+                }
+
+                if (StandardStatelessFlow.isTerminalPort(connectable)) {
                     // If data is being transferred to a terminal port, we don't want to trigger the port,
                     // as it has nowhere to transfer the data. We simply leave it queued at the terminal port.
                     // Once the processing completes, the terminal ports' connections will be drained, when #awaitAcknowledgment is called.
@@ -185,7 +190,11 @@ public class StatelessProcessSession extends StandardProcessSession {
             }
 
             final Connectable connectable = connection.getDestination();
-            if (isTerminalPort(connectable)) {
+            if (isFailurePortGuaranteed(connectable)) {
+                throw new FailurePortEncounteredException("FlowFile was transferred to Port " + connectable.getName() + ", which is marked as a Failure Port", connectable.getName());
+            }
+
+            if (StandardStatelessFlow.isTerminalPort(connectable)) {
                 // If data is being transferred to a terminal port, we don't want to trigger the port,
                 // as it has nowhere to transfer the data. We simply leave it queued at the terminal port.
                 // Once the processing completes, the terminal ports' connections will be drained, when #awaitAcknowledgment is called.
@@ -194,6 +203,33 @@ public class StatelessProcessSession extends StandardProcessSession {
 
             tracker.addConnectable(connectable);
         }
+    }
+
+    /**
+     * Determines whether or not the given Port is a failure port or if transferring to the connectable guarantees failure.
+     * This allows us to have an inner Process Group with an Output Port, for instance, named 'failure' that is connected to a 'failure' port at
+     * a higher level. In this case, transferring to the inner group's 'failure' port guarantees failure, so this method returns true.
+     *
+     * @param connectable the connectable that may or may not be a failure port
+     * @return <code>true</code> if transferring to the given Connectable guarantees dataflow failure, <code>false</code> otherwise.
+     */
+    private boolean isFailurePortGuaranteed(final Connectable connectable) {
+        final ConnectableType connectableType = connectable.getConnectableType();
+        if (connectableType != ConnectableType.OUTPUT_PORT && connectableType != ConnectableType.FUNNEL) {
+            return false;
+        }
+
+        if (executionProgress.isFailurePort(connectable.getName())) {
+            return true;
+        }
+
+        for (final Connection outboundConnection : connectable.getConnections()) {
+            if (isFailurePortGuaranteed(outboundConnection.getDestination())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void triggerNext(final Connectable connectable) {
@@ -298,21 +334,6 @@ public class StatelessProcessSession extends StandardProcessSession {
         } catch (final IOException e) {
             logger.error("Unable to update FlowFileEvent Repository for {}; statistics may be inaccurate. Reason for failure: {}", connectable.getRunnableComponent(), e.toString(), e);
         }
-    }
-
-    private boolean isTerminalPort(final Connectable connectable) {
-        final ConnectableType connectableType = connectable.getConnectableType();
-        if (connectableType != ConnectableType.OUTPUT_PORT) {
-            return false;
-        }
-
-        final ProcessGroup portGroup = connectable.getProcessGroup();
-        if (PARENT_FLOW_GROUP_ID.equals(portGroup.getIdentifier())) {
-            logger.debug("FlowFiles queued for {} but this is a Terminal Port. Will not trigger Port to run.", connectable);
-            return true;
-        }
-
-        return false;
     }
 
     @Override

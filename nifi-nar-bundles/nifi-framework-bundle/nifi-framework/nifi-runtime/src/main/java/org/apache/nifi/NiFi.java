@@ -142,8 +142,7 @@ public class NiFi implements NiFiEntryPoint {
         // load the extensions classloaders
         NarClassLoaders narClassLoaders = NarClassLoadersHolder.getInstance();
 
-        narClassLoaders.init(rootClassLoader,
-                properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
+        narClassLoaders.init(rootClassLoader, properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory(), true);
 
         // load the framework classloader
         final ClassLoader frameworkClassLoader = narClassLoaders.getFrameworkBundle().getClassLoader();

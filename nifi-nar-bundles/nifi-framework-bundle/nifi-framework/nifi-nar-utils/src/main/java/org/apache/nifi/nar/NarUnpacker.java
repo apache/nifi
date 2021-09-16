@@ -258,7 +258,9 @@ public final class NarUnpacker {
 
             final File bundledDependencies = new File(unpackedNar, BUNDLED_DEPENDENCIES_DIRECTORY);
 
-            unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
+            if (docsDirectory != null) {
+                unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
+            }
         }
     }
 

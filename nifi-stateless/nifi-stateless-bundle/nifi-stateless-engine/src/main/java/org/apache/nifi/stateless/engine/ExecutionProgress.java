@@ -51,6 +51,12 @@ public interface ExecutionProgress {
      */
     void notifyExecutionFailed(Throwable cause);
 
+    /**
+     * Indicates whether or not the port with the given name is considered a Failure Port
+     * @param portName the name of the port
+     * @return <code>true</code> if the port is a failure port, <code>false</code> otherwise
+     */
+    boolean isFailurePort(String portName);
 
     enum CompletionAction {
         COMPLETE,

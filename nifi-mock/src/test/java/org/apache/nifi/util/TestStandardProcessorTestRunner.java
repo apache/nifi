@@ -16,21 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Predicate;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -45,6 +30,23 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TestStandardProcessorTestRunner {
 
@@ -382,20 +384,16 @@ public class TestStandardProcessorTestRunner {
 
     @Test
     public void testErrorLogMessageArguments() {
-
-        String compName = "name of component";
+        final String compName = "name of component";
         final MockComponentLog logger = new MockComponentLog("first id",compName);
 
-        Throwable t = new ArithmeticException();
+        final Throwable t = new RuntimeException("Intentional Exception for testing purposes");
         logger.error("expected test error",t);
 
-        String expected_throwable = "java.lang.ArithmeticException";
+        final List<LogMessage>  log = logger.getErrorMessages();
+        final LogMessage msg = log.get(0);
 
-        List<LogMessage>  log = logger.getErrorMessages();
-        LogMessage msg = log.get(0);
-        // checking if the error messages are recorded in the correct throwable argument.
-        assertEquals(expected_throwable,msg.getThrowable().toString());
-        assertEquals("{} expected test error",msg.getMsg());
-
+        assertTrue(msg.getMsg().contains("expected test error"));
+        assertNotNull(msg.getThrowable());
     }
 }

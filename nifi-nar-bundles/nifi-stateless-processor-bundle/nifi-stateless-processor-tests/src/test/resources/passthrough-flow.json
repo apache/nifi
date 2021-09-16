@@ -1,0 +1,90 @@
+{
+  "flowContents": {
+    "identifier": "f73ba15e-7e77-3fe0-adba-6afaba338e07",
+    "name": "Pass-Through",
+    "comments": "",
+    "position": {
+      "x": -953.5297283891521,
+      "y": 184.44227749043935
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "processors": [],
+    "inputPorts": [
+      {
+        "identifier": "63133e51-5219-335c-b3ea-56f8274fcbf0",
+        "name": "In",
+        "position": {
+          "x": 980.999958631427,
+          "y": 211.0000023873564
+        },
+        "type": "INPUT_PORT",
+        "concurrentlySchedulableTaskCount": 1,
+        "allowRemoteAccess": false,
+        "componentType": "INPUT_PORT",
+        "groupIdentifier": "f73ba15e-7e77-3fe0-adba-6afaba338e07"
+      }
+    ],
+    "outputPorts": [
+      {
+        "identifier": "42681445-23ba-3092-baca-6b206fb0298c",
+        "name": "Out",
+        "position": {
+          "x": 980.999958631427,
+          "y": 423.0000023873564
+        },
+        "type": "OUTPUT_PORT",
+        "concurrentlySchedulableTaskCount": 1,
+        "allowRemoteAccess": false,
+        "componentType": "OUTPUT_PORT",
+        "groupIdentifier": "f73ba15e-7e77-3fe0-adba-6afaba338e07"
+      }
+    ],
+    "connections": [
+      {
+        "identifier": "79f7be28-20c6-3d40-86a9-39b64132a68f",
+        "name": "",
+        "source": {
+          "id": "63133e51-5219-335c-b3ea-56f8274fcbf0",
+          "type": "INPUT_PORT",
+          "groupId": "f73ba15e-7e77-3fe0-adba-6afaba338e07",
+          "name": "In"
+        },
+        "destination": {
+          "id": "42681445-23ba-3092-baca-6b206fb0298c",
+          "type": "OUTPUT_PORT",
+          "groupId": "f73ba15e-7e77-3fe0-adba-6afaba338e07",
+          "name": "Out"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          ""
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f73ba15e-7e77-3fe0-adba-6afaba338e07"
+      }
+    ],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [],
+    "variables": {},
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "componentType": "PROCESS_GROUP"
+  },
+  "externalControllerServices": {},
+  "parameterContexts": {},
+  "flowEncodingVersion": "1.0"
+}
