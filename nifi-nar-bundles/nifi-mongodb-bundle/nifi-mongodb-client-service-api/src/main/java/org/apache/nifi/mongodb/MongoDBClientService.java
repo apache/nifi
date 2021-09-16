@@ -19,6 +19,7 @@ package org.apache.nifi.mongodb;
 
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
@@ -35,6 +36,39 @@ public interface MongoDBClientService extends ControllerService {
      String WRITE_CONCERN_JOURNALED = "JOURNALED";
      String WRITE_CONCERN_REPLICA_ACKNOWLEDGED = "REPLICA_ACKNOWLEDGED";
      String WRITE_CONCERN_MAJORITY = "MAJORITY";
+     String WRITE_CONCERN_W1 = "W1";
+     String WRITE_CONCERN_W2 = "W2";
+     String WRITE_CONCERN_W3 = "W3";
+
+     static final AllowableValue WRITE_CONCERN_ACKNOWLEDGED_VALUE = new AllowableValue(
+            WRITE_CONCERN_ACKNOWLEDGED, WRITE_CONCERN_ACKNOWLEDGED,
+            "Write operations that use this write concern will wait for acknowledgement, " +
+            "using the default write concern configured on the server");
+     static final AllowableValue WRITE_CONCERN_UNACKNOWLEDGED_VALUE = new AllowableValue(
+            WRITE_CONCERN_UNACKNOWLEDGED, WRITE_CONCERN_UNACKNOWLEDGED,
+            "Write operations that use this write concern will return as soon as the message is written to the socket. " +
+            "Exceptions are raised for network issues, but not server errors");
+     static final AllowableValue WRITE_CONCERN_FSYNCED_VALUE = new AllowableValue(
+            WRITE_CONCERN_FSYNCED, WRITE_CONCERN_FSYNCED,
+            "Deprecated.  Use of \"" + WRITE_CONCERN_JOURNALED + "\" is preferred");
+     static final AllowableValue WRITE_CONCERN_JOURNALED_VALUE = new AllowableValue(
+            WRITE_CONCERN_JOURNALED, WRITE_CONCERN_JOURNALED,
+            "Write operations wait for the server to group commit to the journal file on disk");
+     static final AllowableValue WRITE_CONCERN_REPLICA_ACKNOWLEDGED_VALUE = new AllowableValue(
+            WRITE_CONCERN_REPLICA_ACKNOWLEDGED, WRITE_CONCERN_REPLICA_ACKNOWLEDGED,
+            "Deprecated.  Use of \"" + WRITE_CONCERN_W2 + "\" is preferred");
+     static final AllowableValue WRITE_CONCERN_MAJORITY_VALUE = new AllowableValue(
+            WRITE_CONCERN_MAJORITY, WRITE_CONCERN_MAJORITY,
+            "Exceptions are raised for network issues, and server errors; waits on a majority of servers for the write operation");
+     static final AllowableValue WRITE_CONCERN_W1_VALUE = new AllowableValue(
+            WRITE_CONCERN_W1, WRITE_CONCERN_W1,
+            "Write operations that use this write concern will wait for acknowledgement from a single member");
+     static final AllowableValue WRITE_CONCERN_W2_VALUE = new AllowableValue(
+            WRITE_CONCERN_W2, WRITE_CONCERN_W2,
+            "Write operations that use this write concern will wait for acknowledgement from two members");
+     static final AllowableValue WRITE_CONCERN_W3_VALUE = new AllowableValue(
+            WRITE_CONCERN_W3, WRITE_CONCERN_W3,
+            "Write operations that use this write concern will wait for acknowledgement from three members");
 
      PropertyDescriptor URI = new PropertyDescriptor.Builder()
             .name("mongo-uri")
@@ -85,8 +119,9 @@ public interface MongoDBClientService extends ControllerService {
             .displayName("Write Concern")
             .description("The write concern to use")
             .required(true)
-            .allowableValues(WRITE_CONCERN_ACKNOWLEDGED, WRITE_CONCERN_UNACKNOWLEDGED, WRITE_CONCERN_FSYNCED, WRITE_CONCERN_JOURNALED,
-                    WRITE_CONCERN_REPLICA_ACKNOWLEDGED, WRITE_CONCERN_MAJORITY)
+            .allowableValues(WRITE_CONCERN_ACKNOWLEDGED_VALUE, WRITE_CONCERN_UNACKNOWLEDGED_VALUE, WRITE_CONCERN_FSYNCED_VALUE,
+                             WRITE_CONCERN_JOURNALED_VALUE, WRITE_CONCERN_REPLICA_ACKNOWLEDGED_VALUE, WRITE_CONCERN_MAJORITY_VALUE,
+                             WRITE_CONCERN_W1_VALUE, WRITE_CONCERN_W2_VALUE, WRITE_CONCERN_W3_VALUE)
             .defaultValue(WRITE_CONCERN_ACKNOWLEDGED)
             .build();
 

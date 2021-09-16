@@ -219,7 +219,7 @@ public class PutGridFS extends AbstractGridFSProcessor {
                 query = new Document().append("filename", fileName);
             }
 
-            retVal = getDatabase(input, context).getCollection(fileColl).count(query) == 0;
+            retVal = getDatabase(input, context).getCollection(fileColl).countDocuments(query) == 0;
         }
 
         return retVal;

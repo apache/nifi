@@ -225,7 +225,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         assertEquals(contacts.get("twitter"), "@JohnSmith");
         assertEquals(contacts.get("email"), "john.smith@test.com");
         assertEquals(contacts.get("phone"), "555-555-5555");
-        assertEquals(collection.count(document), 1);
+        assertEquals(collection.countDocuments(document), 1);
     }
 
     @Test
@@ -293,7 +293,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         out.assertContentEquals(bytes);
 
         // verify 1 doc inserted into the collection
-        assertEquals(1, collection.count());
+        assertEquals(1, collection.countDocuments());
         assertEquals(doc, collection.find().first());
     }
 
@@ -313,7 +313,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         }
 
         // verify 3 docs inserted into the collection
-        assertEquals(3, collection.count());
+        assertEquals(3, collection.countDocuments());
     }
 
     @Test
@@ -340,7 +340,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         }
 
         // verify 2 docs inserted into the collection for a total of 3
-        assertEquals(3, collection.count());
+        assertEquals(3, collection.countDocuments());
     }
 
     /**
@@ -363,7 +363,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         out.assertContentEquals(bytes);
 
         // nothing was in collection, so nothing to update since upsert defaults to false
-        assertEquals(0, collection.count());
+        assertEquals(0, collection.countDocuments());
     }
 
     /**
@@ -387,7 +387,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         out.assertContentEquals(bytes);
 
         // verify 1 doc inserted into the collection
-        assertEquals(1, collection.count());
+        assertEquals(1, collection.countDocuments());
         assertEquals(doc, collection.find().first());
     }
 
@@ -407,7 +407,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         out.assertContentEquals(bytes);
 
         // verify 1 doc inserted into the collection
-        assertEquals(1, collection.count());
+        assertEquals(1, collection.countDocuments());
         assertEquals(oidDocument, collection.find().first());
     }
 
@@ -435,7 +435,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).get(0);
         out.assertContentEquals(bytes);
 
-        assertEquals(1, collection.count());
+        assertEquals(1, collection.countDocuments());
         assertEquals(doc, collection.find().first());
     }
 
@@ -518,7 +518,7 @@ public class PutMongoIT extends MongoWriteTestBase {
             Document query = new Document(updateKeyProps[index], updateKeys[index]);
             Document result = collection.find(query).first();
             Assertions.assertNotNull(result, "Result was null");
-            assertEquals(1, collection.count(query), "Count was wrong");
+            assertEquals(1, collection.countDocuments(query), "Count was wrong");
             runner.clearTransferState();
             index++;
         }

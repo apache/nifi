@@ -97,7 +97,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     protected MongoClientOptions.Builder getClientOptions(final SSLContext sslContext) {
         MongoClientOptions.Builder builder = MongoClientOptions.builder();
         builder.sslEnabled(true);
-        builder.socketFactory(sslContext.getSocketFactory());
+        builder.sslContext(sslContext);
         return builder;
     }
 
@@ -137,16 +137,27 @@ public class MongoDBControllerService extends AbstractControllerService implemen
                 writeConcern = WriteConcern.UNACKNOWLEDGED;
                 break;
             case WRITE_CONCERN_FSYNCED:
-                writeConcern = WriteConcern.FSYNCED;
+                writeConcern = WriteConcern.JOURNALED;
+                getLogger().warn("Using deprecated write concern FSYNCED");
                 break;
             case WRITE_CONCERN_JOURNALED:
                 writeConcern = WriteConcern.JOURNALED;
                 break;
             case WRITE_CONCERN_REPLICA_ACKNOWLEDGED:
-                writeConcern = WriteConcern.REPLICA_ACKNOWLEDGED;
+                writeConcern = WriteConcern.W2;
+                getLogger().warn("Using deprecated write concern REPLICA_ACKNOWLEDGED");
                 break;
             case WRITE_CONCERN_MAJORITY:
                 writeConcern = WriteConcern.MAJORITY;
+                break;
+            case WRITE_CONCERN_W1:
+                writeConcern = WriteConcern.W1;
+                break;
+            case WRITE_CONCERN_W2:
+                writeConcern = WriteConcern.W2;
+                break;
+            case WRITE_CONCERN_W3:
+                writeConcern = WriteConcern.W3;
                 break;
             default:
                 writeConcern = WriteConcern.ACKNOWLEDGED;
