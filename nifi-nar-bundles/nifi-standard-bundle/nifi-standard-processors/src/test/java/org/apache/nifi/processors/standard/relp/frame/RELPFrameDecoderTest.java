@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.processors.standard.relp.frame;
 
 import io.netty.buffer.ByteBufOutputStream;
@@ -17,7 +33,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-class RELPByteDecoderTest {
+class RELPFrameDecoderTest {
 
     final ComponentLog logger = new MockComponentLog(this.getClass().getSimpleName(), this);
 
@@ -50,7 +66,7 @@ class RELPByteDecoderTest {
         final List<RELPFrame> frames = getFrames(5);
         ByteBufOutputStream eventBytes = new ByteBufOutputStream(Unpooled.buffer());
         sendFrames(frames, eventBytes);
-        EmbeddedChannel channel = new EmbeddedChannel(new RELPByteDecoder(logger, Charset.defaultCharset()));
+        EmbeddedChannel channel = new EmbeddedChannel(new RELPFrameDecoder(logger, Charset.defaultCharset()));
 
         assert(channel.writeInbound(eventBytes.buffer()));
         assertEquals(5, channel.inboundMessages().size());
@@ -59,7 +75,7 @@ class RELPByteDecoderTest {
         assertEquals(RELPNettyEvent.class, event.getClass());
         assertEquals(SYSLOG_FRAME_DATA, new String(event.getData(), StandardCharsets.UTF_8));
 
-        assertEquals(2, channel.outboundMessages());
+        assertEquals(2, channel.outboundMessages().size());
     }
 
     private void sendFrames(final List<RELPFrame> frames, final OutputStream outputStream) throws IOException {

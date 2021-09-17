@@ -21,7 +21,7 @@ import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.standard.relp.event.RELPNettyEvent;
-import org.apache.nifi.processors.standard.relp.frame.RELPByteDecoder;
+import org.apache.nifi.processors.standard.relp.frame.RELPFrameDecoder;
 import org.apache.nifi.processors.standard.relp.frame.RELPNettyEventChannelHandler;
 
 import java.nio.charset.Charset;
@@ -47,12 +47,11 @@ public class RELPNettyEventServerFactory extends NettyEventServerFactory {
                                        final BlockingQueue<RELPNettyEvent> events) {
         super(address, port, TransportProtocol.TCP);
         final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);
-        final RELPByteDecoder relpByteDecoder = new RELPByteDecoder(log, charset);
         final RELPNettyEventChannelHandler relpChannelHandler = new RELPNettyEventChannelHandler(events);
 
         setHandlerSupplier(() -> Arrays.asList(
                 logExceptionChannelHandler,
-                relpByteDecoder,
+                new RELPFrameDecoder(log, charset),
                 relpChannelHandler
         ));
     }

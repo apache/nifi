@@ -24,12 +24,12 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.EventServer;
-import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.NettyEventSenderFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.flowfile.FlowFile;
@@ -57,6 +57,7 @@ import org.apache.nifi.ssl.SSLContextService;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -110,6 +111,7 @@ public class ListenRELP extends AbstractProcessor {
             .description("Messages received successfully will be sent out this relationship.")
             .build();
 
+    private static final String DEFAULT_ADDRESS = "127.0.0.1";
     protected List<PropertyDescriptor> descriptors;
     protected Set<Relationship> relationships;
     protected volatile int port;
@@ -126,7 +128,13 @@ public class ListenRELP extends AbstractProcessor {
         final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
         final InetAddress nicIPAddress = AbstractListenEventProcessor.getNICIPAddress(nicIPAddressStr);
 
-        hostname = nicIPAddress.getHostName();
+        hostname = DEFAULT_ADDRESS;
+        if (StringUtils.isNotEmpty(nicIPAddressStr)) {
+            final NetworkInterface networkInterface = NetworkInterface.getByName(nicIPAddressStr);
+            final InetAddress interfaceAddress = networkInterface.getInetAddresses().nextElement();
+            hostname = interfaceAddress.getHostName();
+        }
+
         charset = Charset.forName(context.getProperty(AbstractListenEventProcessor.CHARSET).getValue());
         port = context.getProperty(AbstractListenEventProcessor.PORT).evaluateAttributeExpressions().asInteger();
         events = new LinkedBlockingQueue<>(context.getProperty(AbstractListenEventProcessor.MAX_MESSAGE_QUEUE_SIZE).asInteger());
@@ -138,6 +146,12 @@ public class ListenRELP extends AbstractProcessor {
         messageDemarcatorBytes = msgDemarcator.getBytes(charset);
 
         initializeRELPServer(context);
+    }
+
+    @OnShutdown
+    public void stopped() throws Exception {
+        eventServer.shutdown();
+        eventSender.close();
     }
 
     @Override
@@ -266,7 +280,6 @@ public class ListenRELP extends AbstractProcessor {
         respondToEvents(session, eventsAwaitingResponse);
     }
 
-
     private void getEventsAwaitingResponse(final ProcessSession session, final Map<String, FlowFileNettyEventBatch> batches, final List<RELPNettyEvent> allEvents) {
         for (Map.Entry<String, FlowFileNettyEventBatch> entry : batches.entrySet()) {
             FlowFile flowFile = entry.getValue().getFlowFile();
@@ -294,9 +307,10 @@ public class ListenRELP extends AbstractProcessor {
     }
 
     /**
-     * Respond to RELP events awaiting response.
-     * @param session
-     * @param events
+     * Commit the RELP events and respond to the client that the message/s are received.
+     * @param session The processor's session, for committing received RELP events to the NiFi repositories
+     * @param events The RELP events waiting to be responded to. Open and Close RELP commands will have already been responded to
+     *               by RELP Netty handlers earlier in the processing chain
      */
     protected void respondToEvents(final ProcessSession session, final List<RELPNettyEvent> events) {
         // first commit the session so we guarantee we have all the events successfully
@@ -336,6 +350,6 @@ public class ListenRELP extends AbstractProcessor {
     }
 
     private NettyEventSenderFactory getNettyEventSenderFactory() {
-        return new RELPNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.TCP, charset);
+        return new RELPNettyEventSenderFactory(getLogger(), hostname, port, charset);
     }
 }

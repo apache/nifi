@@ -44,6 +44,13 @@ public class RELPDecoder {
     }
 
     /**
+     * @param charset the charset to decode bytes from the RELP frame
+     */
+    public RELPDecoder(final int bufferSize, final Charset charset) {
+        this(charset, new ByteArrayOutputStream(bufferSize));
+    }
+
+    /**
      *
      * @param charset the charset to decode bytes from the RELP frame
      * @param buffer a buffer to use while processing the bytes

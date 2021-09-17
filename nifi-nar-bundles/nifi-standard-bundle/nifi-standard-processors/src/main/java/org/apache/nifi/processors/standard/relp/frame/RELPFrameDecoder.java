@@ -1,6 +1,23 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.processors.standard.relp.frame;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import org.apache.nifi.logging.ComponentLog;
@@ -21,7 +38,7 @@ import java.util.Map;
 /**
  * Decode RELP message bytes into a RELPNettyEvent
  */
-public class RELPByteDecoder extends ByteToMessageDecoder {
+public class RELPFrameDecoder extends ByteToMessageDecoder {
 
     private Charset charset;
     private RELPDecoder decoder;
@@ -32,10 +49,9 @@ public class RELPByteDecoder extends ByteToMessageDecoder {
     static final String CMD_OPEN = "open";
     static final String CMD_CLOSE = "close";
 
-    public RELPByteDecoder(final ComponentLog logger, final Charset charset) {
+    public RELPFrameDecoder(final ComponentLog logger, final Charset charset) {
         this.charset = charset;
         this.logger = logger;
-        this.decoder = new RELPDecoder(charset);
         this.encoder = new RELPEncoder(charset);
         this.eventFactory = new RELPNettyEventFactory();
     }
@@ -51,6 +67,8 @@ public class RELPByteDecoder extends ByteToMessageDecoder {
         } else {
             sender = socketAddress.toString();
         }
+
+        this.decoder = new RELPDecoder(total, charset);
 
         // go through the buffer parsing the RELP command
         for (int i = 0; i < total; i++) {
@@ -72,10 +90,11 @@ public class RELPByteDecoder extends ByteToMessageDecoder {
         if (CMD_OPEN.equals(frame.getCommand())) {
             Map<String,String> offers = RELPResponse.parseOffers(frame.getData(), charset);
             ChannelResponse response = new RELPChannelResponse(encoder, RELPResponse.open(frame.getTxnr(), offers));
-            ctx.writeAndFlush(response);
+            ctx.writeAndFlush(Unpooled.wrappedBuffer(response.toByteArray()));
         } else if (CMD_CLOSE.equals(frame.getCommand())) {
             ChannelResponse response = new RELPChannelResponse(encoder, RELPResponse.ok(frame.getTxnr()));
-            ctx.writeAndFlush(response);
+            //ctx.writeAndFlush(response.toByteArray());
+            ctx.writeAndFlush(Unpooled.wrappedBuffer(response.toByteArray()));
             ctx.close();
         } else {
             final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender);

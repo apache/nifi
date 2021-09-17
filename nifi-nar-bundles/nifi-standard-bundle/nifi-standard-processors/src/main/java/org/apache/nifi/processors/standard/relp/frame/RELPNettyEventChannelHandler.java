@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.BlockingQueue;
 
 /**
- * Decode data received into a RELPEvent
+ * Decode data received into a RELPNettyEvent
  */
 @ChannelHandler.Sharable
 public class RELPNettyEventChannelHandler extends SimpleChannelInboundHandler<RELPNettyEvent> {

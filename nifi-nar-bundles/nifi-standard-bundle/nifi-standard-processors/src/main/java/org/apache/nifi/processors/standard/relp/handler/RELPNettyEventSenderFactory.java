@@ -1,6 +1,23 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.processors.standard.relp.handler;
 
 import io.netty.channel.ChannelHandler;
+import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.NettyEventSenderFactory;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
@@ -17,29 +34,13 @@ import java.util.List;
  */
 public class RELPNettyEventSenderFactory extends NettyEventSenderFactory<RELPResponse> {
 
-//    /**
-//     * Netty Event Sender Factory using byte array
-//     *
-//     * @param log Component Log
-//     * @param address Remote Address
-//     * @param port Remote Port Number
-//     * @param protocol Channel Protocol
-//     */
-//    public ByteArrayNettyEventSenderFactory(final ComponentLog log, final String address, final int port, final TransportProtocol protocol) {
-//        super(address, port, protocol);
-//        final List<ChannelHandler> handlers = new ArrayList<>();
-//        handlers.add(new LogExceptionChannelHandler(log));
-//        handlers.add(new ByteArrayEncoder());
-//        setHandlerSupplier(() -> handlers);
-//    }
-
-    public RELPNettyEventSenderFactory(final ComponentLog log, final String address, final int port, final TransportProtocol protocol, final Charset charset) {
-        super(address, port, protocol);
-        final RELPResponseEncoder relpResponseEncoder = new RELPResponseEncoder(charset);
+    public RELPNettyEventSenderFactory(final ComponentLog log, final String address, final int port, final Charset charset) {
+        super(address, port, TransportProtocol.TCP);
 
         final List<ChannelHandler> handlers = new ArrayList<>();
         handlers.add(new LogExceptionChannelHandler(log));
-        handlers.add(relpResponseEncoder);
+        handlers.add(new ByteArrayEncoder());
+        handlers.add(new RELPResponseEncoder(charset));
         setHandlerSupplier(() -> handlers);
     }
 }
