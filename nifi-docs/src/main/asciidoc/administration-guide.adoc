@@ -2927,6 +2927,51 @@ The prediction interval `nifi.analytics.predict.interval` can be configured to p
 
 See <<analytics_properties>> for complete information on configuring analytic properties.
 
+[[flow_resource_provider_service]]
+== Flow Resource Provider Service
+
+NiFi has the capability to gather files necessary for the flow to work properly, like database drivers, configuration files for processors, etc. These files are referred as Flow Resources. The Flow Resource Provider Service is responsible for this activity. The service comes with NiFi out of the box but in order to actually collect Flow Resources at least one Flow Resource Provider needs to be configured.
+
+Flow Resource Providers define external sources to fetch Flow Resources from. When configured, a Flow Resource Provider polls the external source for available files and offers them to the service. The service then fetches new files and copies them to
+the `nifi.flow.resources.directory`. In case the property is not set, the files will be copied into the `resources` folder under the NiFi home.
+
+A Flow Resource Provider can be configured by adding the `nifi.flow.resources.provider.<providerName>.implementation` property with value containing the proper implementation class. Some implementations might need
+further properties. These are defined by the implementation and must be prefixed with `nifi.flow.resources.provider.<providerName>.`.
+
+The `<providerName>` is arbitrary and serves to correlate multiple properties together for a single provider. Multiple providers might be set, with different `<providerName>`. Currently NiFi supports HDFS based provider.
+
+By default, the polling will happen in every 5 minutes. It is possible to change this frequency by specifying the property `nifi.flow.resources.poll.interval` with the number of milliseconds between polls. Flow Resources will be downloaded if no file with the same name exists in the folder defined by `nifi.flow.resources.directory` or the modification date of the file available in the external source is newer than the local file's modification date.
+
+The Flow Resource Provider Service might restrain NiFi from startup until the first Flow Resource collection is not yet executed successfully for every provider. In order to override this behaviour, the `nifi.flow.resources.restrain.startup` needs to be declared. With value `true` the service prevents NiFi from starting up until the execution succeeds, with `false` it does not. The default value is `true` in case of the property is not set.
+
+Contrary to <<hdfs-nar-provider>>, Flow Resource Provider Service is not intended to work with NARs. Because of this the service will filter out NAR files from the external sources.
+
+==== HDFS Flow Resource Provider
+
+This implementation is capable of downloading Flow Resource files from an HDFS file system.
+
+The value of the `nifi.flow.resources.provider.<providerName>.implementation` must be `org.apache.nifi.nar.hadoop.HDFSFlowResourceProvider`. The following further properties are defined by the provider:
+
+[options="header"]
+|===
+| Name                       |  Description
+| resources                  |  List of HDFS resources, separated by comma.
+| source.directory           |  The source directory of Flow Resource files within HDFS. Note: the provider does not check for files recursively.
+| storage.location           |  Optional. If set the storage location defined in the core-site.xml will be overwritten by this value.
+| kerberos.principal         |  Optional. Kerberos principal to authenticate as.
+| kerberos.keytab            |  Optional. Kerberos keytab associated with the principal.
+| kerberos.password          |  Optional. Kerberos password associated with the principal.
+|===
+
+Example configuration:
+
+   nifi.flow.resources.provider.hdfs1.implementation=org.apache.nifi.nar.hadoop.HDFSFlowResourceProvider
+   nifi.flow.resources.provider.hdfs1.resources=/etc/hadoop/core-site.xml
+   nifi.flow.resources.provider.hdfs1.source.directory=/flowResources
+
+   nifi.flow.resources.provider.hdfs2.implementation=org.apache.nifi.nar.hadoop.HDFSFlowResourceProvider
+   nifi.flow.resources.provider.hdfs2.resources=/etc/hadoop/core-site.xml
+   nifi.flow.resources.provider.hdfs2.source.directory=/other/dir/for/flowResources
 
 [[system_properties]]
 == System Properties
@@ -4276,11 +4321,18 @@ further properties. These are defined by the implementation and must be prefixed
 
 The `<providerName>` is arbitrary and serves to correlate multiple properties together for a single provider. Multiple providers might be set, with different `<providerName>`. Currently NiFi supports HDFS based NAR provider.
 
+By default, the polling will happen in every 5 minutes. It is possible to change this frequency by specifying the property `nifi.nar.library.poll.interval` with the number of milliseconds between polls. NARs will be downloaded if no file with the same name exists in the folder defined by `nifi.nar.library.autoload.directory`. If a file is already downloaded it will not be replaced.
+
+The NAR Provider might restrain NiFi from startup until the first NAR collection is not yet executed successfully for every provider. In order to override this behaviour, the `nifi.nar.library.restrain.startup` needs to be declared. With value `true` the provider prevents NiFi from starting up until the execution succeeds, with `false` it does not. The default value is `true` in case of the property is not set.
+
+NOTE: The NAR Provider functionality is a special application of the <<flow_resource_provider_service>>. As of this, the usage of Flow Resource Providers preferred over NAR specific implementations. NAR specific implementations might be discontinued at a later point.
+
+[[hdfs-nar-provider]]
 ==== HDFS NAR Provider
 
 This implementation is capable of downloading NAR files from an HDFS file system.
 
-The value of the `nifi.nar.library.provider.<providerName>.implementation` must be `org.apache.nifi.nar.hadoop.HDFSNarProvider`. The following further properties are defined by the provider:
+The value of the `nifi.nar.library.provider.<providerName>.implementation` must be `org.apache.nifi.nar.hadoop.HDFSFlowResourceProvider`. The following further properties are defined by the provider:
 
 [options="header"]
 |===
@@ -4295,13 +4347,15 @@ The value of the `nifi.nar.library.provider.<providerName>.implementation` must 
 
 Example configuration:
 
-   nifi.nar.library.provider.hdfs1.implementation=org.apache.nifi.nar.hadoop.HDFSNarProvider
-   nifi.nar.library.provider.hdfs1.resources=/etc/hadoop/core-site.xml
-   nifi.nar.library.provider.hdfs1.source.directory=/customNars
+    nifi.nar.library.provider.hdfs1.implementation=org.apache.nifi.flow.resource.hadoop.HDFSFlowResourceProvider
+    nifi.nar.library.provider.hdfs1.resources=/etc/hadoop/core-site.xml
+    nifi.nar.library.provider.hdfs1.source.directory=/customNars
 
-   nifi.nar.library.provider.hdfs2.implementation=org.apache.nifi.nar.hadoop.HDFSNarProvider
-   nifi.nar.library.provider.hdfs2.resources=/etc/hadoop/core-site.xml
-   nifi.nar.library.provider.hdfs2.source.directory=/other/dir/for/customNars
+    nifi.nar.library.provider.hdfs2.implementation=org.apache.nifi.flow.resource.hadoop.HDFSFlowResourceProvider
+    nifi.nar.library.provider.hdfs2.resources=/etc/hadoop/core-site.xml
+    nifi.nar.library.provider.hdfs2.source.directory=/other/dir/for/customNars
+
+NOTE: NAR Provider specific `org.apache.nifi.nar.hadoop.HDFSNarProvider` might be used as well, but not encouraged. It shares the functionality with `org.apache.nifi.flow.resource.hadoop.HDFSFlowResourceProvider`.
 
 == NiFi diagnostics
 

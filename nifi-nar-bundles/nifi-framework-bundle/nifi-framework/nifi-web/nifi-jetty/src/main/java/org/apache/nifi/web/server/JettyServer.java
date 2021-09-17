@@ -43,6 +43,10 @@ import org.apache.nifi.nar.NarLoader;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardNarLoader;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.flow.resource.FlowResourceProviderService;
+import org.apache.nifi.flow.resource.FlowResourceProviderServiceBuilder;
+import org.apache.nifi.flow.resource.DoNotReplaceResolutionStrategy;
+import org.apache.nifi.flow.resource.ReplaceWithNewerResolutionStrategy;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.services.FlowService;
@@ -144,6 +148,14 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private static final String CONTEXT_PATH_NIFI_DOCS = "/nifi-docs";
     private static final String RELATIVE_PATH_ACCESS_TOKEN = "/access/token";
 
+    private static final String NAR_PROVIDER_PREFIX = "nifi.nar.library.provider.";
+    private static final String NAR_PROVIDER_POLL_INTERVAL_PROPERTY = "nifi.nar.library.poll.interval";
+    private static final String NAR_PROVIDER_RESTRAIN_PROPERTY = "nifi.nar.library.restrain.startup";
+
+    private static final String RESOURCE_PROVIDER_PREFIX = "nifi.flow.resources.provider.";
+    private static final String RESOURCE_PROVIDER_POLL_INTERVAL_PROPERTY = "nifi.flow.resources.poll.interval";
+    private static final String RESOURCE_PROVIDER_RESTRAIN_PROPERTY = "nifi.flow.resources.restrain.startup";
+
     private static final int DOS_FILTER_REJECT_REQUEST = -1;
 
     private static final FileFilter WAR_FILTER = pathname -> {
@@ -162,6 +174,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private Set<Bundle> bundles;
     private ExtensionMapping extensionMapping;
     private NarAutoLoader narAutoLoader;
+    private FlowResourceProviderService narProviderService;
+    private FlowResourceProviderService flowResourceProviderService;
     private DiagnosticsFactory diagnosticsFactory;
     private SslContextFactory.Server sslContextFactory;
     private DecommissionTask decommissionTask;
@@ -1135,6 +1149,37 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             // Generate docs for extensions
             DocGenerator.generate(props, extensionManager, extensionMapping);
 
+            // Additionally loaded NARs and collected flow resources must be in place before starting the flows
+            final NarLoader narLoader = new StandardNarLoader(
+                    props.getExtensionsWorkingDirectory(),
+                    props.getComponentDocumentationWorkingDirectory(),
+                    NarClassLoadersHolder.getInstance(),
+                    extensionManager,
+                    extensionMapping,
+                    this);
+
+            narAutoLoader = new NarAutoLoader(props, narLoader);
+            narAutoLoader.start();
+
+            narProviderService = new FlowResourceProviderServiceBuilder("NAR Auto-Loader Provider", extensionManager, props, NAR_PROVIDER_PREFIX)
+                    .withTargetDirectoryProperty(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, NiFiProperties.DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR)
+                    .withConflictResolutionStrategy(new DoNotReplaceResolutionStrategy())
+                    .withResourceFilter(descriptor -> descriptor.getFileName().toLowerCase().endsWith(".nar"))
+                    .withPollIntervalProperty(NAR_PROVIDER_POLL_INTERVAL_PROPERTY)
+                    .withRestrainingStartup(NAR_PROVIDER_RESTRAIN_PROPERTY, true)
+                    .build();
+            narProviderService.start();
+
+            flowResourceProviderService = new FlowResourceProviderServiceBuilder("Flow Resource Provider", extensionManager, props, RESOURCE_PROVIDER_PREFIX)
+                    .withTargetDirectoryProperty(NiFiProperties.RESOURCES_DIRECTORY, NiFiProperties.DEFAULT_RESOURCES_DIRECTORY)
+                    .withConflictResolutionStrategy(new ReplaceWithNewerResolutionStrategy())
+                    .withResourceFilter(descriptor -> !descriptor.getFileName().toLowerCase().endsWith(".nar"))
+                    .withPollIntervalProperty(RESOURCE_PROVIDER_POLL_INTERVAL_PROPERTY)
+                    .withRestrainingStartup(RESOURCE_PROVIDER_RESTRAIN_PROPERTY, true)
+                    .build();
+            flowResourceProviderService.start();
+
+
             // start the server
             server.start();
 
@@ -1226,17 +1271,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                     throw new Exception("Unable to load flow due to: " + e); // cannot wrap the exception as they are not defined in a classloader accessible to the caller
                 }
             }
-
-            final NarLoader narLoader = new StandardNarLoader(
-                    props.getExtensionsWorkingDirectory(),
-                    props.getComponentDocumentationWorkingDirectory(),
-                    NarClassLoadersHolder.getInstance(),
-                    extensionManager,
-                    extensionMapping,
-                    this);
-
-            narAutoLoader = new NarAutoLoader(props, narLoader, extensionManager);
-            narAutoLoader.start();
 
             // dump the application url after confirming everything started successfully
             dumpUrls();
@@ -1371,6 +1405,22 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             }
         } catch (Exception e) {
             logger.warn("Failed to stop NAR auto-loader", e);
+        }
+
+        try {
+            if (narProviderService != null) {
+                narProviderService.stop();
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to stop  NAR provider", e);
+        }
+
+        try {
+            if (narProviderService != null) {
+                narProviderService.stop();
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to stop flow resource provider service", e);
         }
     }
 

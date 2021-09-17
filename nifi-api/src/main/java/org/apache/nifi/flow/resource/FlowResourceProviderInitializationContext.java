@@ -14,22 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.nar;
-
-import org.apache.nifi.flow.resource.FlowResourceProviderInitializationContext;
+package org.apache.nifi.flow.resource;
 
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 /**
- * Contains necessary information for extensions of NAR auto loader functionality.
- *
- * @deprecated This is being replaced with {@code FlowResourceProviderInitializationContext}.
+ * Contains necessary information for extensions of external resource provider functionality.
  */
-@Deprecated
-public interface NarProviderInitializationContext extends FlowResourceProviderInitializationContext {
+public interface FlowResourceProviderInitializationContext {
 
     /**
      * @return Returns with the available properties.
      */
     Map<String, String> getProperties();
+
+    /**
+     * @return An optional predicate, which if presents might filter out unwanted files from the external source during listing.
+     */
+    default Optional<Predicate<FlowResourceDescriptor>> getFilter() {
+        return Optional.empty();
+    }
 }

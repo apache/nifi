@@ -69,6 +69,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String NAR_LIBRARY_DIRECTORY = "nifi.nar.library.directory";
     public static final String NAR_LIBRARY_DIRECTORY_PREFIX = "nifi.nar.library.directory.";
     public static final String NAR_LIBRARY_AUTOLOAD_DIRECTORY = "nifi.nar.library.autoload.directory";
+    public static final String RESOURCES_DIRECTORY = "nifi.flow.resources.directory";
     public static final String NAR_WORKING_DIRECTORY = "nifi.nar.working.directory";
     public static final String COMPONENT_DOCS_DIRECTORY = "nifi.documentation.working.directory";
     public static final String SENSITIVE_PROPS_KEY = "nifi.sensitive.props.key";
@@ -334,6 +335,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DEFAULT_COMPONENT_DOCS_DIRECTORY = "./work/docs/components";
     public static final String DEFAULT_NAR_LIBRARY_DIR = "./lib";
     public static final String DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR = "./extensions";
+    public static final String DEFAULT_RESOURCES_DIRECTORY = "./resources";
     public static final String DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL = "20 secs";
     public static final int DEFAULT_MAX_FLOWFILES_PER_CLAIM = 100;
     public static final String DEFAULT_MAX_APPENDABLE_CLAIM_SIZE = "1 MB";
@@ -477,6 +479,19 @@ public class NiFiProperties extends ApplicationProperties {
 
         try {
             return Integer.parseInt(value.trim());
+        } catch (final Exception e) {
+            return defaultValue;
+        }
+    }
+
+    public Long getLongProperty(final String propertyName, final Long defaultValue) {
+        final String value = getProperty(propertyName);
+        if (value == null || value.trim().isEmpty()) {
+            return defaultValue;
+        }
+
+        try {
+            return Long.parseLong(value.trim());
         } catch (final Exception e) {
             return defaultValue;
         }

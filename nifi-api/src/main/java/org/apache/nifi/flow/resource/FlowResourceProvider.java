@@ -14,31 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.nar;
-
-import org.apache.nifi.flow.resource.FlowResourceProvider;
+package org.apache.nifi.flow.resource;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 
 /**
- * Represents an external source where the NAR files might be acquired from. Used by the NAR auto loader functionality
- * in order to poll an external source for new NAR files to load.
- *
- * @deprecated This is being replaced by {@code FlowResourceProvider}.
+ * Represents an external source where the resource files might be acquired from. These external resources might be
+ * various, as database drivers, different kind of configurations and so on.
  */
-@Deprecated
-public interface NarProvider extends FlowResourceProvider {
+public interface FlowResourceProvider {
     /**
-     * Performs a listing of all NAR's that are available.
-     *
-     * @Return The result is a list of locations, where the format depends on the actual implementation.
+     * Initializes the External Resource Provider based on the given set of properties.
      */
-    Collection<String> listNars() throws IOException;
+    void initialize(FlowResourceProviderInitializationContext context);
 
     /**
-     * Fetches the NAR at the given location. The location should be one of the values returned by <code>listNars()</code>.
+     * Performs a listing of all resources that are available.
+     *
+     * @Return The result is a list of descriptors for the available resources.
      */
-    InputStream fetchNarContents(String location) throws IOException;
+    Collection<FlowResourceDescriptor> listResources() throws IOException;
+
+    /**
+     * Fetches the resource at the given location. The location should be one of the values returned by <code>listResources()</code>.
+     */
+    InputStream fetchExternalResource(String location) throws IOException;
 }

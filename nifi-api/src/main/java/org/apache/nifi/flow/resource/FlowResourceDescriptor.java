@@ -14,24 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.nar.hadoop.util;
-
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
+package org.apache.nifi.flow.resource;
 
 /**
- * HDFS listing filter which selects files based on extension.
+ * Describes an available flow resource might be fetched from the external source.
  */
-public class ExtensionFilter implements PathFilter {
-    private final String extension;
+public interface FlowResourceDescriptor {
 
-    public ExtensionFilter(final String extension) {
-        this.extension = extension;
-    }
+    /**
+     * @return The location of the resource, where the format depends on the actual provider implementation.
+     */
+    String getFileName();
 
-    @Override
-    public boolean accept(final Path path) {
-        final String fileName = path.getName().toLowerCase();
-        return fileName.endsWith("." + extension);
-    }
+    /**
+     * @return Returns the modification time of the original resource file using Unix timestamp format.
+     */
+    long getModifiedAt();
 }

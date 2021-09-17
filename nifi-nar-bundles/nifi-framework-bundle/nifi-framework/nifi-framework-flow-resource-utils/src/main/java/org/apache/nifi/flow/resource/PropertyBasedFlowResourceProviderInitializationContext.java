@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.nar;
+package org.apache.nifi.flow.resource;
 
 import org.apache.nifi.util.NiFiProperties;
 
@@ -22,21 +22,23 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
-/**
- * A facade at front of {@code NiFiProperties} for auto loader extensions. Also limits the scope of the reachable properties.
- */
-public class PropertyBasedNarProviderInitializationContext implements NarProviderInitializationContext {
+final class PropertyBasedFlowResourceProviderInitializationContext implements FlowResourceProviderInitializationContext {
     private static Set<String> GUARDED_PROPERTIES = new HashSet<>(Arrays.asList("implementation"));
-    static final String BASIC_PREFIX = "nifi.nar.library.provider.";
 
     private final Map<String, String> properties;
-    private final String name;
+    private final Optional<Predicate<FlowResourceDescriptor>> filter;
 
-    public PropertyBasedNarProviderInitializationContext(final NiFiProperties properties, final String name) {
-        this.properties = extractProperties(properties, name);
-        this.name = name;
+    PropertyBasedFlowResourceProviderInitializationContext(
+        final NiFiProperties properties,
+        final String prefix,
+        final Optional<Predicate<FlowResourceDescriptor>> filter
+    ) {
+        this.properties = extractProperties(properties, prefix);
+        this.filter = filter;
     }
 
     @Override
@@ -44,8 +46,12 @@ public class PropertyBasedNarProviderInitializationContext implements NarProvide
         return properties;
     }
 
-    public Map<String, String> extractProperties(final NiFiProperties properties, final String name) {
-        final String prefix = BASIC_PREFIX + name + ".";
+    @Override
+    public Optional<Predicate<FlowResourceDescriptor>> getFilter() {
+        return filter;
+    }
+
+    private Map<String, String> extractProperties(final NiFiProperties properties, final String prefix) {
         final Map<String, String> candidates = properties.getPropertiesWithPrefix(prefix);
         final Map<String, String> result = new HashMap<>();
 

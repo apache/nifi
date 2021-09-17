@@ -14,22 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.nar;
-
-import org.apache.nifi.flow.resource.FlowResourceProviderInitializationContext;
-
-import java.util.Map;
+package org.apache.nifi.flow.resource;
 
 /**
- * Contains necessary information for extensions of NAR auto loader functionality.
- *
- * @deprecated This is being replaced with {@code FlowResourceProviderInitializationContext}.
+ * Responsible for polling one external source using {@code org.apache.nifi.externalresource.FlowResourceProvider}
  */
-@Deprecated
-public interface NarProviderInitializationContext extends FlowResourceProviderInitializationContext {
+interface FlowResourceProviderWorker extends Runnable {
 
     /**
-     * @return Returns with the available properties.
+     * @return Returns the name of the worker.
      */
-    Map<String, String> getProperties();
+    String getName();
+
+    /**
+     * @return Returns the enveloped provider.
+     */
+    FlowResourceProvider getProvider();
+
+    /**
+     * @return Returns true in case the worker is running.
+     */
+    boolean isRunning();
+
+    /**
+     * Stops the worker. The stop might not happen instantly but the implementation must guarantee the worker stops polling within a reasonable amount of time.
+     */
+    void stop();
 }

@@ -19,7 +19,7 @@
         <artifactId>nifi-framework</artifactId>
         <version>1.15.0-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-framework-nar-loading-utils</artifactId>
+    <artifactId>nifi-framework-flow-resource-utils</artifactId>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
@@ -37,24 +37,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-server-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-flow-resource-utils</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.9</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

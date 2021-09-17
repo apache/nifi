@@ -14,22 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.nar;
+package org.apache.nifi.flow.resource;
 
-import org.apache.nifi.flow.resource.FlowResourceProviderInitializationContext;
-
-import java.util.Map;
+import java.io.File;
+import java.util.Arrays;
 
 /**
- * Contains necessary information for extensions of NAR auto loader functionality.
- *
- * @deprecated This is being replaced with {@code FlowResourceProviderInitializationContext}.
+ * This strategy will allow fetching a resource if there is no existing resource in the target directory with identical name.
  */
-@Deprecated
-public interface NarProviderInitializationContext extends FlowResourceProviderInitializationContext {
+public final class DoNotReplaceResolutionStrategy implements FlowResourceConflictResolutionStrategy {
 
-    /**
-     * @return Returns with the available properties.
-     */
-    Map<String, String> getProperties();
+    @Override
+    public boolean shouldBeFetched(final File targetDirectory, final FlowResourceDescriptor available) {
+        return !Arrays.stream(targetDirectory.listFiles())
+                .filter(f -> f.getName().equals(available.getFileName()))
+                .findFirst()
+                .isPresent();
+    }
 }

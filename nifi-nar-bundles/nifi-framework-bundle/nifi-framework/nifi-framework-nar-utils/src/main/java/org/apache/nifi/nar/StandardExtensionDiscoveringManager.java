@@ -32,6 +32,7 @@ import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
+import org.apache.nifi.flow.resource.FlowResourceProvider;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.init.ConfigurableComponentInitializer;
 import org.apache.nifi.init.ConfigurableComponentInitializerFactory;
@@ -107,6 +108,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(StateProvider.class, new HashSet<>());
         definitionMap.put(StatusAnalyticsModel.class, new HashSet<>());
         definitionMap.put(NarProvider.class, new HashSet<>());
+        definitionMap.put(FlowResourceProvider.class, new HashSet<>());
 
         additionalExtensionTypes.forEach(type -> definitionMap.putIfAbsent(type, new HashSet<>()));
     }

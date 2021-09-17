@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.nar;
+package org.apache.nifi.flow.resource;
 
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
@@ -26,20 +26,20 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RunWith(MockitoJUnitRunner.class)
-public class TestPropertyBasedNarProviderInitializationContext {
+public class PropertyBasedFlowResourceProviderInitializationContextTest {
     private static final String PROVIDER_NAME = "external";
-
-    private static final String PREFIX = PropertyBasedNarProviderInitializationContext.BASIC_PREFIX + PROVIDER_NAME + ".";
+    private static final String PREFIX = "nifi.test.resources.external.provider." + PROVIDER_NAME + ".";
 
     @Mock
-    NiFiProperties properties;
+    private NiFiProperties properties;
 
     @Test
     public void testEmptyProperties() {
         // when
-        final PropertyBasedNarProviderInitializationContext testSubject = new PropertyBasedNarProviderInitializationContext(properties, PROVIDER_NAME);
+        final PropertyBasedFlowResourceProviderInitializationContext testSubject = givenTestSubject();
         final Map<String, String> result = testSubject.getProperties();
 
         // then
@@ -55,7 +55,7 @@ public class TestPropertyBasedNarProviderInitializationContext {
         Mockito.when(properties.getPropertiesWithPrefix(PREFIX)).thenReturn(availableProperties);
 
         // when
-        final PropertyBasedNarProviderInitializationContext testSubject = new PropertyBasedNarProviderInitializationContext(properties, PROVIDER_NAME);
+        final PropertyBasedFlowResourceProviderInitializationContext testSubject = givenTestSubject();
         final Map<String, String> result = testSubject.getProperties();
 
         // then
@@ -71,7 +71,7 @@ public class TestPropertyBasedNarProviderInitializationContext {
         Mockito.when(properties.getPropertiesWithPrefix(PREFIX)).thenReturn(availableProperties);
 
         // when
-        final PropertyBasedNarProviderInitializationContext testSubject = new PropertyBasedNarProviderInitializationContext(properties, PROVIDER_NAME);
+        final PropertyBasedFlowResourceProviderInitializationContext testSubject = givenTestSubject();
         final Map<String, String> result = testSubject.getProperties();
 
         // then
@@ -88,7 +88,7 @@ public class TestPropertyBasedNarProviderInitializationContext {
         Mockito.when(properties.getPropertiesWithPrefix(PREFIX)).thenReturn(availableProperties);
 
         // when
-        final PropertyBasedNarProviderInitializationContext testSubject = new PropertyBasedNarProviderInitializationContext(properties, PROVIDER_NAME);
+        final PropertyBasedFlowResourceProviderInitializationContext testSubject = givenTestSubject();
         final Map<String, String> result = testSubject.getProperties();
 
         // then
@@ -98,5 +98,9 @@ public class TestPropertyBasedNarProviderInitializationContext {
         Assert.assertTrue(result.containsKey("key2"));
         Assert.assertEquals("value1", result.get("key1"));
         Assert.assertEquals("value2", result.get("key2"));
+    }
+
+    private PropertyBasedFlowResourceProviderInitializationContext givenTestSubject() {
+        return new PropertyBasedFlowResourceProviderInitializationContext(properties, PREFIX, Optional.empty());
     }
 }

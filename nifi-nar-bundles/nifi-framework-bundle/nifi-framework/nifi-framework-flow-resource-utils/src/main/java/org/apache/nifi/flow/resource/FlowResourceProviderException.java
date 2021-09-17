@@ -14,22 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.nar;
-
-import org.apache.nifi.flow.resource.FlowResourceProviderInitializationContext;
-
-import java.util.Map;
+package org.apache.nifi.flow.resource;
 
 /**
- * Contains necessary information for extensions of NAR auto loader functionality.
- *
- * @deprecated This is being replaced with {@code FlowResourceProviderInitializationContext}.
+ * Exception represents unexpected behaviour from within the resource provider service.
  */
-@Deprecated
-public interface NarProviderInitializationContext extends FlowResourceProviderInitializationContext {
+public class FlowResourceProviderException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
 
-    /**
-     * @return Returns with the available properties.
-     */
-    Map<String, String> getProperties();
+    public FlowResourceProviderException(final String message) {
+        super(message);
+    }
 }

@@ -14,22 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.nar;
+package org.apache.nifi.flow.resource;
 
-import org.apache.nifi.flow.resource.FlowResourceProviderInitializationContext;
-
-import java.util.Map;
+import java.io.File;
 
 /**
- * Contains necessary information for extensions of NAR auto loader functionality.
- *
- * @deprecated This is being replaced with {@code FlowResourceProviderInitializationContext}.
+ * The {@code ConflictResolvingFlowResourceProviderWorker} might use different strategies in
+ * order to decide if an available resource should be acquired from the external provider.
  */
-@Deprecated
-public interface NarProviderInitializationContext extends FlowResourceProviderInitializationContext {
-
+public interface FlowResourceConflictResolutionStrategy {
     /**
-     * @return Returns with the available properties.
+     * @param targetDirectory The target directory.
+     * @param available Descriptor of the available resource.
+     *
+     * @return Returns true if the resource should be fetched from the provider. Returns false otherwise.
      */
-    Map<String, String> getProperties();
+    boolean shouldBeFetched(File targetDirectory, FlowResourceDescriptor available);
 }

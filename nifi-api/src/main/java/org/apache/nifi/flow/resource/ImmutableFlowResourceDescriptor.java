@@ -14,22 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.nar;
+package org.apache.nifi.flow.resource;
 
-import org.apache.nifi.flow.resource.FlowResourceProviderInitializationContext;
+import java.util.Objects;
 
-import java.util.Map;
+public final class ImmutableFlowResourceDescriptor implements FlowResourceDescriptor {
+    private final String location;
+    private final long modifiedAt;
 
-/**
- * Contains necessary information for extensions of NAR auto loader functionality.
- *
- * @deprecated This is being replaced with {@code FlowResourceProviderInitializationContext}.
- */
-@Deprecated
-public interface NarProviderInitializationContext extends FlowResourceProviderInitializationContext {
+    public ImmutableFlowResourceDescriptor(final String location, final long modifiedAt) {
+        if (modifiedAt < 0) {
+            throw new IllegalArgumentException("The modification time cannot be negative");
+        }
 
-    /**
-     * @return Returns with the available properties.
-     */
-    Map<String, String> getProperties();
+        this.location = Objects.requireNonNull(location);
+        this.modifiedAt = modifiedAt;
+    }
+
+    @Override
+    public String getFileName() {
+        return location;
+    }
+
+    @Override
+    public long getModifiedAt() {
+        return modifiedAt;
+    }
 }
