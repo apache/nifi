@@ -77,6 +77,7 @@ import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PASSWORD;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PRINCIPAL;
+import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_USER_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.RECORD_WRITER;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_CONNECTION_TIMEOUT;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
@@ -182,6 +183,7 @@ public class GetSolr extends SolrProcessor {
         descriptors.add(RETURN_FIELDS);
         descriptors.add(BATCH_SIZE);
         descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
+        descriptors.add(KERBEROS_USER_SERVICE);
         descriptors.add(KERBEROS_PRINCIPAL);
         descriptors.add(KERBEROS_PASSWORD);
         descriptors.add(BASIC_USERNAME);

@@ -75,6 +75,7 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PASSWORD;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PRINCIPAL;
+import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_USER_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_CLOUD;
@@ -262,6 +263,7 @@ public class QuerySolr extends SolrProcessor {
         descriptors.add(SOLR_PARAM_ROWS);
         descriptors.add(AMOUNT_DOCUMENTS_TO_RETURN);
         descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
+        descriptors.add(KERBEROS_USER_SERVICE);
         descriptors.add(KERBEROS_PRINCIPAL);
         descriptors.add(KERBEROS_PASSWORD);
         descriptors.add(BASIC_USERNAME);
