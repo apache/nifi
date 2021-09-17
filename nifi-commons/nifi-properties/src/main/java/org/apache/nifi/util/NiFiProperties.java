@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -86,6 +87,13 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String PROCESSOR_SCHEDULING_TIMEOUT = "nifi.processor.scheduling.timeout";
     public static final String BACKPRESSURE_COUNT = "nifi.queue.backpressure.count";
     public static final String BACKPRESSURE_SIZE = "nifi.queue.backpressure.size";
+
+    // Encryption Properties for all Repositories
+    public static final String REPOSITORY_ENCRYPTION_PROTOCOL_VERSION = "nifi.repository.encryption.protocol.version";
+    public static final String REPOSITORY_ENCRYPTION_KEY_ID = "nifi.repository.encryption.key.id";
+    public static final String REPOSITORY_ENCRYPTION_KEY_PROVIDER = "nifi.repository.encryption.key.provider";
+    public static final String REPOSITORY_ENCRYPTION_KEY_PROVIDER_KEYSTORE_LOCATION = "nifi.repository.encryption.key.provider.keystore.location";
+    public static final String REPOSITORY_ENCRYPTION_KEY_PROVIDER_KEYSTORE_PASSWORD = "nifi.repository.encryption.key.provider.keystore.password";
 
     // content repository properties
     public static final String REPOSITORY_CONTENT_PREFIX = "nifi.content.repository.directory.";
@@ -1641,7 +1649,7 @@ public class NiFiProperties extends ApplicationProperties {
     }
 
     public String getFlowFileRepoEncryptionKeyId() {
-        return getProperty(FLOWFILE_REPOSITORY_ENCRYPTION_KEY_ID);
+        return getProperty(FLOWFILE_REPOSITORY_ENCRYPTION_KEY_ID, getProperty(REPOSITORY_ENCRYPTION_KEY_ID));
     }
 
     /**
@@ -1677,33 +1685,31 @@ public class NiFiProperties extends ApplicationProperties {
      * @param repositoryType "provenance", "content", or "flowfile"
      * @return the key map
      */
-    private Map<String, String> getRepositoryEncryptionKeys(String repositoryType) {
-        Map<String, String> keys = new HashMap<>();
-        List<String> keyProperties = getRepositoryEncryptionKeyProperties(repositoryType);
+    public Map<String, String> getRepositoryEncryptionKeys(final String repositoryType) {
+        Objects.requireNonNull(repositoryType, "Repository Type required");
+        final Map<String, String> keys = new HashMap<>();
+        final List<String> keyProperties = getRepositoryEncryptionKeyProperties(repositoryType);
         if (keyProperties.size() == 0) {
-            logger.warn("No " + repositoryType + " repository encryption key properties were available. Check the "
-                    + "exact format specified in the Admin Guide - Encrypted " + StringUtils.toTitleCase(repositoryType)
-                    + " Repository Properties");
+            logger.warn("Repository [{}] Encryption Key properties not found", repositoryType);
             return keys;
         }
-        final String REPOSITORY_ENCRYPTION_KEY = getRepositoryEncryptionKey(repositoryType);
-        final String REPOSITORY_ENCRYPTION_KEY_ID = getRepositoryEncryptionKeyId(repositoryType);
+        final String repositoryEncryptionKey = getRepositoryEncryptionKey(repositoryType);
+        final String repositoryEncryptionKeyId = getRepositoryEncryptionKeyId(repositoryType);
 
         // Retrieve the actual key values and store non-empty values in the map
-        for (String prop : keyProperties) {
-            logger.debug("Parsing " + prop);
-            final String value = getProperty(prop);
-            if (!StringUtils.isBlank(value)) {
+        for (final String keyProperty : keyProperties) {
+            final String keyValue = getProperty(keyProperty);
+            if (StringUtils.isNotBlank(keyValue)) {
                 // If this property is .key (the actual hex key), put it in the map under the value of .key.id (i.e. key1)
-                if (prop.equalsIgnoreCase(REPOSITORY_ENCRYPTION_KEY)) {
-                    keys.put(getProperty(REPOSITORY_ENCRYPTION_KEY_ID), value);
+                if (keyProperty.equalsIgnoreCase(repositoryEncryptionKey)) {
+                    keys.put(getProperty(repositoryEncryptionKeyId), keyValue);
                 } else {
                     // Extract nifi.*.repository.encryption.key.id.key1 -> key1
-                    String extractedKeyId = prop.substring(prop.lastIndexOf(".") + 1);
+                    final String extractedKeyId = keyProperty.substring(keyProperty.lastIndexOf(".") + 1);
                     if (keys.containsKey(extractedKeyId)) {
-                        logger.warn("The {} repository encryption key map already contains an entry for {}. Ignoring new value from {}", repositoryType, extractedKeyId, prop);
+                        logger.warn("Repository [{}] Duplicate Encryption Key ID [{}]: Ignoring Property [{}]", repositoryType, extractedKeyId, keyProperty);
                     } else {
-                        keys.put(extractedKeyId, value);
+                        keys.put(extractedKeyId, keyValue);
                     }
                 }
             }
@@ -1772,7 +1778,7 @@ public class NiFiProperties extends ApplicationProperties {
     }
 
     public String getProvenanceRepoEncryptionKeyId() {
-        return getProperty(PROVENANCE_REPO_ENCRYPTION_KEY_ID);
+        return getProperty(PROVENANCE_REPO_ENCRYPTION_KEY_ID, getProperty(REPOSITORY_ENCRYPTION_KEY_ID));
     }
 
     /**
@@ -1803,7 +1809,7 @@ public class NiFiProperties extends ApplicationProperties {
     }
 
     public String getContentRepositoryEncryptionKeyId() {
-        return getProperty(CONTENT_REPOSITORY_ENCRYPTION_KEY_ID);
+        return getProperty(CONTENT_REPOSITORY_ENCRYPTION_KEY_ID, getProperty(REPOSITORY_ENCRYPTION_KEY_ID));
     }
 
     /**

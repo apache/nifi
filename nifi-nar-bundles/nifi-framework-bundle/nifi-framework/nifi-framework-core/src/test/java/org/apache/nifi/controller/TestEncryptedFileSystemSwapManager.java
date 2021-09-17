@@ -26,7 +26,6 @@ import org.apache.nifi.controller.repository.SwapContents;
 import org.apache.nifi.controller.repository.SwapManagerInitializationContext;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.security.kms.EncryptionException;
 import org.apache.nifi.security.kms.StaticKeyProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
@@ -41,7 +40,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.logging.Logger;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -50,16 +48,13 @@ import static org.mockito.Mockito.when;
  * Test cases for {@link EncryptedFileSystemSwapManager}.
  */
 public class TestEncryptedFileSystemSwapManager {
-    private static final Logger logger = Logger.getLogger(TestEncryptedFileSystemSwapManager.class.getName());
-
     /**
      * Test a simple swap to disk / swap from disk operation.  Configured to use {@link StaticKeyProvider}.
      */
     @Test
-    public void testSwapOutSwapIn() throws GeneralSecurityException, EncryptionException, IOException {
+    public void testSwapOutSwapIn() throws GeneralSecurityException, IOException {
         // use temp folder on filesystem to temporarily hold swap content (clean up after test)
         final File folderRepository = Files.createTempDirectory(getClass().getSimpleName()).toFile();
-        logger.info(folderRepository.getPath());
         folderRepository.deleteOnExit();
         new File(folderRepository, "swap").deleteOnExit();
 
@@ -97,8 +92,7 @@ public class TestEncryptedFileSystemSwapManager {
     /**
      * Borrowed from "nifi-framework-core/src/test/java/org/apache/nifi/controller/TestFileSystemSwapManager.java".
      */
-    private FlowFileSwapManager createSwapManager(NiFiProperties nifiProperties)
-            throws IOException, GeneralSecurityException, EncryptionException {
+    private FlowFileSwapManager createSwapManager(final NiFiProperties nifiProperties) throws GeneralSecurityException {
         final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
         when(flowFileRepo.isValidSwapLocationSuffix(any())).thenReturn(true);
 

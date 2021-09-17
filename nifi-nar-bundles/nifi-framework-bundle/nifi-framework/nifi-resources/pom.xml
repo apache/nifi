@@ -58,10 +58,6 @@
         <nifi.flowfile.repository.directory>./flowfile_repository</nifi.flowfile.repository.directory>
         <nifi.flowfile.repository.checkpoint.interval>20 secs</nifi.flowfile.repository.checkpoint.interval>
         <nifi.flowfile.repository.always.sync>false</nifi.flowfile.repository.always.sync>
-        <nifi.flowfile.repository.encryption.key.provider.implementation />
-        <nifi.flowfile.repository.encryption.key.provider.location />
-        <nifi.flowfile.repository.encryption.key.id />
-        <nifi.flowfile.repository.encryption.key />
         <nifi.flowfile.repository.retain.orphaned.flowfiles>true</nifi.flowfile.repository.retain.orphaned.flowfiles>
         <nifi.swap.manager.implementation>org.apache.nifi.controller.FileSystemSwapManager</nifi.swap.manager.implementation>
         <nifi.queue.swap.threshold>20000</nifi.queue.swap.threshold>
@@ -73,10 +69,6 @@
         <nifi.content.repository.archive.max.usage.percentage>50%</nifi.content.repository.archive.max.usage.percentage>
         <nifi.content.repository.archive.enabled>true</nifi.content.repository.archive.enabled>
         <nifi.content.repository.always.sync>false</nifi.content.repository.always.sync>
-        <nifi.content.repository.encryption.key.provider.implementation />
-        <nifi.content.repository.encryption.key.provider.location />
-        <nifi.content.repository.encryption.key.id />
-        <nifi.content.repository.encryption.key />
         <nifi.content.viewer.url>../nifi-content-viewer/</nifi.content.viewer.url>
 
         <nifi.restore.directory />
@@ -98,10 +90,6 @@
 
         <!-- persistent provenance repository properties -->
         <nifi.provenance.repository.implementation>org.apache.nifi.provenance.WriteAheadProvenanceRepository</nifi.provenance.repository.implementation>
-        <nifi.provenance.repository.encryption.key.provider.implementation />
-        <nifi.provenance.repository.encryption.key.provider.location />
-        <nifi.provenance.repository.encryption.key.id />
-        <nifi.provenance.repository.encryption.key />
         <nifi.provenance.repository.directory.default>./provenance_repository</nifi.provenance.repository.directory.default>
         <nifi.provenance.repository.max.storage.time>30 days</nifi.provenance.repository.max.storage.time>
         <nifi.provenance.repository.max.storage.size>10 GB</nifi.provenance.repository.max.storage.size>

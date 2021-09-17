@@ -19,7 +19,6 @@ package org.apache.nifi.security.util.crypto
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.processor.io.StreamCallback
 import org.apache.nifi.processors.standard.TestEncryptContentGroovy
-import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.KeyDerivationFunction
 import org.apache.nifi.stream.io.ByteCountingInputStream
@@ -259,7 +258,7 @@ class PasswordBasedEncryptorGroovyTest {
                 byte[] cipherBytes = legacyCipher.doFinal(PLAINTEXT.bytes)
                 logger.info("Cipher bytes: ${Hex.encodeHexString(cipherBytes)}")
 
-                byte[] completeCipherStreamBytes = CryptoUtils.concatByteArrays(legacySalt, cipherBytes)
+                byte[] completeCipherStreamBytes = org.bouncycastle.util.Arrays.concatenate(legacySalt, cipherBytes)
                 logger.info("Complete cipher stream: ${Hex.encodeHexString(completeCipherStreamBytes)}")
 
                 InputStream cipherStream = new ByteArrayInputStream(completeCipherStreamBytes)

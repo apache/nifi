@@ -24,6 +24,9 @@ import org.apache.nifi.provenance.toc.StandardTocWriter
 import org.apache.nifi.provenance.toc.TocReader
 import org.apache.nifi.provenance.toc.TocUtil
 import org.apache.nifi.provenance.toc.TocWriter
+import org.apache.nifi.repository.encryption.AesGcmByteArrayRepositoryEncryptor
+import org.apache.nifi.repository.encryption.RepositoryEncryptor
+import org.apache.nifi.repository.encryption.configuration.EncryptionMetadataHeader
 import org.apache.nifi.security.kms.KeyProvider
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
@@ -33,7 +36,6 @@ import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 import java.security.KeyManagementException
 import java.security.Security
@@ -61,7 +63,7 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
     private File tocFile
 
     private static KeyProvider mockKeyProvider
-    private static ProvenanceEventEncryptor provenanceEventEncryptor = new AESProvenanceEventEncryptor()
+    private static RepositoryEncryptor<byte[], byte[]> repositoryEncryptor
 
     @BeforeAll
     static void setUpOnce() throws Exception {
@@ -81,7 +83,7 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
                 keyExists         : { String keyId ->
                     keyId == KEY_ID
                 }] as KeyProvider
-        provenanceEventEncryptor.initialize(mockKeyProvider)
+        repositoryEncryptor = new AesGcmByteArrayRepositoryEncryptor(mockKeyProvider, EncryptionMetadataHeader.PROVENANCE)
     }
 
     @BeforeEach
@@ -116,22 +118,22 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
     protected RecordWriter createWriter(
             final File file,
             final TocWriter tocWriter, final boolean compressed, final int uncompressedBlockSize) throws IOException {
-        createWriter(file, tocWriter, compressed, uncompressedBlockSize, provenanceEventEncryptor)
+        createWriter(file, tocWriter, compressed, uncompressedBlockSize, repositoryEncryptor)
     }
 
     protected static RecordWriter createWriter(
             final File file,
             final TocWriter tocWriter,
             final boolean compressed,
-            final int uncompressedBlockSize, ProvenanceEventEncryptor encryptor) throws IOException {
-        return new EncryptedSchemaRecordWriter(file, idGenerator, tocWriter, compressed, uncompressedBlockSize, IdentifierLookup.EMPTY, encryptor, 1)
+            final int uncompressedBlockSize, RepositoryEncryptor<byte[], byte[]> encryptor) throws IOException {
+        return new EncryptedSchemaRecordWriter(file, idGenerator, tocWriter, compressed, uncompressedBlockSize, IdentifierLookup.EMPTY, encryptor, KEY_ID)
     }
 
     @Override
     protected RecordReader createReader(
             final InputStream inputStream,
             final String journalFilename, final TocReader tocReader, final int maxAttributeSize) throws IOException {
-        return new EncryptedSchemaRecordReader(inputStream, journalFilename, tocReader, maxAttributeSize, provenanceEventEncryptor)
+        return new EncryptedSchemaRecordReader(inputStream, journalFilename, tocReader, maxAttributeSize, repositoryEncryptor)
     }
 
     /**
