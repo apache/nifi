@@ -168,6 +168,14 @@ public class FlowFromDOMFactory {
             parameterEntity.setParameter(parameterDto);
             parameterDtos.add(parameterEntity);
         }
+        final List<Element> inheritedParameterContextIds = FlowFromDOMFactory.getChildrenByTagName(element, "inheritedParameterContextId");
+        final List<ParameterContextReferenceEntity> parameterContexts = new ArrayList<>();
+        for (final Element inheritedParameterContextElement : inheritedParameterContextIds) {
+            final ParameterContextReferenceEntity parameterContextReference = new ParameterContextReferenceEntity();
+            parameterContextReference.setId(inheritedParameterContextElement.getTextContent());
+            parameterContexts.add(parameterContextReference);
+        }
+        dto.setInheritedParameterContexts(parameterContexts);
 
         dto.setParameters(parameterDtos);
 
@@ -185,6 +193,9 @@ public class FlowFromDOMFactory {
         dto.setComments(getString(element, "comment"));
         dto.setFlowfileConcurrency(getString(element, "flowfileConcurrency"));
         dto.setFlowfileOutboundPolicy(getString(element, "flowfileOutboundPolicy"));
+        dto.setDefaultFlowFileExpiration(getString(element, "defaultFlowFileExpiration"));
+        dto.setDefaultBackPressureObjectThreshold(getLong(element, "defaultBackPressureObjectThreshold"));
+        dto.setDefaultBackPressureDataSizeThreshold(getString(element, "defaultBackPressureDataSizeThreshold"));
 
         final Map<String, String> variables = new HashMap<>();
         final NodeList variableList = DomUtils.getChildNodesByTagName(element, "variable");
@@ -212,6 +223,7 @@ public class FlowFromDOMFactory {
         final Set<LabelDTO> labels = new HashSet<>();
         final Set<ProcessGroupDTO> processGroups = new HashSet<>();
         final Set<RemoteProcessGroupDTO> remoteProcessGroups = new HashSet<>();
+        final Set<ControllerServiceDTO> controllerServices = new HashSet<>();
 
         NodeList nodeList = DomUtils.getChildNodesByTagName(element, "processor");
         for (int i = 0; i < nodeList.getLength(); i++) {
@@ -253,6 +265,11 @@ public class FlowFromDOMFactory {
             connections.add(getConnection((Element) nodeList.item(i)));
         }
 
+        nodeList = DomUtils.getChildNodesByTagName(element, "controllerService");
+        for (int i=0; i < nodeList.getLength(); i++) {
+            controllerServices.add(getControllerService((Element) nodeList.item(i), encryptor, encodingVersion));
+        }
+
         final FlowSnippetDTO groupContents = new FlowSnippetDTO();
         groupContents.setConnections(connections);
         groupContents.setFunnels(funnels);
@@ -262,6 +279,7 @@ public class FlowFromDOMFactory {
         groupContents.setProcessGroups(processGroups);
         groupContents.setProcessors(processors);
         groupContents.setRemoteProcessGroups(remoteProcessGroups);
+        groupContents.setControllerServices(controllerServices);
 
         dto.setContents(groupContents);
         return dto;
@@ -583,8 +601,10 @@ public class FlowFromDOMFactory {
         return Integer.parseInt(getString(element, childElementName));
     }
 
-    private static long getLong(final Element element, final String childElementName) {
-        return Long.parseLong(getString(element, childElementName));
+    private static Long getLong(final Element element, final String childElementName) {
+        // missing element must be handled gracefully, e.g. flow definition from a previous version without this element
+        String longString = getString(element, childElementName);
+        return longString == null ? null : Long.parseLong(longString);
     }
 
     private static boolean getBoolean(final Element element, final String childElementName) {

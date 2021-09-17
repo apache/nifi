@@ -18,10 +18,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-extension-utils</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-hadoop-utils</artifactId>
-    <version>1.14.0-SNAPSHOT</version>
+    <version>1.15.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -32,16 +32,20 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-kerberos</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-credentials-service-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kerberos-user-service-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -67,6 +71,7 @@
             <version>4.5.5</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Test dependencies -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
@@ -91,6 +96,12 @@
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>2.10.0</version>
+            </dependency>
+            <!-- Override commons-compress:1.19 from hadoop -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
             </dependency>
             <!-- Override jackson from hadoop -->
             <dependency>

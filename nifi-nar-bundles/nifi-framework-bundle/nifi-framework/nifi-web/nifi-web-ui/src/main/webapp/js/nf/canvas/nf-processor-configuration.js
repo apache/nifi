@@ -639,6 +639,9 @@
                                 $.ajax({
                                     type: 'GET',
                                     url: '../nifi-api/parameter-contexts/' + encodeURIComponent(parameterContext.id),
+                                    data: {
+                                        includeInheritedParameters: 'true'
+                                    },
                                     dataType: 'json'
                                 }).done(function (response) {
                                     var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
@@ -712,7 +715,10 @@
 
                     // populate the processor settings
                     $('#processor-id').text(processor['id']);
+
                     $('#processor-type').text(nfCommon.formatType(processor));
+                    $('#processor-configuration').modal('setSubtitle', nfCommon.formatType(processor));
+
                     $('#processor-bundle').text(nfCommon.formatBundle(processor['bundle']));
                     $('#processor-name').val(processor['name']);
                     $('#processor-enabled').removeClass('checkbox-unchecked checkbox-checked').addClass(processorEnableStyle);

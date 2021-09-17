@@ -742,7 +742,7 @@ The next configuration element is the Process Group Parameter Context, which is 
 
 The third element in the configuration dialog is the Process Group Comments. This provides a mechanism for providing any useful information or context about the Process Group.
 
-The last two elements, Process Group FlowFile Currency and Process Group Outbound Policy, are covered in the following sections.
+The next two elements, Process Group FlowFile Concurrency and Process Group Outbound Policy, are covered in the following sections.
 
 [[Flowfile_Concurrency]]
 ===== FlowFile Concurrency
@@ -832,6 +832,17 @@ the Processor will not run until the Output Port runs. To avoid this, if a large
 input FlowFile, it is recommended that backpressure for Connections ending in an Output Port be configured in such a way to allow for the
 largest expected number of FlowFiles or backpressure for those Connections be disabled all together (by setting the Backpressure Threshold to 0).
 See <<Backpressure>> for more information.
+
+[[Default_Connection_Settings]]
+===== Default Settings for Connections
+The final three elements in the Process Group configuration dialog are for Default FlowFile Expiration, Default Back Pressure Object Threshold, and
+Default Back Pressure Data Size Threshold. These settings configure the default values when creating a new Connection. Each Connection represents a queue,
+and every queue has settings for flowfile expiration, back pressure object count, and back pressure data size. The settings specified here will effect the
+default values for all new Connections created within the Process Group; it will not effect existing Connections. Child Process Groups created within the
+configured Process Group will inherit the default settings. Again, existing Process Groups will not be effected. If not overridden with these options, the
+root Process Group obtains its default back pressure settings from nifi.properties, and has a default FlowFile expiration of "0 sec", i.e. do not expire.
+
+NOTE: Setting the Default FlowFile Expiration to a non-zero value may lead to data loss due to a FlowFile expiring as its time limit is reached.
 
 ==== Controller Services
 The Controller Services tab in the Process Group configuration dialog is covered in <<Controller_Services_for_Dataflows>>.
@@ -2923,6 +2934,21 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
 
+===== KeyStoreKeyProvider
+
+See <<secret-key-generation-and-storage-using-keytool>> for details on generating and storing an AES Secret Key for use with the `KeyStoreKeyProvider`.
+
+The following configuration properties support using a PKCS12 keystore with a Secret Key:
+
+  nifi.provenance.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.KeyStoreKeyProvider
+  nifi.provenance.repository.encryption.key.provider.location=./conf/repository.p12
+  nifi.provenance.repository.encryption.key.provider.password=KEYSTORE_PASSWORD
+  nifi.provenance.repository.encryption.key.id=primary-key
+
+The same configuration can be used with a BCFKS keystore using a different location property:
+
+  nifi.provenance.repository.encryption.key.provider.location=./conf/repository.bcfks
+
 [[provenance-repository-key-rotation]]
 ===== Key Rotation
 Simply update _nifi.properties_ to reference a new key ID in `nifi.provenance.repository.encryption.key.id`. Previously-encrypted events can still be decrypted as long as that key is still available in the key definition file or `nifi.provenance.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted record.
@@ -3001,6 +3027,21 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 ....
 
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
+
+==== KeyStoreKeyProvider
+
+See <<secret-key-generation-and-storage-using-keytool>> for details on generating and storing an AES Secret Key for use with the `KeyStoreKeyProvider`.
+
+The following configuration properties support using a PKCS12 keystore with a Secret Key:
+
+  nifi.content.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.KeyStoreKeyProvider
+  nifi.content.repository.encryption.key.provider.location=./conf/repository.p12
+  nifi.content.repository.encryption.key.provider.password=KEYSTORE_PASSWORD
+  nifi.content.repository.encryption.key.id=primary-key
+
+The same configuration can be used with a BCFKS keystore using a different location property:
+
+  nifi.content.repository.encryption.key.provider.location=./conf/repository.bcfks
 
 .Data Protection vs. Key Protection
 ****
@@ -3088,6 +3129,21 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
 
+==== KeyStoreKeyProvider
+
+See <<secret-key-generation-and-storage-using-keytool>> for details on generating and storing an AES Secret Key for use with the `KeyStoreKeyProvider`.
+
+The following configuration properties support using a PKCS12 keystore with a Secret Key:
+
+  nifi.flowfile.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.KeyStoreKeyProvider
+  nifi.flowfile.repository.encryption.key.provider.location=./conf/repository.p12
+  nifi.flowfile.repository.encryption.key.provider.password=KEYSTORE_PASSWORD
+  nifi.flowfile.repository.encryption.key.id=primary-key
+
+The same configuration can be used with a BCFKS keystore using a different location property:
+
+  nifi.flowfile.repository.encryption.key.provider.location=./conf/repository.bcfks
+
 [[flowfile-repository-key-rotation]]
 ==== Key Rotation
 Simply update _nifi.properties_ to reference a new key ID in `nifi.flowfile.repository.encryption.key.id`. Previously-encrypted flowfile records can still be decrypted as long as that key is still available in the key definition file or `nifi.flowfile.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted record.
@@ -3102,6 +3158,34 @@ On flowfile record read, the process is reversed. The encryption metadata (`Repo
 During swaps and recoveries, the flowfile records are deserialized and reserialized, so if the active key has been changed, the flowfile records will be re-encrypted with the new active key.
 
 Within the NiFi UI/API, there is no detectable difference between an encrypted and unencrypted flowfile repository. All framework interactions with flowfiles work as expected with no change to the process.
+
+[[secret-key-generation-and-storage-using-keytool]]
+=== Secret Key Generation and Storage using Keytool
+
+The `KeyStoreKeyProvider` supports reading from a `java.security.KeyStore` using a configured password to load AES Secret Key entries.
+The `KeyStoreKeyProvider` can be configured with any of the encrypted repository implementations.
+
+The provider supports the following KeyStore Types:
+
+* BCFKS
+* PKCS12
+
+The keystore filename extension must be either `.p12` indicating PKCS12 or `.bcfks` indicating BCFKS.
+
+The `keytool` command can be used to generate an AES-256 Secret Key stored in a PKCS12 file for repository encryption:
+
+  keytool -genseckey -alias primary-key -keyalg AES -keysize 256 -keystore repository.p12 -storetype PKCS12
+
+The `keytool` command requires additional arguments specifying the BouncyCastle Security Provider to store
+Secret Keys using BCFKS. The arguments must include a reference to the BouncyCastle Security Provider library, which
+is available in the `lib/bootstrap` directory under the NiFi installation.
+
+The following command can be used to generate an AES-256 Secret Key stored using BCFKS:
+
+  keytool -genseckey -alias primary-key -keyalg AES -keysize 256 -keystore repository.bcfks -storetype BCFKS -providerclass org.bouncycastle.jce.provider.BouncyCastleProvider -providerpath lib/bootstrap/bcprov-jdk15on-*.jar
+
+Enter a keystore password when prompted. The same value must be used for both the keystore password and key password.
+The keystore password will be used in the provider configuration properties.
 
 === Potential Issues
 

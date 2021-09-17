@@ -189,7 +189,7 @@ class PutElasticsearchRecordTest {
             [ id: "rec-2", op: null, index: null, type: null, msg: "Hello" ],
             [ id: "rec-3", op: null, index: null, type: null, msg: "Hello" ],
             [ id: "rec-4", op: null, index: null, type: null, msg: "Hello" ],
-            [ id: "rec-5", op: null, index: null, type: null, msg: "Hello" ],
+            [ id: "rec-5", op: "update", index: null, type: null, msg: "Hello" ],
             [ id: "rec-6", op: null, index: "bulk_b", type: "message", msg: "Hello" ]
         ]))
 
@@ -199,18 +199,21 @@ class PutElasticsearchRecordTest {
             def testIndexCount = items.findAll { it.index == "test_index" }.size()
             def bulkIndexCount = items.findAll { it.index.startsWith("bulk_") }.size()
             def indexOperationCount = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
+            def updateOperationCount = items.findAll { it.operation == IndexOperationRequest.Operation.Update }.size()
             Assert.assertEquals(5, testTypeCount)
             Assert.assertEquals(1, messageTypeCount)
             Assert.assertEquals(5, testIndexCount)
             Assert.assertEquals(1, bulkIndexCount)
-            Assert.assertEquals(6, indexOperationCount)
+            Assert.assertEquals(5, indexOperationCount)
+            Assert.assertEquals(1, updateOperationCount)
         }
 
         clientService.evalClosure = evalClosure
 
-        runner.setProperty(PutElasticsearchRecord.INDEX_OP, "index")
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP, "\${operation}")
         runner.enqueue(flowFileContents, [
-            "schema.name": "recordPathTest"
+            "schema.name": "recordPathTest",
+            "operation": "index"
         ])
         runner.run()
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
@@ -241,6 +244,7 @@ class PutElasticsearchRecordTest {
 
         clientService.evalClosure = evalClosure
 
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP, "index")
         runner.removeProperty(PutElasticsearchRecord.TYPE)
         runner.enqueue(flowFileContents, [
                 "schema.name": "recordPathTest"
@@ -280,6 +284,27 @@ class PutElasticsearchRecordTest {
         runner.run()
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+    }
+
+    @Test
+    void testInvalidIndexOperation() {
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP, "not-valid")
+        runner.assertNotValid()
+        final AssertionError ae = Assert.assertThrows(AssertionError.class, runner.&run)
+        Assert.assertEquals(String.format("Processor has 1 validation failures:\n'%s' validated against 'not-valid' is invalid because %s must be Expression Language or one of %s\n",
+                PutElasticsearchRecord.INDEX_OP.getName(), PutElasticsearchRecord.INDEX_OP.getDisplayName(), PutElasticsearchRecord.ALLOWED_INDEX_OPERATIONS),
+                ae.getMessage()
+        )
+
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP, "\${operation}")
+        runner.assertValid()
+        runner.enqueue(flowFileContents, [
+                "operation": "not-valid2"
+        ])
+        runner.run()
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 1)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
     }
 

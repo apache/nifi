@@ -27,23 +27,24 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
-import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.TrustManagerFactory;
 import org.apache.commons.codec.binary.Hex;
@@ -57,6 +58,7 @@ public class KeyStoreUtils {
     private static final Logger logger = LoggerFactory.getLogger(KeyStoreUtils.class);
 
     public static final String SUN_PROVIDER_NAME = "SUN";
+    public static final String SUN_JSSE_PROVIDER_NAME = "SunJSSE";
     private static final String JKS_EXT = ".jks";
     private static final String PKCS12_EXT = ".p12";
     private static final String BCFKS_EXT = ".bcfks";
@@ -75,6 +77,7 @@ public class KeyStoreUtils {
 
     private static final Map<String, String> KEY_STORE_TYPE_PROVIDERS = new HashMap<>();
     private static final Map<KeystoreType, String> KEY_STORE_EXTENSIONS = new HashMap<>();
+    private static final Map<KeystoreType, String> SECRET_KEY_STORE_PROVIDERS = new HashMap<>();
 
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -82,6 +85,9 @@ public class KeyStoreUtils {
         KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.BCFKS.getType(), BouncyCastleProvider.PROVIDER_NAME);
         KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.PKCS12.getType(), BouncyCastleProvider.PROVIDER_NAME);
         KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.JKS.getType(), SUN_PROVIDER_NAME);
+
+        SECRET_KEY_STORE_PROVIDERS.put(KeystoreType.BCFKS, BouncyCastleProvider.PROVIDER_NAME);
+        SECRET_KEY_STORE_PROVIDERS.put(KeystoreType.PKCS12, SUN_JSSE_PROVIDER_NAME);
     }
 
     static {
@@ -96,7 +102,7 @@ public class KeyStoreUtils {
      * @param keyStoreType the keyStoreType
      * @return Key Store Provider Name or null when not found
      */
-    public static String getKeyStoreProvider(String keyStoreType) {
+    public static String getKeyStoreProvider(final String keyStoreType) {
         final String storeType = StringUtils.upperCase(keyStoreType);
         return KEY_STORE_TYPE_PROVIDERS.get(storeType);
     }
@@ -108,7 +114,7 @@ public class KeyStoreUtils {
      * @return an empty KeyStore
      * @throws KeyStoreException if a KeyStore of the given type cannot be instantiated
      */
-    public static KeyStore getKeyStore(String keyStoreType) throws KeyStoreException {
+    public static KeyStore getKeyStore(final String keyStoreType) throws KeyStoreException {
         final String keyStoreProvider = getKeyStoreProvider(keyStoreType);
         if (StringUtils.isNotEmpty(keyStoreProvider)) {
             try {
@@ -118,6 +124,26 @@ public class KeyStoreUtils {
             }
         }
         return KeyStore.getInstance(keyStoreType);
+    }
+
+    /**
+     * Returns an empty KeyStore for Secret Keys backed by the appropriate provider
+     *
+     * @param keystoreTypeName Keystore Type Name
+     * @return an empty KeyStore
+     * @throws KeyStoreException if a KeyStore of the given type cannot be instantiated
+     */
+    public static KeyStore getSecretKeyStore(final String keystoreTypeName) throws KeyStoreException {
+        final KeystoreType keystoreType = getKeystoreType(keystoreTypeName);
+        final String provider = SECRET_KEY_STORE_PROVIDERS.get(keystoreType);
+        if (provider == null) {
+            throw new KeyStoreException(String.format("Keystore Type [%s] does not support Secret Keys", keystoreType.getType()));
+        }
+        try {
+            return KeyStore.getInstance(keystoreType.getType(), provider);
+        } catch (final NoSuchProviderException e) {
+            throw new KeyStoreException(String.format("KeyStore Type [%s] Provider [%s] not found", keystoreType.getType(), provider), e);
+        }
     }
 
     /**
@@ -140,6 +166,27 @@ public class KeyStoreUtils {
         } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
             logger.error("Encountered an error loading keystore: {}", e.getLocalizedMessage());
             throw new TlsException("Error loading keystore", e);
+        }
+    }
+
+    /**
+     * Load {@link KeyStore} containing Secret Key entries using configured Security Provider
+     *
+     * @param keystorePath File path to KeyStore
+     * @param keystorePassword Password for loading KeyStore
+     * @param keystoreTypeName Keystore Type Name
+     * @return KeyStore loaded using specified configuration
+     * @throws TlsException Thrown when unable to load KeyStore or unsupported Keystore Type
+     */
+    public static KeyStore loadSecretKeyStore(final String keystorePath, final char[] keystorePassword, final String keystoreTypeName) throws TlsException {
+        try {
+            final KeyStore keyStore = getSecretKeyStore(keystoreTypeName);
+            try (final InputStream keyStoreStream = new FileInputStream(keystorePath)) {
+                keyStore.load(keyStoreStream, keystorePassword);
+            }
+            return keyStore;
+        } catch (final GeneralSecurityException|IOException e) {
+            throw new TlsException(String.format("Loading Secret Keystore [%s] Type [%s] Failed", keystorePath, keystoreTypeName), e);
         }
     }
 
@@ -418,7 +465,7 @@ public class KeyStoreUtils {
             // Determine the default alias
             String alias = ks.aliases().nextElement();
             try {
-                Key privateKeyEntry = ks.getKey(alias, keyPassword);
+                ks.getKey(alias, keyPassword);
                 return true;
             } catch (UnrecoverableKeyException e) {
                 logger.warn("Tried to access a key in keystore " + keystore + " with a key password that failed");
@@ -437,18 +484,40 @@ public class KeyStoreUtils {
         }
     }
 
+    /**
+     * Get Keystore Type based on file extension defaults to returning PKCS12
+     *
+     * @param keystorePath Path to KeyStore
+     * @return Keystore Type defaults to PKCS12
+     */
+    public static KeystoreType getKeystoreTypeFromExtension(final String keystorePath) {
+        KeystoreType keystoreType = KeystoreType.PKCS12;
+
+        for (final Map.Entry<KeystoreType, String> keystoreTypeEntry : KEY_STORE_EXTENSIONS.entrySet()) {
+            final String extension = keystoreTypeEntry.getValue();
+            if (StringUtils.endsWithIgnoreCase(keystorePath, extension)) {
+                keystoreType = keystoreTypeEntry.getKey();
+                break;
+            }
+        }
+
+        return keystoreType;
+    }
+
+    /**
+     * Is Secret Key Entry supported for specified Keystore Type
+     *
+     * @param keystoreType Keystore Type
+     * @return Secret Key Entry supported status
+     */
+    public static boolean isSecretKeyEntrySupported(final KeystoreType keystoreType) {
+        return SECRET_KEY_STORE_PROVIDERS.containsKey(keystoreType);
+    }
+
     public static String sslContextToString(SSLContext sslContext) {
         return new ToStringBuilder(sslContext)
                 .append("protocol", sslContext.getProtocol())
                 .append("provider", sslContext.getProvider().toString())
-                .toString();
-    }
-
-    public static String sslParametersToString(SSLParameters sslParameters) {
-        return new ToStringBuilder(sslParameters)
-                .append("protocols", sslParameters.getProtocols())
-                .append("wantClientAuth", sslParameters.getWantClientAuth())
-                .append("needClientAuth", sslParameters.getNeedClientAuth())
                 .toString();
     }
 
@@ -461,22 +530,6 @@ public class KeyStoreUtils {
                 .toString();
     }
 
-    /**
-     * Loads the Keystore and returns a X509 Certificate with the given values.
-     *
-     * @param alias            the certificate alias
-     * @param keyStorePassword the keystore password
-     * @param keyPassword      the key password
-     * @param keyStorePath     the keystore path
-     * @param keyStoreType     the keystore type
-     * @return a {@link X509Certificate}
-     */
-    private static X509Certificate createKeyStoreAndGetX509Certificate(
-            final String alias, final String keyStorePassword, final String keyPassword, final String keyStorePath,
-            final KeystoreType keyStoreType) throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
-        return createKeyStoreAndGetX509Certificate(alias, keyStorePassword, keyPassword, keyStorePath, keyStoreType, CERT_DURATION_DAYS,
-                null);
-    }
     /**
      * Loads the Keystore and returns a X509 Certificate with the given values.
      *
@@ -587,5 +640,13 @@ public class KeyStoreUtils {
         final byte[] password = new byte[PASSWORD_LENGTH];
         new SecureRandom().nextBytes(password);
         return Hex.encodeHexString(password);
+    }
+
+    private static KeystoreType getKeystoreType(final String keystoreTypeName) {
+        final String keystoreTypeFilter = keystoreTypeName.toUpperCase();
+        final Optional<KeystoreType> foundKeystoreType = Arrays.stream(KeystoreType.values())
+                .filter(keystoreType -> keystoreType.getType().equals(keystoreTypeFilter))
+                .findFirst();
+        return foundKeystoreType.orElseThrow(() -> new IllegalArgumentException(String.format("Keystore Type [%s] not found", keystoreTypeFilter)));
     }
 }

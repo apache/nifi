@@ -44,14 +44,16 @@ public class GetParamContext extends AbstractNiFiCommand<ParamContextResult> {
     @Override
     protected void doInitialize(Context context) {
         addOption(CommandOption.PARAM_CONTEXT_ID.createOption());
+        addOption(CommandOption.PARAM_CONTEXT_INCLUDE_INHERITED.createOption());
     }
 
     @Override
     public ParamContextResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
         final String paramContextId = getRequiredArg(properties, CommandOption.PARAM_CONTEXT_ID);
+        final boolean includeInheritedParameters = hasArg(properties, CommandOption.PARAM_CONTEXT_INCLUDE_INHERITED);
         final ParamContextClient paramContextClient = client.getParamContextClient();
-        final ParameterContextEntity parameterContext = paramContextClient.getParamContext(paramContextId);
-        return new ParamContextResult(getResultType(properties), parameterContext);
+        final ParameterContextEntity parameterContext = paramContextClient.getParamContext(paramContextId, includeInheritedParameters);
+        return new ParamContextResult(getResultType(properties), parameterContext, includeInheritedParameters);
     }
 }

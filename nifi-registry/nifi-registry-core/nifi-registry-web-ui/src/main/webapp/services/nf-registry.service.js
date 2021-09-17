@@ -101,7 +101,14 @@ function NfRegistryService(nfRegistryApi, nfStorage, tdDataTableService, router,
             name: 'name',
             label: 'Bucket Name',
             sortable: true,
-            tooltip: 'Sort Buckets by name.'
+            tooltip: 'Sort Buckets by name.',
+            width: '40%'
+        },
+        {
+            name: 'description',
+            label: 'Description',
+            sortable: false,
+            width: '50%'
         }
     ];
 

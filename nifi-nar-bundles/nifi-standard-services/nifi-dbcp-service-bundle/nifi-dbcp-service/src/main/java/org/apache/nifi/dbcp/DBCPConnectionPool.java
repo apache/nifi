@@ -42,6 +42,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.krb.KerberosAction;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 
@@ -413,7 +414,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         if (kerberosUser != null) {
             try {
                 kerberosUser.login();
-            } catch (LoginException e) {
+            } catch (KerberosLoginException e) {
                 throw new InitializationException("Unable to authenticate Kerberos principal", e);
             }
         }
@@ -530,7 +531,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
                 try {
                     getLogger().info("Error getting connection, performing Kerberos re-login");
                     kerberosUser.login();
-                } catch (LoginException le) {
+                } catch (KerberosLoginException le) {
                     throw new ProcessException("Unable to authenticate Kerberos principal", le);
                 }
             }

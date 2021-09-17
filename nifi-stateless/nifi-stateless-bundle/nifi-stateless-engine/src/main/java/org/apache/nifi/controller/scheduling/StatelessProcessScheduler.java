@@ -149,7 +149,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
         logger.info("Stopping {}", procNode);
         final ProcessContext processContext = processContextFactory.createProcessContext(procNode);
         final LifecycleState lifecycleState = new LifecycleState();
-        lifecycleState.setScheduled(true);
+        lifecycleState.setScheduled(false);
         return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, schedulingAgent, lifecycleState);
     }
 

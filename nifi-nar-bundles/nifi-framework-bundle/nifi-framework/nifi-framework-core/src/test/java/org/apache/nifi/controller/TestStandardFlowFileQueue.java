@@ -72,7 +72,7 @@ public class TestStandardFlowFileQueue {
 
     @BeforeClass
     public static void setupLogging() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "INFO");
     }
 
     @Before
@@ -103,7 +103,7 @@ public class TestStandardFlowFileQueue {
             }
         }).when(provRepo).registerEvents(Mockito.any(Iterable.class));
 
-        queue = new StandardFlowFileQueue("id", new NopConnectionEventListener(), flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 10000, 0L, "0 B");
+        queue = new StandardFlowFileQueue("id", new NopConnectionEventListener(), flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 10000, "0 sec", 0L, "0 B");
         MockFlowFileRecord.resetIdGenerator();
     }
 
@@ -357,7 +357,7 @@ public class TestStandardFlowFileQueue {
     @Test
     public void testSwapInWhenThresholdIsLessThanSwapSize() {
         // create a queue where the swap threshold is less than 10k
-        queue = new StandardFlowFileQueue("id", new NopConnectionEventListener(), flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 1000, 0L, "0 B");
+        queue = new StandardFlowFileQueue("id", new NopConnectionEventListener(), flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 1000, "0 sec", 0L, "0 B");
 
         for (int i = 1; i <= 20000; i++) {
             queue.put(new MockFlowFileRecord());

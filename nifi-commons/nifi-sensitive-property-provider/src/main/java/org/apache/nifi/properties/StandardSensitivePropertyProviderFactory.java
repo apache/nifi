@@ -18,6 +18,7 @@ package org.apache.nifi.properties;
 
 import org.apache.nifi.properties.BootstrapProperties.BootstrapPropertyKey;
 import org.apache.nifi.util.NiFiBootstrapUtils;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class StandardSensitivePropertyProviderFactory implements SensitivePropertyProviderFactory {
@@ -37,6 +39,7 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
     private final Optional<String> keyHex;
     private final Supplier<BootstrapProperties> bootstrapPropertiesSupplier;
     private final Map<PropertyProtectionScheme, SensitivePropertyProvider> providerMap;
+    private Map<String, Pattern> customPropertyContextMap;
 
     /**
      * Creates a StandardSensitivePropertyProviderFactory using the default bootstrap.conf location and
@@ -74,6 +77,18 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
         this.keyHex = Optional.ofNullable(keyHex);
         this.bootstrapPropertiesSupplier = bootstrapPropertiesSupplier == null ? () -> null : bootstrapPropertiesSupplier;
         this.providerMap = new HashMap<>();
+        this.customPropertyContextMap = null;
+    }
+
+    private void populateCustomPropertyContextMap() {
+        final BootstrapProperties bootstrapProperties = getBootstrapProperties();
+        customPropertyContextMap = new HashMap<>();
+        final String contextMappingKeyPrefix = BootstrapPropertyKey.CONTEXT_MAPPING_PREFIX.getKey();
+        bootstrapProperties.getPropertyKeys().stream()
+                .filter(k -> k.contains(contextMappingKeyPrefix))
+                .forEach(k -> {
+                    customPropertyContextMap.put(StringUtils.substringAfter(k, contextMappingKeyPrefix), Pattern.compile(bootstrapProperties.getProperty(k)));
+                });
     }
 
     private String getKeyHex() {
@@ -105,8 +120,16 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
         switch (protectionScheme) {
             case AES_GCM:
                 return providerMap.computeIfAbsent(protectionScheme, s -> new AESSensitivePropertyProvider(keyHex));
+            case AWS_KMS:
+                return providerMap.computeIfAbsent(protectionScheme, s -> new AWSKMSSensitivePropertyProvider(getBootstrapProperties()));
+            case AZURE_KEYVAULT_KEY:
+                return providerMap.computeIfAbsent(protectionScheme, s -> new AzureKeyVaultKeySensitivePropertyProvider(getBootstrapProperties()));
+            case GCP_KMS:
+                return providerMap.computeIfAbsent(protectionScheme, s -> new GCPKMSSensitivePropertyProvider(getBootstrapProperties()));
             case HASHICORP_VAULT_TRANSIT:
                 return providerMap.computeIfAbsent(protectionScheme, s -> new HashiCorpVaultTransitSensitivePropertyProvider(getBootstrapProperties()));
+            case HASHICORP_VAULT_KV:
+                return providerMap.computeIfAbsent(protectionScheme, s -> new HashiCorpVaultKeyValueSensitivePropertyProvider(getBootstrapProperties()));
             default:
                 throw new SensitivePropertyProtectionException("Unsupported protection scheme " + protectionScheme);
         }
@@ -118,6 +141,19 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
                 .map(this::getProvider)
                 .filter(SensitivePropertyProvider::isSupported)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public ProtectedPropertyContext getPropertyContext(final String groupIdentifier, final String propertyName) {
+        if (customPropertyContextMap == null) {
+            populateCustomPropertyContextMap();
+        }
+        final String contextName = customPropertyContextMap.entrySet().stream()
+                .filter(entry -> entry.getValue().matcher(groupIdentifier).find())
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse(null);
+        return ProtectedPropertyContext.contextFor(propertyName, contextName);
     }
 
 }

@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
@@ -391,7 +390,7 @@ public class TestListenHTTP {
     public void testSecureServerTrustStoreConfiguredClientAuthenticationRequired() throws Exception {
         configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
         startSecureServer();
-        assertThrows(SSLException.class, () -> postMessage(null, true, false));
+        assertThrows(IOException.class, () -> postMessage(null, true, false));
     }
 
     @Test
@@ -493,7 +492,7 @@ public class TestListenHTTP {
         startWebServer();
     }
 
-    private int postMessage(String message, boolean secure, boolean clientAuthRequired) throws Exception {
+    private int postMessage(String message, boolean secure, boolean clientAuthRequired) throws IOException {
         final OkHttpClient okHttpClient = getOkHttpClient(secure, clientAuthRequired);
         final Request.Builder requestBuilder = new Request.Builder();
         final String url = buildUrl(secure);

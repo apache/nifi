@@ -268,7 +268,7 @@ public class TestThreadPoolRequestReplicator {
         final RequestCompletionCallback requestCompletionCallback = (uri, method, responses) -> {
         };
 
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, 5, 100, client, coordinator, requestCompletionCallback, EventReporter.NO_OP, props) {
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(5, 100, client, coordinator, requestCompletionCallback, EventReporter.NO_OP, props) {
             @Override
             protected NodeResponse replicateRequest(final PreparedRequest request, final NodeIdentifier nodeId,
                 final URI uri, final String requestId, final StandardAsyncClusterResponse response) {
@@ -345,7 +345,7 @@ public class TestThreadPoolRequestReplicator {
         final RequestCompletionCallback requestCompletionCallback = (uri, method, responses) -> {
         };
 
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, 5, 100, client, coordinator, requestCompletionCallback, EventReporter.NO_OP, props) {
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(5, 100, client, coordinator, requestCompletionCallback, EventReporter.NO_OP, props) {
             @Override
             public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers,
                                                   boolean indicateReplicated, boolean verify) {
@@ -408,7 +408,7 @@ public class TestThreadPoolRequestReplicator {
         final RequestCompletionCallback requestCompletionCallback = (uri, method, responses) -> {
         };
 
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, 5, 100, client, coordinator, requestCompletionCallback, EventReporter.NO_OP, props) {
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(5, 100, client, coordinator, requestCompletionCallback, EventReporter.NO_OP, props) {
             @Override
             protected NodeResponse replicateRequest(final PreparedRequest request, final NodeIdentifier nodeId,
                 final URI uri, final String requestId, final StandardAsyncClusterResponse response) {
@@ -628,7 +628,7 @@ public class TestThreadPoolRequestReplicator {
         final RequestCompletionCallback requestCompletionCallback = (uri, method, responses) -> {
         };
 
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, 5, 100, client, coordinator, requestCompletionCallback, EventReporter.NO_OP, nifiProps) {
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(5, 100, client, coordinator, requestCompletionCallback, EventReporter.NO_OP, nifiProps) {
             @Override
             protected NodeResponse replicateRequest(final PreparedRequest request, final NodeIdentifier nodeId, final URI uri, final String requestId,
                     final StandardAsyncClusterResponse response) {

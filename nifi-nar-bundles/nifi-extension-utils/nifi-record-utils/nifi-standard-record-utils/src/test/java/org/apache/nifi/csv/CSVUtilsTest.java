@@ -119,7 +119,7 @@ public class CSVUtilsTest {
 
         assertEquals(',', csvFormat.getDelimiter());
         assertEquals('"', (char) csvFormat.getQuoteCharacter());
-        assertEquals('\\', (char) csvFormat.getEscapeCharacter());
+        assertNull(csvFormat.getEscapeCharacter());
         assertNull(csvFormat.getCommentMarker());
     }
 

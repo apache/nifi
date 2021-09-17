@@ -25,9 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -36,15 +34,14 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
-import org.apache.nifi.processor.util.put.sender.ChannelSender;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -109,23 +106,6 @@ public class PutSplunk extends AbstractPutEventProcessor {
     }
 
     @Override
-    protected ChannelSender createSender(ProcessContext context) throws IOException {
-        final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-        final String host = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
-        final String protocol = context.getProperty(PROTOCOL).getValue();
-        final int timeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        final int maxSendBuffer = context.getProperty(MAX_SOCKET_SEND_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-
-        SSLContext sslContext = null;
-        if (sslContextService != null) {
-            sslContext = sslContextService.createContext();
-        }
-
-        return createSender(protocol, host, port, timeout, maxSendBuffer, sslContext);
-    }
-
-    @Override
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
         // first complete any batches from previous executions
         FlowFileMessageBatch batch;
@@ -136,45 +116,34 @@ public class PutSplunk extends AbstractPutEventProcessor {
         // create a session and try to get a FlowFile, if none available then close any idle senders
         final ProcessSession session = sessionFactory.createSession();
         final FlowFile flowFile = session.get();
+
         if (flowFile == null) {
-            final PruneResult result = pruneIdleSenders(context.getProperty(IDLE_EXPIRATION).asTimePeriod(TimeUnit.MILLISECONDS).longValue());
-            // yield if we closed an idle connection, or if there were no connections in the first place
-            if (result.getNumClosed() > 0 || (result.getNumClosed() == 0 && result.getNumConsidered() == 0)) {
-                context.yield();
-            }
             return;
         }
 
-        // get a sender from the pool, or create a new one if the pool is empty
-        // if we can't create a new connection then route flow files to failure and yield
-        // acquireSender will handle the routing to failure and yielding
-        ChannelSender sender = acquireSender(context, session, flowFile);
-        if (sender == null) {
-            return;
+        String delimiter = context.getProperty(MESSAGE_DELIMITER).evaluateAttributeExpressions(flowFile).getValue();
+        if (delimiter != null) {
+            delimiter = delimiter.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
         }
 
+        // if no delimiter then treat the whole FlowFile as a single message
         try {
-            String delimiter = context.getProperty(MESSAGE_DELIMITER).evaluateAttributeExpressions(flowFile).getValue();
-            if (delimiter != null) {
-                delimiter = delimiter.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
-            }
-
-            // if no delimiter then treat the whole FlowFile as a single message
             if (delimiter == null) {
-                processSingleMessage(context, session, flowFile, sender);
+                processSingleMessage(context, session, flowFile);
             } else {
-                processDelimitedMessages(context, session, flowFile, sender, delimiter);
+                processDelimitedMessages(context, session, flowFile, delimiter);
             }
-
-        } finally {
-            relinquishSender(sender);
+        } catch (EventException e) {
+            session.transfer(flowFile, REL_FAILURE);
+            session.commitAsync();
+            context.yield();
         }
     }
 
     /**
      * Send the entire FlowFile as a single message.
      */
-    private void processSingleMessage(ProcessContext context, ProcessSession session, FlowFile flowFile, ChannelSender sender) {
+    private void processSingleMessage(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
         // copy the contents of the FlowFile to the ByteArrayOutputStream
         final ByteArrayOutputStream baos = new ByteArrayOutputStream((int)flowFile.getSize() + 1);
         session.read(flowFile, new InputStreamCallback() {
@@ -200,20 +169,15 @@ public class PutSplunk extends AbstractPutEventProcessor {
         activeBatches.add(messageBatch);
 
         // attempt to send the data and add the appropriate range
-        try {
-            sender.send(buf);
-            messageBatch.addSuccessfulRange(0L, flowFile.getSize());
-        } catch (IOException e) {
-            messageBatch.addFailedRange(0L, flowFile.getSize(), e);
-            context.yield();
-        }
+        eventSender.sendEvent(buf);
+        messageBatch.addSuccessfulRange(0L, flowFile.getSize());
     }
 
     /**
      * Read delimited messages from the FlowFile tracking which messages are sent successfully.
      */
     private void processDelimitedMessages(final ProcessContext context, final ProcessSession session, final FlowFile flowFile,
-                                          final ChannelSender sender, final String delimiter) {
+                                          final String delimiter) {
 
         final String protocol = context.getProperty(PROTOCOL).getValue();
         final byte[] delimiterBytes = delimiter.getBytes(StandardCharsets.UTF_8);
@@ -264,13 +228,9 @@ public class PutSplunk extends AbstractPutEventProcessor {
                                 // If the message has no data, ignore it.
                                 if (data.length != 0) {
                                     final long rangeStart = messageStartOffset;
-                                    try {
-                                        sender.send(data);
-                                        messageBatch.addSuccessfulRange(rangeStart, messageEndOffset);
-                                        messagesSent.incrementAndGet();
-                                    } catch (final IOException e) {
-                                        messageBatch.addFailedRange(rangeStart, messageEndOffset, e);
-                                    }
+                                    eventSender.sendEvent(data);
+                                    messageBatch.addSuccessfulRange(rangeStart, messageEndOffset);
+                                    messagesSent.incrementAndGet();
                                 }
 
                                 // reset BAOS so that we can start a new message.
@@ -320,5 +280,4 @@ public class PutSplunk extends AbstractPutEventProcessor {
             return Arrays.copyOfRange(baos.toByteArray(), 0, length);
         }
     }
-
 }

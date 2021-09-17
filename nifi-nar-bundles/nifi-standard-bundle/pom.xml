@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-bundle</artifactId>
     <packaging>pom</packaging>
@@ -41,29 +41,29 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-processors</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-reporting-tasks</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-content-viewer</artifactId>
                 <type>war</type>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-jolt-transform-json-ui</artifactId>
                 <type>war</type>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>com.bazaarvoice.jolt</groupId>
@@ -173,7 +173,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.20</version>
+                <version>1.21</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -201,9 +201,24 @@
                 <version>4.4.9</version>
             </dependency>
             <dependency>
-                <groupId>javax.mail</groupId>
-                <artifactId>mail</artifactId>
-                <version>1.4.7</version>
+                <groupId>jakarta.activation</groupId>
+                <artifactId>jakarta.activation-api</artifactId>
+                <version>2.0.1</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.activation</groupId>
+                <artifactId>jakarta.activation</artifactId>
+                <version>2.0.1</version>
+            </dependency>
+            <dependency>
+                <groupId>jakarta.mail</groupId>
+                <artifactId>jakarta.mail-api</artifactId>
+                <version>2.0.1</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.mail</groupId>
+                <artifactId>jakarta.mail</artifactId>
+                <version>2.0.1</version>
             </dependency>
             <dependency>
                 <groupId>com.github.jponge</groupId>
@@ -233,7 +248,7 @@
             <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-client</artifactId>
-                <version>5.15.14</version>
+                <version>5.15.15</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.activemq</groupId>
@@ -355,6 +370,11 @@
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
                 <version>1.8.1</version>
+            </dependency>
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.29</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

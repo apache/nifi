@@ -224,7 +224,7 @@ public class StandardProcessSessionIT {
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
 
         final StandardFlowFileQueue actualQueue = new StandardFlowFileQueue("1", new NopConnectionEventListener(), flowFileRepo, provenanceRepo, null,
-                processScheduler, swapManager, null, 10000, 0L, "0 B");
+                processScheduler, swapManager, null, 10000, "0 sec", 0L, "0 B");
         return Mockito.spy(actualQueue);
     }
 
@@ -275,7 +275,7 @@ public class StandardProcessSessionIT {
         Mockito.doAnswer(new Answer<List<FlowFileRecord>>() {
             @Override
             public List<FlowFileRecord> answer(InvocationOnMock invocation) throws Throwable {
-                return localFlowFileQueue.poll(invocation.getArgument(0), invocation.getArgument(1));
+                return localFlowFileQueue.poll((FlowFileFilter) invocation.getArgument(0), invocation.getArgument(1));
             }
         }).when(connection).poll(any(FlowFileFilter.class), any(Set.class));
 

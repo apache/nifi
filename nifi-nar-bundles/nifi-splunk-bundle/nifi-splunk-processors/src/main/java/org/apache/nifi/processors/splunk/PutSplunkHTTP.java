@@ -28,8 +28,6 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dto.splunk.SendRawDataResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -50,11 +48,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"splunk", "logs", "http"})
@@ -74,7 +71,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
             .description("User-defined event source. Sets a default for all events when unspecified.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor.Builder()
@@ -83,7 +80,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
             .description("User-defined event sourcetype. Sets a default for all events when unspecified.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     static final PropertyDescriptor HOST = new PropertyDescriptor.Builder()
@@ -92,7 +89,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
             .description("Specify with the host query string parameter. Sets a default for all events when unspecified.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     static final PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
@@ -101,7 +98,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
             .description("Index name. Specify with the index query string parameter. Sets a default for all events when unspecified.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
@@ -111,7 +108,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
             .required(true)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .defaultValue(Charset.defaultCharset().name())
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
@@ -123,7 +120,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
                     "In case of neither of them is specified, this information will not be sent to the server.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
@@ -157,61 +154,6 @@ public class PutSplunkHTTP extends SplunkAPICall {
         return result;
     }
 
-    private volatile String endpoint;
-    private volatile String contentType;
-    private volatile String charset;
-
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) {
-        super.onScheduled(context);
-
-        if (context.getProperty(CONTENT_TYPE).isSet()) {
-            contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions().getValue();
-        }
-
-        charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
-
-        final Map<String, String> queryParameters = new HashMap<>();
-
-        if (context.getProperty(SOURCE_TYPE).isSet()) {
-            queryParameters.put("sourcetype", context.getProperty(SOURCE_TYPE).evaluateAttributeExpressions().getValue());
-        }
-
-        if (context.getProperty(SOURCE).isSet()) {
-            queryParameters.put("source", context.getProperty(SOURCE).evaluateAttributeExpressions().getValue());
-        }
-
-        if (context.getProperty(HOST).isSet()) {
-            queryParameters.put("host", context.getProperty(HOST).evaluateAttributeExpressions().getValue());
-        }
-
-        if (context.getProperty(INDEX).isSet()) {
-            queryParameters.put("index", context.getProperty(INDEX).evaluateAttributeExpressions().getValue());
-        }
-
-        endpoint = getEndpoint(queryParameters);
-    }
-
-    private String getEndpoint(final Map<String, String> queryParameters) {
-        if (queryParameters.isEmpty()) {
-            return ENDPOINT;
-        }
-
-        try {
-            return URLEncoder.encode(ENDPOINT + '?' + queryParameters.entrySet().stream().map(e -> e.getKey() + '=' + e.getValue()).collect(Collectors.joining("&")), "UTF-8");
-        } catch (final UnsupportedEncodingException e) {
-            getLogger().error("Could not be initialized because of: {}", new Object[] {e.getMessage()}, e);
-            throw new ProcessException(e);
-        }
-    }
-
-    @OnStopped
-    public void onStopped() {
-        super.onStopped();
-        contentType = null;
-        endpoint = null;
-    }
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         ResponseMessage responseMessage = null;
@@ -223,7 +165,8 @@ public class PutSplunkHTTP extends SplunkAPICall {
         }
 
         try {
-            final RequestMessage requestMessage = createRequestMessage(session, flowFile);
+            final String endpoint = getEndpoint(context, flowFile);
+            final RequestMessage requestMessage = createRequestMessage(session, flowFile, context);
             responseMessage = call(endpoint, requestMessage);
             flowFile = session.putAttribute(flowFile, "splunk.status.code", String.valueOf(responseMessage.getStatus()));
 
@@ -262,16 +205,19 @@ public class PutSplunkHTTP extends SplunkAPICall {
         }
     }
 
-    private RequestMessage createRequestMessage(final ProcessSession session, final FlowFile flowFile) {
+    protected RequestMessage createRequestMessage(final ProcessSession session, final FlowFile flowFile, final ProcessContext context) {
         final RequestMessage requestMessage = new RequestMessage("POST");
-        final String flowFileContentType = Optional.ofNullable(contentType).orElse(flowFile.getAttribute("mime.type"));
+        final String contentType = (context.getProperty(CONTENT_TYPE).isSet())
+                ? context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue()
+                : flowFile.getAttribute("mime.type");
 
-        if (flowFileContentType != null) {
-            requestMessage.getHeader().put("Content-Type", flowFileContentType);
+        if (contentType != null) {
+            requestMessage.getHeader().put("Content-Type", contentType);
         }
 
         // The current version of Splunk's {@link com.splunk.Service} class is lack of support for OutputStream as content.
         // For further details please visit {@link com.splunk.HttpService#send} which is called internally.
+        final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue();
         requestMessage.setContent(extractTextMessageBody(flowFile, session, charset));
         return requestMessage;
     }
@@ -287,5 +233,45 @@ public class PutSplunkHTTP extends SplunkAPICall {
         attributes.put(SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE, String.valueOf(ackId));
         attributes.put(SplunkAPICall.RESPONDED_AT_ATTRIBUTE, String.valueOf(System.currentTimeMillis()));
         return session.putAllAttributes(flowFile, attributes);
+    }
+
+    public String getEndpoint(final ProcessContext context, final FlowFile flowFile) {
+        final Map<String, String> queryParameters = new HashMap<>();
+
+        if (context.getProperty(SOURCE_TYPE).isSet()) {
+            queryParameters.put("sourcetype", context.getProperty(SOURCE_TYPE).evaluateAttributeExpressions(flowFile).getValue());
+        }
+
+        if (context.getProperty(SOURCE).isSet()) {
+            queryParameters.put("source", context.getProperty(SOURCE).evaluateAttributeExpressions(flowFile).getValue());
+        }
+
+        if (context.getProperty(HOST).isSet()) {
+            queryParameters.put("host", context.getProperty(HOST).evaluateAttributeExpressions(flowFile).getValue());
+        }
+
+        if (context.getProperty(INDEX).isSet()) {
+            queryParameters.put("index", context.getProperty(INDEX).evaluateAttributeExpressions(flowFile).getValue());
+        }
+
+        final StringBuilder result = new StringBuilder(ENDPOINT);
+
+        if (!queryParameters.isEmpty()) {
+            final List<String> parameters = new LinkedList<>();
+
+            try {
+                for (final Map.Entry<String, String> parameter : queryParameters.entrySet()) {
+                    parameters.add(URLEncoder.encode(parameter.getKey(), "UTF-8") + '=' + URLEncoder.encode(parameter.getValue(), "UTF-8"));
+                }
+            } catch (final UnsupportedEncodingException e) {
+                getLogger().error("Could not be initialized because of: {}", new Object[]{e.getMessage()}, e);
+                throw new ProcessException(e);
+            }
+
+            result.append('?');
+            result.append(String.join("&", parameters));
+        }
+
+        return result.toString();
     }
 }

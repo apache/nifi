@@ -137,6 +137,7 @@ import org.apache.nifi.encrypt.StandardSensitiveValueEncoder;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -161,8 +162,8 @@ import org.apache.nifi.provenance.StandardProvenanceAuthorizableFactory;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.VersionedConnection;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -579,7 +580,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         this.reloadComponent = new StandardReloadComponent(this);
 
         final ProcessGroup rootGroup = new StandardProcessGroup(ComponentIdGenerator.generateId().toString(), controllerServiceProvider, processScheduler,
-            encryptor, extensionManager, stateManagerProvider, flowManager, flowRegistryClient, reloadComponent, new MutableVariableRegistry(this.variableRegistry), this);
+                encryptor, extensionManager, stateManagerProvider, flowManager, flowRegistryClient, reloadComponent, new MutableVariableRegistry(this.variableRegistry), this,
+                nifiProperties);
         rootGroup.setName(FlowManager.DEFAULT_ROOT_GROUP_NAME);
         setRootGroup(rootGroup);
         instanceId = ComponentIdGenerator.generateId().toString();
@@ -1609,7 +1611,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     // Snippet
     //
 
-    private void verifyBundleInVersionedFlow(final org.apache.nifi.registry.flow.Bundle requiredBundle, final Set<BundleCoordinate> supportedBundles) {
+    private void verifyBundleInVersionedFlow(final Bundle requiredBundle, final Set<BundleCoordinate> supportedBundles) {
         final BundleCoordinate requiredCoordinate = new BundleCoordinate(requiredBundle.getGroup(), requiredBundle.getArtifact(), requiredBundle.getVersion());
         if (!supportedBundles.contains(requiredCoordinate)) {
             throw new IllegalStateException("Unsupported bundle: " + requiredCoordinate);
@@ -1967,18 +1969,21 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         final FlowFileQueueFactory flowFileQueueFactory = new FlowFileQueueFactory() {
             @Override
-            public FlowFileQueue createFlowFileQueue(final LoadBalanceStrategy loadBalanceStrategy, final String partitioningAttribute, final ConnectionEventListener eventListener) {
+            public FlowFileQueue createFlowFileQueue(final LoadBalanceStrategy loadBalanceStrategy, final String partitioningAttribute, final ConnectionEventListener eventListener,
+                                                     final ProcessGroup processGroup) {
                 final FlowFileQueue flowFileQueue;
 
                 if (clusterCoordinator == null) {
                     flowFileQueue = new StandardFlowFileQueue(id, eventListener, flowFileRepository, provenanceRepository, resourceClaimManager, processScheduler, swapManager,
-                            eventReporter, nifiProperties.getQueueSwapThreshold(), nifiProperties.getDefaultBackPressureObjectThreshold(), nifiProperties.getDefaultBackPressureDataSizeThreshold());
+                            eventReporter, nifiProperties.getQueueSwapThreshold(),
+                            processGroup.getDefaultFlowFileExpiration(), processGroup.getDefaultBackPressureObjectThreshold(), processGroup.getDefaultBackPressureDataSizeThreshold());
                 } else {
                     flowFileQueue = new SocketLoadBalancedFlowFileQueue(id, eventListener, processScheduler, flowFileRepository, provenanceRepository, contentRepository, resourceClaimManager,
                             clusterCoordinator, loadBalanceClientRegistry, swapManager, nifiProperties.getQueueSwapThreshold(), eventReporter);
 
-                    flowFileQueue.setBackPressureObjectThreshold(nifiProperties.getDefaultBackPressureObjectThreshold());
-                    flowFileQueue.setBackPressureDataSizeThreshold(nifiProperties.getDefaultBackPressureDataSizeThreshold());
+                    flowFileQueue.setFlowFileExpiration(processGroup.getDefaultFlowFileExpiration());
+                    flowFileQueue.setBackPressureObjectThreshold(processGroup.getDefaultBackPressureObjectThreshold());
+                    flowFileQueue.setBackPressureDataSizeThreshold(processGroup.getDefaultBackPressureDataSizeThreshold());
                 }
 
                 return flowFileQueue;
@@ -1987,6 +1992,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         final Connection connection = builder.id(requireNonNull(id).intern())
                 .name(name == null ? null : name.intern())
+                .processGroup(destination.getProcessGroup())
                 .relationships(relationships)
                 .source(requireNonNull(source))
                 .destination(destination)

@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
 
     <properties>
@@ -44,7 +44,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-cassandra-processors</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <!-- Override jackson 2.7.9.3 from cassandra -->
             <dependency>
@@ -56,6 +56,12 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>${jackson.version}</version>
+            </dependency>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

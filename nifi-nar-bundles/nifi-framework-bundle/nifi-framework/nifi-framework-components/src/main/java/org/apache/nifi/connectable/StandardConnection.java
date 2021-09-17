@@ -32,6 +32,7 @@ import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueFactory;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -84,7 +85,7 @@ public final class StandardConnection implements Connection, ConnectionEventList
         relationships = new AtomicReference<>(Collections.unmodifiableCollection(builder.relationships));
         scheduler = builder.scheduler;
 
-        flowFileQueue = builder.flowFileQueueFactory.createFlowFileQueue(LoadBalanceStrategy.DO_NOT_LOAD_BALANCE, null, this);
+        flowFileQueue = builder.flowFileQueueFactory.createFlowFileQueue(LoadBalanceStrategy.DO_NOT_LOAD_BALANCE, null, this, processGroup.get());
         hashCode = new HashCodeBuilder(7, 67).append(id).toHashCode();
     }
 
@@ -341,12 +342,12 @@ public final class StandardConnection implements Connection, ConnectionEventList
 
     @Override
     public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords) {
-        return flowFileQueue.poll(filter, expiredRecords);
+        return flowFileQueue.poll(filter, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
     @Override
     public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords) {
-        return flowFileQueue.poll(expiredRecords);
+        return flowFileQueue.poll(expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
     @Override
@@ -456,6 +457,9 @@ public final class StandardConnection implements Connection, ConnectionEventList
         }
 
         public StandardConnection build() {
+            if (processGroup == null) {
+                throw new IllegalStateException("Cannot build a Connection without a Process Group");
+            }
             if (source == null) {
                 throw new IllegalStateException("Cannot build a Connection without a Source");
             }

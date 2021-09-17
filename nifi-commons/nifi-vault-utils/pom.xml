@@ -17,11 +17,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-vault-utils</artifactId>
     <properties>
-        <spring.version>5.3.8</spring.version>
+        <spring.version>5.3.9</spring.version>
+        <spring.vault.version>2.3.2</spring.vault.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -38,16 +39,28 @@
         <dependency>
             <groupId>org.springframework.vault</groupId>
             <artifactId>spring-vault-core</artifactId>
-            <version>2.3.2</version>
+            <version>${spring.vault.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-beans</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
         </dependency>
         <!-- Runtime dependency to enable TLS client configuration -->
         <dependency>
@@ -59,13 +72,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

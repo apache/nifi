@@ -21,7 +21,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -35,6 +34,7 @@ import org.mockito.ArgumentCaptor;
 import java.io.File;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
+import java.util.List;
 
 import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
@@ -96,7 +96,7 @@ public class GetHDFSSequenceFileTest {
 
     public class TestableGetHDFSSequenceFile extends GetHDFSSequenceFile {
         @Override
-        HdfsResources resetHDFSResources(ResourceReferences configResources, ProcessContext context) throws IOException {
+        HdfsResources resetHDFSResources(final List<String> resourceLocations, ProcessContext context) throws IOException {
             return hdfsResources;
         }
 

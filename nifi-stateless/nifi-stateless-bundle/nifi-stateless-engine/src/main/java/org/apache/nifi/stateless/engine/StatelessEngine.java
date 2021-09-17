@@ -32,7 +32,6 @@ import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.stateless.config.ParameterProvider;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 
@@ -40,7 +39,7 @@ public interface StatelessEngine<T> {
 
     void initialize(StatelessEngineInitializationContext initializationContext);
 
-    StatelessDataflow createFlow(DataflowDefinition<T> dataflowDefinition, ParameterProvider parameterProvider);
+    StatelessDataflow createFlow(DataflowDefinition<T> dataflowDefinition);
 
     ExtensionManager getExtensionManager();
 

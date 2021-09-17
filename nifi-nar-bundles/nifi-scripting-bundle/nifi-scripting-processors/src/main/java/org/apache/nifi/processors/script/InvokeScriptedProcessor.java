@@ -215,11 +215,10 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
     public void setup() {
         if (scriptNeedsReload.get() || processor.get() == null) {
             if (ScriptingComponentHelper.isFile(scriptingComponentHelper.getScriptPath())) {
-                reloadScriptFile(scriptingComponentHelper.getScriptPath());
+                scriptNeedsReload.set(reloadScriptFile(scriptingComponentHelper.getScriptPath()));
             } else {
-                reloadScriptBody(scriptingComponentHelper.getScriptBody());
+                scriptNeedsReload.set(reloadScriptBody(scriptingComponentHelper.getScriptBody()));
             }
-            scriptNeedsReload.set(false);
         }
     }
 
@@ -326,6 +325,10 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
      * @return Whether the script was successfully reloaded
      */
     private boolean reloadScript(final String scriptBody) {
+        if (StringUtils.isEmpty(scriptBody)) {
+            return true;
+        }
+
         // note we are starting here with a fresh listing of validation
         // results since we are (re)loading a new/updated script. any
         // existing validation results are not relevant
@@ -431,15 +434,14 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         // store the updated validation results
         validationResults.set(results);
 
-        // return whether there was any issues loading the configured script
-        return results.isEmpty();
+        // return whether there were any issues loading the configured script
+        return !results.isEmpty();
     }
 
     /**
      * Invokes the validate() routine provided by the script, allowing for
-     * custom validation code. This method assumes there is a valid Processor
-     * defined in the script and it has been loaded by the
-     * InvokeScriptedProcessor processor
+     * custom validation code, if there is a valid Processor
+     * defined in the script and it has been loaded by the processor
      *
      * @param context The validation context to be passed into the custom
      * validate method
@@ -460,6 +462,12 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
             return validationResults.get();
         }
 
+        Collection<ValidationResult> scriptingComponentHelperResults = scriptingComponentHelper.customValidate(context);
+        if (scriptingComponentHelperResults != null && !scriptingComponentHelperResults.isEmpty()) {
+            validationResults.set(scriptingComponentHelperResults);
+            return scriptingComponentHelperResults;
+        }
+
         scriptingComponentHelper.setScriptEngineName(context.getProperty(scriptingComponentHelper.SCRIPT_ENGINE).getValue());
         scriptingComponentHelper.setScriptPath(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue());
         scriptingComponentHelper.setScriptBody(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue());
@@ -476,7 +484,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
             try {
                 // defer to the underlying processor for validation, without the
                 // invokescriptedprocessor properties
-                final Set<PropertyDescriptor> innerPropertyDescriptor = new HashSet<PropertyDescriptor>(scriptingComponentHelper.getDescriptors());
+                final Set<PropertyDescriptor> innerPropertyDescriptor = new HashSet<>(scriptingComponentHelper.getDescriptors());
 
                 ValidationContext innerValidationContext = new FilteredPropertiesValidationContextAdapter(context, innerPropertyDescriptor);
                 final Collection<ValidationResult> instanceResults = instance.validate(innerValidationContext);
@@ -568,7 +576,10 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
 
     @OnStopped
     public void stop(ProcessContext context) {
-        invokeScriptedProcessorMethod("onStopped", context);
+        // If the script needs to be reloaded at this point, it is because it was empty
+        if (!scriptNeedsReload.get()) {
+            invokeScriptedProcessorMethod("onStopped", context);
+        }
         scriptingComponentHelper.stop();
         processor.set(null);
         scriptRunner = null;

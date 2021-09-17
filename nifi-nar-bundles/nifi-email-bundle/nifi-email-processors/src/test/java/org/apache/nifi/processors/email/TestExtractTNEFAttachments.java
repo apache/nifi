@@ -27,15 +27,12 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
-
 
 public class TestExtractTNEFAttachments {
 
     @Test
     public void testValidTNEFWithoutAttachment() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractTNEFAttachments());
-
 
         runner.enqueue(Paths.get("src/test/resources/winmail-simple.dat"));
         runner.run();
@@ -45,12 +42,11 @@ public class TestExtractTNEFAttachments {
         runner.assertTransferCount(ExtractEmailAttachments.REL_ATTACHMENTS, 0);
         // Have a look at the attachments...
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractEmailAttachments.REL_ATTACHMENTS);
-        Assert.assertTrue(splits.size() == 0);
+        Assert.assertEquals(0, splits.size());
     }
 
     @Test
     public void testValidTNEFWithMultipleAttachments() throws Exception {
-        Random rnd = new Random() ;
         final TestRunner runner = TestRunners.newTestRunner(new ExtractTNEFAttachments());
 
         runner.enqueue(Paths.get("src/test/resources/winmail-with-attachments.dat"));
@@ -63,8 +59,8 @@ public class TestExtractTNEFAttachments {
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractTNEFAttachments.REL_ATTACHMENTS);
 
         List<String> filenames = new ArrayList<>();
-        for (int a = 0 ; a < splits.size() ; a++ ) {
-            filenames.add(splits.get(a).getAttribute("filename").toString());
+        for (final MockFlowFile flowFile : splits) {
+            filenames.add(flowFile.getAttribute("filename"));
         }
 
         Assert.assertTrue(filenames.containsAll(Arrays.asList("nifiDrop.svg", "MINIFI~1.PNG")));
@@ -72,7 +68,6 @@ public class TestExtractTNEFAttachments {
 
     @Test
     public void testValidTNEFWithAttachment() throws Exception {
-        Random rnd = new Random() ;
         final TestRunner runner = TestRunners.newTestRunner(new ExtractTNEFAttachments());
 
         runner.enqueue(Paths.get("src/test/resources/winmail-with-attachment.dat"));
@@ -85,15 +80,15 @@ public class TestExtractTNEFAttachments {
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractTNEFAttachments.REL_ATTACHMENTS);
 
         List<String> filenames = new ArrayList<>();
-        for (int a = 0 ; a < splits.size() ; a++ ) {
-            filenames.add(splits.get(a).getAttribute("filename").toString());
+        for (final MockFlowFile flowFile : splits) {
+            filenames.add(flowFile.getAttribute("filename"));
         }
 
-        Assert.assertTrue(filenames.containsAll(Arrays.asList("nifiDrop.svg")));
+        Assert.assertTrue(filenames.contains("nifiDrop.svg"));
     }
 
     @Test
-    public void testInvalidTNEF() throws Exception {
+    public void testInvalidTNEF() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractTNEFAttachments());
         runner.enqueue("test test test chocolate".getBytes());
         runner.run();

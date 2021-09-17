@@ -37,7 +37,7 @@ import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -339,6 +339,10 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final String outboundPolicyName = processGroupDTO.getFlowfileOutboundPolicy();
         final FlowFileOutboundPolicy flowFileOutboundPolicy = outboundPolicyName == null ? null : FlowFileOutboundPolicy.valueOf(outboundPolicyName);
 
+        final String defaultFlowFileExpiration = processGroupDTO.getDefaultFlowFileExpiration();
+        final Long defaultBackPressureObjectThreshold = processGroupDTO.getDefaultBackPressureObjectThreshold();
+        final String defaultBackPressureDataSizeThreshold = processGroupDTO.getDefaultBackPressureDataSizeThreshold();
+
         final ParameterContextReferenceEntity parameterContextReference = processGroupDTO.getParameterContext();
         if (parameterContextReference != null) {
             final String parameterContextId = parameterContextReference.getId();
@@ -373,6 +377,17 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         if (flowFileOutboundPolicy != null) {
             group.setFlowFileOutboundPolicy(flowFileOutboundPolicy);
         }
+
+        if (defaultFlowFileExpiration != null) {
+            group.setDefaultFlowFileExpiration(processGroupDTO.getDefaultFlowFileExpiration());
+        }
+        if (defaultBackPressureObjectThreshold != null) {
+            group.setDefaultBackPressureObjectThreshold(processGroupDTO.getDefaultBackPressureObjectThreshold());
+        }
+        if (defaultBackPressureDataSizeThreshold != null) {
+            group.setDefaultBackPressureDataSizeThreshold(processGroupDTO.getDefaultBackPressureDataSizeThreshold());
+        }
+
         group.onComponentModified();
         return group;
     }

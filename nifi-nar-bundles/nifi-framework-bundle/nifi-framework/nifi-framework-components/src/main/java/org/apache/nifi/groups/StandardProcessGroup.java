@@ -83,37 +83,38 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.parameter.StandardParameterUpdate;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.registry.flow.BatchSize;
-import org.apache.nifi.registry.flow.Bundle;
-import org.apache.nifi.registry.flow.ComponentType;
-import org.apache.nifi.registry.flow.ConnectableComponent;
+import org.apache.nifi.flow.BatchSize;
+import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.ComponentType;
+import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.registry.flow.VersionedComponent;
-import org.apache.nifi.registry.flow.VersionedConnection;
-import org.apache.nifi.registry.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.registry.flow.VersionedFlow;
-import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
-import org.apache.nifi.registry.flow.VersionedFunnel;
-import org.apache.nifi.registry.flow.VersionedLabel;
+import org.apache.nifi.flow.VersionedFunnel;
+import org.apache.nifi.flow.VersionedLabel;
 import org.apache.nifi.registry.flow.VersionedParameter;
 import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.registry.flow.VersionedPort;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.flow.VersionedProcessor;
-import org.apache.nifi.registry.flow.VersionedPropertyDescriptor;
-import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
-import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
+import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
+import org.apache.nifi.flow.VersionedRemoteGroupPort;
+import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.EvolvingDifferenceDescriptor;
@@ -133,12 +134,16 @@ import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FlowDifferenceFilters;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.SnippetUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -170,6 +175,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
@@ -188,6 +194,9 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final AtomicReference<String> name;
     private final AtomicReference<Position> position;
     private final AtomicReference<String> comments;
+    private final AtomicReference<String> defaultFlowFileExpiration;
+    private final AtomicReference<Long> defaultBackPressureObjectThreshold;  // use AtomicReference vs AtomicLong to allow storing null
+    private final AtomicReference<String> defaultBackPressureDataSizeThreshold;
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final AtomicReference<StandardVersionControlInformation> versionControlInfo = new AtomicReference<>();
     private static final SecureRandom randomGenerator = new SecureRandom();
@@ -221,17 +230,25 @@ public final class StandardProcessGroup implements ProcessGroup {
     private volatile FlowFileOutboundPolicy flowFileOutboundPolicy = FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE;
     private volatile BatchCounts batchCounts = new NoOpBatchCounts();
     private final DataValve dataValve;
+    private final Long nifiPropertiesBackpressureCount;
+    private final String nifiPropertiesBackpressureSize;
 
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessGroup.class);
+    private static final String DEFAULT_FLOWFILE_EXPIRATION = "0 sec";
+    private static final long DEFAULT_BACKPRESSURE_OBJECT = 10_000L;
+    private static final String DEFAULT_BACKPRESSURE_DATA_SIZE = "1 GB";
+
 
     public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler,
                                 final PropertyEncryptor encryptor, final ExtensionManager extensionManager,
                                 final StateManagerProvider stateManagerProvider, final FlowManager flowManager, final FlowRegistryClient flowRegistryClient,
-                                final ReloadComponent reloadComponent, final MutableVariableRegistry variableRegistry, final NodeTypeProvider nodeTypeProvider) {
+                                final ReloadComponent reloadComponent, final MutableVariableRegistry variableRegistry, final NodeTypeProvider nodeTypeProvider,
+                                final NiFiProperties nifiProperties) {
+
         this.id = id;
         this.controllerServiceProvider = serviceProvider;
         this.parent = new AtomicReference<>();
@@ -251,7 +268,39 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         final StateManager dataValveStateManager = stateManagerProvider.getStateManager(id + "-DataValve");
         dataValve = new StandardDataValve(this, dataValveStateManager);
+
+        this.defaultFlowFileExpiration = new AtomicReference<>();
+        this.defaultBackPressureObjectThreshold = new AtomicReference<>();
+        this.defaultBackPressureDataSizeThreshold = new AtomicReference<>();
+
+        // save only the nifi properties needed, and account for the possibility those properties are missing
+        if (nifiProperties == null) {
+            nifiPropertiesBackpressureCount = DEFAULT_BACKPRESSURE_OBJECT;
+            nifiPropertiesBackpressureSize = DEFAULT_BACKPRESSURE_DATA_SIZE;
+        } else {
+            // Validate the property values.
+            Long count;
+            try {
+                final String explicitValue = nifiProperties.getProperty(NiFiProperties.BACKPRESSURE_COUNT, String.valueOf(DEFAULT_BACKPRESSURE_OBJECT));
+                count = Long.parseLong(explicitValue);
+            } catch (final Exception e) {
+                LOG.warn("nifi.properties has an invalid value for the '" + NiFiProperties.BACKPRESSURE_COUNT + "' property. Using default value instaed.");
+                count = DEFAULT_BACKPRESSURE_OBJECT;
+            }
+            nifiPropertiesBackpressureCount = count;
+
+            String size;
+            try {
+                size = nifiProperties.getProperty(NiFiProperties.BACKPRESSURE_SIZE, DEFAULT_BACKPRESSURE_DATA_SIZE);
+                DataUnit.parseDataSize(size, DataUnit.B);
+            } catch (final Exception e) {
+                LOG.warn("nifi.properties has an invalid value for the '" + NiFiProperties.BACKPRESSURE_SIZE + "' property. Using default value instaed.");
+                size = DEFAULT_BACKPRESSURE_DATA_SIZE;
+            }
+            nifiPropertiesBackpressureSize = size;
+        }
     }
+
 
     @Override
     public ProcessGroup getParent() {
@@ -2513,7 +2562,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 if (procNode.isRunning()) {
                     throw new IllegalStateException("Processor " + procNode.getIdentifier() + " cannot be removed because it is running");
                 }
-                final int activeThreadCount = scheduler.getActiveThreadCount(procNode);
+                final int activeThreadCount = procNode.getActiveThreadCount();
                 if (activeThreadCount != 0) {
                     throw new IllegalStateException("Processor " + procNode.getIdentifier() + " cannot be removed because it still has " + activeThreadCount + " active threads");
                 }
@@ -3124,7 +3173,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         // For each Parameter in the updated parameter context, add a ParameterUpdate to our map
         final Map<String, ParameterUpdate> updatedParameters = new HashMap<>();
-        for (final Map.Entry<ParameterDescriptor, Parameter> entry : updatedParameterContext.getParameters().entrySet()) {
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : updatedParameterContext.getEffectiveParameters().entrySet()) {
             final ParameterDescriptor updatedDescriptor = entry.getKey();
             final Parameter updatedParameter = entry.getValue();
 
@@ -3139,7 +3188,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         // For each Parameter that was in the previous parameter context that is not in the updated Paramter Context, add a ParameterUpdate to our map with `null` for the updated value
-        for (final Map.Entry<ParameterDescriptor, Parameter> entry : previousParameterContext.getParameters().entrySet()) {
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : previousParameterContext.getEffectiveParameters().entrySet()) {
             final ParameterDescriptor previousDescriptor = entry.getKey();
             final Parameter previousParameter = entry.getValue();
 
@@ -3159,7 +3208,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private Map<String, ParameterUpdate> createParameterUpdates(final ParameterContext parameterContext, final BiFunction<ParameterDescriptor, String, ParameterUpdate> parameterUpdateMapper) {
         final Map<String, ParameterUpdate> updatedParameters = new HashMap<>();
 
-        for (final Map.Entry<ParameterDescriptor, Parameter> entry : parameterContext.getParameters().entrySet()) {
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : parameterContext.getEffectiveParameters().entrySet()) {
             final ParameterDescriptor parameterDescriptor = entry.getKey();
             final Parameter parameter = entry.getValue();
 
@@ -3578,6 +3627,9 @@ public final class StandardProcessGroup implements ProcessGroup {
         copy.setName(processGroup.getName());
         copy.setFlowFileConcurrency(processGroup.getFlowFileConcurrency());
         copy.setFlowFileOutboundPolicy(processGroup.getFlowFileOutboundPolicy());
+        copy.setDefaultFlowFileExpiration(processGroup.getDefaultFlowFileExpiration());
+        copy.setDefaultBackPressureObjectThreshold(processGroup.getDefaultBackPressureObjectThreshold());
+        copy.setDefaultBackPressureDataSizeThreshold(processGroup.getDefaultBackPressureDataSizeThreshold());
         copy.setPosition(processGroup.getPosition());
         copy.setVersionedFlowCoordinates(topLevel ? null : processGroup.getVersionedFlowCoordinates());
         copy.setConnections(processGroup.getConnections());
@@ -3606,6 +3658,9 @@ public final class StandardProcessGroup implements ProcessGroup {
                 childCopy.setVersionedFlowCoordinates(childGroup.getVersionedFlowCoordinates());
                 childCopy.setFlowFileConcurrency(childGroup.getFlowFileConcurrency());
                 childCopy.setFlowFileOutboundPolicy(childGroup.getFlowFileOutboundPolicy());
+                childCopy.setDefaultFlowFileExpiration(childGroup.getDefaultFlowFileExpiration());
+                childCopy.setDefaultBackPressureObjectThreshold(childGroup.getDefaultBackPressureObjectThreshold());
+                childCopy.setDefaultBackPressureDataSizeThreshold(childGroup.getDefaultBackPressureDataSizeThreshold());
 
                 copyChildren.add(childCopy);
             }
@@ -3926,7 +3981,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             group.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
         }
 
-        updateParameterContext(group, proposed, versionedParameterContexts, componentIdSeed);
+        flowManager.withParameterContextResolution(() -> updateParameterContext(group, proposed, versionedParameterContexts, componentIdSeed));
         updateVariableRegistry(group, proposed, variablesToSkip);
 
         final FlowFileConcurrency flowFileConcurrency = proposed.getFlowFileConcurrency() == null ? FlowFileConcurrency.UNBOUNDED :
@@ -3936,6 +3991,10 @@ public final class StandardProcessGroup implements ProcessGroup {
         final FlowFileOutboundPolicy outboundPolicy = proposed.getFlowFileOutboundPolicy() == null ? FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE :
             FlowFileOutboundPolicy.valueOf(proposed.getFlowFileOutboundPolicy());
         group.setFlowFileOutboundPolicy(outboundPolicy);
+
+        group.setDefaultFlowFileExpiration(proposed.getDefaultFlowFileExpiration());
+        group.setDefaultBackPressureObjectThreshold(proposed.getDefaultBackPressureObjectThreshold());
+        group.setDefaultBackPressureDataSizeThreshold(proposed.getDefaultBackPressureDataSizeThreshold());
 
         final VersionedFlowCoordinates remoteCoordinates = proposed.getVersionedFlowCoordinates();
         if (remoteCoordinates == null) {
@@ -4225,6 +4284,27 @@ public final class StandardProcessGroup implements ProcessGroup {
             rpgsRemoved.remove(proposedRpg.getIdentifier());
         }
 
+        //Remove deletable Input and Output Ports.
+        //addConnection method may link the ports incorrectly, for example:
+        //Current flow: PGA IP1         ProcessGroupA has an Input Port IP1
+        //New flow: PGA P1-C1           ProcessGroupA has a new connection C1, its source is a new Processor P1
+        //            |     |           and its destination pointing to the moved Input Port IP1 under a new child ProcessGroup PGB
+        //          PGB    IP1
+        //As Input Port (IP1) originally belonged to PGA the new connection would be incorrectly linked to the old Input Port
+        //instead of the one being in PGB, so it needs to be removed first before updating the connections.
+
+        for (final String removedVersionedId : inputPortsRemoved) {
+            final Port port = inputPortsByVersionedId.get(removedVersionedId);
+            LOG.info("Removing {} from {}", port, group);
+            group.removeInputPort(port);
+        }
+
+        for (final String removedVersionedId : outputPortsRemoved) {
+            final Port port = outputPortsByVersionedId.get(removedVersionedId);
+            LOG.info("Removing {} from {}", port, group);
+            group.removeOutputPort(port);
+        }
+
         // Add and update Connections
         for (final VersionedConnection proposedConnection : proposed.getConnections()) {
             final Connection connection = connectionsByVersionedId.get(proposedConnection.getIdentifier());
@@ -4261,18 +4341,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Funnel funnel = funnelsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", funnel, group);
             group.removeFunnel(funnel);
-        }
-
-        for (final String removedVersionedId : inputPortsRemoved) {
-            final Port port = inputPortsByVersionedId.get(removedVersionedId);
-            LOG.info("Removing {} from {}", port, group);
-            group.removeInputPort(port);
-        }
-
-        for (final String removedVersionedId : outputPortsRemoved) {
-            final Port port = outputPortsByVersionedId.get(removedVersionedId);
-            LOG.info("Removing {} from {}", port, group);
-            group.removeOutputPort(port);
         }
 
         // Now that all input/output ports have been removed, we should be able to update
@@ -4345,7 +4413,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-    private ParameterContext createParameterContext(final VersionedParameterContext versionedParameterContext, final String parameterContextId) {
+    private ParameterContext createParameterContext(final VersionedParameterContext versionedParameterContext, final String parameterContextId,
+                                                    final Map<String, VersionedParameterContext> versionedParameterContexts, final String componentIdSeed) {
         final Map<String, Parameter> parameters = new HashMap<>();
         for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
             final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
@@ -4357,11 +4426,32 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue());
             parameters.put(versionedParameter.getName(), parameter);
         }
+        final List<ParameterContextReferenceEntity> parameterContextRefs = new ArrayList<>();
+        if (versionedParameterContext.getInheritedParameterContexts() != null) {
+            parameterContextRefs.addAll(versionedParameterContext.getInheritedParameterContexts().stream()
+                    .map(name -> createParameterReferenceEntity(name, versionedParameterContexts, componentIdSeed))
+                    .collect(Collectors.toList()));
+        }
 
-        return flowManager.createParameterContext(parameterContextId, versionedParameterContext.getName(), parameters);
+        return flowManager.createParameterContext(parameterContextId, versionedParameterContext.getName(), parameters, parameterContextRefs);
     }
 
-    private void addMissingParameters(final VersionedParameterContext versionedParameterContext, final ParameterContext currentParameterContext) {
+    private ParameterContextReferenceEntity createParameterReferenceEntity(final String parameterContextName,
+                                                                           final Map<String, VersionedParameterContext> versionedParameterContexts,
+                                                                           final String componentIdSeed) {
+        final ParameterContextReferenceEntity entity = new ParameterContextReferenceEntity();
+        final ParameterContextReferenceDTO dto = new ParameterContextReferenceDTO();
+        final VersionedParameterContext versionedParameterContext = versionedParameterContexts.get(parameterContextName);
+        final ParameterContext selectedParameterContext = selectParameterContext(versionedParameterContext, componentIdSeed, versionedParameterContexts);
+        dto.setName(selectedParameterContext.getName());
+        dto.setId(selectedParameterContext.getIdentifier());
+        entity.setId(dto.getId());
+        entity.setComponent(dto);
+        return entity;
+    }
+
+    private void addMissingConfiguration(final VersionedParameterContext versionedParameterContext, final ParameterContext currentParameterContext,
+                                         final String componentIdSeed, final Map<String, VersionedParameterContext> versionedParameterContexts) {
         final Map<String, Parameter> parameters = new HashMap<>();
         for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
             final Optional<Parameter> parameterOption = currentParameterContext.getParameter(versionedParameter.getName());
@@ -4381,6 +4471,15 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         currentParameterContext.setParameters(parameters);
+
+        // If the current parameter context doesn't have any inherited param contexts but the versioned one does,
+        // add the versioned ones.
+        if (versionedParameterContext.getInheritedParameterContexts() != null && !versionedParameterContext.getInheritedParameterContexts().isEmpty()
+                && currentParameterContext.getInheritedParameterContexts().isEmpty()) {
+            currentParameterContext.setInheritedParameterContexts(versionedParameterContext.getInheritedParameterContexts().stream()
+                    .map(name -> selectParameterContext(versionedParameterContexts.get(name), componentIdSeed, versionedParameterContexts))
+                    .collect(Collectors.toList()));
+        }
     }
 
     private ParameterContext getParameterContextByName(final String contextName) {
@@ -4407,23 +4506,28 @@ public final class StandardProcessGroup implements ProcessGroup {
                         + "' does not exist in set of available parameter contexts [" + paramContextNames + "]");
                 }
 
-                final ParameterContext contextByName = getParameterContextByName(versionedParameterContext.getName());
-                final ParameterContext selectedParameterContext;
-                if (contextByName == null) {
-                    final String parameterContextId = generateUuid(versionedParameterContext.getName(), versionedParameterContext.getName(), componentIdSeed);
-                    selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId);
-                } else {
-                    selectedParameterContext = contextByName;
-                    addMissingParameters(versionedParameterContext, selectedParameterContext);
-                }
-
+                final ParameterContext selectedParameterContext = selectParameterContext(versionedParameterContext, componentIdSeed, versionedParameterContexts);
                 group.setParameterContext(selectedParameterContext);
             } else {
                 // Update the current Parameter Context so that it has any Parameters included in the proposed context
                 final VersionedParameterContext versionedParameterContext = versionedParameterContexts.get(proposedParameterContextName);
-                addMissingParameters(versionedParameterContext, currentParamContext);
+                addMissingConfiguration(versionedParameterContext, currentParamContext, componentIdSeed, versionedParameterContexts);
             }
         }
+    }
+
+    private ParameterContext selectParameterContext(final VersionedParameterContext versionedParameterContext, final String componentIdSeed,
+                                                    final Map<String, VersionedParameterContext> versionedParameterContexts) {
+        final ParameterContext contextByName = getParameterContextByName(versionedParameterContext.getName());
+        final ParameterContext selectedParameterContext;
+        if (contextByName == null) {
+            final String parameterContextId = generateUuid(versionedParameterContext.getName(), versionedParameterContext.getName(), componentIdSeed);
+            selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId, versionedParameterContexts, componentIdSeed);
+        } else {
+            selectedParameterContext = contextByName;
+            addMissingConfiguration(versionedParameterContext, selectedParameterContext, componentIdSeed, versionedParameterContexts);
+        }
+        return selectedParameterContext;
     }
 
     private void updateVariableRegistry(final ProcessGroup group, final VersionedProcessGroup proposed, final Set<String> variablesToSkip) {
@@ -4888,7 +4992,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             processor.setYieldPeriod(proposed.getYieldDuration());
             processor.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
 
-            if (proposed.getScheduledState() == org.apache.nifi.registry.flow.ScheduledState.DISABLED) {
+            if (proposed.getScheduledState() == org.apache.nifi.flow.ScheduledState.DISABLED) {
                 processor.getProcessGroup().disableProcessor(processor);
             } else if (processor.getScheduledState() == ScheduledState.DISABLED) {
                 processor.getProcessGroup().enableProcessor(processor);
@@ -5565,5 +5669,95 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public DataValve getDataValve() {
         return dataValve;
+    }
+
+    @Override
+    public boolean referencesParameterContext(final ParameterContext parameterContext) {
+        final ParameterContext ownParameterContext = this.getParameterContext();
+        if (ownParameterContext == null || parameterContext == null) {
+            return false;
+        }
+
+        return ownParameterContext.getIdentifier().equals(parameterContext.getIdentifier())
+                || ownParameterContext.inheritsFrom(parameterContext.getIdentifier());
+    }
+
+    @Override
+    public void setDefaultFlowFileExpiration(final String defaultFlowFileExpiration) {
+        // use default if value not provided
+        if (StringUtils.isBlank(defaultFlowFileExpiration)) {
+            this.defaultFlowFileExpiration.set(DEFAULT_FLOWFILE_EXPIRATION);
+        } else {
+            // Validate entry: must include time unit label
+            Pattern pattern = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
+            String caseAdjustedExpiration = defaultFlowFileExpiration.toLowerCase();
+            if (pattern.matcher(caseAdjustedExpiration).matches()) {
+                this.defaultFlowFileExpiration.set(caseAdjustedExpiration);
+            } else {
+                throw new IllegalArgumentException("The Default FlowFile Expiration of the process group must contain a valid time unit.");
+            }
+        }
+    }
+
+    @Override
+    public String getDefaultFlowFileExpiration() {
+        // Use value in this object if it has been set. Otherwise, inherit from parent group; if at root group, use the default.
+        if (defaultFlowFileExpiration.get() == null) {
+            if (isRootGroup()) {
+                return DEFAULT_FLOWFILE_EXPIRATION;
+            } else {
+                return parent.get().getDefaultFlowFileExpiration();
+            }
+        }
+        return defaultFlowFileExpiration.get();
+    }
+
+    @Override
+    public void setDefaultBackPressureObjectThreshold(final Long defaultBackPressureObjectThreshold) {
+        // use default if value not provided
+        if (defaultBackPressureObjectThreshold == null) {
+            this.defaultBackPressureObjectThreshold.set(nifiPropertiesBackpressureCount);
+        } else {
+            this.defaultBackPressureObjectThreshold.set(defaultBackPressureObjectThreshold);
+        }
+    }
+
+    @Override
+    public Long getDefaultBackPressureObjectThreshold() {
+        // Use value in this object if it has been set. Otherwise, inherit from parent group; if at root group, obtain from nifi properties.
+        if (defaultBackPressureObjectThreshold.get() == null) {
+            if (isRootGroup()) {
+                return nifiPropertiesBackpressureCount;
+            } else {
+                return getParent().getDefaultBackPressureObjectThreshold();
+            }
+        }
+
+        return defaultBackPressureObjectThreshold.get();
+    }
+
+    @Override
+    public void setDefaultBackPressureDataSizeThreshold(final String defaultBackPressureDataSizeThreshold) {
+        // use default if value not provided
+        if (StringUtils.isBlank(defaultBackPressureDataSizeThreshold)) {
+            this.defaultBackPressureDataSizeThreshold.set(nifiPropertiesBackpressureSize);
+        } else {
+            DataUnit.parseDataSize(defaultBackPressureDataSizeThreshold, DataUnit.B);
+            this.defaultBackPressureDataSizeThreshold.set(defaultBackPressureDataSizeThreshold.toUpperCase());
+        }
+    }
+
+    @Override
+    public String getDefaultBackPressureDataSizeThreshold() {
+        // Use value in this object if it has been set. Otherwise, inherit from parent group; if at root group, obtain from nifi properties.
+        if (StringUtils.isEmpty(defaultBackPressureDataSizeThreshold.get())) {
+            if (isRootGroup()) {
+                return nifiPropertiesBackpressureSize;
+            } else {
+                return parent.get().getDefaultBackPressureDataSizeThreshold();
+            }
+        }
+
+        return defaultBackPressureDataSizeThreshold.get();
     }
 }

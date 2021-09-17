@@ -51,25 +51,25 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
-import org.apache.nifi.registry.flow.ComponentType;
+import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.PortType;
+import org.apache.nifi.flow.PortType;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.registry.flow.VersionedConnection;
-import org.apache.nifi.registry.flow.VersionedControllerService;
-import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
-import org.apache.nifi.registry.flow.VersionedFunnel;
-import org.apache.nifi.registry.flow.VersionedLabel;
+import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedFunnel;
+import org.apache.nifi.flow.VersionedLabel;
 import org.apache.nifi.registry.flow.VersionedParameter;
 import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.registry.flow.VersionedPort;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.flow.VersionedProcessor;
-import org.apache.nifi.registry.flow.VersionedPropertyDescriptor;
-import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
-import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
+import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
+import org.apache.nifi.flow.VersionedRemoteGroupPort;
+import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -80,6 +80,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -139,6 +140,8 @@ public class NiFiRegistryFlowMapperTest {
 
         // verify single parameter context
         assertEquals(1, versionedParameterContexts.size());
+        assertEquals(1, versionedParameterContexts.get("context10").getInheritedParameterContexts().size());
+        assertEquals("other-context", versionedParameterContexts.get("context10").getInheritedParameterContexts().get(0));
 
         final String expectedName = innerProcessGroup.getParameterContext().getName();
         verifyParameterContext(innerProcessGroup.getParameterContext(), versionedParameterContexts.get(expectedName));
@@ -261,6 +264,7 @@ public class NiFiRegistryFlowMapperTest {
             when(parameterContext.getName()).thenReturn("context" + (counter++));
             final Map<ParameterDescriptor, Parameter> parametersMap = Maps.newHashMap();
             when(parameterContext.getParameters()).thenReturn(parametersMap);
+            when(parameterContext.getInheritedParameterContextNames()).thenReturn(Arrays.asList("other-context"));
 
             addParameter(parametersMap, "value" + (counter++), false);
             addParameter(parametersMap, "value" + (counter++), true);

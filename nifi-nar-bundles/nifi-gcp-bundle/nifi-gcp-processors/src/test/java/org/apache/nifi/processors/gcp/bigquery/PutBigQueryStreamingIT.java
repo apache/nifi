@@ -21,12 +21,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
 
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,8 +76,13 @@ public class PutBigQueryStreamingIT extends AbstractBigQueryIT {
         Field company = Field.newBuilder("company", LegacySQLTypeName.STRING).setMode(Mode.NULLABLE).build();
         Field job = Field.newBuilder("job", LegacySQLTypeName.RECORD, position, company).setMode(Mode.NULLABLE).build();
 
+        Field date = Field.newBuilder("date", LegacySQLTypeName.DATE).setMode(Mode.NULLABLE).build();
+        Field time = Field.newBuilder("time", LegacySQLTypeName.TIME).setMode(Mode.NULLABLE).build();
+        Field full = Field.newBuilder("full", LegacySQLTypeName.TIMESTAMP).setMode(Mode.NULLABLE).build();
+        Field birth = Field.newBuilder("birth", LegacySQLTypeName.RECORD, date, time, full).setMode(Mode.NULLABLE).build();
+
         // Table schema definition
-        schema = Schema.of(id, name, alias, addresses, job);
+        schema = Schema.of(id, name, alias, addresses, job, birth);
         TableDefinition tableDefinition = StandardTableDefinition.of(schema);
         TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
 
@@ -181,4 +192,116 @@ public class PutBigQueryStreamingIT extends AbstractBigQueryIT {
         deleteTable(tableName);
     }
 
+    @Test
+    public void PutBigQueryStreamingNoErrorWithDate() throws Exception {
+        String tableName = Thread.currentThread().getStackTrace()[1].getMethodName();
+        createTable(tableName);
+
+        runner.setProperty(BigQueryAttributes.DATASET_ATTR, dataset.getDatasetId().getDataset());
+        runner.setProperty(BigQueryAttributes.TABLE_NAME_ATTR, tableName);
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+        final String recordSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/bigquery/schema-correct-data-with-date.avsc")));
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, recordSchema);
+        runner.enableControllerService(jsonReader);
+
+        runner.setProperty(BigQueryAttributes.RECORD_READER_ATTR, "reader");
+
+        runner.enqueue(Paths.get("src/test/resources/bigquery/streaming-correct-data-with-date.json"));
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutBigQueryStreaming.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(PutBigQueryStreaming.REL_SUCCESS).get(0).assertAttributeEquals(BigQueryAttributes.JOB_NB_RECORDS_ATTR, "2");
+
+        TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
+        Iterator<FieldValueList> iterator = result.getValues().iterator();
+
+        FieldValueList firstElt = iterator.next();
+        FieldValueList sndElt = iterator.next();
+        assertTrue(firstElt.get("name").getStringValue().endsWith("Doe"));
+        assertTrue(sndElt.get("name").getStringValue().endsWith("Doe"));
+
+        FieldValueList john;
+        FieldValueList jane;
+        john = firstElt.get("name").getStringValue().equals("John Doe") ? firstElt : sndElt;
+        jane = firstElt.get("name").getStringValue().equals("Jane Doe") ? firstElt : sndElt;
+
+        assertEquals(jane.get("job").getRecordValue().get(0).getStringValue(), "Director");
+        assertTrue(john.get("alias").getRepeatedValue().size() == 2);
+        assertTrue(john.get("addresses").getRepeatedValue().get(0).getRecordValue().get(0).getStringValue().endsWith("000"));
+
+        long timestampRecordJohn = LocalDateTime.parse("07-18-2021 12:35:24",
+                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm:ss")).atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+        assertEquals(john.get("birth").getRecordValue().get(0).getStringValue(), "2021-07-18");
+        assertEquals(john.get("birth").getRecordValue().get(1).getStringValue(), "12:35:24");
+        assertEquals((john.get("birth").getRecordValue().get(2).getTimestampValue() / 1000), timestampRecordJohn);
+
+        long timestampRecordJane = LocalDateTime.parse("01-01-1992 00:00:00",
+                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm:ss")).atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+        assertEquals(jane.get("birth").getRecordValue().get(0).getStringValue(), "1992-01-01");
+        assertEquals(jane.get("birth").getRecordValue().get(1).getStringValue(), "00:00:00");
+        assertEquals((jane.get("birth").getRecordValue().get(2).getTimestampValue() / 1000) , timestampRecordJane);
+
+        deleteTable(tableName);
+    }
+
+    @Test
+    public void PutBigQueryStreamingNoErrorWithDateFormat() throws Exception {
+        String tableName = Thread.currentThread().getStackTrace()[1].getMethodName();
+        createTable(tableName);
+
+        runner.setProperty(BigQueryAttributes.DATASET_ATTR, dataset.getDatasetId().getDataset());
+        runner.setProperty(BigQueryAttributes.TABLE_NAME_ATTR, tableName);
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+        final String recordSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/bigquery/schema-correct-data-with-date.avsc")));
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, recordSchema);
+        runner.setProperty(jsonReader, DateTimeUtils.DATE_FORMAT, "MM/dd/yyyy");
+        runner.setProperty(jsonReader, DateTimeUtils.TIME_FORMAT, "HH:mm:ss");
+        runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "MM-dd-yyyy HH:mm:ss");
+        runner.enableControllerService(jsonReader);
+
+        runner.setProperty(BigQueryAttributes.RECORD_READER_ATTR, "reader");
+
+        runner.enqueue(Paths.get("src/test/resources/bigquery/streaming-correct-data-with-date-formatted.json"));
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutBigQueryStreaming.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(PutBigQueryStreaming.REL_SUCCESS).get(0).assertAttributeEquals(BigQueryAttributes.JOB_NB_RECORDS_ATTR, "2");
+
+        TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
+        Iterator<FieldValueList> iterator = result.getValues().iterator();
+
+        FieldValueList firstElt = iterator.next();
+        FieldValueList sndElt = iterator.next();
+        assertTrue(firstElt.get("name").getStringValue().endsWith("Doe"));
+        assertTrue(sndElt.get("name").getStringValue().endsWith("Doe"));
+
+        FieldValueList john;
+        FieldValueList jane;
+        john = firstElt.get("name").getStringValue().equals("John Doe") ? firstElt : sndElt;
+        jane = firstElt.get("name").getStringValue().equals("Jane Doe") ? firstElt : sndElt;
+
+        assertEquals(jane.get("job").getRecordValue().get(0).getStringValue(), "Director");
+        assertTrue(john.get("alias").getRepeatedValue().size() == 2);
+        assertTrue(john.get("addresses").getRepeatedValue().get(0).getRecordValue().get(0).getStringValue().endsWith("000"));
+
+        long timestampRecordJohn = LocalDateTime.parse("07-18-2021 12:35:24",
+                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm:ss")).atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+        assertEquals(john.get("birth").getRecordValue().get(0).getStringValue(), "2021-07-18");
+        assertEquals(john.get("birth").getRecordValue().get(1).getStringValue(), "12:35:24");
+        assertEquals(john.get("birth").getRecordValue().get(2).getTimestampValue() / 1000, timestampRecordJohn);
+
+        long timestampRecordJane = LocalDateTime.parse("01-01-1992 00:00:00",
+                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm:ss")).atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+        assertEquals(jane.get("birth").getRecordValue().get(0).getStringValue(), "1992-01-01");
+        assertEquals(jane.get("birth").getRecordValue().get(1).getStringValue(), "00:00:00");
+        assertEquals(jane.get("birth").getRecordValue().get(2).getTimestampValue() / 1000, timestampRecordJane);
+
+        deleteTable(tableName);
+    }
 }

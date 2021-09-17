@@ -40,7 +40,8 @@ import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
+import org.apache.nifi.web.security.http.SecurityCookieName;
+import org.apache.nifi.web.security.http.SecurityHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,7 +103,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     /**
      * Creates an instance.
      *
-     * @param corePoolSize core size of the thread pool
      * @param maxPoolSize the max number of threads in the thread pool
      * @param maxConcurrentRequests maximum number of concurrent requests
      * @param client a client for making requests
@@ -111,12 +111,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
      * @param nifiProperties properties
      */
-    public ThreadPoolRequestReplicator(final int corePoolSize, final int maxPoolSize, final int maxConcurrentRequests, final HttpReplicationClient client,
+    public ThreadPoolRequestReplicator(final int maxPoolSize, final int maxConcurrentRequests, final HttpReplicationClient client,
         final ClusterCoordinator clusterCoordinator, final RequestCompletionCallback callback, final EventReporter eventReporter, final NiFiProperties nifiProperties) {
-        if (corePoolSize <= 0) {
-            throw new IllegalArgumentException("The Core Pool Size must be greater than zero.");
-        } else if (maxPoolSize < corePoolSize) {
-            throw new IllegalArgumentException("Max Pool Size must be >= Core Pool Size.");
+        if (maxPoolSize < 2) {
+            throw new IllegalArgumentException("Max Pool Size must be >= 2");
         } else if (client == null) {
             throw new IllegalArgumentException("Client may not be null.");
         }
@@ -137,7 +135,8 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             return t;
         };
 
-        executorService = new ThreadPoolExecutor(corePoolSize, maxPoolSize, 5, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), threadFactory);
+        executorService = new ThreadPoolExecutor(maxPoolSize, maxPoolSize, 5, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), threadFactory);
+        executorService.allowCoreThreadTimeOut(true);
 
         maintenanceExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
             @Override
@@ -244,13 +243,13 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         // remove the access token if present, since the user is already authenticated... authorization
         // will happen when the request is replicated using the proxy chain above
-        headers.remove(NiFiBearerTokenResolver.AUTHORIZATION);
+        headers.remove(SecurityHeader.AUTHORIZATION.getHeader());
 
         // if knox sso cookie name is set, remove any authentication cookie since this user is already authenticated
         // and will be included in the proxied entities chain above... authorization will happen when the
         // request is replicated
         removeCookie(headers, nifiProperties.getKnoxCookieName());
-        removeCookie(headers, NiFiBearerTokenResolver.JWT_COOKIE_NAME);
+        removeCookie(headers, SecurityCookieName.AUTHORIZATION_BEARER.getName());
 
         // remove the host header
         headers.remove("Host");

@@ -38,17 +38,21 @@ class NettyEventSender<T> implements EventSender<T> {
 
     private final SocketAddress remoteAddress;
 
+    private boolean singleEventPerConnection;
+
     /**
      * Netty Channel Event Sender with Event Loop Group and Channel Pool
      *
      * @param group Event Loop Group
      * @param channelPool Channel Pool
      * @param remoteAddress Remote Address
+     * @param singleEventPerConnection If true, send a single event per connection, and then close it.
      */
-    NettyEventSender(final EventLoopGroup group, final ChannelPool channelPool, final SocketAddress remoteAddress) {
+    NettyEventSender(final EventLoopGroup group, final ChannelPool channelPool, final SocketAddress remoteAddress, final boolean singleEventPerConnection) {
         this.group = group;
         this.channelPool = channelPool;
         this.remoteAddress = remoteAddress;
+        this.singleEventPerConnection = singleEventPerConnection;
     }
 
     /**
@@ -65,7 +69,7 @@ class NettyEventSender<T> implements EventSender<T> {
                 final ChannelFuture channelFuture = channel.writeAndFlush(event);
                 channelFuture.syncUninterruptibly();
             } finally {
-                channelPool.release(channel);
+                releaseChannel(channel);
             }
         } catch (final Exception e) {
             throw new EventException(getChannelMessage("Send Failed"), e);
@@ -96,5 +100,12 @@ class NettyEventSender<T> implements EventSender<T> {
 
     private String getChannelMessage(final String message) {
         return String.format("%s Remote Address [%s]", message, remoteAddress);
+    }
+
+    private void releaseChannel(final Channel channel) {
+        if (singleEventPerConnection) {
+            channel.close();
+        }
+        channelPool.release(channel);
     }
 }

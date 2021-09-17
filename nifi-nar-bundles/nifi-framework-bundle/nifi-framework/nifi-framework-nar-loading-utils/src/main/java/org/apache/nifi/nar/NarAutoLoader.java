@@ -41,6 +41,7 @@ public class NarAutoLoader {
     private static final String IMPLEMENTATION_PROPERTY = "implementation";
 
     private static final long POLL_INTERVAL_MS = 5000;
+    private static final long POLL_INTERVAL_NAR_PROVIDER_MS = 300000;
 
     private final NiFiProperties properties;
     private final NarLoader narLoader;
@@ -95,7 +96,7 @@ public class NarAutoLoader {
 
             final ClassLoader instanceClassLoader = extensionManager.getInstanceClassLoader(providerId);
             final ClassLoader providerClassLoader = instanceClassLoader == null ? provider.getClass().getClassLoader() : instanceClassLoader;
-            final NarProviderTask task = new NarProviderTask(provider, providerClassLoader, properties.getNarAutoLoadDirectory(), POLL_INTERVAL_MS);
+            final NarProviderTask task = new NarProviderTask(provider, providerClassLoader, properties.getNarAutoLoadDirectory(), POLL_INTERVAL_NAR_PROVIDER_MS);
             narProviderTasks.add(task);
 
             final Thread providerThread = new Thread(task);

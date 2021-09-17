@@ -49,7 +49,7 @@ public class TestZooKeeperStateServer {
 
     @BeforeClass
     public static void setup() throws IOException, ConfigException {
-        tempDir = Paths.get("target/TestZooKeeperStateServer");
+        tempDir = Paths.get("target", "TestZooKeeperStateServer");
         dataDir = tempDir.resolve("state");
         zkServerConfig = tempDir.resolve("zookeeper.properties");
         clientPort = InstanceSpec.getRandomPort();

@@ -21,13 +21,9 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.nifi.kafka.connect.validators.ConnectDirectoryExistsValidator;
 import org.apache.nifi.kafka.connect.validators.ConnectHttpUrlValidator;
 import org.apache.nifi.kafka.connect.validators.FlowSnapshotValidator;
-import org.apache.nifi.stateless.bootstrap.CompositeParameterProvider;
-import org.apache.nifi.stateless.bootstrap.EnvironmentVariableParameterProvider;
-import org.apache.nifi.stateless.bootstrap.ParameterOverrideProvider;
 import org.apache.nifi.stateless.bootstrap.StatelessBootstrap;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
 import org.apache.nifi.stateless.config.ParameterOverride;
-import org.apache.nifi.stateless.config.ParameterProvider;
 import org.apache.nifi.stateless.config.SslContextDefinition;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
@@ -46,12 +42,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.apache.kafka.common.config.ConfigDef.NonEmptyStringWithoutControlChars.nonEmptyStringWithoutControlChars;
 
 public class StatelessKafkaConnectorUtil {
     private static final String UNKNOWN_VERSION = "<Unable to determine Stateless NiFi Kafka Connector Version>";
@@ -100,7 +99,7 @@ public class StatelessKafkaConnectorUtil {
             "Specifies the temporary working directory for expanding NiFi Archives (NARs)");
         configDef.define(FLOW_SNAPSHOT, ConfigDef.Type.STRING, null, new FlowSnapshotValidator(), ConfigDef.Importance.HIGH,
             "Specifies the dataflow to run. This may be a file containing the dataflow, a URL that points to a dataflow, or a String containing the entire dataflow as an escaped JSON.");
-        configDef.define(DATAFLOW_NAME, ConfigDef.Type.STRING, null, ConfigDef.Importance.HIGH, "The name of the dataflow.");
+        configDef.define(DATAFLOW_NAME, ConfigDef.Type.STRING, ConfigDef.NO_DEFAULT_VALUE, nonEmptyStringWithoutControlChars(), ConfigDef.Importance.HIGH, "The name of the dataflow.");
 
         configDef.define(StatelessKafkaConnectorUtil.KRB5_FILE, ConfigDef.Type.STRING, StatelessKafkaConnectorUtil.DEFAULT_KRB5_FILE, ConfigDef.Importance.MEDIUM,
             "Specifies the krb5.conf file to use if connecting to Kerberos-enabled services");
@@ -187,13 +186,8 @@ public class StatelessKafkaConnectorUtil {
                 unpackNarLock.unlock();
             }
 
-            dataflowDefinition = bootstrap.parseDataflowDefinition(dataflowDefinitionProperties);
-
-            final ParameterProvider configurationParameterProvider = new ParameterOverrideProvider(parameterOverrides);
-            final ParameterProvider environmentVariableProvider = new EnvironmentVariableParameterProvider();
-            final ParameterProvider compositeParameterProvider = new CompositeParameterProvider(Arrays.asList(configurationParameterProvider, environmentVariableProvider));
-
-            return bootstrap.createDataflow(dataflowDefinition, compositeParameterProvider);
+            dataflowDefinition = bootstrap.parseDataflowDefinition(dataflowDefinitionProperties, parameterOverrides);
+            return bootstrap.createDataflow(dataflowDefinition);
         } catch (final Exception e) {
             throw new RuntimeException("Failed to bootstrap Stateless NiFi Engine", e);
         }
@@ -282,6 +276,11 @@ public class StatelessKafkaConnectorUtil {
             @Override
             public File getKrb5File() {
                 return new File(properties.getOrDefault(KRB5_FILE, DEFAULT_KRB5_FILE));
+            }
+
+            @Override
+            public Optional<File> getContentRepositoryDirectory() {
+                return Optional.empty();
             }
 
             @Override

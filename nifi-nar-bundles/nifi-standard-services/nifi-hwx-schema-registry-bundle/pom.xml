@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-services</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-hwx-schema-registry-bundle</artifactId>
@@ -26,8 +26,8 @@
     <properties>
         <hwx.registry.version>0.9.1</hwx.registry.version>
         <!-- Override Spring Framework version from com.hortonworks.registries:common-auth -->
-        <spring.version>5.3.8</spring.version>
-        <spring.security.version>5.4.6</spring.security.version>
+        <spring.version>5.3.9</spring.version>
+        <spring.security.version>5.5.1</spring.security.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -65,6 +65,12 @@
                 <groupId>org.springframework.security</groupId>
                 <artifactId>spring-security-core</artifactId>
                 <version>${spring.security.version}</version>
+            </dependency>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

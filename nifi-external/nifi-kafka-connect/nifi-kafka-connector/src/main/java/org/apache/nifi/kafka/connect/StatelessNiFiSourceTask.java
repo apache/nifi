@@ -47,6 +47,7 @@ import java.util.regex.Pattern;
 public class StatelessNiFiSourceTask extends SourceTask {
     public static final String STATE_MAP_KEY = "task.index";
     private static final Logger logger = LoggerFactory.getLogger(StatelessNiFiSourceTask.class);
+    private static final long FAILURE_YIELD_MILLIS = 1000L;
 
     private StatelessDataflow dataflow;
     private String outputPortName;
@@ -153,7 +154,7 @@ public class StatelessNiFiSourceTask extends SourceTask {
         if (!triggerResult.isSuccessful()) {
             logger.error("Dataflow {} failed to execute properly", dataflowName, triggerResult.getFailureCause().orElse(null));
             trigger.cancel();
-            failureYieldExpiration = System.currentTimeMillis() + 1000L; // delay next execution for 1 second to avoid constnatly failing and utilization huge amounts of resources
+            failureYieldExpiration = System.currentTimeMillis() + FAILURE_YIELD_MILLIS; // delay next execution for 1 second to avoid constnatly failing and utilization huge amounts of resources
             return null;
         }
 
@@ -174,10 +175,17 @@ public class StatelessNiFiSourceTask extends SourceTask {
             partitionMap = clusterStatePartitionMap;
         }
 
-        for (final FlowFile flowFile : outputFlowFiles) {
-            final byte[] contents = triggerResult.readContent(flowFile);
-            final SourceRecord sourceRecord = createSourceRecord(flowFile, contents, componentState, partitionMap);
-            sourceRecords.add(sourceRecord);
+        try {
+            for (final FlowFile flowFile : outputFlowFiles) {
+                final byte[] contents = triggerResult.readContentAsByteArray(flowFile);
+                final SourceRecord sourceRecord = createSourceRecord(flowFile, contents, componentState, partitionMap);
+                sourceRecords.add(sourceRecord);
+            }
+        } catch (final Exception e) {
+            logger.error("Failed to obtain contents of Output FlowFiles in order to form Kafka Record", e);
+            triggerResult.abort(e);
+            failureYieldExpiration = System.currentTimeMillis() + FAILURE_YIELD_MILLIS; // delay next execution for 1 second to avoid constantly failing and utilization huge amounts of resources
+            return null;
         }
 
         logger.debug("Returning {} records from poll() method (took {} nanos to run dataflow)", sourceRecords.size(), nanos);

@@ -19,6 +19,7 @@ package org.apache.nifi.util;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -43,7 +44,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestStandardProcessorTestRunner {
 
@@ -131,27 +132,24 @@ public class TestStandardProcessorTestRunner {
         });
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     public void testFailFlowFileValidator() {
         final AddAttributeProcessor proc = new AddAttributeProcessor();
         final TestRunner runner = TestRunners.newTestRunner(proc);
 
         runner.run(5, true);
-        runner.assertAllFlowFiles(new FlowFileValidator() {
-            @Override
-            public void assertFlowFile(FlowFile f) {
-                assertEquals("value", f.getAttribute(AddAttributeProcessor.KEY));
-            }
+        assertThrows(AssertionError.class, () -> {
+            runner.assertAllFlowFiles(f -> assertEquals("value", f.getAttribute(AddAttributeProcessor.KEY)));
         });
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     public void testFailAllFlowFilesContainAttribute() {
         final AddAttributeProcessor proc = new AddAttributeProcessor();
         final TestRunner runner = TestRunners.newTestRunner(proc);
 
         runner.run(5, true);
-        runner.assertAllFlowFilesContainAttribute(AddAttributeProcessor.KEY);
+        assertThrows(AssertionError.class, () -> runner.assertAllFlowFilesContainAttribute(AddAttributeProcessor.KEY));
     }
 
     @Test

@@ -20,12 +20,12 @@ limitations under the License.
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi.minifi</groupId>
     <artifactId>minifi</artifactId>
-    <version>1.14.0-SNAPSHOT</version>
+    <version>1.15.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi - MiNiFi is a child project effort to aid in the collection and transmission of data close to where it is created.</description>
 
@@ -40,59 +40,10 @@ limitations under the License.
         <module>minifi-c2</module>
         <module>minifi-integration-tests</module>
     </modules>
-
-    <url>https://nifi.apache.org/minifi</url>
-    <organization>
-        <name>Apache NiFi Project - MiNiFi subproject</name>
-        <url>https://nifi.apache.org/</url>
-    </organization>
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
-        </license>
-    </licenses>
-    <mailingLists>
-        <mailingList>
-            <name>Dev</name>
-            <subscribe>dev-subscribe@nifi.apache.org</subscribe>
-            <unsubscribe>dev-unsubscribe@nifi.apache.org</unsubscribe>
-            <post>dev@nifi.apache.org</post>
-            <archive>https://mail-archives.apache.org/mod_mbox/nifi-dev</archive>
-        </mailingList>
-        <mailingList>
-            <name>Users</name>
-            <subscribe>users-subscribe@nifi.apache.org</subscribe>
-            <unsubscribe>users-unsubscribe@nifi.apache.org</unsubscribe>
-            <post>users@nifi.apache.org</post>
-            <archive>https://mail-archives.apache.org/mod_mbox/nifi-users</archive>
-        </mailingList>
-        <mailingList>
-            <name>Commits</name>
-            <subscribe>commits-subscribe@nifi.apache.org</subscribe>
-            <unsubscribe>commits-unsubscribe@nifi.apache.org</unsubscribe>
-            <post>commits@nifi.apache.org</post>
-            <archive>https://mail-archives.apache.org/mod_mbox/nifi-commits</archive>
-        </mailingList>
-    </mailingLists>
-    <prerequisites>
-        <maven>${maven.min-version}</maven>
-    </prerequisites>
-    <scm>
-        <connection>scm:git:git://git.apache.org/nifi.git</connection>
-        <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/nifi.git</developerConnection>
-        <url>https://gitbox.apache.org/repos/asf?p=nifi.git</url>
-      <tag>HEAD</tag>
-    </scm>
-    <issueManagement>
-        <system>JIRA</system>
-        <url>https://issues.apache.org/jira/browse/MINIFI</url>
-    </issueManagement>
     <properties>
-        <inceptionYear>2016</inceptionYear>
         <jersey.version>2.29</jersey.version>
-        <spring.version>5.3.8</spring.version>
-        <spring.security.version>5.4.6</spring.security.version>
+        <spring.version>5.3.9</spring.version>
+        <spring.security.version>5.5.1</spring.security.version>
         <system.rules.version>1.16.1</system.rules.version>
         <aws.sdk.version>1.11.172</aws.sdk.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
@@ -121,42 +72,37 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-bootstrap-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-bootstrap</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi.minifi</groupId>
-                <artifactId>minifi-nar-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-framework</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-framework-core</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-resources</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-provenance-repository-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
@@ -164,50 +110,45 @@ limitations under the License.
                 <artifactId>minifi-resources</artifactId>
                 <classifier>resources</classifier>
                 <type>zip</type>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-runtime</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi.minifi</groupId>
-                <artifactId>minifi-persistent-provenance-repository</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-framework-api</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-framework-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-standard-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-server-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-update-attribute-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-docs</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>
@@ -215,7 +156,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-provenance-repositories</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
 
             <dependency>
@@ -329,82 +270,87 @@ limitations under the License.
                 <version>2.3.3</version>
                 <scope>provided</scope>
             </dependency>
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.29</version>
+            </dependency>
 
             <!-- NiFi Modules -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-api</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-api</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-client</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-custom-ui-utilities</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ui-extension</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-flowfile-packager</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-socket-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-data-provenance-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-provenance-repository-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-runtime</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-toolkit-tls</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-resources</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>
@@ -412,7 +358,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-docs</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>
@@ -420,153 +366,153 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-core</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-provenance-repository-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-services-api-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-jetty-bundle</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-headless-server-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-update-attribute-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-kerberos-credentials-service-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-utils-api</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-logging-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-processor-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hadoop-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mock</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-write-ahead-log</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service-api</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-prioritizers</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-administration</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-core-api</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-persistent-provenance-repository</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-reporting-task</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-reporting-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.15.0-SNAPSHOT</version>
             </dependency>
 
             <!-- Test Dependencies -->
@@ -600,7 +546,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.18</version>
+                <version>1.21</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -948,7 +894,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-client</artifactId>
-                <version>5.15.6</version>
+                <version>5.15.15</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.activemq</groupId>
@@ -1082,7 +1028,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
-                <version>1.8.3</version>
+                <version>1.14.2</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>

@@ -55,6 +55,7 @@
     var nfSnippet;
     var nfBirdseye;
     var nfGraph;
+    var trimLengthCaches = {};
 
     var restrictedUsage = d3.map();
     var requiredPermissions = d3.map();
@@ -708,12 +709,20 @@
         },
 
         /**
+        * Clears the cache used to avoid calculating whether or not ellipses are needed for a given text element
+        */
+        clearEllipsisCache: function () {
+            trimLengthCaches = {};
+        },
+
+        /**
          * Applies single line ellipsis to the component in the specified selection if necessary.
          *
          * @param {selection} selection
          * @param {string} text
+         * @param {cacheName} string
          */
-        ellipsis: function (selection, text) {
+        ellipsis: function (selection, text, cacheName) {
             text = text.trim();
             var width = parseInt(selection.attr('width'), 10);
             var node = selection.node();
@@ -721,27 +730,62 @@
             // set the element text
             selection.text(text);
 
-            // see if the field is too big for the field
-            if (text.length > 0 && node.getSubStringLength(0, text.length - 1) > width) {
-                // make some room for the ellipsis
-                width -= 5;
-
-                // determine the appropriate index
-                var i = binarySearch(text.length, function (x) {
-                    var length = node.getSubStringLength(0, x);
-                    if (length > width) {
-                        // length is too long, try the lower half
-                        return -1;
-                    } else if (length < width) {
-                        // length is too short, try the upper half
-                        return 1;
-                    }
-                    return 0;
-                });
-
-                // trim at the appropriate length and add ellipsis
-                selection.text(text.substring(0, i) + String.fromCharCode(8230));
+            // Never apply ellipses to text less than 5 characters and don't keep it in the cache
+            // because it could take up a lot of space unnecessarily.
+            var textLength = text.length;
+            if (textLength < 5) {
+                return;
             }
+
+            // Check our cache of text lengths to see if we already know how much to trim it to
+            var trimLengths = trimLengthCaches[cacheName];
+            if (trimLengths === undefined) {
+                trimLengths = {};
+                trimLengthCaches[cacheName] = trimLengths;
+            }
+
+            var cacheForText = trimLengths[text];
+            var trimLength = (cacheForText === undefined) ? undefined : cacheForText[width];
+            if (trimLength === undefined) {
+                // We haven't cached the length for this text yet. Determine whether we need
+                // to trim & add ellipses or not
+                if (node.getSubStringLength(0, text.length - 1) > width) {
+                    // make some room for the ellipsis
+                    width -= 5;
+
+                    // determine the appropriate index
+                    var i = binarySearch(text.length, function (x) {
+                        var length = node.getSubStringLength(0, x);
+                        if (length > width) {
+                            // length is too long, try the lower half
+                            return -1;
+                        } else if (length < width) {
+                            // length is too short, try the upper half
+                            return 1;
+                        }
+                        return 0;
+                    });
+
+                    trimLength = i;
+                } else {
+                    // trimLength of -1 indicates we do not need ellipses
+                    trimLength = -1;
+                }
+
+                // TODO: Can we clear this when process group changes?
+                // Store the trim length in our cache
+                if (trimLengths[text] === undefined) {
+                    trimLengths[text] = {};
+                }
+                trimLengths[text][width] = trimLength;
+            }
+
+            if (trimLength === -1) {
+                return;
+            }
+
+            // trim at the appropriate length and add ellipsis
+            selection.text(text.substring(0, trimLength) + String.fromCharCode(8230));
         },
 
         /**
@@ -751,8 +795,9 @@
          * @param {selection} selection
          * @param {integer} lineCount
          * @param {string} text
+         * @param {string} cacheName
          */
-        multilineEllipsis: function (selection, lineCount, text) {
+        multilineEllipsis: function (selection, lineCount, text, cacheName) {
             var i = 1;
             var words = text.split(/\s+/).reverse();
 
@@ -801,7 +846,7 @@
                         var remainder = [word].concat(words.reverse());
 
                         // apply ellipsis to the last line
-                        nfCanvasUtils.ellipsis(tspan, remainder.join(' '));
+                        nfCanvasUtils.ellipsis(tspan, remainder.join(' '), cacheName);
 
                         // we've reached the line count
                         break;

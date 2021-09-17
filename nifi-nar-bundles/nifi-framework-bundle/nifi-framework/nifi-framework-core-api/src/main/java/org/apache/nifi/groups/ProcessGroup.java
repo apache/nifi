@@ -1174,4 +1174,47 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @return the DataValve associated with this Process Group
      */
     DataValve getDataValve();
+
+    /**
+     * @param parameterContext A ParameterContext
+     * @return True if the provided ParameterContext is referenced by this Process Group, either directly or
+     * indirectly through inherited ParameterContexts.
+     */
+    boolean referencesParameterContext(ParameterContext parameterContext);
+
+    /**
+     * @return the default flowfile expiration of the ProcessGroup
+     */
+    String getDefaultFlowFileExpiration();
+
+    /**
+     * Updates the default flowfile expiration of this ProcessGroup.
+     *
+     * @param defaultFlowFileExpiration new default flowfile expiration value (must include time unit label)
+     */
+    void setDefaultFlowFileExpiration(String defaultFlowFileExpiration);
+
+    /**
+     * @return the default back pressure object threshold of this ProcessGroup
+     */
+    Long getDefaultBackPressureObjectThreshold();
+
+    /**
+     * Updates the default back pressure object threshold of this ProcessGroup
+     *
+     * @param defaultBackPressureObjectThreshold new default back pressure object threshold value
+     */
+    void setDefaultBackPressureObjectThreshold(Long defaultBackPressureObjectThreshold);
+
+    /**
+     * @returnthe default back pressure size threshold of this ProcessGroup
+     */
+    String getDefaultBackPressureDataSizeThreshold();
+
+    /**
+     * Updates the default back pressure size threshold of this ProcessGroup
+     *
+     * @param defaultBackPressureDataSizeThreshold new default back pressure size threshold (must include size unit label)
+     */
+    void setDefaultBackPressureDataSizeThreshold(String defaultBackPressureDataSizeThreshold);
 }

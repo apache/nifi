@@ -52,7 +52,6 @@ import org.apache.nifi.stateless.engine.ExecutionProgress.CompletionAction;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.engine.StandardExecutionProgress;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
-import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.stateless.session.AsynchronousCommitTracker;
 import org.apache.nifi.util.Connectables;
@@ -218,7 +217,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
             // Create executor for dataflow
             final String flowName = dataflowDefinition.getFlowName();
-            final String threadName = (flowName == null) ? "Run Dataflow" : "Run Dataflow " + flowName;
+            final String threadName = (flowName == null || flowName.trim().isEmpty()) ? "Run Dataflow" : "Run Dataflow " + flowName;
             runDataflowExecutor = Executors.newFixedThreadPool(1, createNamedThreadFactory(threadName, false));
 
             // Periodically log component statuses
@@ -354,7 +353,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
                 future.get(COMPONENT_ENABLE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
             } catch (final Exception e) {
                 throw new IllegalStateException("Controller Service " + serviceNode + " has not fully enabled. Current Validation Status is "
-                    + serviceNode.getValidationStatus() + " with validation Errors: " + serviceNode.getValidationErrors());
+                    + serviceNode.getValidationStatus() + " with validation Errors: " + serviceNode.getValidationErrors(), e);
             }
         }
 
@@ -405,7 +404,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         final BlockingQueue<TriggerResult> resultQueue = new LinkedBlockingQueue<>();
 
         final ExecutionProgress executionProgress = new StandardExecutionProgress(rootGroup, internalFlowFileQueues, resultQueue,
-            (ByteArrayContentRepository) repositoryContextFactory.getContentRepository(), dataflowDefinition.getFailurePortNames(), tracker,
+            repositoryContextFactory.getContentRepository(), dataflowDefinition.getFailurePortNames(), tracker,
             stateManagerProvider);
 
         final AtomicReference<Future<?>> processFuture = new AtomicReference<>();

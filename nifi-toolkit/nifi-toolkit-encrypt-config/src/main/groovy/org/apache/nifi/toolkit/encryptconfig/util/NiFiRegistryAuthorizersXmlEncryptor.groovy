@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.encryptconfig.util
 
 import groovy.xml.XmlUtil
 import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.properties.SensitivePropertyProviderFactory
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.xml.sax.SAXException
@@ -42,8 +43,9 @@ class NiFiRegistryAuthorizersXmlEncryptor extends XmlEncryptor {
      *   .*?</userGroupProvider>          -> find everything as needed up until and including occurrence of '</userGroupProvider>'
      */
 
-    NiFiRegistryAuthorizersXmlEncryptor(final SensitivePropertyProvider encryptionProvider, final SensitivePropertyProvider decryptionProvider) {
-        super(encryptionProvider, decryptionProvider)
+    NiFiRegistryAuthorizersXmlEncryptor(final SensitivePropertyProvider encryptionProvider, final SensitivePropertyProvider decryptionProvider,
+            final SensitivePropertyProviderFactory providerFactory) {
+        super(encryptionProvider, decryptionProvider, providerFactory)
     }
 
     /**
@@ -55,10 +57,11 @@ class NiFiRegistryAuthorizersXmlEncryptor extends XmlEncryptor {
      * is invoked to encrypt them.
      *
      * @param plainXmlContent the plaintext content of an authorizers.xml file
+     * @param propertyLocation The property location
      * @return the comment with sensitive values encrypted and marked with the cipher.
      */
     @Override
-    String encrypt(String plainXmlContent) {
+    String encrypt(final String plainXmlContent) {
         // First, mark the XML nodes to encrypt that are specific to authorizers.xml by adding an attribute encryption="none"
         String markedXmlContent = markXmlNodesForEncryption(plainXmlContent, "userGroupProvider", {
             it.find {

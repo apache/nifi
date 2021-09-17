@@ -21,18 +21,20 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.TransactionThresholds;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestPropertiesFileFlowDefinitionParser {
 
@@ -40,7 +42,9 @@ public class TestPropertiesFileFlowDefinitionParser {
     public void testParse() throws IOException, StatelessConfigurationException {
         final PropertiesFileFlowDefinitionParser parser = new PropertiesFileFlowDefinitionParser();
 
-        final DataflowDefinition dataflowDefinition = parser.parseFlowDefinition(new File("src/test/resources/flow-configuration.properties"), createStatelessEngineConfiguration());
+        final List<ParameterOverride> parameterOverrides = new ArrayList<>();
+        final StatelessEngineConfiguration engineConfig = createStatelessEngineConfiguration();
+        final DataflowDefinition<?> dataflowDefinition = parser.parseFlowDefinition(new File("src/test/resources/flow-configuration.properties"), engineConfig, parameterOverrides);
         assertEquals(new HashSet<>(Arrays.asList("foo", "bar", "baz")), dataflowDefinition.getFailurePortNames());
 
         final List<ParameterContextDefinition> contextDefinitions = dataflowDefinition.getParameterContexts();
@@ -92,6 +96,11 @@ public class TestPropertiesFileFlowDefinitionParser {
             @Override
             public File getKrb5File() {
                 return null;
+            }
+
+            @Override
+            public Optional<File> getContentRepositoryDirectory() {
+                return Optional.empty();
             }
 
             @Override

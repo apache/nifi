@@ -128,6 +128,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.processor.Processor;
@@ -141,10 +142,10 @@ import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.registry.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
@@ -1448,7 +1449,8 @@ public final class DtoFactory {
         return dto;
     }
 
-    public ParameterContextDTO createParameterContextDto(final ParameterContext parameterContext, final RevisionManager revisionManager) {
+    public ParameterContextDTO createParameterContextDto(final ParameterContext parameterContext, final RevisionManager revisionManager,
+                                                         final boolean includeInheritedParameters, final ParameterContextLookup parameterContextLookup) {
         final ParameterContextDTO dto = new ParameterContextDTO();
         dto.setId(parameterContext.getIdentifier());
         dto.setName(parameterContext.getName());
@@ -1465,16 +1467,27 @@ public final class DtoFactory {
         dto.setBoundProcessGroups(boundGroups);
 
         final Set<ParameterEntity> parameterEntities = new LinkedHashSet<>();
-        for (final Parameter parameter : parameterContext.getParameters().values()) {
-            parameterEntities.add(createParameterEntity(parameterContext, parameter, revisionManager));
+        final Map<ParameterDescriptor, Parameter> parameters = includeInheritedParameters ? parameterContext.getEffectiveParameters()
+                : parameterContext.getParameters();
+        for (final Parameter parameter : parameters.values()) {
+            parameterEntities.add(createParameterEntity(parameterContext, parameter, revisionManager, parameterContextLookup));
         }
+
+        final List<ParameterContextReferenceEntity> parameterContextRefs = new ArrayList<>();
+        if (parameterContext.getInheritedParameterContexts() != null) {
+            parameterContextRefs.addAll(parameterContext.getInheritedParameterContexts().stream()
+                    .map(pc -> entityFactory.createParameterReferenceEntity(createParameterContextReference(pc), createPermissionsDto(pc)))
+                    .collect(Collectors.toList()));
+        }
+        dto.setInheritedParameterContexts(parameterContextRefs);
 
         dto.setParameters(parameterEntities);
         return dto;
     }
 
-    public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager) {
-        final ParameterDTO dto = createParameterDto(parameterContext, parameter, revisionManager);
+    public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager,
+                                                 final ParameterContextLookup parameterContextLookup) {
+        final ParameterDTO dto = createParameterDto(parameterContext, parameter, revisionManager, parameterContextLookup);
         final ParameterEntity entity = new ParameterEntity();
         entity.setParameter(dto);
 
@@ -1484,7 +1497,8 @@ public final class DtoFactory {
         return entity;
     }
 
-    public ParameterDTO createParameterDto(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager) {
+    public ParameterDTO createParameterDto(final ParameterContext parameterContext, final Parameter parameter,
+                                           final RevisionManager revisionManager, final ParameterContextLookup parameterContextLookup) {
         final ParameterDescriptor descriptor = parameter.getDescriptor();
 
         final ParameterDTO dto = new ParameterDTO();
@@ -1503,6 +1517,11 @@ public final class DtoFactory {
 
         final Set<AffectedComponentEntity> referencingComponentEntities = createAffectedComponentEntities(referencingComponents, revisionManager);
         dto.setReferencingComponents(referencingComponentEntities);
+
+        final ParameterContext containingParameterContext = (parameter.getParameterContextId() == null)
+                ? parameterContext : parameterContextLookup.getParameterContext(parameter.getParameterContextId());
+        ParameterContextReferenceDTO refDto = createParameterContextReference(containingParameterContext);
+        dto.setParameterContext(entityFactory.createParameterReferenceEntity(refDto, createPermissionsDto(containingParameterContext)));
 
         return dto;
     }
@@ -2512,6 +2531,9 @@ public final class DtoFactory {
         dto.setVersionControlInformation(createVersionControlInformationDto(group));
         dto.setFlowfileConcurrency(group.getFlowFileConcurrency().name());
         dto.setFlowfileOutboundPolicy(group.getFlowFileOutboundPolicy().name());
+        dto.setDefaultFlowFileExpiration(group.getDefaultFlowFileExpiration());
+        dto.setDefaultBackPressureObjectThreshold(group.getDefaultBackPressureObjectThreshold());
+        dto.setDefaultBackPressureDataSizeThreshold(group.getDefaultBackPressureDataSizeThreshold());
 
         final ParameterContext parameterContext = group.getParameterContext();
         if (parameterContext != null) {
@@ -4342,6 +4364,9 @@ public final class DtoFactory {
         copy.setVersionedComponentId(original.getVersionedComponentId());
         copy.setFlowfileConcurrency(original.getFlowfileConcurrency());
         copy.setFlowfileOutboundPolicy(original.getFlowfileOutboundPolicy());
+        copy.setDefaultFlowFileExpiration(original.getDefaultFlowFileExpiration());
+        copy.setDefaultBackPressureObjectThreshold(original.getDefaultBackPressureObjectThreshold());
+        copy.setDefaultBackPressureDataSizeThreshold(original.getDefaultBackPressureDataSizeThreshold());
 
         copy.setRunningCount(original.getRunningCount());
         copy.setStoppedCount(original.getStoppedCount());

@@ -17,7 +17,7 @@
 package org.apache.nifi.minifi.toolkit.configuration.registry;
 
 import org.apache.nifi.minifi.commons.schema.ControllerServiceSchema;
-import org.apache.nifi.registry.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedControllerService;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -276,7 +276,7 @@ class EncryptedSchemaRepositoryRecordSerdeTest extends GroovyTestCase {
 
         // Configure the serde with multiple keys available
         def multipleKeys = KEYS + [K2: "0F" * 32]
-        FlowFileRepositoryEncryptionConfiguration multipleKeyFFREC = new FlowFileRepositoryEncryptionConfiguration(KPI, KPL, KEY_ID, multipleKeys, REPO_IMPL)
+        FlowFileRepositoryEncryptionConfiguration multipleKeyFFREC = new FlowFileRepositoryEncryptionConfiguration(KPI, KPL, KEY_ID, multipleKeys, REPO_IMPL, null)
 
         esrrs = new EncryptedSchemaRepositoryRecordSerde(wrappedSerDe, multipleKeyFFREC)
         assert esrrs.getActiveKeyId() == "K1"

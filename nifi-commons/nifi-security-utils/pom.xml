@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-security-utils</artifactId>
     <description>
@@ -30,17 +30,22 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-kms</artifactId>
+            <version>1.15.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -68,7 +73,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>at.favre.lib</groupId>
@@ -128,18 +133,13 @@
             </activation>
             <dependencies>
                 <dependency>
-                    <groupId>javax.xml.bind</groupId>
-                    <artifactId>jaxb-api</artifactId>
+                    <groupId>jakarta.xml.bind</groupId>
+                    <artifactId>jakarta.xml.bind-api</artifactId>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
-                    <groupId>com.sun.xml.bind</groupId>
-                    <artifactId>jaxb-core</artifactId>
-                    <scope>test</scope>
-                </dependency>
-                <dependency>
-                    <groupId>com.sun.xml.bind</groupId>
-                    <artifactId>jaxb-impl</artifactId>
+                    <groupId>org.glassfish.jaxb</groupId>
+                    <artifactId>jaxb-runtime</artifactId>
                     <scope>test</scope>
                 </dependency>
                 <dependency>

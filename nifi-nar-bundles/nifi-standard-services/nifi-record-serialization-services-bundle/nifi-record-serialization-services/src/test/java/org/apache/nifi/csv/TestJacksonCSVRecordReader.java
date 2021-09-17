@@ -35,11 +35,8 @@ import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.sql.Date;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
-import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -85,6 +82,7 @@ public class TestJacksonCSVRecordReader {
 
     @Test
     public void testDate() throws IOException, MalformedRecordException {
+        final String dateValue = "1983-11-30";
         final String text = "date\n11/30/1983";
 
         final List<RecordField> fields = new ArrayList<>();
@@ -96,13 +94,8 @@ public class TestJacksonCSVRecordReader {
                      "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord();
-            final Date date = (Date) record.getValue("date");
-            final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("gmt"));
-            calendar.setTimeInMillis(date.getTime());
-
-            assertEquals(1983, calendar.get(Calendar.YEAR));
-            assertEquals(10, calendar.get(Calendar.MONTH));
-            assertEquals(30, calendar.get(Calendar.DAY_OF_MONTH));
+            final Object date = record.getValue("date");
+            assertEquals(java.sql.Date.valueOf(dateValue), date);
         }
     }
 
@@ -409,7 +402,7 @@ public class TestJacksonCSVRecordReader {
     }
 
     @Test
-    public void testMultipleRecordsEscapedWithSpecialChar() throws IOException, MalformedRecordException {
+    public void testMultipleRecordsDelimitedWithSpecialChar() throws IOException, MalformedRecordException {
 
         char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
 
@@ -419,11 +412,51 @@ public class TestJacksonCSVRecordReader {
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapedchar.csv");
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_spec_delimiter.csv");
             final JacksonCSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
+            Assert.assertArrayEquals(firstExpectedValues, firstRecord);
+
+            final Object[] secondRecord = reader.nextRecord().getValues();
+            final Object[] secondExpectedValues = new Object[] {"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
+            Assert.assertArrayEquals(secondExpectedValues, secondRecord);
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testMultipleRecordsEscapedWithChar() throws IOException {
+
+        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(",".charAt(0)).withEscape("\\".charAt(0));
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
+             final JacksonCSVRecordReader reader = createReader(fis, schema, format)) {
+
+            assertThrows(NumberFormatException.class, () -> reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testMultipleRecordsEscapedWithNull() throws IOException, MalformedRecordException {
+
+        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(",".charAt(0)).withEscape(null);
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
+             final JacksonCSVRecordReader reader = createReader(fis, schema, format)) {
+
+            final Object[] firstRecord = reader.nextRecord().getValues();
+            final Object[] firstExpectedValues = new Object[] {"1", "John Doe\\", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
             Assert.assertArrayEquals(firstExpectedValues, firstRecord);
 
             final Object[] secondRecord = reader.nextRecord().getValues();

@@ -15,13 +15,14 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-azure-bundle</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-azure-processors</artifactId>
     <packaging>jar</packaging>
     <properties>
         <azure-eventhubs.version>3.2.1</azure-eventhubs.version>
         <azure-eventhubs-eph.version>3.2.1</azure-eventhubs-eph.version>
+        <azure-keyvault.version>1.2.4</azure-keyvault.version>
     </properties>
     <dependencies>
         <dependency>
@@ -31,12 +32,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-service-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -53,7 +54,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-azure-services-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -82,6 +83,11 @@
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-eventhubs</artifactId>
             <version>${azure-eventhubs.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.azure</groupId>
+            <artifactId>azure-keyvault</artifactId>
+            <version>${azure-keyvault.version}</version>
         </dependency>
         <dependency>
             <groupId>com.microsoft.azure</groupId>
@@ -159,38 +165,38 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock-record-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-json-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-schema-registry-service-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-services</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -202,7 +208,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

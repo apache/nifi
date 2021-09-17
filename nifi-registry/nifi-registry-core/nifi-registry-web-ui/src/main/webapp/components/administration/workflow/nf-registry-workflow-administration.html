@@ -49,14 +49,14 @@ limitations under the License.
              fxLayoutAlign="space-between center" class="td-data-table">
             <div class="td-data-table-column" (click)="nfRegistryService.sortBuckets(column)"
                  *ngFor="let column of nfRegistryService.bucketColumns"
-                 fxFlex="{{column.width}}">
+                 fxFlex="1 1 {{column.width}}">
                 {{column.label}}
                 <i *ngIf="column.active && column.sortable && column.sortOrder === 'ASC'" class="fa fa-caret-up"
                    aria-hidden="true"></i>
                 <i *ngIf="column.active && column.sortable && column.sortOrder === 'DESC'" class="fa fa-caret-down"
                    aria-hidden="true"></i>
             </div>
-            <div class="td-data-table-column">
+            <div class="td-data-table-column" fxFlex="1 1 10%">
                 <div fxLayout="row" fxLayoutAlign="end center">
                     <mat-checkbox class="pad-left-sm" [(ngModel)]="nfRegistryService.allBucketsSelected"
                                   (checked)="nfRegistryService.allBucketsSelected"
@@ -70,12 +70,12 @@ limitations under the License.
                  *ngFor="let row of nfRegistryService.filteredBuckets"
                  (click)="row.checked = !row.checked;nfRegistryService.determineAllBucketsSelectedState()">
                 <div class="td-data-table-cell" *ngFor="let column of nfRegistryService.bucketColumns"
-                     fxFlex="{{column.width}}">
+                     fxFlex="1 1 {{column.width}}">
                     <div class="ellipsis" matTooltip="{{column.format ? column.format(row[column.name]) : row[column.name]}}">
                         {{column.format ? column.format(row[column.name]) : row[column.name]}}
                     </div>
                 </div>
-                <div class="td-data-table-cell">
+                <div class="td-data-table-cell" fxFlex="1 1 10%">
                     <div>
                         <div *ngIf="nfRegistryService.bucketActions.length <= 4" fxLayout="row" fxLayoutAlign="end center">
                             <button (click)="nfRegistryService.executeBucketAction(action, row);row.checked = !row.checked;"

@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.authorization;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestAccessPolicy {
 
@@ -58,22 +59,22 @@ public class TestAccessPolicy {
         assertEquals(RequestAction.READ, policy.getAction());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testMissingIdentifier() {
-        new AccessPolicy.Builder()
+        assertThrows(IllegalArgumentException.class, () -> new AccessPolicy.Builder()
                 .resource(TEST_RESOURCE)
                 .addUser("user1")
                 .action(RequestAction.READ)
-                .build();
+                .build());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testMissingResource() {
-        new AccessPolicy.Builder()
+        assertThrows(IllegalArgumentException.class, () -> new AccessPolicy.Builder()
                 .identifier("1")
                 .addUser("user1")
                 .action(RequestAction.READ)
-                .build();
+                .build());
     }
 
     @Test
@@ -87,13 +88,13 @@ public class TestAccessPolicy {
         assertNotNull(policy);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testMissingActions() {
-        new AccessPolicy.Builder()
+        assertThrows(IllegalArgumentException.class, () -> new AccessPolicy.Builder()
                 .identifier("1")
                 .resource(TEST_RESOURCE)
                 .addUser("user1")
-                .build();
+                .build());
     }
 
     @Test
@@ -140,7 +141,7 @@ public class TestAccessPolicy {
         assertEquals(policy.getAction(), policy2.getAction());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testFromPolicyAndChangeIdentifier() {
         final AccessPolicy policy = new AccessPolicy.Builder()
                 .identifier("1")
@@ -149,7 +150,7 @@ public class TestAccessPolicy {
                 .action(RequestAction.READ)
                 .build();
 
-        new AccessPolicy.Builder(policy).identifier("2").build();
+        assertThrows(IllegalStateException.class, () -> new AccessPolicy.Builder(policy).identifier("2").build());
     }
 
     @Test

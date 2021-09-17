@@ -18,12 +18,12 @@
 package org.apache.nifi.stateless;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.registry.flow.Bundle;
+import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.stateless.bootstrap.EmptyParameterProvider;
 import org.apache.nifi.stateless.bootstrap.StatelessBootstrap;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
+import org.apache.nifi.stateless.config.ParameterValueProviderDefinition;
 import org.apache.nifi.stateless.config.ReportingTaskDefinition;
 import org.apache.nifi.stateless.config.SslContextDefinition;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
@@ -44,6 +44,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -94,6 +95,14 @@ public class StatelessSystemIT {
             }
 
             @Override
+            public Optional<File> getContentRepositoryDirectory() {
+                return Optional.empty();
+
+                // Can be used to enable file-based content repository.
+//                return Optional.of(new File("target/nifi-stateless-content-repo"));
+            }
+
+            @Override
             public SslContextDefinition getSslContext() {
                 return null;
             }
@@ -137,8 +146,14 @@ public class StatelessSystemIT {
 
     protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts, final Set<String> failurePortNames,
                                              final TransactionThresholds transactionThresholds) throws IOException, StatelessConfigurationException {
+        return loadDataflow(versionedFlowSnapshot, parameterContexts, Collections.emptyList(), failurePortNames, transactionThresholds);
+    }
 
-            final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition = new DataflowDefinition<VersionedFlowSnapshot>() {
+    protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts,
+                                             final List<ParameterValueProviderDefinition> parameterValueProviderDefinitions, final Set<String> failurePortNames,
+                                             final TransactionThresholds transactionThresholds) throws IOException, StatelessConfigurationException {
+
+        final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition = new DataflowDefinition<VersionedFlowSnapshot>() {
             @Override
             public VersionedFlowSnapshot getFlowSnapshot() {
                 return versionedFlowSnapshot;
@@ -161,7 +176,12 @@ public class StatelessSystemIT {
 
             @Override
             public List<ReportingTaskDefinition> getReportingTaskDefinitions() {
-                return Collections.emptyList();
+            return Collections.emptyList();
+        }
+
+            @Override
+            public List<ParameterValueProviderDefinition> getParameterValueProviderDefinitions() {
+                return parameterValueProviderDefinitions;
             }
 
             @Override
@@ -171,7 +191,7 @@ public class StatelessSystemIT {
         };
 
         final StatelessBootstrap bootstrap = StatelessBootstrap.bootstrap(getEngineConfiguration());
-        final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition, new EmptyParameterProvider());
+        final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition);
         dataflow.initialize();
 
         createdFlows.add(dataflow);

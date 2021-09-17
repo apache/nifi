@@ -312,6 +312,15 @@ public class FingerprintFactory {
             }
         }
 
+        final List<Element> inheritedParameterContexts = DomUtils.getChildElementsByTagName(parameterContextElement, "inheritedParameterContextId");
+        if (inheritedParameterContexts == null || inheritedParameterContexts.isEmpty()) {
+            builder.append("NO_INHERITED_PARAMETER_CONTEXT_IDS");
+        } else {
+            for (final Element inheritedParameterContextId : inheritedParameterContexts) {
+                builder.append(inheritedParameterContextId.getTextContent());
+            }
+        }
+
         return builder;
     }
 
@@ -346,6 +355,9 @@ public class FingerprintFactory {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "parameterContextId"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "flowfileConcurrency"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "flowfileOutboundPolicy"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "defaultFlowFileExpiration"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "defaultBackPressureObjectThreshold"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "defaultBackPressureDataSizeThreshold"));
 
         final Element versionControlInfo = DomUtils.getChild(processGroupElem, "versionControlInformation");
         if (versionControlInfo == null) {
@@ -554,6 +566,7 @@ public class FingerprintFactory {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "name"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "allowRemoteAccess"));
 
+        // user access control
         final NodeList userAccessControlNodeList = DomUtils.getChildNodesByTagName(portElem, "userAccessControl");
         if (userAccessControlNodeList == null || userAccessControlNodeList.getLength() == 0) {
             builder.append("NO_USER_ACCESS_CONTROL");
@@ -568,7 +581,8 @@ public class FingerprintFactory {
             }
         }
 
-        final NodeList groupAccessControlNodeList = DomUtils.getChildNodesByTagName(portElem, "userAccessControl");
+        // group access control
+        final NodeList groupAccessControlNodeList = DomUtils.getChildNodesByTagName(portElem, "groupAccessControl");
         if (groupAccessControlNodeList == null || groupAccessControlNodeList.getLength() == 0) {
             builder.append("NO_GROUP_ACCESS_CONTROL");
         } else {
@@ -668,7 +682,6 @@ public class FingerprintFactory {
 
         return builder;
     }
-
 
     private StringBuilder addConnectionFingerprint(final StringBuilder builder, final Element connectionElem) throws FingerprintException {
         // id
@@ -882,21 +895,11 @@ public class FingerprintFactory {
     }
 
     private String getValue(final Node node, final String defaultValue) {
-        final String value;
-        if (node.getTextContent() == null || StringUtils.isBlank(node.getTextContent())) {
-            value = defaultValue;
-        } else {
-            value = node.getTextContent().trim();
-        }
-        return value;
+        return StringUtils.isBlank(node.getTextContent()) ? defaultValue : node.getTextContent().trim();
     }
 
     private String getValue(final String value, final String defaultValue) {
-        if (StringUtils.isBlank(value)) {
-            return defaultValue;
-        } else {
-            return value;
-        }
+        return StringUtils.isBlank(value) ? defaultValue : value;
     }
 
     private String getFirstValue(final NodeList nodeList) {
@@ -904,13 +907,7 @@ public class FingerprintFactory {
     }
 
     private String getFirstValue(final NodeList nodeList, final String defaultValue) {
-        final String value;
-        if (nodeList == null || nodeList.getLength() == 0) {
-            value = defaultValue;
-        } else {
-            value = getValue(nodeList.item(0));
-        }
-        return value;
+        return nodeList == null || nodeList.getLength() == 0 ? defaultValue : getValue(nodeList.item(0));
     }
 
     private StringBuilder appendFirstValue(final StringBuilder builder, final NodeList nodeList) {

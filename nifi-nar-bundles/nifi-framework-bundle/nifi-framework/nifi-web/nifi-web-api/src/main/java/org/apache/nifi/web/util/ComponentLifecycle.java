@@ -47,7 +47,8 @@ public interface ComponentLifecycle {
      *
      * @param exampleUri an URI to use as a base for the REST API
      * @param groupId the ID of the process group
-     * @param services the controller services to enable or disable
+     * @param servicesToUpdate the controller services to enable or disable
+     * @param servicesRequiringDesiredState the controller services whose state must be transitioned to the desired state before returning
      * @param desiredState the desired state of the components
      * @param pause a pause that can be used to determine how long to wait between polling for task completion and that can also be used to cancel the operation
      * @param invalidComponentAction when waiting for a component to reach the specified desired state, indicates how the deal with a component that is invalid
@@ -56,6 +57,6 @@ public interface ComponentLifecycle {
      *
      * @throws IllegalStateException if any of the components given do not have a state that can be transitioned to the given desired state
      */
-    Set<AffectedComponentEntity> activateControllerServices(URI exampleUri, String groupId, Set<AffectedComponentEntity> services,
+    Set<AffectedComponentEntity> activateControllerServices(URI exampleUri, String groupId, Set<AffectedComponentEntity> servicesToUpdate, Set<AffectedComponentEntity> servicesRequiringDesiredState,
         ControllerServiceState desiredState, Pause pause, InvalidComponentAction invalidComponentAction) throws LifecycleManagementException;
 }

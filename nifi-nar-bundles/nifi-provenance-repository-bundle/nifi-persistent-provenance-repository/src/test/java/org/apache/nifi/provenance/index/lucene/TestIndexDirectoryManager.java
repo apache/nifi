@@ -18,7 +18,7 @@
 package org.apache.nifi.provenance.index.lucene;
 
 import org.apache.nifi.provenance.RepositoryConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -28,8 +28,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestIndexDirectoryManager {
 
@@ -132,7 +132,7 @@ public class TestIndexDirectoryManager {
     }
 
     @Test
-    public void testGetDirectoriesBefore() throws InterruptedException {
+    public void testGetDirectoriesBefore() {
         final RepositoryConfiguration config = createConfig(2);
         config.setDesiredIndexSize(4096 * 128);
 
