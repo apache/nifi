@@ -26,26 +26,21 @@ import java.util.Optional;
 
 import org.apache.nifi.provenance.schema.LookupTableEventRecord;
 import org.apache.nifi.provenance.toc.TocReader;
+import org.apache.nifi.repository.encryption.RepositoryEncryptor;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader {
-    private static final Logger logger = LoggerFactory.getLogger(EncryptedSchemaRecordReader.class);
-
-    private ProvenanceEventEncryptor provenanceEventEncryptor;
-
-    public static final int SERIALIZATION_VERSION = 1;
+    private RepositoryEncryptor<byte[], byte[]> repositoryEncryptor;
 
     public static final String SERIALIZATION_NAME = "EncryptedSchemaRecordWriter";
 
 
     public EncryptedSchemaRecordReader(final InputStream inputStream, final String filename, final TocReader tocReader, final int maxAttributeChars,
-                                       ProvenanceEventEncryptor provenanceEventEncryptor) throws IOException {
+                                       final RepositoryEncryptor<byte[], byte[]> repositoryEncryptor) throws IOException {
         super(inputStream, filename, tocReader, maxAttributeChars);
-        this.provenanceEventEncryptor = provenanceEventEncryptor;
+        this.repositoryEncryptor = repositoryEncryptor;
     }
 
     @Override
@@ -60,29 +55,24 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
     }
 
     private StandardProvenanceEventRecord readRecord(final DataInputStream inputStream, final long eventId, final long startOffset, final int recordLength) throws IOException {
-        try {
-            final InputStream limitedIn = new LimitingInputStream(inputStream, recordLength);
+        final InputStream limitedIn = new LimitingInputStream(inputStream, recordLength);
 
-            byte[] encryptedSerializedBytes = new byte[recordLength];
-            DataInputStream encryptedInputStream = new DataInputStream(limitedIn);
-            encryptedInputStream.readFully(encryptedSerializedBytes);
+        byte[] encryptedSerializedBytes = new byte[recordLength];
+        DataInputStream encryptedInputStream = new DataInputStream(limitedIn);
+        encryptedInputStream.readFully(encryptedSerializedBytes);
 
-            byte[] plainSerializedBytes = decrypt(encryptedSerializedBytes, Long.toString(eventId));
-            InputStream plainStream = new ByteArrayInputStream(plainSerializedBytes);
+        byte[] plainSerializedBytes = decrypt(encryptedSerializedBytes, Long.toString(eventId));
+        InputStream plainStream = new ByteArrayInputStream(plainSerializedBytes);
 
-            final Record eventRecord = getRecordReader().readRecord(plainStream);
-            if (eventRecord == null) {
-                return null;
-            }
-
-            final StandardProvenanceEventRecord deserializedEvent = LookupTableEventRecord.getEvent(eventRecord, getFilename(), startOffset, getMaxAttributeLength(),
-                    getFirstEventId(), getSystemTimeOffset(), getComponentIds(), getComponentTypes(), getQueueIds(), getEventTypes());
-            deserializedEvent.setEventId(eventId);
-            return deserializedEvent;
-        } catch (EncryptionException e) {
-            logger.error("Encountered an error reading the record: ", e);
-            throw new IOException(e);
+        final Record eventRecord = getRecordReader().readRecord(plainStream);
+        if (eventRecord == null) {
+            return null;
         }
+
+        final StandardProvenanceEventRecord deserializedEvent = LookupTableEventRecord.getEvent(eventRecord, getFilename(), startOffset, getMaxAttributeLength(),
+                getFirstEventId(), getSystemTimeOffset(), getComponentIds(), getComponentTypes(), getQueueIds(), getEventTypes());
+        deserializedEvent.setEventId(eventId);
+        return deserializedEvent;
     }
 
     // TODO: Copied from EventIdFirstSchemaRecordReader to force local/overridden readRecord()
@@ -107,13 +97,8 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
         return Optional.empty();
     }
 
-    private byte[] decrypt(byte[] encryptedBytes, String eventId) throws IOException, EncryptionException {
-        try {
-            return provenanceEventEncryptor.decrypt(encryptedBytes, eventId);
-        } catch (Exception e) {
-            logger.error("Encountered an error: ", e);
-            throw new EncryptionException(e);
-        }
+    private byte[] decrypt(byte[] encryptedBytes, String eventId) {
+        return repositoryEncryptor.decrypt(encryptedBytes, eventId);
     }
 
     @Override
@@ -133,9 +118,9 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
      * Sets the encryptor to use (necessary because the
      * {@link org.apache.nifi.provenance.serialization.RecordReaders#newRecordReader(File, Collection, int)} method doesn't accept the encryptor.
      *
-     * @param provenanceEventEncryptor the encryptor
+     * @param repositoryEncryptor Repository Encryptor
      */
-    void setProvenanceEventEncryptor(ProvenanceEventEncryptor provenanceEventEncryptor) {
-        this.provenanceEventEncryptor = provenanceEventEncryptor;
+    void setRepositoryEncryptor(final RepositoryEncryptor<byte[], byte[]> repositoryEncryptor) {
+        this.repositoryEncryptor = repositoryEncryptor;
     }
 }

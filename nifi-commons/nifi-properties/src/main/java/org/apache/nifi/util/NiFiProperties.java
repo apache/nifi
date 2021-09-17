@@ -88,6 +88,13 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String BACKPRESSURE_COUNT = "nifi.queue.backpressure.count";
     public static final String BACKPRESSURE_SIZE = "nifi.queue.backpressure.size";
 
+    // Encryption Properties for all Repositories
+    public static final String REPOSITORY_ENCRYPTION_PROTOCOL_VERSION = "nifi.repository.encryption.protocol.version";
+    public static final String REPOSITORY_ENCRYPTION_KEY_ID = "nifi.repository.encryption.key.id";
+    public static final String REPOSITORY_ENCRYPTION_KEY_PROVIDER = "nifi.repository.encryption.key.provider";
+    public static final String REPOSITORY_ENCRYPTION_KEY_PROVIDER_KEYSTORE_LOCATION = "nifi.repository.encryption.key.provider.keystore.location";
+    public static final String REPOSITORY_ENCRYPTION_KEY_PROVIDER_KEYSTORE_PASSWORD = "nifi.repository.encryption.key.provider.keystore.password";
+
     // content repository properties
     public static final String REPOSITORY_CONTENT_PREFIX = "nifi.content.repository.directory.";
     public static final String CONTENT_REPOSITORY_IMPLEMENTATION = "nifi.content.repository.implementation";
@@ -1642,7 +1649,7 @@ public class NiFiProperties extends ApplicationProperties {
     }
 
     public String getFlowFileRepoEncryptionKeyId() {
-        return getProperty(FLOWFILE_REPOSITORY_ENCRYPTION_KEY_ID);
+        return getProperty(FLOWFILE_REPOSITORY_ENCRYPTION_KEY_ID, getProperty(REPOSITORY_ENCRYPTION_KEY_ID));
     }
 
     /**
@@ -1773,7 +1780,7 @@ public class NiFiProperties extends ApplicationProperties {
     }
 
     public String getProvenanceRepoEncryptionKeyId() {
-        return getProperty(PROVENANCE_REPO_ENCRYPTION_KEY_ID);
+        return getProperty(PROVENANCE_REPO_ENCRYPTION_KEY_ID, getProperty(REPOSITORY_ENCRYPTION_KEY_ID));
     }
 
     /**
@@ -1804,7 +1811,7 @@ public class NiFiProperties extends ApplicationProperties {
     }
 
     public String getContentRepositoryEncryptionKeyId() {
-        return getProperty(CONTENT_REPOSITORY_ENCRYPTION_KEY_ID);
+        return getProperty(CONTENT_REPOSITORY_ENCRYPTION_KEY_ID, getProperty(REPOSITORY_ENCRYPTION_KEY_ID));
     }
 
     /**
