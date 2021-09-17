@@ -27,7 +27,8 @@ import org.apache.nifi.distributed.cache.client.adapter.SetInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.ValueInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.VoidInboundAdapter;
 import org.apache.nifi.distributed.cache.operations.MapOperation;
-import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
+import org.apache.nifi.remote.VersionNegotiatorFactory;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -43,11 +44,11 @@ public class NettyDistributedMapCacheClient extends DistributedCacheClient {
     /**
      * Constructor.
      *
-     * @param context           the NiFi configuration to be applied to the channel pool
-     * @param versionNegotiator coordinator used to broker the version of the distributed cache protocol with the service
+     * @param context the NiFi configuration to be applied to the channel pool
+     * @param factory creator of object used to broker the version of the distributed cache protocol with the service
      */
-    public NettyDistributedMapCacheClient(final ConfigurationContext context, final VersionNegotiator versionNegotiator) {
-        super(context, versionNegotiator);
+    public NettyDistributedMapCacheClient(final ConfigurationContext context, final VersionNegotiatorFactory factory) {
+        super(context, factory);
     }
 
     /**
@@ -161,6 +162,7 @@ public class NettyDistributedMapCacheClient extends DistributedCacheClient {
      */
     public <K, V> Map<K, V> subMap(Collection<byte[]> keys, final MapValuesInboundAdapter<K, V> mapAdapter) throws IOException {
         final OutboundAdapter outboundAdapter = new OutboundAdapter()
+                .minimumVersion(ProtocolVersion.V3.value())
                 .write(MapOperation.SUBMAP.value())
                 .write(keys);
         invoke(outboundAdapter, mapAdapter);
@@ -196,6 +198,7 @@ public class NettyDistributedMapCacheClient extends DistributedCacheClient {
      */
     public <V> V removeAndGet(final byte[] key, final ValueInboundAdapter<V> valueAdapter) throws IOException {
         final OutboundAdapter outboundAdapter = new OutboundAdapter()
+                .minimumVersion(ProtocolVersion.V3.value())
                 .write(MapOperation.REMOVE_AND_GET.value())
                 .write(key);
         invoke(outboundAdapter, valueAdapter);
@@ -230,6 +233,7 @@ public class NettyDistributedMapCacheClient extends DistributedCacheClient {
      */
     public <K, V> Map<K, V> removeByPatternAndGet(String regex, final MapInboundAdapter<K, V> mapAdapter) throws IOException {
         final OutboundAdapter outboundAdapter = new OutboundAdapter()
+                .minimumVersion(ProtocolVersion.V3.value())
                 .write(MapOperation.REMOVE_BY_PATTERN_AND_GET.value())
                 .write(regex);
         invoke(outboundAdapter, mapAdapter);
@@ -249,6 +253,7 @@ public class NettyDistributedMapCacheClient extends DistributedCacheClient {
     public <K, V> AtomicCacheEntry<K, V, Long> fetch(
             final byte[] key, final AtomicCacheEntryInboundAdapter<K, V> inboundAdapter) throws IOException {
         final OutboundAdapter outboundAdapter = new OutboundAdapter()
+                .minimumVersion(ProtocolVersion.V2.value())
                 .write(MapOperation.FETCH.value())
                 .write(key);
         invoke(outboundAdapter, inboundAdapter);
@@ -266,6 +271,7 @@ public class NettyDistributedMapCacheClient extends DistributedCacheClient {
      */
     public boolean replace(final byte[] key, final byte[] value, final long revision) throws IOException {
         final OutboundAdapter outboundAdapter = new OutboundAdapter()
+                .minimumVersion(ProtocolVersion.V2.value())
                 .write(MapOperation.REPLACE.value())
                 .write(key)
                 .write(revision)
@@ -285,6 +291,7 @@ public class NettyDistributedMapCacheClient extends DistributedCacheClient {
      */
     public <K> Set<K> keySet(final SetInboundAdapter<K> setAdapter) throws IOException {
         final OutboundAdapter outboundAdapter = new OutboundAdapter()
+                .minimumVersion(ProtocolVersion.V3.value())
                 .write(MapOperation.KEYSET.value());
         invoke(outboundAdapter, setAdapter);
         return setAdapter.getResult();

@@ -21,7 +21,7 @@ import io.netty.channel.pool.ChannelPool;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.client.adapter.InboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.OutboundAdapter;
-import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.remote.VersionNegotiatorFactory;
 
 import java.io.IOException;
 
@@ -39,11 +39,11 @@ public class DistributedCacheClient {
     /**
      * Constructor.
      *
-     * @param context           the NiFi configuration to be applied to the channel pool
-     * @param versionNegotiator coordinator used to broker the version of the distributed cache protocol with the service
+     * @param context the NiFi configuration to be applied to the channel pool
+     * @param factory creator of object used to broker the version of the distributed cache protocol with the service
      */
-    protected DistributedCacheClient(final ConfigurationContext context, final VersionNegotiator versionNegotiator) {
-        this.channelPool = CacheClientChannelPoolFactory.createChannelPool(context, versionNegotiator);
+    protected DistributedCacheClient(final ConfigurationContext context, final VersionNegotiatorFactory factory) {
+        this.channelPool = new CacheClientChannelPoolFactory().createChannelPool(context, factory);
     }
 
     /**
@@ -57,8 +57,7 @@ public class DistributedCacheClient {
         final Channel channel = channelPool.acquire().syncUninterruptibly().getNow();
         try {
             final CacheClientRequestHandler requestHandler = (CacheClientRequestHandler) channel.pipeline().last();
-            final byte[] message = outboundAdapter.toBytes();
-            requestHandler.invoke(channel, message, inboundAdapter);
+            requestHandler.invoke(channel, outboundAdapter, inboundAdapter);
         } finally {
             channelPool.release(channel).syncUninterruptibly();
         }

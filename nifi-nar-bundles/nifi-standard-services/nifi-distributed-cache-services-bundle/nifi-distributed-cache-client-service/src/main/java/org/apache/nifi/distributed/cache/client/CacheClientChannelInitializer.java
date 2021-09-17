@@ -21,6 +21,7 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslHandler;
 import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.remote.VersionNegotiatorFactory;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -37,19 +38,20 @@ public class CacheClientChannelInitializer extends ChannelInitializer<Channel> {
     private final SSLContext sslContext;
 
     /**
-     * The version of the protocol negotiated between the client and server.
+     * The factory used to create the {@link org.apache.nifi.remote.VersionNegotiator}
+     * upon initialization of the channel.
      */
-    private final VersionNegotiator versionNegotiator;
+    private final VersionNegotiatorFactory versionNegotiatorFactory;
 
     /**
      * Constructor.
      *
-     * @param sslContext        the secure context (if any) to be associated with the channel
-     * @param versionNegotiator coordinator used to broker the version of the distributed cache protocol with the service
+     * @param sslContext the secure context (if any) to be associated with the channel
+     * @param factory    creator of object used to broker the version of the distributed cache protocol with the service
      */
-    public CacheClientChannelInitializer(final SSLContext sslContext, VersionNegotiator versionNegotiator) {
+    public CacheClientChannelInitializer(final SSLContext sslContext, final VersionNegotiatorFactory factory) {
         this.sslContext = sslContext;
-        this.versionNegotiator = versionNegotiator;
+        this.versionNegotiatorFactory = factory;
     }
 
     @Override
@@ -63,6 +65,7 @@ public class CacheClientChannelInitializer extends ChannelInitializer<Channel> {
             channelPipeline.addLast(sslHandler);
         }
 
+        final VersionNegotiator versionNegotiator = versionNegotiatorFactory.create();
         channelPipeline.addLast(new CacheClientHandshakeHandler(channel, versionNegotiator));
         channelPipeline.addLast(new CacheClientRequestHandler());
     }

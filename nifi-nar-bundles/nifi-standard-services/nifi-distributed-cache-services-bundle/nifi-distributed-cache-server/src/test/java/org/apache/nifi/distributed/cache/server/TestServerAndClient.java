@@ -380,15 +380,11 @@ public class TestServerAndClient {
         runner.enableControllerService(server);
 
         DistributedMapCacheClientService client = new DistributedMapCacheClientService();
-        MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client");
-        client.initialize(clientInitContext);
+        runner.addControllerService("client", client);
+        runner.setProperty(client, DistributedMapCacheClientService.HOSTNAME, "localhost");
+        runner.setProperty(client, DistributedMapCacheClientService.PORT, String.valueOf(server.getPort()));
+        runner.enableControllerService(client);
 
-        final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
-        clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(server.getPort()));
-        clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
-        MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
-        client.onEnabled(clientContext);
         final Serializer<String> valueSerializer = new StringSerializer();
         final Serializer<String> keySerializer = new StringSerializer();
         final Deserializer<String> deserializer = new StringDeserializer();
@@ -437,7 +433,7 @@ public class TestServerAndClient {
         assertFalse(containedAfterRemove);
 
         client.putIfAbsent("testKey", "test", keySerializer, valueSerializer);
-        client.close();
+        runner.disableControllerService(client);
         try {
             client.containsKey("testKey", keySerializer);
             fail("Should be closed and not accessible");
@@ -446,12 +442,11 @@ public class TestServerAndClient {
         }
 
         DistributedMapCacheClientService client2 = new DistributedMapCacheClientService();
-        MockControllerServiceInitializationContext clientInitContext2 = new MockControllerServiceInitializationContext(client2, "client2");
-        client2.initialize(clientInitContext2);
+        runner.addControllerService("client2", client2);
+        runner.setProperty(client2, DistributedMapCacheClientService.HOSTNAME, "localhost");
+        runner.setProperty(client2, DistributedMapCacheClientService.PORT, String.valueOf(server.getPort()));
+        runner.enableControllerService(client2);
 
-        MockConfigurationContext clientContext2 = new MockConfigurationContext(clientProperties,
-            clientInitContext2.getControllerServiceLookup());
-        client2.onEnabled(clientContext2);
         assertFalse(client2.putIfAbsent("testKey", "test", keySerializer, valueSerializer));
         assertTrue(client2.containsKey("testKey", keySerializer));
         server.shutdownServer();
@@ -461,8 +456,6 @@ public class TestServerAndClient {
             fail("Should have blown exception!");
         } catch (final ConnectException e) {
             client2 = null;
-            clientContext2 = null;
-            clientInitContext2 = null;
         }
         LOGGER.debug("end testNonPersistentMapServerAndClient");
     }

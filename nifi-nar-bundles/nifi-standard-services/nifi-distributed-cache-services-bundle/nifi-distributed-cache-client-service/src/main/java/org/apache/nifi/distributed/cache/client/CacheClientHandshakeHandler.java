@@ -40,6 +40,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class CacheClientHandshakeHandler extends ChannelInboundHandlerAdapter {
 
+    private static final int PROTOCOL_UNINITIALIZED = 0;
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
@@ -80,6 +82,13 @@ public class CacheClientHandshakeHandler extends ChannelInboundHandlerAdapter {
      */
     public void waitHandshakeComplete() {
         promiseHandshakeComplete.awaitUninterruptibly();
+    }
+
+    /**
+     * @return the coordinator used to broker the version of the distributed cache protocol with the service
+     */
+    public VersionNegotiator getVersionNegotiator() {
+        return versionNegotiator;
     }
 
     @Override
@@ -124,9 +133,10 @@ public class CacheClientHandshakeHandler extends ChannelInboundHandlerAdapter {
             protocol.set(versionNegotiator.getVersion());
         } else if (statusCode == ProtocolHandshake.DIFFERENT_RESOURCE_VERSION) {
             final int newVersion = byteBuf.readInt();
-            logger.debug("Protocol version {} counter proposal", newVersion);
+            logger.debug("Received protocol version {} counter proposal", newVersion);
             final Integer newPreference = versionNegotiator.getPreferredVersion(newVersion);
-            Optional.ofNullable(newPreference).orElseThrow(() -> new HandshakeException("Could not agree on protocol version"));
+            Optional.ofNullable(newPreference).orElseThrow(() -> new HandshakeException(
+                    String.format("Received unsupported protocol version proposal [%d]", newVersion)));
             versionNegotiator.setVersion(newPreference);
             ctx.writeAndFlush(Unpooled.wrappedBuffer(new OutboundAdapter().write(newPreference).toBytes()));
         } else if (statusCode == ProtocolHandshake.ABORT) {
@@ -147,6 +157,4 @@ public class CacheClientHandshakeHandler extends ChannelInboundHandlerAdapter {
             promiseHandshakeComplete.setSuccess();
         }
     }
-
-    private static final int PROTOCOL_UNINITIALIZED = 0;
 }

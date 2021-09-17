@@ -27,8 +27,8 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.remote.StandardVersionNegotiator;
-import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.remote.StandardVersionNegotiatorFactory;
+import org.apache.nifi.remote.VersionNegotiatorFactory;
 import org.apache.nifi.ssl.SSLContextService;
 
 import java.io.IOException;
@@ -76,9 +76,9 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
     private volatile NettyDistributedSetCacheClient cacheClient = null;
 
     /**
-     * Coordinator used to broker the version of the distributed cache protocol with the service.
+     * Creator of object used to broker the version of the distributed cache protocol with the service.
      */
-    private volatile VersionNegotiator versionNegotiator = null;
+    private volatile VersionNegotiatorFactory versionNegotiatorFactory = null;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -92,19 +92,17 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        super.enabled();
         getLogger().debug("Enabling Set Cache Client Service [{}]", context.getName());
-        this.versionNegotiator = new StandardVersionNegotiator(ProtocolVersion.V1.value());
-        this.cacheClient = new NettyDistributedSetCacheClient(context, versionNegotiator);
+        this.versionNegotiatorFactory = new StandardVersionNegotiatorFactory(ProtocolVersion.V1.value());
+        this.cacheClient = new NettyDistributedSetCacheClient(context, versionNegotiatorFactory);
     }
 
     @OnDisabled
     public void onDisabled() throws IOException {
         getLogger().debug("Disabling Set Cache Client Service");
         this.cacheClient.close();
-        this.versionNegotiator = null;
+        this.versionNegotiatorFactory = null;
         this.cacheClient = null;
-        super.disabled();
     }
 
     @OnStopped

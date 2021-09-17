@@ -28,6 +28,13 @@ import java.util.Collection;
  */
 public class OutboundAdapter {
 
+    private static final int NO_MINIMUM_VERSION = 0;
+
+    /**
+     * Minimum version required for the invocation of the specified API.
+     */
+    private int minimumVersion;
+
     /**
      * Container for service request payload.
      */
@@ -42,8 +49,18 @@ public class OutboundAdapter {
      * Constructor.
      */
     public OutboundAdapter() {
+        minimumVersion = NO_MINIMUM_VERSION;
         bos = new ByteArrayOutputStream();
         dos = new DataOutputStream(bos);
+    }
+
+    public int getMinimumVersion() {
+        return minimumVersion;
+    }
+
+    public OutboundAdapter minimumVersion(final int minimumVersion) {
+        this.minimumVersion = minimumVersion;
+        return this;
     }
 
     /**

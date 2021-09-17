@@ -32,8 +32,8 @@ import org.apache.nifi.distributed.cache.client.adapter.SetInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.ValueInboundAdapter;
 import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.remote.StandardVersionNegotiator;
-import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.remote.StandardVersionNegotiatorFactory;
+import org.apache.nifi.remote.VersionNegotiatorFactory;
 import org.apache.nifi.ssl.SSLContextService;
 
 import java.io.IOException;
@@ -50,6 +50,8 @@ import java.util.Set;
 @CapabilityDescription("Provides the ability to communicate with a DistributedMapCacheServer. This can be used in order to share a Map "
     + "between nodes in a NiFi cluster")
 public class DistributedMapCacheClientService extends AbstractControllerService implements AtomicDistributedMapCacheClient<Long> {
+
+    private static final long DEFAULT_CACHE_REVISION = 0L;
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
         .name("Server Hostname")
@@ -86,9 +88,9 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     private volatile NettyDistributedMapCacheClient cacheClient = null;
 
     /**
-     * Coordinator used to broker the version of the distributed cache protocol with the service.
+     * Creator of object used to broker the version of the distributed cache protocol with the service.
      */
-    private volatile VersionNegotiator versionNegotiator = null;
+    private volatile VersionNegotiatorFactory versionNegotiatorFactory = null;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -102,20 +104,18 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        super.enabled();
         getLogger().debug("Enabling Map Cache Client Service [{}]", context.getName());
-        this.versionNegotiator = new StandardVersionNegotiator(
+        this.versionNegotiatorFactory  = new StandardVersionNegotiatorFactory(
                 ProtocolVersion.V3.value(), ProtocolVersion.V2.value(), ProtocolVersion.V1.value());
-        this.cacheClient = new NettyDistributedMapCacheClient(context, versionNegotiator);
+        this.cacheClient = new NettyDistributedMapCacheClient(context, versionNegotiatorFactory);
     }
 
     @OnDisabled
     public void onDisabled() throws IOException {
         getLogger().debug("Disabling Map Cache Client Service");
         this.cacheClient.close();
-        this.versionNegotiator = null;
+        this.versionNegotiatorFactory = null;
         this.cacheClient = null;
-        super.disabled();
     }
 
     @OnStopped
@@ -136,7 +136,7 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         final byte[] bytesKey = CacheClientSerde.serialize(key, keySerializer);
         final byte[] bytesValue = CacheClientSerde.serialize(value, valueSerializer);
-        cacheClient.putIfAbsent(bytesKey, bytesValue);
+        cacheClient.put(bytesKey, bytesValue);
     }
 
     @Override
@@ -162,7 +162,6 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
 
     @Override
     public <K, V> Map<K, V> subMap(Set<K> keys, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
-        validateProtocolVersion(ProtocolVersion.V3.value());
         Collection<byte[]> bytesKeys = CacheClientSerde.serialize(keys, keySerializer);
         final MapValuesInboundAdapter<K, V> inboundAdapter =
                 new MapValuesInboundAdapter<>(keys, valueDeserializer, new HashMap<>());
@@ -177,7 +176,6 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
 
     @Override
     public <K, V> V removeAndGet(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
-        validateProtocolVersion(ProtocolVersion.V3.value());
         final byte[] bytesKey = CacheClientSerde.serialize(key, keySerializer);
         final ValueInboundAdapter<V> inboundAdapter = new ValueInboundAdapter<>(valueDeserializer);
         return cacheClient.removeAndGet(bytesKey, inboundAdapter);
@@ -191,7 +189,6 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     @Override
     public <K, V> Map<K, V> removeByPatternAndGet(String regex, Deserializer<K> keyDeserializer,
                                                   Deserializer<V> valueDeserializer) throws IOException {
-        validateProtocolVersion(ProtocolVersion.V3.value());
         final MapInboundAdapter<K, V> inboundAdapter =
                 new MapInboundAdapter<>(keyDeserializer, valueDeserializer, new HashMap<>());
         return cacheClient.removeByPatternAndGet(regex, inboundAdapter);
@@ -200,33 +197,22 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     @Override
     public <K, V> AtomicCacheEntry<K, V, Long> fetch(final K key, final Serializer<K> keySerializer,
                                                      final Deserializer<V> valueDeserializer) throws IOException {
-        validateProtocolVersion(ProtocolVersion.V2.value());
         final byte[] bytesKey = CacheClientSerde.serialize(key, keySerializer);
         final AtomicCacheEntryInboundAdapter<K, V> inboundAdapter =
                 new AtomicCacheEntryInboundAdapter<>(key, valueDeserializer);
         return cacheClient.fetch(bytesKey, inboundAdapter);
     }
 
-    private void validateProtocolVersion(final int requiredProtocolVersion) {
-        if (versionNegotiator.getVersion() < requiredProtocolVersion) {
-            throw new UnsupportedOperationException("Remote cache server doesn't support protocol version " + requiredProtocolVersion);
-        }
-    }
-
     @Override
     public <K, V> boolean replace(AtomicCacheEntry<K, V, Long> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
-        validateProtocolVersion(ProtocolVersion.V2.value());
         final byte[] bytesKey = CacheClientSerde.serialize(entry.getKey(), keySerializer);
         final byte[] bytesValue = CacheClientSerde.serialize(entry.getValue(), valueSerializer);
         final long revision = entry.getRevision().orElse(DEFAULT_CACHE_REVISION);
         return cacheClient.replace(bytesKey, bytesValue, revision);
     }
 
-    private static final long DEFAULT_CACHE_REVISION = 0L;
-
     @Override
     public <K> Set<K> keySet(Deserializer<K> keyDeserializer) throws IOException {
-        validateProtocolVersion(ProtocolVersion.V3.value());
         final SetInboundAdapter<K> inboundAdapter = new SetInboundAdapter<>(keyDeserializer, new HashSet<>());
         return cacheClient.keySet(inboundAdapter);
     }

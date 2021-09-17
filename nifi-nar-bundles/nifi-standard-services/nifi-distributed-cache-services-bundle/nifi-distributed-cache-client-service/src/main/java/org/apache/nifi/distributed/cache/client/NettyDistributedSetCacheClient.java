@@ -21,7 +21,7 @@ import org.apache.nifi.distributed.cache.client.adapter.BooleanInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.OutboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.VoidInboundAdapter;
 import org.apache.nifi.distributed.cache.operations.SetOperation;
-import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.remote.VersionNegotiatorFactory;
 
 import java.io.IOException;
 
@@ -34,11 +34,11 @@ public class NettyDistributedSetCacheClient extends DistributedCacheClient {
     /**
      * Constructor.
      *
-     * @param context           the NiFi configuration to be applied to the channel pool
-     * @param versionNegotiator coordinator used to broker the version of the distributed cache protocol with the service
+     * @param context the NiFi configuration to be applied to the channel pool
+     * @param factory creator of object used to broker the version of the distributed cache protocol with the service
      */
-    public NettyDistributedSetCacheClient(ConfigurationContext context, VersionNegotiator versionNegotiator) {
-        super(context, versionNegotiator);
+    public NettyDistributedSetCacheClient(ConfigurationContext context, VersionNegotiatorFactory factory) {
+        super(context, factory);
     }
 
     /**

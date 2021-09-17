@@ -23,6 +23,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 import org.apache.nifi.distributed.cache.client.adapter.InboundAdapter;
+import org.apache.nifi.distributed.cache.client.adapter.NullInboundAdapter;
+import org.apache.nifi.distributed.cache.client.adapter.OutboundAdapter;
 
 import java.io.IOException;
 
@@ -35,7 +37,7 @@ public class CacheClientRequestHandler extends ChannelInboundHandlerAdapter {
     /**
      * The object used to buffer and interpret the service response byte stream.
      */
-    private InboundAdapter inboundAdapter;
+    private InboundAdapter inboundAdapter = new NullInboundAdapter();
 
     /**
      * The synchronization construct used to signal the client application that the server response has been received.
@@ -67,16 +69,22 @@ public class CacheClientRequestHandler extends ChannelInboundHandlerAdapter {
      * a byte stream response to the channel, which may be deserialized into a Java object
      * by the caller.
      *
-     * @param channel        the network channel used to make the request
-     * @param message        the request payload, which might be a method name, and [0..n] concatenated arguments
-     * @param inboundAdapter the business logic to deserialize the server response
+     * The receipt of data outside the context of a call to this method is unexpected; the data is dropped.
+     *
+     * @param channel         the network channel used to make the request
+     * @param outboundAdapter the request payload, which might be a method name, and [0..n] concatenated arguments
+     * @param inboundAdapter  the business logic to deserialize the server response
      */
-    public void invoke(final Channel channel, final byte[] message, final InboundAdapter inboundAdapter) {
+    public void invoke(final Channel channel, final OutboundAdapter outboundAdapter, final InboundAdapter inboundAdapter) throws IOException {
         final CacheClientHandshakeHandler handshakeHandler = channel.pipeline().get(CacheClientHandshakeHandler.class);
         handshakeHandler.waitHandshakeComplete();
+        if (handshakeHandler.getVersionNegotiator().getVersion() < outboundAdapter.getMinimumVersion()) {
+            throw new UnsupportedOperationException("Remote cache server doesn't support protocol version " + outboundAdapter.getMinimumVersion());
+        }
         this.inboundAdapter = inboundAdapter;
         channelPromise = channel.newPromise();
-        channel.writeAndFlush(Unpooled.wrappedBuffer(message));
+        channel.writeAndFlush(Unpooled.wrappedBuffer(outboundAdapter.toBytes()));
         channelPromise.awaitUninterruptibly();
+        this.inboundAdapter = new NullInboundAdapter();
     }
 }
