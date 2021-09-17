@@ -17,14 +17,11 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
-import org.apache.nifi.security.kms.CryptoUtils;
-import org.apache.nifi.security.kms.EncryptionException;
+import org.apache.nifi.repository.encryption.configuration.EncryptedRepositoryType;
+import org.apache.nifi.repository.encryption.configuration.kms.RepositoryKeyProviderFactory;
+import org.apache.nifi.repository.encryption.configuration.kms.StandardRepositoryKeyProviderFactory;
 import org.apache.nifi.security.kms.KeyProvider;
-import org.apache.nifi.security.repository.RepositoryEncryptorUtils;
-import org.apache.nifi.security.repository.config.FlowFileRepositoryEncryptionConfiguration;
 import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -53,22 +50,17 @@ public class EncryptedFileSystemSwapManager extends FileSystemSwapManager {
     private static final int SIZE_IV_AES_BYTES = 16;
     private static final int SIZE_TAG_GCM_BITS = 128;
 
-    private static final Logger logger = LoggerFactory.getLogger(EncryptedFileSystemSwapManager.class);
     private static final SecureRandom secureRandom = new SecureRandom();
 
     private final SecretKey secretKey;
 
     public EncryptedFileSystemSwapManager(final NiFiProperties nifiProperties)
-            throws IOException, EncryptionException, GeneralSecurityException {
+            throws GeneralSecurityException {
         super(nifiProperties);
-        // acquire reference to FlowFileRepository key
-        final FlowFileRepositoryEncryptionConfiguration configuration = new FlowFileRepositoryEncryptionConfiguration(nifiProperties);
-        if (!CryptoUtils.isValidRepositoryEncryptionConfiguration(configuration)) {
-            logger.error("The flowfile repository encryption configuration is not valid (see above). Shutting down...");
-            throw new EncryptionException("The flowfile repository encryption configuration is not valid");
-        }
-        final KeyProvider keyProvider = RepositoryEncryptorUtils.validateAndBuildRepositoryKeyProvider(configuration);
-        this.secretKey = keyProvider.getKey(configuration.getEncryptionKeyId());
+        final RepositoryKeyProviderFactory repositoryKeyProviderFactory = new StandardRepositoryKeyProviderFactory();
+        final KeyProvider keyProvider = repositoryKeyProviderFactory.getKeyProvider(EncryptedRepositoryType.FLOWFILE, nifiProperties);
+        final String keyId = nifiProperties.getFlowFileRepoEncryptionKeyId();
+        this.secretKey = keyProvider.getKey(keyId);
     }
 
     protected InputStream getInputStream(final File file) throws IOException {

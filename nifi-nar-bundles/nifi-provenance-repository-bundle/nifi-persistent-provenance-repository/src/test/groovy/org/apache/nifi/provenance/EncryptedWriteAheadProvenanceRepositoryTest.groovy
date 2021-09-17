@@ -21,6 +21,7 @@ import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.provenance.serialization.RecordReaders
 import org.apache.nifi.reporting.Severity
 import org.apache.nifi.security.kms.StaticKeyProvider
+import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.file.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.jupiter.api.AfterEach
@@ -65,10 +66,6 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
     @AfterEach
     void tearDown() throws Exception {
         closeRepo(repo, config)
-
-        // Reset the boolean determiner
-        RecordReaders.encryptionPropertiesRead = false
-        RecordReaders.isEncryptionAvailable = false
     }
 
     private static RepositoryConfiguration createConfiguration() {
@@ -78,14 +75,6 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
         config.setMaxEventFileLife(2000L, TimeUnit.SECONDS)
         config.setCompressionBlockBytes(100)
         return config
-    }
-
-    private static RepositoryConfiguration createEncryptedConfiguration() {
-        RepositoryConfiguration config = createConfiguration()
-        config.setEncryptionKeys([(KEY_ID): KEY_HEX])
-        config.setKeyId(KEY_ID)
-        config.setKeyProviderImplementation(StaticKeyProvider.class.name)
-        config
     }
 
     private EventReporter createMockEventReporter() {
@@ -213,16 +202,13 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
         // Arrange
         final int RECORD_COUNT = 10
 
-        // Override the boolean determiner
-        RecordReaders.encryptionPropertiesRead = true
-        RecordReaders.isEncryptionAvailable = true
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, [
+                (NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS): StaticKeyProvider.class.name,
+                (NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY): KEY_HEX,
+                (NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_ID): KEY_ID
+        ])
 
-        config = createEncryptedConfiguration()
-        // Needed until NIFI-3605 is implemented
-//        config.setMaxEventFileCapacity(1L)
-        config.setMaxEventFileCount(1)
-        config.setMaxEventFileLife(1, TimeUnit.SECONDS)
-        repo = new EncryptedWriteAheadProvenanceRepository(config)
+        repo = new EncryptedWriteAheadProvenanceRepository(properties)
         repo.initialize(eventReporter, null, null, IdentifierLookup.EMPTY)
 
         Map attributes = ["abc": "This is a plaintext attribute.",

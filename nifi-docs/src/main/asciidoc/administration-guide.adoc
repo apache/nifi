@@ -3056,6 +3056,39 @@ The H2 Settings section defines the settings for the H2 database, which keeps tr
 |`nifi.h2.url.append`|This property specifies additional arguments to add to the connection string for the H2 database. The default value should be used and should not be changed. It is: `;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE`.
 |====
 
+[[repository-encryption-properties]]
+=== Repository Encryption
+
+Repository encryption provides a layer of security for information persisted to the filesystem during processing.
+Enabling encryption and configuring a Key Provider using these properties applies to all repositories.
+
+|====
+|*Property*|*Description*
+|`nifi.repository.encryption.protocol.version`|The encryption protocol version applied to all repository implementations. Absence of this property value disables repository encryption. Configuring a supported protocol enables encryption for all repositories. Supported protocol versions include: `1`.
+|`nifi.repository.encryption.key.id`|The key identifier that repository implementations will use for new encryption operations. The key identifier must match the `alias` value for a Key Entry when using the `KEYSTORE` provider.
+|`nifi.repository.encryption.key.provider`|The Key Provider implementation that repository implementations will use for retrieving keys necessary for encryption and decryption. Supported providers include: `KEYSTORE`.
+|`nifi.repository.encryption.key.provider.keystore.location`|Path to the KeyStore resource required for the `KEYSTORE` provider to read available keys. The KeyStore must contain one or more Secret Key entries. File paths must end with a known extension. Supported KeyStore types include: `PKCS12` and `BCFKS`. Supported extensions include: `.p12` and `.bcfks`
+|`nifi.repository.encryption.key.provider.keystore.password`|Password for the configured KeyStore resource required for the `KEYSTORE` provider to decrypt available keys. The configured KeyStore must use the same password for both the KeyStore and individual Key Entries.
+|====
+
+Configuring repository encryption properties overrides the following repository implementation class properties, as well
+as associated Key Provider properties:
+
+* `nifi.content.repository.implementation`
+* `nifi.flowfile.repository.wal.implementation`
+* `nifi.provenance.repository.implementation`
+* `nifi.swap.manager.implementation`
+
+The following provides an example set of configuration properties using a PKCS12 KeyStore as the Key Provider:
+
+....
+nifi.repository.encryption.protocol.version=1
+nifi.repository.encryption.key.id=primary-key
+nifi.repository.encryption.key.provider=KEYSTORE
+nifi.repository.encryption.key.provider.keystore.location=conf/repository.p12
+nifi.repository.encryption.key.provider.keystore.password=2fRKmwDyMYmT7P5L
+....
+
 === FlowFile Repository
 
 The FlowFile repository keeps track of the attributes and current state of each FlowFile in the system. By default,
@@ -3092,6 +3125,8 @@ implementation.
 [[encrypted-write-ahead-flowfile-repository-properties]]
 === Encrypted Write Ahead FlowFile Repository Properties
 
+WARNING: The following properties are deprecated in favor of <<repository-encryption-properties>> properties.
+
 All of the properties defined above (see <<write-ahead-flowfile-repository,Write Ahead FlowFile Repository>>) still apply. Only encryption-specific properties are listed here. See <<user-guide.adoc#encrypted-flowfile,Encrypted FlowFile Repository in the User Guide>> for more information.
 
 NOTE: Unlike the encrypted content and provenance repositories, the repository implementation does not change here, only the _underlying write-ahead log implementation_. This allows for cleaner separation and more flexibility in implementation selection. The property that should be changed to enable encryption is `nifi.flowfile.repository.wal.implementation`.
@@ -3105,17 +3140,6 @@ NOTE: Unlike the encrypted content and provenance repositories, the repository i
 |`nifi.flowfile.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
 |`nifi.flowfile.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.flowfile.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
 |====
-
-The simplest configuration is below:
-
-....
-nifi.flowfile.repository.implementation=org.apache.nifi.controller.repository.WriteAheadFlowFileRepository
-nifi.flowfile.repository.wal.implementation=org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog
-nifi.flowfile.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
-nifi.flowfile.repository.encryption.key.provider.location=
-nifi.flowfile.repository.encryption.key.id=Key1
-nifi.flowfile.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
-....
 
 === Volatile FlowFile Repository
 
@@ -3277,6 +3301,8 @@ this property specifies the maximum amount of time to keep the archived data. Th
 [[encrypted-file-system-content-repository-properties]]
 === Encrypted File System Content Repository Properties
 
+WARNING: The following properties are deprecated in favor of <<repository-encryption-properties>> properties.
+
 All of the properties defined above (see <<file-system-content-repository-properties,File System Content Repository Properties>>) still apply. Only encryption-specific properties are listed here. See <<user-guide.adoc#encrypted-content,Encrypted Content Repository in the User Guide>> for more information.
 
 |====
@@ -3288,16 +3314,6 @@ All of the properties defined above (see <<file-system-content-repository-proper
 |`nifi.content.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
 |`nifi.content.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.content.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
 |====
-
-The simplest configuration is below:
-
-....
-nifi.content.repository.implementation=org.apache.nifi.controller.repository.crypto.EncryptedFileSystemRepository
-nifi.content.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
-nifi.content.repository.encryption.key.provider.location=
-nifi.content.repository.encryption.key.id=Key1
-nifi.content.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
-....
 
 === Volatile Content Repository Properties
 
@@ -3404,6 +3420,8 @@ will be destroyed as well.
 [[encrypted-write-ahead-provenance-repository-properties]]
 === Encrypted Write Ahead Provenance Repository Properties
 
+WARNING: The following properties are deprecated in favor of <<repository-encryption-properties>> properties.
+
 All of the properties defined above (see <<write-ahead-provenance-repository-properties,Write Ahead Repository Properties>>) still apply. Only encryption-specific properties are listed here. See <<user-guide.adoc#encrypted-provenance,Encrypted Provenance Repository in the User Guide>> for more information.
 
 |====
@@ -3415,17 +3433,6 @@ All of the properties defined above (see <<write-ahead-provenance-repository-pro
 |`nifi.provenance.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
 |`nifi.provenance.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.provenance.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
 |====
-
-The simplest configuration is below:
-
-....
-nifi.provenance.repository.implementation=org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository
-nifi.provenance.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
-nifi.provenance.repository.encryption.key.provider.location=
-nifi.provenance.repository.encryption.key.id=Key1
-nifi.provenance.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
-....
-
 
 === Persistent Provenance Repository Properties
 
