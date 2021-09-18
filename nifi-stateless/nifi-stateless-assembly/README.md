@@ -194,6 +194,7 @@ descriptions, and example values:
 |---------------|-------------|---------------|
 | nifi.stateless.nar.directory | The location of a directory containing all NiFi Archives (NARs) that are necessary for running the dataflow | /var/lib/nifi/lib |
 | nifi.stateless.working.directory | The location of a directory where Stateless should store its expanded NAR files and use for temporary storage | /var/lib/nifi/work/stateless |
+| nifi.stateless.content.repository.directory | The location of a directory where Stateless should store the contents of FlowFiles. If not specified, Stateless will store FlowFile contents only in memory. However, specifying a directory for storing data can allow Stateless NiFi to process data that is larger than is able to be fit into memory. It is important to note that this does not result in persisting state across restarts. The data in the content repository is cleared each time that a dataflow is triggered. | /var/lib/nifi/content 
 
 
 The following properties may be used for configuring security parameters:
@@ -305,8 +306,8 @@ Note that while Java properties files typically do not allow for spaces in prope
 files in a way that does allow for spaces, so that Parameter names, etc. may allow for spaces.
 
 There are times, however, when we do not want to provide the list of Parameters in the dataflow properties file. We may want to fetch the Parameters from some file or
-an external service. For this reason, Stateless supports a notion of a Parameter Provider. A Parameter Provider is an extension point that can be used to retrieve Parameters
-from elsewhere. For information on how to configure Parameter Provider, see the [Passing Parameters](#passing-parameters) section below.
+an external service. For this reason, Stateless supports a notion of a Parameter Value Provider. A Parameter Value Provider is an extension point that can be used to retrieve Parameters
+from elsewhere. For information on how to configure Parameter Value Provider, see the [Passing Parameters](#passing-parameters) section below.
 
 When a stateless dataflow is triggered, it can also be important to consider how much data should be allowed to enter the dataflow for a given invocation.
 Typically, this consists of a single FlowFile at a time or a single batch of FlowFiles at a time, depending on the source processor. However, some processors may
@@ -463,22 +464,54 @@ If a given Parameter is referenced and is not defined using the `-p` syntax, an 
 allowed to contain only letters, numbers, and underscores in their names. As a result, it is important that the Parameters' names also adhere to that same rule, or the environment variable
 will not be addressable.
 
-At times, none of the built-in capabilities for resolving Parameters are ideal, though. In these situations, we can use a custom Parameter Provider in order to source Parameter values from elsewhere.
-To configure a custom Parameter Provider, we must configure it similarly to Reporting Tasks, using a common key to indicate which Parameter Provider the property belongs to.
+At times, none of the built-in capabilities for resolving Parameters are ideal, though. In these situations, we can use a custom Parameter Value Provider in order to source Parameter values from elsewhere.
+To configure a custom Parameter Value Provider, we must configure it similarly to Reporting Tasks, using a common key to indicate which Parameter Value Provider the property belongs to.
 The following properties are supported:
 
 | Property Name | Description | Example Value |
 |---------------|-------------|---------------|
-| nifi.stateless.parameter.provider.\<key>.name | The name of the Parameter Provider | My Secret Parameter Provider
-| nifi.stateless.parameter.provider.\<key>.type | The type of the Parameter Provider. This may be the fully qualified classname or the simple name, if only a single class exists with the simple name | MySecretParameterProvider |
-| nifi.stateless.parameter.provider.\<key>.bundle | The bundle that holds the Parameter Provider. If not specified, the bundle will be automatically identified, if there exists exactly one bundle with the reporting task. However, if no Bundle is specified, none will be downloaded and if more than 1 is already available, the Parameter Provider cannot be created. The format is \<group id>:\<artifact id>:\<version> | org.apache.nifi:nifi-standard-nar:1.14.0 |
-| nifi.stateless.parameter.provider.\<key>.properties.\<property name> | One or more Parameter Provider properties may be configured using this syntax | Any valid value for the corresponding property |
+| nifi.stateless.parameter.provider.\<key>.name | The name of the Parameter Value Provider | My Secret Parameter Value Provider
+| nifi.stateless.parameter.provider.\<key>.type | The type of the Parameter Value Provider. This may be the fully qualified classname or the simple name, if only a single class exists with the simple name | MySecretParameterValueProvider |
+| nifi.stateless.parameter.provider.\<key>.bundle | The bundle that holds the Parameter Value Provider. If not specified, the bundle will be automatically identified, if there exists exactly one bundle with the reporting task. However, if no Bundle is specified, none will be downloaded and if more than 1 is already available, the Parameter Value Provider cannot be created. The format is \<group id>:\<artifact id>:\<version> | org.apache.nifi:nifi-standard-nar:1.14.0 |
+| nifi.stateless.parameter.provider.\<key>.properties.\<property name> | One or more Parameter Value Provider properties may be configured using this syntax | Any valid value for the corresponding property |
 
-An example Parameter Provider might be configured as follows:
+An example Parameter Value Provider might be configured as follows:
 
 ```
-nifi.stateless.parameter.provider.Props File Provider.name=My Custom Properties File Parameter Provider
-nifi.stateless.parameter.provider.Props File Provider.type=com.myorg.nifi.parameters.custom.MyCustomPropertiesFileParameterProvider
+nifi.stateless.parameter.provider.Props File Provider.name=My Custom Properties File Parameter Value Provider
+nifi.stateless.parameter.provider.Props File Provider.type=com.myorg.nifi.parameters.custom.MyCustomPropertiesFileParameterValueProvider
 nifi.stateless.parameter.provider.Props File Provider.bundle=com.myorg:nifi-custom-parameter-provider-nar:0.0.1
 nifi.stateless.parameter.provider.Props File Provider.properties.Filename=/tmp/parameters.properties
+```
+
+##### Built-in Parameter Value Providers
+Following is a list of Parameter Value Providers already available in Stateless.
+
+**HashiCorpVaultParameterValueProvider**
+
+This provider reads parameter values from HashiCorp Vault, and expects secrets to exist in
+the Key/Value (unversioned) Secrets Engine.  The connection to a Vault server can be configured
+via the `./conf/bootstrap-hashicorp-vault.conf` file, which comes with NiFi.
+
+An example of creating a single secret in the correct format is:
+
+```
+vault kv put "nifi-kv/Context/param" value=my-vault-value
+```
+
+In this example, `nifi-kv` would be supplied by the `vault.kv.path` property in the `bootstrap-hashicorp-vault.conf` file, 
+`Context` is the name of a Parameter Context, and `param` is the name of the parameter whose value should be retrieved from the Vault server.
+
+This Parameter Provider requires the following properties:
+
+| Property Name | Description | Example Value |
+|---------------|-------------|---------------|
+| nifi.stateless.parameter.provider.\<key>.properties.vault-configuration-file | The filename of a configuration file specifying the Vault settings | ./conf/bootstrap-hashicorp-vault.conf |
+
+An example of configuring this provider in the dataflow configuration file is:
+
+```
+nifi.stateless.parameter.provider.Vault.name=HashiCorp Vault Provider
+nifi.stateless.parameter.provider.Vault.type=org.apache.nifi.stateless.parameter.HashiCorpVaultParameterValueProvider
+nifi.stateless.parameter.provider.Vault.properties.vault-configuration-file=./conf/bootstrap-hashicorp-vault.conf
 ```

@@ -35,8 +35,22 @@ limitations under the License.
                        value="{{nfRegistryService.bucket.name}}"
                        [(ngModel)]="bucketname">
             </mat-form-field>
-            <button [disabled]="nfRegistryService.bucket.name === bucketname"
-                    (click)="updateBucketName(bucketnameInput.value)"
+        </div>
+        <div class="pad-left-md pad-right-md" flex fxLayoutAlign="start center">
+            <mat-form-field floatLabel="always" flex>
+                <input #descriptionInput
+                       data-automation-id="nf-registry-manage-bucket-input-description"
+                       matInput
+                       [disabled]="!nfRegistryService.currentUser.resourcePermissions.buckets.canWrite"
+                       placeholder="Description"
+                       value="{{nfRegistryService.bucket.description}}"
+                       [(ngModel)]="description">
+            </mat-form-field>
+        </div>
+
+        <div class="pad-left-md pad-right-md" flex fxLayoutAlign="start center">
+            <button [disabled]="nfRegistryService.bucket.name === bucketname && nfRegistryService.bucket.description === description"
+                    (click)="updateBucketNameAndDescription(bucketnameInput.value, descriptionInput.value)"
                     data-automation-id="nf-registry-manage-bucket-save-side-nav"
                     class="input-button"
                     color="fds-regular"
@@ -44,7 +58,13 @@ limitations under the License.
                 Save
             </button>
         </div>
-        <div class="pad-left-md pad-right-md pad-bottom-sm">
+
+        <div class="pad-left-md pad-right-md pad-top-md">
+            <div class="pad-bottom-sm">
+                <mat-card-title class="ellipsis">
+                    Permission Settings
+                </mat-card-title>
+            </div>
             <mat-checkbox #bundlePublicReadCheckbox
                           [disabled]="!nfRegistryService.currentUser.resourcePermissions.buckets.canWrite || protocol === 'http:'"
                           [(ngModel)]="allowPublicRead"

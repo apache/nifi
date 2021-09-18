@@ -17,8 +17,7 @@
 package org.apache.nifi.registry.web.api;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.properties.PropertyProtectionScheme;
-import org.apache.nifi.properties.SensitivePropertyProvider;
+import org.apache.nifi.properties.SensitivePropertyProviderFactory;
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
 import org.apache.nifi.registry.SecureLdapTestApiApplication;
 import org.apache.nifi.registry.authorization.AccessPolicy;
@@ -130,7 +129,7 @@ public class SecureLdapIT extends IntegrationTestBase {
                 authorizerFactory = new AuthorizerFactory(
                         properties,
                         extensionManager,
-                        sensitivePropertyProvider(),
+                        sensitivePropertyProviderFactory(),
                         registryService,
                         dataSource,
                         identityMapper);
@@ -140,9 +139,8 @@ public class SecureLdapIT extends IntegrationTestBase {
 
         @Primary
         @Bean
-        public static SensitivePropertyProvider sensitivePropertyProvider() throws Exception {
-            return StandardSensitivePropertyProviderFactory.withKey(getNiFiRegistryMasterKeyProvider().getKey())
-                    .getProvider(PropertyProtectionScheme.AES_GCM);
+        public static SensitivePropertyProviderFactory sensitivePropertyProviderFactory() throws Exception {
+            return StandardSensitivePropertyProviderFactory.withKey(getNiFiRegistryMasterKeyProvider().getKey());
         }
 
         private static CryptoKeyProvider getNiFiRegistryMasterKeyProvider() {

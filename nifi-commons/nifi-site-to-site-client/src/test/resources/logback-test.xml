@@ -30,7 +30,7 @@
 
 
     <logger name="org.apache.nifi" level="INFO"/>
-    <logger name="org.apache.nifi.remote.client" level="DEBUG"/>
+    <logger name="org.apache.nifi.remote.client" level="INFO"/>
     <logger name="org.apache.nifi.remote.client.PeerSelectorTest" level="DEBUG"/>
 
     <root level="INFO">

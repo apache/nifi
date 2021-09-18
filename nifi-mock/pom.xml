@@ -66,8 +66,8 @@
         <dependency>
             <!-- Dependency marked as compile, not test, because we have assertion
             methods in our MockSession & MockFlowFile -->
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
             <scope>compile</scope>
         </dependency>
     </dependencies>

@@ -23,8 +23,6 @@ import org.apache.nifi.provenance.authorization.EventTransformer;
 import org.apache.nifi.provenance.index.EventIndex;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.provenance.store.iterator.EventIterator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,8 +34,6 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ArrayListEventStore implements EventStore {
-    private static final Logger logger = LoggerFactory.getLogger(ArrayListEventStore.class);
-
     private final List<ProvenanceEventRecord> events = new ArrayList<>();
     private final AtomicLong idGenerator = new AtomicLong(0L);
 
@@ -93,7 +89,7 @@ public class ArrayListEventStore implements EventStore {
     }
 
     @Override
-    public synchronized Optional<ProvenanceEventRecord> getEvent(long id) throws IOException {
+    public synchronized Optional<ProvenanceEventRecord> getEvent(long id) {
         if (events.size() <= id) {
             return Optional.empty();
         }
@@ -129,7 +125,6 @@ public class ArrayListEventStore implements EventStore {
             try {
                 eventOption = getEvent(eventId);
             } catch (final Exception e) {
-                logger.warn("Failed to retrieve event with ID " + eventId, e);
                 continue;
             }
 
@@ -141,9 +136,7 @@ public class ArrayListEventStore implements EventStore {
                 events.add(eventOption.get());
             } else {
                 final Optional<ProvenanceEventRecord> transformedOption = transformer.transform(eventOption.get());
-                if (transformedOption.isPresent()) {
-                    events.add(transformedOption.get());
-                }
+                transformedOption.ifPresent(events::add);
             }
         }
 

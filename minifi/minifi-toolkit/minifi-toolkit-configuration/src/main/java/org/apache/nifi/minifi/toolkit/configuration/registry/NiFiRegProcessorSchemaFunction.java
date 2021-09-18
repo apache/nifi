@@ -18,7 +18,7 @@ package org.apache.nifi.minifi.toolkit.configuration.registry;
 
 import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
-import org.apache.nifi.registry.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedProcessor;
 
 import java.util.ArrayList;
 import java.util.HashMap;

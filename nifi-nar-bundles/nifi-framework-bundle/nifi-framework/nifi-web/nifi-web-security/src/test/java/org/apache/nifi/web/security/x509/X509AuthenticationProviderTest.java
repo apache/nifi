@@ -70,6 +70,8 @@ public class X509AuthenticationProviderTest {
 
     @Before
     public void setup() {
+
+        System.clearProperty(NiFiProperties.PROPERTIES_FILE_PATH);
         extractor = new SubjectDnX509PrincipalExtractor();
 
         certificateIdentityProvider = mock(X509IdentityProvider.class);

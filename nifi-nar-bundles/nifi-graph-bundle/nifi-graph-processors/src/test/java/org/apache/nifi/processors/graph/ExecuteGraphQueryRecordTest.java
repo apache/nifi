@@ -26,8 +26,8 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.serialization.record.MockRecordWriter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,7 +44,7 @@ public class ExecuteGraphQueryRecordTest {
     private TestRunner runner;
     Map<String, String> enqueProperties = new HashMap<>();
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         MockRecordWriter writer = new MockRecordWriter();
         JsonTreeReader reader = new JsonTreeReader();

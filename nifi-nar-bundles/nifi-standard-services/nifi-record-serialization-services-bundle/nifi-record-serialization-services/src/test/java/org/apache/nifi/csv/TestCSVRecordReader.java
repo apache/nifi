@@ -45,7 +45,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -204,7 +203,6 @@ public class TestCSVRecordReader {
     public void testTimeNoCoersionExpectedFormat() throws IOException, MalformedRecordException, ParseException {
         final String timeFormat = "HH!mm!ss";
         DateFormat dateFmt = new SimpleDateFormat(timeFormat);
-        dateFmt.setTimeZone(TimeZone.getTimeZone("gmt"));
         final String timeVal = "19!02!03";
         final String text = "time\n" + timeVal;
 
@@ -278,7 +276,6 @@ public class TestCSVRecordReader {
     public void testTimestampNoCoersionExpectedFormat() throws IOException, MalformedRecordException, ParseException {
         final String timeFormat = "HH!mm!ss";
         DateFormat dateFmt = new SimpleDateFormat(timeFormat);
-        dateFmt.setTimeZone(TimeZone.getTimeZone("gmt"));
         final String timeVal = "19!02!03";
         final String text = "timestamp\n" + timeVal;
 
@@ -620,7 +617,7 @@ public class TestCSVRecordReader {
     }
 
     @Test
-    public void testMultipleRecordsEscapedWithSpecialChar() throws IOException, MalformedRecordException {
+    public void testMultipleRecordsDelimitedWithSpecialChar() throws IOException, MalformedRecordException {
 
         char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
 
@@ -630,11 +627,51 @@ public class TestCSVRecordReader {
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapedchar.csv");
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_spec_delimiter.csv");
             final CSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
+            Assert.assertArrayEquals(firstExpectedValues, firstRecord);
+
+            final Object[] secondRecord = reader.nextRecord().getValues();
+            final Object[] secondExpectedValues = new Object[] {"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
+            Assert.assertArrayEquals(secondExpectedValues, secondRecord);
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testMultipleRecordsEscapedWithChar() throws IOException {
+
+        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(",".charAt(0)).withEscape("\\".charAt(0));
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
+             final CSVRecordReader reader = createReader(fis, schema, format)) {
+
+            assertThrows(MalformedRecordException.class, () -> reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testMultipleRecordsEscapedWithNull() throws IOException, MalformedRecordException {
+
+        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(",".charAt(0)).withEscape(null);
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
+             final CSVRecordReader reader = createReader(fis, schema, format)) {
+
+            final Object[] firstRecord = reader.nextRecord().getValues();
+            final Object[] firstExpectedValues = new Object[] {"1", "John Doe\\", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
             Assert.assertArrayEquals(firstExpectedValues, firstRecord);
 
             final Object[] secondRecord = reader.nextRecord().getValues();

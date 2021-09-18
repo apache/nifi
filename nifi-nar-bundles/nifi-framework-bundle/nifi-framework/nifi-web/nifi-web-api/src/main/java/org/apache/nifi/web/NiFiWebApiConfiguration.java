@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web;
 
+import org.apache.nifi.web.security.configuration.AuthenticationSecurityConfiguration;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.ImportResource;
@@ -24,13 +25,15 @@ import org.springframework.context.annotation.ImportResource;
  *
  */
 @Configuration
-@Import({NiFiWebApiSecurityConfiguration.class})
+@Import({
+        NiFiWebApiSecurityConfiguration.class,
+        AuthenticationSecurityConfiguration.class
+})
 @ImportResource({"classpath:nifi-context.xml",
     "classpath:nifi-administration-context.xml",
     "classpath:nifi-authorizer-context.xml",
     "classpath:nifi-cluster-manager-context.xml",
     "classpath:nifi-cluster-protocol-context.xml",
-    "classpath:nifi-web-security-context.xml",
     "classpath:nifi-web-api-context.xml"})
 public class NiFiWebApiConfiguration {
 

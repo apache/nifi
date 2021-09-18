@@ -42,8 +42,8 @@ limitations under the License.
     </modules>
     <properties>
         <jersey.version>2.29</jersey.version>
-        <spring.version>5.3.8</spring.version>
-        <spring.security.version>5.4.6</spring.security.version>
+        <spring.version>5.3.9</spring.version>
+        <spring.security.version>5.5.1</spring.security.version>
         <system.rules.version>1.16.1</system.rules.version>
         <aws.sdk.version>1.11.172</aws.sdk.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
@@ -269,6 +269,11 @@ limitations under the License.
                 <artifactId>jetty-jsp-jdt</artifactId>
                 <version>2.3.3</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.29</version>
             </dependency>
 
             <!-- NiFi Modules -->
@@ -541,7 +546,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.18</version>
+                <version>1.21</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -1023,7 +1028,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
-                <version>1.8.3</version>
+                <version>1.14.2</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>

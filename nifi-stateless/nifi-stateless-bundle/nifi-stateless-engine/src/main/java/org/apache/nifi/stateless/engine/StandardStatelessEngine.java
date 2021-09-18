@@ -56,21 +56,21 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.stateless.config.ConfigurableExtensionDefinition;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
 import org.apache.nifi.stateless.config.ParameterDefinition;
-import org.apache.nifi.stateless.config.ParameterProviderDefinition;
+import org.apache.nifi.stateless.config.ParameterValueProviderDefinition;
 import org.apache.nifi.stateless.config.ReportingTaskDefinition;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.StandardStatelessFlow;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
-import org.apache.nifi.stateless.parameter.CompositeParameterProvider;
-import org.apache.nifi.stateless.parameter.ParameterProvider;
-import org.apache.nifi.stateless.parameter.ParameterProviderInitializationContext;
+import org.apache.nifi.stateless.parameter.CompositeParameterValueProvider;
+import org.apache.nifi.stateless.parameter.ParameterValueProvider;
+import org.apache.nifi.stateless.parameter.ParameterValueProviderInitializationContext;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -172,12 +172,11 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
         childGroup.updateFlow(dataflowDefinition.getFlowSnapshot(), "stateless-component-id-seed", false, true, true);
 
-        final ParameterProvider parameterProvider = createParameterProvider(dataflowDefinition);
+        final ParameterValueProvider parameterValueProvider = createParameterValueProvider(dataflowDefinition);
 
         // Map existing parameter contexts by name
         final Set<ParameterContext> parameterContexts = flowManager.getParameterContextManager().getParameterContexts();
-        final Map<String, ParameterContext> parameterContextMap = parameterContexts.stream()
-            .collect(Collectors.toMap(ParameterContext::getName, context -> context));
+        final Map<String, ParameterContext> parameterContextMap = flowManager.getParameterContextManager().getParameterContextNameMapping();
 
         // Update Parameters to match those that are provided in the flow configuration, plus those overrides provided
         final List<ParameterContextDefinition> parameterContextDefinitions = dataflowDefinition.getParameterContexts();
@@ -185,7 +184,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             parameterContextDefinitions.forEach(contextDefinition -> registerParameterContext(contextDefinition, parameterContextMap));
         }
 
-        overrideParameters(parameterContextMap, parameterProvider);
+        overrideParameters(parameterContextMap, parameterValueProvider);
 
         final List<ReportingTaskNode> reportingTaskNodes = createReportingTasks(dataflowDefinition);
         final StandardStatelessFlow dataflow = new StandardStatelessFlow(childGroup, reportingTaskNodes, controllerServiceProvider, processContextFactory,
@@ -197,22 +196,23 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return dataflow;
     }
 
-    private ParameterProvider createParameterProvider(final DataflowDefinition<?> dataflowDefinition) {
+    private ParameterValueProvider createParameterValueProvider(final DataflowDefinition<?> dataflowDefinition) {
         // Create a Provider for each definition
-        final List<ParameterProvider> providers = new ArrayList<>();
-        for (final ParameterProviderDefinition definition : dataflowDefinition.getParameterProviderDefinitions()) {
-            providers.add(createParameterProvider(definition));
+        final List<ParameterValueProvider> providers = new ArrayList<>();
+        for (final ParameterValueProviderDefinition definition : dataflowDefinition.getParameterValueProviderDefinitions()) {
+            providers.add(createParameterValueProvider(definition));
         }
 
-        // Create a Composite Parameter Provider that wraps all of the others.
-        final CompositeParameterProvider provider = new CompositeParameterProvider(providers);
-        final ParameterProviderInitializationContext initializationContext = new StandardParameterProviderInitializationContext(provider, Collections.emptyMap(), UUID.randomUUID().toString());
+        // Create a Composite Parameter Value Provider that wraps all of the others.
+        final CompositeParameterValueProvider provider = new CompositeParameterValueProvider(providers);
+        final ParameterValueProviderInitializationContext initializationContext =
+                new StandardParameterValueProviderInitializationContext(provider, Collections.emptyMap(), UUID.randomUUID().toString());
         provider.initialize(initializationContext);
         return provider;
     }
 
-    private ParameterProvider createParameterProvider(final ParameterProviderDefinition definition) {
-        final BundleCoordinate bundleCoordinate = determineBundleCoordinate(definition, "Parameter Provider");
+    private ParameterValueProvider createParameterValueProvider(final ParameterValueProviderDefinition definition) {
+        final BundleCoordinate bundleCoordinate = determineBundleCoordinate(definition, "Parameter Value Provider");
         final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
         if (bundle == null) {
             throw new IllegalStateException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
@@ -227,22 +227,22 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             final Class<?> rawClass = Class.forName(providerType, true, classLoader);
             Thread.currentThread().setContextClassLoader(classLoader);
 
-            final ParameterProvider parameterProvider = (ParameterProvider) rawClass.newInstance();
+            final ParameterValueProvider parameterValueProvider = (ParameterValueProvider) rawClass.newInstance();
 
             // Initialize the provider
-            final Map<String, String> properties = resolveProperties(definition.getPropertyValues(), parameterProvider, parameterProvider.getPropertyDescriptors());
-            final ParameterProviderInitializationContext initializationContext = new StandardParameterProviderInitializationContext(parameterProvider, properties, providerId);
-            parameterProvider.initialize(initializationContext);
+            final Map<String, String> properties = resolveProperties(definition.getPropertyValues(), parameterValueProvider, parameterValueProvider.getPropertyDescriptors());
+            final ParameterValueProviderInitializationContext initializationContext = new StandardParameterValueProviderInitializationContext(parameterValueProvider, properties, providerId);
+            parameterValueProvider.initialize(initializationContext);
 
-            // Ensure that the Parameter Provider is valid.
-            final List<ValidationResult> validationResults = validate(parameterProvider, properties, providerId);
+            // Ensure that the Parameter Value Provider is valid.
+            final List<ValidationResult> validationResults = validate(parameterValueProvider, properties, providerId);
             if (!validationResults.isEmpty()) {
-                throw new IllegalStateException("Parameter Provider with name <" + definition.getName() + "> is not valid: " + validationResults);
+                throw new IllegalStateException("Parameter Value Provider with name <" + definition.getName() + "> is not valid: " + validationResults);
             }
 
-            return parameterProvider;
+            return parameterValueProvider;
         } catch (final Exception e) {
-            throw new IllegalStateException("Could not create Parameter Provider " + definition.getName() + " of type " + definition.getType(), e);
+            throw new IllegalStateException("Could not create Parameter Value Provider " + definition.getName() + " of type " + definition.getType(), e);
         }
     }
 
@@ -302,8 +302,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             requiredBundles.add(coordinate);
         }
 
-        for (final ParameterProviderDefinition parameterProviderDefinition : dataflowDefinition.getParameterProviderDefinitions()) {
-            final BundleCoordinate coordinate = parseBundleCoordinate(parameterProviderDefinition);
+        for (final ParameterValueProviderDefinition parameterValueProviderDefinition : dataflowDefinition.getParameterValueProviderDefinitions()) {
+            final BundleCoordinate coordinate = parseBundleCoordinate(parameterValueProviderDefinition);
             if (coordinate == null) {
                 continue;
             }
@@ -344,7 +344,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         }
     }
 
-    private BundleCoordinate toBundleCoordinate(final org.apache.nifi.registry.flow.Bundle bundle) {
+    private BundleCoordinate toBundleCoordinate(final org.apache.nifi.flow.Bundle bundle) {
         return new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
     }
 
@@ -367,7 +367,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         taskNode.setSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
         taskNode.setSchedulingPeriod(taskDefinition.getSchedulingFrequency());
 
-        // Ensure that the Parameter Provider is valid.
+        // Ensure that the Parameter Value Provider is valid.
         final List<ValidationResult> validationResults = validate(taskNode.getComponent(), properties, taskNode.getIdentifier());
         if (!validationResults.isEmpty()) {
             throw new IllegalStateException("Reporting Task with name <" + taskNode.getName() + "> is not valid: " + validationResults);
@@ -504,7 +504,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return possibleResolvedClassNames.iterator().next();
     }
 
-    private void overrideParameters(final Map<String, ParameterContext> parameterContextMap, final ParameterProvider parameterProvider) {
+    private void overrideParameters(final Map<String, ParameterContext> parameterContextMap, final ParameterValueProvider parameterValueProvider) {
         for (final ParameterContext context : parameterContextMap.values()) {
             final String contextName = context.getName();
             final Map<ParameterDescriptor, Parameter> parameters = context.getParameters();
@@ -512,8 +512,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             final Map<String, Parameter> updatedParameters = new HashMap<>();
             for (final Parameter parameter : parameters.values()) {
                 final String parameterName = parameter.getDescriptor().getName();
-                if (parameterProvider.isParameterDefined(contextName, parameterName)) {
-                    final String providedValue = parameterProvider.getParameterValue(contextName, parameterName);
+                if (parameterValueProvider.isParameterDefined(contextName, parameterName)) {
+                    final String providedValue = parameterValueProvider.getParameterValue(contextName, parameterName);
                     final Parameter updatedParameter = new Parameter(parameter.getDescriptor(), providedValue);
                     updatedParameters.put(parameterName, updatedParameter);
                 }

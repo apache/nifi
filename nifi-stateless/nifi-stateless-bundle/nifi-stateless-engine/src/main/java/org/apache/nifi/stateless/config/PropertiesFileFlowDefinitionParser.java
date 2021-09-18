@@ -36,8 +36,8 @@ import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.DataflowDefinitionParser;
 import org.apache.nifi.stateless.flow.StandardDataflowDefinition;
 import org.apache.nifi.stateless.flow.TransactionThresholds;
-import org.apache.nifi.stateless.parameter.EnvironmentVariableParameterProvider;
-import org.apache.nifi.stateless.parameter.ParameterOverrideProvider;
+import org.apache.nifi.stateless.parameter.EnvironmentVariableParameterValueProvider;
+import org.apache.nifi.stateless.parameter.OverrideParameterValueProvider;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,7 +116,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         final VersionedFlowSnapshot flowSnapshot = fetchVersionedFlowSnapshot(properties, engineConfig.getSslContext());
         final List<ParameterContextDefinition> parameterContextDefinitions = getParameterContexts(properties);
         final List<ReportingTaskDefinition> reportingTaskDefinitions = getReportingTasks(properties);
-        final List<ParameterProviderDefinition> parameterProviderDefinitions = getParameterProviders(properties, parameterOverrides);
+        final List<ParameterValueProviderDefinition> parameterValueProviderDefinitions = getParameterValueProviders(properties, parameterOverrides);
         final TransactionThresholds transactionThresholds = getTransactionThresholds(properties);
 
         final String rootGroupName = flowSnapshot.getFlowContents().getName();
@@ -128,7 +128,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
             .failurePortNames(failurePortNames)
             .parameterContexts(parameterContextDefinitions)
             .reportingTasks(reportingTaskDefinitions)
-            .parameterProviders(parameterProviderDefinitions)
+            .parameterValueProviders(parameterValueProviderDefinitions)
             .transactionThresholds(transactionThresholds)
             .build();
     }
@@ -182,11 +182,11 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         return new ArrayList<>(reportingTaskDefinitions.values());
     }
 
-    private List<ParameterProviderDefinition> getParameterProviders(final Map<String, String> properties, final List<ParameterOverride> parameterOverrides) {
-        final Map<String, ParameterProviderDefinition> parameterProviderDefinitions = new LinkedHashMap<>();
+    private List<ParameterValueProviderDefinition> getParameterValueProviders(final Map<String, String> properties, final List<ParameterOverride> parameterOverrides) {
+        final Map<String, ParameterValueProviderDefinition> parameterValueProviderDefinitions = new LinkedHashMap<>();
 
-        parameterProviderDefinitions.put("Default Parameter Override Provider", createParameterOverrideProvider(parameterOverrides));
-        parameterProviderDefinitions.put("Default Environment Variable Provider", createEnvironmentVariableProvider());
+        parameterValueProviderDefinitions.put("Default Parameter Override Provider", createParameterOverrideProvider(parameterOverrides));
+        parameterValueProviderDefinitions.put("Default Environment Variable Provider", createEnvironmentVariableProvider());
 
         for (final String propertyName : properties.keySet()) {
             final Matcher matcher = PARAMETER_PROVIDER_PATTERN.matcher(propertyName);
@@ -196,10 +196,10 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
 
             // For a property name like:
             // nifi.stateless.parameter.provider.abc.name=hello
-            // We consider 'abc' the <parameter provider key> and 'name' the <relative property name>
-            final String parameterProviderKey = matcher.group(1);
-            final ParameterProviderDefinition definition = parameterProviderDefinitions.computeIfAbsent(parameterProviderKey, key -> new ParameterProviderDefinition());
-            definition.setName(parameterProviderKey);
+            // We consider 'abc' the <parameter value provider key> and 'name' the <relative property name>
+            final String parameterValueProviderKey = matcher.group(1);
+            final ParameterValueProviderDefinition definition = parameterValueProviderDefinitions.computeIfAbsent(parameterValueProviderKey, key -> new ParameterValueProviderDefinition());
+            definition.setName(parameterValueProviderKey);
             final String relativePropertyName = matcher.group(2);
             final String propertyValue = properties.get(propertyName);
 
@@ -230,35 +230,35 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         }
 
         // Validate that all providers have the required necessary information
-        for (final Map.Entry<String, ParameterProviderDefinition> entry : parameterProviderDefinitions.entrySet()) {
+        for (final Map.Entry<String, ParameterValueProviderDefinition> entry : parameterValueProviderDefinitions.entrySet()) {
             final String providerKey = entry.getKey();
-            final ParameterProviderDefinition definition = entry.getValue();
+            final ParameterValueProviderDefinition definition = entry.getValue();
 
             if (definition.getName() == null) {
-                logger.warn("Parameter Provider identified in Properties with key <" + providerKey + "> was not provided a name. Will default name to <" + providerKey + ">");
+                logger.warn("Parameter Value Provider identified in Properties with key <" + providerKey + "> was not provided a name. Will default name to <" + providerKey + ">");
                 definition.setName(providerKey);
             }
 
             if (definition.getType() == null) {
-                throw new IllegalArgumentException("Parameter Provider <" + definition.getName() + "> does not have a Type set. This must be set by adding a property named " +
+                throw new IllegalArgumentException("Parameter Value Provider <" + definition.getName() + "> does not have a Type set. This must be set by adding a property named " +
                     PARAMETER_PROVIDER_PREFIX + providerKey + ".type");
             }
         }
 
-        return new ArrayList<>(parameterProviderDefinitions.values());
+        return new ArrayList<>(parameterValueProviderDefinitions.values());
     }
 
-    private ParameterProviderDefinition createEnvironmentVariableProvider() {
-        final ParameterProviderDefinition overrideProvider = new ParameterProviderDefinition();
-        overrideProvider.setType(EnvironmentVariableParameterProvider.class.getName());
-        overrideProvider.setName("Environment Variable Parameter Provider");
+    private ParameterValueProviderDefinition createEnvironmentVariableProvider() {
+        final ParameterValueProviderDefinition overrideProvider = new ParameterValueProviderDefinition();
+        overrideProvider.setType(EnvironmentVariableParameterValueProvider.class.getName());
+        overrideProvider.setName("Environment Variable Parameter Value Provider");
         overrideProvider.setPropertyValues(Collections.emptyMap());
         return overrideProvider;
     }
 
-    private ParameterProviderDefinition createParameterOverrideProvider(final List<ParameterOverride> parameterOverrides) {
-        final ParameterProviderDefinition overrideProvider = new ParameterProviderDefinition();
-        overrideProvider.setType(ParameterOverrideProvider.class.getName());
+    private ParameterValueProviderDefinition createParameterOverrideProvider(final List<ParameterOverride> parameterOverrides) {
+        final ParameterValueProviderDefinition overrideProvider = new ParameterValueProviderDefinition();
+        overrideProvider.setType(OverrideParameterValueProvider.class.getName());
         overrideProvider.setName("Parameter Override Provider");
 
         final Map<String, String> propertyValues = new LinkedHashMap<>();

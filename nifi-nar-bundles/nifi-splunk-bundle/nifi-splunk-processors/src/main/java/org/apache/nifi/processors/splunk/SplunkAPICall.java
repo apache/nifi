@@ -102,7 +102,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
     static final PropertyDescriptor TOKEN = new PropertyDescriptor.Builder()
             .name("Token")
             .displayName("HTTP Event Collector Token")
-            .description("HTTP Event Collector token starting with the string Splunk. For example Splunk 1234578-abcd-1234-abcd-1234abcd")
+            .description("HTTP Event Collector token starting with the string Splunk. For example \'Splunk 1234578-abcd-1234-abcd-1234abcd\'")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)

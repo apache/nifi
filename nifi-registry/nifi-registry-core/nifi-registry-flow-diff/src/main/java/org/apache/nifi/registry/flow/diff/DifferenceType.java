@@ -268,7 +268,23 @@ public enum DifferenceType {
     /**
      * The Process Group's configured FlowFile Outbound Policy is different in each of the flows
      */
-    FLOWFILE_OUTBOUND_POLICY_CHANGED("FlowFile Outbound Policy Changed");
+    FLOWFILE_OUTBOUND_POLICY_CHANGED("FlowFile Outbound Policy Changed"),
+
+    /**
+     * The Process Group's Default value for connections' Backpressure Data Size Threshold is different in each of the flows
+     */
+    DEFAULT_BACKPRESSURE_DATA_SIZE_CHANGED("Default Back Pressure Data Size Changed"),
+
+    /**
+     * The Process Group's Default value for connections' Backpressure Object Threshold is different in each of the flows
+     */
+    DEFAULT_BACKPRESSURE_OBJECT_COUNT_CHANGED("Default Back Pressure Object Count Changed"),
+
+    /**
+     * The Process Group's Default value for connections' FlowFile Expiration is different in each of the flows
+     */
+    DEFAULT_FLOWFILE_EXPIRATION_CHANGED("Default FlowFile Expiration Changed")
+    ;
 
     private final String description;
 

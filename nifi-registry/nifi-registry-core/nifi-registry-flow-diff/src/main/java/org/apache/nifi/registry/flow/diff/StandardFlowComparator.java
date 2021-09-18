@@ -17,18 +17,18 @@
 
 package org.apache.nifi.registry.flow.diff;
 
-import org.apache.nifi.registry.flow.VersionedComponent;
-import org.apache.nifi.registry.flow.VersionedConnection;
-import org.apache.nifi.registry.flow.VersionedControllerService;
-import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
-import org.apache.nifi.registry.flow.VersionedFunnel;
-import org.apache.nifi.registry.flow.VersionedLabel;
-import org.apache.nifi.registry.flow.VersionedPort;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.flow.VersionedProcessor;
-import org.apache.nifi.registry.flow.VersionedPropertyDescriptor;
-import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
-import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
+import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedFunnel;
+import org.apache.nifi.flow.VersionedLabel;
+import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
+import org.apache.nifi.flow.VersionedRemoteGroupPort;
+import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -337,6 +337,10 @@ public class StandardFlowComparator implements FlowComparator {
             true, DEFAULT_FLOW_FILE_CONCURRENCY);
         addIfDifferent(differences, DifferenceType.FLOWFILE_OUTBOUND_POLICY_CHANGED, groupA, groupB, VersionedProcessGroup::getFlowFileOutboundPolicy,
             true, DEFAULT_OUTBOUND_FLOW_FILE_POLICY);
+
+        addIfDifferent(differences, DifferenceType.DEFAULT_BACKPRESSURE_DATA_SIZE_CHANGED, groupA, groupB, VersionedProcessGroup::getDefaultBackPressureDataSizeThreshold, true, "1 GB");
+        addIfDifferent(differences, DifferenceType.DEFAULT_BACKPRESSURE_OBJECT_COUNT_CHANGED, groupA, groupB, VersionedProcessGroup::getDefaultBackPressureObjectThreshold, true, 10_000L);
+        addIfDifferent(differences, DifferenceType.DEFAULT_FLOWFILE_EXPIRATION_CHANGED, groupA, groupB, VersionedProcessGroup::getDefaultFlowFileExpiration, true, "0 sec");
 
         final VersionedFlowCoordinates groupACoordinates = groupA.getVersionedFlowCoordinates();
         final VersionedFlowCoordinates groupBCoordinates = groupB.getVersionedFlowCoordinates();

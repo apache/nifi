@@ -146,12 +146,14 @@
                         <exclude>src/test/resources/csv/extra-white-space.csv</exclude>
                         <exclude>src/test/resources/csv/multi-bank-account.csv</exclude>
                         <exclude>src/test/resources/csv/single-bank-account.csv</exclude>
-                        <exclude>src/test/resources/csv/multi-bank-account_escapedchar.csv</exclude>
+                        <exclude>src/test/resources/csv/multi-bank-account_escapechar.csv</exclude>
+                        <exclude>src/test/resources/csv/multi-bank-account_spec_delimiter.csv</exclude>
                         <exclude>src/test/resources/csv/prov-events.csv</exclude>
                         <exclude>src/test/resources/grok/error-with-stack-trace.log</exclude>
                         <exclude>src/test/resources/grok/nifi-log-sample-multiline-with-stacktrace.log</exclude>
                         <exclude>src/test/resources/grok/nifi-log-sample.log</exclude>
                         <exclude>src/test/resources/grok/single-line-log-messages.txt</exclude>
+                        <exclude>src/test/resources/grok/grok_patterns.txt</exclude>
                         <exclude>src/test/resources/json/bank-account-array-different-schemas.json</exclude>
                         <exclude>src/test/resources/json/bank-account-array-optional-balance.json</exclude>
                         <exclude>src/test/resources/json/bank-account-array.json</exclude>

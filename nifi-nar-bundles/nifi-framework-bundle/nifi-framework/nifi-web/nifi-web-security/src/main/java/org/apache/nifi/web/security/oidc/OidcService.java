@@ -42,7 +42,7 @@ public class OidcService {
     private Cache<CacheKey, String> jwtLookupForCompletedRequests; // identifier from cookie -> jwt or identity (and generate jwt on retrieval)
 
     /**
-     * Creates a new OtpService with an expiration of 1 minute.
+     * Creates a new OIDC with an expiration of 1 minute.
      *
      * @param identityProvider          The identity provider
      */
@@ -51,7 +51,7 @@ public class OidcService {
     }
 
     /**
-     * Creates a new OtpService.
+     * Creates a new OIDC Service.
      *
      * @param identityProvider          The identity provider
      * @param duration                  The expiration duration

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web;
 
-import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
+import org.apache.nifi.web.security.http.SecurityCookieName;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.util.WebUtils;
 import javax.servlet.http.HttpServletRequest;
@@ -25,8 +25,6 @@ import javax.servlet.http.HttpServletRequest;
  * Request Matcher checks for the existence of a cookie with the configured name
  */
 public class CsrfCookieRequestMatcher implements RequestMatcher {
-    private static final String DEFAULT_CSRF_COOKIE_NAME = NiFiBearerTokenResolver.JWT_COOKIE_NAME;
-
     /**
      * Matches request based on the presence of a cookie found using the configured name
      *
@@ -35,6 +33,6 @@ public class CsrfCookieRequestMatcher implements RequestMatcher {
      */
     @Override
     public boolean matches(final HttpServletRequest httpServletRequest) {
-        return WebUtils.getCookie(httpServletRequest, DEFAULT_CSRF_COOKIE_NAME) != null;
+        return WebUtils.getCookie(httpServletRequest, SecurityCookieName.AUTHORIZATION_BEARER.getName()) != null;
     }
 }

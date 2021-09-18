@@ -23,10 +23,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -37,8 +35,9 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyList;
@@ -46,13 +45,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestPutRiemann {
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   // Holds incoming events to Riemann
   private Queue<Proto.Event> eventStream = new LinkedList<Proto.Event>();
 
-  @Before
+  @BeforeEach
   public void clearEventStream() {
     eventStream.clear();
   }
@@ -174,8 +170,7 @@ public class TestPutRiemann {
     runner.assertAllFlowFilesTransferred(PutRiemann.REL_FAILURE);
   }
 
-
-  @Test(expected = AssertionError.class)
+  @Test
   public void testFailedDeref() {
     TestRunner runner = getTestRunner(true);
     MockFlowFile flowFile = new MockFlowFile(1);
@@ -184,7 +179,7 @@ public class TestPutRiemann {
     flowFile.putAttributes(attributes);
     runner.enqueue(flowFile);
     try {
-      runner.run();
+      assertThrows(AssertionError.class, () -> runner.run());
     } catch (ProcessException e) {
       runner.assertQueueNotEmpty();
       throw e;

@@ -22,6 +22,7 @@ import org.apache.commons.cli.HelpFormatter
 import org.apache.nifi.properties.ConfigEncryptionTool
 import org.apache.nifi.properties.PropertyProtectionScheme
 import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.properties.SensitivePropertyProviderFactory
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.PropertiesEncryptor
@@ -125,7 +126,7 @@ class DecryptMode implements ToolMode {
                 break
 
             case FileType.xml:
-                XmlEncryptor xmlEncryptor = new XmlEncryptor(null, config.decryptionProvider) {
+                XmlEncryptor xmlEncryptor = new XmlEncryptor(null, config.decryptionProvider, config.providerFactory) {
                     @Override
                     List<String> serializeXmlContentAndPreserveFormat(String updatedXmlContent, String originalXmlContent) {
                         // For decrypting unknown, generic XML, this tool will not support preserving the format
@@ -213,6 +214,7 @@ class DecryptMode implements ToolMode {
         PropertyProtectionScheme protectionScheme = ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME
         String key
         SensitivePropertyProvider decryptionProvider
+        SensitivePropertyProviderFactory providerFactory
         String inputBootstrapPath
 
         FileType fileType
@@ -239,9 +241,9 @@ class DecryptMode implements ToolMode {
                     throw new RuntimeException("Failed to configure tool, could not determine key.")
                 }
             }
-            decryptionProvider = StandardSensitivePropertyProviderFactory
+            providerFactory = StandardSensitivePropertyProviderFactory
                     .withKeyAndBootstrapSupplier(key, ConfigEncryptionTool.getBootstrapSupplier(inputBootstrapPath))
-                    .getProvider(protectionScheme)
+            decryptionProvider = providerFactory.getProvider(protectionScheme)
 
             if (rawOptions.t) {
                 fileType = FileType.valueOf(rawOptions.t)

@@ -365,9 +365,9 @@
                             // handle based on the number of tokens in the port name
                             if (words.length === 1) {
                                 // apply ellipsis to the port name as necessary
-                                nfCanvasUtils.ellipsis(portName, name);
+                                nfCanvasUtils.ellipsis(portName, name, 'port-name');
                             } else {
-                                nfCanvasUtils.multilineEllipsis(portName, 2, name);
+                                nfCanvasUtils.multilineEllipsis(portName, 2, name, 'port-name');
                             }
                         }).attrs({
                             'y': offsetY(25)

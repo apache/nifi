@@ -31,7 +31,7 @@ import java.sql.Statement;
 
 public class IdpDataSourceFactoryBean implements FactoryBean<JdbcConnectionPool> {
 
-    private static final Logger logger = LoggerFactory.getLogger(KeyDataSourceFactoryBean.class);
+    private static final Logger logger = LoggerFactory.getLogger(IdpDataSourceFactoryBean.class);
     private static final String NF_USERNAME_PASSWORD = "nf";
     private static final int MAX_CONNECTIONS = 5;
 

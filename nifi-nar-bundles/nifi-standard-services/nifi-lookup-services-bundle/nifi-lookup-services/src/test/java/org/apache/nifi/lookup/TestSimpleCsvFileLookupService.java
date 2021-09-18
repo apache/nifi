@@ -16,28 +16,29 @@
  */
 package org.apache.nifi.lookup;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Optional;
-
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class TestSimpleCsvFileLookupService {
 
     final static Optional<String> EMPTY_STRING = Optional.empty();
 
     @Test
-    public void testSimpleCsvFileLookupService() throws InitializationException, IOException, LookupFailureException {
+    public void testSimpleCsvFileLookupService() throws InitializationException, LookupFailureException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SimpleCsvFileLookupService service = new SimpleCsvFileLookupService();
 
@@ -50,9 +51,9 @@ public class TestSimpleCsvFileLookupService {
         runner.assertValid(service);
 
         final SimpleCsvFileLookupService lookupService =
-            (SimpleCsvFileLookupService) runner.getProcessContext()
-                .getControllerServiceLookup()
-                .getControllerService("csv-file-lookup-service");
+                (SimpleCsvFileLookupService) runner.getProcessContext()
+                        .getControllerServiceLookup()
+                        .getControllerService("csv-file-lookup-service");
 
         assertThat(lookupService, instanceOf(LookupService.class));
 
@@ -105,5 +106,23 @@ public class TestSimpleCsvFileLookupService {
 
         final Optional<String> value = service.lookup(Collections.singletonMap("key", "my_key"));
         assertEquals(Optional.of("my_value with an escaped |."), value);
+    }
+
+    @Test
+    public void testCacheIsClearedWhenDisableService() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final CSVRecordLookupService service = new CSVRecordLookupService();
+        runner.addControllerService("csv-file-lookup-service", service);
+        runner.setProperty(service, CSVRecordLookupService.CSV_FILE, "src/test/resources/test.csv");
+        runner.setProperty(service, CSVRecordLookupService.CSV_FORMAT, "RFC4180");
+        runner.setProperty(service, CSVRecordLookupService.LOOKUP_KEY_COLUMN, "key");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        assertTrue(service.isCaching());
+
+        runner.disableControllerService(service);
+
+        assertFalse(service.isCaching());
     }
 }

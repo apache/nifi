@@ -19,13 +19,13 @@ package org.apache.nifi.dbcp
 import org.apache.commons.dbcp2.BasicDataSource
 import org.apache.nifi.reporting.InitializationException
 import org.apache.nifi.security.krb.KerberosKeytabUser
+import org.apache.nifi.security.krb.KerberosLoginException
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.Assert
 import org.junit.BeforeClass
 import org.junit.Test
 
-import javax.security.auth.login.LoginException
 import java.sql.Connection
 import java.sql.SQLException
 
@@ -76,7 +76,7 @@ class GroovyDBCPServiceTest {
         }
     }
 
-    @Test(expected = LoginException)
+    @Test(expected = KerberosLoginException)
     void testDatasourceCloseSuccessWithKerberosUserLogoutException() {
         final DBCPConnectionPool dbcpConnectionPoolService = new DBCPConnectionPool()
 
@@ -84,8 +84,8 @@ class GroovyDBCPServiceTest {
         dbcpConnectionPoolService.dataSource = basicDataSource
         def kerberosKeytabUser = new KerberosKeytabUser("bad@PRINCIPAL.COM", "fake.keytab") {
             @Override
-            void logout() throws LoginException {
-                throw new LoginException("fake logout exception")
+            void logout() {
+                throw new KerberosLoginException("fake logout exception")
             }
         }
         dbcpConnectionPoolService.kerberosUser = kerberosKeytabUser
@@ -104,7 +104,7 @@ class GroovyDBCPServiceTest {
         dbcpConnectionPoolService.dataSource = basicDataSource
         def kerberosKeytabUser = new KerberosKeytabUser("bad@PRINCIPAL.COM", "fake.keytab") {
             @Override
-            void logout() throws LoginException {
+            void logout() {
             }
         }
         dbcpConnectionPoolService.kerberosUser = kerberosKeytabUser
@@ -122,8 +122,8 @@ class GroovyDBCPServiceTest {
         dbcpConnectionPoolService.dataSource = basicDataSource
         def kerberosKeytabUser = new KerberosKeytabUser("bad@PRINCIPAL.COM", "fake.keytab") {
             @Override
-            void logout() throws LoginException {
-                throw new LoginException("fake logout exception")
+            void logout() {
+                throw new KerberosLoginException("fake logout exception")
             }
         }
         dbcpConnectionPoolService.kerberosUser = kerberosKeytabUser
