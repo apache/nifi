@@ -79,7 +79,8 @@ import java.util.stream.Stream;
 @ReadsAttribute(attribute = "filename", description = "The name of the file written to HDFS comes from the value of this attribute.")
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The name of the file written to HDFS is stored in this attribute."),
-        @WritesAttribute(attribute = "absolute.hdfs.path", description = "The absolute path to the file on HDFS is stored in this attribute.")
+        @WritesAttribute(attribute = "absolute.hdfs.path", description = "The absolute path to the file on HDFS is stored in this attribute."),
+        @WritesAttribute(attribute = "target.dir.created", description = "The result(true/false) indicates if the folder is created by the processor.")
 })
 @SeeAlso(GetHDFS.class)
 @Restricted(restrictions = {
@@ -269,12 +270,14 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     final Path copyFile = new Path(dirPath, filename);
 
                     // Create destination directory if it does not exist
+                    boolean targetDirCreated = false;
                     try {
                         if (!hdfs.getFileStatus(dirPath).isDirectory()) {
                             throw new IOException(dirPath.toString() + " already exists and is not a directory");
                         }
                     } catch (FileNotFoundException fe) {
-                        if (!hdfs.mkdirs(dirPath)) {
+                        targetDirCreated = hdfs.mkdirs(dirPath);
+                        if (!targetDirCreated) {
                             throw new IOException(dirPath.toString() + " could not be created");
                         }
                         changeOwner(context, hdfs, dirPath, flowFile);
@@ -388,6 +391,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     final String hdfsPath = copyFile.getParent().toString();
                     putFlowFile = session.putAttribute(putFlowFile, CoreAttributes.FILENAME.key(), newFilename);
                     putFlowFile = session.putAttribute(putFlowFile, ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
+                    putFlowFile = session.putAttribute(putFlowFile, TARGET_HDFS_DIR_CREATED_ATTRIBUTE, String.valueOf(targetDirCreated));
                     final Path qualifiedPath = copyFile.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
                     session.getProvenanceReporter().send(putFlowFile, qualifiedPath.toString());
 

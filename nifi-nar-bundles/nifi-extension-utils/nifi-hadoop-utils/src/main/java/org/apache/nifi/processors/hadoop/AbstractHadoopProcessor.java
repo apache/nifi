@@ -153,6 +153,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     public static final String ABSOLUTE_HDFS_PATH_ATTRIBUTE = "absolute.hdfs.path";
 
+    protected static final String TARGET_HDFS_DIR_CREATED_ATTRIBUTE = "target.dir.created";
+
     private static final Object RESOURCES_LOCK = new Object();
     private static final HdfsResources EMPTY_HDFS_RESOURCES = new HdfsResources(null, null, null, null);
 
