@@ -91,24 +91,8 @@ public class TestSecretsManagerParameterValueProvider {
     }
 
     @Test
-    public void testGetParameterValueWithIncorrectSecretKey() {
-        mockGetSecretValue("notValue", true, true);
-
-        provider.init(createContext(CONFIG_FILE));
-        assertThrows(IllegalStateException.class, () -> provider.getParameterValue(CONTEXT, PARAMETER));
-    }
-
-    @Test
     public void testGetParameterValueWithMissingSecretString() {
-        mockGetSecretValue("notValue", false, false);
-
-        provider.init(createContext(CONFIG_FILE));
-        assertThrows(IllegalStateException.class, () -> provider.getParameterValue(CONTEXT, PARAMETER));
-    }
-
-    @Test
-    public void testGetParameterValueWithInvalidSecretString() {
-        mockGetSecretValue("notValue", true, false);
+        mockGetSecretValue("value", false);
 
         provider.init(createContext(CONFIG_FILE));
         assertThrows(IllegalStateException.class, () -> provider.getParameterValue(CONTEXT, PARAMETER));
@@ -123,17 +107,13 @@ public class TestSecretsManagerParameterValueProvider {
     }
 
     private void mockGetSecretValue() {
-        mockGetSecretValue("value", true, true);
+        mockGetSecretValue(VALUE, true);
     }
 
-    private void mockGetSecretValue(final String secretKey, final boolean hasSecretString, final boolean hasValidSecretString) {
+    private void mockGetSecretValue(final String secretValue, final boolean hasSecretString) {
         GetSecretValueResult result = new GetSecretValueResult();
         if (hasSecretString) {
-            if (hasValidSecretString) {
-                result = result.withSecretString(String.format("{ \"%s\": \"%s\" }", secretKey, VALUE));
-            } else {
-                result = result.withSecretString("invalid");
-            }
+            result = result.withSecretString(secretValue);
         }
         when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(CONTEXT, PARAMETER)))).thenReturn(result);
     }

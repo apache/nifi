@@ -524,7 +524,7 @@ via the `./conf/bootstrap-aws.conf` file, which comes with NiFi.
 An example of creating a single secret in the correct format is:
 
 ```
-aws secretsmanager create-secret --name "Context/Param" --secret-string '{ "value": "secretValue" }'
+aws secretsmanager create-secret --name "Context/Param" --secret-string "secretValue"
 ```
 
 In this example, `Context` is the name of a Parameter Context, `Param` is the name of the parameter whose value

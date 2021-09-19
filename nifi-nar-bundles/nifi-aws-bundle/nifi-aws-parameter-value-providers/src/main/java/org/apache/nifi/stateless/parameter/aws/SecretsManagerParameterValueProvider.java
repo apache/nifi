@@ -26,8 +26,6 @@ import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
 import com.amazonaws.services.secretsmanager.model.ListSecretsRequest;
 import com.amazonaws.services.secretsmanager.model.ListSecretsResult;
 import com.amazonaws.services.secretsmanager.model.SecretListEntry;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -49,7 +47,7 @@ import java.util.Set;
 
 /**
  * Reads secrets from AWS Secrets Manager to provide parameter values.  Secrets must be created similar to the following AWS cli command: <br/><br/>
- * <code>aws secretsmanager create-secret --name "[ParamContextName]/[ParamName]]" --secret-string '{ "value": "[ParamValue]" }'</code> <br/><br/>
+ * <code>aws secretsmanager create-secret --name "[ParamContextName]/[ParamName]" --secret-string '[ParamValue]'</code> <br/><br/>
  *
  * A standard configuration for this provider would be: <br/><br/>
  *
@@ -129,13 +127,7 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
             throw new IllegalArgumentException(String.format("Secret [%s] not found", secretName));
         }
         if (getSecretValueResult.getSecretString() != null) {
-            final String secretString = getSecretValueResult.getSecretString();
-            try {
-                final SecretData secretData = objectReader.readValue(secretString, SecretData.class);
-                return secretData.getValue();
-            } catch (final IOException e) {
-                throw new IllegalStateException(String.format("Could not read secret value for %s", secretName), e);
-            }
+            return getSecretValueResult.getSecretString();
         } else {
             throw new IllegalStateException("Binary secrets are not supported");
         }
@@ -211,19 +203,6 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
         @Override
         public void refresh() {
 
-        }
-    }
-
-    private static class SecretData {
-        private final String value;
-
-        @JsonCreator
-        public SecretData(@JsonProperty("value") final String value) {
-            this.value = value;
-        }
-
-        public String getValue() {
-            return value;
         }
     }
 }
