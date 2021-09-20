@@ -19,7 +19,7 @@ package org.apache.nifi.processor.util.listen.event;
 import java.util.Map;
 
 /**
- * Factory to create instances of a given type of Event.
+ * Factory to create instances of a given type of NettyEvent.
  */
 public interface NettyEventFactory<E extends NettyEvent> {
 

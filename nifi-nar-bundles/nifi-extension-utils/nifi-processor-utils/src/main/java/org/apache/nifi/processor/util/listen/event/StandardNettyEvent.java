@@ -17,7 +17,7 @@
 package org.apache.nifi.processor.util.listen.event;
 
 /**
- * Standard implementation of Event.
+ * Standard implementation of the NettyEvent.
  */
 public class StandardNettyEvent implements NettyEvent {
 

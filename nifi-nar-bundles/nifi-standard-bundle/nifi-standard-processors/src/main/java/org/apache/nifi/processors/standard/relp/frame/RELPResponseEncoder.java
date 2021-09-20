@@ -38,7 +38,6 @@ public class RELPResponseEncoder extends MessageToMessageEncoder<RELPResponse> {
 
     @Override
     protected void encode(ChannelHandlerContext context, RELPResponse event, List<Object> out) throws Exception {
-        // TODO: encode a message with the RELPEncoder to be sent as a response
         out.add(new RELPEncoder(charset).encode(event.toFrame(charset)));
     }
 }

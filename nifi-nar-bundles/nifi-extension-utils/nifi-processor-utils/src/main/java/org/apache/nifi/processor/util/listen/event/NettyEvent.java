@@ -31,10 +31,4 @@ public interface NettyEvent {
      */
     byte[] getData();
 
-    /**
-     * @return the responder to use for responding to this event, or null
-     *              if responses are not supported
-     */
-    //ChannelResponder<C> getResponder();
-
 }
