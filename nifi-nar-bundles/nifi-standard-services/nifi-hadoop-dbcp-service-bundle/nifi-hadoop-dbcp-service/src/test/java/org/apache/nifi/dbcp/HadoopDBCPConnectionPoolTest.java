@@ -20,6 +20,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockKerberosContext;
@@ -29,6 +30,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class HadoopDBCPConnectionPoolTest {
 
@@ -75,7 +79,7 @@ public class HadoopDBCPConnectionPoolTest {
         runner.removeProperty(hadoopDBCPService, kerberosProps.getKerberosKeytab());
         runner.assertValid(hadoopDBCPService);
 
-        // Configure a KeberosCredentialService, should become invalid
+        // Configure a KerberosCredentialService, should become invalid
         final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService(
                 "nifi@EXAMPLE.COM", "src/test/resources/fake.keytab");
         runner.addControllerService("kerb-credentials", kerberosCredentialsService);
@@ -89,6 +93,32 @@ public class HadoopDBCPConnectionPoolTest {
 
         // Remove principal property, only using keytab service, should become valid
         runner.removeProperty(hadoopDBCPService, kerberosProps.getKerberosPrincipal());
+        runner.assertValid(hadoopDBCPService);
+
+        // Configure KerberosUserService, should be invalid since KerberosCredentialService also configured
+        final KerberosUserService kerberosUserService = mock(KerberosUserService.class);
+        when(kerberosUserService.getIdentifier()).thenReturn("userService1");
+        runner.addControllerService(kerberosUserService.getIdentifier(), kerberosUserService);
+        runner.enableControllerService(kerberosUserService);
+        runner.setProperty(hadoopDBCPService, HadoopDBCPConnectionPool.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        runner.assertNotValid(hadoopDBCPService);
+
+        // Remove KerberosCredentialService, should be valid with only KerberosUserService
+        runner.removeProperty(hadoopDBCPService, HadoopDBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE);
+        runner.assertValid(hadoopDBCPService);
+
+        // Configure explicit principal and keytab, should be invalid while kerberos user service is set
+        runner.setProperty(hadoopDBCPService, kerberosProps.getKerberosPrincipal(), "nifi@EXAMPLE.COM");
+        runner.setProperty(hadoopDBCPService, kerberosProps.getKerberosKeytab(), "src/test/resources/fake.keytab");
+        runner.assertNotValid(hadoopDBCPService);
+
+        // Remove explicit keytab, set explicit password, still invalid while kerberos user service set
+        runner.removeProperty(hadoopDBCPService, kerberosProps.getKerberosKeytab());
+        runner.setProperty(hadoopDBCPService, kerberosProps.getKerberosPassword(), "password");
+        runner.assertNotValid(hadoopDBCPService);
+
+        // Remove kerberos user service, should be valid
+        runner.removeProperty(hadoopDBCPService, HadoopDBCPConnectionPool.KERBEROS_USER_SERVICE);
         runner.assertValid(hadoopDBCPService);
     }
 

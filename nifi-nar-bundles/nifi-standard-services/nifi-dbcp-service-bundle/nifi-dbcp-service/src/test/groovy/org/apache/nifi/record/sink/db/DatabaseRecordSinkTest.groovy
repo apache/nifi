@@ -59,6 +59,7 @@ import static org.apache.nifi.dbcp.DBCPConnectionPool.EVICTION_RUN_PERIOD
 import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE
 import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_PASSWORD
 import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_PRINCIPAL
+import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_USER_SERVICE
 import static org.apache.nifi.dbcp.DBCPConnectionPool.MAX_CONN_LIFETIME
 import static org.apache.nifi.dbcp.DBCPConnectionPool.MAX_IDLE
 import static org.apache.nifi.dbcp.DBCPConnectionPool.MAX_TOTAL_CONNECTIONS
@@ -306,6 +307,7 @@ class DatabaseRecordSinkTest {
         when(dbContext.getProperty(MIN_EVICTABLE_IDLE_TIME)).thenReturn(new MockPropertyValue('5 sec'))
         when(dbContext.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME)).thenReturn(new MockPropertyValue('5 sec'))
         when(dbContext.getProperty(KERBEROS_CREDENTIALS_SERVICE)).thenReturn(new MockPropertyValue(null))
+        when(dbContext.getProperty(KERBEROS_USER_SERVICE)).thenReturn(new MockPropertyValue(null))
         when(dbContext.getProperty(KERBEROS_PRINCIPAL)).thenReturn(new MockPropertyValue(null))
         when(dbContext.getProperty(KERBEROS_PASSWORD)).thenReturn(new MockPropertyValue(null))
 
