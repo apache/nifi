@@ -33,6 +33,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -167,6 +168,25 @@ public class TestPutKudu {
         testRunner.removeProperty(PutKudu.KERBEROS_PRINCIPAL);
         testRunner.removeProperty(PutKudu.KERBEROS_PASSWORD);
         testRunner.assertValid();
+
+        final KerberosUserService kerberosUserService = enableKerberosUserService(testRunner);
+        testRunner.setProperty(PutKudu.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        testRunner.assertNotValid();
+
+        testRunner.removeProperty(PutKudu.KERBEROS_CREDENTIALS_SERVICE);
+        testRunner.assertValid();
+
+        testRunner.setProperty(PutKudu.KERBEROS_PRINCIPAL, "principal");
+        testRunner.setProperty(PutKudu.KERBEROS_PASSWORD, "password");
+        testRunner.assertNotValid();
+    }
+
+    private KerberosUserService enableKerberosUserService(final TestRunner runner) throws InitializationException {
+        final KerberosUserService kerberosUserService = mock(KerberosUserService.class);
+        when(kerberosUserService.getIdentifier()).thenReturn("userService1");
+        runner.addControllerService(kerberosUserService.getIdentifier(), kerberosUserService);
+        runner.enableControllerService(kerberosUserService);
+        return kerberosUserService;
     }
 
     @Test
