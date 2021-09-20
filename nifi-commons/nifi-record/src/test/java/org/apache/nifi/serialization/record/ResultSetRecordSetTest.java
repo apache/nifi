@@ -72,26 +72,25 @@ public class ResultSetRecordSetTest {
     private static final String COLUMN_NAME_BIG_DECIMAL_4 = "bigDecimal4";
     private static final String COLUMN_NAME_BIG_DECIMAL_5 = "bigDecimal5";
 
-    private static final Object[][] COLUMNS = new Object[][] {
-            // column number; column label / name / schema field; column type; schema data type;
-            {1, COLUMN_NAME_VARCHAR, Types.VARCHAR, RecordFieldType.STRING.getDataType()},
-            {2, COLUMN_NAME_BIGINT, Types.BIGINT, RecordFieldType.LONG.getDataType()},
-            {3, COLUMN_NAME_ROWID, Types.ROWID, RecordFieldType.LONG.getDataType()},
-            {4, COLUMN_NAME_BIT, Types.BIT, RecordFieldType.BOOLEAN.getDataType()},
-            {5, COLUMN_NAME_BOOLEAN, Types.BOOLEAN, RecordFieldType.BOOLEAN.getDataType()},
-            {6, COLUMN_NAME_CHAR, Types.CHAR, RecordFieldType.CHAR.getDataType()},
-            {7, COLUMN_NAME_DATE, Types.DATE, RecordFieldType.DATE.getDataType()},
-            {8, COLUMN_NAME_INTEGER, Types.INTEGER, RecordFieldType.INT.getDataType()},
-            {9, COLUMN_NAME_DOUBLE, Types.DOUBLE, RecordFieldType.DOUBLE.getDataType()},
-            {10, COLUMN_NAME_REAL, Types.REAL, RecordFieldType.DOUBLE.getDataType()},
-            {11, COLUMN_NAME_FLOAT, Types.FLOAT, RecordFieldType.FLOAT.getDataType()},
-            {12, COLUMN_NAME_SMALLINT, Types.SMALLINT, RecordFieldType.SHORT.getDataType()},
-            {13, COLUMN_NAME_TINYINT, Types.TINYINT, RecordFieldType.BYTE.getDataType()},
-            {14, COLUMN_NAME_BIG_DECIMAL_1, Types.DECIMAL,RecordFieldType.DECIMAL.getDecimalDataType(7, 3)},
-            {15, COLUMN_NAME_BIG_DECIMAL_2, Types.NUMERIC, RecordFieldType.DECIMAL.getDecimalDataType(4, 0)},
-            {16, COLUMN_NAME_BIG_DECIMAL_3, Types.JAVA_OBJECT, RecordFieldType.DECIMAL.getDecimalDataType(501, 1)},
-            {17, COLUMN_NAME_BIG_DECIMAL_4, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(10, 3)},
-            {18, COLUMN_NAME_BIG_DECIMAL_5, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(3, 10)},
+    private static final TestColumn[] COLUMNS = new TestColumn[] {
+            new TestColumn(1, COLUMN_NAME_VARCHAR, Types.VARCHAR, RecordFieldType.STRING.getDataType()),
+            new TestColumn(2, COLUMN_NAME_BIGINT, Types.BIGINT, RecordFieldType.LONG.getDataType()),
+            new TestColumn(3, COLUMN_NAME_ROWID, Types.ROWID, RecordFieldType.LONG.getDataType()),
+            new TestColumn(4, COLUMN_NAME_BIT, Types.BIT, RecordFieldType.BOOLEAN.getDataType()),
+            new TestColumn(5, COLUMN_NAME_BOOLEAN, Types.BOOLEAN, RecordFieldType.BOOLEAN.getDataType()),
+            new TestColumn(6, COLUMN_NAME_CHAR, Types.CHAR, RecordFieldType.CHAR.getDataType()),
+            new TestColumn(7, COLUMN_NAME_DATE, Types.DATE, RecordFieldType.DATE.getDataType()),
+            new TestColumn(8, COLUMN_NAME_INTEGER, Types.INTEGER, RecordFieldType.INT.getDataType()),
+            new TestColumn(9, COLUMN_NAME_DOUBLE, Types.DOUBLE, RecordFieldType.DOUBLE.getDataType()),
+            new TestColumn(10, COLUMN_NAME_REAL, Types.REAL, RecordFieldType.DOUBLE.getDataType()),
+            new TestColumn(11, COLUMN_NAME_FLOAT, Types.FLOAT, RecordFieldType.FLOAT.getDataType()),
+            new TestColumn(12, COLUMN_NAME_SMALLINT, Types.SMALLINT, RecordFieldType.SHORT.getDataType()),
+            new TestColumn(13, COLUMN_NAME_TINYINT, Types.TINYINT, RecordFieldType.BYTE.getDataType()),
+            new TestColumn(14, COLUMN_NAME_BIG_DECIMAL_1, Types.DECIMAL,RecordFieldType.DECIMAL.getDecimalDataType(7, 3)),
+            new TestColumn(15, COLUMN_NAME_BIG_DECIMAL_2, Types.NUMERIC, RecordFieldType.DECIMAL.getDecimalDataType(4, 0)),
+            new TestColumn(16, COLUMN_NAME_BIG_DECIMAL_3, Types.JAVA_OBJECT, RecordFieldType.DECIMAL.getDecimalDataType(501, 1)),
+            new TestColumn(17, COLUMN_NAME_BIG_DECIMAL_4, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(10, 3)),
+            new TestColumn(18, COLUMN_NAME_BIG_DECIMAL_5, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(3, 10))
     };
 
     @Mock
@@ -149,13 +148,24 @@ public class ResultSetRecordSetTest {
     }
 
     @Test
+    public void testCreateSchemaWhenOtherTypeUsingLogicalTypes() throws SQLException {
+        // given
+        final List<RecordField> fields = givenFieldsThatRequireLogicalTypes();
+        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
+        final ResultSet resultSet = givenResultSetForOther(fields);
+
+        // when
+        final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10, 0, true);
+        final RecordSchema resultSchema = testSubject.getSchema();
+
+        // then
+        thenAllDataTypesMatchInputFieldType(fields, resultSchema);
+    }
+
+    @Test
     public void testCreateSchemaWhenOtherTypeAndNoLogicalTypes() throws SQLException {
         // given
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
-        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
-        fields.add(new RecordField("time", RecordFieldType.TIME.getDataType()));
-        fields.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
+        final List<RecordField> fields = givenFieldsThatRequireLogicalTypes();
         final RecordSchema recordSchema = new SimpleRecordSchema(fields);
         final ResultSet resultSet = givenResultSetForOther(fields);
 
@@ -164,7 +174,7 @@ public class ResultSetRecordSetTest {
         final RecordSchema resultSchema = testSubject.getSchema();
 
         // then
-        assertEquals(RecordFieldType.STRING.getDataType(), resultSchema.getField(0).getDataType());
+        thenAllDataTypesAreString(resultSchema);
     }
 
     @Test
@@ -304,19 +314,40 @@ public class ResultSetRecordSetTest {
         testCreateSchemaLogicalTypes(false);
     }
 
+    private void testArrayType(boolean useLogicalTypes) throws SQLException {
+        // GIVEN
+        List<ArrayTestData> testData = givenArrayTypesThatRequireLogicalTypes();
+        Map<String, DataType> expectedTypes = givenExpectedTypesForArrayTypesThatRequireLogicalTypes(useLogicalTypes);
+
+        // WHEN
+        ResultSet resultSet = Mockito.mock(ResultSet.class);
+        ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
+        when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+        when(resultSetMetaData.getColumnCount()).thenReturn(testData.size());
+
+        List<RecordField> fields = whenSchemaFieldsAreSetupForArrayType(testData, resultSet, resultSetMetaData);
+        RecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10,0, useLogicalTypes);
+        RecordSchema actualSchema = testSubject.getSchema();
+
+        // THEN
+        thenActualArrayElementTypesMatchExpected(expectedTypes, actualSchema);
+    }
+
     private void testCreateSchemaLogicalTypes(boolean useLogicalTypes) throws SQLException {
         // GIVEN
-        Object[][] columns = new Object[][] {
-                {1, COLUMN_NAME_DATE, Types.DATE, RecordFieldType.DATE.getDataType()},
-                {2, "time", Types.TIME, RecordFieldType.TIME.getDataType()},
-                {3, "time_with_timezone", Types.TIME_WITH_TIMEZONE, RecordFieldType.TIME.getDataType()},
-                {4, "timestamp", Types.TIMESTAMP, RecordFieldType.TIMESTAMP.getDataType()},
-                {5, "timestamp_with_timezone", Types.TIMESTAMP_WITH_TIMEZONE, RecordFieldType.TIMESTAMP.getDataType()},
-                {6, COLUMN_NAME_BIG_DECIMAL_1, Types.DECIMAL,RecordFieldType.DECIMAL.getDecimalDataType(7, 3)},
-                {7, COLUMN_NAME_BIG_DECIMAL_2, Types.NUMERIC, RecordFieldType.DECIMAL.getDecimalDataType(4, 0)},
-                {8, COLUMN_NAME_BIG_DECIMAL_3, Types.JAVA_OBJECT, RecordFieldType.DECIMAL.getDecimalDataType(501, 1)},
-                {9, COLUMN_NAME_BIG_DECIMAL_4, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(10, 3)},
-                {10, COLUMN_NAME_BIG_DECIMAL_5, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(3, 10)}
+        TestColumn[] columns = new TestColumn[]{
+                new TestColumn(1, COLUMN_NAME_DATE, Types.DATE, RecordFieldType.DATE.getDataType()),
+                new TestColumn(2, "time", Types.TIME, RecordFieldType.TIME.getDataType()),
+                new TestColumn(3, "time_with_timezone", Types.TIME_WITH_TIMEZONE, RecordFieldType.TIME.getDataType()),
+                new TestColumn(4, "timestamp", Types.TIMESTAMP, RecordFieldType.TIMESTAMP.getDataType()),
+                new TestColumn(5, "timestamp_with_timezone", Types.TIMESTAMP_WITH_TIMEZONE, RecordFieldType.TIMESTAMP.getDataType()),
+                new TestColumn(6, COLUMN_NAME_BIG_DECIMAL_1, Types.DECIMAL,RecordFieldType.DECIMAL.getDecimalDataType(7, 3)),
+                new TestColumn(7, COLUMN_NAME_BIG_DECIMAL_2, Types.NUMERIC, RecordFieldType.DECIMAL.getDecimalDataType(4, 0)),
+                new TestColumn(8, COLUMN_NAME_BIG_DECIMAL_3, Types.JAVA_OBJECT, RecordFieldType.DECIMAL.getDecimalDataType(501, 1)),
+                new TestColumn(9, COLUMN_NAME_BIG_DECIMAL_4, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(10, 3)),
+                new TestColumn(10, COLUMN_NAME_BIG_DECIMAL_5, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(3, 10)),
         };
         final RecordSchema recordSchema = givenRecordSchema(columns);
 
@@ -335,23 +366,23 @@ public class ResultSetRecordSetTest {
         thenAllColumnDataTypesAreCorrect(columns, expectedSchema, actualSchema);
     }
 
-    private void setUpMocks(Object[][] columns, ResultSetMetaData resultSetMetaData, ResultSet resultSet) throws SQLException {
+    private void setUpMocks(TestColumn[] columns, ResultSetMetaData resultSetMetaData, ResultSet resultSet) throws SQLException {
         when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
         when(resultSetMetaData.getColumnCount()).thenReturn(columns.length);
 
         int indexOfBigDecimal = -1;
         int index = 0;
-        for (final Object[] column : columns) {
-            when(resultSetMetaData.getColumnLabel((Integer) column[0])).thenReturn((String) column[1]);
-            when(resultSetMetaData.getColumnName((Integer) column[0])).thenReturn((String) column[1]);
-            when(resultSetMetaData.getColumnType((Integer) column[0])).thenReturn((Integer) column[2]);
+        for (final TestColumn column : columns) {
+            when(resultSetMetaData.getColumnLabel(column.getIndex())).thenReturn(column.getColumnName());
+            when(resultSetMetaData.getColumnName(column.getIndex())).thenReturn(column.getColumnName());
+            when(resultSetMetaData.getColumnType(column.getIndex())).thenReturn(column.getSqlType());
 
-            if (column[3] instanceof DecimalDataType) {
-                DecimalDataType ddt = (DecimalDataType)column[3];
-                when(resultSetMetaData.getPrecision((Integer) column[0])).thenReturn(ddt.getPrecision());
-                when(resultSetMetaData.getScale((Integer) column[0])).thenReturn(ddt.getScale());
+            if (column.getRecordFieldType() instanceof DecimalDataType) {
+                DecimalDataType ddt = (DecimalDataType) column.getRecordFieldType();
+                when(resultSetMetaData.getPrecision(column.getIndex())).thenReturn(ddt.getPrecision());
+                when(resultSetMetaData.getScale(column.getIndex())).thenReturn(ddt.getScale());
             }
-            if (((int)column[2]) == Types.JAVA_OBJECT) {
+            if (column.getSqlType() == Types.JAVA_OBJECT) {
                 indexOfBigDecimal = index + 1;
             }
             ++index;
@@ -364,8 +395,36 @@ public class ResultSetRecordSetTest {
         when(resultSetMetaData.getColumnClassName(indexOfBigDecimal)).thenReturn(BigDecimal.class.getName());
     }
 
-    private void testArrayType(boolean useLogicalTypes) throws SQLException {
-        // GIVEN
+    private List<RecordField> givenFieldsThatRequireLogicalTypes() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
+        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
+        fields.add(new RecordField("time", RecordFieldType.TIME.getDataType()));
+        fields.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
+        return fields;
+    }
+
+    private RecordSchema givenRecordSchema(TestColumn[] columns) {
+        final List<RecordField> fields = new ArrayList<>(columns.length);
+
+        for (TestColumn column : columns) {
+            fields.add(new RecordField(column.getColumnName(), column.getRecordFieldType()));
+        }
+
+        return new SimpleRecordSchema(fields);
+    }
+
+    private RecordSchema givenRecordSchemaWithOnlyStringType(TestColumn[] columns) {
+        final List<RecordField> fields = new ArrayList<>(columns.length);
+
+        for (TestColumn column : columns) {
+            fields.add(new RecordField(column.getColumnName(), RecordFieldType.STRING.getDataType()));
+        }
+
+        return new SimpleRecordSchema(fields);
+    }
+
+    private List<ArrayTestData> givenArrayTypesThatRequireLogicalTypes() {
         List<ArrayTestData> testData = new ArrayList<>();
         testData.add(new ArrayTestData("arrayBigDecimal",
                 new BigDecimalDummy[]{new BigDecimalDummy(), new BigDecimalDummy()}));
@@ -375,8 +434,11 @@ public class ResultSetRecordSetTest {
                 new Time[]{new Time(1631809132516L), new Time(1631809132516L)}));
         testData.add(new ArrayTestData("arrayTimestamp",
                 new Timestamp[]{new Timestamp(1631809132516L), new Timestamp(1631809132516L)}));
+        return testData;
+    }
 
-        Map<String, DataType> expectedTypes = new HashMap<>(testData.size());
+    private Map<String, DataType> givenExpectedTypesForArrayTypesThatRequireLogicalTypes(final boolean useLogicalTypes) {
+        Map<String, DataType> expectedTypes = new HashMap<>();
         if (useLogicalTypes) {
             expectedTypes.put("arrayBigDecimal", RecordFieldType.DECIMAL.getDecimalDataType(BigDecimalDummy.PRECISION, BigDecimalDummy.SCALE));
             expectedTypes.put("arrayDate", RecordFieldType.DATE.getDataType());
@@ -388,41 +450,7 @@ public class ResultSetRecordSetTest {
             expectedTypes.put("arrayTime", RecordFieldType.STRING.getDataType());
             expectedTypes.put("arrayTimestamp", RecordFieldType.STRING.getDataType());
         }
-
-        // WHEN
-        ResultSet resultSet = Mockito.mock(ResultSet.class);
-        ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
-        when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
-        when(resultSetMetaData.getColumnCount()).thenReturn(testData.size());
-
-        List<RecordField> fields = new ArrayList<>();
-        for (int i = 0; i < testData.size(); ++i) {
-            ArrayTestData testDatum = testData.get(i);
-            int columnIndex = i + 1;
-            SqlArrayDummy arrayDummy = Mockito.mock(SqlArrayDummy.class);
-            when(arrayDummy.getArray()).thenReturn(testDatum.getTestArray());
-            when(resultSet.getArray(columnIndex)).thenReturn(arrayDummy);
-            when(resultSetMetaData.getColumnLabel(columnIndex)).thenReturn(testDatum.getFieldName());
-            when(resultSetMetaData.getColumnType(columnIndex)).thenReturn(Types.ARRAY);
-            fields.add(new RecordField(testDatum.getFieldName(), RecordFieldType.ARRAY.getDataType()));
-        }
-        RecordSchema recordSchema = new SimpleRecordSchema(fields);
-
-        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10,0, useLogicalTypes);
-        RecordSchema actualSchema = testSubject.getSchema();
-
-        // THEN
-        for (RecordField recordField : actualSchema.getFields()) {
-            if (recordField.getDataType() instanceof ArrayDataType) {
-                ArrayDataType arrayType = (ArrayDataType) recordField.getDataType();
-                if (!arrayType.getElementType().equals(expectedTypes.get(recordField.getFieldName()))) {
-                    throw new AssertionError("Array element type for " + recordField.getFieldName()
-                            + " is not of expected type " + expectedTypes.get(recordField.getFieldName()).toString());
-                }
-            } else {
-                throw new AssertionError("RecordField " + recordField.getFieldName() + " is not instance of ArrayDataType");
-            }
-        }
+        return expectedTypes;
     }
 
     private ResultSet givenResultSetForArrayThrowsException(boolean featureSupported) throws SQLException {
@@ -450,31 +478,42 @@ public class ResultSetRecordSetTest {
         return resultSet;
     }
 
-    private RecordSchema givenRecordSchema(Object[][] columns) {
-        final List<RecordField> fields = new ArrayList<>(columns.length);
-
-        for (final Object[] column : columns) {
-            fields.add(new RecordField((String) column[1], (DataType) column[3]));
+    private List<RecordField> whenSchemaFieldsAreSetupForArrayType(final List<ArrayTestData> testData,
+                                                                   final ResultSet resultSet,
+                                                                   final ResultSetMetaData resultSetMetaData)
+            throws SQLException {
+        List<RecordField> fields = new ArrayList<>();
+        for (int i = 0; i < testData.size(); ++i) {
+            ArrayTestData testDatum = testData.get(i);
+            int columnIndex = i + 1;
+            SqlArrayDummy arrayDummy = Mockito.mock(SqlArrayDummy.class);
+            when(arrayDummy.getArray()).thenReturn(testDatum.getTestArray());
+            when(resultSet.getArray(columnIndex)).thenReturn(arrayDummy);
+            when(resultSetMetaData.getColumnLabel(columnIndex)).thenReturn(testDatum.getFieldName());
+            when(resultSetMetaData.getColumnType(columnIndex)).thenReturn(Types.ARRAY);
+            fields.add(new RecordField(testDatum.getFieldName(), RecordFieldType.ARRAY.getDataType()));
         }
-
-        return new SimpleRecordSchema(fields);
+        return fields;
     }
 
-    private RecordSchema givenRecordSchemaWithOnlyStringType(Object[][] columns) {
-        final List<RecordField> fields = new ArrayList<>(columns.length);
-
-        for (final Object[] column : columns) {
-            fields.add(new RecordField((String) column[1], RecordFieldType.STRING.getDataType()));
+    private void thenAllDataTypesMatchInputFieldType(final List<RecordField> inputFields, final RecordSchema resultSchema) {
+        assertEquals("The number of input fields does not match the number of fields in the result schema.", inputFields.size(), resultSchema.getFieldCount());
+        for (int i = 0; i < inputFields.size(); ++i) {
+            assertEquals(inputFields.get(i).getDataType(), resultSchema.getField(i).getDataType());
         }
-
-        return new SimpleRecordSchema(fields);
     }
 
-    private void thenAllColumnDataTypesAreCorrect(Object[][] columns, RecordSchema expectedSchema, RecordSchema actualSchema) {
+    private void thenAllDataTypesAreString(final RecordSchema resultSchema) {
+        for (int i = 0; i < resultSchema.getFieldCount(); ++i) {
+            assertEquals(RecordFieldType.STRING.getDataType(), resultSchema.getField(i).getDataType());
+        }
+    }
+
+    private void thenAllColumnDataTypesAreCorrect(TestColumn[] columns, RecordSchema expectedSchema, RecordSchema actualSchema) {
         assertNotNull(actualSchema);
 
-        for (final Object[] column : columns) {
-            int fieldIndex = (int) column[0] - 1;
+        for (TestColumn column : columns) {
+            int fieldIndex = column.getIndex() - 1;
             // The DECIMAL column with scale larger than precision will not match so verify that instead
             DataType actualDataType = actualSchema.getField(fieldIndex).getDataType();
             DataType expectedDataType = expectedSchema.getField(fieldIndex).getDataType();
@@ -484,7 +523,51 @@ public class ResultSetRecordSetTest {
                     expectedDataType = RecordFieldType.DECIMAL.getDecimalDataType(decimalDataType.getScale(), decimalDataType.getScale());
                 }
             }
-            assertEquals("For column " + column[0] + " the converted type is not matching", expectedDataType, actualDataType);
+            assertEquals("For column " + column.getIndex() + " the converted type is not matching", expectedDataType, actualDataType);
+        }
+    }
+
+    private void thenActualArrayElementTypesMatchExpected(Map<String, DataType> expectedTypes, RecordSchema actualSchema) {
+        for (RecordField recordField : actualSchema.getFields()) {
+            if (recordField.getDataType() instanceof ArrayDataType) {
+                ArrayDataType arrayType = (ArrayDataType) recordField.getDataType();
+                if (!arrayType.getElementType().equals(expectedTypes.get(recordField.getFieldName()))) {
+                    throw new AssertionError("Array element type for " + recordField.getFieldName()
+                            + " is not of expected type " + expectedTypes.get(recordField.getFieldName()).toString());
+                }
+            } else {
+                throw new AssertionError("RecordField " + recordField.getFieldName() + " is not instance of ArrayDataType");
+            }
+        }
+    }
+
+    private static class TestColumn {
+        private final int index; // Column indexing starts from 1, not 0.
+        private final String columnName;
+        private final int sqlType;
+        private final DataType recordFieldType;
+
+        public TestColumn(final int index, final String columnName, final int sqlType, final DataType recordFieldType) {
+            this.index = index;
+            this.columnName = columnName;
+            this.sqlType = sqlType;
+            this.recordFieldType = recordFieldType;
+        }
+
+        public int getIndex() {
+            return index;
+        }
+
+        public String getColumnName() {
+            return columnName;
+        }
+
+        public int getSqlType() {
+            return sqlType;
+        }
+
+        public DataType getRecordFieldType() {
+            return recordFieldType;
         }
     }
 

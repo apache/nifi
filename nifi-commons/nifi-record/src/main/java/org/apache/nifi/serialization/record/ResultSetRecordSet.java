@@ -272,7 +272,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         }
     }
 
-    private DataType determineDataTypeToReturn(DataType dataType, boolean useLogicalTypes) {
+    private DataType determineDataTypeToReturn(final DataType dataType, final boolean useLogicalTypes) {
         RecordFieldType fieldType = dataType.getFieldType();
         if (!useLogicalTypes
                 && (fieldType == RecordFieldType.DECIMAL
@@ -285,7 +285,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         }
     }
 
-    private DataType getArrayDataType(ResultSet rs, int columnIndex, boolean useLogicalTypes) throws SQLException {
+    private DataType getArrayDataType(final ResultSet rs, final int columnIndex, final boolean useLogicalTypes) throws SQLException {
         // The JDBC API does not allow us to know what the base type of an array is through the metadata.
         // As a result, we have to obtain the actual Array for this record. Once we have this, we can determine
         // the base type. However, if the base type is, itself, an array, we will simply return a base type of
@@ -304,7 +304,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         }
     }
 
-    private DataType getDecimalDataType(ResultSet rs, int columnIndex) throws SQLException {
+    private DataType getDecimalDataType(final ResultSet rs, final int columnIndex) throws SQLException {
         int decimalPrecision;
         final int decimalScale;
         final int resultSetPrecision = rs.getMetaData().getPrecision(columnIndex);
