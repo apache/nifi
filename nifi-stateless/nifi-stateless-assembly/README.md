@@ -534,12 +534,12 @@ This Parameter Provider requires the following properties:
 
 | Property Name | Description | Example Value |
 |---------------|-------------|---------------|
-| nifi.stateless.parameter.provider.\<key>.properties.aws-configuration-file | The filename of a configuration file optionally specifying the AWS credentials.  If this property is not provided, or if the credentials are not provided in the file, the default AWS credentials chain will be followed. | `./conf/bootstrap-aws.conf` |
+| nifi.stateless.parameter.provider.\<key>.properties.aws-credentials-file | The filename of a configuration file optionally specifying the AWS credentials.  If this property is not provided, or if the credentials are not provided in the file, the default AWS credentials chain will be followed. | `./conf/bootstrap-aws.conf` |
 
 An example of configuring this provider in the dataflow configuration file is:
 
 ```
 nifi.stateless.parameter.provider.AWSSecretsManager.name=AWS SecretsManager Provider
 nifi.stateless.parameter.provider.AWSSecretsManager.type=org.apache.nifi.stateless.parameter.aws.SecretsManagerParameterValueProvider
-nifi.stateless.parameter.provider.AWSSecretsManager.properties.vault-configuration-file=./conf/bootstrap-aws.conf
+nifi.stateless.parameter.provider.AWSSecretsManager.properties.aws-credentials-file=./conf/bootstrap-aws.conf
 ```

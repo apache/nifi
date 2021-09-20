@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.stateless.parameter.aws;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.secretsmanager.AWSSecretsManager;
 import com.amazonaws.services.secretsmanager.AWSSecretsManagerClientBuilder;
@@ -26,8 +26,6 @@ import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
 import com.amazonaws.services.secretsmanager.model.ListSecretsRequest;
 import com.amazonaws.services.secretsmanager.model.ListSecretsResult;
 import com.amazonaws.services.secretsmanager.model.SecretListEntry;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stateless.parameter.AbstractParameterValueProvider;
@@ -38,7 +36,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -54,7 +51,7 @@ import java.util.Set;
  * <code>
  *      nifi.stateless.parameter.provider.AWSSecretsManager.name=AWS Secrets Manager Value Provider
  *      nifi.stateless.parameter.provider.AWSSecretsManager.type=org.apache.nifi.stateless.parameter.aws.SecretsManagerParameterValueProvider
- *      nifi.stateless.parameter.provider.AWSSecretsManager.properties.aws-configuration-file=./conf/bootstrap-aws.conf
+ *      nifi.stateless.parameter.provider.AWSSecretsManager.properties.aws-credentials-file=./conf/bootstrap-aws.conf
  * </code>
  */
 public class SecretsManagerParameterValueProvider extends AbstractParameterValueProvider implements ParameterValueProvider {
@@ -63,16 +60,14 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
     private static final String SECRET_KEY_PROPS_NAME = "aws.secret.access.key";
     private static final String REGION_KEY_PROPS_NAME = "aws.region";
 
-    public static final PropertyDescriptor AWS_CONFIG_FILE = new PropertyDescriptor.Builder()
-            .displayName("AWS Configuration File")
-            .name("aws-configuration-file")
+    public static final PropertyDescriptor AWS_CREDENTIALS_FILE = new PropertyDescriptor.Builder()
+            .displayName("AWS Credentials File")
+            .name("aws-credentials-file")
             .required(false)
             .defaultValue("./conf/bootstrap-aws.conf")
             .description("Location of the bootstrap-aws.conf file that configures the AWS credentials.  If not provided, the default AWS credentials will be used.")
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
-
-    private final ObjectReader objectReader = new ObjectMapper().reader();
 
     private final Set<String> supportedParameterNames = new HashSet<>();
 
@@ -89,26 +84,16 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
     protected void init(final ParameterValueProviderInitializationContext context) {
         super.init(context);
 
-        this.descriptors = Collections.unmodifiableList(Arrays.asList(AWS_CONFIG_FILE));
+        this.descriptors = Collections.singletonList(AWS_CREDENTIALS_FILE);
 
-        final String awsBootstrapConfFilename = context.getProperty(AWS_CONFIG_FILE).getValue();
+        final String awsCredentialsFilename = context.getProperty(AWS_CREDENTIALS_FILE).getValue();
         try {
-            this.secretsManager = this.configureClient(awsBootstrapConfFilename);
+            this.secretsManager = this.configureClient(awsCredentialsFilename);
         } catch (final IOException e) {
             throw new IllegalStateException("Could not configure AWS Secrets Manager Client", e);
         }
 
         cacheSupportedParameterNames();
-    }
-
-    private void cacheSupportedParameterNames() {
-        supportedParameterNames.clear();
-        final ListSecretsResult listSecretsResult = secretsManager.listSecrets(new ListSecretsRequest());
-        if (listSecretsResult != null) {
-            for (final SecretListEntry entry : listSecretsResult.getSecretList()) {
-                supportedParameterNames.add(entry.getName());
-            }
-        }
     }
 
     @Override
@@ -129,7 +114,17 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
         if (getSecretValueResult.getSecretString() != null) {
             return getSecretValueResult.getSecretString();
         } else {
-            throw new IllegalStateException("Binary secrets are not supported");
+            throw new IllegalStateException(String.format("Secret Name [%s] string value not found", secretName));
+        }
+    }
+
+    private void cacheSupportedParameterNames() {
+        supportedParameterNames.clear();
+        final ListSecretsResult listSecretsResult = secretsManager.listSecrets(new ListSecretsRequest());
+        if (listSecretsResult != null) {
+            for (final SecretListEntry entry : listSecretsResult.getSecretList()) {
+                supportedParameterNames.add(entry.getName());
+            }
         }
     }
 
@@ -142,11 +137,11 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
         }
     }
 
-    AWSSecretsManager configureClient(final String awsBootstrapConfFilename) throws IOException {
-        if (awsBootstrapConfFilename == null) {
+    AWSSecretsManager configureClient(final String awsCredentialsFilename) throws IOException {
+        if (awsCredentialsFilename == null) {
             return getDefaultClient();
         }
-        final Properties properties = loadProperties(awsBootstrapConfFilename);
+        final Properties properties = loadProperties(awsCredentialsFilename);
         final String accessKey = properties.getProperty(ACCESS_KEY_PROPS_NAME);
         final String secretKey = properties.getProperty(SECRET_KEY_PROPS_NAME);
         final String region = properties.getProperty(REGION_KEY_PROPS_NAME);
@@ -154,7 +149,7 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
         if (isNotBlank(accessKey) && isNotBlank(secretKey) && isNotBlank(region)) {
             return AWSSecretsManagerClientBuilder.standard()
                     .withRegion(region)
-                    .withCredentials(new BasicAWSCredentialsProvider(accessKey, secretKey))
+                    .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
                     .build();
         } else {
             return getDefaultClient();
@@ -173,36 +168,5 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
 
     private static boolean isNotBlank(final String value) {
         return value != null && !value.trim().equals("");
-    }
-
-    private static class BasicAWSCredentialsProvider implements AWSCredentialsProvider {
-
-        private final String accessKeyId;
-        private final String secretAccessKey;
-
-        private BasicAWSCredentialsProvider(final String accessKeyId, final String secretAccessKey) {
-            this.accessKeyId = accessKeyId;
-            this.secretAccessKey = secretAccessKey;
-        }
-
-        @Override
-        public AWSCredentials getCredentials() {
-            return new AWSCredentials() {
-                @Override
-                public String getAWSAccessKeyId() {
-                    return accessKeyId;
-                }
-
-                @Override
-                public String getAWSSecretKey() {
-                    return secretAccessKey;
-                }
-            };
-        }
-
-        @Override
-        public void refresh() {
-
-        }
     }
 }

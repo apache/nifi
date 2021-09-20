@@ -136,7 +136,7 @@ public class TestSecretsManagerParameterValueProvider {
 
             @Override
             public PropertyValue getProperty(final PropertyDescriptor descriptor) {
-                return descriptor.equals(SecretsManagerParameterValueProvider.AWS_CONFIG_FILE) ? new StandardPropertyValue(awsConfigFilename, null, null) : null;
+                return descriptor.equals(SecretsManagerParameterValueProvider.AWS_CREDENTIALS_FILE) ? new StandardPropertyValue(awsConfigFilename, null, null) : null;
             }
 
             @Override
