@@ -23,14 +23,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.security.GeneralSecurityException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
@@ -44,10 +43,8 @@ public class SSLContextServiceTest {
     private static TlsConfiguration tlsConfiguration;
 
     @BeforeClass
-    public static void setTlsConfiguration() throws GeneralSecurityException, IOException {
-        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
-        new File(tlsConfiguration.getKeystorePath()).deleteOnExit();
-        new File(tlsConfiguration.getTruststorePath()).deleteOnExit();
+    public static void setTlsConfiguration() {
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
     }
 
     @Test

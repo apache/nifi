@@ -32,14 +32,12 @@ import static org.junit.Assume.assumeFalse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
 import java.net.URI;
-import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -68,7 +66,7 @@ import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.StandardDataPacket;
-import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ControllerDTO;
@@ -1402,9 +1400,7 @@ public class TestHttpClient {
         }
     }
 
-    private static void setTlsConfiguration() throws GeneralSecurityException, IOException {
-        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
-        new File(tlsConfiguration.getKeystorePath()).deleteOnExit();
-        new File(tlsConfiguration.getTruststorePath()).deleteOnExit();
+    private static void setTlsConfiguration() {
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
     }
 }

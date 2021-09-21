@@ -191,26 +191,6 @@ public class KeyStoreUtils {
     }
 
     /**
-     * Creates a temporary default Keystore and Truststore and returns it wrapped in a TLS configuration.
-     *
-     * @return a {@link org.apache.nifi.security.util.TlsConfiguration}
-     */
-    public static TlsConfiguration createTlsConfigAndNewKeystoreTruststore() throws IOException, GeneralSecurityException {
-        return createTlsConfigAndNewKeystoreTruststore(new StandardTlsConfiguration());
-    }
-
-    /**
-     * Creates a temporary Keystore and Truststore and returns it wrapped in a new TLS configuration with the given values.
-     * Specifies an expiration duration of 365 days.
-     *
-     * @param tlsConfiguration a {@link org.apache.nifi.security.util.TlsConfiguration}
-     * @return a {@link org.apache.nifi.security.util.TlsConfiguration}
-     */
-    public static TlsConfiguration createTlsConfigAndNewKeystoreTruststore(final TlsConfiguration tlsConfiguration) throws IOException, GeneralSecurityException {
-        return createTlsConfigAndNewKeystoreTruststore(tlsConfiguration, CERT_DURATION_DAYS, null);
-    }
-
-    /**
      * Creates a temporary Keystore and Truststore and returns it wrapped in a new TLS configuration with the given values.
      *
      * @param tlsConfiguration a {@link org.apache.nifi.security.util.TlsConfiguration}

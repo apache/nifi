@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.security.util.crypto
 
-import org.apache.kerby.util.Hex
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Before
+import org.bouncycastle.util.encoders.Hex
 import org.junit.BeforeClass
 import org.junit.Ignore
 import org.junit.Test
@@ -42,14 +40,6 @@ class Argon2SecureHasherTest extends GroovyTestCase {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     private static byte[] decodeHex(String hex) {
@@ -103,7 +93,7 @@ class Argon2SecureHasherTest extends GroovyTestCase {
         // Act
         testIterations.times { int i ->
             byte[] hash = a2sh.hashRaw(inputBytes)
-            String hashHex = Hex.encode(hash)
+            String hashHex = new String(Hex.encode(hash))
             logger.info("Generated hash: ${hashHex}")
             results << hashHex
         }

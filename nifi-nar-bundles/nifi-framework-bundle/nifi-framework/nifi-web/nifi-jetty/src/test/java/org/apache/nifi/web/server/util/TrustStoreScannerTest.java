@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.web.server.util;
 
-import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -29,9 +28,7 @@ import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
 import java.util.function.Consumer;
 
 public class TrustStoreScannerTest {
@@ -42,8 +39,8 @@ public class TrustStoreScannerTest {
     private static File trustStoreFile;
 
     @BeforeClass
-    public static void initClass() throws GeneralSecurityException, IOException {
-        TlsConfiguration tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+    public static void initClass() {
+        TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
         keyStoreFile = Paths.get(tlsConfiguration.getKeystorePath()).toFile();
         trustStoreFile = Paths.get(tlsConfiguration.getTruststorePath()).toFile();
     }
@@ -84,11 +81,5 @@ public class TrustStoreScannerTest {
         scanner.reload();
 
         Mockito.verify(sslContextFactory).reload(ArgumentMatchers.any(Consumer.class));
-    }
-
-    @AfterClass
-    public static void tearDown() throws IOException {
-        Files.deleteIfExists(keyStoreFile.toPath());
-        Files.deleteIfExists(trustStoreFile.toPath());
     }
 }

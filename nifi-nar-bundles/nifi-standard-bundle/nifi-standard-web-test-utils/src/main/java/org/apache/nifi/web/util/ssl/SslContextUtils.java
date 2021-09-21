@@ -17,9 +17,9 @@
 package org.apache.nifi.web.util.ssl;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 
@@ -35,9 +35,7 @@ public class SslContextUtils {
 
     static {
         try {
-            TLS_CONFIGURATION = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
-            new File(TLS_CONFIGURATION.getKeystorePath()).deleteOnExit();
-            new File(TLS_CONFIGURATION.getTruststorePath()).deleteOnExit();
+            TLS_CONFIGURATION = new TemporaryKeyStoreBuilder().build();
 
             KEYSTORE_TLS_CONFIGURATION = new StandardTlsConfiguration(
                     TLS_CONFIGURATION.getKeystorePath(),

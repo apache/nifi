@@ -23,8 +23,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
@@ -34,7 +34,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -44,8 +43,6 @@ import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -130,8 +127,8 @@ public class InvokeHTTPTest {
     private TestRunner runner;
 
     @BeforeClass
-    public static void setStores() throws IOException, GeneralSecurityException {
-        generatedTlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+    public static void setStores() {
+        generatedTlsConfiguration = new TemporaryKeyStoreBuilder().build();
         truststoreTlsConfiguration = new StandardTlsConfiguration(
                 null,
                 null,
@@ -140,12 +137,6 @@ public class InvokeHTTPTest {
                 generatedTlsConfiguration.getTruststorePassword(),
                 generatedTlsConfiguration.getTruststoreType()
         );
-    }
-
-    @AfterClass
-    public static void deleteStores() throws IOException {
-        Files.deleteIfExists(Paths.get(generatedTlsConfiguration.getKeystorePath()));
-        Files.deleteIfExists(Paths.get(generatedTlsConfiguration.getTruststorePath()));
     }
 
     @Before

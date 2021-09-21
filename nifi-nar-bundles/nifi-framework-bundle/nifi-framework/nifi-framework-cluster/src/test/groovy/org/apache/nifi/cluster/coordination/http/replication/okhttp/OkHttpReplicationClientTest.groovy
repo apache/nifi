@@ -18,7 +18,7 @@
 
 package org.apache.nifi.cluster.coordination.http.replication.okhttp
 
-import org.apache.nifi.security.util.KeyStoreUtils
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder
 import org.apache.nifi.security.util.TlsConfiguration
 import org.apache.nifi.util.NiFiProperties
 import org.junit.BeforeClass
@@ -32,9 +32,7 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
 
     @BeforeClass
     static void setUpOnce() throws Exception {
-        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore()
-        new File(tlsConfiguration.keystorePath).deleteOnExit()
-        new File(tlsConfiguration.truststorePath).deleteOnExit()
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build()
     }
 
     private static NiFiProperties mockNiFiProperties() {

@@ -22,8 +22,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
-import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Properties;
 import javax.mail.Message;
@@ -37,9 +35,9 @@ import javax.net.ssl.SSLContext;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
@@ -58,10 +56,8 @@ public class TestListenSMTP {
     private static final int MESSAGES = 2;
 
     @BeforeClass
-    public static void setTlsConfiguration() throws IOException, GeneralSecurityException {
-        final TlsConfiguration testTlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
-        new File(testTlsConfiguration.getKeystorePath()).deleteOnExit();
-        new File(testTlsConfiguration.getTruststorePath()).deleteOnExit();
+    public static void setTlsConfiguration() throws GeneralSecurityException {
+        final TlsConfiguration testTlsConfiguration = new TemporaryKeyStoreBuilder().build();
 
         tlsConfiguration = new StandardTlsConfiguration(
                 testTlsConfiguration.getKeystorePath(),

@@ -17,7 +17,7 @@
 package org.apache.nifi.web.security.saml.impl;
 
 import org.apache.commons.lang3.SystemUtils;
-import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.saml.SAMLConfigurationFactory;
@@ -70,9 +70,7 @@ public class TestStandardSAMLService {
         final File idpMetadataFile = new File("src/test/resources/saml/sso-circle-meta.xml");
         final String baseUrl = "https://localhost:8443/nifi-api";
 
-        final TlsConfiguration tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
-        new File(tlsConfiguration.getKeystorePath()).deleteOnExit();
-        new File(tlsConfiguration.getTruststorePath()).deleteOnExit();
+        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
 
         when(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE)).thenReturn(tlsConfiguration.getKeystorePath());
         when(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)).thenReturn(tlsConfiguration.getKeystorePassword());

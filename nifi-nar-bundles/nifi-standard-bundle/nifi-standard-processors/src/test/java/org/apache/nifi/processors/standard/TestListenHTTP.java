@@ -44,14 +44,13 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
@@ -62,7 +61,6 @@ import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
@@ -113,9 +111,9 @@ public class TestListenHTTP {
     private int availablePort;
 
     @BeforeClass
-    public static void setUpSuite() throws GeneralSecurityException, IOException {
+    public static void setUpSuite() throws GeneralSecurityException {
         // generate new keystore and truststore
-        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
 
         serverConfiguration = new StandardTlsConfiguration(
                 tlsConfiguration.getKeystorePath(),
@@ -168,27 +166,6 @@ public class TestListenHTTP {
                 tlsConfiguration.getTruststorePassword(),
                 tlsConfiguration.getTruststoreType())
         );
-    }
-
-    @AfterClass
-    public static void afterClass() throws Exception {
-        if (tlsConfiguration != null) {
-            try {
-                if (StringUtils.isNotBlank(tlsConfiguration.getKeystorePath())) {
-                    Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
-                }
-            } catch (IOException e) {
-                throw new IOException("There was an error deleting a keystore: " + e.getMessage(), e);
-            }
-
-            try {
-                if (StringUtils.isNotBlank(tlsConfiguration.getTruststorePath())) {
-                    Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
-                }
-            } catch (IOException e) {
-                throw new IOException("There was an error deleting a truststore: " + e.getMessage(), e);
-            }
-        }
     }
 
     @Before

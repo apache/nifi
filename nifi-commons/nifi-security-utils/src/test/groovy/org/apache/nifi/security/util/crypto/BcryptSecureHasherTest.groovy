@@ -17,8 +17,7 @@
 package org.apache.nifi.security.util.crypto
 
 import at.favre.lib.crypto.bcrypt.Radix64Encoder
-import org.apache.kerby.util.Hex
-import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.util.encoders.Hex
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -30,7 +29,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.nio.charset.StandardCharsets
-import java.security.Security
 
 @RunWith(JUnit4.class)
 class BcryptSecureHasherTest extends GroovyTestCase {
@@ -38,8 +36,6 @@ class BcryptSecureHasherTest extends GroovyTestCase {
 
     @BeforeClass
     static void setupOnce() throws Exception {
-        Security.addProvider(new BouncyCastleProvider())
-
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
@@ -51,10 +47,6 @@ class BcryptSecureHasherTest extends GroovyTestCase {
 
     @After
     void tearDown() throws Exception {
-    }
-
-    private static byte[] decodeHex(String hex) {
-        Hex.decode(hex?.replaceAll("[^0-9a-fA-F]", ""))
     }
 
     @Test
@@ -75,7 +67,7 @@ class BcryptSecureHasherTest extends GroovyTestCase {
         // Act
         testIterations.times { int i ->
             byte[] hash = bcryptSH.hashRaw(inputBytes)
-            String hashHex = Hex.encode(hash)
+            String hashHex = new String(Hex.encode(hash))
             logger.info("Generated hash: ${hashHex}")
             results << hashHex
         }
