@@ -18,6 +18,7 @@
 package org.apache.nifi.accumulo.controllerservices;
 
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
 import org.junit.Before;
@@ -49,6 +50,8 @@ public class TestAccumuloService {
     @Mock
     private KerberosCredentialsService credentialService;
     @Mock
+    private KerberosUserService kerberosUserService;
+    @Mock
     private Processor dummyProcessor;
 
     @Before
@@ -59,6 +62,7 @@ public class TestAccumuloService {
         accumuloService = new AccumuloService();
 
         when(credentialService.getIdentifier()).thenReturn("1");
+        when(kerberosUserService.getIdentifier()).thenReturn("kerberosUserService1");
     }
 
     @Test
@@ -142,7 +146,7 @@ public class TestAccumuloService {
         runner.setProperty(accumuloService, AccumuloService.AUTHENTICATION_TYPE, KERBEROS);
         //when
         //then
-        assertServiceIsInvalidWithErrorMessage("Either Kerberos Password or Kerberos Credential Service must be set");
+        assertServiceIsInvalidWithErrorMessage("Either Kerberos Password, Kerberos Credential Service, or Kerberos User Service must be set");
     }
 
     @Test
@@ -186,6 +190,56 @@ public class TestAccumuloService {
         //when
         //then
         assertServiceIsInvalidWithErrorMessage("Kerberos Principal (for password) should not be filled out");
+    }
+
+    @Test
+    public void testServiceNotValidWithAuthTypeKerberosAndKerberosPasswordAndUserServiceSet() throws InitializationException {
+        //given
+        runner.addControllerService("accumulo-connector-service", accumuloService);
+        runner.setProperty(accumuloService, AccumuloService.INSTANCE_NAME, INSTANCE);
+        runner.setProperty(accumuloService, AccumuloService.ZOOKEEPER_QUORUM, ZOOKEEPER);
+        runner.setProperty(accumuloService, AccumuloService.AUTHENTICATION_TYPE, KERBEROS);
+        runner.setProperty(accumuloService, AccumuloService.KERBEROS_PRINCIPAL, PRINCIPAL);
+        runner.setProperty(accumuloService, AccumuloService.KERBEROS_PASSWORD, KERBEROS_PASSWORD);
+        runner.addControllerService("kerberos-user-service", kerberosUserService);
+        runner.setProperty(accumuloService, AccumuloService.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        //when
+        //then
+        assertServiceIsInvalidWithErrorMessage("should not be filled out at the same time");
+    }
+
+    @Test
+    public void testServiceNotValidWithAuthTypeKerberosAndCredentialServiceAndUserServiceSet() throws InitializationException {
+        //given
+        runner.addControllerService("accumulo-connector-service", accumuloService);
+        runner.setProperty(accumuloService, AccumuloService.INSTANCE_NAME, INSTANCE);
+        runner.setProperty(accumuloService, AccumuloService.ZOOKEEPER_QUORUM, ZOOKEEPER);
+        runner.setProperty(accumuloService, AccumuloService.AUTHENTICATION_TYPE, KERBEROS);
+
+        runner.addControllerService("kerberos-credentials-service", credentialService);
+        runner.setProperty(accumuloService, AccumuloService.KERBEROS_CREDENTIALS_SERVICE, credentialService.getIdentifier());
+
+        runner.addControllerService("kerberos-user-service", kerberosUserService);
+        runner.setProperty(accumuloService, AccumuloService.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+
+        //when
+        //then
+        assertServiceIsInvalidWithErrorMessage("Kerberos User Service cannot be specified while also specifying a Kerberos Credential Service");
+    }
+
+    @Test
+    public void testServiceIsValidWithAuthTypeKerberosAndKerberosUserServiceSet() throws InitializationException {
+        //given
+        runner.addControllerService("accumulo-connector-service", accumuloService);
+        runner.setProperty(accumuloService, AccumuloService.INSTANCE_NAME, INSTANCE);
+        runner.setProperty(accumuloService, AccumuloService.ZOOKEEPER_QUORUM, ZOOKEEPER);
+        runner.setProperty(accumuloService, AccumuloService.AUTHENTICATION_TYPE, KERBEROS);
+        runner.addControllerService("kerberos-user-service", kerberosUserService);
+        runner.enableControllerService(kerberosUserService);
+        runner.setProperty(accumuloService, AccumuloService.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        //when
+        //then
+        runner.assertValid(accumuloService);
     }
 
     private void assertServiceIsInvalidWithErrorMessage(String errorMessage) {
