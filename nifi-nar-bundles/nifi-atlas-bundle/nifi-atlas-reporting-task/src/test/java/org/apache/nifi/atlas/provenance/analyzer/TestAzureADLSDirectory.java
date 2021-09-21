@@ -129,7 +129,7 @@ public class TestAzureADLSDirectory {
             String directory = StringUtils.substringAfterLast(actualPath, "/");
 
             assertEquals(TYPE_DIRECTORY, ref.getTypeName());
-            assertEquals(String.format("abfs://%s@%s%s/@%s", ADLS_FILESYSTEM, ADLS_ACCOUNT, actualPath, ATLAS_NAMESPACE), ref.get(ATTR_QUALIFIED_NAME));
+            assertEquals(String.format("abfs://%s@%s%s@%s", ADLS_FILESYSTEM, ADLS_ACCOUNT, actualPath, ATLAS_NAMESPACE), ref.get(ATTR_QUALIFIED_NAME));
             assertEquals(directory, ref.get(ATTR_NAME));
             assertNotNull(ref.get(ATTR_PARENT));
 
