@@ -19,7 +19,12 @@ package org.apache.nifi.processors.email;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.io.File;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.Properties;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -27,19 +32,56 @@ import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import javax.net.ssl.SSLContext;
+
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.ClientAuth;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
-import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestListenSMTP {
     private static final String SSL_SERVICE_IDENTIFIER = "ssl-context";
+
+    private static TlsConfiguration tlsConfiguration;
+
+    private static SSLContextService sslContextService;
+
+    private static final int MESSAGES = 2;
+
+    @BeforeClass
+    public static void setTlsConfiguration() throws IOException, GeneralSecurityException {
+        final TlsConfiguration testTlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+        new File(testTlsConfiguration.getKeystorePath()).deleteOnExit();
+        new File(testTlsConfiguration.getTruststorePath()).deleteOnExit();
+
+        tlsConfiguration = new StandardTlsConfiguration(
+                testTlsConfiguration.getKeystorePath(),
+                testTlsConfiguration.getKeystorePassword(),
+                testTlsConfiguration.getKeyPassword(),
+                testTlsConfiguration.getKeystoreType(),
+                testTlsConfiguration.getTruststorePath(),
+                testTlsConfiguration.getTruststorePassword(),
+                testTlsConfiguration.getTruststoreType(),
+                TlsConfiguration.TLS_1_2_PROTOCOL
+        );
+
+        final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration);
+        sslContextService = mock(RestrictedSSLContextService.class);
+        when(sslContextService.getIdentifier()).thenReturn(SSL_SERVICE_IDENTIFIER);
+        when(sslContextService.createContext()).thenReturn(sslContext);
+
+
+        when(sslContextService.createTlsConfiguration()).thenReturn(tlsConfiguration);
+    }
 
     @Test
     public void testListenSMTP() throws Exception {
@@ -50,13 +92,12 @@ public class TestListenSMTP {
         assertPortListening(port);
 
         final Session session = getSession(port);
-        final int numMessages = 5;
-        for (int i = 0; i < numMessages; i++) {
+        for (int i = 0; i < MESSAGES; i++) {
             sendMessage(session, i);
         }
 
         runner.shutdown();
-        runner.assertAllFlowFilesTransferred(ListenSMTP.REL_SUCCESS, numMessages);
+        runner.assertAllFlowFilesTransferred(ListenSMTP.REL_SUCCESS, MESSAGES);
     }
 
     @Test
@@ -64,23 +105,21 @@ public class TestListenSMTP {
         final int port = NetworkUtils.availablePort();
         final TestRunner runner = newTestRunner(port);
 
-        final String tlsProtocol = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion();
-        configureSslContextService(runner, tlsProtocol);
+        configureSslContextService(runner);
         runner.setProperty(ListenSMTP.SSL_CONTEXT_SERVICE, SSL_SERVICE_IDENTIFIER);
         runner.setProperty(ListenSMTP.CLIENT_AUTH, ClientAuth.NONE.name());
         runner.assertValid();
 
         runner.run(1, false);
         assertPortListening(port);
-        final Session session = getSessionTls(port, tlsProtocol);
+        final Session session = getSessionTls(port, tlsConfiguration.getProtocol());
 
-        final int numMessages = 5;
-        for (int i = 0; i < numMessages; i++) {
+        for (int i = 0; i < MESSAGES; i++) {
             sendMessage(session, i);
         }
 
         runner.shutdown();
-        runner.assertAllFlowFilesTransferred(ListenSMTP.REL_SUCCESS, numMessages);
+        runner.assertAllFlowFilesTransferred(ListenSMTP.REL_SUCCESS, MESSAGES);
     }
 
     @Test
@@ -88,7 +127,7 @@ public class TestListenSMTP {
         final int port = NetworkUtils.availablePort();
         final TestRunner runner = newTestRunner(port);
 
-        configureSslContextService(runner, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
+        configureSslContextService(runner);
         runner.setProperty(ListenSMTP.SSL_CONTEXT_SERVICE, SSL_SERVICE_IDENTIFIER);
         runner.setProperty(ListenSMTP.CLIENT_AUTH, ClientAuth.NONE.name());
         runner.assertValid();
@@ -105,7 +144,7 @@ public class TestListenSMTP {
     }
 
     @Test
-    public void testListenSMTPwithTooLargeMessage() throws Exception {
+    public void testListenSMTPwithTooLargeMessage() {
         final int port = NetworkUtils.availablePort();
         final TestRunner runner = newTestRunner(port);
         runner.setProperty(ListenSMTP.SMTP_MAXIMUM_MSG_SIZE, "10 B");
@@ -172,16 +211,8 @@ public class TestListenSMTP {
         Transport.send(email);
     }
 
-    private void configureSslContextService(final TestRunner runner, final String tlsProtocol) throws InitializationException {
-        final SSLContextService sslContextService = new StandardRestrictedSSLContextService();
+    private void configureSslContextService(final TestRunner runner) throws InitializationException {
         runner.addControllerService(SSL_SERVICE_IDENTIFIER, sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/truststore.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "passwordpassword");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/keystore.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "passwordpassword");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, tlsProtocol);
         runner.enableControllerService(sslContextService);
     }
 }

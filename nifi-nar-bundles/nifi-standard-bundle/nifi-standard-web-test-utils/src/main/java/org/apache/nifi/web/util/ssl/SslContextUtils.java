@@ -17,7 +17,7 @@
 package org.apache.nifi.web.util.ssl;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -27,33 +27,43 @@ import javax.net.ssl.SSLContext;
 import java.io.File;
 
 public class SslContextUtils {
-    private static final String KEYSTORE_PATH = "src/test/resources/keystore.jks";
+    private static final TlsConfiguration TLS_CONFIGURATION;
 
-    private static final String KEYSTORE_AND_TRUSTSTORE_PASSWORD = "passwordpassword";
+    private static final TlsConfiguration KEYSTORE_TLS_CONFIGURATION;
 
-    private static final String TRUSTSTORE_PATH = "src/test/resources/truststore.jks";
+    private static final TlsConfiguration TRUSTSTORE_TLS_CONFIGURATION;
 
-    private static final TlsConfiguration KEYSTORE_TLS_CONFIGURATION = new StandardTlsConfiguration(
-            KEYSTORE_PATH,
-            KEYSTORE_AND_TRUSTSTORE_PASSWORD,
-            KEYSTORE_AND_TRUSTSTORE_PASSWORD,
-            KeystoreType.JKS,
-            TRUSTSTORE_PATH,
-            KEYSTORE_AND_TRUSTSTORE_PASSWORD,
-            KeystoreType.JKS,
-            TlsConfiguration.TLS_1_2_PROTOCOL
-    );
+    static {
+        try {
+            TLS_CONFIGURATION = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+            new File(TLS_CONFIGURATION.getKeystorePath()).deleteOnExit();
+            new File(TLS_CONFIGURATION.getTruststorePath()).deleteOnExit();
 
-    private static final TlsConfiguration TRUSTSTORE_TLS_CONFIGURATION = new StandardTlsConfiguration(
-            null,
-            null,
-            null,
-            null,
-            TRUSTSTORE_PATH,
-            KEYSTORE_AND_TRUSTSTORE_PASSWORD,
-            KeystoreType.JKS,
-            TlsConfiguration.TLS_1_2_PROTOCOL
-    );
+            KEYSTORE_TLS_CONFIGURATION = new StandardTlsConfiguration(
+                    TLS_CONFIGURATION.getKeystorePath(),
+                    TLS_CONFIGURATION.getKeystorePassword(),
+                    TLS_CONFIGURATION.getKeyPassword(),
+                    TLS_CONFIGURATION.getKeystoreType().getType(),
+                    TLS_CONFIGURATION.getTruststorePath(),
+                    TLS_CONFIGURATION.getTruststorePassword(),
+                    TLS_CONFIGURATION.getTruststoreType().getType(),
+                    TlsConfiguration.TLS_1_2_PROTOCOL
+            );
+
+            TRUSTSTORE_TLS_CONFIGURATION = new StandardTlsConfiguration(
+                    null,
+                    null,
+                    null,
+                    null,
+                    TLS_CONFIGURATION.getTruststorePath(),
+                    TLS_CONFIGURATION.getTruststorePassword(),
+                    TLS_CONFIGURATION.getTruststoreType().getType(),
+                    TlsConfiguration.TLS_1_2_PROTOCOL
+            );
+        } catch (final Exception e) {
+            throw new IllegalStateException("Failed to create TLS configuration for testing", e);
+        }
+    }
 
     /**
      * Create SSLContext with Key Store and Trust Store configured

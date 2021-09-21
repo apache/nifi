@@ -17,6 +17,8 @@
 package org.apache.nifi.web.security.saml.impl;
 
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.saml.SAMLConfigurationFactory;
 import org.apache.nifi.web.security.saml.SAMLService;
@@ -28,12 +30,14 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.HashSet;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,7 +46,6 @@ public class TestStandardSAMLService {
     private NiFiProperties properties;
     private SAMLConfigurationFactory samlConfigurationFactory;
     private SAMLService samlService;
-
 
     @BeforeClass
     public static void setUpSuite() {
@@ -62,18 +65,22 @@ public class TestStandardSAMLService {
     }
 
     @Test
-    public void testSamlEnabledWithFileBasedIdpMetadata() {
+    public void testSamlEnabledWithFileBasedIdpMetadata() throws GeneralSecurityException, IOException {
         final String spEntityId = "org:apache:nifi";
         final File idpMetadataFile = new File("src/test/resources/saml/sso-circle-meta.xml");
         final String baseUrl = "https://localhost:8443/nifi-api";
 
-        when(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE)).thenReturn("src/test/resources/saml/keystore.jks");
-        when(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)).thenReturn("passwordpassword");
-        when(properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD)).thenReturn("passwordpassword");
-        when(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE)).thenReturn("JKS");
-        when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE)).thenReturn("src/test/resources/saml/truststore.jks");
-        when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)).thenReturn("passwordpassword");
-        when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)).thenReturn("JKS");
+        final TlsConfiguration tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+        new File(tlsConfiguration.getKeystorePath()).deleteOnExit();
+        new File(tlsConfiguration.getTruststorePath()).deleteOnExit();
+
+        when(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE)).thenReturn(tlsConfiguration.getKeystorePath());
+        when(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)).thenReturn(tlsConfiguration.getKeystorePassword());
+        when(properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD)).thenReturn(tlsConfiguration.getKeyPassword());
+        when(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE)).thenReturn(tlsConfiguration.getKeystoreType().getType());
+        when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE)).thenReturn(tlsConfiguration.getTruststorePath());
+        when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)).thenReturn(tlsConfiguration.getTruststorePassword());
+        when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)).thenReturn(tlsConfiguration.getTruststoreType().getType());
         when(properties.getPropertyKeys()).thenReturn(new HashSet<>(Arrays.asList(
                 NiFiProperties.SECURITY_KEYSTORE,
                 NiFiProperties.SECURITY_KEYSTORE_PASSWD,
@@ -110,25 +117,9 @@ public class TestStandardSAMLService {
     @Test
     public void testInitializeWhenSamlNotEnabled() {
         when(properties.isSamlEnabled()).thenReturn(false);
-
-        // initialize the saml service
         samlService.initialize();
         assertFalse(samlService.isSamlEnabled());
-
-        // methods should throw IllegalStateException...
-
-        try {
-            samlService.initializeServiceProvider("https://localhost:8443/nifi-api");
-            fail("Should have thrown exception");
-        } catch (IllegalStateException e) {
-
-        }
-
-        try {
-            samlService.getServiceProviderMetadata();
-            fail("Should have thrown exception");
-        } catch (IllegalStateException e) {
-
-        }
+        assertThrows(IllegalStateException.class, () -> samlService.initializeServiceProvider("https://localhost:8443/nifi-api"));
+        assertThrows(IllegalStateException.class, () -> samlService.getServiceProviderMetadata());
     }
 }

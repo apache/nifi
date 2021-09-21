@@ -19,38 +19,21 @@ package org.apache.nifi.controller.queue.clustered.server
 import org.apache.nifi.events.EventReporter
 import org.apache.nifi.reporting.Severity
 import org.apache.nifi.security.util.KeyStoreUtils
-import org.apache.nifi.security.util.KeystoreType
 import org.apache.nifi.security.util.SslContextFactory
-import org.apache.nifi.security.util.StandardTlsConfiguration
 import org.apache.nifi.security.util.TlsConfiguration
-import org.apache.nifi.security.util.TlsPlatform
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLPeerUnverifiedException
 import javax.net.ssl.SSLServerSocket
-import java.security.Security
 
 @RunWith(JUnit4.class)
 class ConnectionLoadBalanceServerTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(ConnectionLoadBalanceServerTest.class)
-
-    private static final String KEYSTORE_PATH = "src/test/resources/localhost-ks.jks"
-    private static final String KEYSTORE_PASSWORD = "OI7kMpWzzVNVx/JGhTL/0uO4+PWpGJ46uZ/pfepbkwI"
-    private static final KeystoreType KEYSTORE_TYPE = KeystoreType.JKS
-
-    private static final String TRUSTSTORE_PATH = "src/test/resources/localhost-ts.jks"
-    private static final String TRUSTSTORE_PASSWORD = "wAOR0nQJ2EXvOP0JZ2EaqA/n7W69ILS4sWAHghmIWCc"
-    private static final KeystoreType TRUSTSTORE_TYPE = KeystoreType.JKS
-
     private static final String HOSTNAME = "localhost"
     private static final int PORT = 54321
     private static final int NUM_THREADS = 1
@@ -63,13 +46,9 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
 
     @BeforeClass
     static void setUpOnce() throws Exception {
-        Security.addProvider(new BouncyCastleProvider())
-
-        logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
-        }
-
-        tlsConfiguration = new StandardTlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE)
+        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore()
+        new File(tlsConfiguration.keystorePath).deleteOnExit()
+        new File(tlsConfiguration.truststorePath).deleteOnExit()
         sslContext = SslContextFactory.createSslContext(tlsConfiguration)
     }
 
@@ -87,9 +66,7 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
     @Test
     void testRequestPeerListShouldUseTLS() {
         // Arrange
-        logger.info("Creating SSL Context from TLS Configuration: ${tlsConfiguration}")
         SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration)
-        logger.info("Created SSL Context: ${KeyStoreUtils.sslContextToString(sslContext)}")
 
         def mockLBP = [
                 receiveFlowFiles: { Socket s, InputStream i, OutputStream o -> null }
@@ -132,7 +109,7 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
                 receiveFlowFiles: { Socket s, InputStream i, OutputStream o -> null }
         ] as LoadBalanceProtocol
         EventReporter mockER = [
-                reportEvent: { Severity s, String c, String m -> logger.mock("${s}: ${c} | ${m}") }
+                reportEvent: { Severity s, String c, String m -> }
         ] as EventReporter
 
         def output = [debug: 0, error: 0]
@@ -142,12 +119,8 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
         // Override the threshold to 100 ms
         communicateAction.EXCEPTION_THRESHOLD_MILLIS = 100
 
-        long listenerStart = System.currentTimeMillis()
-
         // Act
         CONNECTION_ATTEMPTS.times { int i ->
-            long now = System.currentTimeMillis()
-            logger.debug("Attempting connection ${i + 1} at ${now} [${now - listenerStart}]")
             boolean printedError = communicateAction.handleTlsError(peerDescription, e)
             if (printedError) {
                 output.error++
@@ -156,17 +129,11 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
             }
             sleep(10)
         }
-        logger.info("After ${CONNECTION_ATTEMPTS} attempts, debug: ${output.debug}, error: ${output.error}")
-
-        // Assert
-        logger.info("output.debug (${output.debug}) > output.error (${output.error}): ${output.debug > output.error}")
 
         // Only enforce if the test completed in a reasonable amount of time (i.e. external delays did not influence the timing)
         long testStopMillis = System.currentTimeMillis()
         long testDurationMillis = testStopMillis - testStartMillis
-        if (testDurationMillis > MAX_TEST_DURATION_MILLIS) {
-            logger.warn("The test took ${testDurationMillis} ms, which is longer than the max duration ${MAX_TEST_DURATION_MILLIS} ms, so the timing may be suspect and the assertion will not be enforced")
-        } else {
+        if (testDurationMillis <= MAX_TEST_DURATION_MILLIS) {
             assert output.debug > output.error
         }
 

@@ -18,33 +18,27 @@
 
 package org.apache.nifi.cluster.coordination.http.replication.okhttp
 
-
+import org.apache.nifi.security.util.KeyStoreUtils
+import org.apache.nifi.security.util.TlsConfiguration
 import org.apache.nifi.util.NiFiProperties
 import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 @RunWith(JUnit4.class)
 class OkHttpReplicationClientTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(OkHttpReplicationClientTest.class)
+    private static TlsConfiguration tlsConfiguration
 
     @BeforeClass
     static void setUpOnce() throws Exception {
-        logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
-        }
+        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore()
+        new File(tlsConfiguration.keystorePath).deleteOnExit()
+        new File(tlsConfiguration.truststorePath).deleteOnExit()
     }
 
     private static NiFiProperties mockNiFiProperties() {
-        [getClusterNodeConnectionTimeout: { -> "10 ms" },
-         getClusterNodeReadTimeout      : { -> "10 ms" },
-         getProperty                    : { String prop ->
-             logger.mock("Requested getProperty(${prop}) -> \"\"")
-             ""
-         }] as NiFiProperties
+        return NiFiProperties.createBasicNiFiProperties(null)
     }
 
     @Test
@@ -52,7 +46,6 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
         // Arrange
         def headers = ["Content-Length": "123", "Other-Header": "arbitrary value"]
         String method = "DELETE"
-        logger.info("Original headers: ${headers}")
 
         NiFiProperties mockProperties = mockNiFiProperties()
 
@@ -60,7 +53,6 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
 
         // Act
         client.checkContentLengthHeader(method, headers)
-        logger.info("Checked headers: ${headers}")
 
         // Assert
         assert headers.size() == 2
@@ -72,7 +64,6 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
         // Arrange
         def headers = ["Content-Length": "123", "Other-Header": "arbitrary value"]
         String method = "delete"
-        logger.info("Original headers: ${headers}")
 
         NiFiProperties mockProperties = mockNiFiProperties()
 
@@ -80,7 +71,6 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
 
         // Act
         client.checkContentLengthHeader(method, headers)
-        logger.info("Checked headers: ${headers}")
 
         // Assert
         assert headers.size() == 2
@@ -100,11 +90,7 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
         // Act
         zeroOrNullContentLengths.each { String contentLength ->
             def headers = ["Content-Length": contentLength, "Other-Header": "arbitrary value"]
-            logger.info("Original headers: ${headers}")
-
-            logger.info("Trying method ${method}")
             client.checkContentLengthHeader(method, headers)
-            logger.info("Checked headers: ${headers}")
 
             // Assert
             assert headers.size() == 2
@@ -116,7 +102,6 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
     void testShouldNotReplaceNonZeroContentLengthHeaderOnOtherMethod() {
         // Arrange
         def headers = ["Content-Length": "123", "Other-Header": "arbitrary value"]
-        logger.info("Original headers: ${headers}")
 
         NiFiProperties mockProperties = mockNiFiProperties()
 
@@ -126,9 +111,7 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
 
         // Act
         nonDeleteMethods.each { String method ->
-            logger.info("Trying method ${method}")
             client.checkContentLengthHeader(method, headers)
-            logger.info("Checked headers: ${headers}")
 
             // Assert
             assert headers.size() == 2
@@ -140,12 +123,12 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
     void testShouldUseKeystorePasswordIfKeyPasswordIsBlank() {
         // Arrange
         Map propsMap = [
-                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
-                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
-                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
-                (NiFiProperties.SECURITY_KEYSTORE)         : "./src/test/resources/conf/keystore.jks",
-                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
-                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "passwordpassword",
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : tlsConfiguration.truststorePath,
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : tlsConfiguration.truststoreType.type,
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): tlsConfiguration.truststorePassword,
+                (NiFiProperties.SECURITY_KEYSTORE)         : tlsConfiguration.keystorePath,
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : tlsConfiguration.keystoreType.type,
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : tlsConfiguration.keystorePassword,
                 (NiFiProperties.SECURITY_KEY_PASSWD)       : "",
                 (NiFiProperties.WEB_HTTPS_HOST)            : "localhost",
                 (NiFiProperties.WEB_HTTPS_PORT)            : "51552",
@@ -154,7 +137,6 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
 
         // Act
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
-        logger.info("Created secure HTTPS client with TLS configured: ${client.isTLSConfigured()}")
 
         // Assert
         assert client.isTLSConfigured()
@@ -164,12 +146,12 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
     void testShouldUseKeystorePasswordIfKeyPasswordIsNull() {
         // Arrange
         Map flowfileEncryptionProps = [
-                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
-                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
-                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
-                (NiFiProperties.SECURITY_KEYSTORE)         : "./src/test/resources/conf/keystore.jks",
-                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
-                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "passwordpassword",
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : tlsConfiguration.truststorePath,
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : tlsConfiguration.truststoreType.type,
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): tlsConfiguration.truststorePassword,
+                (NiFiProperties.SECURITY_KEYSTORE)         : tlsConfiguration.keystorePath,
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : tlsConfiguration.keystoreType.type,
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : tlsConfiguration.keystorePassword,
                 (NiFiProperties.WEB_HTTPS_HOST)            : "localhost",
                 (NiFiProperties.WEB_HTTPS_PORT)            : "51552",
         ]
@@ -177,7 +159,6 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
 
         // Act
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
-        logger.info("Created secure HTTPS client with TLS configured: ${client.isTLSConfigured()}")
 
         // Assert
         assert client.isTLSConfigured()
@@ -187,13 +168,13 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
     void testShouldFailIfKeyPasswordIsSetButKeystorePasswordIsBlank() {
         // Arrange
         Map propsMap = [
-                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
-                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
-                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
-                (NiFiProperties.SECURITY_KEYSTORE)         : "./src/test/resources/conf/keystore.jks",
-                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : tlsConfiguration.truststorePath,
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : tlsConfiguration.truststoreType.type,
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): tlsConfiguration.truststorePassword,
+                (NiFiProperties.SECURITY_KEYSTORE)         : tlsConfiguration.keystorePath,
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : tlsConfiguration.keystoreType.type,
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : tlsConfiguration.keystorePassword,
                 (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "",
-                (NiFiProperties.SECURITY_KEY_PASSWD)       : "passwordpassword",
                 (NiFiProperties.WEB_HTTPS_HOST)            : "localhost",
                 (NiFiProperties.WEB_HTTPS_PORT)            : "51552",
         ]
@@ -201,7 +182,6 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
 
         // Act
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
-        logger.info("Created (invalid) secure HTTPS client with TLS configured: ${client.isTLSConfigured()}")
 
         // Assert
         assert !client.isTLSConfigured()
@@ -211,11 +191,11 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
     void testShouldFailIfKeyPasswordAndKeystorePasswordAreBlank() {
         // Arrange
         Map propsMap = [
-                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
-                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
-                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
-                (NiFiProperties.SECURITY_KEYSTORE)         : "./src/test/resources/conf/keystore.jks",
-                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : tlsConfiguration.truststorePath,
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : tlsConfiguration.truststoreType.type,
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): tlsConfiguration.truststorePassword,
+                (NiFiProperties.SECURITY_KEYSTORE)         : tlsConfiguration.keystorePath,
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : tlsConfiguration.keystoreType.type,
                 (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "",
                 (NiFiProperties.SECURITY_KEY_PASSWD)       : "",
                 (NiFiProperties.WEB_HTTPS_HOST)            : "localhost",
@@ -225,7 +205,6 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
 
         // Act
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
-        logger.info("Created (invalid) secure HTTPS client with TLS configured: ${client.isTLSConfigured()}")
 
         // Assert
         assert !client.isTLSConfigured()
@@ -238,13 +217,12 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
                         (NiFiProperties.WEB_HTTPS_PORT): "51552",]
 
         Map tlsPropsMap = [
-                (NiFiProperties.SECURITY_KEYSTORE)         : "./src/test/resources/conf/keystore.jks",
-                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "passwordpassword",
-                (NiFiProperties.SECURITY_KEY_PASSWD)       : "",
-                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
-                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
-                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
-                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : tlsConfiguration.truststorePath,
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : tlsConfiguration.truststoreType.type,
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): tlsConfiguration.truststorePassword,
+                (NiFiProperties.SECURITY_KEYSTORE)         : tlsConfiguration.keystorePath,
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : tlsConfiguration.keystoreType.type,
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : tlsConfiguration.keystorePassword
         ] + propsMap
 
 
@@ -258,14 +236,8 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
 
         // Act
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
-        logger.info("Created plaintext HTTP client with TLS configured: ${client.isTLSConfigured()}")
-
         OkHttpReplicationClient invalidTlsClient = new OkHttpReplicationClient(mockInvalidTLSNiFiProperties)
-        logger.info("Created (invalid) secure HTTPS client with TLS configured: ${invalidTlsClient.isTLSConfigured()}")
-
         OkHttpReplicationClient tlsClient = new OkHttpReplicationClient(mockTLSNiFiProperties)
-        logger.info("Created secure HTTPS client with TLS configured: ${tlsClient.isTLSConfigured()}")
-
 
         // Assert
         assert !client.isTLSConfigured()

@@ -17,16 +17,20 @@
 package org.apache.nifi.controller.state.server;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,36 +39,21 @@ import java.util.Properties;
 // This class tests the behaviors involved with the ZooKeeperStateServer::create method.  The servers are not started,
 // and TLS connections are not used.
 public class TestZooKeeperStateServerConfigurations {
-    private static final String KEY_STORE = getPath("keystore.jks");
-    private static final String TRUST_STORE = getPath("truststore.jks");
     private static final String INSECURE_ZOOKEEPER_PROPS = getPath("insecure.zookeeper.properties");
     private static final String SECURE_ZOOKEEPER_PROPS = getPath("secure.zookeeper.properties");
     private static final String ZOOKEEPER_PROPERTIES_FILE_KEY = "nifi.state.management.embedded.zookeeper.properties";
     private static final String ZOOKEEPER_CNXN_FACTORY = "org.apache.zookeeper.server.NettyServerCnxnFactory";
-    private static final String KEYSTORE_PASSWORD = "passwordpassword";
-    private static final String TRUSTSTORE_PASSWORD = "passwordpassword";
-    private static final String STORE_TYPE = "JKS";
 
     private static final Map<String, String> INSECURE_PROPS = new HashMap<String, String>() {{
         put(ZOOKEEPER_PROPERTIES_FILE_KEY, INSECURE_ZOOKEEPER_PROPS);
     }};
 
+    private static final Map<String, String> SECURE_NIFI_PROPS = new HashMap<>();
+
     private static final Map<String, String> INSECURE_NIFI_PROPS = new HashMap<String, String>() {{
         putAll(INSECURE_PROPS);
         put(NiFiProperties.WEB_HTTP_PORT, "8080");
         put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "false");
-    }};
-
-    private static final Map<String, String> SECURE_NIFI_PROPS = new HashMap<String, String>() {{
-        put(ZOOKEEPER_PROPERTIES_FILE_KEY, SECURE_ZOOKEEPER_PROPS);
-        put(NiFiProperties.WEB_HTTPS_PORT, "8443");
-        put(NiFiProperties.SECURITY_KEYSTORE, KEY_STORE);
-        put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, KEYSTORE_PASSWORD);
-        put(NiFiProperties.SECURITY_KEYSTORE_TYPE, STORE_TYPE);
-        put(NiFiProperties.SECURITY_TRUSTSTORE, TRUST_STORE);
-        put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, TRUSTSTORE_PASSWORD);
-        put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, STORE_TYPE);
-        put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
     }};
 
     private NiFiProperties secureNiFiProps;
@@ -73,6 +62,25 @@ public class TestZooKeeperStateServerConfigurations {
     private QuorumPeerConfig insecureQuorumPeerConfig;
     private Properties secureZooKeeperProps;
     private Properties insecureZooKeeperProps;
+
+    private static TlsConfiguration tlsConfiguration;
+
+    @BeforeClass
+    public static void setTlsConfiguration() throws GeneralSecurityException, IOException {
+        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+        new File(tlsConfiguration.getTruststorePath()).deleteOnExit();
+        new File(tlsConfiguration.getKeystorePath()).deleteOnExit();
+
+        SECURE_NIFI_PROPS.put(NiFiProperties.STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES, SECURE_ZOOKEEPER_PROPS);
+        SECURE_NIFI_PROPS.put(NiFiProperties.WEB_HTTPS_PORT, "8443");
+        SECURE_NIFI_PROPS.put(NiFiProperties.SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
+        SECURE_NIFI_PROPS.put(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
+        SECURE_NIFI_PROPS.put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, tlsConfiguration.getKeystorePassword());
+        SECURE_NIFI_PROPS.put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
+        SECURE_NIFI_PROPS.put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
+        SECURE_NIFI_PROPS.put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, tlsConfiguration.getTruststorePassword());
+        SECURE_NIFI_PROPS.put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
+    }
 
     @Before
     public void setupWithValidProperties() throws IOException, QuorumPeerConfig.ConfigException {
