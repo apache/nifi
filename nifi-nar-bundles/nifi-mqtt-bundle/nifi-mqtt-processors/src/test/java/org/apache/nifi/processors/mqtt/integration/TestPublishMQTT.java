@@ -58,7 +58,7 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         if (MQTT_server != null) {
             MQTT_server.stopServer();
         }
