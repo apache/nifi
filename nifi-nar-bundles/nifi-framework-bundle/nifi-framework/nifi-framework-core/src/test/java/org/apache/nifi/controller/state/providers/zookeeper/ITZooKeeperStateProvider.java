@@ -28,7 +28,7 @@ import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.server.ServerCnxnFactory;
@@ -47,7 +47,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -71,10 +70,8 @@ public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
     private static TlsConfiguration tlsConfiguration;
 
     @BeforeClass
-    public static void setTlsConfiguration() throws GeneralSecurityException, IOException {
-        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
-        new File(tlsConfiguration.getTruststorePath()).deleteOnExit();
-        new File(tlsConfiguration.getKeystorePath()).deleteOnExit();
+    public static void setTlsConfiguration() {
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
     }
 
     @Before

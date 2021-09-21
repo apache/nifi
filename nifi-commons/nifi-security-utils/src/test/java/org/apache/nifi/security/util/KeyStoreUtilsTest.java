@@ -50,7 +50,8 @@ public class KeyStoreUtilsTest {
     private static final char[] STORE_PASSWORD = UUID.randomUUID().toString().toCharArray();
     private static final String ALIAS = "alias";
     private static final String KEY_ALGORITHM = "RSA";
-    private static final String SUBJECT_DN = "CN=localhost";
+    private static final String HOSTNAME = "localhost";
+    private static final String SUBJECT_DN = String.format("CN=%s", HOSTNAME);
     private static final String SECRET_KEY_ALGORITHM = "AES";
     private static final String KEY_PROTECTION_ALGORITHM = "PBEWithHmacSHA256AndAES_256";
     private static final String HYPHEN_SEPARATOR = "-";
@@ -69,7 +70,25 @@ public class KeyStoreUtilsTest {
 
     @Test
     public void testCreateTlsConfigAndNewKeystoreTruststore() throws GeneralSecurityException, IOException {
-        final TlsConfiguration configuration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+        final File keyStoreFile = File.createTempFile(KeyStoreUtilsTest.class.getSimpleName(), ".keystore.p12");
+        keyStoreFile.deleteOnExit();
+        final File trustStoreFile = File.createTempFile(KeyStoreUtilsTest.class.getSimpleName(), ".truststore.p12");
+        trustStoreFile.deleteOnExit();
+
+        final String password = UUID.randomUUID().toString();
+        final String keyStoreType = KeystoreType.PKCS12.getType();
+
+        final TlsConfiguration requested = new StandardTlsConfiguration(
+                keyStoreFile.getAbsolutePath(),
+                password,
+                password,
+                keyStoreType,
+                trustStoreFile.getAbsolutePath(),
+                password,
+                keyStoreType,
+                TlsConfiguration.TLS_PROTOCOL
+        );
+        final TlsConfiguration configuration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(requested, 1, new String[] { HOSTNAME });
         final File keystoreFile = new File(configuration.getKeystorePath());
         assertTrue("Keystore File not found", keystoreFile.exists());
         keystoreFile.deleteOnExit();

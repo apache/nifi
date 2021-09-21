@@ -24,7 +24,7 @@ import org.apache.curator.utils.DefaultZookeeperFactory;
 import org.apache.curator.utils.ZookeeperFactory;
 import org.apache.nifi.controller.cluster.SecureClientZooKeeperFactory;
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
-import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.KeeperException;
@@ -42,7 +42,6 @@ import org.junit.rules.ExpectedException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -70,10 +69,8 @@ public class ITZooKeeperStateServerTLS {
     public ExpectedException expectedException = ExpectedException.none();
 
     @BeforeClass
-    public static void setTlsConfiguration() throws GeneralSecurityException, IOException {
-        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
-        new File(tlsConfiguration.getTruststorePath()).deleteOnExit();
-        new File(tlsConfiguration.getKeystorePath()).deleteOnExit();
+    public static void setTlsConfiguration() {
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
 
         SECURE_NIFI_PROPS.put(NiFiProperties.STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES, SECURE_ZOOKEEPER_PROPS);
         SECURE_NIFI_PROPS.put(NiFiProperties.WEB_HTTPS_PORT, "8443");
