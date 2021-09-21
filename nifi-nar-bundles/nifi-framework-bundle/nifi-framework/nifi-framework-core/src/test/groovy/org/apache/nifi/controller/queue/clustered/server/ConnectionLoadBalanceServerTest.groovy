@@ -18,8 +18,8 @@ package org.apache.nifi.controller.queue.clustered.server
 
 import org.apache.nifi.events.EventReporter
 import org.apache.nifi.reporting.Severity
-import org.apache.nifi.security.util.KeyStoreUtils
 import org.apache.nifi.security.util.SslContextFactory
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder
 import org.apache.nifi.security.util.TlsConfiguration
 import org.junit.After
 import org.junit.Before
@@ -46,9 +46,7 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
 
     @BeforeClass
     static void setUpOnce() throws Exception {
-        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore()
-        new File(tlsConfiguration.keystorePath).deleteOnExit()
-        new File(tlsConfiguration.truststorePath).deleteOnExit()
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build()
         sslContext = SslContextFactory.createSslContext(tlsConfiguration)
     }
 

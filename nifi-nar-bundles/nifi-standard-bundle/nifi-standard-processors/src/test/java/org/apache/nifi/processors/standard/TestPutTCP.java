@@ -25,7 +25,7 @@ import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
-import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
@@ -114,7 +114,7 @@ public class TestPutTCP {
 
     @Test
     public void testRunSuccessSslContextService() throws Exception {
-        final TlsConfiguration tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
 
         final SSLContext sslContext = SslContextUtils.createSslContext(tlsConfiguration);
         assertNotNull("SSLContext not found", sslContext);

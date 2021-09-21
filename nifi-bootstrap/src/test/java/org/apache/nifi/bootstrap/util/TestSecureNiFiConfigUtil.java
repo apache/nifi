@@ -19,7 +19,7 @@ package org.apache.nifi.bootstrap.util;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
@@ -52,7 +52,7 @@ import java.util.Set;
 
 public class TestSecureNiFiConfigUtil {
     public static final String TEST_RESOURCE_DIR = "src/test/resources/";
-    private Logger logger = LoggerFactory.getLogger("org.apache.nifi.bootstrap.util.TestSecureNiFiConfigUtil");
+    private final Logger logger = LoggerFactory.getLogger("org.apache.nifi.bootstrap.util.TestSecureNiFiConfigUtil");
 
     private static final String PROPERTIES_PREFIX = "nifi-properties";
     private static final boolean EXPECT_STORES_TO_EXIST = true;
@@ -60,8 +60,8 @@ public class TestSecureNiFiConfigUtil {
     private Path nifiPropertiesFile;
     private Path keystorePath;
     private Path truststorePath;
-    private Path existingKeystorePath = getTestFilePath("existing-keystore.p12");
-    private Path existingTruststorePath = getTestFilePath("existing-truststore.p12");
+    private final Path existingKeystorePath = getTestFilePath("existing-keystore.p12");
+    private final Path existingTruststorePath = getTestFilePath("existing-truststore.p12");
 
     private NiFiProperties configureSecureNiFiProperties(Path testPropertiesFile) throws IOException {
         Files.copy(testPropertiesFile, nifiPropertiesFile, StandardCopyOption.REPLACE_EXISTING);
@@ -87,9 +87,9 @@ public class TestSecureNiFiConfigUtil {
     }
 
     @Before
-    public void init() throws IOException, GeneralSecurityException {
+    public void init() throws IOException {
         nifiPropertiesFile = Files.createTempFile(PROPERTIES_PREFIX, ".properties");
-        TlsConfiguration tlsConfig = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(new StandardTlsConfiguration());
+        TlsConfiguration tlsConfig = new TemporaryKeyStoreBuilder().build();
         Files.move(Paths.get(tlsConfig.getKeystorePath()), existingKeystorePath, StandardCopyOption.REPLACE_EXISTING);
         Files.move(Paths.get(tlsConfig.getTruststorePath()), existingTruststorePath, StandardCopyOption.REPLACE_EXISTING);
     }
@@ -159,12 +159,12 @@ public class TestSecureNiFiConfigUtil {
         }
     }
 
-    private void runTestWithNoExpectedUpdates(String testPropertiesFile, boolean expectBothStoresToExist) throws IOException, GeneralSecurityException {
+    private void runTestWithNoExpectedUpdates(String testPropertiesFile, boolean expectBothStoresToExist) throws IOException {
        this.runTestWithNoExpectedUpdates(testPropertiesFile, expectBothStoresToExist, expectBothStoresToExist);
     }
 
     private void runTestWithNoExpectedUpdates(String testPropertiesFile, boolean expectKeystoreToExist, boolean expectTruststoreToExist)
-            throws IOException, GeneralSecurityException {
+            throws IOException {
         Path testPropertiesFilePath = getPathFromClasspath(testPropertiesFile);
         NiFiProperties niFiProperties = this.configureSecureNiFiProperties(testPropertiesFilePath);
         keystorePath = Paths.get(niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
@@ -179,52 +179,52 @@ public class TestSecureNiFiConfigUtil {
 
     @Test
     public void testSuccessfulConfiguration() throws IOException, GeneralSecurityException {
-        runTestWithExpectedSuccess("nifi.properties.success", Collections.EMPTY_LIST);
+        runTestWithExpectedSuccess("nifi.properties.success", Collections.emptyList());
     }
 
     @Test
     public void testSuccessfulDNSSANs() throws IOException, GeneralSecurityException {
         runTestWithExpectedSuccess("nifi.properties.dns-sans",
-                Arrays.asList(new String[] {"test-host", "remote-host", "proxy-host", "cluster-host"}));
+                Arrays.asList("test-host", "remote-host", "proxy-host", "cluster-host"));
     }
 
     @Test
-    public void testNoHttps() throws IOException, GeneralSecurityException {
+    public void testNoHttps() throws IOException {
         runTestWithNoExpectedUpdates("nifi.properties.no-https", !EXPECT_STORES_TO_EXIST);
     }
 
     @Test
-    public void testNoKeystores() throws IOException, GeneralSecurityException {
+    public void testNoKeystores() throws IOException {
         runTestWithNoExpectedUpdates("nifi.properties.no-keystores", !EXPECT_STORES_TO_EXIST);
     }
 
     @Test
-    public void testTruststorePasswordSet() throws IOException, GeneralSecurityException {
+    public void testTruststorePasswordSet() throws IOException {
         runTestWithNoExpectedUpdates("nifi.properties.truststore-password", !EXPECT_STORES_TO_EXIST);
     }
 
     @Test
-    public void testKeystorePasswordSet() throws IOException, GeneralSecurityException {
+    public void testKeystorePasswordSet() throws IOException {
         runTestWithNoExpectedUpdates("nifi.properties.keystore-password", !EXPECT_STORES_TO_EXIST);
     }
 
     @Test
-    public void test_keystoreAndTruststoreAlreadyExist() throws IOException, GeneralSecurityException {
+    public void test_keystoreAndTruststoreAlreadyExist() throws IOException {
         runTestWithNoExpectedUpdates("nifi.properties.stores-exist", EXPECT_STORES_TO_EXIST);
     }
 
     @Test
     public void testNoKeystoresTypes() throws IOException, GeneralSecurityException {
-        runTestWithExpectedSuccess("nifi.properties.no-keystore-types", Collections.EMPTY_LIST);
+        runTestWithExpectedSuccess("nifi.properties.no-keystore-types", Collections.emptyList());
     }
 
     @Test
-    public void testFailure_onlyTruststoreExists() throws IOException, GeneralSecurityException {
+    public void testFailure_onlyTruststoreExists() throws IOException {
         runTestWithNoExpectedUpdates("nifi.properties.only-truststore", !EXPECT_STORES_TO_EXIST, EXPECT_STORES_TO_EXIST);
     }
 
     @Test
-    public void testFailure_onlyKeystoreExists() throws IOException, GeneralSecurityException {
+    public void testFailure_onlyKeystoreExists() throws IOException {
         runTestWithNoExpectedUpdates("nifi.properties.only-keystore", EXPECT_STORES_TO_EXIST, !EXPECT_STORES_TO_EXIST);
     }
 }

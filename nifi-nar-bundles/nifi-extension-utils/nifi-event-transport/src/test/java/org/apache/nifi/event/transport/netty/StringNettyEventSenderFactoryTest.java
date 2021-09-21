@@ -27,8 +27,8 @@ import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,8 +36,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.net.ssl.SSLContext;
-import java.io.File;
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -153,12 +151,8 @@ public class StringNettyEventSenderFactoryTest {
         return factory;
     }
 
-    private SSLContext getSslContext() throws GeneralSecurityException, IOException {
-        final TlsConfiguration tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
-        final File keystoreFile = new File(tlsConfiguration.getKeystorePath());
-        keystoreFile.deleteOnExit();
-        final File truststoreFile = new File(tlsConfiguration.getTruststorePath());
-        truststoreFile.deleteOnExit();
+    private SSLContext getSslContext() throws GeneralSecurityException {
+        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
         return SslContextFactory.createSslContext(tlsConfiguration);
     }
 }

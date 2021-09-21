@@ -20,8 +20,8 @@ import org.apache.nifi.bundle.Bundle
 import org.apache.nifi.nar.ExtensionManagerHolder
 import org.apache.nifi.processor.DataUnit
 import org.apache.nifi.remote.io.socket.NetworkUtils
-import org.apache.nifi.security.util.KeyStoreUtils
 import org.apache.nifi.security.util.StandardTlsConfiguration
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder
 import org.apache.nifi.security.util.TlsConfiguration
 import org.apache.nifi.security.util.TlsPlatform
 import org.apache.nifi.util.NiFiProperties
@@ -81,7 +81,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
     private static final String TLS_1_3_PROTOCOL = "TLSv1.3"
     private static final List<String> TLS_1_3_CIPHER_SUITES = ["TLS_AES_128_GCM_SHA256"]
 
-    private static final TlsConfiguration TLS_CONFIGURATION = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore()
+    private static final TlsConfiguration TLS_CONFIGURATION = new TemporaryKeyStoreBuilder().build()
 
     // These protocol versions should not ever be supported
     static private final List<String> LEGACY_TLS_PROTOCOLS = ["TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3"]
