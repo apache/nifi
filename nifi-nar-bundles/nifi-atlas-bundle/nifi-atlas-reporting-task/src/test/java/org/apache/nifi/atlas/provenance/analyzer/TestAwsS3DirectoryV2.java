@@ -76,17 +76,19 @@ public class TestAwsS3DirectoryV2 extends AbstractTestAwsS3Directory {
         Referenceable ref = refs.getOutputs().iterator().next();
 
         String actualPath = dirPath;
+        String parentPath = StringUtils.substringBeforeLast(actualPath, "/");
         while (StringUtils.isNotEmpty(actualPath) && !"/".equals(actualPath)) {
             String directory = StringUtils.substringAfterLast(actualPath, "/");
 
             assertEquals(AwsS3Directory.TYPE_DIRECTORY_V2, ref.getTypeName());
             assertEquals(String.format("s3a://%s%s/@%s", AWS_BUCKET, actualPath, ATLAS_NAMESPACE), ref.get(ATTR_QUALIFIED_NAME));
             assertEquals(directory, ref.get(ATTR_NAME));
-            assertEquals(actualPath + "/", ref.get(ATTR_OBJECT_PREFIX_V2));
+            assertEquals(parentPath + "/", ref.get(ATTR_OBJECT_PREFIX_V2));
             assertNotNull(ref.get(ATTR_CONTAINER_V2));
 
             ref = (Referenceable) ref.get(ATTR_CONTAINER_V2);
             actualPath = StringUtils.substringBeforeLast(actualPath, "/");
+            parentPath = StringUtils.substringBeforeLast(parentPath, "/");
         }
 
         assertEquals(TYPE_BUCKET_V2, ref.getTypeName());
