@@ -21,8 +21,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.AclEntryScope;
+import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsCreateModes;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -151,7 +154,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .description(
                    "A umask represented as an octal number which determines the permissions of files written to HDFS. " +
                            "This overrides the Hadoop property \"fs.permissions.umask-mode\".  " +
-                           "If this property and \"fs.permissions.umask-mode\" are undefined, the Hadoop default \"022\" will be used.")
+                           "If this property and \"fs.permissions.umask-mode\" are undefined, the Hadoop default \"022\" will be used.  "+
+                           "If the PutHDFS target folder has a default ACL defined, the umask property is ignored by HDFS.")
             .addValidator(HadoopValidators.UMASK_VALIDATOR)
             .build();
 
@@ -229,6 +233,20 @@ public class PutHDFS extends AbstractHadoopProcessor {
     }
 
     @Override
+    protected void preProcessFileSystem(final FileSystem fileSystem, final ProcessContext context) throws IOException {
+        if (fileSystem instanceof DistributedFileSystem) {
+            final Path dirPath = new Path(context.getProperty(DIRECTORY).getValue());
+            final AclStatus aclStatus = fileSystem.getAclStatus(dirPath);
+            final boolean isDefaultACL = aclStatus.getEntries().stream().anyMatch(
+                    aclEntry -> AclEntryScope.DEFAULT.equals(aclEntry.getScope()));
+            final boolean isSetUmask = context.getProperty(UMASK).isSet();
+            if (isDefaultACL && isSetUmask) {
+                getLogger().warn("PutHDFS umask setting is ignored by HDFS when HDFS default ACL is set.");
+            }
+        }
+    }
+
+    @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         final FlowFile flowFile = session.get();
         if (flowFile == null) {
@@ -253,7 +271,6 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 FlowFile putFlowFile = flowFile;
                 try {
                     final Path dirPath = getNormalizedPath(context, DIRECTORY, putFlowFile);
-
                     final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
                     final long blockSize = getBlockSize(context, session, putFlowFile, dirPath);
                     final int bufferSize = getBufferSize(context, session, putFlowFile);
