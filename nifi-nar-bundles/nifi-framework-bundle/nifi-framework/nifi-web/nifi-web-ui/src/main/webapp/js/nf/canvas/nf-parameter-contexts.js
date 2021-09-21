@@ -1086,16 +1086,41 @@
         var proposedParamContextDesc = $('#parameter-context-description-field').val();
         var inheritedParameterContexts = marshalInheritedParameterContexts();
 
+        var inheritedParameterContextEquals = isInheritedParameterContextEquals(parameterContextEntity, inheritedParameterContexts);
+        if (inheritedParameterContextEquals) {
+            $('#inherited-parameter-contexts-message').addClass('hidden');
+        } else {
+            $('#inherited-parameter-contexts-message').removeClass('hidden');
+        }
+
         if (_.isEmpty(parameters) &&
             proposedParamContextName === _.get(parameterContextEntity, 'component.name') &&
             proposedParamContextDesc === _.get(parameterContextEntity, 'component.description') &&
-            _.isEqual(_.get(parameterContextEntity, 'component.inheritedParameterContexts'), inheritedParameterContexts)) {
+            inheritedParameterContextEquals) {
 
             return false;
         } else {
             return true;
         }
     };
+
+    /**
+     * Determines if the proposed inherited parameter contexts are equal to the current configuration.
+     *
+     * @param parameterContextEntity
+     * @param proposedInheritedParameterContexts
+     * @returns {*}
+     */
+    var isInheritedParameterContextEquals = function (parameterContextEntity, proposedInheritedParameterContexts) {
+        var configuredInheritedParameterContexts = parameterContextEntity.component.inheritedParameterContexts.map(function (inheritedParameterContext) {
+            return inheritedParameterContext.id;
+        });
+        var mappedProposedInheritedParameterContexts = proposedInheritedParameterContexts.map(function (proposedInheritedParameterContext) {
+            return proposedInheritedParameterContext.id;
+        });
+
+        return _.isEqual(configuredInheritedParameterContexts, mappedProposedInheritedParameterContexts);
+    }
 
     /**
      * Updates parameter contexts by issuing an update request and polling until it's completion.
@@ -1113,7 +1138,7 @@
 
             if ($('#parameter-context-name').val() === _.get(parameterContextEntity, 'component.name') &&
                 $('#parameter-context-description-field').val() === _.get(parameterContextEntity, 'component.description') &&
-                _.isEqual(_.get(parameterContextEntity, 'component.inheritedParameterContexts'), inheritedParameterContexts)) {
+                isInheritedParameterContextEquals(parameterContextEntity, inheritedParameterContexts)) {
                 close();
 
                 return;
@@ -1595,6 +1620,10 @@
             }
         });
 
+        if (!nfCommon.isNull(parameterContextEntity)) {
+            sortSelectedParameterContexts(parameterContextEntity);
+        }
+
         sortAvailableParameterContexts();
 
         if (readOnly) {
@@ -1648,6 +1677,7 @@
         $('#parameter-context-available').empty();
         $('#parameter-context-selected').empty();
         $('#parameter-context-selected-read-only').empty();
+        $('#inherited-parameter-contexts-message').addClass('hidden');
     };
 
     /**
@@ -1657,9 +1687,9 @@
         var availableParameterContextList = $('#parameter-context-available');
         availableParameterContextList.children('li')
             .detach()
-            .sort(function (a, b) {
-                var a = $(a);
-                var b = $(b);
+            .sort(function (aElement, bElement) {
+                var a = $(aElement);
+                var b = $(bElement);
 
                 // put unauthorized last
                 if (a.hasClass('unauthorized') && b.hasClass('unauthorized')) {
@@ -1676,6 +1706,33 @@
             })
             .appendTo(availableParameterContextList);
     };
+
+    /**
+     * Sorts the selected parameter context array based on the current parameter context entity.
+     *
+     * @param {object} selectedParameterContexts
+     */
+    var sortSelectedParameterContexts = function (parameterContextEntity) {
+        var selectedInheritedParameterContexts = parameterContextEntity.component.inheritedParameterContexts;
+
+        var selectedParameterContextList = $('#parameter-context-selected');
+        selectedParameterContextList.children('li')
+            .detach()
+            .sort(function (aElement, bElement) {
+                var a = $(aElement);
+                var b = $(bElement);
+
+                var findA = function (selectedInheritedParameterContext) {
+                    return a.attr('id') === selectedInheritedParameterContext.id;
+                };
+                var findB = function (selectedInheritedParameterContext) {
+                    return b.attr('id') === selectedInheritedParameterContext.id;
+                };
+
+                return selectedInheritedParameterContexts.findIndex(findA) - selectedInheritedParameterContexts.findIndex(findB);
+            })
+            .appendTo(selectedParameterContextList);
+    }
 
     /**
      * Adds the specified parameter context to the list of available parameter contexts.
@@ -2635,7 +2692,8 @@
                 opacity: 0.6,
                 receive: function (event, ui) {
                     addControlsForSelectedParameterContext(ui.item);
-
+                },
+                update: function (event, ui) {
                     // update the buttons to possibly trigger the disabled state
                     $('#parameter-context-dialog').modal('refreshButtons');
                 }
@@ -2857,7 +2915,6 @@
                     }
                 }];
 
-
                 // show the context
                 $('#parameter-context-dialog')
                     .modal('setHeaderText', canWrite ? 'Update Parameter Context' : 'View Parameter Context')
@@ -2865,7 +2922,7 @@
                     .modal('show');
 
                 // select the parameters tab
-                $('#parameter-context-tabs').find('li:last').click();
+                $('#parameter-context-tabs').find('li:eq(1)').click();
 
                 // check if border is necessary
                 updateReferencingComponentsBorder($('#parameter-referencing-components-container'));

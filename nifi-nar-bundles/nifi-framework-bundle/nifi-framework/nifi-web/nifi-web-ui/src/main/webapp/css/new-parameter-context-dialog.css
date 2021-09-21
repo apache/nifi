@@ -199,3 +199,13 @@ span.parameter-context-referencing-component-name {
 #parameter-context-selected-read-only {
     list-style: inside none decimal;
 }
+
+#inherited-parameter-contexts-message {
+    position: absolute;
+    top: 550px;
+    left: 20px;
+    font-size: 13px;
+    color: #775351;
+    max-width: calc(100% - 230px);
+    z-index: 999;
+}

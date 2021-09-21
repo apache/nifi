@@ -138,6 +138,9 @@
             </div>
         </div>
     </div>
+    <div id="inherited-parameter-contexts-message" class="ellipsis hidden">
+        Inherited Parameter Contexts have been modified. Updated listing of Parameters is pending apply.
+    </div>
 </div>
 <div id="parameter-dialog" class="dialog cancellable hidden">
     <div class="dialog-content">
