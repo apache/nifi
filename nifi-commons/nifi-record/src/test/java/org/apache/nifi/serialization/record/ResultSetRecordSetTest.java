@@ -40,10 +40,13 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -178,6 +181,51 @@ public class ResultSetRecordSetTest {
     }
 
     @Test
+    public void testCreateSchemaWhenOtherTypeUsingLogicalTypesNoSchema() throws SQLException {
+        // given
+        final List<RecordField> fields = givenFieldsThatRequireLogicalTypes();
+        final ResultSet resultSet = givenResultSetForOther(fields);
+
+        // when
+        final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, null, 10, 0, true);
+        final RecordSchema resultSchema = testSubject.getSchema();
+
+        // then
+        thenAllDataTypesAreChoice(fields, resultSchema);
+    }
+
+    @Test
+    public void testCreateSchemaWhenOtherTypeAndNoLogicalTypesNoSchema() throws SQLException {
+        // given
+        final List<RecordField> fields = givenFieldsThatRequireLogicalTypes();
+        final ResultSet resultSet = givenResultSetForOther(fields);
+
+        // when
+        final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, null, 10, 0, false);
+        final RecordSchema resultSchema = testSubject.getSchema();
+
+        // then
+        thenAllDataTypesAreString(resultSchema);
+    }
+
+    @Test
+    public void testCreateSchemaWhenOtherTypeUsingLogicalTypesWithRecord() throws SQLException {
+        // given
+        final Record inputRecord = givenInputRecord(); // The field's type is going to be RECORD (there is a record within a record)
+        final List<RecordField> fields = givenFieldsThatAreOfTypeRecord(Arrays.asList(inputRecord));
+        final ResultSet resultSet = givenResultSetForOther(fields);
+
+        when(resultSet.getObject(1)).thenReturn(inputRecord);
+
+        // when
+        final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, null, 10, 0, true);
+        final RecordSchema resultSchema = testSubject.getSchema();
+
+        // then
+        thenAllDataTypesMatchInputFieldType(fields, resultSchema);
+    }
+
+    @Test
     public void testCreateSchemaWhenOtherTypeWithoutSchema() throws SQLException {
         // given
         final List<RecordField> fields = new ArrayList<>();
@@ -279,6 +327,28 @@ public class ResultSetRecordSetTest {
     }
 
     @Test
+    public void testCreateSchemaThrowsExceptionSchemaCreationStillCalledConsideringLogicalTypeFlag() throws SQLException {
+        // given
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("column", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
+        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        final ResultSet resultSet = Mockito.mock(ResultSet.class);
+        final ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
+        when(resultSet.getMetaData()).thenThrow(new SQLException("test exception")).thenReturn(resultSetMetaData);
+        when(resultSetMetaData.getColumnCount()).thenReturn(1);
+        when(resultSetMetaData.getColumnLabel(1)).thenReturn("column");
+        when(resultSetMetaData.getColumnType(1)).thenReturn(Types.DECIMAL);
+
+        // when
+        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10,0, false);
+        final RecordSchema resultSchema = testSubject.getSchema();
+
+        // then
+        thenAllDataTypesAreString(resultSchema);
+    }
+
+    @Test
     public void testCreateSchemaArrayThrowsNotSupportedException() throws SQLException {
         // given
         final List<RecordField> fields = new ArrayList<>();
@@ -306,12 +376,22 @@ public class ResultSetRecordSetTest {
 
     @Test
     public void testCreateSchemaWithLogicalTypes() throws SQLException {
-        testCreateSchemaLogicalTypes(true);
+        testCreateSchemaLogicalTypes(true, true);
     }
 
     @Test
     public void testCreateSchemaNoLogicalTypes() throws SQLException {
-        testCreateSchemaLogicalTypes(false);
+        testCreateSchemaLogicalTypes(false, true);
+    }
+
+    @Test
+    public void testCreateSchemaWithLogicalTypesNoInputSchema() throws SQLException {
+        testCreateSchemaLogicalTypes(true, false);
+    }
+
+    @Test
+    public void testCreateSchemaNoLogicalTypesNoInputSchema() throws SQLException {
+        testCreateSchemaLogicalTypes(false, false);
     }
 
     private void testArrayType(boolean useLogicalTypes) throws SQLException {
@@ -335,7 +415,7 @@ public class ResultSetRecordSetTest {
         thenActualArrayElementTypesMatchExpected(expectedTypes, actualSchema);
     }
 
-    private void testCreateSchemaLogicalTypes(boolean useLogicalTypes) throws SQLException {
+    private void testCreateSchemaLogicalTypes(boolean useLogicalTypes, boolean provideInputSchema) throws SQLException {
         // GIVEN
         TestColumn[] columns = new TestColumn[]{
                 new TestColumn(1, COLUMN_NAME_DATE, Types.DATE, RecordFieldType.DATE.getDataType()),
@@ -349,7 +429,7 @@ public class ResultSetRecordSetTest {
                 new TestColumn(9, COLUMN_NAME_BIG_DECIMAL_4, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(10, 3)),
                 new TestColumn(10, COLUMN_NAME_BIG_DECIMAL_5, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(3, 10)),
         };
-        final RecordSchema recordSchema = givenRecordSchema(columns);
+        final RecordSchema recordSchema = provideInputSchema ? givenRecordSchema(columns) : null;
 
         ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
         ResultSet resultSet = Mockito.mock(ResultSet.class);
@@ -478,6 +558,29 @@ public class ResultSetRecordSetTest {
         return resultSet;
     }
 
+    private Record givenInputRecord() {
+        List<RecordField> inputRecordFields = new ArrayList<>(2);
+        inputRecordFields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        inputRecordFields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        RecordSchema inputRecordSchema = new SimpleRecordSchema(inputRecordFields);
+
+        Map<String, Object> inputRecordData = new HashMap<>(2);
+        inputRecordData.put("id", 1);
+        inputRecordData.put("name", "John");
+
+        return new MapRecord(inputRecordSchema, inputRecordData);
+    }
+
+    private List<RecordField> givenFieldsThatAreOfTypeRecord(List<Record> concreteRecords) {
+        List<RecordField> fields = new ArrayList<>(concreteRecords.size());
+        int i = 1;
+        for (Record record : concreteRecords) {
+            fields.add(new RecordField("record" + String.valueOf(i), RecordFieldType.RECORD.getRecordDataType(record.getSchema())));
+            ++i;
+        }
+        return fields;
+    }
+
     private List<RecordField> whenSchemaFieldsAreSetupForArrayType(final List<ArrayTestData> testData,
                                                                    final ResultSet resultSet,
                                                                    final ResultSetMetaData resultSetMetaData)
@@ -539,6 +642,24 @@ public class ResultSetRecordSetTest {
                 throw new AssertionError("RecordField " + recordField.getFieldName() + " is not instance of ArrayDataType");
             }
         }
+    }
+
+    private void thenAllDataTypesAreChoice(final List<RecordField> inputFields, final RecordSchema resultSchema) {
+        assertEquals("The number of input fields does not match the number of fields in the result schema.", inputFields.size(), resultSchema.getFieldCount());
+
+        DataType expectedType = getBroadestChoiceDataType();
+        for (int i = 0; i < inputFields.size(); ++i) {
+            assertEquals(expectedType, resultSchema.getField(i).getDataType());
+        }
+    }
+
+    private DataType getBroadestChoiceDataType() {
+        List<DataType> dataTypes = Stream.of(RecordFieldType.BIGINT, RecordFieldType.BOOLEAN, RecordFieldType.BYTE, RecordFieldType.CHAR, RecordFieldType.DATE,
+                RecordFieldType.DECIMAL, RecordFieldType.DOUBLE, RecordFieldType.FLOAT, RecordFieldType.INT, RecordFieldType.LONG, RecordFieldType.SHORT, RecordFieldType.STRING,
+                RecordFieldType.TIME, RecordFieldType.TIMESTAMP)
+                .map(RecordFieldType::getDataType)
+                .collect(Collectors.toList());
+        return RecordFieldType.CHOICE.getChoiceDataType(dataTypes);
     }
 
     private static class TestColumn {
