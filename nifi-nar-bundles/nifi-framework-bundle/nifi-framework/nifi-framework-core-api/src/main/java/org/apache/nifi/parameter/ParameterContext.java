@@ -111,13 +111,6 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
     Map<ParameterDescriptor, Parameter> getEffectiveParameters();
 
     /**
-     * Verifies whether the parameter context can be updated with the provided parameters and inherited parameter contexts.
-     * @param parameterUpdates A map from parameter name to updated parameter (null if removal is desired)
-     * @param inheritedParameterContexts the list of ParameterContexts from which to inherit parameters
-     */
-    void verifyCanUpdateParameterContext(Map<String, Parameter> parameterUpdates, List<ParameterContext> inheritedParameterContexts);
-
-    /**
      * Returns a map from parameter name to Parameter, representing all parameters that would be effectively
      * updated if the provided configuration was applied.  Only parameters that would be effectively updated or added are
      * included in the map.  A null value for a Parameter represents an effective deletion of that parameter name.
@@ -183,6 +176,16 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
      * @param parameterProvider A NonSensitiveParameterProvider.
      */
     void setNonSensitiveParameterProvider(NonSensitiveParameterProvider parameterProvider);
+
+    /**
+     * Verifies whether the parameter context can be updated with the provided parameters and inherited parameter contexts.
+     * @param parameterUpdates A map from parameter name to updated parameter (null if removal is desired)
+     * @param inheritedParameterContexts the list of ParameterContexts from which to inherit parameters
+     * @param sensitiveParameterProvider The SensitiveParameterProvider to set, or null if it should be unset
+     * @param nonSensitiveParameterProvider The NonSensitiveParameterProvider to set, or null if it should be unset
+     */
+    void verifyCanUpdateParameterContext(Map<String, Parameter> parameterUpdates, List<ParameterContext> inheritedParameterContexts,
+                                         SensitiveParameterProvider sensitiveParameterProvider, NonSensitiveParameterProvider nonSensitiveParameterProvider);
 
     /**
      * Updates the ParameterContexts within this context to match the given list of ParameterContexts. All parameter in these

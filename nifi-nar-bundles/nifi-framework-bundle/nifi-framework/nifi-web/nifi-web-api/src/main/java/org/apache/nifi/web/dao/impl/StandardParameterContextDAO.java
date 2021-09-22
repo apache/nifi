@@ -78,8 +78,6 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
                     .getParameterContext(entity.getComponent().getId()));
         }
         authorizeReferences(parameterContextDto);
-
-
     }
 
     @Override
@@ -293,11 +291,13 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         final ParameterContext currentContext = getParameterContext(parameterContextDto.getId());
 
         final List<ParameterContext> inheritedParameterContexts = getInheritedParameterContexts(parameterContextDto);
-        final Map<String, Parameter> parameters = parameterContextDto.getParameters() == null ? Collections.emptyMap() : getParameters(parameterContextDto, currentContext);
-        currentContext.verifyCanUpdateParameterContext(parameters, inheritedParameterContexts);
 
         final SensitiveParameterProvider sensitiveParameterProvider = getSensitiveParameterProvider(parameterContextDto);
         final NonSensitiveParameterProvider nonSensitiveParameterProvider = getNonSensitiveParameterProvider(parameterContextDto);
+
+        final Map<String, Parameter> parameters = parameterContextDto.getParameters() == null ? Collections.emptyMap() : getParameters(parameterContextDto, currentContext);
+
+        currentContext.verifyCanUpdateParameterContext(parameters, inheritedParameterContexts, sensitiveParameterProvider, nonSensitiveParameterProvider);
 
         final Map<String, Parameter> proposedParameters = new HashMap<>();
         if (parameterContextDto.getParameters() != null) {

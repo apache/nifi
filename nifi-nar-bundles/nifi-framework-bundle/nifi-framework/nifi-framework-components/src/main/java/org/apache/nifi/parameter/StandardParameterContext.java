@@ -625,19 +625,21 @@ public class StandardParameterContext implements ParameterContext {
     }
 
     @Override
-    public void verifyCanUpdateParameterContext(final Map<String, Parameter> parameterUpdates, final List<ParameterContext> inheritedParameterContexts) {
-        verifyCanUpdateParameterContext(parameterUpdates, inheritedParameterContexts, false);
+    public void verifyCanUpdateParameterContext(final Map<String, Parameter> parameterUpdates, final List<ParameterContext> inheritedParameterContexts,
+                                                final SensitiveParameterProvider sensitiveParameterProvider, final NonSensitiveParameterProvider nonSensitiveParameterProvider) {
+        verifyCanUpdateParameterContext(parameterUpdates, inheritedParameterContexts, sensitiveParameterProvider, nonSensitiveParameterProvider, false);
     }
 
-    private void verifyCanUpdateParameterContext(final Map<String, Parameter> parameterUpdates, final List<ParameterContext> inheritedParameterContexts, final boolean duringUpdate) {
+    private void verifyCanUpdateParameterContext(final Map<String, Parameter> parameterUpdates, final List<ParameterContext> inheritedParameterContexts,
+                                                 final SensitiveParameterProvider sensitiveParameterProvider, final NonSensitiveParameterProvider nonSensitiveParameterProvider,
+                                                 final boolean duringUpdate) {
         if (inheritedParameterContexts == null) {
             return;
         }
         verifyNoCycles(inheritedParameterContexts);
 
         final Map<ParameterDescriptor, Parameter> currentEffectiveParameters = getEffectiveParameters();
-        final Map<ParameterDescriptor, Parameter> effectiveProposedParameters = getEffectiveParameters(inheritedParameterContexts, getProposedParameters(parameterUpdates), new HashMap<>());
-        final Map<String, Parameter> effectiveParameterUpdates = getEffectiveParameterUpdates(currentEffectiveParameters, effectiveProposedParameters);
+        final Map<String, Parameter> effectiveParameterUpdates = getEffectiveParameterUpdates(parameterUpdates, inheritedParameterContexts, sensitiveParameterProvider, nonSensitiveParameterProvider);
 
         try {
             verifyCanSetParameters(currentEffectiveParameters, effectiveParameterUpdates, duringUpdate);
@@ -655,7 +657,7 @@ public class StandardParameterContext implements ParameterContext {
             return;
         }
 
-        verifyCanUpdateParameterContext(Collections.emptyMap(), inheritedParameterContexts, true);
+        verifyCanUpdateParameterContext(Collections.emptyMap(), inheritedParameterContexts, sensitiveParameterProvider, nonSensitiveParameterProvider, true);
 
         final Map<String, ParameterUpdate> parameterUpdates = new HashMap<>();
 
