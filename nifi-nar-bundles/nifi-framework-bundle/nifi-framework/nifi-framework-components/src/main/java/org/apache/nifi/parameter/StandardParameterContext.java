@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -476,18 +477,18 @@ public class StandardParameterContext implements ParameterContext {
     }
 
     @Override
-    public void verifyCanSetInheritedParameterContexts(final List<ParameterContext> inheritedParameterContexts) {
-        verifyCanSetInheritedParameterContexts(inheritedParameterContexts, false);
+    public void verifyCanUpdateParameterContext(final Map<String, Parameter> parameterUpdates, final List<ParameterContext> inheritedParameterContexts) {
+        verifyCanUpdateParameterContext(parameterUpdates, inheritedParameterContexts, false);
     }
 
-    private void verifyCanSetInheritedParameterContexts(final List<ParameterContext> inheritedParameterContexts, final boolean duringUpdate) {
+    private void verifyCanUpdateParameterContext(final Map<String, Parameter> parameterUpdates, final List<ParameterContext> inheritedParameterContexts, final boolean duringUpdate) {
         if (inheritedParameterContexts == null) {
             return;
         }
         verifyNoCycles(inheritedParameterContexts);
 
         final Map<ParameterDescriptor, Parameter> currentEffectiveParameters = getEffectiveParameters();
-        final Map<ParameterDescriptor, Parameter> effectiveProposedParameters = getEffectiveParameters(inheritedParameterContexts);
+        final Map<ParameterDescriptor, Parameter> effectiveProposedParameters = getEffectiveParameters(inheritedParameterContexts, getProposedParameters(parameterUpdates), new HashMap<>());
         final Map<String, Parameter> effectiveParameterUpdates = getEffectiveParameterUpdates(currentEffectiveParameters, effectiveProposedParameters);
 
         try {
@@ -506,7 +507,7 @@ public class StandardParameterContext implements ParameterContext {
             return;
         }
 
-        verifyCanSetInheritedParameterContexts(inheritedParameterContexts, true);
+        verifyCanUpdateParameterContext(Collections.emptyMap(), inheritedParameterContexts, true);
 
         final Map<String, ParameterUpdate> parameterUpdates = new HashMap<>();
 

@@ -126,11 +126,11 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
     ParameterReferenceManager getParameterReferenceManager();
 
     /**
-     * Verifies whether the given list of inherited parameter contexts can be set.  This includes checking for
-     * circular references.
+     * Verifies whether the parameter context can be updated with the provided parameters and inherited parameter contexts.
+     * @param parameterUpdates A map from parameter name to updated parameter (null if removal is desired)
      * @param inheritedParameterContexts the list of ParameterContexts from which to inherit parameters
      */
-    void verifyCanSetInheritedParameterContexts(List<ParameterContext> inheritedParameterContexts);
+    void verifyCanUpdateParameterContext(Map<String, Parameter> parameterUpdates, List<ParameterContext> inheritedParameterContexts);
 
     /**
      * Updates the ParameterContexts within this context to match the given list of ParameterContexts. All parameter in these
