@@ -162,23 +162,12 @@ limitations under the License.
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.2.3</version>
+                <version>${logback.version}</version>
             </dependency>
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-core</artifactId>
-                <version>1.2.3</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>jcl-over-slf4j</artifactId>
-                <scope>provided</scope>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-api</artifactId>
-                    </exclusion>
-                </exclusions>
+                <version>${logback.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
