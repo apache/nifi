@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.properties;
 
-import org.apache.nifi.properties.configuration.AwsKmsClientProvider;
+import org.apache.nifi.properties.configuration.AwsSecretsManagerClientProvider;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -24,7 +24,7 @@ import org.junit.Test;
 import org.mockito.internal.util.io.IOUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.services.kms.KmsClient;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,42 +36,34 @@ import java.util.Properties;
  * To run this test, make sure to first configure sensitive credential information as in the following link
  * https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
  *
- * If you don't have a key then run:
- * aws kms create-key
- *
- * Take note of the key id or arn.
- *
- * Then, set the system property -Daws.kms.key.id to the either key id value or arn value
- *
  * The following settings are optional. If you have a default AWS configuration and credentials in ~/.aws then
  * it will take that. Otherwise you can set all of the following:
  * set the system property -Daws.access.key.id to the access key id
  * set the system property -Daws.secret.access.key to the secret access key
  * set the system property -Daws.region to the region
  *
- * After you are satisfied with the test, and you don't need the key, you may schedule key deletion with:
- * aws kms schedule-key-deletion --key-id "key id" --pending-window-in-days "number of days"
+ * After you are satisfied with the test, and you don't need the key, you may schedule secret deletion with:
+ * aws secretsmanager delete-secret --secret-id "default/property" --recovery-window-in-days 14
  *
  */
 
-public class AwsKmsSensitivePropertyProviderIT {
-    private static final String SAMPLE_PLAINTEXT = "AWSKMSSensitivePropertyProviderIT SAMPLE-PLAINTEXT";
+public class AwsSecretsManagerSensitivePropertyProviderIT {
+    private static final String SAMPLE_PLAINTEXT = "AWSSecretsManagerSensitivePropertyProviderIT SAMPLE-PLAINTEXT";
     private static final String ACCESS_KEY_PROPS_NAME = "aws.access.key.id";
     private static final String SECRET_KEY_PROPS_NAME = "aws.secret.access.key";
     private static final String REGION_KEY_PROPS_NAME = "aws.region";
-    private static final String KMS_KEY_PROPS_NAME = "aws.kms.key.id";
 
     private static final String BOOTSTRAP_AWS_FILE_PROPS_NAME = "nifi.bootstrap.protection.aws.conf";
 
     private static final String EMPTY_PROPERTY = "";
 
-    private static AwsKmsSensitivePropertyProvider spp;
+    private static AwsSecretsManagerSensitivePropertyProvider spp;
 
     private static BootstrapProperties props;
 
     private static Path mockBootstrapConf, mockAWSBootstrapConf;
 
-    private static final Logger logger = LoggerFactory.getLogger(AwsKmsSensitivePropertyProviderIT.class);
+    private static final Logger logger = LoggerFactory.getLogger(AwsSecretsManagerSensitivePropertyProviderIT.class);
 
     private static void initializeBootstrapProperties() throws IOException{
         mockBootstrapConf = Files.createTempFile("bootstrap", ".conf").toAbsolutePath();
@@ -87,14 +79,12 @@ public class AwsKmsSensitivePropertyProviderIT {
         String accessKey = System.getProperty(ACCESS_KEY_PROPS_NAME, EMPTY_PROPERTY);
         String secretKey = System.getProperty(SECRET_KEY_PROPS_NAME, EMPTY_PROPERTY);
         String region = System.getProperty(REGION_KEY_PROPS_NAME, EMPTY_PROPERTY);
-        String keyId = System.getProperty(KMS_KEY_PROPS_NAME, EMPTY_PROPERTY);
 
         StringBuilder bootstrapConfText = new StringBuilder();
         String lineSeparator = System.getProperty("line.separator");
         bootstrapConfText.append(ACCESS_KEY_PROPS_NAME + "=" + accessKey);
         bootstrapConfText.append(lineSeparator + SECRET_KEY_PROPS_NAME + "=" + secretKey);
         bootstrapConfText.append(lineSeparator + REGION_KEY_PROPS_NAME + "=" + region);
-        bootstrapConfText.append(lineSeparator + KMS_KEY_PROPS_NAME + "=" + keyId);
 
         IOUtil.writeText(bootstrapConfText.toString(), mockAWSBootstrapConf.toFile());
     }
@@ -103,10 +93,10 @@ public class AwsKmsSensitivePropertyProviderIT {
     public static void initOnce() throws IOException {
         initializeBootstrapProperties();
         Assert.assertNotNull(props);
-        final AwsKmsClientProvider provider = new AwsKmsClientProvider();
+        final AwsSecretsManagerClientProvider provider = new AwsSecretsManagerClientProvider();
         final Properties properties = provider.getClientProperties(props).orElse(null);
-        final KmsClient kmsClient = provider.getClient(properties).orElse(null);
-        spp = new AwsKmsSensitivePropertyProvider(kmsClient, properties);
+        final SecretsManagerClient secretsManagerClient = provider.getClient(properties).orElse(null);
+        spp = new AwsSecretsManagerSensitivePropertyProvider(secretsManagerClient);
         Assert.assertNotNull(spp);
     }
 
@@ -120,16 +110,17 @@ public class AwsKmsSensitivePropertyProviderIT {
 
     @Test
     public void testEncryptDecrypt() {
-        logger.info("Running testEncryptDecrypt of AWS KMS SPP integration test");
+        logger.info("Running testEncryptDecrypt of AWS Secrets Manager SPP integration test");
         runEncryptDecryptTest();
-        logger.info("testEncryptDecrypt of AWS KMS SPP integration test completed");
+        logger.info("testEncryptDecrypt of AWS Secrets Manager SPP integration test completed");
     }
 
     private static void runEncryptDecryptTest() {
+        final String propertyName = "property2";
         logger.info("Plaintext: " + SAMPLE_PLAINTEXT);
-        String protectedValue = spp.protect(SAMPLE_PLAINTEXT, ProtectedPropertyContext.defaultContext("property"));
+        String protectedValue = spp.protect(SAMPLE_PLAINTEXT, ProtectedPropertyContext.defaultContext(propertyName));
         logger.info("Protected Value: " + protectedValue);
-        String unprotectedValue = spp.unprotect(protectedValue, ProtectedPropertyContext.defaultContext("property"));
+        String unprotectedValue = spp.unprotect(protectedValue, ProtectedPropertyContext.defaultContext(propertyName));
         logger.info("Unprotected Value: " + unprotectedValue);
 
         Assert.assertEquals(SAMPLE_PLAINTEXT, unprotectedValue);

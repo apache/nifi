@@ -20,33 +20,31 @@ import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.kms.KmsClient;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
 import java.util.Collections;
 import java.util.Set;
 
 /**
- * Amazon Web Services Key Management Service Client Provider
+ * Amazon Web Services Secrets Manager Client Provider
  */
-public class AwsKmsClientProvider extends AbstractAwsClientProvider<KmsClient> {
-
-    protected static final String KEY_ID_PROPERTY = "aws.kms.key.id";
+public class AwsSecretsManagerClientProvider extends AbstractAwsClientProvider<SecretsManagerClient> {
 
     @Override
-    protected KmsClient createClient(final AwsCredentials credentials, final String region) {
-        return KmsClient.builder()
+    protected SecretsManagerClient createClient(final AwsCredentials credentials, final String region) {
+        return SecretsManagerClient.builder()
                 .credentialsProvider(StaticCredentialsProvider.create(credentials))
                 .region(Region.of(region))
                 .build();
     }
 
     @Override
-    protected KmsClient createDefaultClient(final AwsCredentialsProvider credentialsProvider) {
-        return KmsClient.builder().credentialsProvider(credentialsProvider).build();
+    protected SecretsManagerClient createDefaultClient(final AwsCredentialsProvider credentialsProvider) {
+        return SecretsManagerClient.builder().credentialsProvider(credentialsProvider).build();
     }
 
     @Override
     protected Set<String> getRequiredPropertyNames() {
-        return Collections.singleton(KEY_ID_PROPERTY);
+        return Collections.emptySet();
     }
 }

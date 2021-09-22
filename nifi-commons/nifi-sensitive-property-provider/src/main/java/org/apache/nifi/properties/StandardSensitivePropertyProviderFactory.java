@@ -21,6 +21,7 @@ import com.azure.security.keyvault.secrets.SecretClient;
 import com.google.cloud.kms.v1.KeyManagementServiceClient;
 import org.apache.nifi.properties.BootstrapProperties.BootstrapPropertyKey;
 import org.apache.nifi.properties.configuration.AwsKmsClientProvider;
+import org.apache.nifi.properties.configuration.AwsSecretsManagerClientProvider;
 import org.apache.nifi.properties.configuration.AzureCryptographyClientProvider;
 import org.apache.nifi.properties.configuration.AzureSecretClientProvider;
 import org.apache.nifi.properties.configuration.ClientProvider;
@@ -30,6 +31,7 @@ import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.kms.KmsClient;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -136,6 +138,13 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
                     final Properties clientProperties = getClientProperties(clientProvider);
                     final Optional<KmsClient> kmsClient = clientProvider.getClient(clientProperties);
                     return new AwsKmsSensitivePropertyProvider(kmsClient.orElse(null), clientProperties);
+                });
+            case AWS_SECRETSMANAGER:
+                return providerMap.computeIfAbsent(protectionScheme, s -> {
+                    final AwsSecretsManagerClientProvider clientProvider = new AwsSecretsManagerClientProvider();
+                    final Properties clientProperties = getClientProperties(clientProvider);
+                    final Optional<SecretsManagerClient> secretsManagerClient = clientProvider.getClient(clientProperties);
+                    return new AwsSecretsManagerSensitivePropertyProvider(secretsManagerClient.orElse(null));
                 });
             case AZURE_KEYVAULT_KEY:
                 return providerMap.computeIfAbsent(protectionScheme, s -> {

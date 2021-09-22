@@ -22,7 +22,9 @@ import org.apache.nifi.properties.BootstrapProperties;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * Google Key Management Service Client Provider
@@ -45,5 +47,10 @@ public class GoogleKeyManagementServiceClientProvider extends BootstrapPropertie
         } catch (final IOException e) {
             throw new SensitivePropertyProtectionException("Google Key Management Service Create Failed", e);
         }
+    }
+
+    @Override
+    protected Set<String> getRequiredPropertyNames() {
+        return Collections.emptySet();
     }
 }

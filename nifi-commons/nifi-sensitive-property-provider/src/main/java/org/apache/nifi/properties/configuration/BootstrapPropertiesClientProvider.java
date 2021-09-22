@@ -30,6 +30,7 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * Shared Client Provider for reading Client Properties from file referenced in configured Bootstrap Property Key
@@ -53,7 +54,7 @@ public abstract class BootstrapPropertiesClientProvider<T> implements ClientProv
      */
     @Override
     public Optional<T> getClient(final Properties clientProperties) {
-        return clientProperties == null ? Optional.empty() : Optional.of(getConfiguredClient(clientProperties));
+        return isMissingProperties(clientProperties) ? Optional.empty() : Optional.of(getConfiguredClient(clientProperties));
     }
 
     /**
@@ -96,4 +97,17 @@ public abstract class BootstrapPropertiesClientProvider<T> implements ClientProv
      * @return Configured Client
      */
     protected abstract T getConfiguredClient(final Properties clientProperties);
+
+    /**
+     * Get Property Names required for initializing client in order to perform initial validation
+     *
+     * @return Set of required client property names
+     */
+    protected abstract Set<String> getRequiredPropertyNames();
+
+    private boolean isMissingProperties(final Properties clientProperties) {
+        return clientProperties == null || getRequiredPropertyNames().stream().anyMatch(propertyName ->
+                StringUtils.isBlank(clientProperties.getProperty(propertyName))
+        );
+    }
 }
