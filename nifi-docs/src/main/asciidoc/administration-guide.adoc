@@ -1797,6 +1797,7 @@ For more information, see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-C
 
 Configuring each Sensitive Property Provider requires including the appropriate file reference property in `bootstrap.conf`. The default `bootstrap.conf` includes commented file reference properties for available providers.
 
+[[hashicorp-vault-providers]]
 === HashiCorp Vault providers
 Two encryption providers are currently configurable in the `bootstrap-hashicorp-vault.conf` file:
 
@@ -1838,6 +1839,7 @@ Following are the configuration properties available inside the `bootstrap-hashi
 |`vault.ssl.trust-store-password`|Truststore password.  Required if the Vault server is TLS-enabled|_none_
 |===
 
+[[aws-kms-provider]]
 === AWS KMS provider
 This provider uses https://aws.amazon.com/kms/[AWS Key Management Service] for decryption. AWS KMS configuration properties can be stored in the `bootstrap-aws.conf` file, as referenced in `bootstrap.conf`. If the configuration properties are not specified in `bootstrap-aws.conf`, then the provider will attempt to use the AWS default credentials provider, which checks standard environment variables and system properties.
 
@@ -1856,6 +1858,20 @@ This provider uses https://aws.amazon.com/kms/[AWS Key Management Service] for d
 |`aws.region`|The AWS region used to configure the AWS KMS Client.|_none_
 |`aws.access.key.id`|The access key ID credential used to access AWS KMS.|_none_
 |`aws.secret.access.key`|The secret access key used to access AWS KMS.|_none_
+|===
+
+[[aws-secrets-manager-provider]]
+=== AWS Secrets Manager provider
+This provider uses https://aws.amazon.com/secrets-manager/[AWS Secrets Manager Service] to store and retrieve AWS Secrets. AWS Secrets Manager configuration properties can be stored in the `bootstrap-aws.conf` file, as referenced in `bootstrap.conf`. If the configuration properties are not specified in `bootstrap-aws.conf`, then the provider will attempt to use the AWS default credentials provider, which checks standard environment variables and system properties.
+
+==== Optional properties
+===== All of the following must be configured, or will be ignored entirely.
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`aws.region`|The AWS region used to configure the AWS Secrets Manager Client.|_none_
+|`aws.access.key.id`|The access key ID credential used to access AWS Secrets Manager.|_none_
+|`aws.secret.access.key`|The secret access key used to access AWS Secrets Manager.|_none_
 |===
 
 [[azure-key-vault-key-provider]]

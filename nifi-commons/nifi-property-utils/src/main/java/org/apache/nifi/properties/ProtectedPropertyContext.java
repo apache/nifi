@@ -64,4 +64,20 @@ public class ProtectedPropertyContext {
     public String getContextKey() {
         return String.format("%s/%s", contextName, propertyName);
     }
+
+    /**
+     * Returns the property name
+     * @return The property name
+     */
+    public String getPropertyName() {
+        return propertyName;
+    }
+
+    /**
+     * Returns the context name
+     * @return The context name
+     */
+    public String getContextName() {
+        return contextName;
+    }
 }
