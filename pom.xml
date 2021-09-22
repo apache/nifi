@@ -95,7 +95,7 @@
         <inceptionYear>2014</inceptionYear>
         <okhttp.version>4.9.1</okhttp.version>
         <org.bouncycastle.version>1.69</org.bouncycastle.version>
-        <org.slf4j.version>1.7.31</org.slf4j.version>
+        <org.slf4j.version>1.7.32</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
         <jetty.version>9.4.43.v20210629</jetty.version>
         <jackson.version>2.12.3</jackson.version>
@@ -110,6 +110,7 @@
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.6</aspectj.version>
         <jersey.version>2.33</jersey.version>
+        <logback.version>1.2.6</logback.version>
     </properties>
 
     <repositories>
@@ -215,7 +216,7 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.2.3</version>
+                <version>${logback.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>

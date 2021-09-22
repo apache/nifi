@@ -296,5 +296,5 @@ Eclipse Public License 1.0
 The following binary components are provided under the Eclipse Public License 1.0.  See project link for details.
 
     (EPL 2.0)(GPL 2)(LGPL 2.1) JNR Posix ( jnr.posix ) https://github.com/jnr/jnr-posix/blob/master/LICENSE.txt
-    (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.2.3 - http://logback.qos.ch/)
-    (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.2.3 - http://logback.qos.ch/)
+    (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.2.6 - http://logback.qos.ch/)
+    (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.2.6 - http://logback.qos.ch/)
