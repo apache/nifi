@@ -138,13 +138,15 @@ public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvide
      * @see #setProperty(String propertyName, Object propertyValue)
      */
     void setConnectionFactoryProperties() {
+        String connectionFactoryValue = context.getProperty(JMS_CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
         if (context.getProperty(JMS_BROKER_URI).isSet()) {
             String brokerValue = context.getProperty(JMS_BROKER_URI).evaluateAttributeExpressions().getValue();
-            String connectionFactoryValue = context.getProperty(JMS_CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
             if (connectionFactoryValue.startsWith("org.apache.activemq")) {
                 setProperty("brokerURL", brokerValue);
             } else if (connectionFactoryValue.startsWith("com.tibco.tibjms")) {
                 setProperty("serverUrl", brokerValue);
+            } else if (connectionFactoryValue.startsWith("org.apache.qpid.jms")) {
+                setProperty("remoteURI", brokerValue);
             } else {
                 String[] brokerList = brokerValue.split(",");
                 if (connectionFactoryValue.startsWith("com.ibm.mq.jms")) {
@@ -170,10 +172,15 @@ public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvide
             }
         }
 
-        SSLContextService sc = context.getProperty(JMS_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sc != null) {
-            SSLContext ssl = sc.createContext();
-            setProperty("sSLSocketFactory", ssl.getSocketFactory());
+        SSLContextService sslContextService = context.getProperty(JMS_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        if (sslContextService != null) {
+            SSLContext sslContext = sslContextService.createContext();
+            if (connectionFactoryValue.startsWith("org.apache.qpid.jms")) {
+                setProperty("sslContext", sslContext);
+            } else {
+                // IBM MQ (and others)
+                setProperty("sSLSocketFactory", sslContext.getSocketFactory());
+            }
         }
 
         propertyDescriptors.stream()
