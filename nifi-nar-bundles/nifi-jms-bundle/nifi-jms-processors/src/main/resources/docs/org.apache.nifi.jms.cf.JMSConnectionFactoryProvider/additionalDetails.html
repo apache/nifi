@@ -38,6 +38,7 @@
     <li>Apache ActiveMQ</li>
     <li>IBM MQ</li>
     <li>TIBCO EMS</li>
+    <li>Qpid JMS (AMQP 1.0)</li>
 </ul>
 <p>
     This controller service exposes only a single mandatory static configuration property that are required across all
@@ -53,6 +54,7 @@
             <li>Apache ActiveMQ - <a href="http://activemq.apache.org/maven/5.15.9/apidocs/org/apache/activemq/ActiveMQConnectionFactory.html" target="_blank">org.apache.activemq.ActiveMQConnectionFactory</a></li>
             <li>IBM MQ - <a href="https://www-01.ibm.com/support/knowledgecenter/SSFKSJ_8.0.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQQueueConnectionFactory.html" target="_blank">com.ibm.mq.jms.MQQueueConnectionFactory</a></li>
             <li>TIBCO EMS - <a href="https://docs.tibco.com/pub/enterprise_message_service/8.1.0/doc/html/tib_ems_api_reference/api/javadoc/com/tibco/tibjms/TibjmsQueueConnectionFactory.html" target="_blank">com.tibco.tibjms.TibjmsQueueConnectionFactory</a></li>
+            <li>Qpid JMS (AMQP 1.0) - <a href="https://github.com/apache/qpid-jms/blob/1.1.0/qpid-jms-client/src/main/java/org/apache/qpid/jms/JmsConnectionFactory.java" target="_blank">org.apache.qpid.jms.JmsConnectionFactory</a></li>
         </ul>
     </li>
 </ul>
@@ -75,6 +77,9 @@
             <li>TIBCO EMS - <i>tcp://myhost:1234</i> for single broker and
                 <i>tcp://myhost01:7222,tcp://myhost02:7222</i> for multiple brokers.
             </li>
+            <li>Qpid JMS (AMQP 1.0) - <i>amqp[s]://myhost:1234</i> for single broker and
+                <i>failover:(amqp[s]://myhost01:1234,amqp[s]://myhost02:1234)</i> for multiple brokers.
+            </li>
         </ul>
     </li>
 </ul>
@@ -96,8 +101,19 @@
     <li>
         <a href="https://docs.tibco.com/pub/enterprise_message_service/8.1.0/doc/html/tib_ems_api_reference/api/javadoc/com/tibco/tibjms/TibjmsConnectionFactory.html" target="_blank">TIBCO
             EMS</a></li>
+    <li>
+        <a href="https://docs.tibco.com/pub/enterprise_message_service/8.1.0/doc/html/tib_ems_api_reference/api/javadoc/com/tibco/tibjms/TibjmsConnectionFactory.html" target="_blank">Qpid
+            JMS (AMQP 1.0)</a> </li>
 </ul>
-
+<p>
+    Besides the dynamic properties and <i>set</i> methods described in the previous section, some providers also support additional
+    configuration via the Broker URI (as query parameters added to the URI):
+</p>
+<ul>
+    <li>
+        <a href="https://qpid.apache.org/releases/qpid-jms-1.1.0/docs/index.html#connection-uri" target="_blank">Qpid
+            JMS (AMQP 1.0)</a> </li>
+</ul>
 <h2>Sample controller service configuration for IBM MQ</h2>
 <table>
     <tr>
