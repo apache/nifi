@@ -177,8 +177,10 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
             final File krb5File = engineConfiguration.getKrb5File();
             final KerberosConfig kerberosConfig = new KerberosConfig(null, null, krb5File);
-            logger.info("Setting java.security.krb5.conf to {}", krb5File.getAbsolutePath());
-            System.setProperty("java.security.krb5.conf", krb5File.getAbsolutePath());
+            if (krb5File != null) {
+                logger.info("Setting java.security.krb5.conf to {}", krb5File.getAbsolutePath());
+                System.setProperty("java.security.krb5.conf", krb5File.getAbsolutePath());
+            }
 
             final StatelessEngine<VersionedFlowSnapshot> statelessEngine = new StandardStatelessEngine.Builder()
                 .bulletinRepository(bulletinRepository)

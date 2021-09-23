@@ -39,6 +39,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceReference;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConnection;
@@ -278,7 +279,6 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .description("The KRB5 Conf file to use for configuring components that rely on Kerberos")
         .required(false)
         .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-        .defaultValue("/etc/krb5.conf")
         .build();
 
     static final PropertyDescriptor STATELESS_SSL_CONTEXT_SERVICE = new Builder()
@@ -487,7 +487,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         try {
             dataflow = getDataflow(context);
         } catch (final Exception e) {
-            getLogger().error("Could not create dataflow from snapshot");
+            getLogger().error("Could not create dataflow from snapshot", e);
             session.rollback();
             return;
         }
@@ -814,7 +814,8 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
     private StatelessEngineConfiguration createEngineConfiguration(final ProcessContext context, final int contentRepoIndex) {
         final File workingDirectory = new File(context.getProperty(WORKING_DIRECTORY).getValue());
         final File narDirectory = new File(context.getProperty(LIB_DIRECTORY).getValue());
-        final File krb5Conf = context.getProperty(KRB5_CONF).asResource().asFile();
+        final ResourceReference krb5Reference = context.getProperty(KRB5_CONF).asResource();
+        final File krb5Conf = krb5Reference == null ? null : krb5Reference.asFile();
         final SSLContextService sslContextService = context.getProperty(STATELESS_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
         final SslContextDefinition sslContextDefinition;

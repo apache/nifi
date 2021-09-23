@@ -85,6 +85,11 @@ public class StandardExecutionProgress implements ExecutionProgress {
     }
 
     @Override
+    public boolean isFailurePort(final String portName) {
+        return failurePortNames.contains(portName);
+    }
+
+    @Override
     public boolean isCanceled() {
         if (canceled) {
             return true;
