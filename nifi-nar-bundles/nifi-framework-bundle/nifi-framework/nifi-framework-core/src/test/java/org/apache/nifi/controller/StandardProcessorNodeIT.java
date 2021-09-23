@@ -104,7 +104,6 @@ public class StandardProcessorNodeIT {
     private Bundle systemBundle;
     private ExtensionDiscoveringManager extensionManager;
     private NiFiProperties niFiProperties;
-    private StatusHistoryRepository statusHistoryRepository;
 
     private final AtomicReference<InstanceClassLoader> currentInstanceClassLoaderHolder = new AtomicReference<>();
 
@@ -233,7 +232,7 @@ public class StandardProcessorNodeIT {
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
             mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
             new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
-            mock(FlowRegistryClient.class), extensionManager, statusHistoryRepository);
+            mock(FlowRegistryClient.class), extensionManager, mock(StatusHistoryRepository.class));
 
         // Init processor
         final PropertyDescriptor classpathProp = new PropertyDescriptor.Builder().name("Classpath Resources")

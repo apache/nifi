@@ -84,7 +84,7 @@
         <property name="extensionManager" ref="extensionManager" />
     </bean>
 
-    <bean id="statusHistoryDumpFactory" class="org.apache.nifi.controller.status.history.NodeStatusHistoryDumpFactory">
+    <bean id="statusHistoryDumpFactory" class="org.apache.nifi.controller.status.history.JsonNodeStatusHistoryDumpFactory">
         <property name="statusHistoryRepository" ref="statusHistoryRepository" />
     </bean>
 </beans>

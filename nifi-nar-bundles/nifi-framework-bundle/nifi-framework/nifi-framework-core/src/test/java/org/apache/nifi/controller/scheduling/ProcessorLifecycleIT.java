@@ -558,12 +558,10 @@ public class ProcessorLifecycleIT {
         final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
-        final StatusHistoryRepository statusHistoryRepository = mock(StatusHistoryRepository.class);
-
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
                 mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
                 new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
-                mock(FlowRegistryClient.class), extensionManager, statusHistoryRepository);
+                mock(FlowRegistryClient.class), extensionManager, mock(StatusHistoryRepository.class));
 
         final FlowManager flowManager = flowController.getFlowManager();
         this.processScheduler = flowController.getProcessScheduler();
@@ -618,8 +616,7 @@ public class ProcessorLifecycleIT {
 
         private final List<String> operationNames = new LinkedList<>();
 
-        void setScenario(Runnable onScheduleCallback, Runnable onUnscheduleCallback, Runnable onStopCallback,
-                         Runnable onTriggerCallback) {
+        void setScenario(Runnable onScheduleCallback, Runnable onUnscheduleCallback, Runnable onStopCallback, Runnable onTriggerCallback) {
             this.onScheduleCallback = onScheduleCallback;
             this.onUnscheduleCallback = onUnscheduleCallback;
             this.onStopCallback = onStopCallback;

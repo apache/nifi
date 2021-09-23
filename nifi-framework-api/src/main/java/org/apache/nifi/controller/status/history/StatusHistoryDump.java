@@ -27,7 +27,7 @@ public interface StatusHistoryDump {
     /**
      * Writes a status history dump to an output stream.
      *
-     * @param out - the output stream
+     * @param out the output stream
      * @throws IOException if cannot serialize
      */
     void writeTo(final OutputStream out) throws IOException;

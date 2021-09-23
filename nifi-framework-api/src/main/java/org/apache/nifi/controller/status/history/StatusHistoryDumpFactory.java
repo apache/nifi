@@ -17,14 +17,14 @@
 package org.apache.nifi.controller.status.history;
 
 /**
- * Interface to create status history dumps.
+ * Container for status history data which is capable to write it in an implementation dependent format.
  */
 public interface StatusHistoryDumpFactory {
 
     /**
      * Creates a status history dump.
      *
-     * @param days - number of backdating days
+     * @param days number of backdating days
      * @return the status history dump
      */
     StatusHistoryDump create(final int days);

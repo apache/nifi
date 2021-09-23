@@ -26,7 +26,6 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
-import org.apache.nifi.controller.status.history.VolatileComponentStatusRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
@@ -80,7 +79,6 @@ public class StandardFlowSerializerTest {
     private Bundle systemBundle;
     private ExtensionDiscoveringManager extensionManager;
     private StandardFlowSerializer serializer;
-    private StatusHistoryRepository statusHistoryRepository;
 
     @Before
     public void setUp() throws Exception {
@@ -98,14 +96,12 @@ public class StandardFlowSerializerTest {
         extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
-        statusHistoryRepository = new VolatileComponentStatusRepository();
-
         final AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer();
         final VariableRegistry variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
 
         final BulletinRepository bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager, statusHistoryRepository);
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager, Mockito.mock(StatusHistoryRepository.class));
 
         serializer = new StandardFlowSerializer(encryptor);
     }

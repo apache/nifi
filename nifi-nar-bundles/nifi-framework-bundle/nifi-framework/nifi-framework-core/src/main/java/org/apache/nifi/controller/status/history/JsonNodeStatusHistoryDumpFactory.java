@@ -16,22 +16,25 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import java.util.Calendar;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.Date;
 
-public class NodeStatusHistoryDumpFactory implements StatusHistoryDumpFactory {
+public class JsonNodeStatusHistoryDumpFactory implements StatusHistoryDumpFactory {
 
     private StatusHistoryRepository statusHistoryRepository;
 
     @Override
     public StatusHistoryDump create(int days) {
-        final Date now = new Date();
-        final Calendar calendar = Calendar.getInstance();
-        calendar.setTime(now);
-        calendar.add(Calendar.DATE, days);
-        final Date daysBefore = calendar.getTime();
-        final StatusHistory nodeStatusHistory = statusHistoryRepository.getNodeStatusHistory(daysBefore, now);
-        return new NodeStatusHistoryDump(nodeStatusHistory);
+        final LocalDateTime endOfToday = LocalDateTime.now().with(LocalTime.MAX);
+        final LocalDateTime startOfDaysBefore = endOfToday.minusDays(days).with(LocalTime.MIN);
+
+        final Date endOfTodayDate = Date.from(endOfToday.atZone(ZoneId.systemDefault()).toInstant());
+        final Date startOfDaysBeforeDate = Date.from(startOfDaysBefore.atZone(ZoneId.systemDefault()).toInstant());
+
+        final StatusHistory nodeStatusHistory = statusHistoryRepository.getNodeStatusHistory(startOfDaysBeforeDate, endOfTodayDate);
+        return new JsonNodeStatusHistoryDump(nodeStatusHistory);
     }
 
     public void setStatusHistoryRepository(StatusHistoryRepository statusHistoryRepository) {

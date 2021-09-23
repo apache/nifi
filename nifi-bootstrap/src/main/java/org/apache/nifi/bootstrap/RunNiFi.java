@@ -124,6 +124,8 @@ public class RunNiFi {
 
     private static final int UNINITIALIZED_CC_PORT = -1;
 
+    private static final int INVALID_CMD_ARGUMENT = -1;
+
     private volatile boolean autoRestartNiFi = true;
     private volatile int ccPort = UNINITIALIZED_CC_PORT;
     private volatile long nifiPid = -1L;
@@ -178,7 +180,8 @@ public class RunNiFi {
         System.out.println("Dump : Write a Thread Dump to the file specified by [options], or to the log if no file is given");
         System.out.println("Diagnostics : Write diagnostic information to the file specified by [options], or to the log if no file is given. The --verbose flag may be provided as an option before " +
                 "the filename, which may result in additional diagnostic information being written.");
-        System.out.println("Status-history : Save the status history to the file specified by [options], or to the bootstrap log if no file is given");
+        System.out.println("Status-history : Save the status history to the file specified by [options]. The command parameters are: status-history <number of days> <dumpFile>. The <number of days>" +
+                " parameter is optional and defaults to 1 day.");
         System.out.println("Run : Start a new instance of Apache NiFi and monitor the Process, restarting if the instance dies");
         System.out.println();
     }
@@ -188,7 +191,7 @@ public class RunNiFi {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        if (args.length < 1 || args.length > 4) {
+        if (args.length < 1 || args.length > 3) {
             printUsage();
             return;
         }
@@ -221,29 +224,45 @@ public class RunNiFi {
                 verbose = false;
             }
         } else if (cmd.equalsIgnoreCase("status-history")) {
-            if (args.length != 4) {
-                System.err.printf("Wrong number of arguments: %d instead of 4, the command parameters are: " +
-                        "status-history --days <number of days> <dumpFile>%n", args.length);
-                System.exit(0);
+            if (args.length < 2) {
+                System.err.printf("Wrong number of arguments: %d instead of 3 or 4, the command parameters are: " +
+                        "status-history <number of days> <dumpFile>%n", args.length);
+                System.exit(INVALID_CMD_ARGUMENT);
             }
-            statusHistoryDays = args[2];
-            try {
-                final int numberOfDays = Integer.parseInt(statusHistoryDays);
-                if (numberOfDays < 1) {
-                    System.err.println("The number of days must be positive and greater than zero.");
-                    System.exit(0);
+            if (args.length == 3) {
+                statusHistoryDays = args[1];
+                try {
+                    final int numberOfDays = Integer.parseInt(statusHistoryDays);
+                    if (numberOfDays < 1) {
+                        System.err.println("The <number of days> parameter must be positive and greater than zero. The command parameters are:" +
+                                " status-history <number of days> <dumpFile>");
+                        System.exit(INVALID_CMD_ARGUMENT);
+                    }
+                } catch (NumberFormatException e) {
+                    System.err.println("The <number of days> parameter value is not a number. The command parameters are: status-history <number of days> <dumpFile>");
+                    System.exit(INVALID_CMD_ARGUMENT);
                 }
-            } catch (NumberFormatException e) {
-                System.err.println("The --days parameter value is not a number. The command parameters are: status-history --days <number of days> <dumpFile>");
-                System.exit(0);
+                try {
+                    Paths.get(args[2]);
+                } catch (InvalidPathException e) {
+                    System.err.println("Invalid filename. The command parameters are: status-history <number of days> <dumpFile>");
+                    System.exit(INVALID_CMD_ARGUMENT);
+                }
+                dumpFile = new File(args[2]);
+            } else {
+                try {
+                    Paths.get(args[1]);
+                } catch (InvalidPathException e) {
+                    System.err.println("Invalid filename. The command parameters are: status-history <number of days> <dumpFile>");
+                    System.exit(INVALID_CMD_ARGUMENT);
+                }
+                dumpFile = new File(args[1]);
             }
-            try {
-                Paths.get(args[3]);
-            } catch(InvalidPathException e) {
-                System.err.println("Invalid filename. The command parameters are: status-history --days <number of days> <dumpFile>");
-                System.exit(0);
+            try (final FileOutputStream ignored = new FileOutputStream(dumpFile)) {
+            } catch (FileNotFoundException e) {
+                System.err.println("Invalid filename or there's no write permission to the currently selected file path.");
+                System.exit(INVALID_CMD_ARGUMENT);
             }
-            dumpFile = new File(args[3]);
         }
 
         switch (cmd.toLowerCase()) {
@@ -762,8 +781,7 @@ public class RunNiFi {
     }
 
     /**
-     * Writes NiFi status history information to the given file; if file is null, logs at
-     * INFO level instead.
+     * Writes NiFi status history information to the given file.
      *
      * @param dumpFile the file to write the dump content to
      * @throws IOException if any issues occur while writing the dump file
@@ -1260,7 +1278,7 @@ public class RunNiFi {
 
         final StringBuilder cmdBuilder = new StringBuilder();
         for (final String s : cmd) {
-            cmdBuilder.append(s).append(" ");
+          cmdBuilder.append(s).append(" ");
         }
 
         cmdLogger.info("Starting Apache NiFi...");
@@ -1381,14 +1399,14 @@ public class RunNiFi {
                             // We are expected to restart nifi, so send a notification that it died. If we are not restarting nifi,
                             // then this means that we are intentionally stopping the service.
                             serviceManager.notify(NotificationType.NIFI_DIED, "NiFi Died on Host " + hostname,
-                                    "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now + "; automatically restarting NiFi");
+                                "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now + "; automatically restarting NiFi");
                         } else {
                             defaultLogger.error("Apache NiFi does not appear to have started");
                             // We are expected to restart nifi, so send a notification that it died. If we are not restarting nifi,
                             // then this means that we are intentionally stopping the service.
                             serviceManager.notify(NotificationType.NIFI_DIED, "NiFi Died on Host " + hostname,
-                                    "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now +
-                                            ". Attempted to restart NiFi but the services does not appear to have restarted!");
+                                "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now +
+                                    ". Attempted to restart NiFi but the services does not appear to have restarted!");
                         }
                     } else {
                         return;
@@ -1405,7 +1423,7 @@ public class RunNiFi {
     }
 
     private Path createSensitiveKeyFile(File confDir) {
-        Path sensitiveKeyFile = Paths.get(confDir + "/sensitive.key");
+        Path sensitiveKeyFile = Paths.get(confDir+"/sensitive.key");
 
         final boolean isPosixSupported = FileSystems.getDefault().supportedFileAttributeViews().contains("posix");
         try {

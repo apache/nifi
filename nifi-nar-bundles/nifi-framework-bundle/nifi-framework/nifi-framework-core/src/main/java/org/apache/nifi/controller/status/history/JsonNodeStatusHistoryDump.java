@@ -24,12 +24,12 @@ import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class NodeStatusHistoryDump implements StatusHistoryDump {
+public class JsonNodeStatusHistoryDump implements StatusHistoryDump {
 
-    private final StatusHistory statusHistory;
+    private final StatusHistory nodeStatusHistory;
 
-    public NodeStatusHistoryDump(final StatusHistory statusHistory) {
-        this.statusHistory = statusHistory;
+    public JsonNodeStatusHistoryDump(final StatusHistory nodeStatusHistory) {
+        this.nodeStatusHistory = nodeStatusHistory;
     }
 
     @Override
@@ -37,7 +37,7 @@ public class NodeStatusHistoryDump implements StatusHistoryDump {
         final ObjectMapper objectMapper = new ObjectMapper();
         final DefaultPrettyPrinter prettyPrinter = new DefaultPrettyPrinter();
         prettyPrinter.indentArraysWith(DefaultIndenter.SYSTEM_LINEFEED_INSTANCE);
-        final StatusHistoryDTO statusHistoryDTO = StatusHistoryUtil.createStatusHistoryDTO(statusHistory);
+        final StatusHistoryDTO statusHistoryDTO = StatusHistoryUtil.createStatusHistoryDTO(nodeStatusHistory);
         objectMapper.writer(prettyPrinter).writeValue(out, statusHistoryDTO);
     }
 }
