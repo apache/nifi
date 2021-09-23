@@ -50,6 +50,7 @@ import javax.script.ScriptException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -67,7 +68,8 @@ import java.util.Set;
                 explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
 })
 @WritesAttributes({
-        @WritesAttribute(attribute = "partition", description = "The partition of the outgoing flow file."),
+        @WritesAttribute(attribute = "partition", description = "The partition of the outgoing flow file. If the script indicates that the partition has a null value, the attribute will be set to " +
+            "the literal string \"<null partition>\" (without quotes). Otherwise, the attribute is set to the String representation of whatever value is returned by the script."),
         @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer"),
         @WritesAttribute(attribute = "record.count", description = "The number of records within the flow file."),
         @WritesAttribute(attribute = "record.error.message", description = "This attribute provides on failure the error message encountered by the Reader or Writer."),
@@ -167,8 +169,8 @@ public class ScriptedPartitionRecord extends ScriptedRecordProcessor {
                         final RecordSet recordSet = reader.createRecordSet();
                         final PushBackRecordSet pushBackSet = new PushBackRecordSet(recordSet);
 
-                        final Map<String, FlowFile> outgoingFlowFiles = new HashMap<>();
-                        final Map<String, RecordSetWriter> recordSetWriters = new HashMap<>();
+                        final Map<Object, FlowFile> outgoingFlowFiles = new HashMap<>();
+                        final Map<Object, RecordSetWriter> recordSetWriters = new HashMap<>();
 
                         // Reading in records and evaluate script
                         while (pushBackSet.isAnotherRecord()) {
@@ -177,7 +179,7 @@ public class ScriptedPartitionRecord extends ScriptedRecordProcessor {
                             getLogger().debug("Evaluated scripted against {} (index {}), producing result of {}", record, counts.getRecordCount(), evaluatedValue);
                             counts.incrementRecordCount();
 
-                            final String partition = (evaluatedValue == null) ? null : evaluatedValue.toString();
+                            final Object partition = (evaluatedValue instanceof Object[]) ? Arrays.asList((Object[]) evaluatedValue) : evaluatedValue;
                             RecordSetWriter writer = recordSetWriters.get(partition);
 
                             if (writer == null) {
@@ -196,13 +198,13 @@ public class ScriptedPartitionRecord extends ScriptedRecordProcessor {
                         // Sending outgoing flow files
                         int fragmentIndex = 0;
 
-                        for (final String partition : outgoingFlowFiles.keySet()) {
+                        for (final Object partition : outgoingFlowFiles.keySet()) {
                             final RecordSetWriter writer = recordSetWriters.get(partition);
                             final FlowFile outgoingFlowFile = outgoingFlowFiles.get(partition);
 
                             final Map<String, String> attributes = new HashMap<>(incomingFlowFile.getAttributes());
                             attributes.put("mime.type", writer.getMimeType());
-                            attributes.put("partition", partition);
+                            attributes.put("partition", partition == null ? "<null partition>" : partition.toString());
                             attributes.put("fragment.index", String.valueOf(fragmentIndex));
                             attributes.put("fragment.count", String.valueOf(outgoingFlowFiles.size()));
 
