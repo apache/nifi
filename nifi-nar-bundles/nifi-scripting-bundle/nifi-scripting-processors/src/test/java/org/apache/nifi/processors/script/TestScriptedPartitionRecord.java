@@ -37,7 +37,7 @@ public class TestScriptedPartitionRecord extends TestScriptedRouterProcessor {
     private static final String PARTITION_1 = "partition1";
     private static final String PARTITION_2 = "partition2";
     private static final Integer PARTITION_3 = 3;
-    private static final String PARTITION_4 = null;
+    private static final String PARTITION_4 = "<null partition>";
 
     @Test
     public void testIncomingFlowFileContainsNoRecords() {

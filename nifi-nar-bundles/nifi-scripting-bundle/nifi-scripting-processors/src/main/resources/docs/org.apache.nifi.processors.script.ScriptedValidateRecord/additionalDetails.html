@@ -34,8 +34,9 @@ td {text-align: left}
 
 <p>
     The ScriptedValidateRecord Processor provides the ability to use a scripting language, such as Groovy or Jyton in order to validate Records in an incoming FlowFile.
-    NiFi provides several different Processors that can be used to work with Records in different ways. Each of these processors has its pros and cons.
-    The ScriptedValidateRecord is intended to work together with these processors and be used as a preliminary step in order to prevent more complex processing steps from working with incorrect Records.
+    The provided script will be evaluated against each Record in an incoming FlowFile. Each of those records will then be routed to either the "valid" or "invalid" FlowFile.
+    As a result, each incoming FlowFile may be broken up into two individual FlowFiles (if some records are valid and some are invalid, according to the script), or the incoming FlowFile
+    may have all of its Records kept together in a single FlowFile, routed to either "valid" or "invalid" (if all records are valid or if all records are invalid, according to the script).
 </p>
 
 <p>
