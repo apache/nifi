@@ -1301,8 +1301,8 @@
                             });
 
                             // update the parameter context table if displayed
-                            var parameterContextGrid = $('#parameter-contexts-table').data('gridInstance');
-                            if (nfCommon.isDefinedAndNotNull(parameterContextGrid)) {
+                            if ($('#parameter-contexts-table').is(':visible')) {
+                                var parameterContextGrid = $('#parameter-contexts-table').data('gridInstance');
                                 var parameterContextData = parameterContextGrid.getData();
 
                                 $.extend(parameterContextEntity, {
@@ -2751,11 +2751,9 @@
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (parameterContextEntity) {
-                // add the item
-                var parameterContextGrid = $('#parameter-contexts-table').data('gridInstance');
-
                 // update the table if displayed
-                if (nfCommon.isDefinedAndNotNull(parameterContextGrid)) {
+                if ($('#parameter-contexts-table').is(':visible')) {
+                    var parameterContextGrid = $('#parameter-contexts-table').data('gridInstance');
                     var parameterContextData = parameterContextGrid.getData();
                     parameterContextData.addItem(parameterContextEntity);
 
@@ -2825,11 +2823,13 @@
             });
 
             var parameterContextsDeferred;
-            var parameterContextsGrid = $('#parameter-contexts-table').data('gridInstance');
-            if (nfCommon.isDefinedAndNotNull(parameterContextsGrid)) {
+            if ($('#parameter-contexts-table').is(':visible')) {
                 parameterContextsDeferred = $.Deferred(function (deferred) {
+                    var parameterContextsGrid = $('#parameter-contexts-table').data('gridInstance');
                     var parameterContextsData = parameterContextsGrid.getData();
-                    deferred.resolve(parameterContextsData.getItems());
+                    deferred.resolve({
+                        parameterContexts: parameterContextsData.getItems()
+                    });
                 }).promise();
             } else {
                 parameterContextsDeferred = fetchParameterContexts();
@@ -2876,8 +2876,8 @@
                 loadParameters(parameterContextEntity, parameterToSelect, readOnly || !canWrite);
 
                 // load the parameter contexts in order to render all available parameter contexts
-                parameterContextsDeferred.done(function (parameterContexts) {
-                    loadParameterContextInheritance(parameterContextEntity, readOnly || !canWrite, parameterContexts);
+                parameterContextsDeferred.done(function (response) {
+                    loadParameterContextInheritance(parameterContextEntity, readOnly || !canWrite, response.parameterContexts);
                 });
 
                 var editModeButtonModel = [{
