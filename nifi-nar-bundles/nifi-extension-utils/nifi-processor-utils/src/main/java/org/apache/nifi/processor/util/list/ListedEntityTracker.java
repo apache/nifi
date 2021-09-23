@@ -63,7 +63,7 @@ import static org.apache.nifi.processor.util.list.AbstractListProcessor.REL_SUCC
 public class ListedEntityTracker<T extends ListableEntity> {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private volatile Map<String, ListedEntity> alreadyListedEntities;
+    protected volatile Map<String, ListedEntity> alreadyListedEntities;
 
     private static final String NOTE = "Used by 'Tracking Entities' strategy.";
     public static final PropertyDescriptor TRACKING_STATE_CACHE = new PropertyDescriptor.Builder()
@@ -100,9 +100,9 @@ public class ListedEntityTracker<T extends ListableEntity> {
             .defaultValue("3 hours")
             .build();
 
-    private static final AllowableValue INITIAL_LISTING_TARGET_ALL = new AllowableValue("all", "All Available",
+    public static final AllowableValue INITIAL_LISTING_TARGET_ALL = new AllowableValue("all", "All Available",
             "Regardless of entities timestamp, all existing entities will be listed at the initial listing activity.");
-    private static final AllowableValue INITIAL_LISTING_TARGET_WINDOW = new AllowableValue("window", "Tracking Time Window",
+    public static final AllowableValue INITIAL_LISTING_TARGET_WINDOW = new AllowableValue("window", "Tracking Time Window",
             "Ignore entities having timestamp older than the specified 'Tracking Time Window' at the initial listing activity.");
 
     public static final PropertyDescriptor INITIAL_LISTING_TARGET = new PropertyDescriptor.Builder()
@@ -158,7 +158,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
     private String nodeId;
     private DistributedMapCacheClient mapCacheClient;
 
-    ListedEntityTracker(final String componentId, final ComponentLog logger, final RecordSchema recordSchema) {
+    public ListedEntityTracker(final String componentId, final ComponentLog logger, final RecordSchema recordSchema) {
         this(componentId, logger, DEFAULT_CURRENT_TIMESTAMP_SUPPLIER, recordSchema);
     }
 
@@ -166,7 +166,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
      * This constructor is used by unit test code so that it can produce the consistent result by controlling current timestamp.
      * @param currentTimestampSupplier a function to return current timestamp.
      */
-    ListedEntityTracker(final String componentId, final ComponentLog logger, final Supplier<Long> currentTimestampSupplier, final RecordSchema recordSchema) {
+    public ListedEntityTracker(final String componentId, final ComponentLog logger, final Supplier<Long> currentTimestampSupplier, final RecordSchema recordSchema) {
         this.componentId = componentId;
         this.logger = logger;
         this.currentTimestampSupplier = currentTimestampSupplier;
@@ -222,7 +222,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
         return listedEntities;
     }
 
-    void clearListedEntities() throws IOException {
+    public void clearListedEntities() throws IOException {
         alreadyListedEntities = null;
         if (mapCacheClient != null) {
             final String cacheKey = getCacheKey();
@@ -327,7 +327,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
                 logger.error("Failed to create records for listed entities", e);
             }
         } else {
-            createFlowFilesForEntities(session, updatedEntities, createAttributes);
+            createFlowFilesForEntities(context, session, updatedEntities, createAttributes);
         }
 
         // Commit ProcessSession before persisting listed entities.
@@ -344,7 +344,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
         });
     }
 
-    private void createRecordsForEntities(final ProcessContext context, final ProcessSession session, final List<T> updatedEntities) throws IOException, SchemaNotFoundException {
+    protected void createRecordsForEntities(final ProcessContext context, final ProcessSession session, final List<T> updatedEntities) throws IOException, SchemaNotFoundException {
         if (updatedEntities.isEmpty()) {
             logger.debug("No entities to write records for");
             return;
@@ -376,7 +376,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
         session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private void createFlowFilesForEntities(final ProcessSession session, final List<T> updatedEntities, final Function<T, Map<String, String>> createAttributes) {
+    protected void createFlowFilesForEntities(ProcessContext context, final ProcessSession session, final List<T> updatedEntities, final Function<T, Map<String, String>> createAttributes) {
         for (T updatedEntity : updatedEntities) {
             FlowFile flowFile = session.create();
             flowFile = session.putAllAttributes(flowFile, createAttributes.apply(updatedEntity));
