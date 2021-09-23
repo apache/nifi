@@ -17,21 +17,31 @@
 package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
 import org.apache.nifi.controller.parameter.ParameterProviderProvider;
+import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.LogRepository;
+import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ParameterProviderDAO;
@@ -41,12 +51,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class StandardParameterProviderDAO extends ComponentDAO implements ParameterProviderDAO {
 
     private ParameterProviderProvider parameterProviderProvider;
     private ComponentStateDAO componentStateDAO;
     private ReloadComponent reloadComponent;
+    private FlowController flowController;
 
     private ParameterProviderNode locateParameterProvider(final String parameterProviderId) {
         // get the parameter provider
@@ -216,6 +228,40 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
         }
     }
 
+    @Override
+    public void verifyConfigVerification(final String parameterProviderId) {
+        // This will throw an exception if it is not found
+        locateParameterProvider(parameterProviderId);
+    }
+
+    @Override
+    public List<ConfigVerificationResultDTO> verifyConfiguration(final String parameterProviderId, final Map<String, String> properties) {
+        final ParameterProviderNode parameterProviderNode = locateParameterProvider(parameterProviderId);
+
+        final LogRepository logRepository = new NopLogRepository();
+        final ComponentLog configVerificationLog = new SimpleProcessLogger(parameterProviderNode.getParameterProvider(), logRepository);
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
+
+        final ParameterLookup parameterLookup = ParameterLookup.EMPTY;
+        final ConfigurationContext configurationContext = new StandardConfigurationContext(parameterProviderNode, properties, parameterProviderNode.getAnnotationData(),
+                parameterLookup, flowController.getControllerServiceProvider(), null, flowController.getVariableRegistry());
+
+        final List<ConfigVerificationResult> verificationResults = parameterProviderNode.verifyConfiguration(configurationContext, configVerificationLog, extensionManager);
+        final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()
+                .map(this::createConfigVerificationResultDto)
+                .collect(Collectors.toList());
+
+        return resultsDtos;
+    }
+
+    private ConfigVerificationResultDTO createConfigVerificationResultDto(final ConfigVerificationResult result) {
+        final ConfigVerificationResultDTO dto = new ConfigVerificationResultDTO();
+        dto.setExplanation(result.getExplanation());
+        dto.setOutcome(result.getOutcome().name());
+        dto.setVerificationStepName(result.getVerificationStepName());
+        return dto;
+    }
+
     private void configureParameterProvider(final ParameterProviderNode parameterProvider, final ParameterProviderDTO parameterProviderDTO) {
         final String name = parameterProviderDTO.getName();
         final String annotationData = parameterProviderDTO.getAnnotationData();
@@ -276,5 +322,9 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
 
     public void setReloadComponent(final ReloadComponent reloadComponent) {
         this.reloadComponent = reloadComponent;
+    }
+
+    public void setFlowController(final FlowController flowController) {
+        this.flowController = flowController;
     }
 }

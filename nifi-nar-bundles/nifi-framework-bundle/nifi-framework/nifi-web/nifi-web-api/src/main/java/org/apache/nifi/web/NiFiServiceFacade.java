@@ -1701,12 +1701,17 @@ public interface NiFiServiceFacade {
      */
     void verifyCanVerifyControllerServiceConfig(String controllerServiceId);
 
-
     /**
      * Verifies that the Reporting Task with the given identifier is in a state where its configuration can be verified
      * @param reportingTaskId the ID of the service
      */
     void verifyCanVerifyReportingTaskConfig(String reportingTaskId);
+
+    /**
+     * Verifies that the Parameter Provider with the given identifier is in a state where its configuration can be verified
+     * @param parameterProviderId the ID of the service
+     */
+    void verifyCanVerifyParameterProviderConfig(String parameterProviderId);
 
     /**
      * Verifies that the Process Group with the given identifier can be saved to the flow registry
@@ -2267,6 +2272,22 @@ public interface NiFiServiceFacade {
      * @return The parameter provider DTO
      */
     ParameterProviderEntity updateParameterProvider(Revision revision, ParameterProviderDTO parameterProviderDTO);
+
+    /**
+     * Performs verification of the given Configuration for the parameter provider with the given ID
+     * @param parameterProviderId the id of the parameter provider
+     * @param properties the configured properties to verify
+     * @return verification results
+     */
+    List<ConfigVerificationResultDTO> performParameterProviderConfigVerification(String parameterProviderId, Map<String, String> properties);
+
+    /**
+     * Performs analysis of the given properties, determining which attributes are referenced by properties
+     * @param parameterProviderId the ID of the parameter provider
+     * @param properties the properties
+     * @return analysis results
+     */
+    ConfigurationAnalysisEntity analyzeParameterProviderConfiguration(String parameterProviderId, Map<String, String> properties);
 
     /**
      * Deletes the specified parameter provider.

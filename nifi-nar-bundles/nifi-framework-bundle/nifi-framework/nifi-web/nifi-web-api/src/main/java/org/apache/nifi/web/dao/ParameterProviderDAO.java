@@ -22,8 +22,10 @@ import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -73,6 +75,20 @@ public interface ParameterProviderDAO extends ParameterProviderLookup {
      * @param parameterProviderDTO dto
      */
     void verifyUpdate(ParameterProviderDTO parameterProviderDTO);
+
+    /**
+     * Verifies the Parameter Provider is in a state in which its configuration can be verified
+     * @param parameterProviderId the id of the Parameter Provider
+     */
+    void verifyConfigVerification(String parameterProviderId);
+
+    /**
+     * Performs verification of the Configuration for the Parameter Provider with the given ID
+     * @param parameterProviderId the id of the Parameter Provider
+     * @param properties the configured properties to verify
+     * @return verification results
+     */
+    List<ConfigVerificationResultDTO> verifyConfiguration(String parameterProviderId, Map<String, String> properties);
 
     /**
      * Verifies the specified parameter provider is able to fetch its parameters.

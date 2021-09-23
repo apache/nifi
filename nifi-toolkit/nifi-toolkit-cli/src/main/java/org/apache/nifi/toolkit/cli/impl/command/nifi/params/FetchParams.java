@@ -81,9 +81,12 @@ public class FetchParams extends AbstractNiFiCommand<ParamProviderResult> {
         final ParameterProviderApplyParametersRequestEntity request = paramProviderClient.applyParameters(applicationEntity);
 
         while (true) {
+            final String providerId = fetchedParameterProvider.getId();
+            final String requestId = request.getRequest().getRequestId();
             final ParameterProviderApplyParametersRequestEntity entity = paramProviderClient
-                    .getParamProviderApplyParametersRequest(fetchedParameterProvider.getId(), request.getRequest().getRequestId());
+                    .getParamProviderApplyParametersRequest(providerId, requestId);
             if (entity.getRequest().isComplete()) {
+                paramProviderClient.deleteParamProviderApplyParametersRequest(providerId, requestId);
                 if (entity.getRequest().getFailureReason() == null) {
                     return;
                 }

@@ -16,7 +16,10 @@
  */
 package org.apache.nifi.controller.parameter;
 
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
@@ -30,7 +33,9 @@ import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -38,15 +43,19 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.SensitiveParameterProvider;
+import org.apache.nifi.parameter.VerifiableParameterProvider;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
+import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -273,6 +282,70 @@ public abstract class AbstractParameterProviderNode extends AbstractComponentNod
         } catch (final IllegalStateException e) {
             throw new IllegalStateException(String.format("Cannot delete Parameter Provider [%s] due to: %s", getIdentifier(), e.getMessage()), e);
         }
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verifyConfiguration(final ConfigurationContext context, final ComponentLog logger, final ExtensionManager extensionManager) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+
+        try {
+            final long startNanos = System.nanoTime();
+            // Call super's verifyConfig, which will perform component validation
+            results.addAll(super.verifyConfig(context.getProperties(), context.getAnnotationData(), null));
+            final long validationComplete = System.nanoTime();
+
+            // If any invalid outcomes from validation, we do not want to perform additional verification, because we only run additional verification when the component is valid.
+            // This is done in order to make it much simpler to develop these verifications, since the developer doesn't have to worry about whether or not the given values are valid.
+            if (!results.isEmpty() && results.stream().anyMatch(result -> result.getOutcome() == Outcome.FAILED)) {
+                return results;
+            }
+
+            final ParameterProvider parameterProvider = getParameterProvider();
+            if (parameterProvider instanceof VerifiableParameterProvider) {
+                logger.debug("{} is a VerifiableParameterProvider. Will perform full verification of configuration.", this);
+                final VerifiableParameterProvider verifiable = (VerifiableParameterProvider) parameterProvider;
+
+                // Check if the given configuration requires a different classloader than the current configuration
+                final boolean classpathDifferent = isClasspathDifferent(context.getProperties());
+
+                if (classpathDifferent) {
+                    // Create a classloader for the given configuration and use that to verify the component's configuration
+                    final Bundle bundle = extensionManager.getBundle(getBundleCoordinate());
+                    final Set<URL> classpathUrls = getAdditionalClasspathResources(context.getProperties().keySet(), descriptor -> context.getProperty(descriptor).getValue());
+
+                    final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false)) {
+                        Thread.currentThread().setContextClassLoader(detectedClassLoader);
+                        results.addAll(verifiable.verify(context, logger));
+                    } finally {
+                        Thread.currentThread().setContextClassLoader(currentClassLoader);
+                    }
+                } else {
+                    // Verify the configuration, using the component's classloader
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, parameterProvider.getClass(), getIdentifier())) {
+                        results.addAll(verifiable.verify(context, logger));
+                    }
+                }
+
+                final long validationNanos = validationComplete - startNanos;
+                final long verificationNanos = System.nanoTime() - validationComplete;
+                logger.debug("{} completed full configuration validation in {} plus {} for validation",
+                        this, FormatUtils.formatNanos(verificationNanos, false), FormatUtils.formatNanos(validationNanos, false));
+            } else {
+                logger.debug("{} is not a VerifiableParameterProvider, so will not perform full verification of configuration. Validation took {}", this,
+                        FormatUtils.formatNanos(validationComplete - startNanos, false));
+            }
+        } catch (final Throwable t) {
+            logger.error("Failed to perform verification of Parameter Provider's configuration for {}", this, t);
+
+            results.add(new ConfigVerificationResult.Builder()
+                    .outcome(Outcome.FAILED)
+                    .verificationStepName("Perform Verification")
+                    .explanation("Encountered unexpected failure when attempting to perform verification: " + t)
+                    .build());
+        }
+
+        return results;
     }
 
     /**

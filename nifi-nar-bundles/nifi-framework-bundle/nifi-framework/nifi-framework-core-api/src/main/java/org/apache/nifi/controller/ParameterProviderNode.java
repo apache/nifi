@@ -16,10 +16,14 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterProvider;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -68,4 +72,14 @@ public interface ParameterProviderNode extends ComponentNode {
      * @param parameterContext the parameter context referencing this provider
      */
     void removeReference(ParameterContext parameterContext);
+
+    /**
+     * Verifies that the given configuration is valid for the Parameter Provider
+     *
+     * @param context the configuration to verify
+     * @param logger a logger that can be used when performing verification
+     * @param extensionManager extension manager that is used for obtaining appropriate NAR ClassLoaders
+     * @return a list of results indicating whether or not the given configuration is valid
+     */
+    List<ConfigVerificationResult> verifyConfiguration(ConfigurationContext context, ComponentLog logger, ExtensionManager extensionManager);
 }

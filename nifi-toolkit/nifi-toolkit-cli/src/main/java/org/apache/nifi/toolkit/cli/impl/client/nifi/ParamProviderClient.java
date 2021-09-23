@@ -20,6 +20,7 @@ import org.apache.nifi.web.api.entity.ParameterProviderApplyParametersRequestEnt
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterApplicationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterFetchEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 
 import java.io.IOException;
 
@@ -35,8 +36,14 @@ public interface ParamProviderClient {
 
     ParameterProviderApplyParametersRequestEntity applyParameters(ParameterProviderParameterApplicationEntity parameterApplicationEntity) throws NiFiClientException, IOException;
 
-    ParameterProviderApplyParametersRequestEntity getParamProviderApplyParametersRequest(String contextId, String applyParametersRequestId) throws NiFiClientException, IOException;
+    ParameterProviderApplyParametersRequestEntity getParamProviderApplyParametersRequest(String providerId, String applyParametersRequestId) throws NiFiClientException, IOException;
 
-    ParameterProviderApplyParametersRequestEntity deleteParamProviderApplyParametersRequest(String contextId, String applyParametersRequestId) throws NiFiClientException, IOException;
+    ParameterProviderApplyParametersRequestEntity deleteParamProviderApplyParametersRequest(String providerId, String applyParametersRequestId) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity submitConfigVerificationRequest(VerifyConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity getConfigVerificationRequest(String providerId, String verificationRequestId) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity deleteConfigVerificationRequest(String providerId, String verificationRequestId) throws NiFiClientException, IOException;
 
 }

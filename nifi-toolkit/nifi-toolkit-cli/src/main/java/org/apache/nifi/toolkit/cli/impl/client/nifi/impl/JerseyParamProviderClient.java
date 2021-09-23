@@ -24,6 +24,7 @@ import org.apache.nifi.web.api.entity.ParameterProviderApplyParametersRequestEnt
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterApplicationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterFetchEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
@@ -168,6 +169,65 @@ public class JerseyParamProviderClient extends AbstractJerseyClient implements P
                     .resolveTemplate("provider-id", providerId)
                     .resolveTemplate("request-id", updateRequestId);
             return getRequestBuilder(target).delete(ParameterProviderApplyParametersRequestEntity.class);
+        });
+    }
+
+    @Override
+    public VerifyConfigRequestEntity submitConfigVerificationRequest(final VerifyConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException {
+        if (configRequestEntity == null) {
+            throw new IllegalArgumentException("Config Request Entity cannot be null");
+        }
+        if (configRequestEntity.getRequest() == null) {
+            throw new IllegalArgumentException("Config Request DTO cannot be null");
+        }
+        if (configRequestEntity.getRequest().getComponentId() == null) {
+            throw new IllegalArgumentException("Parameter Provider ID cannot be null");
+        }
+        if (configRequestEntity.getRequest().getProperties() == null) {
+            throw new IllegalArgumentException("Parameter Provider properties cannot be null");
+        }
+
+        return executeAction("Error submitting Config Verification Request", () -> {
+            final WebTarget target = paramProviderTarget
+                    .path("{id}/config/verification-requests")
+                    .resolveTemplate("id", configRequestEntity.getRequest().getComponentId());
+
+            return getRequestBuilder(target).post(
+                    Entity.entity(configRequestEntity, MediaType.APPLICATION_JSON_TYPE),
+                    VerifyConfigRequestEntity.class
+            );
+        });
+    }
+
+    @Override
+    public VerifyConfigRequestEntity getConfigVerificationRequest(final String taskId, final String verificationRequestId) throws NiFiClientException, IOException {
+        if (verificationRequestId == null) {
+            throw new IllegalArgumentException("Verification Request ID cannot be null");
+        }
+
+        return executeAction("Error retrieving Config Verification Request", () -> {
+            final WebTarget target = paramProviderTarget
+                    .path("{id}/config/verification-requests/{requestId}")
+                    .resolveTemplate("id", taskId)
+                    .resolveTemplate("requestId", verificationRequestId);
+
+            return getRequestBuilder(target).get(VerifyConfigRequestEntity.class);
+        });
+    }
+
+    @Override
+    public VerifyConfigRequestEntity deleteConfigVerificationRequest(final String taskId, final String verificationRequestId) throws NiFiClientException, IOException {
+        if (verificationRequestId == null) {
+            throw new IllegalArgumentException("Verification Request ID cannot be null");
+        }
+
+        return executeAction("Error deleting Config Verification Request", () -> {
+            final WebTarget target = paramProviderTarget
+                    .path("{id}/config/verification-requests/{requestId}")
+                    .resolveTemplate("id", taskId)
+                    .resolveTemplate("requestId", verificationRequestId);
+
+            return getRequestBuilder(target).delete(VerifyConfigRequestEntity.class);
         });
     }
 }

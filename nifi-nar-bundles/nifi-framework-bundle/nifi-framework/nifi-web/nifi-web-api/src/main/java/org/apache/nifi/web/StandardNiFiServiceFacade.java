@@ -599,6 +599,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyCanVerifyParameterProviderConfig(final String parameterProviderId) {
+        parameterProviderDAO.verifyConfigVerification(parameterProviderId);
+    }
+
+    @Override
     public void verifyDeleteProcessor(final String processorId) {
         processorDAO.verifyDelete(processorId);
     }
@@ -3389,6 +3394,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(parameterProvider.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
         return entityFactory.createParameterProviderEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, bulletinEntities);
+    }
+
+    @Override
+    public List<ConfigVerificationResultDTO> performParameterProviderConfigVerification(final String parameterProviderId, final Map<String, String> properties) {
+        return parameterProviderDAO.verifyConfiguration(parameterProviderId, properties);
+    }
+
+    @Override
+    public ConfigurationAnalysisEntity analyzeParameterProviderConfiguration(final String parameterProviderId, final Map<String, String> properties) {
+        final ParameterProviderNode taskNode = parameterProviderDAO.getParameterProvider(parameterProviderId);
+        final ConfigurationAnalysisEntity configurationAnalysisEntity = analyzeConfiguration(taskNode, properties, null);
+        return configurationAnalysisEntity;
     }
 
     @Override

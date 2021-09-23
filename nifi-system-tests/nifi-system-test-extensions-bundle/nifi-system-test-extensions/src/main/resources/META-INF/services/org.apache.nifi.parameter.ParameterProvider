@@ -15,3 +15,4 @@
 
 org.apache.nifi.parameter.tests.system.DynamicPropertyNonSensitiveParameterProvider
 org.apache.nifi.parameter.tests.system.DynamicPropertySensitiveParameterProvider
+org.apache.nifi.parameter.tests.system.EnsureParameterProviderConfigurationCorrect

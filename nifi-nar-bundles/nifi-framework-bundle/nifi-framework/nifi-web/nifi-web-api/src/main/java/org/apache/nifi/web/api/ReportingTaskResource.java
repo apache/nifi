@@ -95,8 +95,8 @@ public class ReportingTaskResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(ReportingTaskResource.class);
     private static final String VERIFICATION_REQUEST_TYPE = "verification-request";
-    private RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> updateRequestManager =
-        new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Reporting Task Config Thread");
+    private RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
+            new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Reporting Task Config Thread");
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -725,7 +725,7 @@ public class ReportingTaskResource extends ApplicationResource {
         notes = "This will initiate the process of verifying a given Reporting Task configuration. This may be a long-running task. As a result, this endpoint will immediately return a " +
             "ReportingTaskConfigVerificationRequestEntity, and the process of performing the verification will occur asynchronously in the background. " +
             "The client may then periodically poll the status of the request by " +
-            "issuing a GET request to /reporting-tasks/{serviceId}/verification-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
+            "issuing a GET request to /reporting-tasks/{taskId}/verification-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
             "/reporting-tasks/{serviceId}/verification-requests/{requestId}.",
         authorizations = {
             @Authorization(value = "Read - /reporting-tasks/{uuid}")
@@ -813,7 +813,7 @@ public class ReportingTaskResource extends ApplicationResource {
 
         // request manager will ensure that the current is the user that submitted this request
         final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
-            updateRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+                configVerificationRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
 
         final VerifyConfigRequestEntity updateRequestEntity = createVerifyReportingTaskConfigRequestEntity(asyncRequest, requestId);
         return generateOkResponse(updateRequestEntity).build();
@@ -840,7 +840,7 @@ public class ReportingTaskResource extends ApplicationResource {
         @ApiResponse(code = 404, message = "The specified resource could not be found."),
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response deleteValidationRequest(
+    public Response deleteVerificationRequest(
         @ApiParam("The ID of the Reporting Task") @PathParam("id") final String reportingTaskId,
         @ApiParam("The ID of the Verification Request") @PathParam("requestId") final String requestId) {
 
@@ -856,7 +856,7 @@ public class ReportingTaskResource extends ApplicationResource {
         if (!twoPhaseRequest || executionPhase) {
             // request manager will ensure that the current is the user that submitted this request
             final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
-                updateRequestManager.removeRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+                    configVerificationRequestManager.removeRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
 
             if (asyncRequest == null) {
                 throw new ResourceNotFoundException("Could not find request of type " + VERIFICATION_REQUEST_TYPE + " with ID " + requestId);
@@ -872,7 +872,7 @@ public class ReportingTaskResource extends ApplicationResource {
 
         if (isValidationPhase(httpServletRequest)) {
             // Perform authorization by attempting to get the request
-            updateRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+            configVerificationRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
             return generateContinueResponse().build();
         } else if (isCancellationPhase(httpServletRequest)) {
             return generateOkResponse().build();
@@ -905,7 +905,7 @@ public class ReportingTaskResource extends ApplicationResource {
             }
         };
 
-        updateRequestManager.submitRequest(VERIFICATION_REQUEST_TYPE, requestId, request, updateTask);
+        configVerificationRequestManager.submitRequest(VERIFICATION_REQUEST_TYPE, requestId, request, updateTask);
 
         // Generate the response
         final VerifyConfigRequestEntity resultsEntity = createVerifyReportingTaskConfigRequestEntity(request, requestId);

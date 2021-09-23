@@ -45,6 +45,7 @@ import org.apache.nifi.web.api.concurrent.StandardUpdateStep;
 import org.apache.nifi.web.api.concurrent.UpdateStep;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersRequestDTO;
@@ -52,6 +53,7 @@ import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersUpdateStepDTO
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.Entity;
@@ -64,6 +66,7 @@ import org.apache.nifi.web.api.entity.ParameterProviderParameterApplicationEntit
 import org.apache.nifi.web.api.entity.ParameterProviderParameterFetchEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.util.ComponentLifecycle;
@@ -91,6 +94,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -115,8 +119,12 @@ public class ParameterProviderResource extends AbstractParameterResource {
     private NiFiServiceFacade serviceFacade;
     private DtoFactory dtoFactory;
     private Authorizer authorizer;
-
     private ParameterUpdateManager parameterUpdateManager;
+
+    private static final String VERIFICATION_REQUEST_TYPE = "verification-request";
+    private RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
+            new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Parameter Provider Config Thread");
+
     private RequestManager<List<ParameterContextEntity>, List<ParameterContextEntity>> updateRequestManager =
             new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Parameter Provider Apply Thread");
 
@@ -450,12 +458,12 @@ public class ParameterProviderResource extends AbstractParameterResource {
             return replicate(HttpMethod.POST);
         }
 
-        final ParameterProviderEntity requestReportTaskEntity = new ParameterProviderEntity();
-        requestReportTaskEntity.setId(id);
+        final ParameterProviderEntity requestParameterProviderEntity = new ParameterProviderEntity();
+        requestParameterProviderEntity.setId(id);
 
         return withWriteLock(
                 serviceFacade,
-                requestReportTaskEntity,
+                requestParameterProviderEntity,
                 lookup -> {
                     final Authorizable processor = lookup.getParameterProvider(id).getAuthorizable();
                     processor.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
@@ -714,21 +722,21 @@ public class ParameterProviderResource extends AbstractParameterResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final Revision requestRevision = getRevision(fetchParametersEntity.getRevision(), parameterProviderId);
+        final Revision requestRevision = getRevision(fetchParametersEntity.getRevision(), fetchParametersEntity.getId());
         return withWriteLock(
                 serviceFacade,
                 fetchParametersEntity,
                 requestRevision,
                 lookup -> {
                     // authorize parameter provider
-                    final ComponentAuthorizable authorizable = lookup.getParameterProvider(parameterProviderId);
+                    final ComponentAuthorizable authorizable = lookup.getParameterProvider(fetchParametersEntity.getId());
                     authorizable.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
                     authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
-                () -> serviceFacade.verifyCanFetchParameters(parameterProviderId),
+                () -> serviceFacade.verifyCanFetchParameters(fetchParametersEntity.getId()),
                 (revision, parameterProviderFetchEntity) -> {
                     // fetch the parameters
-                    final ParameterProviderEntity entity = serviceFacade.fetchParameters(parameterProviderId);
+                    final ParameterProviderEntity entity = serviceFacade.fetchParameters(parameterProviderFetchEntity.getId());
                     populateRemainingParameterProviderEntityContent(entity);
 
                     return generateOkResponse(entity).build();
@@ -896,6 +904,225 @@ public class ParameterProviderResource extends AbstractParameterResource {
         authorizeReadParameterProvider(parameterProviderId);
         return deleteApplyParametersRequest("apply-parameters-requests", parameterProviderId, applyParametersRequestId, disconnectedNodeAcknowledged.booleanValue());
     }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/config/verification-requests")
+    @ApiOperation(
+            value = "Performs verification of the Parameter Provider's configuration",
+            response = VerifyConfigRequestEntity.class,
+            notes = "This will initiate the process of verifying a given Parameter Provider configuration. This may be a long-running task. As a result, this endpoint will immediately return a " +
+                    "ParameterProviderConfigVerificationRequestEntity, and the process of performing the verification will occur asynchronously in the background. " +
+                    "The client may then periodically poll the status of the request by " +
+                    "issuing a GET request to /parameter-providers/{serviceId}/verification-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
+                    "/parameter-providers/{providerId}/verification-requests/{requestId}.",
+            authorizations = {
+                    @Authorization(value = "Read - /parameter-providers/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response submitConfigVerificationRequest(
+            @ApiParam(value = "The parameter provider id.", required = true) @PathParam("id") final String parameterProviderId,
+            @ApiParam(value = "The parameter provider configuration verification request.", required = true) final VerifyConfigRequestEntity parameterProviderConfigRequest) {
+
+        if (parameterProviderConfigRequest == null) {
+            throw new IllegalArgumentException("Parameter Provider's configuration must be specified");
+        }
+
+        final VerifyConfigRequestDTO requestDto = parameterProviderConfigRequest.getRequest();
+        if (requestDto == null || requestDto.getProperties() == null) {
+            throw new IllegalArgumentException("Parameter Provider Properties must be specified");
+        }
+
+        if (requestDto.getComponentId() == null) {
+            throw new IllegalArgumentException("Parameter Provider's identifier must be specified in the request");
+        }
+
+        if (!requestDto.getComponentId().equals(parameterProviderId)) {
+            throw new IllegalArgumentException("Parameter Provider's identifier in the request must match the identifier provided in the URL");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, parameterProviderConfigRequest);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        return withWriteLock(
+                serviceFacade,
+                parameterProviderConfigRequest,
+                lookup -> {
+                    final ComponentAuthorizable parameterProvider = lookup.getParameterProvider(parameterProviderId);
+                    parameterProvider.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                },
+                () -> {
+                    serviceFacade.verifyCanVerifyParameterProviderConfig(parameterProviderId);
+                },
+                entity -> performAsyncConfigVerification(entity, user)
+        );
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/config/verification-requests/{requestId}")
+    @ApiOperation(
+            value = "Returns the Verification Request with the given ID",
+            response = VerifyConfigRequestEntity.class,
+            notes = "Returns the Verification Request with the given ID. Once an Verification Request has been created, "
+                    + "that request can subsequently be retrieved via this endpoint, and the request that is fetched will contain the updated state, such as percent complete, the "
+                    + "current state of the request, and any failures. ",
+            authorizations = {
+                    @Authorization(value = "Only the user that submitted the request can get it")
+            })
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getVerificationRequest(
+            @ApiParam("The ID of the Parameter Provider") @PathParam("id") final String parameterProviderId,
+            @ApiParam("The ID of the Verification Request") @PathParam("requestId") final String requestId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // request manager will ensure that the current is the user that submitted this request
+        final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
+                configVerificationRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+
+        final VerifyConfigRequestEntity updateRequestEntity = createVerifyParameterProviderConfigRequestEntity(asyncRequest, requestId);
+        return generateOkResponse(updateRequestEntity).build();
+    }
+
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/config/verification-requests/{requestId}")
+    @ApiOperation(
+            value = "Deletes the Verification Request with the given ID",
+            response = VerifyConfigRequestEntity.class,
+            notes = "Deletes the Verification Request with the given ID. After a request is created, it is expected "
+                    + "that the client will properly clean up the request by DELETE'ing it, once the Verification process has completed. If the request is deleted before the request "
+                    + "completes, then the Verification request will finish the step that it is currently performing and then will cancel any subsequent steps.",
+            authorizations = {
+                    @Authorization(value = "Only the user that submitted the request can remove it")
+            })
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response deleteVerificationRequest(
+            @ApiParam("The ID of the Parameter Provider") @PathParam("id") final String parameterProviderId,
+            @ApiParam("The ID of the Verification Request") @PathParam("requestId") final String requestId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final boolean twoPhaseRequest = isTwoPhaseRequest(httpServletRequest);
+        final boolean executionPhase = isExecutionPhase(httpServletRequest);
+
+        // If this is a standalone node, or if this is the execution phase of the request, perform the actual request.
+        if (!twoPhaseRequest || executionPhase) {
+            // request manager will ensure that the current is the user that submitted this request
+            final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
+                    configVerificationRequestManager.removeRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+
+            if (asyncRequest == null) {
+                throw new ResourceNotFoundException("Could not find request of type " + VERIFICATION_REQUEST_TYPE + " with ID " + requestId);
+            }
+
+            if (!asyncRequest.isComplete()) {
+                asyncRequest.cancel();
+            }
+
+            final VerifyConfigRequestEntity updateRequestEntity = createVerifyParameterProviderConfigRequestEntity(asyncRequest, requestId);
+            return generateOkResponse(updateRequestEntity).build();
+        }
+
+        if (isValidationPhase(httpServletRequest)) {
+            // Perform authorization by attempting to get the request
+            configVerificationRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+            return generateContinueResponse().build();
+        } else if (isCancellationPhase(httpServletRequest)) {
+            return generateOkResponse().build();
+        } else {
+            throw new IllegalStateException("This request does not appear to be part of the two phase commit.");
+        }
+    }
+
+    public Response performAsyncConfigVerification(final VerifyConfigRequestEntity configRequest, final NiFiUser user) {
+        // Create an asynchronous request that will occur in the background, because this request may take an indeterminate amount of time.
+        final String requestId = generateUuid();
+
+        final VerifyConfigRequestDTO requestDto = configRequest.getRequest();
+        final String parameterProviderId = requestDto.getComponentId();
+        final List<UpdateStep> updateSteps = Collections.singletonList(new StandardUpdateStep("Verify Parameter Provider Configuration"));
+
+        final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> request =
+                new StandardAsynchronousWebRequest<>(requestId, configRequest, parameterProviderId, user, updateSteps);
+
+        // Submit the request to be performed in the background
+        final Consumer<AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>>> verifyTask = asyncRequest -> {
+            try {
+                final List<ConfigVerificationResultDTO> results = serviceFacade.performParameterProviderConfigVerification(parameterProviderId, requestDto.getProperties());
+                asyncRequest.markStepComplete(results);
+            } catch (final Exception e) {
+                logger.error("Failed to verify Parameter Provider configuration", e);
+                asyncRequest.fail("Failed to verify Parameter Provider configuration due to " + e);
+            }
+        };
+
+        configVerificationRequestManager.submitRequest(VERIFICATION_REQUEST_TYPE, requestId, request, verifyTask);
+
+        // Generate the response
+        final VerifyConfigRequestEntity resultsEntity = createVerifyParameterProviderConfigRequestEntity(request, requestId);
+        return generateOkResponse(resultsEntity).build();
+    }
+
+    private VerifyConfigRequestEntity createVerifyParameterProviderConfigRequestEntity(
+            final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest, final String requestId) {
+
+        final VerifyConfigRequestDTO requestDto = asyncRequest.getRequest().getRequest();
+        final List<ConfigVerificationResultDTO> resultsList = asyncRequest.getResults();
+
+        final VerifyConfigRequestDTO dto = new VerifyConfigRequestDTO();
+        dto.setComponentId(requestDto.getComponentId());
+        dto.setProperties(requestDto.getProperties());
+        dto.setResults(resultsList);
+
+        dto.setComplete(resultsList != null);
+        dto.setFailureReason(asyncRequest.getFailureReason());
+        dto.setLastUpdated(asyncRequest.getLastUpdated());
+        dto.setPercentCompleted(asyncRequest.getPercentComplete());
+        dto.setRequestId(requestId);
+        dto.setState(asyncRequest.getState());
+        dto.setUri(generateResourceUri("parameter-providers", requestDto.getComponentId(), "config", "verification-requests", requestId));
+
+        final VerifyConfigRequestEntity entity = new VerifyConfigRequestEntity();
+        entity.setRequest(dto);
+        return entity;
+    }
+
 
     private Response retrieveApplyParametersRequest(final String requestType, final String parameterProviderId, final String requestId) {
         if (requestId == null) {
