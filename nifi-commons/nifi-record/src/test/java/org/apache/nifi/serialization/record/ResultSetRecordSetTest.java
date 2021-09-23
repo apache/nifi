@@ -51,6 +51,7 @@ import java.util.stream.Stream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -74,6 +75,8 @@ public class ResultSetRecordSetTest {
     private static final String COLUMN_NAME_BIG_DECIMAL_3 = "bigDecimal3";
     private static final String COLUMN_NAME_BIG_DECIMAL_4 = "bigDecimal4";
     private static final String COLUMN_NAME_BIG_DECIMAL_5 = "bigDecimal5";
+
+    private static final long TIMESTAMP_IN_MILLIS = 1631809132516L;
 
     private static final TestColumn[] COLUMNS = new TestColumn[] {
             new TestColumn(1, COLUMN_NAME_VARCHAR, Types.VARCHAR, RecordFieldType.STRING.getDataType()),
@@ -507,20 +510,20 @@ public class ResultSetRecordSetTest {
     private List<ArrayTestData> givenArrayTypesThatRequireLogicalTypes() {
         List<ArrayTestData> testData = new ArrayList<>();
         testData.add(new ArrayTestData("arrayBigDecimal",
-                new BigDecimalDummy[]{new BigDecimalDummy(), new BigDecimalDummy()}));
+                new ResultBigDecimal[]{new ResultBigDecimal(), new ResultBigDecimal()}));
         testData.add(new ArrayTestData("arrayDate",
-                new Date[]{new Date(1631809132516L), new Date(1631809132516L)}));
+                new Date[]{new Date(TIMESTAMP_IN_MILLIS), new Date(TIMESTAMP_IN_MILLIS)}));
         testData.add(new ArrayTestData("arrayTime",
-                new Time[]{new Time(1631809132516L), new Time(1631809132516L)}));
+                new Time[]{new Time(TIMESTAMP_IN_MILLIS), new Time(TIMESTAMP_IN_MILLIS)}));
         testData.add(new ArrayTestData("arrayTimestamp",
-                new Timestamp[]{new Timestamp(1631809132516L), new Timestamp(1631809132516L)}));
+                new Timestamp[]{new Timestamp(TIMESTAMP_IN_MILLIS), new Timestamp(TIMESTAMP_IN_MILLIS)}));
         return testData;
     }
 
     private Map<String, DataType> givenExpectedTypesForArrayTypesThatRequireLogicalTypes(final boolean useLogicalTypes) {
         Map<String, DataType> expectedTypes = new HashMap<>();
         if (useLogicalTypes) {
-            expectedTypes.put("arrayBigDecimal", RecordFieldType.DECIMAL.getDecimalDataType(BigDecimalDummy.PRECISION, BigDecimalDummy.SCALE));
+            expectedTypes.put("arrayBigDecimal", RecordFieldType.DECIMAL.getDecimalDataType(ResultBigDecimal.PRECISION, ResultBigDecimal.SCALE));
             expectedTypes.put("arrayDate", RecordFieldType.DATE.getDataType());
             expectedTypes.put("arrayTime", RecordFieldType.TIME.getDataType());
             expectedTypes.put("arrayTimestamp", RecordFieldType.TIMESTAMP.getDataType());
@@ -589,7 +592,7 @@ public class ResultSetRecordSetTest {
         for (int i = 0; i < testData.size(); ++i) {
             ArrayTestData testDatum = testData.get(i);
             int columnIndex = i + 1;
-            SqlArrayDummy arrayDummy = Mockito.mock(SqlArrayDummy.class);
+            ResultSqlArray arrayDummy = Mockito.mock(ResultSqlArray.class);
             when(arrayDummy.getArray()).thenReturn(testDatum.getTestArray());
             when(resultSet.getArray(columnIndex)).thenReturn(arrayDummy);
             when(resultSetMetaData.getColumnLabel(columnIndex)).thenReturn(testDatum.getFieldName());
@@ -634,12 +637,11 @@ public class ResultSetRecordSetTest {
         for (RecordField recordField : actualSchema.getFields()) {
             if (recordField.getDataType() instanceof ArrayDataType) {
                 ArrayDataType arrayType = (ArrayDataType) recordField.getDataType();
-                if (!arrayType.getElementType().equals(expectedTypes.get(recordField.getFieldName()))) {
-                    throw new AssertionError("Array element type for " + recordField.getFieldName()
-                            + " is not of expected type " + expectedTypes.get(recordField.getFieldName()).toString());
-                }
+                assertEquals("Array element type for " + recordField.getFieldName()
+                                + " is not of expected type " + expectedTypes.get(recordField.getFieldName()).toString(),
+                        expectedTypes.get(recordField.getFieldName()), arrayType.getElementType());
             } else {
-                throw new AssertionError("RecordField " + recordField.getFieldName() + " is not instance of ArrayDataType");
+                fail("RecordField " + recordField.getFieldName() + " is not instance of ArrayDataType");
             }
         }
     }
@@ -692,7 +694,7 @@ public class ResultSetRecordSetTest {
         }
     }
 
-    private static class SqlArrayDummy implements Array {
+    private static class ResultSqlArray implements Array {
 
         @Override
         public String getBaseTypeName() throws SQLException {
@@ -750,10 +752,10 @@ public class ResultSetRecordSetTest {
         }
     }
 
-    private static class BigDecimalDummy extends BigDecimal {
+    private static class ResultBigDecimal extends BigDecimal {
         public static int PRECISION = 3;
         public static int SCALE = 0;
-        public BigDecimalDummy() {
+        public ResultBigDecimal() {
             super("123");
         }
     }

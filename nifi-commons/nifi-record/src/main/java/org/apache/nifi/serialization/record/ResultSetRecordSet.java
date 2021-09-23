@@ -309,7 +309,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         final int decimalScale;
         final int resultSetPrecision = rs.getMetaData().getPrecision(columnIndex);
         final int resultSetScale = rs.getMetaData().getScale(columnIndex);
-        if (rs.getMetaData().getPrecision(columnIndex) > 0) {
+        if (resultSetPrecision > 0) {
             // When database returns a certain precision, we can rely on that.
             decimalPrecision = resultSetPrecision;
             //For the float data type Oracle return decimalScale < 0 which cause is not expected to org.apache.avro.LogicalTypes
