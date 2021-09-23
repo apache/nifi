@@ -305,18 +305,15 @@
      * Marshals the inherited parameter contexts.
      */
     var marshalInheritedParameterContexts = function () {
-        var parameterContextsGrid = $('#parameter-contexts-table').data('gridInstance');
-        var parameterContextsData = parameterContextsGrid.getData();
-
         var inheritedParameterContextIds = $('#parameter-context-selected').sortable('toArray');
 
         return inheritedParameterContextIds.map(function (id) {
-            var parameterContext = parameterContextsData.getItemById(id);
+            var name = $('#parameter-context-selected').find('li#' + id + ' span').text();
             return {
-                id: parameterContext.id,
+                id: id,
                 component: {
-                    id: parameterContext.component.id,
-                    name: parameterContext.component.name
+                    id: id,
+                    name: name
                 }
             }
         });
@@ -1591,12 +1588,9 @@
      *
      * @param parameterContextEntity    the parameter context being edited or null if new
      * @param readOnly                  whether the controls should be read only
+     * @param parameterContexts         all parameter contexts
      */
-    var loadParameterContextInheritance = function (parameterContextEntity, readOnly) {
-        var parameterContextsGrid = $('#parameter-contexts-table').data('gridInstance');
-        var parameterContextsData = parameterContextsGrid.getData();
-        var parameterContexts = parameterContextsData.getItems();
-
+    var loadParameterContextInheritance = function (parameterContextEntity, readOnly, parameterContexts) {
         // consider each parameter context and add to the listing of available or selected contexts based on the supplied parameterContextEntity
         $.each(parameterContexts, function (i, availableParameterContext) {
             // don't support inheriting from the current context
@@ -2356,22 +2350,23 @@
     };
 
     /**
+     * Fetches the available Parameter Contexts.
+     */
+    var fetchParameterContexts = function () {
+        return $.ajax({
+                type: 'GET',
+                url: '../nifi-api/flow/parameter-contexts',
+                dataType: 'json'
+            });
+    };
+
+    /**
      * Loads the parameter contexts.
      *
      * @param parameterContextToSelect   id of the parameter context to select in the grid
      */
     var loadParameterContexts = function (parameterContextToSelect) {
-        var parameterContexts = $.Deferred(function (deferred) {
-            $.ajax({
-                type: 'GET',
-                url: '../nifi-api/flow/parameter-contexts',
-                dataType: 'json'
-            }).done(function (response) {
-                deferred.resolve(response);
-            }).fail(function (xhr, status, error) {
-                deferred.reject(xhr, status, error);
-            });
-        }).promise();
+        var parameterContexts = fetchParameterContexts();
 
         // return a deferred for all parts of the parameter contexts
         return $.when(parameterContexts).done(function (response) {
@@ -2656,7 +2651,11 @@
                     }
                 }]).modal('show');
 
-                loadParameterContextInheritance(null, false);
+                var parameterContextsGrid = $('#parameter-contexts-table').data('gridInstance');
+                var parameterContextsData = parameterContextsGrid.getData();
+                var parameterContexts = parameterContextsData.getItems();
+
+                loadParameterContextInheritance(null, false, parameterContexts);
 
                 // set the initial focus
                 $('#parameter-context-name').focus();
@@ -2755,6 +2754,7 @@
                 // add the item
                 var parameterContextGrid = $('#parameter-contexts-table').data('gridInstance');
 
+                // update the table if displayed
                 if (nfCommon.isDefinedAndNotNull(parameterContextGrid)) {
                     var parameterContextData = parameterContextGrid.getData();
                     parameterContextData.addItem(parameterContextEntity);
@@ -2824,6 +2824,17 @@
                 dataType: 'json'
             });
 
+            var parameterContextsDeferred;
+            var parameterContextsGrid = $('#parameter-contexts-table').data('gridInstance');
+            if (nfCommon.isDefinedAndNotNull(parameterContextsGrid)) {
+                parameterContextsDeferred = $.Deferred(function (deferred) {
+                    var parameterContextsData = parameterContextsGrid.getData();
+                    deferred.resolve(parameterContextsData.getItems());
+                }).promise();
+            } else {
+                parameterContextsDeferred = fetchParameterContexts();
+            }
+
             // once everything is loaded, show the dialog
             reloadContext.done(function (parameterContextEntity) {
                 var canWrite = _.get(parameterContextEntity, 'permissions.canWrite', false);
@@ -2864,7 +2875,10 @@
 
                 loadParameters(parameterContextEntity, parameterToSelect, readOnly || !canWrite);
 
-                loadParameterContextInheritance(parameterContextEntity, readOnly || !canWrite);
+                // load the parameter contexts in order to render all available parameter contexts
+                parameterContextsDeferred.done(function (parameterContexts) {
+                    loadParameterContextInheritance(parameterContextEntity, readOnly || !canWrite, parameterContexts);
+                });
 
                 var editModeButtonModel = [{
                     buttonText: 'Apply',
