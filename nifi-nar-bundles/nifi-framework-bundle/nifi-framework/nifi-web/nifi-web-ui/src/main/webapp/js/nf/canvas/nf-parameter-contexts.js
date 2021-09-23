@@ -2878,72 +2878,71 @@
                 // load the parameter contexts in order to render all available parameter contexts
                 parameterContextsDeferred.done(function (response) {
                     loadParameterContextInheritance(parameterContextEntity, readOnly || !canWrite, response.parameterContexts);
-                });
 
-                var editModeButtonModel = [{
-                    buttonText: 'Apply',
-                    color: {
-                        base: '#728E9B',
-                        hover: '#004849',
-                        text: '#ffffff'
-                    },
-                    disabled: function () {
-                        if ($('#parameter-context-name').val() !== '' && hasParameterContextChanged(currentParameterContextEntity)) {
+                    var editModeButtonModel = [{
+                        buttonText: 'Apply',
+                        color: {
+                            base: '#728E9B',
+                            hover: '#004849',
+                            text: '#ffffff'
+                        },
+                        disabled: function () {
+                            if ($('#parameter-context-name').val() !== '' && hasParameterContextChanged(currentParameterContextEntity)) {
+                                return false;
+                            }
+                            return true;
+                        },
+                        handler: {
+                            click: function () {
+                                updateParameterContext(currentParameterContextEntity);
+                            }
+                        }
+                    }, {
+                        buttonText: 'Cancel',
+                        color: {
+                            base: '#E3E8EB',
+                            hover: '#C7D2D7',
+                            text: '#004849'
+                        },
+                        handler: {
+                            click: function () {
+                                $(this).modal('hide');
+                            }
+                        }
+                    }];
+
+                    var readOnlyButtonModel = [{
+                        buttonText: 'Ok',
+                        color: {
+                            base: '#728E9B',
+                            hover: '#004849',
+                            text: '#ffffff'
+                        },
+                        disabled: function () {
                             return false;
+                        },
+                        handler: {
+                            click: function () {
+                                $(this).modal('hide');
+                            }
                         }
-                        return true;
-                    },
-                    handler: {
-                        click: function () {
-                            updateParameterContext(currentParameterContextEntity);
-                        }
-                    }
-                }, {
-                    buttonText: 'Cancel',
-                    color: {
-                        base: '#E3E8EB',
-                        hover: '#C7D2D7',
-                        text: '#004849'
-                    },
-                    handler: {
-                        click: function () {
-                            $(this).modal('hide');
-                        }
-                    }
-                }];
+                    }];
 
-                var readOnlyButtonModel = [{
-                    buttonText: 'Ok',
-                    color: {
-                        base: '#728E9B',
-                        hover: '#004849',
-                        text: '#ffffff'
-                    },
-                    disabled: function () {
-                        return false;
-                    },
-                    handler: {
-                        click: function () {
-                            $(this).modal('hide');
-                        }
-                    }
-                }];
+                    // show the context
+                    $('#parameter-context-dialog')
+                        .modal('setHeaderText', canWrite ? 'Update Parameter Context' : 'View Parameter Context')
+                        .modal('setButtonModel', canWrite ? editModeButtonModel : readOnlyButtonModel)
+                        .modal('show');
 
-                // show the context
-                $('#parameter-context-dialog')
-                    .modal('setHeaderText', canWrite ? 'Update Parameter Context' : 'View Parameter Context')
-                    .modal('setButtonModel', canWrite ? editModeButtonModel : readOnlyButtonModel)
-                    .modal('show');
+                    // select the parameters tab
+                    $('#parameter-context-tabs').find('li:eq(1)').click();
 
-                // select the parameters tab
-                $('#parameter-context-tabs').find('li:eq(1)').click();
+                    // check if border is necessary
+                    updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
 
-                // check if border is necessary
-                updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
-
-                // show the border if necessary
-                updateReferencingComponentsBorder(referencingComponentsContainer);
-
+                    // show the border if necessary
+                    updateReferencingComponentsBorder(referencingComponentsContainer);
+                }).fail(nfErrorHandler.handleAjaxError);
             }).fail(nfErrorHandler.handleAjaxError);
         },
 
