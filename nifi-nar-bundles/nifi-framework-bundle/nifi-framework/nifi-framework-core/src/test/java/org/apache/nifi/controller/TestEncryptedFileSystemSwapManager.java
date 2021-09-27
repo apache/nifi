@@ -92,7 +92,7 @@ public class TestEncryptedFileSystemSwapManager {
     /**
      * Borrowed from "nifi-framework-core/src/test/java/org/apache/nifi/controller/TestFileSystemSwapManager.java".
      */
-    private FlowFileSwapManager createSwapManager(NiFiProperties nifiProperties) throws GeneralSecurityException {
+    private FlowFileSwapManager createSwapManager(final NiFiProperties nifiProperties) throws GeneralSecurityException {
         final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
         when(flowFileRepo.isValidSwapLocationSuffix(any())).thenReturn(true);
 

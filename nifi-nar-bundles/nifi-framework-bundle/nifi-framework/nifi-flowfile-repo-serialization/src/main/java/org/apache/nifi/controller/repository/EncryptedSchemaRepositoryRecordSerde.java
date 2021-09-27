@@ -62,8 +62,8 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
     public EncryptedSchemaRepositoryRecordSerde(final SerDe<SerializedRepositoryRecord> wrappedSerDe, final NiFiProperties niFiProperties) {
         this.wrappedSerDe = Objects.requireNonNull(wrappedSerDe, "Wrapped SerDe required");
         final RepositoryKeyProviderFactory repositoryKeyProviderFactory = new StandardRepositoryKeyProviderFactory();
-        final KeyProvider keyProvider = repositoryKeyProviderFactory.getKeyProvider(EncryptedRepositoryType.FLOW_FILE, niFiProperties);
-        this.encryptor = new AesGcmByteArrayRepositoryEncryptor(keyProvider, EncryptionMetadataHeader.FLOW_FILE);
+        final KeyProvider keyProvider = repositoryKeyProviderFactory.getKeyProvider(EncryptedRepositoryType.FLOWFILE, niFiProperties);
+        this.encryptor = new AesGcmByteArrayRepositoryEncryptor(keyProvider, EncryptionMetadataHeader.FLOWFILE);
         this.keyId = niFiProperties.getFlowFileRepoEncryptionKeyId();
     }
 
@@ -92,7 +92,9 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
      */
     @Deprecated
     @Override
-    public void serializeEdit(SerializedRepositoryRecord previousRecordState, SerializedRepositoryRecord newRecordState, DataOutputStream out) throws IOException {
+    public void serializeEdit(final SerializedRepositoryRecord previousRecordState,
+                              final SerializedRepositoryRecord newRecordState,
+                              final DataOutputStream out) throws IOException {
         serializeRecord(newRecordState, out);
     }
 
@@ -128,9 +130,8 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
      * @param out                  the output stream
      * @throws IOException if there is a problem writing to the stream
      */
-    private void encryptToStream(byte[] plainSerializedBytes, String recordId, DataOutputStream out) throws IOException {
+    private void encryptToStream(final byte[] plainSerializedBytes, final String recordId, final DataOutputStream out) throws IOException {
         final byte[] cipherBytes = encryptor.encrypt(plainSerializedBytes, recordId, keyId);
-        // Maybe remove cipher bytes length because it's included in encryption metadata; deserialization might need to change?
         out.writeInt(cipherBytes.length);
         out.write(cipherBytes);
     }
@@ -155,7 +156,9 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
      */
     @Deprecated
     @Override
-    public SerializedRepositoryRecord deserializeEdit(DataInputStream in, Map<Object, SerializedRepositoryRecord> currentRecordStates, int version) throws IOException {
+    public SerializedRepositoryRecord deserializeEdit(final DataInputStream in,
+                                                      final Map<Object, SerializedRepositoryRecord> currentRecordStates,
+                                                      final int version) throws IOException {
         return deserializeRecord(in, version);
 
         // deserializeRecord may return a null if there is no more data. However, when we are deserializing
@@ -212,7 +215,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
      * @return identifier of record
      */
     @Override
-    public Object getRecordIdentifier(SerializedRepositoryRecord record) {
+    public Object getRecordIdentifier(final SerializedRepositoryRecord record) {
         return wrappedSerDe.getRecordIdentifier(record);
     }
 
@@ -223,7 +226,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
      * @return update type
      */
     @Override
-    public UpdateType getUpdateType(SerializedRepositoryRecord record) {
+    public UpdateType getUpdateType(final SerializedRepositoryRecord record) {
         return wrappedSerDe.getUpdateType(record);
     }
 
@@ -240,7 +243,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
      * @return location
      */
     @Override
-    public String getLocation(SerializedRepositoryRecord record) {
+    public String getLocation(final SerializedRepositoryRecord record) {
         return wrappedSerDe.getLocation(record);
     }
 

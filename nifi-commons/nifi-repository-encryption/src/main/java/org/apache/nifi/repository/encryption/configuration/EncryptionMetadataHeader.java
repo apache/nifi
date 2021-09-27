@@ -28,7 +28,7 @@ public enum EncryptionMetadataHeader {
     /**
      * Flow File Repository Header
      */
-    FLOW_FILE(new byte[]{}),
+    FLOWFILE(new byte[]{}),
 
     /**
      * Provenance Repository Header

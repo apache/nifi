@@ -22,7 +22,7 @@ package org.apache.nifi.repository.encryption.configuration;
 public enum EncryptedRepositoryType {
     CONTENT,
 
-    FLOW_FILE,
+    FLOWFILE,
 
     PROVENANCE
 }

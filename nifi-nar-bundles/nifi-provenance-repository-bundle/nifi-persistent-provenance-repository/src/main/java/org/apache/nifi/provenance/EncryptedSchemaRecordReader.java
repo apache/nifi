@@ -36,7 +36,6 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
 
     public static final String SERIALIZATION_NAME = "EncryptedSchemaRecordWriter";
 
-
     public EncryptedSchemaRecordReader(final InputStream inputStream, final String filename, final TocReader tocReader, final int maxAttributeChars,
                                        final RepositoryEncryptor<byte[], byte[]> repositoryEncryptor) throws IOException {
         super(inputStream, filename, tocReader, maxAttributeChars);
@@ -57,12 +56,12 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
     private StandardProvenanceEventRecord readRecord(final DataInputStream inputStream, final long eventId, final long startOffset, final int recordLength) throws IOException {
         final InputStream limitedIn = new LimitingInputStream(inputStream, recordLength);
 
-        byte[] encryptedSerializedBytes = new byte[recordLength];
-        DataInputStream encryptedInputStream = new DataInputStream(limitedIn);
+        final byte[] encryptedSerializedBytes = new byte[recordLength];
+        final DataInputStream encryptedInputStream = new DataInputStream(limitedIn);
         encryptedInputStream.readFully(encryptedSerializedBytes);
 
-        byte[] plainSerializedBytes = decrypt(encryptedSerializedBytes, Long.toString(eventId));
-        InputStream plainStream = new ByteArrayInputStream(plainSerializedBytes);
+        final byte[] plainSerializedBytes = repositoryEncryptor.decrypt(encryptedSerializedBytes, Long.toString(eventId));
+        final InputStream plainStream = new ByteArrayInputStream(plainSerializedBytes);
 
         final Record eventRecord = getRecordReader().readRecord(plainStream);
         if (eventRecord == null) {
@@ -75,7 +74,7 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
         return deserializedEvent;
     }
 
-    // TODO: Copied from EventIdFirstSchemaRecordReader to force local/overridden readRecord()
+    // Copied from EventIdFirstSchemaRecordReader to force local/overridden readRecord()
     @Override
     protected Optional<StandardProvenanceEventRecord> readToEvent(final long eventId, final DataInputStream dis, final int serializationVersion) throws IOException {
         verifySerializationVersion(serializationVersion);
@@ -95,10 +94,6 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
         }
 
         return Optional.empty();
-    }
-
-    private byte[] decrypt(byte[] encryptedBytes, String eventId) {
-        return repositoryEncryptor.decrypt(encryptedBytes, eventId);
     }
 
     @Override

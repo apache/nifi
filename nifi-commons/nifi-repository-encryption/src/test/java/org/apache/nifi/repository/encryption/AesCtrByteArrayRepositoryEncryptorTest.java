@@ -77,7 +77,7 @@ public class AesCtrByteArrayRepositoryEncryptorTest {
 
     private void assertEncryptDecryptEquals() throws KeyManagementException, IOException {
         setKeyProvider();
-        final AesCtrStreamRepositoryEncryptor encryptor = new AesCtrStreamRepositoryEncryptor(keyProvider, EncryptionMetadataHeader.FLOW_FILE);
+        final AesCtrStreamRepositoryEncryptor encryptor = new AesCtrStreamRepositoryEncryptor(keyProvider, EncryptionMetadataHeader.FLOWFILE);
 
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         final OutputStream encryptedOutputStream = encryptor.encrypt(outputStream, RECORD_ID, KEY_ID);

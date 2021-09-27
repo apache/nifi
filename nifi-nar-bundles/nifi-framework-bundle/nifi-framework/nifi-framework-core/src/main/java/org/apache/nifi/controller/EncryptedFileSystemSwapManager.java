@@ -58,7 +58,7 @@ public class EncryptedFileSystemSwapManager extends FileSystemSwapManager {
             throws GeneralSecurityException {
         super(nifiProperties);
         final RepositoryKeyProviderFactory repositoryKeyProviderFactory = new StandardRepositoryKeyProviderFactory();
-        final KeyProvider keyProvider = repositoryKeyProviderFactory.getKeyProvider(EncryptedRepositoryType.FLOW_FILE, nifiProperties);
+        final KeyProvider keyProvider = repositoryKeyProviderFactory.getKeyProvider(EncryptedRepositoryType.FLOWFILE, nifiProperties);
         final String keyId = nifiProperties.getFlowFileRepoEncryptionKeyId();
         this.secretKey = keyProvider.getKey(keyId);
     }

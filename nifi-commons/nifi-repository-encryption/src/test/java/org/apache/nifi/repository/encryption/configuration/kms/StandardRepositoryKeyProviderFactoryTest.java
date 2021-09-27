@@ -17,7 +17,6 @@
 package org.apache.nifi.repository.encryption.configuration.kms;
 
 import org.apache.nifi.repository.encryption.configuration.EncryptedRepositoryType;
-import org.apache.nifi.repository.encryption.configuration.EncryptionKeyProvider;
 import org.apache.nifi.security.kms.KeyProvider;
 import org.apache.nifi.security.kms.KeyStoreKeyProvider;
 import org.apache.nifi.security.kms.StaticKeyProvider;
@@ -55,7 +54,7 @@ public class StandardRepositoryKeyProviderFactoryTest {
 
     private static final String TYPE_EXTENSION = ".p12";
 
-    private static final SecretKey SECRET_KEY = new SecretKeySpec(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8), "AES");
+    private static final SecretKey SECRET_KEY = new SecretKeySpec(KEY.getBytes(StandardCharsets.UTF_8), "AES");
 
     private static final String KEY_PROTECTION_ALGORITHM = "PBEWithHmacSHA256AndAES_256";
 
@@ -131,7 +130,7 @@ public class StandardRepositoryKeyProviderFactoryTest {
         properties.put(NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY_ID, KEY_ID);
 
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
-        assertKeyProviderConfigured(providerClass, EncryptedRepositoryType.FLOW_FILE, niFiProperties);
+        assertKeyProviderConfigured(providerClass, EncryptedRepositoryType.FLOWFILE, niFiProperties);
     }
 
     @Test

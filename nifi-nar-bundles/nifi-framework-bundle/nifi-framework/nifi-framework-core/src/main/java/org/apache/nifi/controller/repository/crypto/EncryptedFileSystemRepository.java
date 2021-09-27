@@ -41,7 +41,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.security.KeyManagementException;
 import java.util.Objects;
 
 /**
@@ -198,18 +197,11 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
      */
     @Override
     public OutputStream write(final ContentClaim claim) throws IOException {
-        StandardContentClaim scc = validateContentClaimForWriting(claim);
-
-        // BCOS wrapping FOS
-        ByteCountingOutputStream claimStream = getWritableClaimStreamByResourceClaim(scc.getResourceClaim());
+        final StandardContentClaim scc = validateContentClaimForWriting(claim);
+        final ByteCountingOutputStream claimStream = getWritableClaimStreamByResourceClaim(scc.getResourceClaim());
         final long startingOffset = claimStream.getBytesWritten();
-
-        try {
-            final String recordId = getRecordId(claim);
-            return getEncryptedOutputStream(scc, claimStream, startingOffset, keyId, recordId);
-        } catch (KeyManagementException e) {
-            throw new IOException("Error creating encrypted content repository output stream", e);
-        }
+        final String recordId = getRecordId(claim);
+        return new EncryptedContentRepositoryOutputStream(scc, claimStream, recordId, startingOffset);
     }
 
     /**
@@ -221,7 +213,7 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
      * @param claim the content claim
      * @return the string identifier
      */
-    public static String getRecordId(ContentClaim claim) {
+    public static String getRecordId(final ContentClaim claim) {
         // For version 1, use the content claim's resource claim ID as the record ID rather than introducing a new field in the metadata
         if (claim != null && claim.getResourceClaim() != null
                 && !StringUtils.isBlank(claim.getResourceClaim().getId())) {
@@ -233,15 +225,6 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
         }
     }
 
-    private OutputStream getEncryptedOutputStream(StandardContentClaim scc,
-                                                  ByteCountingOutputStream claimStream,
-                                                  long startingOffset,
-                                                  String keyId,
-                                                  String recordId) throws KeyManagementException {
-        // ECROS wrapping COS wrapping BCOS wrapping FOS
-        return new EncryptedContentRepositoryOutputStream(scc, claimStream, repositoryEncryptor, recordId, keyId, startingOffset);
-    }
-
     /**
      * Private class which wraps the {@link org.apache.nifi.controller.repository.FileSystemRepository.ContentRepositoryOutputStream}'s
      * internal {@link ByteCountingOutputStream} with a {@link CipherOutputStream}
@@ -251,14 +234,15 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
         private final CipherOutputStream cipherOutputStream;
         private final long startingOffset;
 
-        EncryptedContentRepositoryOutputStream(StandardContentClaim scc,
-                                               ByteCountingOutputStream byteCountingOutputStream,
-                                               RepositoryEncryptor<OutputStream, InputStream> encryptor, String recordId, String keyId, long startingOffset) {
+        EncryptedContentRepositoryOutputStream(final StandardContentClaim scc,
+                                               final ByteCountingOutputStream byteCountingOutputStream,
+                                               final String recordId,
+                                               final long startingOffset) {
             super(scc, byteCountingOutputStream, 0);
             this.startingOffset = startingOffset;
 
             // Set up cipher stream
-            this.cipherOutputStream = (CipherOutputStream) encryptor.encrypt(new NonCloseableOutputStream(byteCountingOutputStream), recordId, keyId);
+            this.cipherOutputStream = (CipherOutputStream) repositoryEncryptor.encrypt(new NonCloseableOutputStream(byteCountingOutputStream), recordId, keyId);
         }
 
         @Override
@@ -291,7 +275,7 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
          * @param len the length in bytes to write
          * @throws IOException if there is a problem writing the output
          */
-        private void writeBytes(byte[] b, int off, int len) throws IOException {
+        private void writeBytes(final byte[] b, final int off, final int len) throws IOException {
             if (closed) {
                 throw new IOException("Stream is closed");
             }
