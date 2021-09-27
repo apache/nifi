@@ -471,8 +471,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         getLogger().info("Initialized a new HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
                 new Object[]{workingDir, fs.getDefaultBlockSize(workingDir), fs.getDefaultReplication(workingDir), config.toString()});
 
-        preProcessFileSystem(fs, context);
-
         return new HdfsResources(config, fs, ugi, kerberosUser);
     }
 
@@ -514,10 +512,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
      * @param context the context that can be used to retrieve additional values
      */
     protected void preProcessConfiguration(final Configuration config, final ProcessContext context) {
-
-    }
-
-    protected void preProcessFileSystem(final FileSystem fileSystem, final ProcessContext context) throws IOException {
 
     }
 

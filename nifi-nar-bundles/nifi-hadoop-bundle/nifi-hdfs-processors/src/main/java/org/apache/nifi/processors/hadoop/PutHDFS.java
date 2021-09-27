@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Throwables;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CreateFlag;
@@ -25,7 +27,6 @@ import org.apache.hadoop.fs.permission.AclEntryScope;
 import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsCreateModes;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -38,6 +39,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -61,7 +63,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.security.PrivilegedAction;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -94,6 +98,10 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
     protected static final String BUFFER_SIZE_KEY = "io.file.buffer.size";
     protected static final int BUFFER_SIZE_DEFAULT = 4096;
+
+    // state
+
+    private Cache<Path, AclStatus> aclCache;
 
     // relationships
 
@@ -232,18 +240,12 @@ public class PutHDFS extends AbstractHadoopProcessor {
         FsPermission.setUMask(config, new FsPermission(dfsUmask));
     }
 
-    @Override
-    protected void preProcessFileSystem(final FileSystem fileSystem, final ProcessContext context) throws IOException {
-        if (fileSystem instanceof DistributedFileSystem) {
-            final Path dirPath = new Path(context.getProperty(DIRECTORY).getValue());
-            final AclStatus aclStatus = fileSystem.getAclStatus(dirPath);
-            final boolean isDefaultACL = aclStatus.getEntries().stream().anyMatch(
-                    aclEntry -> AclEntryScope.DEFAULT.equals(aclEntry.getScope()));
-            final boolean isSetUmask = context.getProperty(UMASK).isSet();
-            if (isDefaultACL && isSetUmask) {
-                getLogger().warn("PutHDFS umask setting is ignored by HDFS when HDFS default ACL is set.");
-            }
-        }
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        aclCache = Caffeine.newBuilder()
+                .maximumSize(20L)
+                .expireAfterWrite(Duration.ofHours(1))
+                .build();
     }
 
     @Override
@@ -271,6 +273,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 FlowFile putFlowFile = flowFile;
                 try {
                     final Path dirPath = getNormalizedPath(context, DIRECTORY, putFlowFile);
+                    checkAclStatus(getAclStatus(dirPath));
                     final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
                     final long blockSize = getBlockSize(context, session, putFlowFile, dirPath);
                     final int bufferSize = getBufferSize(context, session, putFlowFile);
@@ -435,6 +438,25 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 }
 
                 return null;
+            }
+
+            private void checkAclStatus(final AclStatus aclStatus) throws IOException {
+                final boolean isDefaultACL = aclStatus.getEntries().stream().anyMatch(
+                        aclEntry -> AclEntryScope.DEFAULT.equals(aclEntry.getScope()));
+                final boolean isSetUmask = context.getProperty(UMASK).isSet();
+                if (isDefaultACL && isSetUmask) {
+                    throw new IOException("PutHDFS umask setting is ignored by HDFS when HDFS default ACL is set.");
+                }
+            }
+
+            private AclStatus getAclStatus(final Path dirPath) {
+                return aclCache.get(dirPath, fn -> {
+                    try {
+                        return hdfs.getAclStatus(dirPath);
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(String.format("Unable to query ACL for directory [%s]", dirPath), e);
+                    }
+                });
             }
         });
     }
