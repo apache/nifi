@@ -4145,7 +4145,7 @@ public final class DtoFactory {
         copy.setParentGroupId(original.getParentGroupId());
         copy.setName(original.getName());
         copy.setProperties(copy(original.getProperties()));
-        copy.setReferencedAttributes(new HashSet<>(original.getReferencedAttributes()));
+        copy.setReferencedAttributes(copy(original.getReferencedAttributes()));
         copy.setReferencingComponents(copy(original.getReferencingComponents()));
         copy.setState(original.getState());
         copy.setType(original.getType());
