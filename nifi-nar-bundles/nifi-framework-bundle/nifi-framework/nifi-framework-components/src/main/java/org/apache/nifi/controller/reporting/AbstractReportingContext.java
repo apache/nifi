@@ -119,7 +119,7 @@ public abstract class AbstractReportingContext implements ReportingContext {
 
     @Override
     public Bulletin createBulletin(final String category, final Severity severity, final String message) {
-        return BulletinFactory.createSystemBulletin(category, severity.name(), message);
+        return BulletinFactory.createBulletin(category, severity.name(), message);
     }
 
     @Override
@@ -128,7 +128,7 @@ public abstract class AbstractReportingContext implements ReportingContext {
         if (connectable == null) {
             throw new IllegalStateException("Cannot create Component-Level Bulletin because no component can be found with ID " + componentId);
         }
-        return BulletinFactory.createSystemBulletin(connectable, category, severity.name(), message);
+        return BulletinFactory.createBulletin(connectable, category, severity.name(), message);
     }
 
     protected abstract FlowManager getFlowManager();

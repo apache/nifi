@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.rules.handlers.script;
 
-import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper;
 import org.apache.nifi.reporting.Bulletin;
+import org.apache.nifi.reporting.BulletinFactory;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
@@ -61,8 +61,8 @@ public class ScriptedActionHandlerTest {
     private MockScriptedActionHandler actionHandler;
     private MockScriptedBulletinRepository mockScriptedBulletinRepository;
 
-    private final Map<String, Object> facts = new HashMap<>();
-    private final Map<String, String> attrs = new HashMap<>();
+    private Map<String, Object> facts = new HashMap<>();
+    private Map<String, String> attrs = new HashMap<>();
 
     @BeforeEach
     public void setup() {
@@ -88,7 +88,7 @@ public class ScriptedActionHandlerTest {
         reportingContext = mock(ReportingContext.class);
         when(reportingContext.getBulletinRepository()).thenReturn(mockScriptedBulletinRepository);
         when(reportingContext.createBulletin(anyString(), Mockito.any(Severity.class), anyString()))
-                .thenAnswer(invocation -> BulletinFactory.createSystemBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
+                .thenAnswer(invocation -> BulletinFactory.createBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
         List<Action> actions = Arrays.asList(new Action("LOG", attrs), new Action("ALERT", attrs));
         actions.forEach(action -> actionHandler.execute(reportingContext, action, facts));
 
@@ -104,7 +104,7 @@ public class ScriptedActionHandlerTest {
         reportingContext = mock(ReportingContext.class);
         when(reportingContext.getBulletinRepository()).thenReturn(mockScriptedBulletinRepository);
         when(reportingContext.createBulletin(anyString(), Mockito.any(Severity.class), anyString()))
-                .thenAnswer(invocation -> BulletinFactory.createSystemBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
+                .thenAnswer(invocation -> BulletinFactory.createBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
         List<Action> actions = Arrays.asList(new Action("LOG", attrs), new Action("ALERT", attrs));
         actions.forEach(action -> actionHandler.execute(reportingContext, action, facts));
 
@@ -188,7 +188,7 @@ public class ScriptedActionHandlerTest {
         reportingContext = mock(ReportingContext.class);
         when(reportingContext.getBulletinRepository()).thenReturn(mockScriptedBulletinRepository);
         when(reportingContext.createBulletin(anyString(), Mockito.any(Severity.class), anyString()))
-                .thenAnswer(invocation -> BulletinFactory.createSystemBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
+                .thenAnswer(invocation -> BulletinFactory.createBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
     }
 
     private MockScriptedActionHandler initTask(String scriptFile) throws InitializationException {

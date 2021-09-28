@@ -31,6 +31,7 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -39,7 +40,6 @@ import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
-import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
@@ -168,17 +168,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 final String groupName = StandardRemoteProcessGroup.this.getProcessGroup().getName();
                 final String sourceId = StandardRemoteProcessGroup.this.getIdentifier();
                 final String sourceName = StandardRemoteProcessGroup.this.getName();
-                Bulletin bulletin = new Bulletin.Builder()
-                        .groupId(groupId)
-                        .groupName(groupName)
-                        .sourceId(sourceId)
-                        .sourceType(ComponentType.REMOTE_PROCESS_GROUP)
-                        .sourceName(sourceName)
-                        .category(category)
-                        .level(severity.name())
-                        .message(message)
-                        .build();
-                bulletinRepository.addBulletin(bulletin);
+                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, groupName, sourceId, ComponentType.REMOTE_PROCESS_GROUP,
+                        sourceName, category, severity.name(), message));
             }
         };
 
@@ -934,14 +925,14 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 this.refreshContentsTimestamp = System.currentTimeMillis();
 
                 final List<String> inputPortString = dto.getInputPorts().stream()
-                        .map(port -> "InputPort[name=" + port.getName() + ", targetId=" + port.getId() + "]")
-                        .collect(Collectors.toList());
+                    .map(port -> "InputPort[name=" + port.getName() + ", targetId=" + port.getId() + "]")
+                    .collect(Collectors.toList());
                 final List<String> outputPortString = dto.getOutputPorts().stream()
-                        .map(port -> "OutputPort[name=" + port.getName() + ", targetId=" + port.getId() + "]")
-                        .collect(Collectors.toList());
+                    .map(port -> "OutputPort[name=" + port.getName() + ", targetId=" + port.getId() + "]")
+                    .collect(Collectors.toList());
 
                 logger.info("Successfully refreshed Flow Contents for {}; updated to reflect {} Input Ports {} and {} Output Ports {}", this, dto.getInputPorts().size(), inputPortString,
-                        dto.getOutputPorts().size(), outputPortString);
+                    dto.getOutputPorts().size(), outputPortString);
             } finally {
                 writeLock.unlock();
             }

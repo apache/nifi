@@ -224,7 +224,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
 
     private void publishBulletinWarning(String message) {
         if (bulletinRepository != null) {
-            final Bulletin bulletin = BulletinFactory.createSystemBulletin("Clustering", "WARNING", message);
+            final Bulletin bulletin = BulletinFactory.createBulletin("Clustering", "WARNING", message);
             bulletinRepository.addBulletin(bulletin);
         }
     }

@@ -32,7 +32,6 @@ import org.apache.nifi.util.MockPropertyValue;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.json.Json;
@@ -58,12 +57,9 @@ public class TestSiteToSiteBulletinReportingTask {
     @Test
     public void testUrls() {
         final ValidationContext context = Mockito.mock(ValidationContext.class);
-        Mockito.when(context.newPropertyValue(Mockito.anyString())).then(new Answer<PropertyValue>() {
-            @Override
-            public PropertyValue answer(InvocationOnMock invocation) throws Throwable {
-                String value = (String) invocation.getArguments()[0];
-                return new StandardPropertyValue(value, null, null);
-            }
+        Mockito.when(context.newPropertyValue(Mockito.anyString())).then((Answer<PropertyValue>) invocation -> {
+            String value = (String) invocation.getArguments()[0];
+            return new StandardPropertyValue(value, null, null);
         });
 
         assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi", context).isValid());
@@ -81,18 +77,7 @@ public class TestSiteToSiteBulletinReportingTask {
     public void testSerializedForm() throws IOException, InitializationException {
         // creating the list of bulletins
         final List<Bulletin> bulletins = new ArrayList<>();
-        Bulletin bulletin = new Bulletin.Builder()
-                .groupId("group-id")
-                .groupName("group-name")
-                .groupPath("group-path")
-                .sourceId("source-id")
-                .sourceName("source-name")
-                .sourceType(ComponentType.PROCESSOR)
-                .category("category")
-                .level("severity")
-                .message("message")
-                .build();
-        bulletins.add(bulletin);
+        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", ComponentType.PROCESSOR, "source-name", "category", "severity", "message", "group-path", "flowFileUUID"));
 
         // mock the access to the list of bulletins
         final ReportingContext context = Mockito.mock(ReportingContext.class);
@@ -133,21 +118,14 @@ public class TestSiteToSiteBulletinReportingTask {
         assertEquals("message", bulletinJson.getString("bulletinMessage"));
         assertEquals("group-name", bulletinJson.getString("bulletinGroupName"));
         assertEquals("group-path", bulletinJson.getString("bulletinGroupPath"));
+        assertEquals("flowFileUUID", bulletinJson.getString("bulletinFlowFileUUID"));
     }
 
     @Test
     public void testSerializedFormWithNullValues() throws IOException, InitializationException {
         // creating the list of bulletins
         final List<Bulletin> bulletins = new ArrayList<>();
-        Bulletin bulletin = new Bulletin.Builder()
-                .groupId("group-id")
-                .sourceId("source-id")
-                .sourceName("source-name")
-                .category("category")
-                .level("severity")
-                .message("message")
-                .build();
-        bulletins.add(bulletin);
+        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", "source-name", "category", "severity", "message"));
 
         // mock the access to the list of bulletins
         final ReportingContext context = Mockito.mock(ReportingContext.class);

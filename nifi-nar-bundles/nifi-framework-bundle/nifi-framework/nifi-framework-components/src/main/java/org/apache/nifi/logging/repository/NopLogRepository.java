@@ -19,6 +19,7 @@ package org.apache.nifi.logging.repository;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.logging.LogMessage;
 import org.apache.nifi.logging.LogObserver;
 import org.apache.nifi.logging.LogRepository;
 
@@ -30,11 +31,7 @@ public class NopLogRepository implements LogRepository {
     private volatile ComponentLog logger;
 
     @Override
-    public void addLogMessage(final LogLevel level, final String message) {
-    }
-
-    @Override
-    public void addLogMessage(final LogLevel level, final String message, final Throwable t) {
+    public void addLogMessage(LogMessage logMessage) {
     }
 
     @Override

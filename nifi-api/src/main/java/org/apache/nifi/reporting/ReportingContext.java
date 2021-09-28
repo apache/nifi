@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.reporting;
 
+import java.util.Map;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
-
-import java.util.Map;
 
 /**
  * This interface provides a bridge between the NiFi Framework and a
@@ -59,7 +58,7 @@ public interface ReportingContext extends PropertyContext {
      *
      * @param category of bulletin
      * @param severity of bulletin
-     * @param message  of bulletin
+     * @param message of bulletin
      * @return new bulletin
      */
     Bulletin createBulletin(String category, Severity severity, String message);
@@ -69,9 +68,9 @@ public interface ReportingContext extends PropertyContext {
      * identifier.
      *
      * @param componentId the ID of the component
-     * @param category    the name of the bulletin's category
-     * @param severity    the severity level of the bulletin
-     * @param message     the bulletin's message
+     * @param category the name of the bulletin's category
+     * @param severity the severity level of the bulletin
+     * @param message the bulletin's message
      * @return new bulletin
      */
     Bulletin createBulletin(String componentId, String category, Severity severity, String message);
@@ -89,13 +88,13 @@ public interface ReportingContext extends PropertyContext {
 
     /**
      * @return <code>true</code> if this instance of NiFi is configured to be part of a cluster, <code>false</code>
-     * if this instance of NiFi is a standalone instance
+     *         if this instance of NiFi is a standalone instance
      */
     boolean isClustered();
 
     /**
      * @return the ID of this node in the cluster, or <code>null</code> if either this node is not clustered or the Node Identifier
-     * has not yet been established
+     *         has not yet been established
      */
     String getClusterNodeIdentifier();
 

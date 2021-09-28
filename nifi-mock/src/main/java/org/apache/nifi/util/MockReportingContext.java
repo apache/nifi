@@ -16,24 +16,23 @@
  */
 package org.apache.nifi.util;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.events.BulletinFactory;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.reporting.Bulletin;
-import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.Severity;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.reporting.Bulletin;
+import org.apache.nifi.reporting.BulletinFactory;
+import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ReportingContext;
+import org.apache.nifi.reporting.Severity;
 
 public class MockReportingContext extends MockControllerServiceLookup implements ReportingContext, ControllerServiceLookup {
 
@@ -61,7 +60,7 @@ public class MockReportingContext extends MockControllerServiceLookup implements
 
     @Override
     public Map<String, String> getAllProperties() {
-        final Map<String, String> propValueMap = new LinkedHashMap<>();
+        final Map<String,String> propValueMap = new LinkedHashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
             propValueMap.put(entry.getKey().getName(), entry.getValue());
         }
@@ -95,18 +94,12 @@ public class MockReportingContext extends MockControllerServiceLookup implements
 
     @Override
     public Bulletin createBulletin(final String category, final Severity severity, final String message) {
-        return BulletinFactory.createSystemBulletin(category, severity.name(), message);
+        return BulletinFactory.createBulletin(category, severity.name(), message);
     }
 
     @Override
     public Bulletin createBulletin(final String componentId, final String category, final Severity severity, final String message) {
-        final Bulletin bulletin = new Bulletin.Builder()
-                .sourceId(componentId)
-                .sourceName("test processor")
-                .category(category)
-                .level(severity.name())
-                .message(message)
-                .build();
+        final Bulletin bulletin = BulletinFactory.createBulletin(null, null, componentId, "test processor", category, severity.name(), message);
         List<Bulletin> bulletins = componentBulletinsCreated.computeIfAbsent(componentId, k -> new ArrayList<>());
         bulletins.add(bulletin);
         return bulletin;

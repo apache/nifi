@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.jaxb;
 
+import javax.xml.bind.annotation.adapters.XmlAdapter;
+
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.reporting.Bulletin;
 
-import javax.xml.bind.annotation.adapters.XmlAdapter;
-
 /**
- *
  */
 public class BulletinAdapter extends XmlAdapter<AdaptedBulletin, Bulletin> {
 
@@ -31,24 +30,17 @@ public class BulletinAdapter extends XmlAdapter<AdaptedBulletin, Bulletin> {
         if (b == null) {
             return null;
         }
+        // TODO - timestamp is overridden here with a new timestamp... address?
         if (b.getSourceId() == null) {
-            return BulletinFactory.createSystemBulletin(b.getCategory(), b.getLevel(), b.getMessage(), b.getTimestamp());
+            return BulletinFactory.createBulletin(b.getCategory(), b.getLevel(), b.getMessage());
         } else {
-            return new Bulletin.Builder()
-                    .groupId(b.getGroupId())
-                    .groupName(b.getGroupName())
-                    .sourceId(b.getSourceId())
-                    .sourceType(b.getSourceType())
-                    .sourceName(b.getSourceName())
-                    .category(b.getCategory())
-                    .level(b.getLevel())
-                    .message(b.getMessage())
-                    .build();
+            return BulletinFactory.createBulletin(b.getGroupId(), b.getGroupName(), b.getSourceId(), b.getSourceType(),
+                    b.getSourceName(), b.getCategory(), b.getLevel(), b.getMessage());
         }
     }
 
     @Override
-    public AdaptedBulletin marshal(final Bulletin b) {
+    public AdaptedBulletin marshal(final Bulletin b) throws Exception {
         if (b == null) {
             return null;
         }

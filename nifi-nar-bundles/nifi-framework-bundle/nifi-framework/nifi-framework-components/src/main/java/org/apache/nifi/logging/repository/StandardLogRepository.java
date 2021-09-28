@@ -17,6 +17,7 @@
 package org.apache.nifi.logging.repository;
 
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogMessage;
@@ -68,11 +69,11 @@ public class StandardLogRepository implements LogRepository {
     @Override
     public void addLogMessage(final LogLevel level, final String format, final Object[] params) {
         replaceThrowablesWithMessage(params);
-        final Optional<FlowFile> flowFile = getFlowFileFromObjects(params);
+        final Optional<String> flowFileUUID = getFlowFileUUIDFromObjects(params);
         final String formattedMessage = MessageFormatter.arrayFormat(format, params).getMessage();
         final LogMessage logMessage = new LogMessage.Builder(System.currentTimeMillis(), level)
                 .message(formattedMessage)
-                .flowFile(flowFile.orElse(null))
+                .flowFileUUID(flowFileUUID.orElse(null))
                 .createLogMessage();
         addLogMessage(logMessage);
     }
@@ -80,20 +81,21 @@ public class StandardLogRepository implements LogRepository {
     @Override
     public void addLogMessage(final LogLevel level, final String format, final Object[] params, final Throwable t) {
         replaceThrowablesWithMessage(params);
-        final Optional<FlowFile> flowFile = getFlowFileFromObjects(params);
+        final Optional<String> flowFileUUID = getFlowFileUUIDFromObjects(params);
         final String formattedMessage = MessageFormatter.arrayFormat(format, params, t).getMessage();
         final LogMessage logMessage = new LogMessage.Builder(System.currentTimeMillis(), level)
                 .message(formattedMessage)
                 .throwable(t)
-                .flowFile(flowFile.orElse(null))
+                .flowFileUUID(flowFileUUID.orElse(null))
                 .createLogMessage();
         addLogMessage(logMessage);
     }
 
-    private Optional<FlowFile> getFlowFileFromObjects(Object[] params) {
+    private Optional<String> getFlowFileUUIDFromObjects(Object[] params) {
         for (Object param : params) {
             if (param instanceof FlowFile) {
-                return Optional.of((FlowFile) param);
+                final FlowFile flowFile = (FlowFile) param;
+                return Optional.of(flowFile.getAttribute(CoreAttributes.UUID.key()));
             }
         }
         return Optional.empty();

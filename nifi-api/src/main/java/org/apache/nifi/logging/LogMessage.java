@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.logging;
 
-import org.apache.nifi.flowfile.FlowFile;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.Date;
@@ -31,7 +29,7 @@ public class LogMessage {
     private final String message;
     private final LogLevel logLevel;
     private final Throwable throwable;
-    private final FlowFile flowFile;
+    private final String flowFileUUID;
     private final Object[] objects;
 
     public static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
@@ -43,7 +41,7 @@ public class LogMessage {
         private final LogLevel logLevel;
         private String message;
         private Throwable throwable;
-        private FlowFile flowFile;
+        private String flowFileUUID;
         private Object[] objects;
 
         public Builder(final long time, final LogLevel logLevel) {
@@ -61,8 +59,8 @@ public class LogMessage {
             return this;
         }
 
-        public Builder flowFile(FlowFile flowFile) {
-            this.flowFile = flowFile;
+        public Builder flowFileUUID(String flowFileUUID) {
+            this.flowFileUUID = flowFileUUID;
             return this;
         }
 
@@ -72,16 +70,16 @@ public class LogMessage {
         }
 
         public LogMessage createLogMessage() {
-            return new LogMessage(time, logLevel, message, throwable, flowFile, objects);
+            return new LogMessage(time, logLevel, message, throwable, flowFileUUID, objects);
         }
     }
 
-    private LogMessage(final long time, final LogLevel logLevel, final String message, final Throwable throwable, final FlowFile flowFile, final Object[] objects) {
+    private LogMessage(final long time, final LogLevel logLevel, final String message, final Throwable throwable, final String flowFileUUID, final Object[] objects) {
         this.logLevel = logLevel;
         this.throwable = throwable;
         this.message = message;
         this.time = time;
-        this.flowFile = flowFile;
+        this.flowFileUUID = flowFileUUID;
         this.objects = objects;
     }
 
@@ -101,8 +99,8 @@ public class LogMessage {
         return throwable;
     }
 
-    public FlowFile getFlowFile() {
-        return flowFile;
+    public String getFlowFileUUID() {
+        return flowFileUUID;
     }
 
     public Object[] getObjects() {
@@ -119,7 +117,7 @@ public class LogMessage {
             final StringWriter sw = new StringWriter();
             final PrintWriter pw = new PrintWriter(sw);
             throwable.printStackTrace(pw);
-            formattedMsg += System.lineSeparator() + sw.toString();
+            formattedMsg += System.lineSeparator() + sw;
         }
 
         return formattedMsg;

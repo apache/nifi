@@ -209,7 +209,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 } catch (Exception e) {
                     logger.error("Failed to enable " + controllerServiceNode, e);
                     if (this.bulletinRepo != null) {
-                        this.bulletinRepo.addBulletin(BulletinFactory.createSystemBulletin("Controller Service",
+                        this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
                                 Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
                     }
                 }
@@ -265,7 +265,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                             completableFuture.completeExceptionally(e);
 
                             if (this.bulletinRepo != null) {
-                                this.bulletinRepo.addBulletin(BulletinFactory.createSystemBulletin("Controller Service",
+                                this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
                                     Severity.ERROR.name(), "Could not enable " + controllerServiceNode + " due to " + e));
                             }
 
@@ -276,7 +276,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             } catch (Exception e) {
                 logger.error("Failed to enable " + controllerServiceNode, e);
                 if (this.bulletinRepo != null) {
-                    this.bulletinRepo.addBulletin(BulletinFactory.createSystemBulletin("Controller Service",
+                    this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
                         Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
                 }
             }

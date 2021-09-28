@@ -17,6 +17,7 @@
 package org.apache.nifi.logging;
 
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -43,17 +44,8 @@ public class ControllerServiceLogObserver implements LogObserver {
         final String groupId = pg == null ? null : pg.getIdentifier();
         final String groupName = pg == null ? null : pg.getName();
 
-        Bulletin bulletin = new Bulletin.Builder()
-                .groupId(groupId)
-                .groupName(groupName)
-                .sourceId(serviceNode.getIdentifier())
-                .sourceType(ComponentType.CONTROLLER_SERVICE)
-                .sourceName(serviceNode.getName())
-                .category("Log Message")
-                .level(bulletinLevel)
-                .message(message.getMessage())
-                .build();
-
+        final Bulletin bulletin = BulletinFactory.createBulletin(groupId, groupName, serviceNode.getIdentifier(), ComponentType.CONTROLLER_SERVICE,
+                serviceNode.getName(), "Log Message", bulletinLevel, message.getMessage());
         bulletinRepository.addBulletin(bulletin);
     }
 }

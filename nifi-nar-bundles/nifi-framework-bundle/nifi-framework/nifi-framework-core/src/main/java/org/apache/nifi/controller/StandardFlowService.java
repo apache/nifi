@@ -1152,7 +1152,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 }
 
                 // record the failed save as a bulletin
-                final Bulletin saveFailureBulletin = BulletinFactory.createSystemBulletin(EVENT_CATEGORY, LogLevel.ERROR.name(), "Unable to save flow controller configuration.");
+                final Bulletin saveFailureBulletin = BulletinFactory.createBulletin(EVENT_CATEGORY, LogLevel.ERROR.name(), "Unable to save flow controller configuration.");
                 controller.getBulletinRepository().addBulletin(saveFailureBulletin);
             } finally {
                 if (currentCl != null) {
