@@ -18,12 +18,12 @@ package org.apache.nifi.distributed.cache.server.map;
 
 import org.apache.commons.lang3.SerializationException;
 import org.apache.nifi.distributed.cache.client.Deserializer;
+import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
@@ -113,12 +113,9 @@ public class DistributedMapCacheTlsTest {
      *
      * @return a NiFi {@link SSLContextService}, to be used to secure the distributed cache comms
      * @throws GeneralSecurityException on SSLContext generation failure
-     * @throws IOException on failure to serialize the SSLContext
      */
-    private static SSLContextService createSslContextService() throws GeneralSecurityException, IOException {
-        final TlsConfiguration tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
-        new File(tlsConfiguration.getKeystorePath()).deleteOnExit();
-        new File(tlsConfiguration.getTruststorePath()).deleteOnExit();
+    private static SSLContextService createSslContextService() throws GeneralSecurityException {
+        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
         final SSLContext sslContext =  SslContextFactory.createSslContext(tlsConfiguration);
         final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
         Mockito.when(sslContextService.getIdentifier()).thenReturn(sslContextService.getClass().getName());

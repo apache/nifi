@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.distributed.cache.client;
 
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.client.adapter.AtomicCacheEntryInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.BooleanInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.LongInboundAdapter;
@@ -29,6 +28,7 @@ import org.apache.nifi.distributed.cache.client.adapter.VoidInboundAdapter;
 import org.apache.nifi.distributed.cache.operations.MapOperation;
 import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
 import org.apache.nifi.remote.VersionNegotiatorFactory;
+import org.apache.nifi.ssl.SSLContextService;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -44,11 +44,20 @@ public class NettyDistributedMapCacheClient extends DistributedCacheClient {
     /**
      * Constructor.
      *
-     * @param context the NiFi configuration to be applied to the channel pool
-     * @param factory creator of object used to broker the version of the distributed cache protocol with the service
+     * @param hostname          the network name / IP address of the server running the distributed cache service
+     * @param port              the port on which the distributed cache service is running
+     * @param timeoutMillis     the network timeout associated with requests to the service
+     * @param sslContextService the SSL context (if any) associated with requests to the service; if not specified,
+     *                          communications will not be encrypted
+     * @param factory           creator of object used to broker the version of the distributed cache protocol with the service
      */
-    public NettyDistributedMapCacheClient(final ConfigurationContext context, final VersionNegotiatorFactory factory) {
-        super(context, factory);
+    public NettyDistributedMapCacheClient(
+            final String hostname,
+            final int port,
+            final int timeoutMillis,
+            final SSLContextService sslContextService,
+            final VersionNegotiatorFactory factory) {
+        super(hostname, port, timeoutMillis, sslContextService, factory);
     }
 
     /**

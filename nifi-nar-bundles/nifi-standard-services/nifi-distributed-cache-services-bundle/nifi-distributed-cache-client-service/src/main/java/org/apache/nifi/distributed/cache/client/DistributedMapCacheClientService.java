@@ -44,6 +44,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Tags({"distributed", "cache", "state", "map", "cluster"})
 @SeeAlso(classNames = {"org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer", "org.apache.nifi.ssl.StandardSSLContextService"})
@@ -107,7 +108,12 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         getLogger().debug("Enabling Map Cache Client Service [{}]", context.getName());
         this.versionNegotiatorFactory  = new StandardVersionNegotiatorFactory(
                 ProtocolVersion.V3.value(), ProtocolVersion.V2.value(), ProtocolVersion.V1.value());
-        this.cacheClient = new NettyDistributedMapCacheClient(context, versionNegotiatorFactory);
+        this.cacheClient = new NettyDistributedMapCacheClient(
+                context.getProperty(HOSTNAME).getValue(),
+                context.getProperty(PORT).asInteger(),
+                context.getProperty(COMMUNICATIONS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(),
+                context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class),
+                versionNegotiatorFactory);
     }
 
     @OnDisabled

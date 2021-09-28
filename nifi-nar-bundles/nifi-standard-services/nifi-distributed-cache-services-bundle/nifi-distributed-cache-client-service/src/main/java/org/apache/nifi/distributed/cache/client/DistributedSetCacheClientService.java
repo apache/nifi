@@ -34,6 +34,7 @@ import org.apache.nifi.ssl.SSLContextService;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Tags({"distributed", "cache", "state", "set", "cluster"})
 @SeeAlso(classNames = {"org.apache.nifi.distributed.cache.server.DistributedSetCacheServer", "org.apache.nifi.ssl.StandardSSLContextService"})
@@ -94,7 +95,12 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
     public void onEnabled(final ConfigurationContext context) {
         getLogger().debug("Enabling Set Cache Client Service [{}]", context.getName());
         this.versionNegotiatorFactory = new StandardVersionNegotiatorFactory(ProtocolVersion.V1.value());
-        this.cacheClient = new NettyDistributedSetCacheClient(context, versionNegotiatorFactory);
+        this.cacheClient = new NettyDistributedSetCacheClient(
+                context.getProperty(HOSTNAME).getValue(),
+                context.getProperty(PORT).asInteger(),
+                context.getProperty(COMMUNICATIONS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(),
+                context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class),
+                versionNegotiatorFactory);
     }
 
     @OnDisabled

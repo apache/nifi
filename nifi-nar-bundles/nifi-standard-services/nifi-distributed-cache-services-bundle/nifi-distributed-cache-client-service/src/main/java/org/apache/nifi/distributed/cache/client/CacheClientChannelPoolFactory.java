@@ -26,14 +26,11 @@ import io.netty.channel.pool.ChannelPool;
 import io.netty.channel.pool.ChannelPoolHandler;
 import io.netty.channel.pool.FixedChannelPool;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.event.transport.netty.channel.pool.InitializingChannelPoolHandler;
 import org.apache.nifi.remote.VersionNegotiatorFactory;
 import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Factory for construction of new {@link ChannelPool}, used by distributed cache clients to invoke service
@@ -58,23 +55,25 @@ public class CacheClientChannelPoolFactory {
     /**
      * Instantiate a new netty pool of channels to be used for distributed cache communications
      *
-     * @param context the NiFi configuration to be applied to the channel pool
-     * @param factory creator of object used to broker the version of the distributed cache protocol with the service
+     * @param hostname          the network name / IP address of the server running the distributed cache service
+     * @param port              the port on which the distributed cache service is running
+     * @param timeoutMillis     the network timeout associated with requests to the service
+     * @param sslContextService the SSL context (if any) associated with requests to the service; if not specified,
+     *                          communications will not be encrypted
+     * @param factory           creator of object used to broker the version of the distributed cache protocol with the service
      * @return a channel pool object from which {@link Channel} objects may be obtained
      */
-    public ChannelPool createChannelPool(final ConfigurationContext context, final VersionNegotiatorFactory factory) {
-        final String hostname = context.getProperty(DistributedSetCacheClientService.HOSTNAME).getValue();
-        final int port = context.getProperty(DistributedSetCacheClientService.PORT).asInteger();
-        final PropertyValue timeoutMillis = context.getProperty(DistributedSetCacheClientService.COMMUNICATIONS_TIMEOUT);
-        final SSLContextService sslContextService = context.getProperty(
-                DistributedSetCacheClientService.SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+    public ChannelPool createChannelPool(final String hostname,
+                                         final int port,
+                                         final int timeoutMillis,
+                                         final SSLContextService sslContextService,
+                                         final VersionNegotiatorFactory factory) {
         final SSLContext sslContext = (sslContextService == null) ? null : sslContextService.createContext();
-
         final EventLoopGroup group = new NioEventLoopGroup();
         final Bootstrap bootstrap = new Bootstrap();
         final CacheClientChannelInitializer initializer = new CacheClientChannelInitializer(sslContext, factory);
         bootstrap.group(group)
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeoutMillis.asTimePeriod(TimeUnit.MILLISECONDS).intValue())
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeoutMillis)
                 .remoteAddress(hostname, port)
                 .channel(NioSocketChannel.class);
         final ChannelPoolHandler channelPoolHandler = new InitializingChannelPoolHandler(initializer);
@@ -82,7 +81,7 @@ public class CacheClientChannelPoolFactory {
                 channelPoolHandler,
                 ChannelHealthChecker.ACTIVE,
                 FixedChannelPool.AcquireTimeoutAction.FAIL,
-                timeoutMillis.asTimePeriod(TimeUnit.MILLISECONDS),
+                timeoutMillis,
                 maxConnections,
                 MAX_PENDING_ACQUIRES);
     }

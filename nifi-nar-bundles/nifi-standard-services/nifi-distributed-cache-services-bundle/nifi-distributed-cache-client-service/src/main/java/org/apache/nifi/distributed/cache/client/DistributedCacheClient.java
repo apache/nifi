@@ -18,10 +18,10 @@ package org.apache.nifi.distributed.cache.client;
 
 import io.netty.channel.Channel;
 import io.netty.channel.pool.ChannelPool;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.client.adapter.InboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.OutboundAdapter;
 import org.apache.nifi.remote.VersionNegotiatorFactory;
+import org.apache.nifi.ssl.SSLContextService;
 
 import java.io.IOException;
 
@@ -39,11 +39,20 @@ public class DistributedCacheClient {
     /**
      * Constructor.
      *
-     * @param context the NiFi configuration to be applied to the channel pool
-     * @param factory creator of object used to broker the version of the distributed cache protocol with the service
+     * @param hostname          the network name / IP address of the server running the distributed cache service
+     * @param port              the port on which the distributed cache service is running
+     * @param timeoutMillis     the network timeout associated with requests to the service
+     * @param sslContextService the SSL context (if any) associated with requests to the service; if not specified,
+     *                          communications will not be encrypted
+     * @param factory           creator of object used to broker the version of the distributed cache protocol with the service
      */
-    protected DistributedCacheClient(final ConfigurationContext context, final VersionNegotiatorFactory factory) {
-        this.channelPool = new CacheClientChannelPoolFactory().createChannelPool(context, factory);
+    protected DistributedCacheClient(final String hostname,
+                                     final int port,
+                                     final int timeoutMillis,
+                                     final SSLContextService sslContextService,
+                                     final VersionNegotiatorFactory factory) {
+        this.channelPool = new CacheClientChannelPoolFactory().createChannelPool(
+                hostname, port, timeoutMillis, sslContextService, factory);
     }
 
     /**
