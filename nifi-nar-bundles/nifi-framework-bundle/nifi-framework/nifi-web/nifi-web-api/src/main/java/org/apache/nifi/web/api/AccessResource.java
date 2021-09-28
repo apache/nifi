@@ -73,7 +73,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
@@ -233,8 +232,6 @@ public class AccessResource extends ApplicationResource {
             }
     )
     public Response getAccessStatus(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
-
-        // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
             throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
         }
@@ -244,34 +241,21 @@ public class AccessResource extends ApplicationResource {
         try {
             final X509Certificate[] certificates = certificateExtractor.extractClientCertificate(httpServletRequest);
 
-            // if there is not certificate, consider a token
             if (certificates == null) {
-                // look for an authorization token in header or cookie
                 final String bearerToken = bearerTokenResolver.resolve(httpServletRequest);
-
-                // if there is no authorization header, we don't know the user
                 if (bearerToken == null) {
                     accessStatus.setStatus(AccessStatusDTO.Status.UNKNOWN.name());
-                    accessStatus.setMessage("Access Unknown: Token not found.");
-                } else if (httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION) == null) {
-                    accessStatus.setStatus(AccessStatusDTO.Status.UNKNOWN.name());
-                    accessStatus.setMessage("Access Unknown: Authorization Header not found.");
-                    // Remove Session Cookie when Authorization Header not found
-                    applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.AUTHORIZATION_BEARER);
+                    accessStatus.setMessage("Access Unknown: Certificate and Token not found.");
                 } else {
                     try {
-                        // authenticate the token
                         final BearerTokenAuthenticationToken authenticationToken = new BearerTokenAuthenticationToken(bearerToken);
                         final Authentication authentication = jwtAuthenticationProvider.authenticate(authenticationToken);
                         final NiFiUserDetails userDetails = (NiFiUserDetails) authentication.getPrincipal();
                         final String identity = userDetails.getUsername();
 
-                        // set the user identity
                         accessStatus.setIdentity(identity);
-
-                        // attempt authorize to /flow
                         accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                        accessStatus.setMessage("You are already logged in.");
+                        accessStatus.setMessage("Access Granted: Token authenticated.");
                     } catch (final AuthenticationException iae) {
                         applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.AUTHORIZATION_BEARER);
                         throw iae;
@@ -288,12 +272,9 @@ public class AccessResource extends ApplicationResource {
                     final Authentication authenticationResponse = x509AuthenticationProvider.authenticate(x509Request);
                     final NiFiUser nifiUser = ((NiFiUserDetails) authenticationResponse.getDetails()).getNiFiUser();
 
-                    // set the user identity
                     accessStatus.setIdentity(nifiUser.getIdentity());
-
-                    // attempt authorize to /flow
                     accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                    accessStatus.setMessage("You are already logged in.");
+                    accessStatus.setMessage("Access Granted: Certificate authenticated.");
                 } catch (final IllegalArgumentException iae) {
                     throw new InvalidAuthenticationException(iae.getMessage(), iae);
                 }
@@ -304,7 +285,6 @@ public class AccessResource extends ApplicationResource {
             throw new AdministrationException(ase.getMessage(), ase);
         }
 
-        // create the entity
         final AccessStatusEntity entity = new AccessStatusEntity();
         entity.setAccessStatus(accessStatus);
 
