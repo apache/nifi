@@ -69,7 +69,6 @@ import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.MockVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.SynchronousValidationTrigger;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -321,7 +320,6 @@ public class StandardProcessorNodeIT {
         assertEquals("${value}", procNode.getProperties().get(DynamicPropertiesTestProcessor.STATIC_PROPERTY).getRawValue());
     }
 
-    @NotNull
     private NiFiProperties createBasicNiFiPropertiesWithMocks() {
         HashMap<String, String> additionalProperties = new HashMap<>();
         additionalProperties.put(NiFiProperties.ADMINISTRATIVE_YIELD_DURATION, "1 sec");
