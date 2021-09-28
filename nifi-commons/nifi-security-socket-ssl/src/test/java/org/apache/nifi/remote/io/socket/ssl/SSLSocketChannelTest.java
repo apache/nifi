@@ -38,9 +38,10 @@ import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsPlatform;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -55,17 +56,19 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Timeout(value = 15)
 public class SSLSocketChannelTest {
     private static final String LOCALHOST = "localhost";
 
@@ -81,9 +84,9 @@ public class SSLSocketChannelTest {
 
     private static final int CHANNEL_POLL_TIMEOUT = 5000;
 
-    private static final long CHANNEL_SLEEP_BEFORE_READ = 100;
-
     private static final int MAX_MESSAGE_LENGTH = 1024;
+
+    private static final long SHUTDOWN_TIMEOUT = 100;
 
     private static final String TLS_1_3 = "TLSv1.3";
 
@@ -97,9 +100,17 @@ public class SSLSocketChannelTest {
 
     private static final int FIRST_BYTE_OFFSET = 1;
 
+    private static final int SINGLE_COUNT_DOWN = 1;
+
     private static SSLContext sslContext;
 
-    @BeforeClass
+    private static final String TLS_1_3_SUPPORTED = "isTls13Supported";
+
+    public static boolean isTls13Supported() {
+        return TlsPlatform.getSupportedProtocols().contains(TLS_1_3);
+    }
+
+    @BeforeAll
     public static void setConfiguration() throws GeneralSecurityException {
         final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
         sslContext = SslContextFactory.createSslContext(tlsConfiguration);
@@ -115,52 +126,58 @@ public class SSLSocketChannelTest {
 
     @Test
     public void testClientConnectHandshakeFailed() throws IOException {
-        assumeProtocolSupported(TLS_1_2);
+        final String enabledProtocol = isTls13Supported() ? TLS_1_3 : TLS_1_2;
+
         final EventLoopGroup group = new NioEventLoopGroup(GROUP_THREADS);
 
         try (final SocketChannel socketChannel = SocketChannel.open()) {
             final int port = NetworkUtils.getAvailableTcpPort();
-            startServer(group, port, TLS_1_2);
+            startServer(group, port, enabledProtocol, getSingleCountDownLatch());
 
             socketChannel.connect(new InetSocketAddress(LOCALHOST, port));
-            final SSLEngine sslEngine = createSslEngine(TLS_1_2, CLIENT_CHANNEL);
+            final SSLEngine sslEngine = createSslEngine(enabledProtocol, CLIENT_CHANNEL);
 
             final SSLSocketChannel sslSocketChannel = new SSLSocketChannel(sslEngine, socketChannel);
             sslSocketChannel.setTimeout(CHANNEL_FAILURE_TIMEOUT);
 
-            group.shutdownGracefully().syncUninterruptibly();
+            shutdownGroup(group);
             assertThrows(SSLException.class, sslSocketChannel::connect);
         } finally {
-            group.shutdownGracefully().syncUninterruptibly();
+            shutdownGroup(group);
         }
     }
 
     @Test
     public void testClientConnectWriteReadTls12() throws Exception {
-        assumeProtocolSupported(TLS_1_2);
         assertChannelConnectedWriteReadClosed(TLS_1_2);
     }
 
+    @EnabledIf(TLS_1_3_SUPPORTED)
     @Test
     public void testClientConnectWriteReadTls13() throws Exception {
-        assumeProtocolSupported(TLS_1_3);
         assertChannelConnectedWriteReadClosed(TLS_1_3);
     }
 
-    @Test(timeout = CHANNEL_TIMEOUT)
+    @Test
+    public void testClientConnectWriteAvailableReadTls12() throws Exception {
+        assertChannelConnectedWriteAvailableRead(TLS_1_2);
+    }
+
+    @EnabledIf(TLS_1_3_SUPPORTED)
+    @Test
+    public void testClientConnectWriteAvailableReadTls13() throws Exception {
+        assertChannelConnectedWriteAvailableRead(TLS_1_3);
+    }
+
+    @Test
     public void testServerReadWriteTls12() throws Exception {
-        assumeProtocolSupported(TLS_1_2);
         assertServerChannelConnectedReadClosed(TLS_1_2);
     }
 
-    @Test(timeout = CHANNEL_TIMEOUT)
+    @EnabledIf(TLS_1_3_SUPPORTED)
+    @Test
     public void testServerReadWriteTls13() throws Exception {
-        assumeProtocolSupported(TLS_1_3);
         assertServerChannelConnectedReadClosed(TLS_1_3);
-    }
-
-    private void assumeProtocolSupported(final String protocol) {
-        Assume.assumeTrue(String.format("Protocol [%s] not supported", protocol), TlsPlatform.getSupportedProtocols().contains(protocol));
     }
 
     private void assertServerChannelConnectedReadClosed(final String enabledProtocol) throws IOException, InterruptedException {
@@ -194,67 +211,100 @@ public class SSLSocketChannelTest {
                 channel.writeAndFlush(MESSAGE).syncUninterruptibly();
 
                 final String messageRead = queue.poll(CHANNEL_POLL_TIMEOUT, TimeUnit.MILLISECONDS);
-                assertEquals("Message not matched", MESSAGE, messageRead);
+                assertEquals(MESSAGE, messageRead, "Message not matched");
             } finally {
                 channel.close();
             }
         } finally {
-            group.shutdownGracefully().syncUninterruptibly();
+            shutdownGroup(group);
             serverSocketChannel.close();
         }
     }
 
     private void assertChannelConnectedWriteReadClosed(final String enabledProtocol) throws IOException {
-        processClientSslSocketChannel(enabledProtocol, (sslSocketChannel -> {
+        final CountDownLatch countDownLatch = getSingleCountDownLatch();
+        processClientSslSocketChannel(enabledProtocol, countDownLatch, (sslSocketChannel -> {
             try {
                 sslSocketChannel.connect();
-                assertFalse("Channel closed", sslSocketChannel.isClosed());
+                assertFalse(sslSocketChannel.isClosed());
 
-                assertChannelWriteRead(sslSocketChannel);
+                assertChannelWriteRead(sslSocketChannel, countDownLatch);
 
                 sslSocketChannel.close();
-                assertTrue("Channel not closed", sslSocketChannel.isClosed());
+                assertTrue(sslSocketChannel.isClosed());
             } catch (final IOException e) {
                 throw new UncheckedIOException(String.format("Channel Failed for %s", enabledProtocol), e);
             }
         }));
     }
 
-    private void assertChannelWriteRead(final SSLSocketChannel sslSocketChannel) throws IOException {
-        sslSocketChannel.write(MESSAGE_BYTES);
-
-        while (sslSocketChannel.available() == 0) {
+    private void assertChannelConnectedWriteAvailableRead(final String enabledProtocol) throws IOException {
+        final CountDownLatch countDownLatch = getSingleCountDownLatch();
+        processClientSslSocketChannel(enabledProtocol, countDownLatch, (sslSocketChannel -> {
             try {
-                TimeUnit.MILLISECONDS.sleep(CHANNEL_SLEEP_BEFORE_READ);
-            } catch (final InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
+                sslSocketChannel.connect();
+                assertFalse(sslSocketChannel.isClosed());
 
+                assertChannelWriteAvailableRead(sslSocketChannel, countDownLatch);
+
+                sslSocketChannel.close();
+                assertTrue(sslSocketChannel.isClosed());
+            } catch (final IOException e) {
+                throw new UncheckedIOException(String.format("Channel Failed for %s", enabledProtocol), e);
+            }
+        }));
+    }
+
+    private void assertChannelWriteAvailableRead(final SSLSocketChannel sslSocketChannel, final CountDownLatch countDownLatch) throws IOException {
+        sslSocketChannel.write(MESSAGE_BYTES);
+        sslSocketChannel.available();
+        awaitCountDownLatch(countDownLatch);
+        assetMessageRead(sslSocketChannel);
+    }
+
+    private void assertChannelWriteRead(final SSLSocketChannel sslSocketChannel, final CountDownLatch countDownLatch) throws IOException {
+        sslSocketChannel.write(MESSAGE_BYTES);
+        awaitCountDownLatch(countDownLatch);
+        assetMessageRead(sslSocketChannel);
+    }
+
+    private void awaitCountDownLatch(final CountDownLatch countDownLatch) throws IOException {
+        try {
+            countDownLatch.await();
+        } catch (final InterruptedException e) {
+            throw new IOException("Count Down Interrupted", e);
+        }
+    }
+
+    private void assetMessageRead(final SSLSocketChannel sslSocketChannel) throws IOException {
         final byte firstByteRead = (byte) sslSocketChannel.read();
-        assertEquals("Channel Message first byte not matched", MESSAGE_BYTES[0], firstByteRead);
+        assertEquals(MESSAGE_BYTES[0], firstByteRead, "Channel Message first byte not matched");
+
+        final int available = sslSocketChannel.available();
+        final int availableExpected = MESSAGE_BYTES.length - FIRST_BYTE_OFFSET;
+        assertEquals(availableExpected, available, "Available Bytes not matched");
 
         final byte[] messageBytes = new byte[MESSAGE_BYTES.length];
         messageBytes[0] = firstByteRead;
 
         final int messageBytesRead = sslSocketChannel.read(messageBytes, FIRST_BYTE_OFFSET, messageBytes.length);
-        assertEquals("Channel Message Bytes Read not matched", messageBytes.length - FIRST_BYTE_OFFSET, messageBytesRead);
+        assertEquals(messageBytes.length - FIRST_BYTE_OFFSET, messageBytesRead, "Channel Message Bytes Read not matched");
 
         final String message  = new String(messageBytes, MESSAGE_CHARSET);
-        assertEquals("Channel Message not matched", MESSAGE, message);
+        assertEquals(MESSAGE, message, "Message not matched");
     }
 
-    private void processClientSslSocketChannel(final String enabledProtocol, final Consumer<SSLSocketChannel> channelConsumer) throws IOException {
+    private void processClientSslSocketChannel(final String enabledProtocol, final CountDownLatch countDownLatch, final Consumer<SSLSocketChannel> channelConsumer) throws IOException {
         final EventLoopGroup group = new NioEventLoopGroup(GROUP_THREADS);
 
         try {
             final int port = NetworkUtils.getAvailableTcpPort();
-            startServer(group, port, enabledProtocol);
+            startServer(group, port, enabledProtocol, countDownLatch);
             final SSLSocketChannel sslSocketChannel = new SSLSocketChannel(sslContext, LOCALHOST, port, null, CLIENT_CHANNEL);
             sslSocketChannel.setTimeout(CHANNEL_TIMEOUT);
             channelConsumer.accept(sslSocketChannel);
         } finally {
-            group.shutdownGracefully().syncUninterruptibly();
+            shutdownGroup(group);
         }
     }
 
@@ -273,7 +323,7 @@ public class SSLSocketChannelTest {
         return bootstrap.connect(LOCALHOST, port).syncUninterruptibly().channel();
     }
 
-    private void startServer(final EventLoopGroup group, final int port, final String enabledProtocol) {
+    private void startServer(final EventLoopGroup group, final int port, final String enabledProtocol, final CountDownLatch countDownLatch) {
         final ServerBootstrap bootstrap = new ServerBootstrap();
         bootstrap.group(group);
         bootstrap.channel(NioServerSocketChannel.class);
@@ -287,6 +337,7 @@ public class SSLSocketChannelTest {
                     @Override
                     protected void channelRead0(ChannelHandlerContext channelHandlerContext, String s) throws Exception {
                         channelHandlerContext.channel().writeAndFlush(MESSAGE).sync();
+                        countDownLatch.countDown();
                     }
                 });
             }
@@ -308,5 +359,13 @@ public class SSLSocketChannelTest {
         pipeline.addLast(new DelimiterBasedFrameDecoder(MAX_MESSAGE_LENGTH, Delimiters.lineDelimiter()));
         pipeline.addLast(new StringDecoder());
         pipeline.addLast(new StringEncoder());
+    }
+
+    private void shutdownGroup(final EventLoopGroup group) {
+        group.shutdownGracefully(SHUTDOWN_TIMEOUT, SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS).syncUninterruptibly();
+    }
+
+    private CountDownLatch getSingleCountDownLatch() {
+        return new CountDownLatch(SINGLE_COUNT_DOWN);
     }
 }
