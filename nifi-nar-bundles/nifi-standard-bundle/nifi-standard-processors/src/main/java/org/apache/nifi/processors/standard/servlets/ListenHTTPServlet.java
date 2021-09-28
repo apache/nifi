@@ -38,6 +38,7 @@ import org.apache.nifi.util.FlowFileUnpackagerV2;
 import org.apache.nifi.util.FlowFileUnpackagerV3;
 import org.eclipse.jetty.server.Request;
 
+import javax.servlet.AsyncContext;
 import javax.servlet.MultipartConfigElement;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -413,12 +414,20 @@ public class ListenHTTPServlet extends HttpServlet {
                     new Object[]{flowFileSet, request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer, flowFileSet.size(), uuid});
             }
         } else {
-            response.setStatus(this.returnCode);
             logger.info("Received from Remote Host: [{}] Port [{}] SubjectDN [{}] IssuerDN [{}]; transferring to 'success'",
                 new Object[]{request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer});
 
             session.transfer(flowFileSet, ListenHTTP.RELATIONSHIP_SUCCESS);
-            session.commitAsync();
+
+            final AsyncContext asyncContext = request.startAsync();
+            session.commitAsync(() -> {
+                        response.setStatus(this.returnCode);
+                        asyncContext.complete();
+                    }, t -> {
+                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        asyncContext.complete();
+                    }
+            );
         }
     }
 
