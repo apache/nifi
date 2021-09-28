@@ -30,6 +30,7 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
 import java.io.Closeable;
+import java.io.EOFException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -47,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 public class SSLSocketChannel implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(SSLSocketChannel.class);
 
+    private static final int MINIMUM_READ_BUFFER_SIZE = 1;
     private static final int DISCARD_BUFFER_LENGTH = 8192;
     private static final int END_OF_STREAM = -1;
     private static final byte[] EMPTY_MESSAGE = new byte[0];
@@ -266,7 +268,7 @@ public class SSLSocketChannel implements Closeable {
                 status = wrapResult.getStatus();
             }
             if (Status.CLOSED == status) {
-                final ByteBuffer streamOutputBuffer = streamOutManager.prepareForRead(1);
+                final ByteBuffer streamOutputBuffer = streamOutManager.prepareForRead(MINIMUM_READ_BUFFER_SIZE);
                 try {
                     writeChannel(streamOutputBuffer);
                 } catch (final IOException e) {
@@ -291,39 +293,8 @@ public class SSLSocketChannel implements Closeable {
      * @throws IOException Thrown on failures checking for available bytes
      */
     public int available() throws IOException {
-        ByteBuffer appDataBuffer = appDataManager.prepareForRead(1);
-        ByteBuffer streamDataBuffer = streamInManager.prepareForRead(1);
-        final int buffered = appDataBuffer.remaining() + streamDataBuffer.remaining();
-        if (buffered > 0) {
-            return buffered;
-        }
-
-        if (!isDataAvailable()) {
-            return 0;
-        }
-
-        appDataBuffer = appDataManager.prepareForRead(1);
-        streamDataBuffer = streamInManager.prepareForRead(1);
-        return appDataBuffer.remaining() + streamDataBuffer.remaining();
-    }
-
-    /**
-     * Is data available for reading
-     *
-     * @return Data available status
-     * @throws IOException Thrown on SocketChannel.read() failures
-     */
-    public boolean isDataAvailable() throws IOException {
-        final ByteBuffer appDataBuffer = appDataManager.prepareForRead(1);
-        final ByteBuffer streamDataBuffer = streamInManager.prepareForRead(1);
-
-        if (appDataBuffer.remaining() > 0 || streamDataBuffer.remaining() > 0) {
-            return true;
-        }
-
-        final ByteBuffer writableBuffer = streamInManager.prepareForWrite(engine.getSession().getPacketBufferSize());
-        final int bytesRead = channel.read(writableBuffer);
-        return (bytesRead > 0);
+        final ByteBuffer appDataBuffer = appDataManager.prepareForRead(MINIMUM_READ_BUFFER_SIZE);
+        return appDataBuffer.remaining();
     }
 
     /**
@@ -373,42 +344,24 @@ public class SSLSocketChannel implements Closeable {
         }
         appDataManager.clear();
 
-        while (true) {
-            final SSLEngineResult unwrapResult = unwrap();
-
-            if (SSLEngineResult.HandshakeStatus.FINISHED == unwrapResult.getHandshakeStatus()) {
-                // RFC 8446 Section 4.6 describes Post-Handshake Messages for TLS 1.3
-                logOperation("Processing Post-Handshake Messages");
-                continue;
+        final SSLEngineResult unwrapResult = unwrapBufferReadChannel();
+        final Status status = unwrapResult.getStatus();
+        if (Status.CLOSED == status) {
+            applicationBytesRead = readApplicationBuffer(buffer, offset, len);
+            if (applicationBytesRead == 0) {
+                return END_OF_STREAM;
             }
-
-            final Status status = unwrapResult.getStatus();
-            switch (status) {
-                case BUFFER_OVERFLOW:
-                    throw new IllegalStateException(String.format("SSLEngineResult Status [%s] not allowed from unwrap", status));
-                case BUFFER_UNDERFLOW:
-                    final ByteBuffer streamBuffer = streamInManager.prepareForWrite(engine.getSession().getPacketBufferSize());
-                    final int channelBytesRead = readChannel(streamBuffer);
-                    logOperationBytes("Channel Read Completed", channelBytesRead);
-                    if (channelBytesRead == END_OF_STREAM) {
-                        return END_OF_STREAM;
-                    }
-                    break;
-                case CLOSED:
-                    applicationBytesRead = readApplicationBuffer(buffer, offset, len);
-                    if (applicationBytesRead == 0) {
-                        return END_OF_STREAM;
-                    }
-                    streamInManager.compact();
-                    return applicationBytesRead;
-                case OK:
-                    applicationBytesRead = readApplicationBuffer(buffer, offset, len);
-                    if (applicationBytesRead == 0) {
-                        throw new IOException("Read Application Buffer Failed");
-                    }
-                    streamInManager.compact();
-                    return applicationBytesRead;
+            streamInManager.compact();
+            return applicationBytesRead;
+        } else if (Status.OK == status) {
+            applicationBytesRead = readApplicationBuffer(buffer, offset, len);
+            if (applicationBytesRead == 0) {
+                throw new IOException("Read Application Buffer Failed");
             }
+            streamInManager.compact();
+            return applicationBytesRead;
+        } else {
+            throw new IllegalStateException(String.format("SSLEngineResult Status [%s] not expected from unwrap", status));
         }
     }
 
@@ -508,24 +461,13 @@ public class SSLSocketChannel implements Closeable {
                     handshakeStatus = engine.getHandshakeStatus();
                     break;
                 case NEED_UNWRAP:
-                    final SSLEngineResult unwrapResult = unwrap();
+                    final SSLEngineResult unwrapResult = unwrapBufferReadChannel();
                     handshakeStatus = unwrapResult.getHandshakeStatus();
-                    Status unwrapResultStatus = unwrapResult.getStatus();
-
-                    if (unwrapResultStatus == Status.BUFFER_UNDERFLOW) {
-                        final ByteBuffer writableDataIn = streamInManager.prepareForWrite(engine.getSession().getPacketBufferSize());
-                        final int bytesRead = readChannel(writableDataIn);
-                        logOperationBytes("Handshake Channel Read", bytesRead);
-
-                        if (bytesRead == END_OF_STREAM) {
-                            throw getHandshakeException(handshakeStatus, "End of Stream Found");
-                        }
-                    } else if (unwrapResultStatus == Status.CLOSED) {
+                    if (unwrapResult.getStatus() == Status.CLOSED) {
                         throw getHandshakeException(handshakeStatus, "Channel Closed");
-                    } else {
-                        streamInManager.compact();
-                        appDataManager.clear();
                     }
+                    streamInManager.compact();
+                    appDataManager.clear();
                     break;
                 case NEED_WRAP:
                     final ByteBuffer outboundBuffer = streamOutManager.prepareForWrite(engine.getSession().getApplicationBufferSize());
@@ -536,7 +478,7 @@ public class SSLSocketChannel implements Closeable {
                     if (wrapResultStatus == Status.BUFFER_OVERFLOW) {
                         streamOutManager.prepareForWrite(engine.getSession().getApplicationBufferSize());
                     } else if (wrapResultStatus == Status.OK) {
-                        final ByteBuffer streamBuffer = streamOutManager.prepareForRead(1);
+                        final ByteBuffer streamBuffer = streamOutManager.prepareForRead(MINIMUM_READ_BUFFER_SIZE);
                         final int bytesRemaining = streamBuffer.remaining();
                         writeChannel(streamBuffer);
                         logOperationBytes("Handshake Channel Write Completed", bytesRemaining);
@@ -549,8 +491,29 @@ public class SSLSocketChannel implements Closeable {
         }
     }
 
-    private int readChannel(final ByteBuffer outputBuffer) throws IOException {
+    private SSLEngineResult unwrapBufferReadChannel() throws IOException {
+        SSLEngineResult unwrapResult = unwrap();
+
+        while (Status.BUFFER_UNDERFLOW == unwrapResult.getStatus()) {
+            final int channelBytesRead = readChannel();
+            if (channelBytesRead == END_OF_STREAM) {
+                throw new EOFException("End of Stream found for Channel Read");
+            }
+
+            unwrapResult = unwrap();
+            if (SSLEngineResult.HandshakeStatus.FINISHED == unwrapResult.getHandshakeStatus()) {
+                // RFC 8446 Section 4.6 describes Post-Handshake Messages for TLS 1.3
+                logOperation("Processing Post-Handshake Messages");
+                unwrapResult = unwrap();
+            }
+        }
+
+        return unwrapResult;
+    }
+
+    private int readChannel() throws IOException {
         logOperation("Channel Read Started");
+        final ByteBuffer outputBuffer = streamInManager.prepareForWrite(engine.getSession().getPacketBufferSize());
 
         final long started = System.currentTimeMillis();
         long sleepNanoseconds = INITIAL_INCREMENTAL_SLEEP;
@@ -568,7 +531,21 @@ public class SSLSocketChannel implements Closeable {
                 continue;
             }
 
+            logOperationBytes("Channel Read Completed", channelBytesRead);
             return channelBytesRead;
+        }
+    }
+
+    private void readChannelDiscard() {
+        try {
+            final ByteBuffer readBuffer = ByteBuffer.allocate(DISCARD_BUFFER_LENGTH);
+            int bytesRead = channel.read(readBuffer);
+            while (bytesRead > 0) {
+                readBuffer.clear();
+                bytesRead = channel.read(readBuffer);
+            }
+        } catch (final IOException e) {
+            LOGGER.debug("[{}:{}] Read Channel Discard Failed", remoteAddress, port, e);
         }
     }
 
@@ -603,19 +580,6 @@ public class SSLSocketChannel implements Closeable {
             throw new ClosedByInterruptException();
         }
         return Math.min(nanoseconds * 2, BUFFER_FULL_EMPTY_WAIT_NANOS);
-    }
-
-    private void readChannelDiscard() {
-        try {
-            final ByteBuffer readBuffer = ByteBuffer.allocate(DISCARD_BUFFER_LENGTH);
-            int bytesRead = channel.read(readBuffer);
-            while (bytesRead > 0) {
-                readBuffer.clear();
-                bytesRead = channel.read(readBuffer);
-            }
-        } catch (final IOException e) {
-            LOGGER.debug("[{}:{}] Read Channel Discard Failed", remoteAddress, port, e);
-        }
     }
 
     private int readApplicationBuffer(final byte[] buffer, final int offset, final int len) {
