@@ -161,11 +161,10 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
     static final PropertyDescriptor COMMIT_OFFSETS = new Builder()
             .name("Commit Offsets")
             .displayName("Commit Offsets")
-            .description("Specifies whether or not this Processor should commit the offsets to Kafka after receiving messages. Typically, we want this value set to true " +
-                "so that messages that are received are not duplicated. However, in certain scenarios, we may want to avoid committing the offsets, so that the data can be " +
-                "processed and later acknowledged by PublishKafkaRecord in order to provide Exactly Once semantics. See Processor's Usage / Additional Details for more information. " +
-                "Note that setting this value to false can lead to significant data duplication or potentially even data loss if the dataflow is not properly configured. This setting " +
-                "should be reserved for dataflows that are designed to run within Stateless NiFi.")
+            .description("Specifies whether or not this Processor should commit the offsets to Kafka after receiving messages. This value should be false when a PublishKafkaRecord processor is " +
+                "expected to commit the offsets using Exactly Once semantics, and should be reserved for dataflows that are designed to run within Stateless NiFi. See Processor's Usage / " +
+                "Additional Details for more information. Note that setting this value to false can lead to significant data duplication or potentially even data loss if the dataflow " +
+                "is not properly configured.")
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();

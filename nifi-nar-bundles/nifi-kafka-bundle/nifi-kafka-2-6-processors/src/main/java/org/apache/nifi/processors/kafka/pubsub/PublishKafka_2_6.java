@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -36,7 +37,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -44,7 +44,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.util.FlowFileFilters;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import javax.xml.bind.DatatypeConverter;
@@ -54,7 +53,6 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -70,12 +68,6 @@ import java.util.regex.Pattern;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_CONSUMER_GROUP_ID;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_LEADER_EPOCH;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_MAX_OFFSET;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_OFFSET;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_PARTITION;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_TOPIC;
 
 @Tags({"Apache", "Kafka", "Put", "Send", "Message", "PubSub", "2.5"})
 @CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka using the Kafka 2.5 Producer API."
@@ -424,7 +416,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements VerifiablePro
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final boolean useDemarcator = context.getProperty(MESSAGE_DEMARCATOR).isSet();
 
-        final List<FlowFile> flowFiles = pollFlowFiles(context, session);
+        final List<FlowFile> flowFiles = PublishKafkaUtil.pollFlowFiles(session);
         if (flowFiles.isEmpty()) {
             return;
         }
@@ -482,7 +474,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements VerifiablePro
 
                     // If consumer offsets haven't been committed, add them to the transaction.
                     if (useTransactions && "false".equals(flowFile.getAttribute(KafkaProcessorUtils.KAFKA_CONSUMER_OFFSETS_COMMITTED))) {
-                        addConsumerOffsets(lease, flowFile);
+                        PublishKafkaUtil.addConsumerOffsets(lease, flowFile, getLogger());
                     }
                 }
 
@@ -514,82 +506,6 @@ public class PublishKafka_2_6 extends AbstractProcessor implements VerifiablePro
                 failureStrategy.routeFlowFiles(session, flowFiles);
                 context.yield();
             }
-        }
-    }
-
-    private List<FlowFile> pollFlowFiles(final ProcessContext context, final ProcessSession session) {
-        final List<FlowFile> initialFlowFiles = session.get(FlowFileFilters.newSizeBasedFilter(1, DataUnit.MB, 500));
-        if (initialFlowFiles.isEmpty()) {
-            return initialFlowFiles;
-        }
-
-        // Check if any of the FlowFiles indicate that the consumer offsets have yet to be committed.
-        boolean offsetsCommitted = true;
-        for (final FlowFile flowFile : initialFlowFiles) {
-            if ("false".equals(flowFile.getAttribute(KafkaProcessorUtils.KAFKA_CONSUMER_OFFSETS_COMMITTED))) {
-                offsetsCommitted = false;
-                break;
-            }
-        }
-
-        if (offsetsCommitted) {
-            return initialFlowFiles;
-        }
-
-        // If we need to commit consumer offsets, it is important that we retrieve all FlowFiles that may be available. Otherwise, we could
-        // have a situation in which there are 2 FlowFiles for Topic MyTopic and Partition 1. The first FlowFile may have an offset of 100,000
-        // while the second has an offset of 98,000. If we gather only the first, we could commit 100,000 offset before processing offset 98,000.
-        // To avoid that, we consume all FlowFiles in the queue. It's important also that all FlowFiles that have been consumed from Kafka are made
-        // available in the queue. This can be done by using a ProcessGroup with Batch Output, as described in the additionalDetails of the Kafka Processors.
-        return pollAllFlowFiles(session, initialFlowFiles);
-    }
-
-    private List<FlowFile> pollAllFlowFiles(final ProcessSession session, final List<FlowFile> initialFlowFiles) {
-        final List<FlowFile> polled = new ArrayList<>(initialFlowFiles);
-        while (true) {
-            final List<FlowFile> flowFiles = session.get(10_000);
-            if (flowFiles.isEmpty()) {
-                break;
-            }
-
-            polled.addAll(flowFiles);
-        }
-
-        return polled;
-    }
-
-
-    private void addConsumerOffsets(final PublisherLease lease, final FlowFile flowFile) {
-        final String topic = flowFile.getAttribute(KafkaProcessorUtils.KAFKA_TOPIC);
-        final Long partition = getNumericAttribute(flowFile, KafkaProcessorUtils.KAFKA_PARTITION);
-        Long maxOffset = getNumericAttribute(flowFile, KafkaProcessorUtils.KAFKA_MAX_OFFSET);
-        if (maxOffset == null) {
-            maxOffset = getNumericAttribute(flowFile, KafkaProcessorUtils.KAFKA_OFFSET);
-        }
-
-        final Long epoch = getNumericAttribute(flowFile, KafkaProcessorUtils.KAFKA_LEADER_EPOCH);
-        final String consumerGroupId = flowFile.getAttribute(KAFKA_CONSUMER_GROUP_ID);
-
-        if (topic == null || partition == null || maxOffset == null || consumerGroupId == null) {
-            getLogger().warn("Cannot commit consumer offsets because at least one of the following FlowFile attributes is missing from {}: {}", flowFile,
-                Arrays.asList(KAFKA_TOPIC, KAFKA_PARTITION, KAFKA_MAX_OFFSET + " (or " + KAFKA_OFFSET + ")", KAFKA_LEADER_EPOCH, KAFKA_CONSUMER_GROUP_ID));
-            return;
-        }
-
-        lease.ackConsumerOffsets(topic, partition.intValue(), maxOffset, epoch == null ? null : epoch.intValue(), consumerGroupId);
-    }
-
-    private Long getNumericAttribute(final FlowFile flowFile, final String attributeName) {
-        final String attributeValue = flowFile.getAttribute(attributeName);
-        if (attributeValue == null) {
-            return null;
-        }
-
-        try {
-            return Long.parseLong(attributeValue);
-        } catch (final NumberFormatException nfe) {
-            getLogger().warn("Expected a numeric value for attribute '{}' but found non-numeric value for {}", attributeName, flowFile);
-            return null;
         }
     }
 

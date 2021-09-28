@@ -477,9 +477,9 @@ public final class NarClassLoaders {
         final ClassLoader narClassLoader = new NarClassLoader(narDirectory, parentClassLoader);
 
         if (log) {
-            logger.info("Loaded NAR file: " + narDirectory.getAbsolutePath() + " as class loader " + narClassLoader);
+            logger.info("Loaded NAR file: {} as class loader {}", narDirectory.getAbsolutePath(), narClassLoader);
         } else {
-            logger.debug("Loaded NAR file: " + narDirectory.getAbsolutePath() + " as class loader " + narClassLoader);
+            logger.debug("Loaded NAR file: {} as class loader {}", narDirectory.getAbsolutePath(), narClassLoader);
         }
 
         return narClassLoader;

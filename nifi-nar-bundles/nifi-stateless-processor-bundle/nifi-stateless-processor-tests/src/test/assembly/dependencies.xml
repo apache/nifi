@@ -33,6 +33,12 @@
                 <include>nifi-standard-nar</include>
                 <include>nifi-standard-services-api-nar</include>
                 <include>nifi-jetty-bundle</include>
+                <include>nifi-update-attribute-nar</include>
+                <include>nifi-api</include>
+                <include>nifi-framework-api</include>
+                <include>nifi-server-api</include>
+                <include>nifi-runtime</include>
+                <include>nifi-nar-utils</include>
             </includes>
         </dependencySet>
 

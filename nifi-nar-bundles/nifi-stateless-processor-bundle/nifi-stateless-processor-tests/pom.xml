@@ -28,6 +28,40 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-api</artifactId>
+            <version>1.15.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-framework-api</artifactId>
+            <version>1.15.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-server-api</artifactId>
+            <version>1.15.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-runtime</artifactId>
+            <version>1.15.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-nar-utils</artifactId>
+            <version>1.15.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+
+
+
+
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-stateless-processor</artifactId>
             <version>1.15.0-SNAPSHOT</version>
         </dependency>
@@ -59,21 +93,6 @@
             <artifactId>nifi-stateless-nar</artifactId>
             <version>1.15.0-SNAPSHOT</version>
             <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-api</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-server-api</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-runtime</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -141,6 +160,12 @@
                     <excludes combine.children="append">
                         <exclude>src/test/resources/passthrough-flow.json</exclude>
                         <exclude>src/test/resources/split-text.json</exclude>
+                        <exclude>src/test/resources/route-one-to-failure.json</exclude>
+                        <exclude>src/test/resources/route-to-desired-port.json</exclude>
+                        <exclude>src/test/resources/route-to-failure-inner-group.json</exclude>
+                        <exclude>src/test/resources/sleep.json</exclude>
+                        <exclude>src/test/resources/throw-exception.json</exclude>
+                        <exclude>src/test/resources/log-message.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>

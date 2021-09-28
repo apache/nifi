@@ -63,6 +63,10 @@ public class LogRepositoryFactory {
         return repository;
     }
 
+    public static void purge() {
+        repositoryMap.clear();
+    }
+
     public static LogRepository removeRepository(final String componentId) {
         return repositoryMap.remove(requireNonNull(componentId));
     }

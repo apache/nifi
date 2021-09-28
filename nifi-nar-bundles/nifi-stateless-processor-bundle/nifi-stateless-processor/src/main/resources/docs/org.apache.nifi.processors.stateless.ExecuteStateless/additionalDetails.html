@@ -244,9 +244,10 @@
 </p>
 
 <p>
-    It is also important to note that if using an external URL, if the Processor is stopped and started (or NiFi is restarted), it is possible that
+    It is also important to note that when using an external URL or NiFi Registry, if the Processor is stopped and started (or NiFi is restarted), it is possible that
     the dataflow could be different than the last time that it ran. Additionally, it's possible that two nodes in a cluster could potentially be running
-    a different version of the flow if they downloaded the file at different times (or if a different file were copied to the nodes).
+    a different version of the flow if they downloaded the file at different times (or if a different file were copied to the nodes). When using NiFi Registry, this can be
+    avoided by explicitly specifying the version of the flow to run.
 </p>
 
 
@@ -349,7 +350,7 @@
 <h2>Run Duration</h2>
 <p>
     This Processor supports the configuration of NiFi's Run Duration in the Scheduling tab. If the Processor is expected to process many small FlowFiles, it is recommended to configure
-    this option so that the Processor has a Run Duration of "25 ms." Typically, adjusting the value beyond that offers little benefit, but adjusting from "0 ms" to "25 ms" can make
+    this option so that the Processor has a Run Duration of "25 ms." Typically, adjusting the value beyond that offers little benefit, but adjusting from "0 ms" to "25 ms" can
     provide a very significant performance improvement for many dataflows, at the cost of potentially introducing up to 25 milliseconds worth of additional latency.
 </p>
 

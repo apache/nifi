@@ -17,9 +17,6 @@
 
 package org.apache.nifi.processors.stateless;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -51,7 +48,6 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -59,11 +55,11 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.stateless.retrieval.CachingDataflowRetrieval;
+import org.apache.nifi.processors.stateless.retrieval.DataflowRetrieval;
+import org.apache.nifi.processors.stateless.retrieval.FileSystemDataflowRetrieval;
+import org.apache.nifi.processors.stateless.retrieval.RegistryDataflowRetrieval;
 import org.apache.nifi.registry.bucket.Bucket;
-import org.apache.nifi.registry.client.NiFiRegistryClient;
-import org.apache.nifi.registry.client.NiFiRegistryClientConfig;
-import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.reporting.Bulletin;
@@ -90,7 +86,6 @@ import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.apache.nifi.stateless.flow.TriggerResult;
 import org.apache.nifi.stream.io.StreamUtils;
 
-import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -142,17 +137,17 @@ import static org.apache.nifi.processor.util.StandardValidators.createDirectoryE
         "will have this attribute added to it, indicating the name of the Port that caused the dataflow to be considered a failure.")
 })
 public class ExecuteStateless extends AbstractProcessor implements Searchable {
-    static final AllowableValue SPEC_FROM_FILE = new AllowableValue("Use Local File", "Use Local File or URL", "Dataflow to run is stored as a file on the NiFi server or at a URL that is accessible" +
-        " to the NiFi server");
-    static final AllowableValue SPEC_FROM_REGISTRY = new AllowableValue("Use NiFi Registry", "Use NiFi Registry", "Dataflow to run is stored in NiFi Registry");
+    public static final AllowableValue SPEC_FROM_FILE = new AllowableValue("Use Local File", "Use Local File or URL",
+        "Dataflow to run is stored as a file on the NiFi server or at a URL that is accessible to the NiFi server");
+    public static final AllowableValue SPEC_FROM_REGISTRY = new AllowableValue("Use NiFi Registry", "Use NiFi Registry", "Dataflow to run is stored in NiFi Registry");
 
-    static final AllowableValue CONTENT_STORAGE_HEAP = new AllowableValue("Store Content on Heap", "Store Content on Heap",
+    public static final AllowableValue CONTENT_STORAGE_HEAP = new AllowableValue("Store Content on Heap", "Store Content on Heap",
         "The FlowFile content will be stored on the NiFi JVM's heap. This is the most " +
         "efficient option for small FlowFiles but can quickly exhaust the heap with larger FlowFiles, resulting in Out Of Memory Errors and node instability.");
-    static final AllowableValue CONTENT_STORAGE_DISK = new AllowableValue("Store Content on Disk", "Store Content on Disk",
+    public static final AllowableValue CONTENT_STORAGE_DISK = new AllowableValue("Store Content on Disk", "Store Content on Disk",
         "The FlowFile content will be stored on disk, within the configured Work Directory. The content will still be cleared between invocations and will not be persisted across restarts.");
 
-    static final PropertyDescriptor DATAFLOW_SPECIFICATION_STRATEGY = new Builder()
+    public static final PropertyDescriptor DATAFLOW_SPECIFICATION_STRATEGY = new Builder()
         .name("Dataflow Specification Strategy")
         .displayName("Dataflow Specification Strategy")
         .description("Specifies how the Processor should obtain a copy of the dataflow that it is to run")
@@ -161,7 +156,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .defaultValue(SPEC_FROM_FILE.getValue())
         .build();
 
-    static final PropertyDescriptor DATAFLOW_FILE = new Builder()
+    public static final PropertyDescriptor DATAFLOW_FILE = new Builder()
         .name("Dataflow File")
         .displayName("Dataflow File/URL")
         .description("The filename or URL that specifies the dataflow that is to be run")
@@ -170,7 +165,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .dependsOn(DATAFLOW_SPECIFICATION_STRATEGY, SPEC_FROM_FILE)
         .build();
 
-    static final PropertyDescriptor REGISTRY_URL = new Builder()
+    public static final PropertyDescriptor REGISTRY_URL = new Builder()
         .name("Registry URL")
         .displayName("Registry URL")
         .description("The URL of the NiFi Registry to retrieve the flow from")
@@ -179,7 +174,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .dependsOn(DATAFLOW_SPECIFICATION_STRATEGY, SPEC_FROM_REGISTRY)
         .build();
 
-    static final PropertyDescriptor SSL_CONTEXT_SERVICE = new Builder()
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new Builder()
         .name("Registry SSL Context Service")
         .displayName("Registry SSL Context Service")
         .description("The SSL Context Service to use for interacting with the NiFi Registry")
@@ -188,7 +183,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .dependsOn(DATAFLOW_SPECIFICATION_STRATEGY, SPEC_FROM_REGISTRY)
         .build();
 
-    static final PropertyDescriptor COMMS_TIMEOUT = new Builder()
+    public static final PropertyDescriptor COMMS_TIMEOUT = new Builder()
         .name("Communications Timeout")
         .displayName("Communications Timeout")
         .description("Specifies how long to wait before timing out when attempting to communicate with NiFi Registry")
@@ -198,7 +193,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .defaultValue("15 secs")
         .build();
 
-    static final PropertyDescriptor BUCKET = new Builder()
+    public static final PropertyDescriptor BUCKET = new Builder()
         .name("Registry Bucket")
         .displayName("Registry Bucket")
         .description("The name of the Bucket in the NiFi Registry that the flow should retrieved from")
@@ -207,7 +202,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .dependsOn(DATAFLOW_SPECIFICATION_STRATEGY, SPEC_FROM_REGISTRY)
         .build();
 
-    static final PropertyDescriptor FLOW_NAME = new Builder()
+    public static final PropertyDescriptor FLOW_NAME = new Builder()
         .name("Flow Name")
         .displayName("Flow Name")
         .description("The name of the flow in the NiFi Registry")
@@ -216,7 +211,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .dependsOn(DATAFLOW_SPECIFICATION_STRATEGY, SPEC_FROM_REGISTRY)
         .build();
 
-    static final PropertyDescriptor FLOW_VERSION = new Builder()
+    public static final PropertyDescriptor FLOW_VERSION = new Builder()
         .name("Flow Version")
         .displayName("Flow Version")
         .description("The version of the flow in the NiFi Registry that should be retrieved. If not specified, the latest version will always be used.")
@@ -225,7 +220,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .dependsOn(DATAFLOW_SPECIFICATION_STRATEGY, SPEC_FROM_REGISTRY)
         .build();
 
-    static final PropertyDescriptor INPUT_PORT = new Builder()
+    public static final PropertyDescriptor INPUT_PORT = new Builder()
         .name("Input Port")
         .displayName("Input Port")
         .description("Specifies the name of the Input Port to send incoming FlowFiles to. This property is required if this processor has any incoming connections.")
@@ -234,7 +229,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
         .build();
 
-    static final PropertyDescriptor FAILURE_PORTS = new Builder()
+    public static final PropertyDescriptor FAILURE_PORTS = new Builder()
         .name("Failure Ports")
         .displayName("Failure Ports")
         .description("A comma-separated list of the names of Output Ports that exist at the root level of the dataflow. If any FlowFile is routed to one of the Ports whose name is listed here, the " +
@@ -244,18 +239,18 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .expressionLanguageSupported(NONE)
         .build();
 
-    static final PropertyDescriptor DATAFLOW_TIMEOUT = new Builder()
+    public static final PropertyDescriptor DATAFLOW_TIMEOUT = new Builder()
         .name("Dataflow Timeout")
         .displayName("Dataflow Timeout")
-        .description("Specifies the maximum amount of time for an invocation of the stateless flow to complete. If the flow does not complete within this amount of time, the incoming FlowFile, if " +
-            "any, will be routed to the timeout relationship. In any case, the dataflow will be canceled and the invocation will end")
+        .description("If the flow does not complete within this amount of time, the incoming FlowFile, if any, will be routed to the timeout relationship," +
+            "the dataflow will be cancelled, and the invocation will end.")
         .required(true)
         .addValidator(TIME_PERIOD_VALIDATOR)
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
         .defaultValue("60 sec")
         .build();
 
-    static final PropertyDescriptor LIB_DIRECTORY = new Builder()
+    public static final PropertyDescriptor LIB_DIRECTORY = new Builder()
         .name("NAR Directory")
         .displayName("NAR Directory")
         .description("The directory to retrieve NAR's from")
@@ -264,7 +259,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .defaultValue("./lib")
         .build();
 
-    static final PropertyDescriptor WORKING_DIRECTORY = new Builder()
+    public static final PropertyDescriptor WORKING_DIRECTORY = new Builder()
         .name("Work Directory")
         .displayName("Work Directory")
         .description("A directory that can be used to create temporary files, such as expanding NAR files, temporary FlowFile content, caching the dataflow, etc.")
@@ -273,7 +268,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .defaultValue("./work")
         .build();
 
-    static final PropertyDescriptor KRB5_CONF = new Builder()
+    public static final PropertyDescriptor KRB5_CONF = new Builder()
         .name("Krb5 Conf File")
         .displayName("Krb5 Conf File")
         .description("The KRB5 Conf file to use for configuring components that rely on Kerberos")
@@ -281,7 +276,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
         .build();
 
-    static final PropertyDescriptor STATELESS_SSL_CONTEXT_SERVICE = new Builder()
+    public static final PropertyDescriptor STATELESS_SSL_CONTEXT_SERVICE = new Builder()
         .name("Stateless SSL Context Service")
         .displayName("Stateless SSL Context Service")
         .description("The SSL Context to use as the Stateless System SSL Context")
@@ -289,7 +284,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .identifiesControllerService(SSLContextService.class)
         .build();
 
-    static final PropertyDescriptor MAX_INGEST_FLOWFILES = new Builder()
+    public static final PropertyDescriptor MAX_INGEST_FLOWFILES = new Builder()
         .name("Max Ingest FlowFiles")
         .displayName("Max Ingest FlowFiles")
         .description("During the course of a stateless dataflow, some processors may require more data than they have available in order to proceed. For example, MergeContent may require a minimum " +
@@ -300,7 +295,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .expressionLanguageSupported(NONE)
         .build();
 
-    static final PropertyDescriptor MAX_INGEST_DATA_SIZE = new Builder()
+    public static final PropertyDescriptor MAX_INGEST_DATA_SIZE = new Builder()
         .name("Max Ingest Data Size")
         .displayName("Max Ingest Data Size")
         .description("During the course of a stateless dataflow, some processors may require more data than they have available in order to proceed. For example, MergeContent may require a minimum " +
@@ -311,17 +306,17 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .expressionLanguageSupported(NONE)
         .build();
 
-    static final PropertyDescriptor CONTENT_STORAGE_STRATEGY = new Builder()
+    public static final PropertyDescriptor CONTENT_STORAGE_STRATEGY = new Builder()
         .name("Content Storage Strategy")
         .displayName("Content Storage Strategy")
-        .description("Specifies where the content of FlowFiles that the Stateless dataflow is operating on should be stored. Note that the data is always considered temporal and may be deleted at " +
+        .description("Specifies where the content of FlowFiles that the Stateless dataflow is operating on should be stored. Note that the data is always considered temporary and may be deleted at " +
             "any time. It is not intended to be persisted across restarted.")
         .required(true)
         .allowableValues(CONTENT_STORAGE_HEAP, CONTENT_STORAGE_DISK)
         .defaultValue(CONTENT_STORAGE_DISK.getValue())
         .build();
 
-    static final PropertyDescriptor MAX_INPUT_FLOWFILE_SIZE = new Builder()
+    public static final PropertyDescriptor MAX_INPUT_FLOWFILE_SIZE = new Builder()
         .name("Max Input FlowFile Size")
         .displayName("Max Input FlowFile Size")
         .description("This Processor is configured to load all incoming FlowFiles into memory. Because of that, it is important to limit the maximum size of " +
@@ -641,15 +636,18 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         final List<Bulletin> bulletins = bulletinRepository.findBulletins(bulletinQuery);
         for (final Bulletin bulletin : bulletins) {
             try {
-                final LogLevel logLevel = LogLevel.valueOf(bulletin.getLevel());
+                String level = bulletin.getLevel();
+                if (level == null || level.equalsIgnoreCase("WARNING")) {
+                    level = "WARN";
+                }
+                final LogLevel logLevel = LogLevel.valueOf(level);
                 if (logLevel == LogLevel.DEBUG || logLevel == LogLevel.INFO) {
                     continue;
                 }
 
                 getLogger().log(logLevel, "{} {}[name={}, id={}] {}", bulletin.getTimestamp(), bulletin.getSourceType(), bulletin.getSourceName(), bulletin.getSourceName(), bulletin.getMessage());
-            } catch (final Exception ignored) {
-                // There should be no malformed bulletin, but just in case the bulletin level, etc. ends up being null, catch the exception and ignore it,
-                // since there's not much we can do about it.
+            } catch (final Exception e) {
+                getLogger().warn("Dataflow emitted a bulletin but failed to surface that bulletin due to {}", e.toString(), e);
             }
         }
     }
@@ -835,7 +833,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         final String contentStorageStrategy = context.getProperty(CONTENT_STORAGE_STRATEGY).getValue();
         final File contentRepoDirectory;
         if (CONTENT_STORAGE_DISK.getValue().equals(contentStorageStrategy)) {
-            final File contentRepoRootDirectory = new File(workingDirectory, "flowfile-content");
+            final File contentRepoRootDirectory = new File(workingDirectory, "execute-stateless-flowfile-content");
             final File processorContentRepo = new File(contentRepoRootDirectory, getIdentifier());
             contentRepoDirectory = new File(processorContentRepo, String.valueOf(contentRepoIndex));
         } else {
@@ -1004,165 +1002,6 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         }
     }
 
-
-    private interface DataflowRetrieval {
-        VersionedFlowSnapshot retrieveDataflowContents(ProcessContext context) throws IOException;
-    }
-
-    private static class FileSystemDataflowRetrieval implements DataflowRetrieval {
-        @Override
-        public VersionedFlowSnapshot retrieveDataflowContents(final ProcessContext context) throws IOException {
-            final ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-            try (final InputStream in = context.getProperty(DATAFLOW_FILE).asResource().read()) {
-                final VersionedFlowSnapshot versionedFlowSnapshot = objectMapper.readValue(in, VersionedFlowSnapshot.class);
-                return versionedFlowSnapshot;
-            }
-        }
-    }
-
-    private static class CachingDataflowRetrieval implements DataflowRetrieval {
-        private final String processorId;
-        private final ComponentLog logger;
-        private final DataflowRetrieval delegate;
-
-        public CachingDataflowRetrieval(final String processorId, final ComponentLog logger, final DataflowRetrieval delegate) {
-            this.processorId = processorId;
-            this.logger = logger;
-            this.delegate = delegate;
-        }
-
-        @Override
-        public VersionedFlowSnapshot retrieveDataflowContents(final ProcessContext context) throws IOException {
-            try {
-                final VersionedFlowSnapshot retrieved = delegate.retrieveDataflowContents(context);
-                cacheFlowSnapshot(context, retrieved);
-                return retrieved;
-            } catch (final Exception e) {
-                final File cacheFile = getFlowCacheFile(context, processorId);
-                if (cacheFile.exists()) {
-                    logger.warn("Failed to retrieve FLow Snapshot from Registry. Will restore Flow Snapshot from cached version at {}", cacheFile.getAbsolutePath(), e);
-                    return readCachedFlow(cacheFile);
-                }
-
-                throw new IOException("Failed to retrieve Flow Snapshot from configured endpoint and no cached version is available", e);
-            }
-        }
-
-        private void cacheFlowSnapshot(final ProcessContext context, final VersionedFlowSnapshot flowSnapshot) {
-            final File cacheFile = getFlowCacheFile(context, processorId);
-            if (!cacheFile.getParentFile().exists() && !cacheFile.getParentFile().mkdirs()) {
-                logger.warn("Fetched dataflow from Registry but cannot create directory {} in order to cache the dataflow. " +
-                    "Upon restart, processor will not be able to function unless Registry is available", cacheFile);
-                return;
-            }
-
-            try {
-                final ObjectMapper objectMapper = new ObjectMapper();
-                objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-                objectMapper.writeValue(cacheFile, flowSnapshot);
-            } catch (final Exception e) {
-                logger.warn("Fetched dataflow from Registry but failed to write the dataflow to disk at {} in order to cache the dataflow. " +
-                    "Upon restart, processor will not be able to function unless Registry is available", cacheFile, e);
-            }
-        }
-
-        private File getFlowCacheFile(final ProcessContext context, final String processorId) {
-            final String workingDirName = context.getProperty(WORKING_DIRECTORY).getValue();
-            final File workingDir = new File(workingDirName);
-            final File dataflowCache = new File(workingDir, "dataflow-cache");
-            final File flowSnapshotFile = new File(dataflowCache, processorId + ".flow.snapshot.json");
-            return flowSnapshotFile;
-        }
-
-        private VersionedFlowSnapshot readCachedFlow(final File cacheFile) throws IOException {
-            final ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            objectMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(objectMapper.getTypeFactory()));
-
-            return objectMapper.readValue(cacheFile, VersionedFlowSnapshot.class);
-        }
-    }
-
-    private static class RegistryDataflowRetrieval implements DataflowRetrieval {
-        private final ComponentLog logger;
-
-        public RegistryDataflowRetrieval(final ComponentLog logger) {
-            this.logger = logger;
-        }
-
-        @Override
-        public VersionedFlowSnapshot retrieveDataflowContents(final ProcessContext context) throws IOException {
-            final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-            final SSLContext sslContext = sslContextService == null ? null : sslContextService.createContext();
-
-            final String url = context.getProperty(REGISTRY_URL).getValue();
-            final NiFiRegistryClientConfig clientConfig = new NiFiRegistryClientConfig.Builder()
-                .baseUrl(url)
-                .connectTimeout(context.getProperty(COMMS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue())
-                .readTimeout(context.getProperty(COMMS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue())
-                .sslContext(sslContext)
-                .build();
-
-            final NiFiRegistryClient client = new JerseyNiFiRegistryClient.Builder()
-                .config(clientConfig)
-                .build();
-
-            final VersionedFlowSnapshot versionedFlowSnapshot;
-            final String bucketName = context.getProperty(BUCKET).getValue();
-            final String flowName = context.getProperty(FLOW_NAME).getValue();
-            final Integer flowVersion = context.getProperty(FLOW_VERSION).asInteger();
-            try {
-                final String bucketId = getBucketId(client, bucketName);
-                final String flowId = getFlowId(client, flowName, bucketId);
-
-                logger.debug("Attempting to fetch dataflow from Registry at URL {}, Bucket {}, Flow {}, flowVersion {}", url, bucketId, flowId, flowVersion == null ? "<Latest>" : flowVersion);
-                if (flowVersion == null) {
-                    versionedFlowSnapshot = client.getFlowSnapshotClient().getLatest(bucketId, flowId);
-                } else {
-                    versionedFlowSnapshot = client.getFlowSnapshotClient().get(bucketId, flowId, flowVersion);
-                }
-
-                logger.debug("Successfully fetched dataflow from Registry at URL {}, Bucket {}, Flow {}, flowVersion {}", url, bucketId, flowId, flowVersion == null ? "<Latest>" : flowVersion);
-            } catch (final NiFiRegistryException e) {
-                throw new IOException("Failed to retrieve Flow Snapshot from Registry", e);
-            }
-
-            return versionedFlowSnapshot;
-        }
-
-        private String getFlowId(final NiFiRegistryClient client, final String flowName, final String bucketId) throws IOException {
-            final List<VersionedFlow> versionedFlows;
-            try {
-                versionedFlows = client.getFlowClient().getByBucket(bucketId);
-            } catch (NiFiRegistryException e) {
-                throw new IOException("Could not retrieve list of Flows from NiFi Registry for Bucket ID " + bucketId);
-            }
-
-            for (final VersionedFlow versionedFlow : versionedFlows) {
-                if (flowName.equals(versionedFlow.getName())) {
-                    return versionedFlow.getIdentifier();
-                }
-            }
-
-            throw new IOException("Could not find a flow with the name '" + flowName + "' within bucket with ID '" + bucketId + "' in the given Registry");
-        }
-
-        private String getBucketId(final NiFiRegistryClient client, final String bucketName) throws IOException {
-            try {
-                final List<Bucket> allBuckets = client.getBucketClient().getAll();
-                final Optional<Bucket> optionalBucket = allBuckets.stream().filter(bkt -> bkt.getName().equals(bucketName)).findAny();
-                if (!optionalBucket.isPresent()) {
-                    throw new IOException("Could not find a bucket with the name '" + bucketName + "' in the given Registry");
-                }
-
-                return optionalBucket.get().getIdentifier();
-            } catch (NiFiRegistryException e) {
-                throw new IOException("Failed to fetch buckets from NiFi Registry", e);
-            }
-        }
-    }
 
     private static class VersionedComponentSearchResults {
         private final String term;
