@@ -102,7 +102,10 @@
                 'password': $('#password').val()
             }
         }).done(function (jwt) {
-            nfAuthorizationStorage.setToken(jwt);
+            var sessionExpiration = nfCommon.getSessionExpiration(jwt);
+            if (sessionExpiration) {
+                nfAuthorizationStorage.setToken(sessionExpiration);
+            }
 
             // check to see if they actually have access now
             $.ajax({

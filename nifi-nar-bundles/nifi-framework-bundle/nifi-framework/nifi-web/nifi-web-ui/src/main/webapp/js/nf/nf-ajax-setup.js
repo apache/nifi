@@ -36,20 +36,12 @@
      * Performs ajax setup for use within NiFi.
      */
     $(document).ready(function ($) {
-        // include jwt when possible
         $.ajaxSetup({
             'beforeSend': function (xhr) {
-                var hadToken = nfAuthorizationStorage.hasToken();
-
-                // get the token to include in all requests
-                var token = nfAuthorizationStorage.getToken();
-                if (token !== null) {
-                    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-                } else {
-                    // if the current user was logged in with a token and the token just expired, cancel the request
-                    if (hadToken === true) {
-                        return false;
-                    }
+                // Get the Request Token for CSRF mitigation on and send on all requests
+                var requestToken = nfAuthorizationStorage.getRequestToken();
+                if (requestToken !== null) {
+                    xhr.setRequestHeader('Request-Token', requestToken);
                 }
             }
         });

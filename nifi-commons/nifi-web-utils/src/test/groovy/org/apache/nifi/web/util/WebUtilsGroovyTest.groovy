@@ -18,15 +18,10 @@ package org.apache.nifi.web.util
 
 import org.apache.http.conn.ssl.DefaultHostnameVerifier
 import org.glassfish.jersey.client.ClientConfig
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.mockito.Mockito
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import sun.security.tools.keytool.CertAndKeyGen
 import sun.security.x509.X500Name
 
@@ -40,38 +35,18 @@ import java.security.cert.X509Certificate
 
 @RunWith(JUnit4.class)
 class WebUtilsGroovyTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(WebUtilsGroovyTest.class)
-
     static final String PCP_HEADER = "X-ProxyContextPath"
     static final String FC_HEADER = "X-Forwarded-Context"
     static final String FP_HEADER = "X-Forwarded-Prefix"
 
     static final String ALLOWED_PATH = "/some/context/path"
-    private static final String OCSP_REQUEST_CONTENT_TYPE = "application/ocsp-request"
-
-    @BeforeClass
-    static void setUpOnce() throws Exception {
-        logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
-        }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
-    }
 
     HttpServletRequest mockRequest(Map keys) {
         HttpServletRequest mockRequest = [
                 getContextPath: { ->
-                    logger.mock("Request.getContextPath() -> default/path")
                     "default/path"
                 },
                 getHeader     : { String k ->
-                    logger.mock("Request.getHeader($k) -> ${keys}")
                     switch (k) {
                         case PCP_HEADER:
                             return keys["proxy"]
@@ -108,7 +83,6 @@ class WebUtilsGroovyTest extends GroovyTestCase {
         // Act
         requests.each { HttpServletRequest request ->
             String determinedContextPath = WebUtils.determineContextPath(request)
-            logger.info("Determined context path: ${determinedContextPath}")
 
             // Assert
             assert determinedContextPath == CORRECT_CONTEXT_PATH
@@ -135,7 +109,6 @@ class WebUtilsGroovyTest extends GroovyTestCase {
         // Act
         requests.each { HttpServletRequest request ->
             String determinedContextPath = WebUtils.determineContextPath(request)
-            logger.info("Determined context path: ${determinedContextPath}")
 
             // Assert
             assert determinedContextPath == CORRECT_CONTEXT_PATH
@@ -154,7 +127,6 @@ class WebUtilsGroovyTest extends GroovyTestCase {
         // Act
         contextPaths.each { String contextPath ->
             String normalizedContextPath = WebUtils.normalizeContextPath(contextPath)
-            logger.info("Normalized context path: ${normalizedContextPath} <- ${contextPath}")
 
             // Assert
             assert normalizedContextPath == CORRECT_CONTEXT_PATH
@@ -162,146 +134,31 @@ class WebUtilsGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    void testGetResourcePathShouldBlockContextPathHeaderIfNotInAllowList() throws Exception {
-        // Arrange
-        logger.info("Allowed path(s): ")
-
-        HttpServletRequest requestWithProxyHeader = mockRequest([proxy: "any/context/path"])
-        HttpServletRequest requestWithProxyAndForwardHeader = mockRequest([proxy: "any/context/path", forward: "any/other/context/path"])
-        HttpServletRequest requestWithProxyAndForwardAndPrefixHeader = mockRequest([proxy : "any/context/path", forward: "any/other/context/path",
-                                                                                    prefix: "any/other/prefix/path"])
-        List<HttpServletRequest> requests = [requestWithProxyHeader, requestWithProxyAndForwardHeader, requestWithProxyAndForwardAndPrefixHeader]
-
-        // Act
-        requests.each { HttpServletRequest request ->
-            def msg = shouldFail(UriBuilderException) {
-                String generatedResourcePath = WebUtils.getResourcePath(new URI('https://nifi.apache.org/actualResource'), request, "")
-                logger.unexpected("Generated Resource Path: ${generatedResourcePath}")
-            }
-
-            // Assert
-            logger.expected(msg)
-            assert msg =~ "The provided context path \\[.*\\] was not registered as allowed \\[\\]"
-        }
-    }
-
-    @Test
-    void testGetResourcePathShouldAllowContextPathHeaderIfInAllowList() throws Exception {
-        // Arrange
-        logger.info("Allowed path(s): ${ALLOWED_PATH}")
-
-        HttpServletRequest requestWithProxyHeader = mockRequest([proxy: "some/context/path"])
-        HttpServletRequest requestWithForwardHeader = mockRequest([forward: "some/context/path"])
-        HttpServletRequest requestWithProxyAndForwardHeader = mockRequest([proxy: "some/context/path", forward: "any/other/context/path"])
-        HttpServletRequest requestWithProxyAndForwardAndPrefixHeader = mockRequest([proxy: "some/context/path", forward: "any/other/context/path",
-                                                                                    prefix: "any/other/prefix/path"])
-        List<HttpServletRequest> requests = [requestWithProxyHeader, requestWithForwardHeader, requestWithProxyAndForwardHeader,
-                                             requestWithProxyAndForwardAndPrefixHeader]
-
-        // Act
-        requests.each { HttpServletRequest request ->
-            String generatedResourcePath = WebUtils.getResourcePath(new URI('https://nifi.apache.org/actualResource'), request, ALLOWED_PATH)
-            logger.info("Generated Resource Path: ${generatedResourcePath}")
-
-            // Assert
-            assert generatedResourcePath == "${ALLOWED_PATH}/actualResource"
-        }
-    }
-
-    @Test
-    void testGetResourcePathShouldAllowContextPathHeaderIfElementInMultipleAllowLists() throws Exception {
-        // Arrange
-        String multipleAllowedPaths = [ALLOWED_PATH, "/another/path", "/a/third/path", "/a/prefix/path"].join(",")
-        logger.info("Allowed path(s): ${multipleAllowedPaths}")
-
-        final List<String> VALID_RESOURCE_PATHS = multipleAllowedPaths.split(",").collect { "$it/actualResource" }
-
-        HttpServletRequest requestWithProxyHeader = mockRequest([proxy: "some/context/path"])
-        HttpServletRequest requestWithForwardHeader = mockRequest([forward: "another/path"])
-        HttpServletRequest requestWithPrefixHeader = mockRequest([prefix: "a/prefix/path"])
-        HttpServletRequest requestWithProxyAndForwardHeader = mockRequest([proxy: "a/third/path", forward: "any/other/context/path"])
-        HttpServletRequest requestWithProxyAndForwardAndPrefixHeader = mockRequest([proxy : "a/third/path", forward: "any/other/context/path",
-                                                                                    prefix: "any/other/prefix/path"])
-        List<HttpServletRequest> requests = [requestWithProxyHeader, requestWithForwardHeader, requestWithProxyAndForwardHeader,
-                                             requestWithPrefixHeader, requestWithProxyAndForwardAndPrefixHeader]
-
-        // Act
-        requests.each { HttpServletRequest request ->
-            String generatedResourcePath = WebUtils.getResourcePath(new URI('https://nifi.apache.org/actualResource'), request, multipleAllowedPaths)
-            logger.info("Generated Resource Path: ${generatedResourcePath}")
-
-            // Assert
-            assert VALID_RESOURCE_PATHS.any { it == generatedResourcePath }
-        }
-    }
-
-    @Test
     void testVerifyContextPathShouldAllowContextPathHeaderIfInAllowList() throws Exception {
-        // Arrange
-        logger.info("Allowed path(s): ${ALLOWED_PATH}")
-        String contextPath = ALLOWED_PATH
-
-        // Act
-        logger.info("Testing [${contextPath}] against ${ALLOWED_PATH}")
-        WebUtils.verifyContextPath(ALLOWED_PATH, contextPath)
-        logger.info("Verified [${contextPath}]")
-
-        // Assert
-        // Would throw exception if invalid
+        WebUtils.verifyContextPath(Arrays.asList(ALLOWED_PATH), ALLOWED_PATH)
     }
 
     @Test
     void testVerifyContextPathShouldAllowContextPathHeaderIfInMultipleAllowLists() throws Exception {
-        // Arrange
-        String multipleAllowLists = [ALLOWED_PATH, WebUtils.normalizeContextPath(ALLOWED_PATH.reverse())].join(",")
-        logger.info("Allowed path(s): ${multipleAllowLists}")
-        String contextPath = ALLOWED_PATH
-
-        // Act
-        logger.info("Testing [${contextPath}] against ${multipleAllowLists}")
-        WebUtils.verifyContextPath(multipleAllowLists, contextPath)
-        logger.info("Verified [${contextPath}]")
-
-        // Assert
-        // Would throw exception if invalid
+        WebUtils.verifyContextPath(Arrays.asList(ALLOWED_PATH, ALLOWED_PATH.reverse()), ALLOWED_PATH)
     }
 
     @Test
     void testVerifyContextPathShouldAllowContextPathHeaderIfBlank() throws Exception {
-        // Arrange
-        logger.info("Allowed path(s): ${ALLOWED_PATH}")
-
         def emptyContextPaths = ["", "  ", "\t", null]
-
-        // Act
         emptyContextPaths.each { String contextPath ->
-            logger.info("Testing [${contextPath}] against ${ALLOWED_PATH}")
-            WebUtils.verifyContextPath(ALLOWED_PATH, contextPath)
-            logger.info("Verified [${contextPath}]")
-
-            // Assert
-            // Would throw exception if invalid
+            WebUtils.verifyContextPath(Arrays.asList(ALLOWED_PATH), contextPath)
         }
     }
 
     @Test
     void testVerifyContextPathShouldBlockContextPathHeaderIfNotAllowed() throws Exception {
-        // Arrange
-        logger.info("Allowed path(s): ${ALLOWED_PATH}")
+        def invalidContextPaths = ["/other/path", "localhost", "/../trying/to/escape"]
 
-        def invalidContextPaths = ["/other/path", "somesite.com", "/../trying/to/escape"]
-
-        // Act
         invalidContextPaths.each { String contextPath ->
-            logger.info("Testing [${contextPath}] against ${ALLOWED_PATH}")
-            def msg = shouldFail(UriBuilderException) {
-                WebUtils.verifyContextPath(ALLOWED_PATH, contextPath)
-                logger.info("Verified [${contextPath}]")
+            shouldFail(UriBuilderException) {
+                WebUtils.verifyContextPath(Arrays.asList(ALLOWED_PATH), contextPath)
             }
-
-            // Assert
-            logger.expected(msg)
-            assert msg =~ " was not registered as allowed "
         }
     }
 
@@ -459,7 +316,6 @@ class WebUtilsGroovyTest extends GroovyTestCase {
         // Verify
         hostnameVerifier.verify(hostname, cert)
     }
-
 
     X509Certificate generateCertificate(String DN) {
          CertAndKeyGen certGenerator = new CertAndKeyGen("RSA", "SHA256WithRSA", null)

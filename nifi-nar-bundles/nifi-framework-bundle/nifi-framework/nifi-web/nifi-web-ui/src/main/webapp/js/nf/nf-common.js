@@ -507,10 +507,9 @@
             var checkExpiration = function () {
                 var token = nfAuthorizationStorage.getToken();
 
-                // ensure there is an expiration and token present
+                // Parse token as expiration in number of seconds
                 if (token !== null) {
-                    var jsonWebToken = nfCommon.getJwtPayload(token);
-                    var expiration = parseInt(jsonWebToken['exp'], 10) * nfCommon.MILLIS_PER_SECOND;
+                    var expiration = parseInt(token, 10) * nfCommon.MILLIS_PER_SECOND;
 
                     var expirationDate = new Date(expiration);
                     var now = new Date();
@@ -559,6 +558,35 @@
 
             // render the anonymous user text
             $('#current-user').text(nfCommon.ANONYMOUS_USER_TEXT).show();
+        },
+
+        /**
+         * Get Session Expiration from JSON Web Token Payload exp claim
+         *
+         * @param {string} jwt
+         * @return {string}
+         */
+        getSessionExpiration: function(jwt) {
+            var sessionExpiration = null;
+
+            var jwtPayload = nfCommon.getJwtPayload(jwt);
+            if (jwtPayload) {
+                sessionExpiration = jwtPayload['exp'];
+            }
+
+            return sessionExpiration;
+        },
+
+        /**
+         * Get Default Session Expiration based on current time plus 12 hours as seconds
+         *
+         * @return {string}
+         */
+        getDefaultExpiration: function() {
+            var now = new Date();
+            var expiration = now.getTime() + 43200000;
+            var expirationSeconds = Math.round(expiration / 1000);
+            return expirationSeconds.toString();
         },
 
         /**

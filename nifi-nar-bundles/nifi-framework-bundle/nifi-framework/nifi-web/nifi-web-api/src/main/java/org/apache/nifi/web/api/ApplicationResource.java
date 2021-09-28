@@ -59,6 +59,7 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.util.CacheKey;
+import org.apache.nifi.web.util.RequestUriBuilder;
 import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,10 +75,8 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriBuilderException;
 import javax.ws.rs.core.UriInfo;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -181,39 +180,9 @@ public abstract class ApplicationResource {
     }
 
     private URI buildResourceUri(final URI uri) {
-        try {
-            final String scheme = getFirstHeaderValue(PROXY_SCHEME_HTTP_HEADER, FORWARDED_PROTO_HTTP_HEADER);
-            final String hostHeaderValue = getFirstHeaderValue(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
-            final String portHeaderValue = getFirstHeaderValue(PROXY_PORT_HTTP_HEADER, FORWARDED_PORT_HTTP_HEADER);
-
-            final String host = WebUtils.determineProxiedHost(hostHeaderValue);
-            final String port = WebUtils.determineProxiedPort(hostHeaderValue, portHeaderValue);
-
-            // Catch header poisoning
-            final String allowedContextPaths = properties.getAllowedContextPaths();
-            final String resourcePath = WebUtils.getResourcePath(uri, httpServletRequest, allowedContextPaths);
-
-            // determine the port uri
-            int uriPort = uri.getPort();
-            if (StringUtils.isNumeric(port)) {
-                try {
-                    uriPort = Integer.parseInt(port);
-                } catch (final NumberFormatException nfe) {
-                    logger.warn("Parsing Proxy Port [{}] Failed: Using URI Port [{}]", port, uriPort);
-                }
-            }
-
-            return new URI(
-                    (StringUtils.isBlank(scheme)) ? uri.getScheme() : scheme,
-                    uri.getUserInfo(),
-                    (StringUtils.isBlank(host)) ? uri.getHost() : host,
-                    uriPort,
-                    resourcePath,
-                    uri.getQuery(),
-                    uri.getFragment());
-        } catch (final URISyntaxException use) {
-            throw new UriBuilderException(use);
-        }
+        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest, properties.getAllowedContextPathsAsList());
+        builder.path(uri.getPath());
+        return builder.build();
     }
 
     /**

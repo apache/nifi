@@ -250,6 +250,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         // request is replicated
         removeCookie(headers, nifiProperties.getKnoxCookieName());
         removeCookie(headers, SecurityCookieName.AUTHORIZATION_BEARER.getName());
+        removeCookie(headers, SecurityCookieName.REQUEST_TOKEN.getName());
 
         // remove the host header
         headers.remove("Host");
