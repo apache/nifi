@@ -29,8 +29,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.UriBuilderException;
-import java.net.URI;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -52,6 +50,8 @@ public final class WebUtils {
     public static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
     public static final String FORWARDED_CONTEXT_HTTP_HEADER = "X-Forwarded-Context";
     public static final String FORWARDED_PREFIX_HTTP_HEADER = "X-Forwarded-Prefix";
+
+    private static final String HOST_HEADER = "Host";
 
     private static final String EMPTY = "";
 
@@ -114,50 +114,21 @@ public final class WebUtils {
     }
 
     /**
-     * This method will check the provided context path headers against an allow list (provided in nifi.properties) and throw an exception if the requested context path is not registered.
-     *
-     * @param uri                     the request URI
-     * @param request                 the HTTP request
-     * @param allowedContextPaths     comma-separated list of valid context paths
-     * @return the resource path
-     * @throws UriBuilderException if the requested context path is not registered (header poisoning)
-     */
-    public static String getResourcePath(URI uri, HttpServletRequest request, String allowedContextPaths) throws UriBuilderException {
-        String resourcePath = uri.getPath();
-
-        // Determine and normalize the context path
-        String determinedContextPath = determineContextPath(request);
-        determinedContextPath = normalizeContextPath(determinedContextPath);
-
-        // If present, check it and prepend to the resource path
-        if (StringUtils.isNotBlank(determinedContextPath)) {
-            verifyContextPath(allowedContextPaths, determinedContextPath);
-
-            // Determine the complete resource path
-            resourcePath = determinedContextPath + resourcePath;
-        }
-
-        return resourcePath;
-    }
-
-    /**
      * Throws an exception if the provided context path is not in the allowed context paths list.
      *
-     * @param allowedContextPaths a comma-delimited list of valid context paths
+     * @param allowedContextPaths list of valid context paths
      * @param determinedContextPath   the normalized context path from a header
      * @throws UriBuilderException if the context path is not safe
      */
-    public static void verifyContextPath(String allowedContextPaths, String determinedContextPath) throws UriBuilderException {
+    public static void verifyContextPath(final List<String> allowedContextPaths, final String determinedContextPath) throws UriBuilderException {
         // If blank, ignore
         if (StringUtils.isBlank(determinedContextPath)) {
             return;
         }
 
         // Check it against the allowed list
-        List<String> individualContextPaths = Arrays.asList(StringUtils.split(allowedContextPaths, ","));
-        if (!individualContextPaths.contains(determinedContextPath)) {
+        if (!allowedContextPaths.contains(determinedContextPath)) {
             final String msg = "The provided context path [" + determinedContextPath + "] was not registered as allowed [" + allowedContextPaths + "]";
-            logger.error(msg);
             throw new UriBuilderException(msg);
         }
     }
@@ -191,11 +162,11 @@ public final class WebUtils {
      * If no headers are present specifying this value, it is an empty string.
      *
      * @param request the HTTP request
-     * @param allowedContextPaths the comma-separated list of allowed context paths
+     * @param allowedContextPaths list of allowed context paths
      * @param jspDisplayName the display name of the resource for log messages
      * @return the context path safe to be printed to the page
      */
-    public static String sanitizeContextPath(ServletRequest request, String allowedContextPaths, String jspDisplayName) {
+    public static String sanitizeContextPath(final ServletRequest request, final List<String> allowedContextPaths, String jspDisplayName) {
         if (StringUtils.isBlank(jspDisplayName)) {
             jspDisplayName = "JSP page";
         }
@@ -290,7 +261,7 @@ public final class WebUtils {
      * @return the determined host
      */
     public static String determineProxiedHost(final HttpServletRequest httpServletRequest) {
-        final String hostHeaderValue = getFirstHeaderValue(httpServletRequest, PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
+        final String hostHeaderValue = getFirstHeaderValue(httpServletRequest, PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER, HOST_HEADER);
         final String proxiedHost = determineProxiedHost(hostHeaderValue);
         return StringUtils.isBlank(proxiedHost) ? httpServletRequest.getServerName() : proxiedHost;
     }
@@ -317,6 +288,21 @@ public final class WebUtils {
             host = hostHeaderValue;
         }
         return host;
+    }
+
+    /**
+     * Get Server Port based on Proxy Headers with fallback to HttpServletRequest.getServerPort()
+     *
+     * @param httpServletRequest HTTP Servlet Request
+     * @return Server port number
+     */
+    public static int getServerPort(final HttpServletRequest httpServletRequest) {
+        final String port = determineProxiedPort(httpServletRequest);
+        try {
+            return Integer.parseInt(port);
+        } catch (final NumberFormatException e) {
+            return httpServletRequest.getServerPort();
+        }
     }
 
     /**

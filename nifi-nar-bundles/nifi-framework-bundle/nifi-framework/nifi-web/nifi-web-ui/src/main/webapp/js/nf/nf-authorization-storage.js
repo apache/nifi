@@ -28,9 +28,25 @@
         nf.AuthorizationStorage = factory();
     }
 }(this, function () {
-    var TOKEN_ITEM_KEY = 'nifi-authorization-token';
+    var TOKEN_ITEM_KEY = 'Access-Token-Expiration';
+
+    var REQUEST_TOKEN_PATTERN = new RegExp('Request-Token=([^;]+)');
 
     return {
+        /**
+         * Get Request Token from document cookies
+         *
+         * @return Request Token string or null when not found
+         */
+        getRequestToken: function () {
+            var requestToken = null;
+            var requestTokenMatcher = REQUEST_TOKEN_PATTERN.exec(document.cookie);
+            if (requestTokenMatcher) {
+                requestToken = requestTokenMatcher[1];
+            }
+            return requestToken;
+        },
+
         /**
          * Get Token from Session Storage
          *

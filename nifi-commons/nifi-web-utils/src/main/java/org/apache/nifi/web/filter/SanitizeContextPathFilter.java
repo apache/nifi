@@ -17,6 +17,9 @@
 package org.apache.nifi.web.filter;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -26,25 +29,23 @@ import javax.servlet.ServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.web.util.WebUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This filter intercepts a request and populates the {@code contextPath} attribute on the request with a sanitized value (originally) retrieved from {@code nifi.properties}.
  */
 public class SanitizeContextPathFilter implements Filter {
-    private static final Logger logger = LoggerFactory.getLogger(SanitizeContextPathFilter.class);
     private static final String ALLOWED_CONTEXT_PATHS_PARAMETER_NAME = "allowedContextPaths";
 
     private String allowedContextPaths = "";
+    private List<String> parsedAllowedContextPaths = Collections.emptyList();
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
         String providedAllowedList = filterConfig.getServletContext().getInitParameter(ALLOWED_CONTEXT_PATHS_PARAMETER_NAME);
 
-        logger.debug("SanitizeContextPathFilter received provided allowed context paths from NiFi properties: " + providedAllowedList);
         if (StringUtils.isNotBlank(providedAllowedList)) {
             allowedContextPaths = providedAllowedList;
+            parsedAllowedContextPaths = Arrays.asList(StringUtils.split(providedAllowedList, ','));
         }
     }
 
@@ -64,10 +65,8 @@ public class SanitizeContextPathFilter implements Filter {
      */
     protected void injectContextPathAttribute(ServletRequest request) {
         // Capture the provided context path headers and sanitize them before using in the response
-        String contextPath = WebUtils.sanitizeContextPath(request, allowedContextPaths, "");
+        String contextPath = WebUtils.sanitizeContextPath(request, parsedAllowedContextPaths, "");
         request.setAttribute("contextPath", contextPath);
-
-        logger.debug("SanitizeContextPathFilter set contextPath: " + contextPath);
     }
 
     @Override

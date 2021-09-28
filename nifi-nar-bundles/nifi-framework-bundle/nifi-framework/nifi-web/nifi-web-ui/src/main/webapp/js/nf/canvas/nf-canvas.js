@@ -108,7 +108,7 @@
     var config = {
         urls: {
             api: '../nifi-api',
-            accessStatus: '../nifi-api/access',
+            accessConfig: '../nifi-api/access/config',
             currentUser: '../nifi-api/flow/current-user',
             controllerBulletins: '../nifi-api/flow/controller/bulletins',
             kerberos: '../nifi-api/access/kerberos',
@@ -865,8 +865,12 @@
         init: function () {
             // attempt kerberos/oidc/saml authentication
             var ticketExchange = $.Deferred(function (deferred) {
-                var successfulAuthentication = function (token) {
-                    nfAuthorizationStorage.setToken(token)
+                var successfulAuthentication = function (jwt) {
+                    // Use Expiration from JWT for tracking authentication status
+                    var sessionExpiration = nfCommon.getSessionExpiration(jwt);
+                    if (sessionExpiration) {
+                        nfAuthorizationStorage.setToken(sessionExpiration);
+                    }
                     deferred.resolve();
                 };
 
@@ -914,15 +918,18 @@
                             if (nfAuthorizationStorage.hasToken()) {
                                 $('#logout-link-container').show();
                             } else {
-                                // Check Access Status when Token not found to remove Session Cookie if needed
+                                // Check Access Configuration when Token not found for new browser tabs
                                 $.ajax({
                                     type: 'GET',
-                                    url: config.urls.accessStatus,
+                                    url: config.urls.accessConfig,
                                     dataType: 'json'
                                 }).done(function (response) {
-                                    var accessStatus = response.accessStatus;
-                                    if (accessStatus.status === 'UNKNOWN') {
-                                        window.location = '../nifi/login';
+                                    if (response.config.supportsLogin) {
+                                        // Show logout button when login supported
+                                        $('#logout-link-container').show();
+                                        // Set default expiration when authenticated to enable logout status
+                                        var expiration = nfCommon.getDefaultExpiration();
+                                        nfAuthorizationStorage.setToken(expiration);
                                     }
                                 }).fail(function () {
                                     window.location = '../nifi/login';
