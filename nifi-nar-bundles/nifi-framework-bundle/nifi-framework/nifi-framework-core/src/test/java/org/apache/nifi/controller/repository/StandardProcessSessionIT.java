@@ -2787,17 +2787,17 @@ public class StandardProcessSessionIT {
 
     @Test
     public void testCreateNewFlowFileWithoutParentThenMultipleWritesCountsClaimReferencesProperly() {
-        FlowFile clone = session.create();
+        FlowFile flowFile = session.create();
 
         for (int i=0; i < 100; i++) {
-            clone = session.write(clone, out -> out.write("bye".getBytes()));
+            flowFile = session.write(flowFile, out -> out.write("bye".getBytes()));
 
-            final ContentClaim updatedCloneClaim = getContentClaim(clone);
+            final ContentClaim updatedCloneClaim = getContentClaim(flowFile);
             assertEquals(1, contentRepo.getClaimantCount(updatedCloneClaim));
         }
 
         session.rollback();
-        assertEquals(0, contentRepo.getClaimantCount(getContentClaim(clone)));
+        assertEquals(0, contentRepo.getClaimantCount(getContentClaim(flowFile)));
     }
 
 
