@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -56,7 +57,6 @@ public class PropertiesFileEngineConfigurationParser {
     private static final String KRB5_FILE = PREFIX + "kerberos.krb5.file";
 
     private static final String DEFAULT_KRB5_FILENAME = "/etc/krb5.conf";
-    private static final String DEFAULT_ENCRYPTION_PASSWORD = "nifi-stateless";
 
     private static final Pattern EXTENSION_CLIENT_PATTERN = Pattern.compile("\\Qnifi.stateless.extension.client.\\E(.*?)\\.(.+)");
 
@@ -93,7 +93,8 @@ public class PropertiesFileEngineConfigurationParser {
         final String krb5Filename = properties.getProperty(KRB5_FILE, DEFAULT_KRB5_FILENAME);
         final File krb5File = new File(krb5Filename);
 
-        final String sensitivePropsKey = properties.getProperty(SENSITIVE_PROPS_KEY, DEFAULT_ENCRYPTION_PASSWORD);
+        final String defaultEncryptionPassword = UUID.randomUUID().toString();
+        final String sensitivePropsKey = properties.getProperty(SENSITIVE_PROPS_KEY, defaultEncryptionPassword);
         final SslContextDefinition sslContextDefinition = parseSslContextDefinition(properties);
 
         final List<ExtensionClientDefinition> extensionClients = parseExtensionClients(properties);
