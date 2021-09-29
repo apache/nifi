@@ -1341,6 +1341,9 @@
                 $('#parameter-context-tabs').hide();
                 $('#parameter-context-update-status').show();
 
+                // hide the pending apply message for parameter context
+                $('#inherited-parameter-contexts-message').addClass('hidden')
+
                 pollUpdateRequest(response);
             }).fail(handleAjaxFailure);
         }).promise();
