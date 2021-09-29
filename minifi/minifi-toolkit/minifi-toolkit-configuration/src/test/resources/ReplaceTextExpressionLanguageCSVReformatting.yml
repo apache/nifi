@@ -65,7 +65,6 @@ Security Properties:
   Sensitive Props:
     key:
     algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
-    provider: BC
 Processors:
 - name: Generate Empty File
   id: e626f756-f018-4670-8802-c8f8e459e15d

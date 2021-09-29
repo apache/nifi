@@ -730,7 +730,6 @@ Security can be configured in two ways for instances via:
 --------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------
 `nifi.minifi.sensitive.props.key`       | `key`                 | This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
 `nifi.minifi.sensitive.props.algorithm` | `algorithm`           | The algorithm used to encrypt sensitive properties. The default value is `PBEWITHMD5AND256BITAES-CBC-OPENSSL`.
-`nifi.minifi.sensitive.props.provider`  | `provider`            | The sensitive property provider. The default value is `BC`.
 
 # <a id="running-as-a-windows-service" href="#running-as-a-windows-service">Running as a Windows Service</a>
 

@@ -55,7 +55,6 @@ public class BootstrapPropertyKeys {
 
     public static final String SENSITIVE_PROPS_KEY_KEY = "nifi.minifi.sensitive.props.key";
     public static final String SENSITIVE_PROPS_ALGORITHM_KEY = "nifi.minifi.sensitive.props.algorithm";
-    public static final String SENSITIVE_PROPS_PROVIDER_KEY = "nifi.minifi.sensitive.props.provider";
 
     public static final Set<String> BOOTSTRAP_SECURITY_PROPERTY_KEYS = new HashSet<>(
             Arrays.asList(SECURITY_KEYSTORE_KEY,
@@ -70,8 +69,7 @@ public class BootstrapPropertyKeys {
     public static final Set<String> BOOTSTRAP_SENSITIVE_PROPERTY_KEYS = new HashSet<>(
             Arrays.asList(
                     SENSITIVE_PROPS_KEY_KEY,
-                    SENSITIVE_PROPS_ALGORITHM_KEY,
-                    SENSITIVE_PROPS_PROVIDER_KEY));
+                    SENSITIVE_PROPS_ALGORITHM_KEY));
 
     public static final String PROVENANCE_REPORTING_COMMENT_KEY = "nifi.minifi.provenance.reporting.comment";
     public static final String PROVENANCE_REPORTING_SCHEDULING_STRATEGY_KEY = "nifi.minifi.provenance.reporting.scheduling.strategy";
@@ -112,7 +110,6 @@ public class BootstrapPropertyKeys {
 
         mutableMap.put(SENSITIVE_PROPS_KEY_KEY, SensitivePropsSchema.SENSITIVE_PROPS_KEY_KEY);
         mutableMap.put(SENSITIVE_PROPS_ALGORITHM_KEY, SensitivePropsSchema.SENSITIVE_PROPS_ALGORITHM_KEY);
-        mutableMap.put(SENSITIVE_PROPS_PROVIDER_KEY, SensitivePropsSchema.SENSITIVE_PROPS_PROVIDER_KEY);
 
         mutableMap.put(PROVENANCE_REPORTING_COMMENT_KEY, COMMENT_KEY);
         mutableMap.put(PROVENANCE_REPORTING_SCHEDULING_STRATEGY_KEY, SCHEDULING_STRATEGY_KEY);

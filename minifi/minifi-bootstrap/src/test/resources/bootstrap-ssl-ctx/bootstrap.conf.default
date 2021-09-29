@@ -46,7 +46,6 @@ nifi.minifi.security.ssl.protocol=
 
 nifi.minifi.sensitive.props.key=
 nifi.minifi.sensitive.props.algorithm=
-nifi.minifi.sensitive.props.provider=
 
 
 # Notifiers to use for the associated agent, comma separated list of class names

@@ -54,7 +54,6 @@ Security Properties:
   Sensitive Props:
     key:
     algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
-    provider: BC
 Processors:
 - name: LogAttribute
   id: 0a73c5e4-7216-4cdf-9008-ace353478d55

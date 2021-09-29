@@ -30,14 +30,11 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SE
 public class SensitivePropsSchema extends BaseSchema implements WritableSchema {
     public static final String SENSITIVE_PROPS_KEY_KEY = "key";
     public static final String SENSITIVE_PROPS_ALGORITHM_KEY = "algorithm";
-    public static final String SENSITIVE_PROPS_PROVIDER_KEY = "provider";
 
     public static final String DEFAULT_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL";
-    public static final String DEFAULT_PROVIDER = "BC";
 
     private String key;
     private String algorithm = DEFAULT_ALGORITHM;
-    private String provider = DEFAULT_PROVIDER;
 
     public SensitivePropsSchema() {
     }
@@ -45,7 +42,6 @@ public class SensitivePropsSchema extends BaseSchema implements WritableSchema {
     public SensitivePropsSchema(Map map) {
         key = getOptionalKeyAsType(map, SENSITIVE_PROPS_KEY_KEY, String.class, SENSITIVE_PROPS_KEY, "");
         algorithm = getOptionalKeyAsType(map, SENSITIVE_PROPS_ALGORITHM_KEY, String.class, SENSITIVE_PROPS_KEY, DEFAULT_ALGORITHM);
-        provider = getOptionalKeyAsType(map, SENSITIVE_PROPS_PROVIDER_KEY, String.class, SENSITIVE_PROPS_KEY, DEFAULT_PROVIDER);
     }
 
     @Override
@@ -53,7 +49,6 @@ public class SensitivePropsSchema extends BaseSchema implements WritableSchema {
         Map<String, Object> result = mapSupplier.get();
         result.put(SENSITIVE_PROPS_KEY_KEY, key);
         result.put(SENSITIVE_PROPS_ALGORITHM_KEY, algorithm);
-        result.put(SENSITIVE_PROPS_PROVIDER_KEY, provider);
         return result;
     }
 
@@ -63,9 +58,5 @@ public class SensitivePropsSchema extends BaseSchema implements WritableSchema {
 
     public String getAlgorithm() {
         return algorithm;
-    }
-
-    public String getProvider() {
-        return provider;
     }
 }

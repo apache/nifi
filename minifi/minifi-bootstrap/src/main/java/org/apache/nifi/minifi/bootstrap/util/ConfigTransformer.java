@@ -261,7 +261,6 @@ public final class ConfigTransformer {
             final String notnullSensitivePropertiesKey = sensitivePropertiesKey != null ? sensitivePropertiesKey : "";
             orderedProperties.setProperty("nifi.sensitive.props.key", notnullSensitivePropertiesKey, System.lineSeparator() + "# security properties #");
             orderedProperties.setProperty("nifi.sensitive.props.algorithm", sensitiveProperties.getAlgorithm());
-            orderedProperties.setProperty("nifi.sensitive.props.provider", sensitiveProperties.getProvider());
 
             orderedProperties.setProperty("nifi.security.keystore", securityProperties.getKeystore(), "");
             orderedProperties.setProperty("nifi.security.keystoreType", securityProperties.getKeystoreType());

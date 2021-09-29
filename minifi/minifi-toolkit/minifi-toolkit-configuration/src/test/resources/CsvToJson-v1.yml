@@ -53,7 +53,6 @@ Security Properties:
   Sensitive Props:
     key:
     algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
-    provider: BC
 Processors:
 - name: ExtractText
   class: org.apache.nifi.processors.standard.ExtractText

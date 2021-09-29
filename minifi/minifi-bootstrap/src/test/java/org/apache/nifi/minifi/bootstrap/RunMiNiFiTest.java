@@ -62,7 +62,6 @@ public class RunMiNiFiTest {
 
         Assert.assertEquals("sensitivepropskey", sensitiveProps.getKey());
         Assert.assertEquals("algo", sensitiveProps.getAlgorithm());
-        Assert.assertEquals("BC", sensitiveProps.getProvider());
 
 
         Assert.assertTrue(securityPropertiesSchema.isValid());
@@ -90,7 +89,6 @@ public class RunMiNiFiTest {
 
         Assert.assertEquals("sensitivepropskey", sensitiveProps.getKey());
         Assert.assertEquals("algo", sensitiveProps.getAlgorithm());
-        Assert.assertEquals("BC", sensitiveProps.getProvider());
 
         Assert.assertFalse(securityPropertiesSchema.isValid());
 

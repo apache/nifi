@@ -65,7 +65,6 @@ Security Properties:
   Sensitive Props:
     key:
     algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
-    provider: BC
 Processors:
 - id: d5232ad7-0158-1000-0000-000000000000
   name: GetHTTP

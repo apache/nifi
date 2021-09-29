@@ -65,7 +65,6 @@ Security Properties:
   Sensitive Props:
     key:
     algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
-    provider: BC
 Processors:
 - name: Compressed?
   id: 1377e3cc-db4e-4832-8a90-c8dc9e08f603

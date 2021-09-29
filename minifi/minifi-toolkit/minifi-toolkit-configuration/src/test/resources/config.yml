@@ -61,7 +61,6 @@ Security Properties:
   Sensitive Props:
     key: ''
     algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
-    provider: BC
 Processors:
 - id: 94b8e610-b4ed-3ec9-b26f-c839931bf3e2
   name: TailFile

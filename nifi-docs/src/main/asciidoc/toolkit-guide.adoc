@@ -501,7 +501,6 @@ As an example of how the tool works, assume that you have installed the tool on 
 # security properties #
 nifi.sensitive.props.key=thisIsABadSensitiveKeyPassword
 nifi.sensitive.props.algorithm=NIFI_PBKDF2_AES_GCM_256
-nifi.sensitive.props.provider=BC
 nifi.sensitive.props.additional.keys=
 
 nifi.security.keystore=/path/to/keystore.jks
@@ -530,7 +529,6 @@ As a result, the _nifi.properties_ file is overwritten with protected properties
 nifi.sensitive.props.key=n2z+tTTbHuZ4V4V2||uWhdasyDXD4ZG2lMAes/vqh6u4vaz4xgL4aEbF4Y/dXevqk3ulRcOwf1vc4RDQ==
 nifi.sensitive.props.key.protected=aes/gcm/256
 nifi.sensitive.props.algorithm=NIFI_PBKDF2_AES_GCM_256
-nifi.sensitive.props.provider=BC
 nifi.sensitive.props.additional.keys=
 
 nifi.security.keystore=/path/to/keystore.jks

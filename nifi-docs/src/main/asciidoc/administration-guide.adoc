@@ -3801,7 +3801,6 @@ These properties pertain to various security features in NiFi. Many of these pro
 |*Property*|*Description*
 |`nifi.sensitive.props.key`|This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
 |`nifi.sensitive.props.algorithm`|The algorithm used to encrypt sensitive properties. The default value is `NIFI_PBKDF2_AES_GCM_256`.
-|`nifi.sensitive.props.provider`|The sensitive property provider. The default value is `BC`.
 |`nifi.sensitive.props.additional.keys`|The comma separated list of properties in _nifi.properties_ to encrypt in addition to the default sensitive properties (see <<encrypt-config_tool>>).
 |`nifi.security.autoreload.enabled`|Specifies whether the SSL context factory should be automatically reloaded if updates to the keystore and truststore are detected. By default, it is set to `false`.
 |`nifi.security.autoreload.interval`|Specifies the interval at which the keystore and truststore are checked for updates. Only applies if `nifi.security.autoreload.enabled` is set to `true`. The default value is `10 secs`.
