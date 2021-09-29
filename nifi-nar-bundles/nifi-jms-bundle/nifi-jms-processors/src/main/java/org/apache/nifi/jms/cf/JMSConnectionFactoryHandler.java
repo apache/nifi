@@ -175,7 +175,19 @@ public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvide
         SSLContextService sslContextService = context.getProperty(JMS_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
             SSLContext sslContext = sslContextService.createContext();
-            if (connectionFactoryValue.startsWith("org.apache.qpid.jms")) {
+            if (connectionFactoryValue.startsWith("org.apache.activemq")) {
+                if (sslContextService.isTrustStoreConfigured()) {
+                    setProperty("trustStore", sslContextService.getTrustStoreFile());
+                    setProperty("trustStorePassword", sslContextService.getTrustStorePassword());
+                    setProperty("trustStoreType", sslContextService.getTrustStoreType());
+                }
+                if (sslContextService.isKeyStoreConfigured()) {
+                    setProperty("keyStore", sslContextService.getKeyStoreFile());
+                    setProperty("keyStorePassword", sslContextService.getKeyStorePassword());
+                    setProperty("keyStoreKeyPassword", sslContextService.getKeyPassword());
+                    setProperty("keyStoreType", sslContextService.getKeyStoreType());
+                }
+            } else if (connectionFactoryValue.startsWith("org.apache.qpid.jms")) {
                 setProperty("sslContext", sslContext);
             } else {
                 // IBM MQ (and others)
