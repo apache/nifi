@@ -46,7 +46,6 @@ nifi.minifi.security.ssl.protocol=TLS
 
 nifi.minifi.sensitive.props.key=sensitivepropskey
 nifi.minifi.sensitive.props.algorithm=algo
-nifi.minifi.sensitive.props.provider=BC
 
 
 # Notifiers to use for the associated agent, comma separated list of class names
