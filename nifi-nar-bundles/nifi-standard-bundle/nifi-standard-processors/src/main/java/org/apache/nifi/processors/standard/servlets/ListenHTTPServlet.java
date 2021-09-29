@@ -424,6 +424,8 @@ public class ListenHTTPServlet extends HttpServlet {
                         response.setStatus(this.returnCode);
                         asyncContext.complete();
                     }, t -> {
+                        logger.error("Failed to commit session. Returning error response to Remote Host: [{}] Port [{}] SubjectDN [{}] IssuerDN [{}]",
+                                new Object[] {request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer}, t);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         asyncContext.complete();
                     }
