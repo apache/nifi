@@ -20,9 +20,10 @@
     <artifactId>nifi-azure-processors</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <azure-eventhubs.version>3.2.1</azure-eventhubs.version>
-        <azure-eventhubs-eph.version>3.2.1</azure-eventhubs-eph.version>
+        <azure-eventhubs.version>3.3.0</azure-eventhubs.version>
+        <azure-eventhubs-eph.version>3.3.0</azure-eventhubs-eph.version>
         <azure-keyvault.version>1.2.4</azure-keyvault.version>
+        <azure-storage-file-datalake.version>12.7.1</azure-storage-file-datalake.version>
     </properties>
     <dependencies>
         <dependency>
@@ -133,7 +134,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-file-datalake</artifactId>
-            <version>12.2.0</version>
+            <version>${azure-storage-file-datalake.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.azure</groupId>

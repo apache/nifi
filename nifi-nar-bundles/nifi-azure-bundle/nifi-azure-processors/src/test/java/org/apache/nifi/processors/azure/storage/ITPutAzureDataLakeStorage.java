@@ -301,8 +301,9 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         String urlEscapedDirectory = UrlEscapers.urlPathSegmentEscaper().escape(directory);
         String urlEscapedFileName = UrlEscapers.urlPathSegmentEscaper().escape(fileName);
+        String urlEscapedPathSeparator = UrlEscapers.urlPathSegmentEscaper().escape("/");
         String primaryUri = StringUtils.isNotEmpty(directory)
-                ? String.format("https://%s.dfs.core.windows.net/%s/%s/%s", getAccountName(), fileSystemName, urlEscapedDirectory, urlEscapedFileName)
+                ? String.format("https://%s.dfs.core.windows.net/%s/%s%s%s", getAccountName(), fileSystemName, urlEscapedDirectory, urlEscapedPathSeparator, urlEscapedFileName)
                 : String.format("https://%s.dfs.core.windows.net/%s/%s", getAccountName(), fileSystemName, urlEscapedFileName);
         flowFile.assertAttributeEquals(ATTR_NAME_PRIMARY_URI, primaryUri);
 
