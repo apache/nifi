@@ -24,7 +24,6 @@
     <packaging>jar</packaging>
     <properties>
         <microsoft-graph.version>2.10.0</microsoft-graph.version>
-        <msal4j.version>1.6.0</msal4j.version>
     </properties>
     <dependencies>
         <dependency>
@@ -45,17 +44,6 @@
             <groupId>com.microsoft.graph</groupId>
             <artifactId>microsoft-graph</artifactId>
             <version>${microsoft-graph.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-identity</artifactId>
-            <version>${azure.identity.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.azure</groupId>
-                    <artifactId>azure-core</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.microsoft.azure</groupId>
