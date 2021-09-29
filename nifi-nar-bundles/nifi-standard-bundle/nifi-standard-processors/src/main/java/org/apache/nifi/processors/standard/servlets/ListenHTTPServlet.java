@@ -243,7 +243,7 @@ public class ListenHTTPServlet extends HttpServlet {
     private void handleException(final HttpServletRequest request, final HttpServletResponse response,
                                  final ProcessSession session, final String foundSubject, final String foundIssuer, final Throwable t) throws IOException {
         session.rollback();
-        logger.error("Unable to receive file from Remote Host: [{}] SubjectDN [{}] IssuerDN [{}] due to {}", new Object[]{request.getRemoteHost(), foundSubject, foundIssuer, t});
+        logger.error("Unable to receive file from Remote Host: [{}] SubjectDN [{}] IssuerDN [{}] due to {}", request.getRemoteHost(), foundSubject, foundIssuer, t);
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, t.toString());
     }
 
@@ -411,11 +411,11 @@ public class ListenHTTPServlet extends HttpServlet {
             response.getOutputStream().write(ackUri.getBytes("UTF-8"));
             if (logger.isDebugEnabled()) {
                 logger.debug("Ingested {} from Remote Host: [{}] Port [{}] SubjectDN [{}] IssuerDN [{}]; placed hold on these {} files with ID {}",
-                    new Object[]{flowFileSet, request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer, flowFileSet.size(), uuid});
+                        flowFileSet, request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer, flowFileSet.size(), uuid);
             }
         } else {
             logger.info("Received from Remote Host: [{}] Port [{}] SubjectDN [{}] IssuerDN [{}]; transferring to 'success'",
-                new Object[]{request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer});
+                    request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer);
 
             session.transfer(flowFileSet, ListenHTTP.RELATIONSHIP_SUCCESS);
 
@@ -425,7 +425,7 @@ public class ListenHTTPServlet extends HttpServlet {
                         asyncContext.complete();
                     }, t -> {
                         logger.error("Failed to commit session. Returning error response to Remote Host: [{}] Port [{}] SubjectDN [{}] IssuerDN [{}]",
-                                new Object[] {request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer}, t);
+                                request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer, t);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         asyncContext.complete();
                     }
