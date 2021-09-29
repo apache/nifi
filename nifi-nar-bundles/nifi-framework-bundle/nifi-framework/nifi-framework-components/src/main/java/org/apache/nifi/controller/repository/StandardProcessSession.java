@@ -1755,11 +1755,14 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
 
     private List<FlowFile> get(final ConnectionPoller poller, final boolean lockAllQueues) {
-        final List<Connection> connections = context.getPollableConnections();
-        if (lockAllQueues) {
+        List<Connection> connections = context.getPollableConnections();
+        final boolean sortConnections = lockAllQueues && connections.size() > 1;
+        if (sortConnections) {
             // Sort by identifier so that if there are two arbitrary connections, we always lock them in the same order.
             // Otherwise, we could encounter a deadlock, if another thread were to lock the same two connections in a different order.
             // So we always lock ordered on connection identifier. And unlock in the opposite order.
+            // Before doing this, we must create a copy of the List because the one provided by context.getPollableConnections() is usually an unmodifiableList
+            connections = new ArrayList<>(connections);
             connections.sort(Comparator.comparing(Connection::getIdentifier));
             for (final Connection connection : connections) {
                 connection.lock();
@@ -1790,7 +1793,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             return new ArrayList<>();
         } finally {
-            if (lockAllQueues) {
+            if (sortConnections) {
                 // Reverse ordering in order to unlock
                 connections.sort(Comparator.comparing(Connection::getIdentifier).reversed());
 
