@@ -403,6 +403,55 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
+    public void propertiesSetOnSingleActiveMqBrokerWithSslConnectionFactory() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_ACTIVEMQ_BROKER);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, ACTIVEMQ_CONNECTION_FACTORY_IMPL);
+
+        String trustStoreFile = "/path/to/truststore";
+        String trustStorePassword = "truststore_password";
+        String trustStoreType = "JKS";
+        String keyStoreFile = "/path/to/keystore";
+        String keyStorePassword = "keystore_password";
+        String keyPassword = "key_password";
+        String keyStoreType = "PKCS12";
+
+        SSLContextService sslContextService = mock(SSLContextService.class);
+        when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
+        when(sslContextService.isTrustStoreConfigured()).thenReturn(true);
+        when(sslContextService.getTrustStoreFile()).thenReturn(trustStoreFile);
+        when(sslContextService.getTrustStorePassword()).thenReturn(trustStorePassword);
+        when(sslContextService.getTrustStoreType()).thenReturn(trustStoreType);
+        when(sslContextService.isKeyStoreConfigured()).thenReturn(true);
+        when(sslContextService.getKeyStoreFile()).thenReturn(keyStoreFile);
+        when(sslContextService.getKeyStorePassword()).thenReturn(keyStorePassword);
+        when(sslContextService.getKeyPassword()).thenReturn(keyPassword);
+        when(sslContextService.getKeyStoreType()).thenReturn(keyStoreType);
+
+        runner.addControllerService(SSL_CONTEXT_SERVICE_ID, sslContextService);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
+
+        runner.enableControllerService(cfProvider);
+
+        assertEquals(ImmutableMap.builder()
+                        .put("brokerURL", SINGLE_ACTIVEMQ_BROKER)
+                        .put("trustStore", trustStoreFile)
+                        .put("trustStorePassword", trustStorePassword)
+                        .put("trustStoreType", trustStoreType)
+                        .put("keyStore", keyStoreFile)
+                        .put("keyStorePassword", keyStorePassword)
+                        .put("keyStoreKeyPassword", keyPassword)
+                        .put("keyStoreType", keyStoreType)
+                        .build(),
+                cfProvider.getConfiguredProperties());
+    }
+
+    @Test
     public void propertiesSetOnSingleTibcoBrokerConnectionFactory() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
