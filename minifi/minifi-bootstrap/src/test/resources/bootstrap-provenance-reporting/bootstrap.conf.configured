@@ -46,7 +46,6 @@ nifi.minifi.security.ssl.protocol=TLS
 
 nifi.minifi.sensitive.props.key=sensitivepropskey
 nifi.minifi.sensitive.props.algorithm=algo
-nifi.minifi.sensitive.props.provider=BC
 
 # Provenance Reporting Properties #
 # These properties take precedence over any equivalent properties specified in the config.yml #
