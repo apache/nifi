@@ -16,10 +16,13 @@
  */
 package org.apache.nifi.web.dao;
 
+import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface ParameterContextDAO extends ParameterContextLookup {
@@ -40,6 +43,14 @@ public interface ParameterContextDAO extends ParameterContextLookup {
     ParameterContext createParameterContext(ParameterContextDTO parameterContextDto);
 
     /**
+     * Returns a map from parameter name to intended parameter, given the DTO.
+     * @param parameterContextDto A parameter context DTO containing parameter updates
+     * @param context The existing parameter context
+     * @return The resulting parameter map containing updated parameters (or removals)
+     */
+    Map<String, Parameter> getParameters(ParameterContextDTO parameterContextDto, ParameterContext context);
+
+    /**
      * Gets all of the parameter contexts.
      *
      * @return The parameter contexts
@@ -53,6 +64,13 @@ public interface ParameterContextDAO extends ParameterContextLookup {
      * @return The parameter context
      */
     ParameterContext updateParameterContext(ParameterContextDTO parameterContextDto);
+
+    /**
+     * Returns a list of the inherited parameter contexts proposed by the DTO.
+     * @param parameterContextDto The parameter context DTO
+     * @return a list of the inherited parameter contexts proposed by the DTO
+     */
+    List<ParameterContext> getInheritedParameterContexts(ParameterContextDTO parameterContextDto);
 
     /**
      * Determines whether this parameter context can be updated.
