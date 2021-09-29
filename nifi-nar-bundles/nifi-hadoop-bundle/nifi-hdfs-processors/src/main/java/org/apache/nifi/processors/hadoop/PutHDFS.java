@@ -40,6 +40,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -246,6 +247,11 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 .maximumSize(20L)
                 .expireAfterWrite(Duration.ofHours(1))
                 .build();
+    }
+
+    @OnStopped
+    public void onStopped() {
+        aclCache.invalidateAll();
     }
 
     @Override
