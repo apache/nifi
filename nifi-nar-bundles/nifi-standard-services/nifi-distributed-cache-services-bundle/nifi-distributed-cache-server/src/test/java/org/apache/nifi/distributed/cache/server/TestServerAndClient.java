@@ -44,12 +44,14 @@ import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer;
 import org.apache.nifi.distributed.cache.server.map.MapCacheServer;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
+import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
@@ -679,8 +681,8 @@ public class TestServerAndClient {
         final Serializer<String> serializer = new StringSerializer();
 
         final String key = "key";
-        final int maxRead = 1_000_000;
-        final int belowThreshold = maxRead / key.length();
+        final int maxReadSize = new MockPropertyValue(DistributedCacheServer.MAX_READ_SIZE.getDefaultValue()).asDataSize(DataUnit.B).intValue();
+        final int belowThreshold = maxReadSize / key.length();
         final int aboveThreshold = belowThreshold + 1;
         final String keyBelowThreshold = StringUtils.repeat(key, belowThreshold);
         final String keyAboveThreshold = StringUtils.repeat(key, aboveThreshold);
@@ -699,8 +701,8 @@ public class TestServerAndClient {
         final Serializer<String> serializer = new StringSerializer();
 
         final String value = "value";
-        final int maxRead = 1_000_000;
-        final int belowThreshold = maxRead / value.length();
+        final int maxReadSize = new MockPropertyValue(DistributedCacheServer.MAX_READ_SIZE.getDefaultValue()).asDataSize(DataUnit.B).intValue();
+        final int belowThreshold = maxReadSize / value.length();
         final int aboveThreshold = belowThreshold + 1;
         final String valueBelowThreshold = StringUtils.repeat(value, belowThreshold);
         final String valueAboveThreshold = StringUtils.repeat(value, aboveThreshold);

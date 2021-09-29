@@ -45,7 +45,7 @@ public class CacheClientRequestHandler extends ChannelInboundHandlerAdapter {
     private ChannelPromise channelPromise;
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws IOException {
+    public void channelRead(final ChannelHandlerContext ctx, final Object msg) {
         final ByteBuf byteBuf = (ByteBuf) msg;
         try {
             final byte[] bytes = new byte[byteBuf.readableBytes()];
@@ -57,7 +57,7 @@ public class CacheClientRequestHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) throws IOException {
+    public void channelReadComplete(final ChannelHandlerContext ctx) throws IOException {
         inboundAdapter.dequeue();
         if (inboundAdapter.isComplete() && !channelPromise.isSuccess()) {
             channelPromise.setSuccess();
@@ -65,14 +65,14 @@ public class CacheClientRequestHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelUnregistered(ChannelHandlerContext ctx) {
+    public void channelUnregistered(final ChannelHandlerContext ctx) {
         if (!inboundAdapter.isComplete()) {
-            channelPromise.setFailure(new IOException("channelUnregistered during request - " + ctx.channel().toString()));
+            channelPromise.setFailure(new IOException("Channel unregistered before processing completed: " + ctx.channel().toString()));
         }
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+    public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) {
         channelPromise.setFailure(cause);
     }
 
@@ -99,7 +99,7 @@ public class CacheClientRequestHandler extends ChannelInboundHandlerAdapter {
         channelPromise.awaitUninterruptibly();
         this.inboundAdapter = new NullInboundAdapter();
         if (channelPromise.cause() != null) {
-            throw new IOException(channelPromise.cause());
+            throw new IOException("Request invocation failed", channelPromise.cause());
         }
     }
 }

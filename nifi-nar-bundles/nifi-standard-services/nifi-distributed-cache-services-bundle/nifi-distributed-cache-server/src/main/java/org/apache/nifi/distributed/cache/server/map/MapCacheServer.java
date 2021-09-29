@@ -123,7 +123,7 @@ public class MapCacheServer extends AbstractCacheServer {
                 break;
             }
             case "subMap": {
-                final int numKeys = validateInt(dis.readInt(), getMaxReadSize(), "subMap():");
+                final int numKeys = validateSize(dis.readInt());
                 for(int i=0;i<numKeys;i++) {
                     final byte[] key = readValue(dis);
                     final ByteBuffer existingValue = cache.get(ByteBuffer.wrap(key));
@@ -247,21 +247,6 @@ public class MapCacheServer extends AbstractCacheServer {
     protected void finalize() throws Throwable {
         if (!stopped) {
             stop();
-        }
-    }
-
-    private byte[] readValue(final DataInputStream dis) throws IOException {
-        final int numBytes = validateInt(dis.readInt(), getMaxReadSize(), "readValue():");
-        final byte[] buffer = new byte[numBytes];
-        dis.readFully(buffer);
-        return buffer;
-    }
-
-    private int validateInt(final int value, final int max, final String identifier) throws IOException {
-        if (value <= max) {
-            return value;
-        } else {
-            throw new IOException(new IllegalArgumentException(identifier + value));
         }
     }
 }
