@@ -57,8 +57,6 @@ public class StatusHistoryRepositoryFactoryBean implements FactoryBean<StatusHis
         }
     }
 
-
-
     @Override
     public Class<?> getObjectType() {
         return StatusHistoryRepository.class;

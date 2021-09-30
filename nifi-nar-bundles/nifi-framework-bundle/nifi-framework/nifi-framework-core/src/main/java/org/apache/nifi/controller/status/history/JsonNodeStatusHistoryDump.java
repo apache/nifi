@@ -24,11 +24,11 @@ import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class JsonNodeStatusHistoryDump implements StatusHistoryDump {
+final class JsonNodeStatusHistoryDump implements StatusHistoryDump {
 
     private final StatusHistory nodeStatusHistory;
 
-    public JsonNodeStatusHistoryDump(final StatusHistory nodeStatusHistory) {
+    JsonNodeStatusHistoryDump(final StatusHistory nodeStatusHistory) {
         this.nodeStatusHistory = nodeStatusHistory;
     }
 

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller.status.history;
 
+import com.google.common.base.Preconditions;
+
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -27,6 +29,7 @@ public class JsonNodeStatusHistoryDumpFactory implements StatusHistoryDumpFactor
 
     @Override
     public StatusHistoryDump create(int days) {
+        Preconditions.checkArgument(days > 0, String.format("The number of days shall be greater than 0. The current value is %s.", days));
         final LocalDateTime endOfToday = LocalDateTime.now().with(LocalTime.MAX);
         final LocalDateTime startOfDaysBefore = endOfToday.minusDays(days).with(LocalTime.MIN);
 

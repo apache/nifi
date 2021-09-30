@@ -349,7 +349,7 @@ public class TestFlowController {
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
         try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
             controller.initializeFlow();
         } finally {
             purgeFlow();
@@ -368,7 +368,7 @@ public class TestFlowController {
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
         try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
             controller.initializeFlow();
 
             ParameterContext parameterContext = controller.getFlowManager().getParameterContextManager().getParameterContext("context");
@@ -393,7 +393,7 @@ public class TestFlowController {
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
         try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
             controller.initializeFlow();
 
             final Map<String, Parameter> parameters = new HashMap<>();

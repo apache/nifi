@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.status.history;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -30,10 +31,11 @@ import static org.mockito.Mockito.verify;
 
 public class JsonNodeStatusHistoryDumpFactoryTest {
 
-    private static final int DAYS = 3;
+    private static final String EXPECTED_EXCEPTION_MESSAGE = "The number of days shall be greater than 0. The current value is %s.";
 
     @Test
     public void testJsonNodeStatusDumpFactory() {
+        final int days = 3;
         final StatusHistoryRepository statusHistoryRepository = mock(StatusHistoryRepository.class);
         final ArgumentCaptor<Date> fromArgumentCaptor = ArgumentCaptor.forClass(Date.class);
         final ArgumentCaptor<Date> toArgumentCaptor = ArgumentCaptor.forClass(Date.class);
@@ -41,18 +43,40 @@ public class JsonNodeStatusHistoryDumpFactoryTest {
         JsonNodeStatusHistoryDumpFactory factory = new JsonNodeStatusHistoryDumpFactory();
         factory.setStatusHistoryRepository(statusHistoryRepository);
 
-        factory.create(DAYS);
+        factory.create(days);
 
         verify(statusHistoryRepository).getNodeStatusHistory(fromArgumentCaptor.capture(), toArgumentCaptor.capture());
 
         final LocalDateTime endOfToday = LocalDateTime.now().with(LocalTime.MAX);
-        final LocalDateTime startOfDaysBefore = endOfToday.minusDays(DAYS).with(LocalTime.MIN);
+        final LocalDateTime startOfDaysBefore = endOfToday.minusDays(days).with(LocalTime.MIN);
 
         final Date endOfTodayDate = Date.from(endOfToday.atZone(ZoneId.systemDefault()).toInstant());
         final Date startOfDaysBeforeDate = Date.from(startOfDaysBefore.atZone(ZoneId.systemDefault()).toInstant());
 
         assertEquals(endOfTodayDate, toArgumentCaptor.getValue());
         assertEquals(startOfDaysBeforeDate, fromArgumentCaptor.getValue());
+    }
+
+    @Test
+    public void testJsonNodeStatusDumpFactoryWithLessThanOneDayThrowsException() {
+        final int zeroDays = 0;
+        final int negativeDays = -1;
+        final StatusHistoryRepository statusHistoryRepository = mock(StatusHistoryRepository.class);
+
+        JsonNodeStatusHistoryDumpFactory factory = new JsonNodeStatusHistoryDumpFactory();
+        factory.setStatusHistoryRepository(statusHistoryRepository);
+
+        final IllegalArgumentException zeroDaysException = Assert.assertThrows(IllegalArgumentException.class,
+                () -> factory.create(zeroDays)
+        );
+
+        assertEquals(String.format(EXPECTED_EXCEPTION_MESSAGE, zeroDays), zeroDaysException.getMessage());
+
+        final IllegalArgumentException negativeDaysException = Assert.assertThrows(IllegalArgumentException.class,
+                () -> factory.create(negativeDays)
+        );
+
+        assertEquals(String.format(EXPECTED_EXCEPTION_MESSAGE, negativeDays), negativeDaysException.getMessage());
     }
 
 }

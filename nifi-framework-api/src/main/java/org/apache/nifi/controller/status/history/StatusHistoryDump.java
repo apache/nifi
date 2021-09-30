@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * Interface to serialize status history dumps.
+ * Container for status history data which is capable to write it in an implementation dependent format.
  */
 public interface StatusHistoryDump {
 

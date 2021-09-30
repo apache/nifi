@@ -18,6 +18,7 @@ package org.apache.nifi.bootstrap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bootstrap.notification.NotificationType;
+import org.apache.nifi.bootstrap.util.DumpFileValidator;
 import org.apache.nifi.bootstrap.util.OSUtils;
 import org.apache.nifi.bootstrap.util.SecureNiFiConfigUtil;
 import org.apache.nifi.util.file.FileUtils;
@@ -91,6 +92,7 @@ public class RunNiFi {
     public static final String DEFAULT_JAVA_CMD = "java";
     public static final String DEFAULT_PID_DIR = "bin";
     public static final String DEFAULT_LOG_DIR = "./logs";
+    public static final String DEFAULT_STATUS_HISTORY_DAYS = "1";
 
     public static final String GRACEFUL_SHUTDOWN_PROP = "graceful.shutdown.seconds";
     public static final String DEFAULT_GRACEFUL_SHUTDOWN_VALUE = "20";
@@ -180,8 +182,8 @@ public class RunNiFi {
         System.out.println("Dump : Write a Thread Dump to the file specified by [options], or to the log if no file is given");
         System.out.println("Diagnostics : Write diagnostic information to the file specified by [options], or to the log if no file is given. The --verbose flag may be provided as an option before " +
                 "the filename, which may result in additional diagnostic information being written.");
-        System.out.println("Status-history : Save the status history to the file specified by [options]. The command parameters are: status-history <number of days> <dumpFile>. The <number of days>" +
-                " parameter is optional and defaults to 1 day.");
+        System.out.println("Status-history : Save the status history to the file specified by [options]. The expected command parameters are: " +
+                "status-history <number of days> <dumpFile>. The <number of days> parameter is optional and defaults to 1 day.");
         System.out.println("Run : Start a new instance of Apache NiFi and monitor the Process, restarting if the instance dies");
         System.out.println();
     }
@@ -225,8 +227,8 @@ public class RunNiFi {
             }
         } else if (cmd.equalsIgnoreCase("status-history")) {
             if (args.length < 2) {
-                System.err.printf("Wrong number of arguments: %d instead of 3 or 4, the command parameters are: " +
-                        "status-history <number of days> <dumpFile>%n", args.length);
+                System.err.printf("Wrong number of arguments: %d instead of 1 or 2, the command parameters are: " +
+                        "status-history <number of days> <dumpFile>%n", 0);
                 System.exit(INVALID_CMD_ARGUMENT);
             }
             if (args.length == 3) {
@@ -250,18 +252,13 @@ public class RunNiFi {
                 }
                 dumpFile = new File(args[2]);
             } else {
-                try {
-                    Paths.get(args[1]);
-                } catch (InvalidPathException e) {
-                    System.err.println("Invalid filename. The command parameters are: status-history <number of days> <dumpFile>");
+                final boolean isValid = DumpFileValidator.validate(args[1]);
+                if (isValid) {
+                    statusHistoryDays = DEFAULT_STATUS_HISTORY_DAYS;
+                    dumpFile = new File(args[1]);
+                } else {
                     System.exit(INVALID_CMD_ARGUMENT);
                 }
-                dumpFile = new File(args[1]);
-            }
-            try (final FileOutputStream ignored = new FileOutputStream(dumpFile)) {
-            } catch (FileNotFoundException e) {
-                System.err.println("Invalid filename or there's no write permission to the currently selected file path.");
-                System.exit(INVALID_CMD_ARGUMENT);
             }
         }
 
@@ -787,6 +784,7 @@ public class RunNiFi {
      * @throws IOException if any issues occur while writing the dump file
      */
     public void statusHistory(final File dumpFile, final String days) throws IOException {
+        // Due to input validation, the dumpFile cannot currently be null in this scenario.
         makeRequest(STATUS_HISTORY_CMD, days, dumpFile, "status history information");
     }
 
@@ -813,6 +811,7 @@ public class RunNiFi {
         final Logger logger = defaultLogger;    // dump to bootstrap log file by default
         final Integer port = getCurrentPort(logger);
         if (port == null) {
+            cmdLogger.info("Apache NiFi is not currently running");
             logger.info("Apache NiFi is not currently running");
             return;
         }
