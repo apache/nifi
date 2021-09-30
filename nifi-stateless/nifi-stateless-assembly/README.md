@@ -535,6 +535,11 @@ aws secretsmanager create-secret --name "Context/Param" --secret-string "secretV
 In this example, `Context` is the name of a Parameter Context, `Param` is the name of the parameter whose value
 should be retrieved from the Vault server, and `secretValue` is the actual value of the parameter.
 
+Alternatively, if you use the AWS Console to create a secret, follow these steps:
+1. Select a secret type of "Other type of secrets (e.g. API key)"
+2. Switch to the plaintext tab and remove the JSON completely
+3. Type the desired secret value and save the secret
+
 This Parameter Provider requires the following properties:
 
 | Property Name | Description | Example Value |
