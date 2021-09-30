@@ -344,7 +344,7 @@
                         ];
 
                         var processorTypesOptions = {
-                            forceFitColumns: true,
+                            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
                             enableTextSelectionOnCells: true,
                             enableCellNavigation: true,
                             enableColumnReorder: false,

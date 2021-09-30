@@ -596,7 +596,7 @@
             });
 
             var queueListingOptions = {
-                forceFitColumns: true,
+                autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
                 enableTextSelectionOnCells: true,
                 enableCellNavigation: false,
                 enableColumnReorder: false,

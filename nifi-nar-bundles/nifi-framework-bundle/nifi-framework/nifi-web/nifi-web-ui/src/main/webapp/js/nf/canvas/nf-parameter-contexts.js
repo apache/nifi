@@ -93,7 +93,7 @@
     };
 
     var parameterContextsGridOptions = {
-        forceFitColumns: true,
+        autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
         enableTextSelectionOnCells: true,
         enableCellNavigation: true,
         enableColumnReorder: false,
@@ -103,7 +103,7 @@
     };
 
     var parametersGridOptions = {
-        forceFitColumns: true,
+        autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
         enableTextSelectionOnCells: true,
         enableCellNavigation: true,
         enableColumnReorder: false,
