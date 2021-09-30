@@ -32,7 +32,6 @@ import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class PropertiesFileEngineConfigurationParserTest {
@@ -82,8 +81,8 @@ public class PropertiesFileEngineConfigurationParserTest {
         assertNotNull(sensitivePropsKey);
         assertFalse(sensitivePropsKey.isEmpty());
 
-        final StatelessEngineConfiguration secondConfiguration = parser.parseEngineConfiguration(propertiesFile);
-        assertNotEquals(sensitivePropsKey, secondConfiguration.getSensitivePropsKey());
+        final StatelessEngineConfiguration reloadedConfiguration = parser.parseEngineConfiguration(propertiesFile);
+        assertEquals(sensitivePropsKey, reloadedConfiguration.getSensitivePropsKey());
     }
 
     private Properties getRequiredProperties() {
