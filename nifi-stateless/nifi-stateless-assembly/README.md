@@ -518,33 +518,34 @@ nifi.stateless.parameter.provider.Vault.properties.vault-configuration-file=./co
 
 **AWS SecretsManagerParameterValueProvider**
 
-This provider reads parameter values from AWS SecretsManager.  The AWS credentials can be configured
-via the `./conf/bootstrap-aws.conf` file, which comes with NiFi.
+This provider reads parameter values from AWS SecretsManager.  Each AWS secret is mapped to a Parameter Context, with
+the Secret name representing the Parameter Context name and the key/value pairs in the Secret representing the 
+Parameter names and values.
 
-Note: The provided AWS credentials must have the following permissions:
+The AWS credentials can be configured via the `./conf/bootstrap-aws.conf` file, which comes with NiFi.
 
-- `secretsmanager:ListSecrets`
-- `secretsmanager:GetSecretValue`
-
+Note: The provided AWS credentials must have the `secretsmanager:GetSecretValue` permission in order to use this provider.
 An example of creating a single secret in the correct format is:
 
 ```
-aws secretsmanager create-secret --name "Context/Param" --secret-string "secretValue"
+aws secretsmanager create-secret --name "Context" --secret-string '{ "Param": "secretValue", "Param2": "secretValue2" }'
 ```
 
 In this example, `Context` is the name of a Parameter Context, `Param` is the name of the parameter whose value
-should be retrieved from the Vault server, and `secretValue` is the actual value of the parameter.
+should be retrieved from the Vault server, and `secretValue` is the actual value of the parameter.  Notice that
+there are multiple parameters stored in this secret: a second parameter named `Param2` has the value of `secretValue2`.
 
 Alternatively, if you use the AWS Console to create a secret, follow these steps:
 1. Select a secret type of "Other type of secrets (e.g. API key)"
-2. Switch to the plaintext tab and remove the JSON completely
-3. Type the desired secret value and save the secret
+2. Enter one Secret key/value for each Parameter, where the key is the Parameter Name and the value is the Parameter value
+3. On the next page, enter the name of the Parameter Context as the Secret name.  Save the Secret.
 
 This Parameter Provider requires the following properties:
 
 | Property Name | Description | Example Value |
 |---------------|-------------|---------------|
 | nifi.stateless.parameter.provider.\<key>.properties.aws-credentials-file | The filename of a configuration file optionally specifying the AWS credentials.  If this property is not provided, or if the credentials are not provided in the file, the default AWS credentials chain will be followed. | `./conf/bootstrap-aws.conf` |
+| nifi.stateless.parameter.provider.\<key>.default-secret-name | The default AWS secret name to use, if no Parameter Context is mapped in the Stateless dataflow. | `Context` |
 
 An example of configuring this provider in the dataflow configuration file is:
 

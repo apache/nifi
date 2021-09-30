@@ -23,28 +23,30 @@ import com.amazonaws.services.secretsmanager.AWSSecretsManager;
 import com.amazonaws.services.secretsmanager.AWSSecretsManagerClientBuilder;
 import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest;
 import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
-import com.amazonaws.services.secretsmanager.model.ListSecretsRequest;
-import com.amazonaws.services.secretsmanager.model.ListSecretsResult;
-import com.amazonaws.services.secretsmanager.model.SecretListEntry;
+import com.amazonaws.services.secretsmanager.model.ResourceNotFoundException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stateless.parameter.AbstractParameterValueProvider;
 import org.apache.nifi.stateless.parameter.ParameterValueProvider;
 import org.apache.nifi.stateless.parameter.ParameterValueProviderInitializationContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 
 /**
  * Reads secrets from AWS Secrets Manager to provide parameter values.  Secrets must be created similar to the following AWS cli command: <br/><br/>
- * <code>aws secretsmanager create-secret --name "[ParamContextName]/[ParamName]" --secret-string '[ParamValue]'</code> <br/><br/>
+ * <code>aws secretsmanager create-secret --name "[Context]" --secret-string '{ "[Param]": "[secretValue]", "[Param2]": "[secretValue2]" }'</code> <br/><br/>
  *
  * A standard configuration for this provider would be: <br/><br/>
  *
@@ -55,7 +57,8 @@ import java.util.Set;
  * </code>
  */
 public class SecretsManagerParameterValueProvider extends AbstractParameterValueProvider implements ParameterValueProvider {
-    private static final String QUALIFIED_SECRET_FORMAT = "%s/%s";
+    private static final Logger logger = LoggerFactory.getLogger(SecretsManagerParameterValueProvider.class);
+
     private static final String ACCESS_KEY_PROPS_NAME = "aws.access.key.id";
     private static final String SECRET_KEY_PROPS_NAME = "aws.secret.access.key";
     private static final String REGION_KEY_PROPS_NAME = "aws.region";
@@ -68,12 +71,23 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
             .description("Location of the bootstrap-aws.conf file that configures the AWS credentials.  If not provided, the default AWS credentials will be used.")
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
+    public static final PropertyDescriptor DEFAULT_SECRET_NAME = new PropertyDescriptor.Builder()
+            .displayName("Default Secret Name")
+            .name("default-secret-name")
+            .required(true)
+            .defaultValue("Context")
+            .description("The default secret name in AWS Secrets Manager that is used if Stateless does not provide the Parameter Context name")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
-    private final Set<String> supportedParameterNames = new HashSet<>();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private List<PropertyDescriptor> descriptors;
 
     private AWSSecretsManager secretsManager;
+
+    private String defaultSecretName;
+
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -84,47 +98,61 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
     protected void init(final ParameterValueProviderInitializationContext context) {
         super.init(context);
 
-        this.descriptors = Collections.singletonList(AWS_CREDENTIALS_FILE);
+        this.descriptors = Collections.unmodifiableList(Arrays.asList(
+                AWS_CREDENTIALS_FILE,
+                DEFAULT_SECRET_NAME
+        ));
 
+        defaultSecretName = context.getProperty(DEFAULT_SECRET_NAME).getValue();
         final String awsCredentialsFilename = context.getProperty(AWS_CREDENTIALS_FILE).getValue();
         try {
             this.secretsManager = this.configureClient(awsCredentialsFilename);
         } catch (final IOException e) {
             throw new IllegalStateException("Could not configure AWS Secrets Manager Client", e);
         }
-
-        cacheSupportedParameterNames();
     }
 
     @Override
     public boolean isParameterDefined(final String contextName, final String parameterName) {
-        return supportedParameterNames.contains(getSecretName(contextName, parameterName));
+        return getParameterValue(contextName, parameterName) != null;
     }
 
     @Override
     public String getParameterValue(final String contextName, final String parameterName) {
-        final String secretName = getSecretName(contextName, parameterName);
+        final String contextBasedValue = getSecretValue(contextName, parameterName);
+        return contextBasedValue != null ? contextBasedValue : getSecretValue(defaultSecretName, parameterName);
+    }
+
+    private String getSecretValue(final String secretName, final String keyName) {
         final GetSecretValueRequest getSecretValueRequest = new GetSecretValueRequest()
                 .withSecretId(secretName);
-        final GetSecretValueResult getSecretValueResult = secretsManager.getSecretValue(getSecretValueRequest);
+        try {
+            final GetSecretValueResult getSecretValueResult = secretsManager.getSecretValue(getSecretValueRequest);
 
-        if (getSecretValueResult == null) {
-            throw new IllegalArgumentException(String.format("Secret [%s] not found", secretName));
-        }
-        if (getSecretValueResult.getSecretString() != null) {
-            return getSecretValueResult.getSecretString();
-        } else {
-            throw new IllegalStateException(String.format("Secret Name [%s] string value not found", secretName));
+            if (getSecretValueResult.getSecretString() == null) {
+                logger.debug("Secret [{}] not configured", secretName);
+                return null;
+            }
+
+            return parseParameterValue(getSecretValueResult.getSecretString(), keyName);
+        } catch (final ResourceNotFoundException e) {
+            logger.debug("Secret [{}] not found", secretName);
+            return null;
         }
     }
 
-    private void cacheSupportedParameterNames() {
-        supportedParameterNames.clear();
-        final ListSecretsResult listSecretsResult = secretsManager.listSecrets(new ListSecretsRequest());
-        if (listSecretsResult != null) {
-            for (final SecretListEntry entry : listSecretsResult.getSecretList()) {
-                supportedParameterNames.add(entry.getName());
+    private String parseParameterValue(final String secretString, final String parameterName) {
+        try {
+            final JsonNode root = objectMapper.readTree(secretString);
+            final JsonNode parameter = root.get(parameterName);
+            if (parameter == null) {
+                logger.debug("Parameter [{}] not found", parameterName);
+                return null;
             }
+
+            return parameter.textValue();
+        } catch (final JsonProcessingException e) {
+            throw new IllegalArgumentException(String.format("Secret String for [%s] could not be parsed", parameterName), e);
         }
     }
 
@@ -160,10 +188,6 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
         return AWSSecretsManagerClientBuilder.standard()
                 .withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
                 .build();
-    }
-
-    private static String getSecretName(final String contextName, final String parameterName) {
-        return contextName == null ? parameterName : String.format(QUALIFIED_SECRET_FORMAT, contextName, parameterName);
     }
 
     private static boolean isNotBlank(final String value) {

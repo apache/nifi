@@ -19,9 +19,10 @@ package org.apache.nifi.stateless.parameter.aws;
 import com.amazonaws.services.secretsmanager.AWSSecretsManager;
 import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest;
 import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
-import com.amazonaws.services.secretsmanager.model.ListSecretsRequest;
-import com.amazonaws.services.secretsmanager.model.ListSecretsResult;
-import com.amazonaws.services.secretsmanager.model.SecretListEntry;
+import com.amazonaws.services.secretsmanager.model.ResourceNotFoundException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -35,13 +36,12 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -53,8 +53,12 @@ public class TestSecretsManagerParameterValueProvider {
     private static final String CONTEXT = "context";
     private static final String PARAMETER = "param";
     private static final String VALUE = "secret";
+    private static final String DEFAULT_SECRET_NAME = "Test";
+    private static final String DEFAULT_VALUE = "DefaultValue";
 
     private static final String CONFIG_FILE = "./conf/my-config.file";
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Spy
     private SecretsManagerParameterValueProvider provider;
@@ -64,17 +68,15 @@ public class TestSecretsManagerParameterValueProvider {
 
     @Before
     public void init() throws IOException {
-        mockListSecrets();
-
         doReturn(secretsManager).when(provider).configureClient(eq(CONFIG_FILE));
         doReturn(secretsManager).when(provider).configureClient(isNull());
     }
 
     @Test
-    public void testIsParameterDefined() {
-        assertFalse(provider.isParameterDefined(CONTEXT, PARAMETER));
-
+    public void testIsParameterDefined() throws JsonProcessingException {
+        mockGetSecretValue();
         provider.init(createContext(CONFIG_FILE));
+
         assertTrue(provider.isParameterDefined(CONTEXT, PARAMETER));
 
         provider.init(createContext(null));
@@ -82,7 +84,7 @@ public class TestSecretsManagerParameterValueProvider {
     }
 
     @Test
-    public void testGetParameterValue() {
+    public void testGetParameterValue() throws JsonProcessingException {
         mockGetSecretValue();
 
         runGetParameterValueTest(CONFIG_FILE);
@@ -91,51 +93,48 @@ public class TestSecretsManagerParameterValueProvider {
     }
 
     @Test
-    public void testGetParameterValueWithoutContext() {
-        mockGetSecretValue(null, PARAMETER, VALUE, true);
-
-        runGetParameterValueTest(null, PARAMETER, CONFIG_FILE);
-    }
-
-    @Test
-    public void testGetParameterValueWithMissingSecretString() {
-        mockGetSecretValue(CONTEXT, PARAMETER, "value", false);
+    public void testGetParameterValueWithMissingSecretString() throws JsonProcessingException {
+        mockGetSecretValue(CONTEXT, PARAMETER, "value", false, false);
+        mockGetSecretValue(DEFAULT_SECRET_NAME, PARAMETER, DEFAULT_VALUE, false, false);
 
         provider.init(createContext(CONFIG_FILE));
-        assertThrows(IllegalStateException.class, () -> provider.getParameterValue(CONTEXT, PARAMETER));
+        assertNull(provider.getParameterValue(CONTEXT, PARAMETER));
     }
 
-    private void runGetParameterValueTest(final String configFileName) {
+    private void runGetParameterValueTest(final String configFileName) throws JsonProcessingException {
         runGetParameterValueTest(CONTEXT, PARAMETER, configFileName);
     }
 
-    private void runGetParameterValueTest(final String context, final String parameterName, final String configFileName) {
+    private void runGetParameterValueTest(final String context, final String parameterName, final String configFileName) throws JsonProcessingException {
+        mockGetSecretValue(DEFAULT_SECRET_NAME, PARAMETER, DEFAULT_VALUE, true, false);
+        mockGetSecretValue("Does not exist", PARAMETER, null, false, true);
+
         provider.init(createContext(configFileName));
         assertEquals(VALUE, provider.getParameterValue(context, parameterName));
 
-        // Throw an exception because isParameterDefined should already have returned false, preventing getParameterValue from being attempted, so this would really be an error state
-        assertThrows(IllegalArgumentException.class, () -> provider.getParameterValue(CONTEXT, "Does not exist"));
+        // Should fall back to the default context, which does have the parameter
+        assertEquals(DEFAULT_VALUE, provider.getParameterValue("Does not exist", PARAMETER));
     }
 
-    private void mockGetSecretValue() {
-        mockGetSecretValue(CONTEXT, PARAMETER, VALUE, true);
+    private void mockGetSecretValue() throws JsonProcessingException {
+        mockGetSecretValue(CONTEXT, PARAMETER, VALUE, true, false);
     }
 
-    private void mockGetSecretValue(final String context, final String parameterName, final String secretValue, final boolean hasSecretString) {
-        GetSecretValueResult result = new GetSecretValueResult();
-        if (hasSecretString) {
-            result = result.withSecretString(secretValue);
+    private void mockGetSecretValue(final String context, final String parameterName, final String secretValue, final boolean hasSecretString, final boolean resourceNotFound)
+            throws JsonProcessingException {
+        if (resourceNotFound) {
+            when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(context)))).thenThrow(new ResourceNotFoundException("Not found"));
+        } else {
+            GetSecretValueResult result = new GetSecretValueResult();
+            if (hasSecretString) {
+                result = result.withSecretString(getSecretString(parameterName, secretValue));
+            }
+            when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(context)))).thenReturn(result);
         }
-        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(context, parameterName)))).thenReturn(result);
     }
 
-    private void mockListSecrets() {
-        final ListSecretsResult listSecretsResult = new ListSecretsResult().withSecretList(new SecretListEntry().withName(getSecretName(CONTEXT, PARAMETER)));
-        when(secretsManager.listSecrets(any(ListSecretsRequest.class))).thenReturn(listSecretsResult);
-    }
-
-    private static String getSecretName(final String context, final String paramName) {
-        return context == null ? paramName : String.format("%s/%s", context, paramName);
+    private static String getSecretName(final String context) {
+        return context == null ? DEFAULT_SECRET_NAME : context;
     }
 
     private static ParameterValueProviderInitializationContext createContext(final String awsConfigFilename) {
@@ -147,7 +146,12 @@ public class TestSecretsManagerParameterValueProvider {
 
             @Override
             public PropertyValue getProperty(final PropertyDescriptor descriptor) {
-                return descriptor.equals(SecretsManagerParameterValueProvider.AWS_CREDENTIALS_FILE) ? new StandardPropertyValue(awsConfigFilename, null, null) : null;
+                if (descriptor.equals(SecretsManagerParameterValueProvider.AWS_CREDENTIALS_FILE)) {
+                    return new StandardPropertyValue(awsConfigFilename, null, null);
+                } else if (descriptor.equals(SecretsManagerParameterValueProvider.DEFAULT_SECRET_NAME)) {
+                    return new StandardPropertyValue(DEFAULT_SECRET_NAME, null, null);
+                }
+                return null;
             }
 
             @Override
@@ -157,8 +161,22 @@ public class TestSecretsManagerParameterValueProvider {
         };
     }
 
-    private static ArgumentMatcher<GetSecretValueRequest> matchesGetSecretValueRequest(final String context, final String parameter) {
-        return new GetSecretValueRequestMatcher(getSecretName(context, parameter));
+    private String getSecretString(final String parameterName, final String parameterValue) throws JsonProcessingException {
+        final Map<String, String> parameters = new HashMap<>();
+        parameters.put(parameterName, parameterValue);
+        return getSecretString(parameters);
+    }
+
+    private String getSecretString(final Map<String, String> parameters) throws JsonProcessingException {
+        final ObjectNode root = objectMapper.createObjectNode();
+        for(final Map.Entry<String, String> entry : parameters.entrySet()) {
+            root.put(entry.getKey(), entry.getValue());
+        }
+        return objectMapper.writeValueAsString(root);
+    }
+
+    private static ArgumentMatcher<GetSecretValueRequest> matchesGetSecretValueRequest(final String context) {
+        return new GetSecretValueRequestMatcher(getSecretName(context));
     }
 
     private static class GetSecretValueRequestMatcher implements ArgumentMatcher<GetSecretValueRequest> {
@@ -171,7 +189,7 @@ public class TestSecretsManagerParameterValueProvider {
 
         @Override
         public boolean matches(final GetSecretValueRequest argument) {
-            return argument.getSecretId().equals(secretId);
+            return argument != null && argument.getSecretId().equals(secretId);
         }
     }
 }
