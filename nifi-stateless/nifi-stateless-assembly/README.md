@@ -521,6 +521,11 @@ nifi.stateless.parameter.provider.Vault.properties.vault-configuration-file=./co
 This provider reads parameter values from AWS SecretsManager.  The AWS credentials can be configured
 via the `./conf/bootstrap-aws.conf` file, which comes with NiFi.
 
+Note: The provided AWS credentials must have the following permissions:
+
+- `secretsmanager:ListSecrets`
+- `secretsmanager:GetSecretValue`
+
 An example of creating a single secret in the correct format is:
 
 ```
