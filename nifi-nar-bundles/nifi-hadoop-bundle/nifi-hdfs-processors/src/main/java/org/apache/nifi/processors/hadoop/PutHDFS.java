@@ -125,6 +125,9 @@ public class PutHDFS extends AbstractHadoopProcessor {
     protected static final String FAIL_RESOLUTION = "fail";
     protected static final String APPEND_RESOLUTION = "append";
 
+    protected static final String WRITE_AND_RENAME = "writeAndRename";
+    protected static final String SIMPLE_WRITE = "simpleWrite";
+
     protected static final AllowableValue REPLACE_RESOLUTION_AV = new AllowableValue(REPLACE_RESOLUTION,
             REPLACE_RESOLUTION, "Replaces the existing file if any.");
     protected static final AllowableValue IGNORE_RESOLUTION_AV = new AllowableValue(IGNORE_RESOLUTION, IGNORE_RESOLUTION,
@@ -134,12 +137,26 @@ public class PutHDFS extends AbstractHadoopProcessor {
     protected static final AllowableValue APPEND_RESOLUTION_AV = new AllowableValue(APPEND_RESOLUTION, APPEND_RESOLUTION,
             "Appends to the existing file if any, creates a new file otherwise.");
 
+    protected static final AllowableValue WRITE_AND_RENAME_AV = new AllowableValue(WRITE_AND_RENAME, "Write and rename",
+            "The processor writes FlowFile data into a temporary file and renames it after completion. This prevents other processes from reading partially written files.");
+    protected static final AllowableValue SIMPLE_WRITE_AV = new AllowableValue(SIMPLE_WRITE, "Simple write",
+            "The processor writes FlowFile data directly to the destination file. In some cases this might cause reading partially written files.");
+
     protected static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
             .name("Conflict Resolution Strategy")
             .description("Indicates what should happen when a file with the same name already exists in the output directory")
             .required(true)
             .defaultValue(FAIL_RESOLUTION_AV.getValue())
             .allowableValues(REPLACE_RESOLUTION_AV, IGNORE_RESOLUTION_AV, FAIL_RESOLUTION_AV, APPEND_RESOLUTION_AV)
+            .build();
+
+    protected static final PropertyDescriptor WRITING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("writing-strategy")
+            .displayName("Writing Strategy")
+            .description("Defines the approach for writing the FlowFile data.")
+            .required(true)
+            .defaultValue(WRITE_AND_RENAME_AV.getValue())
+            .allowableValues(WRITE_AND_RENAME_AV, SIMPLE_WRITE_AV)
             .build();
 
     public static final PropertyDescriptor BLOCK_SIZE = new PropertyDescriptor.Builder()
@@ -219,6 +236,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 .description("The parent HDFS directory to which files should be written. The directory will be created if it doesn't exist.")
                 .build());
         props.add(CONFLICT_RESOLUTION);
+        props.add(WRITING_STRATEGY);
         props.add(BLOCK_SIZE);
         props.add(BUFFER_SIZE);
         props.add(REPLICATION_FACTOR);
@@ -280,6 +298,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 Path tempDotCopyFile = null;
                 FlowFile putFlowFile = flowFile;
                 try {
+                    final String writingStrategy = context.getProperty(WRITING_STRATEGY).getValue();
                     final Path dirPath = getNormalizedPath(context, DIRECTORY, putFlowFile);
                     final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
                     final long blockSize = getBlockSize(context, session, putFlowFile, dirPath);
@@ -294,6 +313,11 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
                     final Path tempCopyFile = new Path(dirPath, "." + filename);
                     final Path copyFile = new Path(dirPath, filename);
+
+                    // Depending on the writing strategy, we might need a temporary file
+                    final Path actualCopyFile = (writingStrategy.equals(WRITE_AND_RENAME))
+                            ? tempCopyFile
+                            : copyFile;
 
                     // Create destination directory if it does not exist
                     boolean targetDirCreated = false;
@@ -361,7 +385,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                         cflags.add(CreateFlag.IGNORE_CLIENT_LOCALITY);
                                     }
 
-                                    fos = hdfs.create(tempCopyFile, FsCreateModes.applyUMask(FsPermission.getFileDefault(),
+                                    fos = hdfs.create(actualCopyFile, FsCreateModes.applyUMask(FsPermission.getFileDefault(),
                                             FsPermission.getUMask(hdfs.getConf())), cflags, bufferSize, replication, blockSize,
                                             null, null);
                                 }
@@ -369,7 +393,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                 if (codec != null) {
                                     fos = codec.createOutputStream(fos);
                                 }
-                                createdFile = tempCopyFile;
+                                createdFile = actualCopyFile;
                                 BufferedInputStream bis = new BufferedInputStream(in);
                                 StreamUtils.copy(bis, fos);
                                 bis = null;
@@ -399,9 +423,12 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
                     tempDotCopyFile = tempCopyFile;
 
-                    if (!conflictResponse.equals(APPEND_RESOLUTION)
-                            || (conflictResponse.equals(APPEND_RESOLUTION) && !destinationExists)) {
+                    if  (
+                        writingStrategy.equals(WRITE_AND_RENAME)
+                        && (!conflictResponse.equals(APPEND_RESOLUTION) || (conflictResponse.equals(APPEND_RESOLUTION) && !destinationExists))
+                    ) {
                         boolean renamed = false;
+
                         for (int i = 0; i < 10; i++) { // try to rename multiple times.
                             if (hdfs.rename(tempCopyFile, copyFile)) {
                                 renamed = true;
