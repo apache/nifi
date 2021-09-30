@@ -719,7 +719,7 @@ var ua = {
         ];
 
         var conditionsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableCellNavigation: true,
             enableColumnReorder: false,
             enableAddRow: false,
@@ -808,7 +808,7 @@ var ua = {
             {id: "value", name: "Value", field: "value", sortable: true, cssClass: 'pointer', editor: ua.getNfelEditor, validator: ua.requiredFieldValidator}
         ];
         var actionsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableCellNavigation: true,
             enableColumnReorder: false,
             enableAddRow: false,
