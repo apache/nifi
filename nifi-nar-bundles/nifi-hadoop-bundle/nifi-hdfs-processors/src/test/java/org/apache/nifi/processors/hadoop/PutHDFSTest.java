@@ -71,6 +71,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class PutHDFSTest {
+    private final static String TARGET_DIRECTORY = "target/test-classes";
+    private final static String SOURCE_DIRECTORY = "src/test/resources/testdata";
+    private final static String FILE_NAME = "randombytes-1";
 
     private KerberosProperties kerberosProperties;
     private FileSystem mockFileSystem;
@@ -197,27 +200,32 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFile() throws IOException {
-        PutHDFS proc = new TestablePutHDFS(kerberosProperties, mockFileSystem);
-        TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
-        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
-        try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
-            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+        // given
+        final FileSystem spyFileSystem = Mockito.spy(mockFileSystem);
+        final PutHDFS proc = new TestablePutHDFS(kerberosProperties, spyFileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutHDFS.DIRECTORY, TARGET_DIRECTORY);
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, PutHDFS.REPLACE_RESOLUTION);
+
+        // when
+        try (final FileInputStream fis = new FileInputStream(SOURCE_DIRECTORY + "/" + FILE_NAME)) {
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), FILE_NAME);
             runner.enqueue(fis, attributes);
             runner.run();
         }
 
-        List<MockFlowFile> failedFlowFiles = runner
-                .getFlowFilesForRelationship(new Relationship.Builder().name("failure").build());
+        // then
+        final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_FAILURE);
         assertTrue(failedFlowFiles.isEmpty());
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
-        MockFlowFile flowFile = flowFiles.get(0);
-        assertTrue(mockFileSystem.exists(new Path("target/test-classes/randombytes-1")));
-        assertEquals("randombytes-1", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-        assertEquals("target/test-classes", flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
+
+        final MockFlowFile flowFile = flowFiles.get(0);
+        assertTrue(spyFileSystem.exists(new Path(TARGET_DIRECTORY + "/" + FILE_NAME)));
+        assertEquals(FILE_NAME, flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        assertEquals(TARGET_DIRECTORY, flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
         assertEquals("true", flowFile.getAttribute(PutHDFS.TARGET_HDFS_DIR_CREATED_ATTRIBUTE));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
@@ -225,7 +233,43 @@ public class PutHDFSTest {
         final ProvenanceEventRecord sendEvent = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.SEND, sendEvent.getEventType());
         // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
-        assertTrue(sendEvent.getTransitUri().endsWith("target/test-classes/randombytes-1"));
+        assertTrue(sendEvent.getTransitUri().endsWith(TARGET_DIRECTORY + "/" + FILE_NAME));
+
+        Mockito.verify(spyFileSystem, Mockito.times(1)).rename(Mockito.any(Path.class), Mockito.any(Path.class));
+    }
+
+    @Test
+    public void testPutFileWithSimpleWrite() throws IOException {
+        // given
+        final FileSystem spyFileSystem = Mockito.spy(mockFileSystem);
+        final PutHDFS proc = new TestablePutHDFS(kerberosProperties, spyFileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutHDFS.DIRECTORY, TARGET_DIRECTORY);
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, PutHDFS.REPLACE_RESOLUTION);
+        runner.setProperty(PutHDFS.WRITING_STRATEGY, PutHDFS.SIMPLE_WRITE);
+
+        // when
+        try (final FileInputStream fis = new FileInputStream(SOURCE_DIRECTORY + "/" + FILE_NAME)) {
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), FILE_NAME);
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
+
+        // then
+        final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_FAILURE);
+        assertTrue(failedFlowFiles.isEmpty());
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+
+        final MockFlowFile flowFile = flowFiles.get(0);
+        assertTrue(spyFileSystem.exists(new Path(TARGET_DIRECTORY + "/" + FILE_NAME)));
+        assertEquals(FILE_NAME, flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        assertEquals(TARGET_DIRECTORY, flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
+        assertEquals("true", flowFile.getAttribute(PutHDFS.TARGET_HDFS_DIR_CREATED_ATTRIBUTE));
+
+        Mockito.verify(spyFileSystem, Mockito.never()).rename(Mockito.any(Path.class), Mockito.any(Path.class));
     }
 
     @Test
