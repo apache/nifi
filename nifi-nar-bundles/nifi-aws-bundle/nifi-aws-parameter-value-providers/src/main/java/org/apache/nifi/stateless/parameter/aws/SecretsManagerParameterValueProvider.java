@@ -163,7 +163,7 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
     }
 
     private static String getSecretName(final String contextName, final String parameterName) {
-        return String.format(QUALIFIED_SECRET_FORMAT, contextName, parameterName);
+        return contextName == null ? parameterName : String.format(QUALIFIED_SECRET_FORMAT, contextName, parameterName);
     }
 
     private static boolean isNotBlank(final String value) {

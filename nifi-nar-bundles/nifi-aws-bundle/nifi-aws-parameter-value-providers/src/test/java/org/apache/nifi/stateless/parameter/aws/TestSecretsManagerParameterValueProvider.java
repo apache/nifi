@@ -91,31 +91,42 @@ public class TestSecretsManagerParameterValueProvider {
     }
 
     @Test
+    public void testGetParameterValueWithoutContext() {
+        mockGetSecretValue(null, PARAMETER, VALUE, true);
+
+        runGetParameterValueTest(null, PARAMETER, CONFIG_FILE);
+    }
+
+    @Test
     public void testGetParameterValueWithMissingSecretString() {
-        mockGetSecretValue("value", false);
+        mockGetSecretValue(CONTEXT, PARAMETER, "value", false);
 
         provider.init(createContext(CONFIG_FILE));
         assertThrows(IllegalStateException.class, () -> provider.getParameterValue(CONTEXT, PARAMETER));
     }
 
     private void runGetParameterValueTest(final String configFileName) {
+        runGetParameterValueTest(CONTEXT, PARAMETER, configFileName);
+    }
+
+    private void runGetParameterValueTest(final String context, final String parameterName, final String configFileName) {
         provider.init(createContext(configFileName));
-        assertEquals(VALUE, provider.getParameterValue(CONTEXT, PARAMETER));
+        assertEquals(VALUE, provider.getParameterValue(context, parameterName));
 
         // Throw an exception because isParameterDefined should already have returned false, preventing getParameterValue from being attempted, so this would really be an error state
         assertThrows(IllegalArgumentException.class, () -> provider.getParameterValue(CONTEXT, "Does not exist"));
     }
 
     private void mockGetSecretValue() {
-        mockGetSecretValue(VALUE, true);
+        mockGetSecretValue(CONTEXT, PARAMETER, VALUE, true);
     }
 
-    private void mockGetSecretValue(final String secretValue, final boolean hasSecretString) {
+    private void mockGetSecretValue(final String context, final String parameterName, final String secretValue, final boolean hasSecretString) {
         GetSecretValueResult result = new GetSecretValueResult();
         if (hasSecretString) {
             result = result.withSecretString(secretValue);
         }
-        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(CONTEXT, PARAMETER)))).thenReturn(result);
+        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(context, parameterName)))).thenReturn(result);
     }
 
     private void mockListSecrets() {
@@ -124,7 +135,7 @@ public class TestSecretsManagerParameterValueProvider {
     }
 
     private static String getSecretName(final String context, final String paramName) {
-        return String.format("%s/%s", context, paramName);
+        return context == null ? paramName : String.format("%s/%s", context, paramName);
     }
 
     private static ParameterValueProviderInitializationContext createContext(final String awsConfigFilename) {
