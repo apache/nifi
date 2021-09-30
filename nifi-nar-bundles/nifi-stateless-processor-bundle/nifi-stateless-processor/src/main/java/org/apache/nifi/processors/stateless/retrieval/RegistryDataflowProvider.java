@@ -35,10 +35,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-public class RegistryDataflowRetrieval implements DataflowRetrieval {
+public class RegistryDataflowProvider implements DataflowProvider {
     private final ComponentLog logger;
 
-    public RegistryDataflowRetrieval(final ComponentLog logger) {
+    public RegistryDataflowProvider(final ComponentLog logger) {
         this.logger = logger;
     }
 

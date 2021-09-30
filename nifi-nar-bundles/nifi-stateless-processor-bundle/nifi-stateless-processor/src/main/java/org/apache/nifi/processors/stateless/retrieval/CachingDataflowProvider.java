@@ -28,14 +28,22 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import java.io.File;
 import java.io.IOException;
 
-public class CachingDataflowRetrieval implements DataflowRetrieval {
+/**
+ * Wrapper that can be used in order to cache a dataflow once it has been fetched for backup purposes.
+ * This provider will always first delegate to the given DataflowProvider first. If the given provider is
+ * able to retrieve the dataflow, this provider will then store the dataflow is a file. If, later, the
+ * given provider is unable to retrieve the dataflow, due to the endpoint being down, etc., then this provider
+ * will instead parse the cached file. This eliminates the concern of requiring that some external endpoint is
+ * available in order to run the dataflow.
+ */
+public class CachingDataflowProvider implements DataflowProvider {
     private final String processorId;
     private final ComponentLog logger;
-    private final DataflowRetrieval delegate;
+    private final DataflowProvider delegate;
     private final ObjectMapper objectMapper;
 
 
-    public CachingDataflowRetrieval(final String processorId, final ComponentLog logger, final DataflowRetrieval delegate) {
+    public CachingDataflowProvider(final String processorId, final ComponentLog logger, final DataflowProvider delegate) {
         this.processorId = processorId;
         this.logger = logger;
         this.delegate = delegate;
@@ -54,7 +62,7 @@ public class CachingDataflowRetrieval implements DataflowRetrieval {
         } catch (final Exception e) {
             final File cacheFile = getFlowCacheFile(context, processorId);
             if (cacheFile.exists()) {
-                logger.warn("Failed to retrieve Flow Snapshot from Registry. Will restore Flow Snapshot from cached version at {}", cacheFile.getAbsolutePath(), e);
+                logger.warn("Failed to retrieve Flow Snapshot. Will restore Flow Snapshot from cached version at {}", cacheFile.getAbsolutePath(), e);
                 return readCachedFlow(cacheFile);
             }
 
@@ -65,16 +73,16 @@ public class CachingDataflowRetrieval implements DataflowRetrieval {
     private void cacheFlowSnapshot(final ProcessContext context, final VersionedFlowSnapshot flowSnapshot) {
         final File cacheFile = getFlowCacheFile(context, processorId);
         if (!cacheFile.getParentFile().exists() && !cacheFile.getParentFile().mkdirs()) {
-            logger.warn("Fetched dataflow from Registry but cannot create directory {} in order to cache the dataflow. " +
-                "Upon restart, processor will not be able to function unless Registry is available", cacheFile);
+            logger.warn("Fetched dataflow but cannot create directory {} in order to cache the dataflow. " +
+                "Upon restart, processor will not be able to function unless flow endpoint is available", cacheFile);
             return;
         }
 
         try {
             objectMapper.writeValue(cacheFile, flowSnapshot);
         } catch (final Exception e) {
-            logger.warn("Fetched dataflow from Registry but failed to write the dataflow to disk at {} in order to cache the dataflow. " +
-                "Upon restart, processor will not be able to function unless Registry is available", cacheFile, e);
+            logger.warn("Fetched dataflow but failed to write the dataflow to disk at {} in order to cache the dataflow. " +
+                "Upon restart, processor will not be able to function unless flow endpoint is available", cacheFile, e);
         }
     }
 

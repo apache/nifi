@@ -22,6 +22,6 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 
 import java.io.IOException;
 
-public interface DataflowRetrieval {
+public interface DataflowProvider {
     VersionedFlowSnapshot retrieveDataflowContents(ProcessContext context) throws IOException;
 }

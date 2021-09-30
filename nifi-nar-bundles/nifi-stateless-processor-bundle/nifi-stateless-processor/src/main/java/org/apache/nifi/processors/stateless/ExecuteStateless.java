@@ -55,10 +55,10 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.stateless.retrieval.CachingDataflowRetrieval;
-import org.apache.nifi.processors.stateless.retrieval.DataflowRetrieval;
-import org.apache.nifi.processors.stateless.retrieval.FileSystemDataflowRetrieval;
-import org.apache.nifi.processors.stateless.retrieval.RegistryDataflowRetrieval;
+import org.apache.nifi.processors.stateless.retrieval.CachingDataflowProvider;
+import org.apache.nifi.processors.stateless.retrieval.DataflowProvider;
+import org.apache.nifi.processors.stateless.retrieval.FileSystemDataflowProvider;
+import org.apache.nifi.processors.stateless.retrieval.RegistryDataflowProvider;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
@@ -399,14 +399,14 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
     public void parseDataflow(final ProcessContext context) throws IOException {
         final String specificationStrategy = context.getProperty(DATAFLOW_SPECIFICATION_STRATEGY).getValue();
 
-        final DataflowRetrieval rawRetrieval;
+        final DataflowProvider rawRetrieval;
         if (specificationStrategy.equalsIgnoreCase(SPEC_FROM_FILE.getValue())) {
-            rawRetrieval = new FileSystemDataflowRetrieval();
+            rawRetrieval = new FileSystemDataflowProvider();
         } else {
-            rawRetrieval = new RegistryDataflowRetrieval(getLogger());
+            rawRetrieval = new RegistryDataflowProvider(getLogger());
         }
 
-        final DataflowRetrieval cachedRetrieval = new CachingDataflowRetrieval(getIdentifier(), getLogger(), rawRetrieval);
+        final DataflowProvider cachedRetrieval = new CachingDataflowProvider(getIdentifier(), getLogger(), rawRetrieval);
 
         final long start = System.nanoTime();
         final VersionedFlowSnapshot versionedFlowSnapshot = cachedRetrieval.retrieveDataflowContents(context);

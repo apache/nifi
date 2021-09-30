@@ -42,16 +42,16 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class TestCachingDataflowRetrieval {
+public class TestCachingDataflowProvider {
 
     @Test
     public void testDelegatesEvenAfterFetch() throws IOException {
         final VersionedFlowSnapshot snapshot = new VersionedFlowSnapshot();
 
-        final DataflowRetrieval mockedRetrieval = mock(DataflowRetrieval.class);
+        final DataflowProvider mockedRetrieval = mock(DataflowProvider.class);
         when(mockedRetrieval.retrieveDataflowContents(any(ProcessContext.class))).thenReturn(snapshot);
 
-        final CachingDataflowRetrieval retrieval = new CachingDataflowRetrieval("1234", mock(ComponentLog.class), mockedRetrieval);
+        final CachingDataflowProvider retrieval = new CachingDataflowProvider("1234", mock(ComponentLog.class), mockedRetrieval);
 
         final ProcessContext context = mock(ProcessContext.class);
         final PropertyValue propertyValue = mock(PropertyValue.class);
@@ -70,10 +70,10 @@ public class TestCachingDataflowRetrieval {
 
     @Test
     public void testThrowsIfDelegateThrowsAndNoCache() throws IOException {
-        final DataflowRetrieval mockedRetrieval = mock(DataflowRetrieval.class);
+        final DataflowProvider mockedRetrieval = mock(DataflowProvider.class);
         when(mockedRetrieval.retrieveDataflowContents(any(ProcessContext.class))).thenThrow(new IOException("Intentional exception for testing purposes"));
 
-        final CachingDataflowRetrieval retrieval = new CachingDataflowRetrieval("1234", mock(ComponentLog.class), mockedRetrieval);
+        final CachingDataflowProvider retrieval = new CachingDataflowProvider("1234", mock(ComponentLog.class), mockedRetrieval);
 
         final ProcessContext context = mock(ProcessContext.class);
         final PropertyValue propertyValue = mock(PropertyValue.class);
@@ -93,7 +93,7 @@ public class TestCachingDataflowRetrieval {
         final VersionedFlowSnapshot snapshot = new VersionedFlowSnapshot();
         snapshot.setFlowContents(group);
 
-        final DataflowRetrieval mockedRetrieval = mock(DataflowRetrieval.class);
+        final DataflowProvider mockedRetrieval = mock(DataflowProvider.class);
         doAnswer(new Answer<VersionedFlowSnapshot>() {
             private int count;
 
@@ -107,7 +107,7 @@ public class TestCachingDataflowRetrieval {
             }
         }).when(mockedRetrieval).retrieveDataflowContents(any(ProcessContext.class));
 
-        final CachingDataflowRetrieval retrieval = new CachingDataflowRetrieval("1234", mock(ComponentLog.class), mockedRetrieval);
+        final CachingDataflowProvider retrieval = new CachingDataflowProvider("1234", mock(ComponentLog.class), mockedRetrieval);
 
         final ProcessContext context = mock(ProcessContext.class);
         final PropertyValue propertyValue = mock(PropertyValue.class);

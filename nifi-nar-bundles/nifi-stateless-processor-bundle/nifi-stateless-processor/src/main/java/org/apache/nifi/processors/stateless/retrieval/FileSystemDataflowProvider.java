@@ -26,7 +26,7 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class FileSystemDataflowRetrieval implements DataflowRetrieval {
+public class FileSystemDataflowProvider implements DataflowProvider {
     @Override
     public VersionedFlowSnapshot retrieveDataflowContents(final ProcessContext context) throws IOException {
         final ObjectMapper objectMapper = new ObjectMapper();
