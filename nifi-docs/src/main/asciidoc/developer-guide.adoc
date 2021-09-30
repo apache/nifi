@@ -2084,9 +2084,6 @@ the parameters from its source.
 Within the `fetchParameters` method, the ParameterProvider is given access to a
 `ConfigurationContext`, from which configuration
 and information about the NiFi instance can be obtained. The
-BulletinRepository allows Bulletins to be queried
-and allows the ParameterProvider to submit its own Bulletins, so that
-information will be rendered to users. The
 ControllerServiceLookup that is accessible via the Context provides
 access to ControllerServices that have been
 configured. However, this method of obtaining Controller Services is

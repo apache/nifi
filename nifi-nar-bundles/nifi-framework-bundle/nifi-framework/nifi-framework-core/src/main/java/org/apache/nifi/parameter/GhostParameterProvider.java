@@ -28,7 +28,6 @@ import org.apache.nifi.reporting.InitializationException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 public class GhostParameterProvider implements ParameterProvider {
 
@@ -93,7 +92,7 @@ public class GhostParameterProvider implements ParameterProvider {
     }
 
     @Override
-    public Map<ParameterDescriptor, Parameter> fetchParameters(final ConfigurationContext context) {
+    public List<Parameter> fetchParameters(final ConfigurationContext context) {
         throw new ProcessException("Unable to instantiate ParameterProvider class");
     }
 

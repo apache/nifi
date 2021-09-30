@@ -16,31 +16,24 @@
  */
 package org.apache.nifi.parameter;
 
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
-import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.io.File;
-import java.util.Set;
 
-public class StandardParameterProviderInitializationContext implements ParameterProviderInitializationContext, ControllerServiceLookup {
+public class StandardParameterProviderInitializationContext implements ParameterProviderInitializationContext {
 
     private final String id;
     private final String name;
-    private final ControllerServiceProvider serviceProvider;
     private final ComponentLog logger;
     private final KerberosConfig kerberosConfig;
     private final NodeTypeProvider nodeTypeProvider;
 
-    public StandardParameterProviderInitializationContext(final String id, final String name, final ComponentLog logger,
-                                                          final ControllerServiceProvider serviceProvider, final KerberosConfig kerberosConfig,
+    public StandardParameterProviderInitializationContext(final String id, final String name, final ComponentLog logger, final KerberosConfig kerberosConfig,
                                                   final NodeTypeProvider nodeTypeProvider) {
         this.id = id;
         this.name = name;
-        this.serviceProvider = serviceProvider;
         this.logger = logger;
         this.kerberosConfig = kerberosConfig;
         this.nodeTypeProvider = nodeTypeProvider;
@@ -57,58 +50,23 @@ public class StandardParameterProviderInitializationContext implements Parameter
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
-        return serviceProvider.getControllerServiceIdentifiers(serviceType, null);
-    }
-
-    @Override
-    public ControllerService getControllerService(final String identifier) {
-        return serviceProvider.getControllerService(identifier);
-    }
-
-    @Override
-    public boolean isControllerServiceEnabled(final ControllerService service) {
-        return serviceProvider.isControllerServiceEnabled(service);
-    }
-
-    @Override
-    public boolean isControllerServiceEnabled(final String serviceIdentifier) {
-        return serviceProvider.isControllerServiceEnabled(serviceIdentifier);
-    }
-
-    @Override
-    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
-        return serviceProvider.isControllerServiceEnabling(serviceIdentifier);
-    }
-
-    @Override
-    public ControllerServiceLookup getControllerServiceLookup() {
-        return this;
-    }
-
-    @Override
-    public String getControllerServiceName(final String serviceIdentifier) {
-        return serviceProvider.getControllerServiceName(serviceIdentifier);
-    }
-
-    @Override
     public ComponentLog getLogger() {
         return logger;
     }
 
     @Override
     public String getKerberosServicePrincipal() {
-        return kerberosConfig.getPrincipal();
+        return kerberosConfig == null ? null : kerberosConfig.getPrincipal();
     }
 
     @Override
     public File getKerberosServiceKeytab() {
-        return kerberosConfig.getKeytabLocation();
+        return kerberosConfig == null ? null : kerberosConfig.getKeytabLocation();
     }
 
     @Override
     public File getKerberosConfigurationFile() {
-        return kerberosConfig.getConfigFile();
+        return kerberosConfig == null ? null : kerberosConfig.getConfigFile();
     }
 
     @Override

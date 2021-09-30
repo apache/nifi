@@ -19,7 +19,6 @@ package org.apache.nifi.parameter;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,7 +49,7 @@ public abstract class AbstractEnvironmentVariableParameterProvider extends Abstr
     private List<PropertyDescriptor> properties;
 
     @Override
-    protected void init(final ParameterProviderInitializationContext config) throws InitializationException {
+    protected void init(final ParameterProviderInitializationContext config) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(INCLUDE_REGEX);
         properties.add(EXCLUDE_REGEX);
@@ -64,7 +63,7 @@ public abstract class AbstractEnvironmentVariableParameterProvider extends Abstr
     }
 
     @Override
-    protected List<Parameter> fetchParameterList(final ConfigurationContext context) {
+    public List<Parameter> fetchParameters(final ConfigurationContext context) {
         final Pattern includePattern = Pattern.compile(context.getProperty(INCLUDE_REGEX).getValue());
         final Pattern excludePattern = context.getProperty(EXCLUDE_REGEX).isSet()
                 ? Pattern.compile(context.getProperty(EXCLUDE_REGEX).getValue())

@@ -48,7 +48,7 @@ public class DummyParameterProvider extends AbstractParameterProvider implements
     }
 
     @Override
-    protected List<Parameter> fetchParameterList(final ConfigurationContext context) {
+    public List<Parameter> fetchParameters(final ConfigurationContext context) {
         return Arrays.stream(STATIC_PARAMETERS)
                 .map(parameterName -> {
                     final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()

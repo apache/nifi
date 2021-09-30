@@ -24,17 +24,15 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ParameterProviderNode;
+import org.apache.nifi.controller.ParametersApplication;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
-import org.apache.nifi.controller.parameter.ParameterProviderProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.parameter.Parameter;
-import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.util.BundleUtils;
@@ -47,7 +45,7 @@ import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ParameterProviderDAO;
 
 import java.net.URL;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,14 +53,13 @@ import java.util.stream.Collectors;
 
 public class StandardParameterProviderDAO extends ComponentDAO implements ParameterProviderDAO {
 
-    private ParameterProviderProvider parameterProviderProvider;
     private ComponentStateDAO componentStateDAO;
     private ReloadComponent reloadComponent;
     private FlowController flowController;
 
     private ParameterProviderNode locateParameterProvider(final String parameterProviderId) {
         // get the parameter provider
-        final ParameterProviderNode parameterProvider = parameterProviderProvider.getParameterProviderNode(parameterProviderId);
+        final ParameterProviderNode parameterProvider = flowController.getFlowManager().getParameterProvider(parameterProviderId);
 
         // ensure the parameter provider exists
         if (parameterProvider == null) {
@@ -74,7 +71,7 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
 
     @Override
     public void verifyCreate(final ParameterProviderDTO parameterProviderDTO) {
-        verifyCreate(parameterProviderProvider.getExtensionManager(), parameterProviderDTO.getType(), parameterProviderDTO.getBundle());
+        verifyCreate(flowController.getExtensionManager(), parameterProviderDTO.getType(), parameterProviderDTO.getBundle());
     }
 
     @Override
@@ -84,23 +81,19 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
             throw new IllegalArgumentException("The parameter provider type must be specified.");
         }
 
-        try {
-            // create the parameter provider
-            final ExtensionManager extensionManager = parameterProviderProvider.getExtensionManager();
-            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, parameterProviderDTO.getType(), parameterProviderDTO.getBundle());
-            final ParameterProviderNode parameterProvider = parameterProviderProvider.createParameterProvider(
-                    parameterProviderDTO.getType(), parameterProviderDTO.getId(), bundleCoordinate, true);
+        // create the parameter provider
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
+        final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, parameterProviderDTO.getType(), parameterProviderDTO.getBundle());
+        final ParameterProviderNode parameterProvider = flowController.getFlowManager().createParameterProvider(
+                parameterProviderDTO.getType(), parameterProviderDTO.getId(), bundleCoordinate, true);
 
-            // ensure we can perform the update
-            verifyUpdate(parameterProvider, parameterProviderDTO);
+        // ensure we can perform the update
+        verifyUpdate(parameterProvider, parameterProviderDTO);
 
-            // perform the update
-            configureParameterProvider(parameterProvider, parameterProviderDTO);
+        // perform the update
+        configureParameterProvider(parameterProvider, parameterProviderDTO);
 
-            return parameterProvider;
-        } catch (final ParameterProviderInstantiationException e) {
-            throw new NiFiCoreException(e.getMessage(), e);
-        }
+        return parameterProvider;
     }
 
     @Override
@@ -110,12 +103,12 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
 
     @Override
     public boolean hasParameterProvider(final String parameterProviderId) {
-        return parameterProviderProvider.getParameterProviderNode(parameterProviderId) != null;
+        return flowController.getFlowManager().getParameterProvider(parameterProviderId) != null;
     }
 
     @Override
     public Set<ParameterProviderNode> getParameterProviders() {
-        return parameterProviderProvider.getAllParameterProviders();
+        return flowController.getFlowManager().getAllParameterProviders();
     }
 
     @Override
@@ -151,7 +144,7 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
     }
 
     @Override
-    public Map<ParameterContext, Map<String, Parameter>> getFetchedParametersToApply(final String parameterProviderId, final Set<String> parameterNames) {
+    public List<ParametersApplication> getFetchedParametersToApply(final String parameterProviderId, final Set<String> parameterNames) {
         final ParameterProviderNode parameterProviderNode = locateParameterProvider(parameterProviderId);
 
         return parameterProviderNode.getFetchedParametersToApply(parameterNames);
@@ -160,7 +153,7 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
     private void updateBundle(final ParameterProviderNode parameterProvider, final ParameterProviderDTO parameterProviderDTO) {
         final BundleDTO bundleDTO = parameterProviderDTO.getBundle();
         if (bundleDTO != null) {
-            final ExtensionManager extensionManager = parameterProviderProvider.getExtensionManager();
+            final ExtensionManager extensionManager = flowController.getExtensionManager();
             final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(extensionManager, parameterProvider.getCanonicalClassName(), bundleDTO);
             final BundleCoordinate existingCoordinate = parameterProvider.getBundleCoordinate();
             if (!existingCoordinate.getCoordinate().equals(incomingCoordinate.getCoordinate())) {
@@ -179,9 +172,7 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
 
     // A placeholder in case validation is required in the future
     private List<String> validateProposedConfiguration(final ParameterProviderNode parameterProvider, final ParameterProviderDTO parameterProviderDTO) {
-        final List<String> validationErrors = new ArrayList<>();
-
-        return validationErrors;
+        return Collections.emptyList();
     }
 
     @Override
@@ -222,7 +213,7 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
         if (bundleDTO != null) {
             // ensures all nodes in a cluster have the bundle, throws exception if bundle not found for the given type
             final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(
-                    parameterProviderProvider.getExtensionManager(), parameterProvider.getCanonicalClassName(), bundleDTO);
+                    flowController.getExtensionManager(), parameterProvider.getCanonicalClassName(), bundleDTO);
             // ensure we are only changing to a bundle with the same group and id, but different version
             parameterProvider.verifyCanUpdateBundle(bundleCoordinate);
         }
@@ -308,12 +299,7 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
     @Override
     public void deleteParameterProvider(final String parameterProviderId) {
         final ParameterProviderNode parameterProvider = locateParameterProvider(parameterProviderId);
-        parameterProviderProvider.removeParameterProvider(parameterProvider);
-    }
-
-    /* setters */
-    public void setParameterProviderProvider(final ParameterProviderProvider parameterProviderProvider) {
-        this.parameterProviderProvider = parameterProviderProvider;
+        flowController.getFlowManager().removeParameterProvider(parameterProvider);
     }
 
     public void setComponentStateDAO(final ComponentStateDAO componentStateDAO) {

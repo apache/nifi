@@ -132,7 +132,7 @@ public class AlertHandler extends AbstractActionHandlerService {
                 } catch (IllegalArgumentException iae) {
                     severity = Severity.INFO;
                 }
-                BulletinRepository bulletinRepository = context. getBulletinRepository();
+                BulletinRepository bulletinRepository = context.getBulletinRepository();
                 bulletinRepository.addBulletin(context.createBulletin(category, severity, message));
 
             } else {

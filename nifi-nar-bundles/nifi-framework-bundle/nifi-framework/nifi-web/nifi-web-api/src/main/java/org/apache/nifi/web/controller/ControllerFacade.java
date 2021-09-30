@@ -1006,7 +1006,7 @@ public class ControllerFacade implements Authorizable {
         }
 
         // add each parameter provider
-        for (final ParameterProviderNode parameterProvider : flowController.getAllParameterProviders()) {
+        for (final ParameterProviderNode parameterProvider : flowController.getFlowManager().getAllParameterProviders()) {
             final Resource parameterProviderResource = parameterProvider.getResource();
             resources.add(parameterProviderResource);
             resources.add(ResourceFactory.getPolicyResource(parameterProviderResource));

@@ -63,7 +63,7 @@ public abstract class AbstractDynamicPropertyParameterProvider extends AbstractP
     }
 
     @Override
-    protected List<Parameter> fetchParameterList(final ConfigurationContext context) {
+    public List<Parameter> fetchParameters(final ConfigurationContext context) {
         return dynamicProperties.entrySet().stream()
                 .map(entry -> {
                     final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()

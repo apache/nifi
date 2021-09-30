@@ -123,7 +123,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
 
             final Element parameterProvidersNode = doc.createElement("parameterProviders");
             rootNode.appendChild(parameterProvidersNode);
-            for (final ParameterProviderNode providerNode : controller.getAllParameterProviders()) {
+            for (final ParameterProviderNode providerNode : controller.getFlowManager().getAllParameterProviders()) {
                 addParameterProvider(parameterProvidersNode, providerNode, encryptor);
             }
 

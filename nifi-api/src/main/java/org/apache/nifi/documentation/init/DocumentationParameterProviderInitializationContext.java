@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.documentation.init;
 
-import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.ParameterProviderInitializationContext;
@@ -38,11 +37,6 @@ public class DocumentationParameterProviderInitializationContext implements Para
     @Override
     public String getName() {
         return name;
-    }
-
-    @Override
-    public ControllerServiceLookup getControllerServiceLookup() {
-        return new EmptyControllerServiceLookup();
     }
 
     @Override

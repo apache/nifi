@@ -28,6 +28,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
@@ -40,8 +41,7 @@ import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
-import org.apache.nifi.controller.ParameterProviderNode;
-import org.apache.nifi.controller.parameter.StatelessParameterProviderNode;
+import org.apache.nifi.controller.parameter.StandardParameterProviderNode;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
 import org.apache.nifi.controller.reporting.StatelessReportingTaskNode;
@@ -187,7 +187,7 @@ public class ComponentBuilder {
         final ValidationTrigger validationTrigger = statelessEngine.getValidationTrigger();
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, componentVariableRegistry);
 
-        final ParameterProviderNode taskNode = new StatelessParameterProviderNode(parameterProviderComponent, identifier, statelessEngine, flowManager,
+        final ParameterProviderNode taskNode = new StandardParameterProviderNode(parameterProviderComponent, identifier, null, null,
                 validationContextFactory, componentVariableRegistry, reloadComponent, extensionManager, validationTrigger);
 
         logger.info("Created Reporting Task of type {} with identifier {}", type, identifier);
@@ -201,8 +201,7 @@ public class ComponentBuilder {
             final NodeTypeProvider nodeTypeProvider = new StatelessNodeTypeProvider();
 
             final ParameterProviderInitializationContext config = new StandardParameterProviderInitializationContext(identifier, taskName,
-                    taskComponent.getLogger(), statelessEngine.getControllerServiceProvider(),
-                    statelessEngine.getKerberosConfig(), nodeTypeProvider);
+                    taskComponent.getLogger(), statelessEngine.getKerberosConfig(), nodeTypeProvider);
 
             taskComponent.getComponent().initialize(config);
 

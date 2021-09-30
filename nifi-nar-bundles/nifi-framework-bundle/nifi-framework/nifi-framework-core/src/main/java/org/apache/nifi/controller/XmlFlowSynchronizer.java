@@ -87,6 +87,7 @@ import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ComponentReferenceDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -105,6 +106,7 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
+import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.slf4j.Logger;
@@ -557,7 +559,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
                 .collect(Collectors.toList());
 
         final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters, referencedIds,
-                ParameterContextDTO.getReferenceId(dto.getSensitiveParameterProviderRef()), ParameterContextDTO.getReferenceId(dto.getNonSensitiveParameterProviderRef()));
+                getReferenceId(dto.getSensitiveParameterProviderRef()), getReferenceId(dto.getNonSensitiveParameterProviderRef()));
         context.setDescription(dto.getDescription());
         return context;
     }
@@ -570,6 +572,17 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             .build();
 
         return new Parameter(parameterDescriptor, dto.getValue(), null, dto.getProvided());
+    }
+
+    public static String getReferenceId(final ComponentReferenceEntity referenceEntity) {
+        if (referenceEntity == null) {
+            return null;
+        }
+        final ComponentReferenceDTO dto = referenceEntity.getComponent();
+        if (dto == null) {
+            return null;
+        }
+        return dto.getId();
     }
 
     private void updateControllerLevelControllerServices(final Set<? extends ComponentNode> componentNodes, final Map<String, ControllerServiceNode> controllerServiceMapping) {
@@ -756,7 +769,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
                 }
             }
 
-            final ParameterProviderNode parameterProvider = controller.createParameterProvider(dto.getType(), dto.getId(), coordinate, false);
+            final ParameterProviderNode parameterProvider = controller.getFlowManager().createParameterProvider(dto.getType(), dto.getId(), coordinate, false);
             parameterProvider.setName(dto.getName());
             parameterProvider.setComments(dto.getComments());
 
@@ -765,7 +778,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             return parameterProvider;
         } else {
             // otherwise, return the existing parameter provider node
-            return controller.getParameterProviderNode(dto.getId());
+            return controller.getFlowManager().getParameterProvider(dto.getId());
         }
     }
 

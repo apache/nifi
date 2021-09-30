@@ -135,7 +135,7 @@ public class MergeParamContext extends AbstractUpdateParamContextCommand<VoidRes
         return VoidResult.getInstance();
     }
 
-    private ParameterEntity createParameter(final ParameterDTO incomingParam) throws CommandException {
+    private ParameterEntity createParameter(final ParameterDTO incomingParam) {
         final String parameterName = incomingParam.getName();
         printlnIfInteractive("Found parameter to add - '" + parameterName + "'");
 
@@ -143,6 +143,7 @@ public class MergeParamContext extends AbstractUpdateParamContextCommand<VoidRes
         newParameter.setName(incomingParam.getName());
         newParameter.setDescription(incomingParam.getDescription());
         newParameter.setSensitive(incomingParam.getSensitive());
+        newParameter.setProvided(incomingParam.getProvided());
         newParameter.setValue(incomingParam.getValue());
 
         final ParameterEntity newParameterEntity = new ParameterEntity();

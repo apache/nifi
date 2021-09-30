@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.controller.parameter;
 
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
+import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -28,6 +34,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ParameterProviderNode;
+import org.apache.nifi.controller.ParametersApplication;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.ValidationContextFactory;
@@ -49,12 +56,12 @@ import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,7 +72,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public abstract class AbstractParameterProviderNode extends AbstractComponentNode implements ParameterProviderNode {
+public class StandardParameterProviderNode extends AbstractComponentNode implements ParameterProviderNode {
 
     private final AtomicReference<ParameterProviderDetails> parameterProviderRef;
     private final ControllerServiceLookup serviceLookup;
@@ -76,33 +83,63 @@ public abstract class AbstractParameterProviderNode extends AbstractComponentNod
 
     private final Set<ParameterContext> referencingParameterContexts;
 
-    private final Map<ParameterDescriptor, Parameter> fetchedParameters = new LinkedHashMap<>();
+    private final List<Parameter> fetchedParameters = new ArrayList<>();
 
     private volatile String comment;
 
-    public AbstractParameterProviderNode(final LoggableComponent<ParameterProvider> parameterProvider, final String id,
-                                         final ControllerServiceProvider controllerServiceProvider, final ValidationContextFactory validationContextFactory,
-                                         final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent,
-                                         final ExtensionManager extensionManager, final ValidationTrigger validationTrigger) {
+    private final Authorizable parentAuthorizable;
 
-        this(parameterProvider, id, controllerServiceProvider, validationContextFactory,
+    public StandardParameterProviderNode(final LoggableComponent<ParameterProvider> parameterProvider, final String id, final Authorizable parentAuthorizable,
+                                         final ControllerServiceProvider controllerServiceProvider, final ValidationContextFactory validationContextFactory,
+                                         final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent, final ExtensionManager extensionManager,
+                                         final ValidationTrigger validationTrigger) {
+
+        this(parameterProvider, id, parentAuthorizable, controllerServiceProvider, validationContextFactory,
                 parameterProvider.getComponent().getClass().getSimpleName(), parameterProvider.getComponent().getClass().getCanonicalName(),
                 variableRegistry, reloadComponent, extensionManager, validationTrigger, false);
     }
 
-    public AbstractParameterProviderNode(final LoggableComponent<ParameterProvider> parameterProvider, final String id,
+    public StandardParameterProviderNode(final LoggableComponent<ParameterProvider> parameterProvider, final String id, final Authorizable parentAuthorizable,
                                          final ControllerServiceProvider controllerServiceProvider, final ValidationContextFactory validationContextFactory,
-                                         final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
-                                         final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger,
-                                         final boolean isExtensionMissing) {
-
-        super(id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent,
+                                         final String componentType, final String canonicalClassName, final ComponentVariableRegistry variableRegistry,
+                                         final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
+        super(id, validationContextFactory, controllerServiceProvider, componentType, canonicalClassName, variableRegistry, reloadComponent,
                 extensionManager, validationTrigger, isExtensionMissing);
         this.parameterProviderRef = new AtomicReference<>(new ParameterProviderDetails(parameterProvider));
         this.serviceLookup = controllerServiceProvider;
         this.referencingParameterContexts = new HashSet<>();
+        this.parentAuthorizable = parentAuthorizable;
     }
 
+    @Override
+    public Authorizable getParentAuthorizable() {
+        return parentAuthorizable;
+    }
+
+    @Override
+    public Resource getResource() {
+        return ResourceFactory.getComponentResource(ResourceType.ParameterProvider, getIdentifier(), getName());
+    }
+
+    @Override
+    public boolean isRestricted() {
+        return getParameterProvider().getClass().isAnnotationPresent(Restricted.class);
+    }
+
+    @Override
+    public Class<?> getComponentClass() {
+        return getParameterProvider().getClass();
+    }
+
+    @Override
+    public boolean isDeprecated() {
+        return getParameterProvider().getClass().isAnnotationPresent(DeprecationNotice.class);
+    }
+
+    @Override
+    protected ParameterContext getParameterContext() {
+        return null;
+    }
     @Override
     public ConfigurableComponent getComponent() {
         return parameterProviderRef.get().getParameterProvider();
@@ -137,7 +174,7 @@ public abstract class AbstractParameterProviderNode extends AbstractComponentNod
 
     @Override
     public boolean isValidationNecessary() {
-        return getValidationStatus() != ValidationStatus.VALID;
+        return true;
     }
 
     @Override
@@ -227,13 +264,22 @@ public abstract class AbstractParameterProviderNode extends AbstractComponentNod
     public void fetchParameters() {
         final ParameterProvider parameterProvider = parameterProviderRef.get().getParameterProvider();
         final ConfigurationContext configurationContext = getConfigurationContext();
-        Map<ParameterDescriptor, Parameter> fetchedParameters;
+        List<Parameter> fetchedParameters;
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), parameterProvider.getClass(), parameterProvider.getIdentifier())) {
             fetchedParameters = parameterProvider.fetchParameters(configurationContext);
+        } catch (final IOException e) {
+            throw new RuntimeException(String.format("Error fetching parameters for Parameter Provider [%s]", getName()), e);
         }
 
-        for(final Map.Entry<ParameterDescriptor, Parameter> entry : fetchedParameters.entrySet()) {
-            final ParameterDescriptor descriptor = entry.getKey();
+        if (fetchedParameters == null || fetchedParameters.isEmpty()) {
+            return;
+        }
+
+        for(final Parameter parameter : fetchedParameters) {
+            final ParameterDescriptor descriptor = parameter.getDescriptor();
+            if (descriptor == null) {
+                throw new IllegalStateException("Parameter is missing a Parameter Descriptor");
+            }
             if (descriptor.isSensitive() != isSensitiveParameterProvider()) {
                 throw new IllegalStateException(String.format("Fetched parameter [%s] does not match the sensitivity of Parameter Provider [%s]",
                         descriptor.getName(), configurationContext.getName()));
@@ -243,7 +289,7 @@ public abstract class AbstractParameterProviderNode extends AbstractComponentNod
         writeLock.lock();
         try {
             this.fetchedParameters.clear();
-            this.fetchedParameters.putAll(toProvidedParameters(fetchedParameters));
+            this.fetchedParameters.addAll(toProvidedParameters(fetchedParameters));
         } finally {
             writeLock.unlock();
         }
@@ -252,7 +298,7 @@ public abstract class AbstractParameterProviderNode extends AbstractComponentNod
     @Override
     public void verifyCanApplyParameters(final Set<String> parameterNames) {
         if (fetchedParameters.isEmpty()) {
-            throw new IllegalStateException("No parameters have been fetched from Parameter Provider " + getName());
+            return;
         }
         readLock.lock();
         try {
@@ -357,10 +403,10 @@ public abstract class AbstractParameterProviderNode extends AbstractComponentNod
     private Map<String, Parameter> getFetchedParameterUpdateMap(final ParameterContext parameterContext, final Set<String> parameterNames) {
         final Set<String> parameterNameFilter = parameterNames == null ? new HashSet<>() : parameterNames;
         final Map<String, Parameter> parameterUpdateMap = new HashMap<>();
-        final Map<ParameterDescriptor, Parameter> filteredFetchedParameters = fetchedParameters.entrySet()
+        final Map<ParameterDescriptor, Parameter> filteredFetchedParameters = fetchedParameters
                 .stream()
-                .filter(entry -> parameterNameFilter.contains(entry.getKey().getName()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .filter(parameter -> parameterNameFilter.contains(parameter.getDescriptor().getName()))
+                .collect(Collectors.toMap(Parameter::getDescriptor, Function.identity()));
 
         final boolean isSensitive = isSensitiveParameterProvider();
         final Map<ParameterDescriptor, Parameter> currentParameters = parameterContext.getParameters();
@@ -394,32 +440,29 @@ public abstract class AbstractParameterProviderNode extends AbstractComponentNod
     }
 
     /**
-     * Sets provided = true on all parameters in the map
-     * @param parameterDescriptorMap A map from descriptor to parameter
-     * @return An equivalent map, but with provided = true
+     * Sets provided = true on all parameters in the list
+     * @param parameterProviders A list of Parameters
+     * @return An equivalent list, but with provided = true
      */
-    private static Map<ParameterDescriptor, Parameter> toProvidedParameters(final Map<ParameterDescriptor, Parameter> parameterDescriptorMap) {
-        return parameterDescriptorMap == null ? Collections.emptyMap() : parameterDescriptorMap.entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> new Parameter(entry.getValue().getDescriptor(), entry.getValue().getValue(), null, true)
-                ));
+    private static List<Parameter> toProvidedParameters(final List<Parameter> parameterProviders) {
+        return parameterProviders == null ? Collections.emptyList() : parameterProviders.stream()
+                .map(parameter -> new Parameter(parameter.getDescriptor(), parameter.getValue(), null, true))
+                .collect(Collectors.toList());
     }
 
     @Override
     public Set<String> getFetchedParameterNames() {
-        return fetchedParameters.keySet().stream().map(ParameterDescriptor::getName).collect(Collectors.toSet());
+        return fetchedParameters.stream().map(p -> p.getDescriptor().getName()).collect(Collectors.toSet());
     }
 
     @Override
-    public Map<ParameterContext, Map<String, Parameter>> getFetchedParametersToApply(final Set<String> parameterNames) {
+    public List<ParametersApplication> getFetchedParametersToApply(final Set<String> parameterNames) {
         readLock.lock();
         try {
             return getReferences().stream()
-                    .collect(Collectors.toMap(
-                            Function.identity(),
-                            parameterContext -> getFetchedParameterUpdateMap(parameterContext, parameterNames)
-                    ));
+                    .map(parameterContext ->
+                            new ParametersApplication(parameterContext, getFetchedParameterUpdateMap(parameterContext, parameterNames)))
+                    .collect(Collectors.toList());
         } finally {
             readLock.unlock();
         }

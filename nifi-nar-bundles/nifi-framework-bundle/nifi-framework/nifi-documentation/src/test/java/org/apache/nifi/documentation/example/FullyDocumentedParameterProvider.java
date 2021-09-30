@@ -109,7 +109,7 @@ public class FullyDocumentedParameterProvider extends AbstractParameterProvider 
     }
 
     @Override
-    protected List<Parameter> fetchParameterList(final ConfigurationContext context) {
+    public List<Parameter> fetchParameters(final ConfigurationContext context) {
         return Collections.emptyList();
     }
 }

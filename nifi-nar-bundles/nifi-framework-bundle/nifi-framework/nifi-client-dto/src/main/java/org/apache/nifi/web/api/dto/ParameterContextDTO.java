@@ -113,20 +113,4 @@ public class ParameterContextDTO {
     public String toString() {
         return "ParameterContext[id=" + identifier + ", name=" + name + ", parameters=" + parameters + "]";
     }
-
-    /**
-     * A utility method for safely returning the identifier of a ComponentReferenceEntity.
-     * @param referenceEntity A ComponentReferenceEntity
-     * @return The <code>referenceEntity.getComponent().getId()</code> (may be null)
-     */
-    public static String getReferenceId(final ComponentReferenceEntity referenceEntity) {
-        if (referenceEntity == null) {
-            return null;
-        }
-        final ComponentReferenceDTO dto = referenceEntity.getComponent();
-        if (dto == null) {
-            return null;
-        }
-        return dto.getId();
-    }
 }

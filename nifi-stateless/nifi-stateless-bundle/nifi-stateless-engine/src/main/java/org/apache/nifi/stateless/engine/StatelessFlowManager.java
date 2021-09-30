@@ -31,6 +31,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.StandardConnection;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -42,8 +43,6 @@ import org.apache.nifi.controller.flow.AbstractFlowManager;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.label.StandardLabel;
-import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
-import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueFactory;
@@ -321,47 +320,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     public ParameterProviderNode createParameterProvider(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
                                                          final boolean register) {
 
-        if (type == null || id == null || bundleCoordinate == null) {
-            throw new NullPointerException("Must supply type, id, and bundle coordinate in order to create Parameter Provider. Provided arguments were type=" + type + ", id=" + id
-                    + ", bundle coordinate = " + bundleCoordinate);
-        }
-
-        final ParameterProviderNode parameterProviderNode;
-        try {
-            parameterProviderNode = new ComponentBuilder()
-                    .identifier(id)
-                    .type(type)
-                    .bundleCoordinate(bundleCoordinate)
-                    .statelessEngine(statelessEngine)
-                    .additionalClassPathUrls(additionalUrls)
-                    .flowManager(this)
-                    .buildParameterProvider();
-        } catch (final ParameterProviderInstantiationException e) {
-            throw new IllegalStateException("Could not create Parameter Provider of type " + type + " with ID " + id, e);
-        }
-
-        LogRepositoryFactory.getRepository(parameterProviderNode.getIdentifier()).setLogger(parameterProviderNode.getLogger());
-
-        if (firstTimeAdded) {
-            final Class<?> taskClass = parameterProviderNode.getParameterProvider().getClass();
-            final String identifier = parameterProviderNode.getParameterProvider().getIdentifier();
-
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(statelessEngine.getExtensionManager(), taskClass, identifier)) {
-                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, parameterProviderNode.getParameterProvider());
-
-                if (isFlowInitialized()) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, parameterProviderNode.getParameterProvider());
-                }
-            } catch (final Exception e) {
-                throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + parameterProviderNode.getParameterProvider(), e);
-            }
-        }
-
-        if (register) {
-            onParameterProviderAdded(parameterProviderNode);
-        }
-
-        return parameterProviderNode;
+        throw new UnsupportedOperationException("Parameter Providers are not supported in Stateless NiFi");
     }
 
     @Override

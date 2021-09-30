@@ -17,22 +17,13 @@
 package org.apache.nifi.parameter;
 
 import org.apache.nifi.components.AbstractConfigurableComponent;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
 public abstract class AbstractParameterProvider extends AbstractConfigurableComponent implements ParameterProvider {
     private String identifier;
     private String name;
-    private ControllerServiceLookup serviceLookup;
     private ComponentLog logger;
     private NodeTypeProvider nodeTypeProvider;
 
@@ -41,7 +32,6 @@ public abstract class AbstractParameterProvider extends AbstractConfigurableComp
         identifier = config.getIdentifier();
         logger = config.getLogger();
         name = config.getName();
-        serviceLookup = config.getControllerServiceLookup();
         nodeTypeProvider = config.getNodeTypeProvider();
         verifyInterfaces();
         init(config);
@@ -64,36 +54,6 @@ public abstract class AbstractParameterProvider extends AbstractConfigurableComp
     @Override
     public String getIdentifier() {
         return identifier;
-    }
-
-    /**
-     * Calls {@link AbstractParameterProvider#fetchParameterList(ConfigurationContext)} and returns the parameters
-     * as a map.
-     * @param context The configuration context
-     * @return A map from <code>ParameterDescriptor</code> to <code>Parameter</code>
-     */
-    @Override
-    public final Map<ParameterDescriptor, Parameter> fetchParameters(final ConfigurationContext context) {
-        this.name = context.getName();
-
-        final List<Parameter> parameters = Objects.requireNonNull(this.fetchParameterList(context), "Fetched parameter list may not be null");
-        final Map<ParameterDescriptor, Parameter> parameterMap = new LinkedHashMap<>(parameters.size());
-        for(final Parameter parameter : parameters) {
-            Objects.requireNonNull(parameter, "Fetched parameters may not be null");
-            final ParameterDescriptor descriptor = Objects.requireNonNull(parameter.getDescriptor(),
-                    "Fetched parameter descriptors may not be null");
-
-            parameterMap.put(descriptor, parameter);
-        }
-        return Collections.unmodifiableMap(parameterMap);
-    }
-
-    /**
-     * @return the {@link ControllerServiceLookup} that was passed to the
-     * {@link #initialize(ParameterProviderInitializationContext)} method
-     */
-    protected final ControllerServiceLookup getControllerServiceLookup() {
-        return serviceLookup;
     }
 
     /**
@@ -128,13 +88,4 @@ public abstract class AbstractParameterProvider extends AbstractConfigurableComp
      */
     protected void init(final ParameterProviderInitializationContext config) throws InitializationException {
     }
-
-    /**
-     * Fetch the list of parameters.  The sensitivity of the <code>ParameterDescriptor</code> in each
-     * <code>Parameter</code> must match the sensitivity of the <code>ParameterProvider</code> interface, whether
-     * <code>SensitiveParameterProvider</code> or <code>NonSensitiveParameterProvider</code>.
-     * @param context The configuration context
-     * @return A list of fetched <code>Parameter</code>s
-     */
-    protected abstract List<Parameter> fetchParameterList(final ConfigurationContext context);
 }

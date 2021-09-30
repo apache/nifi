@@ -63,11 +63,6 @@ public class MockParameterProviderInitializationContext extends MockControllerSe
     }
 
     @Override
-    public ControllerServiceLookup getControllerServiceLookup() {
-        return this;
-    }
-
-    @Override
     public NodeTypeProvider getNodeTypeProvider() {
         return null;
     }

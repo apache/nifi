@@ -349,7 +349,7 @@ public class TestFlowController {
         assertNotNull(procControllerServiceProp);
 
         // should be one reporting task
-        final Set<ParameterProviderNode> parameterProviderNodes = controller.getAllParameterProviders();
+        final Set<ParameterProviderNode> parameterProviderNodes = controller.getFlowManager().getAllParameterProviders();
         assertNotNull(parameterProviderNodes);
         assertEquals(1, parameterProviderNodes.size());
 
@@ -738,7 +738,7 @@ public class TestFlowController {
 
     @Test
     public void testCreateMissingParameterProvider() throws ParameterProviderInstantiationException {
-        final ParameterProviderNode taskNode = controller.createParameterProvider("org.apache.nifi.NonExistingParameterProvider", "1234-Parameter-Provider",
+        final ParameterProviderNode taskNode = controller.getFlowManager().createParameterProvider("org.apache.nifi.NonExistingParameterProvider", "1234-Parameter-Provider",
                 systemBundle.getBundleDetails().getCoordinate(), true);
         assertNotNull(taskNode);
         assertEquals("org.apache.nifi.NonExistingParameterProvider", taskNode.getCanonicalClassName());
@@ -998,7 +998,7 @@ public class TestFlowController {
     public void testReloadParameterProvider() throws ParameterProviderInstantiationException {
         final String id = "ParameterProvider" + System.currentTimeMillis();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ParameterProviderNode node = controller.createParameterProvider(DummyParameterProvider.class.getName(), id, coordinate, true);
+        final ParameterProviderNode node = controller.getFlowManager().createParameterProvider(DummyParameterProvider.class.getName(), id, coordinate, true);
         final String originalName = node.getName();
 
         assertEquals(id, node.getIdentifier());

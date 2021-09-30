@@ -432,10 +432,7 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     @Override
     public ParameterProviderNode getParameterProvider(final String id) {
-        if (id == null) {
-            return null;
-        }
-        return allParameterProviders.get(id);
+        return id == null ? null : allParameterProviders.get(id);
     }
 
     @Override
@@ -483,7 +480,7 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     @Override
     public Set<ParameterProviderNode> getAllParameterProviders() {
-        return Collections.unmodifiableSet(new HashSet<>(allParameterProviders.values()));
+        return new HashSet<>(allParameterProviders.values());
     }
 
     public void onParameterProviderAdded(final ParameterProviderNode parameterProviderNode) {
@@ -535,8 +532,15 @@ public abstract class AbstractFlowManager implements FlowManager {
                     nonSensitiveParameterProviderId));
         }
         final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(this);
-        final ParameterContext parameterContext = new StandardParameterContext(id, name, referenceManager, getParameterContextParent(),
-                this, (SensitiveParameterProvider) sensitiveParameterProvider, (NonSensitiveParameterProvider) nonSensitiveParameterProvider);
+        final ParameterContext parameterContext = new StandardParameterContext.Builder()
+                .id(id)
+                .name(name)
+                .parameterReferenceManager(referenceManager)
+                .parentAuthorizable(getParameterContextParent())
+                .parameterProviderLookup(this)
+                .sensitiveParameterProvider((SensitiveParameterProvider) sensitiveParameterProvider)
+                .nonSensitiveParameterProvider((NonSensitiveParameterProvider) nonSensitiveParameterProvider)
+                .build();
         parameterContext.setParameters(parameters);
 
         if (inheritedContextIds != null && !inheritedContextIds.isEmpty()) {

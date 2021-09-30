@@ -406,14 +406,16 @@ public class ExtensionBuilder {
         final ParameterProviderNode parameterProviderNode;
         if (creationSuccessful) {
             parameterProviderNode = new StandardParameterProviderNode(parameterProvider, identifier, flowController,
-                    validationContextFactory, componentVarRegistry, reloadComponent, extensionManager, validationTrigger);
+                    flowController.getControllerServiceProvider(), validationContextFactory, componentVarRegistry, reloadComponent, extensionManager,
+                    validationTrigger);
             parameterProviderNode.setName(parameterProviderNode.getParameterProvider().getClass().getSimpleName());
         } else {
             final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
             final String componentType = "(Missing) " + simpleClassName;
 
-            parameterProviderNode = new StandardParameterProviderNode(parameterProvider, identifier, flowController, validationContextFactory,
-                    componentType, type, componentVarRegistry, reloadComponent, extensionManager, validationTrigger, true);
+            parameterProviderNode = new StandardParameterProviderNode(parameterProvider, identifier, flowController,
+                    flowController.getControllerServiceProvider(), validationContextFactory, componentType, type, componentVarRegistry, reloadComponent,
+                    extensionManager, validationTrigger, true);
             parameterProviderNode.setName(componentType);
         }
 
@@ -628,7 +630,7 @@ public class ExtensionBuilder {
 
             final String taskName = providerComponent.getComponent().getClass().getSimpleName();
             final ParameterProviderInitializationContext config = new StandardParameterProviderInitializationContext(identifier, taskName,
-                    providerComponent.getLogger(), serviceProvider, kerberosConfig, nodeTypeProvider);
+                    providerComponent.getLogger(), kerberosConfig, nodeTypeProvider);
 
             providerComponent.getComponent().initialize(config);
 

@@ -67,14 +67,12 @@ public class ProcessorParameterTokenIT extends FrameworkIntegrationTest {
         verifyText(procNode, "## hello ##{foo} ##{bar}", "## hello #{foo} #{bar}");
     }
 
-
     @Test
     public void testProperReferences() throws ExecutionException, InterruptedException {
         final ProcessorNode procNode = createProcessorNode(WriteText.class);
         procNode.setAutoTerminatedRelationships(Collections.singleton(REL_SUCCESS));
 
-        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "testEscapedParameterReference", ParameterReferenceManager.EMPTY, null,
-                null, null, null);
+        final ParameterContext parameterContext = createParameterContext("testEscapedParameterReference");
         getRootGroup().setParameterContext(parameterContext);
 
         final Map<String, Parameter> parameters = new HashMap<>();
@@ -104,8 +102,7 @@ public class ProcessorParameterTokenIT extends FrameworkIntegrationTest {
         final ProcessorNode procNode = createProcessorNode(WriteText.class);
         procNode.setAutoTerminatedRelationships(Collections.singleton(REL_SUCCESS));
 
-        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "testEscapedParameterReference", ParameterReferenceManager.EMPTY, null,
-                null, null, null);
+        final ParameterContext parameterContext = createParameterContext("testEscapedParameterReference");
         getRootGroup().setParameterContext(parameterContext);
 
         final Map<String, Parameter> parameters = new HashMap<>();
@@ -208,5 +205,13 @@ public class ProcessorParameterTokenIT extends FrameworkIntegrationTest {
         private String getTextLastWritten() {
             return textLastWritten;
         }
+    }
+
+    private ParameterContext createParameterContext(final String name) {
+        return new StandardParameterContext.Builder()
+                .id(UUID.randomUUID().toString())
+                .name(name)
+                .parameterReferenceManager(ParameterReferenceManager.EMPTY)
+                .build();
     }
 }

@@ -34,6 +34,7 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.SensitiveParameterProvider;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.ComponentReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
@@ -109,12 +110,23 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
     }
 
     private String getParameterProviderId(final ComponentReferenceEntity parameterProviderReference) {
-        final String parameterProviderId = ParameterContextDTO.getReferenceId(parameterProviderReference);
+        final String parameterProviderId = getReferenceId(parameterProviderReference);
         final ParameterProviderNode parameterProvider = flowManager.getParameterProvider(parameterProviderId);
         if (parameterProviderId != null && parameterProvider == null) {
             throw new IllegalArgumentException("Unable to locate Parameter Provider with id '" +  parameterProviderId + "'");
         }
         return parameterProviderId;
+    }
+
+    public static String getReferenceId(final ComponentReferenceEntity referenceEntity) {
+        if (referenceEntity == null) {
+            return null;
+        }
+        final ComponentReferenceDTO dto = referenceEntity.getComponent();
+        if (dto == null) {
+            return null;
+        }
+        return dto.getId();
     }
 
     private void authorizeReferences(final ParameterContextDTO parameterContextDto) {
@@ -339,7 +351,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
     private ParameterProviderNode getParameterProviderNode(final ComponentReferenceEntity parameterProviderReference, boolean isSensitiveProvider) {
         ParameterProviderNode parameterProviderNode = null;
-        final String parameterProviderId = ParameterContextDTO.getReferenceId(parameterProviderReference);
+        final String parameterProviderId = getReferenceId(parameterProviderReference);
         if (parameterProviderId != null) {
             parameterProviderNode = flowManager.getParameterProvider(parameterProviderId);
             if (parameterProviderNode != null) {

@@ -19,12 +19,10 @@ package org.apache.nifi.controller;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterProvider;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public interface ParameterProviderNode extends ComponentNode {
@@ -47,7 +45,7 @@ public interface ParameterProviderNode extends ComponentNode {
 
     Set<String> getFetchedParameterNames();
 
-    Map<ParameterContext, Map<String, Parameter>> getFetchedParametersToApply(Set<String> parameterNames);
+    List<ParametersApplication> getFetchedParametersToApply(Set<String> parameterNames);
 
     void verifyCanClearState();
 

@@ -21,7 +21,8 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.reporting.InitializationException;
 
-import java.util.Map;
+import java.io.IOException;
+import java.util.List;
 
 /**
  * Defines a provider that is responsible for fetching from an external source Parameters with
@@ -68,7 +69,8 @@ public interface ParameterProvider extends ConfigurableComponent {
     /**
      * Fetches parameters from an external source.
      * @param context The <code>ConfigurationContext</code>for the provider
-     * @return An unmodifiable map of available parameters, mapped from descriptor to Parameter
+     * @return A list of fetched Parameters
+     * @throws IOException if there is an I/O problem while fetching the Parameters
      */
-    Map<ParameterDescriptor, Parameter> fetchParameters(ConfigurationContext context);
+    List<Parameter> fetchParameters(ConfigurationContext context) throws IOException;
 }

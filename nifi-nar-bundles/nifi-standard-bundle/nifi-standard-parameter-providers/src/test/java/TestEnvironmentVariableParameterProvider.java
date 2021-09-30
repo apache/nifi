@@ -20,7 +20,6 @@ import org.apache.nifi.parameter.AbstractEnvironmentVariableParameterProvider;
 import org.apache.nifi.parameter.EnvironmentVariableNonSensitiveParameterProvider;
 import org.apache.nifi.parameter.EnvironmentVariableSensitiveParameterProvider;
 import org.apache.nifi.parameter.Parameter;
-import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
@@ -28,7 +27,9 @@ import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockParameterProviderInitializationContext;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -40,7 +41,7 @@ public class TestEnvironmentVariableParameterProvider {
         return sensitive ? new EnvironmentVariableSensitiveParameterProvider() : new EnvironmentVariableNonSensitiveParameterProvider();
     }
 
-    private void runProviderTest(final boolean sensitive, final String includePattern, final String excludePattern) throws InitializationException {
+    private void runProviderTest(final boolean sensitive, final String includePattern, final String excludePattern) throws InitializationException, IOException {
         final Map<String, String> env = System.getenv();
         final Map<String, String> filteredVariables = env.entrySet().stream()
                 .filter(entry -> entry.getKey().matches(includePattern))
@@ -59,22 +60,22 @@ public class TestEnvironmentVariableParameterProvider {
         }
         final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);
 
-        final Map<ParameterDescriptor, Parameter> parameters = parameterProvider.fetchParameters(mockConfigurationContext);
+        final List<Parameter> parameters = parameterProvider.fetchParameters(mockConfigurationContext);
 
         assertEquals(filteredVariables.size(), parameters.size());
-        for(final Map.Entry<ParameterDescriptor, Parameter> entry : parameters.entrySet()) {
-            assertEquals(sensitive, entry.getKey().isSensitive());
-            assertNotNull(entry.getValue().getValue());
+        for(final Parameter parameter : parameters) {
+            assertEquals(sensitive, parameter.getDescriptor().isSensitive());
+            assertNotNull(parameter.getValue());
         }
     }
 
     @Test
-    public void testSensitiveParameterProvider() throws InitializationException {
+    public void testSensitiveParameterProvider() throws InitializationException, IOException {
         runProviderTest(true, "P.*", null);
     }
 
     @Test
-    public void testNonSensitiveParameterProvider() throws InitializationException {
+    public void testNonSensitiveParameterProvider() throws InitializationException, IOException {
         runProviderTest(false, ".*", "P.*");
     }
 }

@@ -75,6 +75,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ParameterProviderNode;
+import org.apache.nifi.controller.ParametersApplication;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.PropertyConfigurationMapper;
@@ -1270,8 +1271,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public List<ComponentValidationResultEntity> validateComponents(final ParameterContextDTO parameterContextDto, final NiFiUser nifiUser) {
         final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextDto.getId());
         final Set<ProcessGroup> boundProcessGroups = parameterContext.getParameterReferenceManager().getProcessGroupsBound(parameterContext);
-        final ParameterContext updatedParameterContext = new StandardParameterContext(parameterContext.getIdentifier(), parameterContext.getName(),
-                ParameterReferenceManager.EMPTY, null, null, null, null);
+        final ParameterContext updatedParameterContext = new StandardParameterContext.Builder()
+                .id(parameterContext.getIdentifier())
+                .name(parameterContext.getName())
+                .parameterReferenceManager(ParameterReferenceManager.EMPTY)
+                .build();
         final Map<String, Parameter> parameters = new HashMap<>();
         parameterContextDto.getParameters().stream()
             .map(ParameterEntity::getParameter)
@@ -3427,8 +3431,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ParameterProviderEntity fetchParameters(final String parameterProviderId) {
         final ParameterProviderNode parameterProvider = parameterProviderDAO.getParameterProvider(parameterProviderId);
 
-        parameterProvider.fetchParameters();
         awaitValidationCompletion(parameterProvider);
+        parameterProvider.fetchParameters();
 
         final ParameterProviderEntity entity = createParameterProviderEntity(parameterProvider);
         return entity;
@@ -3438,13 +3442,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public List<ParameterContextEntity> getParameterContextUpdatesForAppliedParameters(final String parameterProviderId, final Set<String> parameterNames) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-        final Map<ParameterContext, Map<String, Parameter>> parameterContextMap = parameterProviderDAO.getFetchedParametersToApply(parameterProviderId, parameterNames);
-        return parameterContextMap.entrySet().stream()
-                .filter(entry -> !entry.getValue().isEmpty())
-                .map(entry -> {
-                    final ParameterContext parameterContext = entry.getKey();
+        final List<ParametersApplication> parametersApplications = parameterProviderDAO.getFetchedParametersToApply(parameterProviderId, parameterNames);
+        return parametersApplications.stream()
+                .filter(parametersApplication -> !parametersApplication.getParameterUpdates().isEmpty())
+                .map(parametersApplication -> {
+                    final ParameterContext parameterContext = parametersApplication.getParameterContext();
                     final ParameterContextEntity entity = createParameterContextEntity(parameterContext, false, user, parameterContextDAO);
-                    final Map<String, Parameter> parameterUpdates = entry.getValue();
+                    final Map<String, Parameter> parameterUpdates = parametersApplication.getParameterUpdates();
                     final Map<String, ParameterEntity> currentParameterEntities = entity.getComponent().getParameters()
                             .stream()
                             .collect(Collectors.toMap(

@@ -352,6 +352,7 @@ public class NiFiClientUtil {
         dto.setDescription(description);
         dto.setSensitive(sensitive);
         dto.setValue(value);
+        dto.setProvided(false);
 
         final ParameterEntity entity = new ParameterEntity();
         entity.setParameter(dto);

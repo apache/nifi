@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.parameter;
 
-import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.logging.ComponentLog;
@@ -33,12 +32,6 @@ public interface ParameterProviderInitializationContext extends KerberosContext 
      * @return the configured name for this ParameterProvider
      */
     String getName();
-
-    /**
-     * @return the {@link ControllerServiceLookup} which can be used to obtain
-     * Controller Services
-     */
-    ControllerServiceLookup getControllerServiceLookup();
 
     /**
      * @return a logger that can be used to log important events in a standard

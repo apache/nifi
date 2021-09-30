@@ -78,7 +78,7 @@ public class StandardParameterContext implements ParameterContext {
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-    public StandardParameterContext(final String id, final String name, final ParameterReferenceManager parameterReferenceManager,
+    protected StandardParameterContext(final String id, final String name, final ParameterReferenceManager parameterReferenceManager,
                                     final Authorizable parentAuthorizable, final ParameterProviderLookup parameterProviderLookup,
                                     final SensitiveParameterProvider sensitiveParameterProvider, final NonSensitiveParameterProvider nonSensitiveParameterProvider) {
         this.id = Objects.requireNonNull(id);
@@ -940,5 +940,89 @@ public class StandardParameterContext implements ParameterContext {
     @Override
     public int hashCode() {
         return new HashCodeBuilder().append(getClass().getName()).append(getIdentifier()).toHashCode();
+    }
+
+    public static class Builder {
+        private String id;
+        private String name;
+        private ParameterReferenceManager parameterReferenceManager;
+        private Authorizable parentAuthorizable;
+        private ParameterProviderLookup parameterProviderLookup;
+        private SensitiveParameterProvider sensitiveParameterProvider;
+        private NonSensitiveParameterProvider nonSensitiveParameterProvider;
+
+        /**
+         * Sets the ParameterContext id -- required
+         * @param id The ParameterContext id
+         * @return The builder
+         */
+        public Builder id(final String id) {
+            this.id = id;
+            return this;
+        }
+
+        /**
+         * Sets the ParameterContext name -- required
+         * @param name The ParameterContext name
+         * @return The builder
+         */
+        public Builder name(final String name) {
+            this.name = name;
+            return this;
+        }
+
+        /**
+         * Sets the ParameterReferenceManager
+         * @param parameterReferenceManager The ParameterReferenceManager
+         * @return The builder
+         */
+        public Builder parameterReferenceManager(final ParameterReferenceManager parameterReferenceManager) {
+            this.parameterReferenceManager = parameterReferenceManager;
+            return this;
+        }
+
+        /**
+         * Sets the parent Authorizable
+         * @param parentAuthorizable The parent Authorizable
+         * @return The builder
+         */
+        public Builder parentAuthorizable(final Authorizable parentAuthorizable) {
+            this.parentAuthorizable = parentAuthorizable;
+            return this;
+        }
+
+        /**
+         * Sets the ParameterProviderLookup
+         * @param parameterProviderLookup The ParameterProviderLookup
+         * @return The builder
+         */
+        public Builder parameterProviderLookup(final ParameterProviderLookup parameterProviderLookup) {
+            this.parameterProviderLookup = parameterProviderLookup;
+            return this;
+        }
+
+        /**
+         * Sets the sensitive ParameterProvider
+         * @param sensitiveParameterProvider The sensitive ParameterProvider
+         * @return The builder
+         */
+        public Builder sensitiveParameterProvider(final SensitiveParameterProvider sensitiveParameterProvider) {
+            this.sensitiveParameterProvider = sensitiveParameterProvider;
+            return this;
+        }
+
+        /**
+         * Sets the non-sensitive ParameterProvider
+         * @param nonSensitiveParameterProvider The non-sensitive ParameterProvider
+         * @return The builder
+         */
+        public Builder nonSensitiveParameterProvider(final NonSensitiveParameterProvider nonSensitiveParameterProvider) {
+            this.nonSensitiveParameterProvider = nonSensitiveParameterProvider;
+            return this;
+        }
+
+        public StandardParameterContext build() {
+            return new StandardParameterContext(id, name, parameterReferenceManager, parentAuthorizable, parameterProviderLookup, sensitiveParameterProvider, nonSensitiveParameterProvider);
+        }
     }
 }

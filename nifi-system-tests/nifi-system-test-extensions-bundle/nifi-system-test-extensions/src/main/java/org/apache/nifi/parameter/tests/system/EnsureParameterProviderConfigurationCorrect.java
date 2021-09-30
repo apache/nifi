@@ -77,7 +77,7 @@ public class EnsureParameterProviderConfigurationCorrect extends AbstractParamet
     }
 
     @Override
-    protected List<Parameter> fetchParameterList(final ConfigurationContext context) {
+    public List<Parameter> fetchParameters(final ConfigurationContext context) {
         return null;
     }
 

@@ -27,7 +27,6 @@
     <!-- controller service / reporting task -->
     <bean id="controllerServiceProvider" class="org.apache.nifi.web.spring.ControllerServiceProviderFactoryBean" depends-on="flowController" />
     <bean id="reportingTaskProvider" class="org.apache.nifi.web.spring.ReportingTaskProviderFactoryBean" depends-on="flowController" />
-    <bean id="parameterProviderProvider" class="org.apache.nifi.web.spring.ParameterProviderProviderFactoryBean" depends-on="flowController" />
 
     <!-- component state -->
     <bean id="stateManagerProvider" class="org.apache.nifi.web.spring.StateManagerProviderFactoryBean" depends-on="flowController" />
@@ -265,7 +264,6 @@
         <property name="flowController" ref="flowController" />
     </bean>
     <bean id="parameterProviderDAO" class="org.apache.nifi.web.dao.impl.StandardParameterProviderDAO">
-        <property name="parameterProviderProvider" ref="parameterProviderProvider"/>
         <property name="componentStateDAO" ref="componentStateDAO"/>
         <property name="reloadComponent" ref="reloadComponent" />
         <property name="flowController" ref="flowController" />
