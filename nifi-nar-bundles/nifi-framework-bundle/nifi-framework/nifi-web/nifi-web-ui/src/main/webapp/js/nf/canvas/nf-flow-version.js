@@ -71,7 +71,7 @@
     var serverTimeOffset = null;
 
     var gridOptions = {
-        forceFitColumns: true,
+        autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
         enableTextSelectionOnCells: true,
         enableCellNavigation: true,
         enableColumnReorder: false,

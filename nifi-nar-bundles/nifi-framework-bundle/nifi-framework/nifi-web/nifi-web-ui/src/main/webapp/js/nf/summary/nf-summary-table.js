@@ -544,7 +544,7 @@
 
         // initialize the templates table
         var processorsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -715,7 +715,7 @@
 
         // initialize the options for the cluster processors table
         var clusterProcessorsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -881,7 +881,7 @@
 
         // initialize the templates table
         var connectionsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1024,7 +1024,7 @@
 
         // initialize the options for the cluster processors table
         var clusterConnectionsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1217,7 +1217,7 @@
 
         // initialize the templates table
         var processGroupsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1388,7 +1388,7 @@
 
         // initialize the options for the cluster processors table
         var clusterProcessGroupsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1473,7 +1473,7 @@
 
         // initialize the input ports table
         var inputPortsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1635,7 +1635,7 @@
 
         // initialize the options for the cluster input port table
         var clusterInputPortsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1720,7 +1720,7 @@
 
         // initialize the input ports table
         var outputPortsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1882,7 +1882,7 @@
 
         // initialize the options for the cluster output port table
         var clusterOutputPortsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -2023,7 +2023,7 @@
 
         // initialize the remote process groups table
         var remoteProcessGroupsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -2189,7 +2189,7 @@
 
         // initialize the options for the cluster remote process group table
         var clusterRemoteProcessGroupsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: false,
             enableColumnReorder: false,
@@ -2559,7 +2559,7 @@
                     addGarbageCollection(garbageCollectionContainer, garbageCollection);
                 });
             }
-            
+
             // uptime
             $('#uptime').text(aggregateSnapshot.uptime);
 
