@@ -17,10 +17,12 @@
 package org.apache.nifi.properties;
 
 import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
+import com.azure.security.keyvault.secrets.SecretClient;
 import com.google.cloud.kms.v1.KeyManagementServiceClient;
 import org.apache.nifi.properties.BootstrapProperties.BootstrapPropertyKey;
 import org.apache.nifi.properties.configuration.AwsKmsClientProvider;
 import org.apache.nifi.properties.configuration.AzureCryptographyClientProvider;
+import org.apache.nifi.properties.configuration.AzureSecretClientProvider;
 import org.apache.nifi.properties.configuration.ClientProvider;
 import org.apache.nifi.properties.configuration.GoogleKeyManagementServiceClientProvider;
 import org.apache.nifi.util.NiFiBootstrapUtils;
@@ -141,6 +143,13 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
                     final Properties clientProperties = getClientProperties(clientProvider);
                     final Optional<CryptographyClient> cryptographyClient = clientProvider.getClient(clientProperties);
                     return new AzureKeyVaultKeySensitivePropertyProvider(cryptographyClient.orElse(null), clientProperties);
+                });
+            case AZURE_KEYVAULT_SECRET:
+                return providerMap.computeIfAbsent(protectionScheme, s -> {
+                    final AzureSecretClientProvider clientProvider = new AzureSecretClientProvider();
+                    final Properties clientProperties = getClientProperties(clientProvider);
+                    final Optional<SecretClient> secretClient = clientProvider.getClient(clientProperties);
+                    return new AzureKeyVaultSecretSensitivePropertyProvider(secretClient.orElse(null));
                 });
             case GCP_KMS:
                 return providerMap.computeIfAbsent(protectionScheme, s -> {
