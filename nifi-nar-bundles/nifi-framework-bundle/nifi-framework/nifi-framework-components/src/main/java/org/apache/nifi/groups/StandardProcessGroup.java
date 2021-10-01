@@ -4303,7 +4303,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 group.removeInputPort(port);
                 inputPortsRemovedIterator.remove();
             } catch (IllegalStateException e) {
-                LOG.info("Removing {} from {} not possible at the moment, connection needs to be updated first.", port, group);
+                LOG.info("Removing {} from {} not possible at the moment, will try again after updated the connections.", port, group);
             }
         }
 
@@ -4316,7 +4316,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 group.removeOutputPort(port);
                 outputPortsRemovedIterator.remove();
             } catch (IllegalStateException e) {
-                LOG.info("Removing {} from {} not possible at the moment, connection needs to be updated first.", port, group);
+                LOG.info("Removing {} from {} not possible at the moment, will try again after updated the connections.", port, group);
             }
         }
 
@@ -4358,12 +4358,14 @@ public final class StandardProcessGroup implements ProcessGroup {
             group.removeFunnel(funnel);
         }
 
+        //Removing remaining input ports
         for (final String removedVersionedId : inputPortsRemoved) {
             final Port port = inputPortsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", port, group);
             group.removeInputPort(port);
         }
 
+        //Removing remaining output ports
         for (final String removedVersionedId : outputPortsRemoved) {
             final Port port = outputPortsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", port, group);
@@ -4757,8 +4759,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 // if the flow doesn't contain the properly mapped group id, we need to search all child groups.
                 return group.getProcessGroups().stream()
                     .flatMap(gr -> gr.getInputPorts().stream())
-                    .filter(component
-                            -> id.equals(component.getVersionedComponentId().orElse(
+                    .filter(component -> id.equals(component.getVersionedComponentId().orElse(
                         NiFiRegistryFlowMapper.generateVersionedComponentId(component.getIdentifier()))))
                     .findAny()
                     .orElse(null);
