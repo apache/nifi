@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.vault.hashicorp;
 
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -45,22 +46,41 @@ public interface HashiCorpVaultCommunicationService {
     byte[] decrypt(String transitPath, String cipherText);
 
     /**
-     * Writes a secret using Vault's unversioned Key/Value Secrets Engine.
+     * Writes a single secret value using Vault's unversioned Key/Value Secrets Engine.
      *
      * @see <a href="https://www.vaultproject.io/api-docs/secret/kv/kv-v1">https://www.vaultproject.io/api-docs/secret/kv/kv-v1</a>
      * @param keyValuePath The Vault path to use for the configured Key/Value v1 Secrets Engine
-     * @param key The secret key
+     * @param secretKey The secret key
      * @param value The secret value
      */
-    void writeKeyValueSecret(String keyValuePath, String key, String value);
+    void writeKeyValueSecret(String keyValuePath, String secretKey, String value);
 
     /**
-     * Reads a secret from Vault's unversioned Key/Value Secrets Engine.
+     * Reads a single secret value from Vault's unversioned Key/Value Secrets Engine.
      *
      * @see <a href="https://www.vaultproject.io/api-docs/secret/kv/kv-v1">https://www.vaultproject.io/api-docs/secret/kv/kv-v1</a>
      * @param keyValuePath The Vault path to use for the configured Key/Value v1 Secrets Engine
-     * @param key The secret key
+     * @param secretKey The secret key
      * @return The secret value, or empty if not found
      */
-    Optional<String> readKeyValueSecret(String keyValuePath, String key);
+    Optional<String> readKeyValueSecret(String keyValuePath, String secretKey);
+
+    /**
+     * Writes a secret with multiple key/value pairs using Vault's unversioned Key/Value Secrets Engine.
+     *
+     * @see <a href="https://www.vaultproject.io/api-docs/secret/kv/kv-v1">https://www.vaultproject.io/api-docs/secret/kv/kv-v1</a>
+     * @param keyValuePath The Vault path to use for the configured Key/Value v1 Secrets Engine
+     * @param keyValues A map from key to value for keys/values that should be stored in the secret
+     */
+    void writeKeyValueSecretMap(String keyValuePath, String secretKey, Map<String, String> keyValues);
+
+    /**
+     * Reads a secret with multiple key/value pairs from Vault's unversioned Key/Value Secrets Engine.
+     *
+     * @see <a href="https://www.vaultproject.io/api-docs/secret/kv/kv-v1">https://www.vaultproject.io/api-docs/secret/kv/kv-v1</a>
+     * @param keyValuePath The Vault path to use for the configured Key/Value v1 Secrets Engine
+     * @param secretKey The secret key
+     * @return A map from key to value from the secret key/values, or an empty map if not found
+     */
+    Map<String, String> readKeyValueSecretMap(String keyValuePath, String secretKey);
 }

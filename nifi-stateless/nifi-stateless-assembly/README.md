@@ -503,17 +503,18 @@ via the `./conf/bootstrap-hashicorp-vault.conf` file, which comes with NiFi.
 An example of creating a single secret in the correct format is:
 
 ```
-vault kv put "nifi-kv/Context/param" value=my-vault-value
+vault kv put "nifi-kv/Context" param=value param2=value2
 ```
 
 In this example, `nifi-kv` would be supplied by the `vault.kv.path` property in the `bootstrap-hashicorp-vault.conf` file, 
-`Context` is the name of a Parameter Context, and `param` is the name of the parameter whose value should be retrieved from the Vault server.
+`Context` is the name of a mapped Parameter Context, and `param` and `param2` are the names of the parameters whose values should be retrieved from the Vault server.
 
 This Parameter Provider requires the following properties:
 
 | Property Name | Description | Example Value |
 |---------------|-------------|---------------|
 | nifi.stateless.parameter.provider.\<key>.properties.vault-configuration-file | The filename of a configuration file specifying the Vault settings | ./conf/bootstrap-hashicorp-vault.conf |
+| nifi.stateless.parameter.provider.\<key>.properties.default-secret-name | The default K/V secret name to use.  This secret represents a default Parameter Context if there is not a matching key within the mapped Parameter Context secret. | `Default` |
 
 An example of configuring this provider in the dataflow configuration file is:
 
