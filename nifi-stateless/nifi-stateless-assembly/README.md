@@ -545,7 +545,7 @@ This Parameter Provider requires the following properties:
 | Property Name | Description | Example Value |
 |---------------|-------------|---------------|
 | nifi.stateless.parameter.provider.\<key>.properties.aws-credentials-file | The filename of a configuration file optionally specifying the AWS credentials.  If this property is not provided, or if the credentials are not provided in the file, the default AWS credentials chain will be followed. | `./conf/bootstrap-aws.conf` |
-| nifi.stateless.parameter.provider.\<key>.default-secret-name | The default AWS secret name to use, if no Parameter Context is mapped in the Stateless dataflow. | `Context` |
+| nifi.stateless.parameter.provider.\<key>.default-secret-name | The default AWS secret name to use.  This secret represents a default Parameter Context if there is not a matching key within the mapped Parameter Context secret. | `Default`  |
 
 An example of configuring this provider in the dataflow configuration file is:
 

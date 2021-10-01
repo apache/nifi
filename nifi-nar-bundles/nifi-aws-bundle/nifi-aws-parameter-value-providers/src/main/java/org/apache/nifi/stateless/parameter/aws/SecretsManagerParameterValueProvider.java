@@ -75,8 +75,8 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
             .displayName("Default Secret Name")
             .name("default-secret-name")
             .required(true)
-            .defaultValue("Context")
-            .description("The default secret name in AWS Secrets Manager that is used if Stateless does not provide the Parameter Context name")
+            .defaultValue("Default")
+            .description("The default AWS secret name to use.  This secret represents a default Parameter Context if there is not a matching key within the mapped Parameter Context secret")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
