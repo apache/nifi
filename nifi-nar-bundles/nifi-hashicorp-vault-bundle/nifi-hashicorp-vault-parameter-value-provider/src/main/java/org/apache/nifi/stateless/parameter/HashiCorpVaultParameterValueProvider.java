@@ -24,16 +24,17 @@ import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultConfiguration;
 import org.springframework.core.env.PropertySource;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
  * Reads secrets from HashiCorp Vault to provide parameters.  An example of setting one such secret parameter value
  * using the Vault CLI would be:
  *
- * <code>vault kv put "${vault.kv.path}/[ParamContextName]/[ParamName]" value=[ParamValue]</code>
+ * <code>vault kv put "${vault.kv.path}/[ParamContextName]" [Param1]=[ParamValue1] [Param2]=[ParamValue2]</code>
  *
  * Here, vault.kv.path is supplied by the file specified by the "Vault Configuration File" property.
  *
@@ -47,7 +48,6 @@ import java.util.Objects;
  */
 public class HashiCorpVaultParameterValueProvider extends AbstractParameterValueProvider implements ParameterValueProvider {
     private static final String KEY_VALUE_PATH = "vault.kv.path";
-    private static final String QUALIFIED_SECRET_FORMAT = "%s/%s";
     public static final PropertyDescriptor VAULT_CONFIG_FILE = new PropertyDescriptor.Builder()
             .displayName("Vault Configuration File")
             .name("vault-configuration-file")
@@ -56,11 +56,20 @@ public class HashiCorpVaultParameterValueProvider extends AbstractParameterValue
             .description("Location of the bootstrap-hashicorp-vault.conf file that configures the Vault connection")
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
+    public static final PropertyDescriptor DEFAULT_SECRET_NAME = new PropertyDescriptor.Builder()
+            .displayName("Default Secret Name")
+            .name("default-secret-name")
+            .required(true)
+            .defaultValue("Default")
+            .description("The default K/V secret name to use.  This secret represents a default Parameter Context if there is not a matching key within the mapped Parameter Context secret")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     private List<PropertyDescriptor> descriptors;
 
     private HashiCorpVaultCommunicationService vaultCommunicationService;
     private String path;
+    private String defaultSecretName;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -71,11 +80,13 @@ public class HashiCorpVaultParameterValueProvider extends AbstractParameterValue
     protected void init(final ParameterValueProviderInitializationContext context) {
         super.init(context);
 
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(VAULT_CONFIG_FILE);
-        this.descriptors = Collections.unmodifiableList(descriptors);
+        this.descriptors = Collections.unmodifiableList(Arrays.asList(
+                VAULT_CONFIG_FILE,
+                DEFAULT_SECRET_NAME
+        ));
 
         final String vaultBootstrapConfFilename = context.getProperty(VAULT_CONFIG_FILE).getValue();
+        defaultSecretName = context.getProperty(DEFAULT_SECRET_NAME).getValue();
         this.configure(vaultBootstrapConfFilename);
     }
 
@@ -89,18 +100,20 @@ public class HashiCorpVaultParameterValueProvider extends AbstractParameterValue
         }
     }
 
-    private String getQualifiedSecretFormat(final String contextName, final String parameterName) {
-        return String.format(QUALIFIED_SECRET_FORMAT, contextName, parameterName);
-    }
-
     @Override
     public String getParameterValue(final String contextName, final String parameterName) {
-        return vaultCommunicationService.readKeyValueSecret(path, getQualifiedSecretFormat(contextName, parameterName)).orElse(null);
+        final String contextBasedValue = getSecretValue(contextName, parameterName);
+        return contextBasedValue != null ? contextBasedValue : getSecretValue(defaultSecretName, parameterName);
     }
 
     @Override
     public boolean isParameterDefined(final String contextName, final String parameterName) {
         return getParameterValue(contextName, parameterName) != null;
+    }
+
+    private String getSecretValue(final String secretName, final String keyName) {
+        final Map<String, String> keyValues = vaultCommunicationService.readKeyValueSecretMap(path, secretName);
+        return keyValues.get(keyName);
     }
 
     void setVaultCommunicationService(final HashiCorpVaultCommunicationService vaultCommunicationService) {
