@@ -26,7 +26,7 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.CreateSecretResponse;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 import software.amazon.awssdk.services.secretsmanager.model.PutSecretValueResponse;
-import software.amazon.awssdk.services.secretsmanager.model.ResourceExistsException;
+import software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException;
 
 import java.nio.charset.Charset;
 import java.util.function.Consumer;
@@ -42,6 +42,8 @@ import static org.mockito.Mockito.when;
 public class AwsSecretsManagerSensitivePropertyProviderTest {
     private static final String PROPERTY_NAME = "propertyName";
     private static final String PROPERTY_VALUE = "propertyValue";
+
+    private static final String SECRET_STRING = String.format("{ \"%s\": \"%s\" }", PROPERTY_NAME, PROPERTY_VALUE);
 
     @Mock
     private SecretsManagerClient secretsManagerClient;
@@ -76,8 +78,11 @@ public class AwsSecretsManagerSensitivePropertyProviderTest {
     }
 
     @Test
-    public void testProtect() {
+    public void testProtectCreateSecret() {
         final String secretName = ProtectedPropertyContext.defaultContext(PROPERTY_NAME).getContextKey();
+
+        when(secretsManagerClient.getSecretValue(any(Consumer.class))).thenThrow(ResourceNotFoundException.builder().message("Not found").build());
+
         final CreateSecretResponse createSecretResponse = CreateSecretResponse.builder()
                 .name(secretName).build();
         when(secretsManagerClient.createSecret(any(Consumer.class))).thenReturn(createSecretResponse);
@@ -89,10 +94,11 @@ public class AwsSecretsManagerSensitivePropertyProviderTest {
     @Test
     public void testProtectExistingSecret() {
         final String secretName = ProtectedPropertyContext.defaultContext(PROPERTY_NAME).getContextKey();
+        final GetSecretValueResponse getSecretValueResponse = GetSecretValueResponse.builder().secretString(SECRET_STRING).build();
+        when(secretsManagerClient.getSecretValue(any(Consumer.class))).thenReturn(getSecretValueResponse);
+
         final PutSecretValueResponse putSecretValueResponse = PutSecretValueResponse.builder()
                 .name(secretName).build();
-        final ResourceExistsException resourceExistsException = ResourceExistsException.builder().message("Already exists").build();
-        when(secretsManagerClient.createSecret(any(Consumer.class))).thenThrow(resourceExistsException);
         when(secretsManagerClient.putSecretValue(any(Consumer.class))).thenReturn(putSecretValueResponse);
 
         final String protectedProperty = provider.protect(PROPERTY_VALUE, ProtectedPropertyContext.defaultContext(PROPERTY_NAME));
@@ -101,7 +107,7 @@ public class AwsSecretsManagerSensitivePropertyProviderTest {
 
     @Test
     public void testUnprotect() {
-        final GetSecretValueResponse getSecretValueResponse = GetSecretValueResponse.builder().secretString(PROPERTY_VALUE).build();
+        final GetSecretValueResponse getSecretValueResponse = GetSecretValueResponse.builder().secretString(SECRET_STRING).build();
         when(secretsManagerClient.getSecretValue(any(Consumer.class))).thenReturn(getSecretValueResponse);
 
         final String property = provider.unprotect("anyValue", ProtectedPropertyContext.defaultContext(PROPERTY_NAME));

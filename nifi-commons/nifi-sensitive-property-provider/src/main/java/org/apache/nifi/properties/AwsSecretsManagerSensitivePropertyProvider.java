@@ -16,20 +16,34 @@
  */
 package org.apache.nifi.properties;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
-import software.amazon.awssdk.services.secretsmanager.model.ResourceExistsException;
+import software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
 
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class AwsSecretsManagerSensitivePropertyProvider extends AbstractSensitivePropertyProvider {
     private final SecretsManagerClient client;
+    private final ObjectMapper objectMapper;
+
+    private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final Lock readLock = rwLock.readLock();
+    private final Lock writeLock = rwLock.writeLock();
 
     AwsSecretsManagerSensitivePropertyProvider(final SecretsManagerClient client) {
         super(null);
 
         this.client = client;
+        this.objectMapper = new ObjectMapper();
     }
 
     @Override
@@ -47,15 +61,25 @@ public class AwsSecretsManagerSensitivePropertyProvider extends AbstractSensitiv
             throw new SensitivePropertyProtectionException("AWS Secrets Manager Provider Not Configured");
         }
 
-        final String secretName = context.getContextKey();
         try {
-            try {
-                return client.createSecret(builder -> builder.name(secretName).secretString(unprotectedValue)).name();
-            } catch (final ResourceExistsException e) {
-                return client.putSecretValue(builder -> builder.secretId(secretName).secretString(unprotectedValue)).name();
+            writeLock.lock();
+            final String secretName = context.getContextName();
+            final Optional<JsonNode> secretKeyValuesOptional = getSecretKeyValues(context);
+            final ObjectNode secretObject = (ObjectNode) secretKeyValuesOptional.orElse(objectMapper.createObjectNode());
+
+            secretObject.put(context.getPropertyName(), unprotectedValue);
+            final String secretString = objectMapper.writeValueAsString(secretObject);
+
+            if (secretKeyValuesOptional.isPresent()) {
+                client.putSecretValue(builder -> builder.secretId(secretName).secretString(secretString));
+            } else {
+                client.createSecret(builder -> builder.name(secretName).secretString(secretString));
             }
-        } catch (final SecretsManagerException e) {
-            throw new SensitivePropertyProtectionException("AWS Secrets Manager Secret Could Not Be Stored", e);
+            return context.getContextKey();
+        } catch (final SecretsManagerException | JsonProcessingException e) {
+            throw new SensitivePropertyProtectionException(String.format("AWS Secrets Manager Secret Could Not Be Stored for [%s]", context), e);
+        } finally {
+            writeLock.unlock();
         }
     }
 
@@ -68,14 +92,49 @@ public class AwsSecretsManagerSensitivePropertyProvider extends AbstractSensitiv
             throw new SensitivePropertyProtectionException("AWS Secrets Manager Provider Not Configured");
         }
         try {
-            final GetSecretValueResponse response = client.getSecretValue(builder -> builder.secretId(context.getContextKey()));
+            readLock.lock();
+
+            String propertyValue = null;
+            final Optional<JsonNode> secretKeyValuesOptional = getSecretKeyValues(context);
+            if (secretKeyValuesOptional.isPresent()) {
+                final JsonNode secretKeyValues = secretKeyValuesOptional.get();
+                final String propertyName = context.getPropertyName();
+                if (secretKeyValues.has(propertyName)) {
+                    propertyValue = secretKeyValues.get(propertyName).textValue();
+                }
+            }
+            if (propertyValue == null) {
+                throw new SensitivePropertyProtectionException(String.format("Property [%s] Not Found in AWS Secrets Manager Secret", context.getContextKey()));
+            }
+
+            return propertyValue;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    /**
+     * Returns the optional parsed JSON from the matching secret, or empty if the secret does not exist.
+     * @param context The property context
+     * @return The optional parsed JSON, or empty if the secret does not exist
+     */
+    private Optional<JsonNode> getSecretKeyValues(final ProtectedPropertyContext context) {
+        try {
+            final GetSecretValueResponse response = client.getSecretValue(builder -> builder.secretId(context.getContextName()));
 
             if (response.secretString() == null) {
-                throw new SensitivePropertyProtectionException("Found No Secret String in AWS Secrets Manager Secret");
+                throw new SensitivePropertyProtectionException(String.format("Found No Secret String in AWS Secrets Manager Secret for [%s]",
+                        context.getContextKey()));
             }
-            return response.secretString();
-        } catch (final SecretsManagerException e) {
-            throw new SensitivePropertyProtectionException("AWS Secrets Manager Secret Could Not Be Retrieved", e);
+            return Optional.of(objectMapper.readTree(response.secretString()));
+        } catch (final ResourceNotFoundException e) {
+            return Optional.empty();
+        }  catch (final SecretsManagerException e) {
+            throw new SensitivePropertyProtectionException(String.format("AWS Secrets Manager Secret Could Not Be Retrieved For [%s]",
+                    context.getContextKey()), e);
+        } catch (final JsonProcessingException e) {
+            throw new SensitivePropertyProtectionException(String.format("AWS Secrets Manager Secret Could Not Be Parsed from [%s]",
+                    context.getContextKey()), e);
         }
     }
 
