@@ -205,7 +205,7 @@ public class PutHDFSTest {
         final PutHDFS proc = new TestablePutHDFS(kerberosProperties, spyFileSystem);
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, TARGET_DIRECTORY);
-        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, PutHDFS.REPLACE_RESOLUTION);
 
         // when
         try (final FileInputStream fis = new FileInputStream(SOURCE_DIRECTORY + "/" + FILE_NAME)) {
@@ -245,7 +245,7 @@ public class PutHDFSTest {
         final PutHDFS proc = new TestablePutHDFS(kerberosProperties, spyFileSystem);
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, TARGET_DIRECTORY);
-        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, PutHDFS.REPLACE_RESOLUTION);
         runner.setProperty(PutHDFS.WRITING_STRATEGY, PutHDFS.SIMPLE_WRITE);
 
         // when

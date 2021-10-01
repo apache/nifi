@@ -137,9 +137,9 @@ public class PutHDFS extends AbstractHadoopProcessor {
             "Appends to the existing file if any, creates a new file otherwise.");
 
     protected static final AllowableValue WRITE_AND_RENAME_AV = new AllowableValue(WRITE_AND_RENAME, "Write and rename",
-            "The processor writes FlowFile data into a temporary file and renames it after completion. This might prevent other processes from reading half-written files.");
+            "The processor writes FlowFile data into a temporary file and renames it after completion. This might prevent other processes from reading  partially written files.");
     protected static final AllowableValue SIMPLE_WRITE_AV = new AllowableValue(SIMPLE_WRITE, "Simple write",
-            "The processor writes FlowFile data directly to the destination file. In some cases this might cause reading half-written files.");
+            "The processor writes FlowFile data directly to the destination file. In some cases this might cause reading partially written files.");
 
     protected static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
             .name("Conflict Resolution Strategy")
