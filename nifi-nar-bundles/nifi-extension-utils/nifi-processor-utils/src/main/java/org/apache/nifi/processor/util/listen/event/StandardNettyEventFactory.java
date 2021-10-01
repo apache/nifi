@@ -17,28 +17,16 @@
 package org.apache.nifi.processor.util.listen.event;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
 
 /**
- * Standard implementation of the NettyEvent.
+ * An EventFactory implementation to create NettyEvents.
  */
-public class StandardNettyEvent implements NettyEvent {
-
-    private final InetSocketAddress sender;
-    private final byte[] data;
-
-    public StandardNettyEvent(final InetSocketAddress sender, final byte[] data) {
-        this.sender = sender;
-        this.data = data;
-    }
+public class StandardNettyEventFactory implements NettyEventFactory<StandardNettyEvent> {
 
     @Override
-    public InetSocketAddress getSender() {
-        return sender;
-    }
-
-    @Override
-    public byte[] getData() {
-        return data;
+    public StandardNettyEvent create(final byte[] data, final Map<String, String> metadata, final InetSocketAddress senderAddress) {
+        return new StandardNettyEvent(senderAddress, data);
     }
 
 }

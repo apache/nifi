@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processor.util.listen.event;
 
+import java.net.InetSocketAddress;
 import java.util.Map;
 
 /**
@@ -36,6 +37,6 @@ public interface NettyEventFactory<E extends NettyEvent> {
      *
      * @return an instance of the given type
      */
-    E create(final byte[] data, final Map<String, String> metadata);
+    E create(final byte[] data, final Map<String, String> metadata, final InetSocketAddress remoteAddress);
 
 }

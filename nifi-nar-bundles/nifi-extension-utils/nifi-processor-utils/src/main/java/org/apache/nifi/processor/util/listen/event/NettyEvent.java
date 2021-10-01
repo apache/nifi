@@ -16,19 +16,22 @@
  */
 package org.apache.nifi.processor.util.listen.event;
 
+import java.net.InetSocketAddress;
+
 /**
- * Byte Array Message with Sender
+ * An interface to represent Netty compatible events
  */
 public interface NettyEvent {
 
     /**
-     * @return the sending host of the data
+     * @return the sending host of the data, as a socket
      */
-    String getSender();
+    InetSocketAddress getSender();
 
     /**
      * @return raw data for this event
      */
     byte[] getData();
+
 
 }

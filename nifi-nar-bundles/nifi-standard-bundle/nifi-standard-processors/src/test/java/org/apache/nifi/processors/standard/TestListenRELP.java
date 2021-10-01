@@ -18,12 +18,16 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ftpserver.ssl.ClientAuth;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.listen.AbstractListenEventBatchingProcessor;
+import org.apache.nifi.processors.standard.relp.event.RELPNettyEvent;
 import org.apache.nifi.processors.standard.relp.frame.RELPEncoder;
 import org.apache.nifi.processors.standard.relp.frame.RELPFrame;
+import org.apache.nifi.processors.standard.relp.response.RELPResponse;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
@@ -47,11 +51,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 import javax.net.ssl.SSLContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TestListenRELP {
@@ -94,7 +101,8 @@ public class TestListenRELP {
     @Before
     public void setup() {
         encoder = new RELPEncoder(CHARSET);
-        runner = TestRunners.newTestRunner(ListenRELP.class);
+        ListenRELP mockRELP = new MockListenRELP();
+        runner = TestRunners.newTestRunner(mockRELP);
     }
 
     @After
@@ -130,6 +138,7 @@ public class TestListenRELP {
 
     @Test
     public void testRELPFramesAreReceivedSuccessfullyWhenBatched() throws IOException {
+
         runner.setProperty(AbstractListenEventBatchingProcessor.MAX_BATCH_SIZE, "5");
 
         final int syslogFrames = 3;
@@ -158,10 +167,12 @@ public class TestListenRELP {
 
     @Test
     public void testRunMutualTls() throws IOException, TlsException, InitializationException {
+
+
         final String serviceIdentifier = SSLContextService.class.getName();
-        Mockito.when(sslContextService.getIdentifier()).thenReturn(serviceIdentifier);
+        when(sslContextService.getIdentifier()).thenReturn(serviceIdentifier);
         final SSLContext sslContext = SslContextUtils.createKeyStoreSslContext();
-        Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
+        when(sslContextService.createContext()).thenReturn(sslContext);
         runner.addControllerService(serviceIdentifier, sslContextService);
         runner.enableControllerService(sslContextService);
 
@@ -172,26 +183,34 @@ public class TestListenRELP {
         final List<RELPFrame> frames = getFrames(syslogFrames);
         run(frames, syslogFrames, syslogFrames, sslContext);
     }
-//
-//    @Test
-//    public void testBatchingWithDifferentSenders() {
-//        final String sender1 = "sender1";
-//        final String sender2 = "sender2";
-//
-//        final List<RELPNettyEvent> mockEvents = new ArrayList<>();
-//        mockEvents.add(new RELPNettyEvent(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
-//        mockEvents.add(new RELPNettyEvent(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
-//        mockEvents.add(new RELPNettyEvent(sender2, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
-//        mockEvents.add(new RELPNettyEvent(sender2, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
-//
-//        runner = TestRunners.newTestRunner(ListenRELP.class);
-//        runner.setProperty(AbstractListenEventBatchingProcessor.PORT, Integer.toString(NetworkUtils.availablePort()));
-//        runner.setProperty(AbstractListenEventBatchingProcessor.MAX_BATCH_SIZE, "10");
-//
-//        runner.run();
-//        runner.assertAllFlowFilesTransferred(ListenRELP.REL_SUCCESS, 2);
-//        runner.shutdown();
-//    }
+
+    @Test
+    public void testBatchingWithDifferentSenders() {
+        InetSocketAddress sender1 = Mockito.mock(InetSocketAddress.class);
+        InetSocketAddress sender2 = Mockito.mock(InetSocketAddress.class);
+        InetSocketAddress sender3 = Mockito.mock(InetSocketAddress.class);
+
+        when(sender1.toString()).thenReturn("/192.168.1.50:55000");
+        when(sender2.toString()).thenReturn("/192.168.1.50:55001");
+        when(sender3.toString()).thenReturn("/192.168.1.50:55002");
+
+        final List<RELPNettyEvent> mockEvents = new ArrayList<>();
+        mockEvents.add(new RELPNettyEvent(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        mockEvents.add(new RELPNettyEvent(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        mockEvents.add(new RELPNettyEvent(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        mockEvents.add(new RELPNettyEvent(sender2, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        mockEvents.add(new RELPNettyEvent(sender3, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        mockEvents.add(new RELPNettyEvent(sender3, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+
+        MockListenRELP mockListenRELP = new MockListenRELP(mockEvents);
+        runner = TestRunners.newTestRunner(mockListenRELP);
+        runner.setProperty(AbstractListenEventBatchingProcessor.PORT, Integer.toString(NetworkUtils.availablePort()));
+        runner.setProperty(AbstractListenEventBatchingProcessor.MAX_BATCH_SIZE, "10");
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ListenRELP.REL_SUCCESS, 3);
+        runner.shutdown();
+    }
 
     private void run(final List<RELPFrame> frames, final int flowFiles, final int responses, final SSLContext sslContext)
             throws IOException {
@@ -240,5 +259,29 @@ public class TestListenRELP {
         eventSenderFactory.setTimeout(SENDER_TIMEOUT);
         EventSender<byte[]> eventSender = eventSenderFactory.getEventSender();
         eventSender.sendEvent(relpMessages);
+    }
+
+    private class MockListenRELP extends ListenRELP {
+        private final List<RELPNettyEvent> mockEvents;
+
+        public MockListenRELP() {
+            this.mockEvents = new ArrayList<>();
+        }
+
+        public MockListenRELP(List<RELPNettyEvent> mockEvents) {
+            this.mockEvents = mockEvents;
+        }
+
+        @OnScheduled
+        @Override
+        public void onScheduled(ProcessContext context) throws IOException {
+            super.onScheduled(context);
+            events.addAll(mockEvents);
+        }
+
+        @Override
+        protected void respond(final InetSocketAddress address, final RELPResponse relpResponse) {
+            // do nothing
+        }
     }
 }

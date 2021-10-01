@@ -83,7 +83,7 @@ public class RELPFrameHandler<E extends Event<SocketChannel>> {
             responder.respond();
             dispatcher.completeConnection(key);
         } else {
-            final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender.toString());
+            final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender);
             metadata.put(RELPMetadata.TXNR_KEY, String.valueOf(frame.getTxnr()));
             metadata.put(RELPMetadata.COMMAND_KEY, frame.getCommand());
 

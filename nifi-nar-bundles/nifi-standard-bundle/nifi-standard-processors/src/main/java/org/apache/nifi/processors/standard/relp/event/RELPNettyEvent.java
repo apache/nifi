@@ -18,15 +18,17 @@ package org.apache.nifi.processors.standard.relp.event;
 
 import org.apache.nifi.processor.util.listen.event.StandardNettyEvent;
 
+import java.net.InetSocketAddress;
+
 /**
- * A RELP event which adds the transaction number and command to the StandardEvent.
+ * A RELP event which includes the transaction number and command to the StandardEvent.
  */
 public class RELPNettyEvent extends StandardNettyEvent {
 
     private final long txnr;
     private final String command;
 
-    public RELPNettyEvent(final String sender, final byte[] data, final long txnr, final String command) {
+    public RELPNettyEvent(final InetSocketAddress sender, final byte[] data, final long txnr, final String command) {
         super(sender, data);
         this.txnr = txnr;
         this.command = command;
@@ -39,5 +41,4 @@ public class RELPNettyEvent extends StandardNettyEvent {
     public String getCommand() {
         return command;
     }
-
 }

@@ -31,6 +31,7 @@ import org.apache.nifi.processors.standard.relp.response.RELPResponse;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
@@ -57,15 +58,15 @@ public class RELPFrameDecoder extends ByteToMessageDecoder {
     }
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+    protected void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
         final int total = in.readableBytes();
-        final String sender;
+        InetSocketAddress sender = null;
         final SocketAddress socketAddress = ctx.channel().remoteAddress();
-        if(socketAddress instanceof InetSocketAddress) {
+        if (socketAddress instanceof InetSocketAddress) {
             final InetSocketAddress remoteAddress = (InetSocketAddress) socketAddress;
-            sender = remoteAddress.toString();
+            sender = remoteAddress;
         } else {
-            sender = socketAddress.toString();
+            throw new UnknownHostException("Failed to retrieve the RELP client's socket address.");
         }
 
         this.decoder = new RELPDecoder(total, charset);
@@ -80,11 +81,12 @@ public class RELPFrameDecoder extends ByteToMessageDecoder {
                 logger.debug("Received RELP frame with transaction {} and command {}",
                         new Object[] {frame.getTxnr(), frame.getCommand()});
                 handle(frame, ctx, sender, out);
+                in.markReaderIndex();
             }
         }
     }
 
-    private void handle(final RELPFrame frame, final ChannelHandlerContext ctx, final String sender, final List<Object> out)
+    private void handle(final RELPFrame frame, final ChannelHandlerContext ctx, final InetSocketAddress sender, final List<Object> out)
             throws IOException, InterruptedException {
         // respond to open and close commands immediately, create and queue an event for everything else
         if (CMD_OPEN.equals(frame.getCommand())) {
@@ -93,14 +95,13 @@ public class RELPFrameDecoder extends ByteToMessageDecoder {
             ctx.writeAndFlush(Unpooled.wrappedBuffer(response.toByteArray()));
         } else if (CMD_CLOSE.equals(frame.getCommand())) {
             ChannelResponse response = new RELPChannelResponse(encoder, RELPResponse.ok(frame.getTxnr()));
-            //ctx.writeAndFlush(response.toByteArray());
             ctx.writeAndFlush(Unpooled.wrappedBuffer(response.toByteArray()));
             ctx.close();
         } else {
-            final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender);
+            final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender.toString());
             metadata.put(RELPMetadata.TXNR_KEY, String.valueOf(frame.getTxnr()));
             metadata.put(RELPMetadata.COMMAND_KEY, frame.getCommand());
-            out.add(eventFactory.create(frame.getData(), metadata));
+            out.add(eventFactory.create(frame.getData(), metadata, sender));
         }
     }
 }
