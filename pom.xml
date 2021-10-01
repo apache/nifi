@@ -111,6 +111,7 @@
         <aspectj.version>1.9.6</aspectj.version>
         <jersey.version>2.33</jersey.version>
         <logback.version>1.2.6</logback.version>
+        <mockito.version>2.28.2</mockito.version>
     </properties>
 
     <repositories>
@@ -286,12 +287,12 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>2.28.2</version>
+                <version>${mockito.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-junit-jupiter</artifactId>
-                <version>2.28.2</version>
+                <version>${mockito.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>
