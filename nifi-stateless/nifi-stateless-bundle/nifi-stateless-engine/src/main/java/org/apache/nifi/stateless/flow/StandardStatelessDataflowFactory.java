@@ -30,6 +30,7 @@ import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
 import org.apache.nifi.controller.scheduling.StatelessProcessScheduler;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
+import org.apache.nifi.encrypt.PropertyEncryptionMethod;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
 import org.apache.nifi.events.EventReporter;
@@ -86,7 +87,6 @@ import java.util.Optional;
 
 public class StandardStatelessDataflowFactory implements StatelessDataflowFactory<VersionedFlowSnapshot> {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessDataflowFactory.class);
-    private static final String PROPERTY_ENCRYPTION_METHOD = "NIFI_PBKDF2_AES_GCM_256";
 
     @Override
     public StatelessDataflow createDataflow(final StatelessEngineConfiguration engineConfiguration, final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition)
@@ -164,7 +164,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                     }
 
                     created = new PropertyEncryptorBuilder(engineConfiguration.getSensitivePropsKey())
-                            .setAlgorithm(PROPERTY_ENCRYPTION_METHOD)
+                            .setAlgorithm(PropertyEncryptionMethod.NIFI_PBKDF2_AES_GCM_256.toString())
                             .build();
                     return created;
                 }
