@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.stateless.parameter.aws;
+package org.apache.nifi.stateless.parameter;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -29,9 +29,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stateless.parameter.AbstractParameterValueProvider;
-import org.apache.nifi.stateless.parameter.ParameterValueProvider;
-import org.apache.nifi.stateless.parameter.ParameterValueProviderInitializationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +36,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -52,12 +48,12 @@ import java.util.Properties;
  *
  * <code>
  *      nifi.stateless.parameter.provider.AWSSecretsManager.name=AWS Secrets Manager Value Provider
- *      nifi.stateless.parameter.provider.AWSSecretsManager.type=org.apache.nifi.stateless.parameter.aws.SecretsManagerParameterValueProvider
+ *      nifi.stateless.parameter.provider.AWSSecretsManager.type=org.apache.nifi.stateless.parameter.AwsSecretsManagerParameterValueProvider
  *      nifi.stateless.parameter.provider.AWSSecretsManager.properties.aws-credentials-file=./conf/bootstrap-aws.conf
  * </code>
  */
-public class SecretsManagerParameterValueProvider extends AbstractParameterValueProvider implements ParameterValueProvider {
-    private static final Logger logger = LoggerFactory.getLogger(SecretsManagerParameterValueProvider.class);
+public class AwsSecretsManagerParameterValueProvider extends AbstractSecretBasedParameterValueProvider implements ParameterValueProvider {
+    private static final Logger logger = LoggerFactory.getLogger(AwsSecretsManagerParameterValueProvider.class);
 
     private static final String ACCESS_KEY_PROPS_NAME = "aws.access.key.id";
     private static final String SECRET_KEY_PROPS_NAME = "aws.secret.access.key";
@@ -71,39 +67,18 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
             .description("Location of the bootstrap-aws.conf file that configures the AWS credentials.  If not provided, the default AWS credentials will be used.")
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
-    public static final PropertyDescriptor DEFAULT_SECRET_NAME = new PropertyDescriptor.Builder()
-            .displayName("Default Secret Name")
-            .name("default-secret-name")
-            .required(true)
-            .defaultValue("Default")
-            .description("The default AWS secret name to use.  This secret represents a default Parameter Context if there is not a matching key within the mapped Parameter Context secret")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private List<PropertyDescriptor> descriptors;
-
     private AWSSecretsManager secretsManager;
 
-    private String defaultSecretName;
-
-
     @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+    protected List<PropertyDescriptor> getAdditionalSupportedPropertyDescriptors() {
+        return Collections.singletonList(AWS_CREDENTIALS_FILE);
     }
 
     @Override
-    protected void init(final ParameterValueProviderInitializationContext context) {
-        super.init(context);
-
-        this.descriptors = Collections.unmodifiableList(Arrays.asList(
-                AWS_CREDENTIALS_FILE,
-                DEFAULT_SECRET_NAME
-        ));
-
-        defaultSecretName = context.getProperty(DEFAULT_SECRET_NAME).getValue();
+    protected void additionalInit(final ParameterValueProviderInitializationContext context) {
         final String awsCredentialsFilename = context.getProperty(AWS_CREDENTIALS_FILE).getValue();
         try {
             this.secretsManager = this.configureClient(awsCredentialsFilename);
@@ -113,17 +88,7 @@ public class SecretsManagerParameterValueProvider extends AbstractParameterValue
     }
 
     @Override
-    public boolean isParameterDefined(final String contextName, final String parameterName) {
-        return getParameterValue(contextName, parameterName) != null;
-    }
-
-    @Override
-    public String getParameterValue(final String contextName, final String parameterName) {
-        final String contextBasedValue = getSecretValue(contextName, parameterName);
-        return contextBasedValue != null ? contextBasedValue : getSecretValue(defaultSecretName, parameterName);
-    }
-
-    private String getSecretValue(final String secretName, final String keyName) {
+    protected String getSecretValue(final String secretName, final String keyName) {
         final GetSecretValueRequest getSecretValueRequest = new GetSecretValueRequest()
                 .withSecretId(secretName);
         try {

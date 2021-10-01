@@ -551,6 +551,6 @@ An example of configuring this provider in the dataflow configuration file is:
 
 ```
 nifi.stateless.parameter.provider.AWSSecretsManager.name=AWS SecretsManager Provider
-nifi.stateless.parameter.provider.AWSSecretsManager.type=org.apache.nifi.stateless.parameter.aws.SecretsManagerParameterValueProvider
+nifi.stateless.parameter.provider.AWSSecretsManager.type=org.apache.nifi.stateless.parameter.AwsSecretsManagerParameterValueProvider
 nifi.stateless.parameter.provider.AWSSecretsManager.properties.aws-credentials-file=./conf/bootstrap-aws.conf
 ```

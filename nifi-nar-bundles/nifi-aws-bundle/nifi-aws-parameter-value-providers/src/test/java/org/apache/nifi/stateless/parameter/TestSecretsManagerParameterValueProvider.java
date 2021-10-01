@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.stateless.parameter.aws;
+package org.apache.nifi.stateless.parameter;
 
 import com.amazonaws.services.secretsmanager.AWSSecretsManager;
 import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest;
@@ -26,7 +26,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.stateless.parameter.ParameterValueProviderInitializationContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +35,7 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,7 +61,7 @@ public class TestSecretsManagerParameterValueProvider {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Spy
-    private SecretsManagerParameterValueProvider provider;
+    private AwsSecretsManagerParameterValueProvider provider;
 
     @Mock
     private AWSSecretsManager secretsManager;
@@ -101,6 +101,17 @@ public class TestSecretsManagerParameterValueProvider {
         assertNull(provider.getParameterValue(CONTEXT, PARAMETER));
     }
 
+    @Test
+    public void testGetParameterValueWithSecretMapping() throws JsonProcessingException {
+        final String mappedSecretName = "MyMappedSecretName";
+        mockGetSecretValue(mappedSecretName, PARAMETER, VALUE, true, false);
+
+        final Map<String, String> dynamicProperties = new HashMap<>();
+        dynamicProperties.put(CONTEXT, mappedSecretName);
+        provider.init(createContext(CONFIG_FILE, dynamicProperties));
+        assertEquals(VALUE, provider.getParameterValue(CONTEXT, PARAMETER));
+    }
+
     private void runGetParameterValueTest(final String configFileName) throws JsonProcessingException {
         runGetParameterValueTest(CONTEXT, PARAMETER, configFileName);
     }
@@ -138,6 +149,10 @@ public class TestSecretsManagerParameterValueProvider {
     }
 
     private static ParameterValueProviderInitializationContext createContext(final String awsConfigFilename) {
+        return createContext(awsConfigFilename, Collections.emptyMap());
+    }
+
+    private static ParameterValueProviderInitializationContext createContext(final String awsConfigFilename, final Map<String, String> dynamicProperties) {
         return new ParameterValueProviderInitializationContext() {
             @Override
             public String getIdentifier() {
@@ -146,9 +161,9 @@ public class TestSecretsManagerParameterValueProvider {
 
             @Override
             public PropertyValue getProperty(final PropertyDescriptor descriptor) {
-                if (descriptor.equals(SecretsManagerParameterValueProvider.AWS_CREDENTIALS_FILE)) {
+                if (descriptor.equals(AwsSecretsManagerParameterValueProvider.AWS_CREDENTIALS_FILE)) {
                     return new StandardPropertyValue(awsConfigFilename, null, null);
-                } else if (descriptor.equals(SecretsManagerParameterValueProvider.DEFAULT_SECRET_NAME)) {
+                } else if (descriptor.equals(AwsSecretsManagerParameterValueProvider.DEFAULT_SECRET_NAME)) {
                     return new StandardPropertyValue(DEFAULT_SECRET_NAME, null, null);
                 }
                 return null;
@@ -156,7 +171,10 @@ public class TestSecretsManagerParameterValueProvider {
 
             @Override
             public Map<String, String> getAllProperties() {
-                return null;
+                final Map<String, String> properties = new HashMap<>(dynamicProperties);
+                properties.put(AwsSecretsManagerParameterValueProvider.AWS_CREDENTIALS_FILE.getName(), awsConfigFilename);
+                properties.put(AwsSecretsManagerParameterValueProvider.DEFAULT_SECRET_NAME.getName(), DEFAULT_SECRET_NAME);
+                return properties;
             }
         };
     }
