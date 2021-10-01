@@ -1858,8 +1858,21 @@ This provider uses https://aws.amazon.com/kms/[AWS Key Management Service] for d
 |`aws.secret.access.key`|The secret access key used to access AWS KMS.|_none_
 |===
 
-=== Azure Key Vault Key provider
-This protection scheme uses keys managed by https://docs.microsoft.com/en-us/azure/key-vault/keys/about-keys[Azure Key Vault Keys] for encryption and decryption. Azure Key Vault configuration properties can be stored in the `bootstrap-azure.conf` file, as referenced in the `bootstrap.conf` of NiFi or NiFi Registry. The provider will use the Azure default credentials provider chain as described in the https://docs.microsoft.com/en-us/java/api/overview/azure/security-keyvault-keys-readme?view=azure-java-stable[Azure Key Vault Key client library for Java] documentation.
+[[azure-key-vault-key-provider]]
+=== Azure Key Vault Key Provider
+This protection scheme uses keys managed by
+https://docs.microsoft.com/en-us/azure/key-vault/keys/about-keys[Azure Key Vault Keys] for encryption and decryption.
+
+Azure Key Vault configuration properties can be stored in the `bootstrap-azure.conf` file, as referenced in the
+`bootstrap.conf` of NiFi or NiFi Registry.
+The provider will use the
+https://docs.microsoft.com/en-us/java/api/com.azure.identity.defaultazurecredential[DefaultAzureCredential]
+for authentication.
+The https://docs.microsoft.com/en-us/java/api/overview/azure/identity-readme#key-concepts[Azure Identity] client library
+describes the process for credentials resolution, which leverages environment variables, system properties, and falls
+back to
+https://docs.microsoft.com/en-us/java/api/overview/azure/identity-readme#managed-identity-support[Managed Identity]
+authentication.
 
 ==== Required properties
 [options="header,footer"]
@@ -1867,6 +1880,39 @@ This protection scheme uses keys managed by https://docs.microsoft.com/en-us/azu
 |Property Name|Description|Default
 |`azure.keyvault.key.id`|The identifier of the key that the Azure Key Vault client uses for encryption and decryption.|_none_
 |`azure.keyvault.encryption.algorithm`|The encryption algorithm that the Azure Key Vault client uses for encryption and decryption.|_none_
+|===
+
+[[azure-key-vault-secret-provider]]
+=== Azure Key Vault Secret Provider
+This protection scheme uses secrets managed by
+https://docs.microsoft.com/en-us/azure/key-vault/secrets/about-secrets[Azure Key Vault Secrets] for storing and
+retrieving protected properties.
+
+Azure Key Vault configuration properties can be stored in the `bootstrap-azure.conf` file, as referenced in the
+`bootstrap.conf` of NiFi or NiFi Registry.
+The provider will use the
+https://docs.microsoft.com/en-us/java/api/com.azure.identity.defaultazurecredential[DefaultAzureCredential]
+for authentication.
+The https://docs.microsoft.com/en-us/java/api/overview/azure/identity-readme#key-concepts[Azure Identity] client library
+describes the process for credentials resolution, which leverages environment variables, system properties, and falls
+back to
+https://docs.microsoft.com/en-us/java/api/overview/azure/identity-readme#managed-identity-support[Managed Identity]
+authentication.
+
+Names of secrets stored in Azure Key Vault support alphanumeric and dash characters, but do not support characters such as `/` or `.`.
+For this reason, NiFi replaces these characters with `-` when storing and retrieving secrets. The following table provides an example property name mapping:
+
+[options="header,footer"]
+|===
+|Property Context|Property Name|Secret Name
+|`default`|`nifi.security.keystorePasswd`|`default-nifi-security-keystorePasswd`
+|===
+
+==== Required properties
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`azure.keyvault.uri`|URI for the Azure Key Vault service such as `https://{value-name}.vault.azure.net/` |_none_
 |===
 
 === Google Cloud KMS provider

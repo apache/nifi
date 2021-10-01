@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.properties.configuration;
 
-import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
-import com.azure.security.keyvault.keys.cryptography.CryptographyClientBuilder;
+import com.azure.core.credential.TokenCredential;
+import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.security.keyvault.secrets.SecretClient;
+import com.azure.security.keyvault.secrets.SecretClientBuilder;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 
 import java.util.Collections;
@@ -26,36 +28,37 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * Microsoft Azure Cryptography Client Provider
+ * Microsoft Azure Secret Client Provider
  */
-public class AzureCryptographyClientProvider extends AzureClientProvider<CryptographyClient> {
-    protected static final String KEY_ID_PROPERTY = "azure.keyvault.key.id";
+public class AzureSecretClientProvider extends AzureClientProvider<SecretClient> {
+    protected static final String URI_PROPERTY = "azure.keyvault.uri";
 
-    private static final Set<String> REQUIRED_PROPERTY_NAMES = new HashSet<>(Collections.singletonList(KEY_ID_PROPERTY));
+    private static final Set<String> REQUIRED_PROPERTY_NAMES = new HashSet<>(Collections.singletonList(URI_PROPERTY));
 
     /**
-     * Get Configured Client using Default Azure Credentials Builder and configured Key Identifier
+     * Get Secret Client using Default Azure Credentials Builder and default configuration from environment variables
      *
      * @param clientProperties Client Properties
-     * @return Cryptography Client
+     * @return Secret Client
      */
     @Override
-    protected CryptographyClient getConfiguredClient(final Properties clientProperties) {
-        final String keyIdentifier = clientProperties.getProperty(KEY_ID_PROPERTY);
-        logger.debug("Azure Cryptography Client with Key Identifier [{}]", keyIdentifier);
+    protected SecretClient getConfiguredClient(final Properties clientProperties) {
+        final String uri = clientProperties.getProperty(URI_PROPERTY);
+        logger.debug("Azure Secret Client with URI [{}]", uri);
 
         try {
-            return new CryptographyClientBuilder()
-                    .credential(getDefaultTokenCredential())
-                    .keyIdentifier(keyIdentifier)
+            final TokenCredential credential = new DefaultAzureCredentialBuilder().build();
+            return new SecretClientBuilder()
+                    .credential(credential)
+                    .vaultUrl(uri)
                     .buildClient();
         } catch (final RuntimeException e) {
-            throw new SensitivePropertyProtectionException("Azure Cryptography Builder Client Failed using Default Credentials", e);
+            throw new SensitivePropertyProtectionException("Azure Secret Builder Client Failed using Default Credentials", e);
         }
     }
 
     /**
-     * Get required property names for Azure Cryptography Client
+     * Get required property names for Azure Secret Client
      *
      * @return Required client property names
      */
