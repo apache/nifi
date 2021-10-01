@@ -24,16 +24,16 @@ import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultConfiguration;
 import org.springframework.core.env.PropertySource;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
  * Reads secrets from HashiCorp Vault to provide parameters.  An example of setting one such secret parameter value
  * using the Vault CLI would be:
  *
- * <code>vault kv put "${vault.kv.path}/[ParamContextName]/[ParamName]" value=[ParamValue]</code>
+ * <code>vault kv put "${vault.kv.path}/[ParamContextName]" [Param1]=[ParamValue1] [Param2]=[ParamValue2]</code>
  *
  * Here, vault.kv.path is supplied by the file specified by the "Vault Configuration File" property.
  *
@@ -45,9 +45,8 @@ import java.util.Objects;
  *      nifi.stateless.parameter.provider.Vault.properties.vault-configuration-file=./conf/bootstrap-hashicorp-vault.conf
  * </code>
  */
-public class HashiCorpVaultParameterValueProvider extends AbstractParameterValueProvider implements ParameterValueProvider {
+public class HashiCorpVaultParameterValueProvider extends AbstractSecretBasedParameterValueProvider implements ParameterValueProvider {
     private static final String KEY_VALUE_PATH = "vault.kv.path";
-    private static final String QUALIFIED_SECRET_FORMAT = "%s/%s";
     public static final PropertyDescriptor VAULT_CONFIG_FILE = new PropertyDescriptor.Builder()
             .displayName("Vault Configuration File")
             .name("vault-configuration-file")
@@ -57,24 +56,16 @@ public class HashiCorpVaultParameterValueProvider extends AbstractParameterValue
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
 
-    private List<PropertyDescriptor> descriptors;
-
     private HashiCorpVaultCommunicationService vaultCommunicationService;
     private String path;
 
     @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+    protected List<PropertyDescriptor> getAdditionalSupportedPropertyDescriptors() {
+        return Collections.singletonList(VAULT_CONFIG_FILE);
     }
 
     @Override
-    protected void init(final ParameterValueProviderInitializationContext context) {
-        super.init(context);
-
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(VAULT_CONFIG_FILE);
-        this.descriptors = Collections.unmodifiableList(descriptors);
-
+    protected void additionalInit(final ParameterValueProviderInitializationContext context) {
         final String vaultBootstrapConfFilename = context.getProperty(VAULT_CONFIG_FILE).getValue();
         this.configure(vaultBootstrapConfFilename);
     }
@@ -89,18 +80,10 @@ public class HashiCorpVaultParameterValueProvider extends AbstractParameterValue
         }
     }
 
-    private String getQualifiedSecretFormat(final String contextName, final String parameterName) {
-        return String.format(QUALIFIED_SECRET_FORMAT, contextName, parameterName);
-    }
-
     @Override
-    public String getParameterValue(final String contextName, final String parameterName) {
-        return vaultCommunicationService.readKeyValueSecret(path, getQualifiedSecretFormat(contextName, parameterName)).orElse(null);
-    }
-
-    @Override
-    public boolean isParameterDefined(final String contextName, final String parameterName) {
-        return getParameterValue(contextName, parameterName) != null;
+    protected String getSecretValue(final String secretName, final String keyName) {
+        final Map<String, String> keyValues = vaultCommunicationService.readKeyValueSecretMap(path, secretName);
+        return keyValues.get(keyName);
     }
 
     void setVaultCommunicationService(final HashiCorpVaultCommunicationService vaultCommunicationService) {
