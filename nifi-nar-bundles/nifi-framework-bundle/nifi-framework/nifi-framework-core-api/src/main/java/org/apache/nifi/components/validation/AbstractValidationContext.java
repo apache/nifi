@@ -19,6 +19,7 @@ package org.apache.nifi.components.validation;
 
 import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.parameter.ParameterLookup;
@@ -70,13 +71,8 @@ public abstract class AbstractValidationContext implements ValidationContext {
                     return false;
                 }
 
-                final PropertyConfiguration dependencyConfiguration = properties.get(dependencyDescriptor);
-                if (dependencyConfiguration == null) {
-                    logger.debug("Dependency for {} is not satisfied because it has a dependency on {}, which does not have a value", propertyDescriptor, dependencyName);
-                    return false;
-                }
-
-                final String dependencyValue = dependencyConfiguration.getEffectiveValue(parameterLookup);
+                final PropertyValue propertyValue = getProperty(dependencyDescriptor);
+                final String dependencyValue = propertyValue == null ? dependencyDescriptor.getDefaultValue() : propertyValue.getValue();
                 if (dependencyValue == null) {
                     logger.debug("Dependency for {} is not satisfied because it has a dependency on {}, which has a null value", propertyDescriptor, dependencyName);
                     return false;
