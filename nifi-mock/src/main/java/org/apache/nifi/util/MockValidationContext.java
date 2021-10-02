@@ -293,12 +293,12 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
             @Override
             public PropertyValue getProperty(final PropertyDescriptor descriptor) {
-                return null;
+                return MockValidationContext.this.getProperty(descriptor);
             }
 
             @Override
             public Map<String, String> getAllProperties() {
-                return null;
+                return MockValidationContext.this.getAllProperties();
             }
         };
 
