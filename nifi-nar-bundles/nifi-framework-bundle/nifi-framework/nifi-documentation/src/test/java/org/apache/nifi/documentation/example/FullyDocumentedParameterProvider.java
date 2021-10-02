@@ -27,7 +27,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.parameter.AbstractParameterProvider;
 import org.apache.nifi.parameter.Parameter;
-import org.apache.nifi.parameter.SensitiveParameterProvider;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.ArrayList;
@@ -40,7 +40,7 @@ import java.util.List;
 @SystemResourceConsideration(resource = SystemResource.CPU)
 @SystemResourceConsideration(resource = SystemResource.DISK, description = "Customized disk usage description")
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "")
-public class FullyDocumentedParameterProvider extends AbstractParameterProvider implements SensitiveParameterProvider {
+public class FullyDocumentedParameterProvider extends AbstractParameterProvider implements ParameterProvider {
 
     public static final PropertyDescriptor INCLUDE_REGEX = new PropertyDescriptor.Builder()
             .name("include-regex")

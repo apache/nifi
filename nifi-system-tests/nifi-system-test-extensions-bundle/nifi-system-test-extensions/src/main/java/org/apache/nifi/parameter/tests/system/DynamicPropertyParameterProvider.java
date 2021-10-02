@@ -22,7 +22,6 @@ import org.apache.nifi.parameter.AbstractParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProvider;
-import org.apache.nifi.parameter.SensitiveParameterProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.Collections;
@@ -34,7 +33,7 @@ import java.util.stream.Collectors;
 /**
  * Parameters are provided by the dynamic properties.
  */
-public abstract class AbstractDynamicPropertyParameterProvider extends AbstractParameterProvider implements ParameterProvider {
+public class DynamicPropertyParameterProvider extends AbstractParameterProvider implements ParameterProvider {
 
     private Map<PropertyDescriptor, String> dynamicProperties = new HashMap<>();
 
@@ -68,7 +67,6 @@ public abstract class AbstractDynamicPropertyParameterProvider extends AbstractP
                 .map(entry -> {
                     final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
                             .name(entry.getKey().getName())
-                            .sensitive(this instanceof SensitiveParameterProvider)
                             .build();
                     return new Parameter(parameterDescriptor, entry.getValue(), null, true);
                 })

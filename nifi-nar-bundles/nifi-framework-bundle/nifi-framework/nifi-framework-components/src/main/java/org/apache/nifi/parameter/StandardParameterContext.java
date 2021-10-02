@@ -29,6 +29,7 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ParameterProviderNode;
+import org.apache.nifi.controller.ParameterProviderUsageReference;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.parameter.ParameterProviderLookup;
@@ -70,8 +71,8 @@ public class StandardParameterContext implements ParameterContext {
     private long version = 0L;
     private final Map<ParameterDescriptor, Parameter> parameters = new LinkedHashMap<>();
     private final List<ParameterContext> inheritedParameterContexts = new ArrayList<>();
-    private SensitiveParameterProvider sensitiveParameterProvider;
-    private NonSensitiveParameterProvider nonSensitiveParameterProvider;
+    private ParameterProvider sensitiveParameterProvider;
+    private ParameterProvider nonSensitiveParameterProvider;
     private volatile String description;
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
@@ -80,7 +81,7 @@ public class StandardParameterContext implements ParameterContext {
 
     protected StandardParameterContext(final String id, final String name, final ParameterReferenceManager parameterReferenceManager,
                                     final Authorizable parentAuthorizable, final ParameterProviderLookup parameterProviderLookup,
-                                    final SensitiveParameterProvider sensitiveParameterProvider, final NonSensitiveParameterProvider nonSensitiveParameterProvider) {
+                                    final ParameterProvider sensitiveParameterProvider, final ParameterProvider nonSensitiveParameterProvider) {
         this.id = Objects.requireNonNull(id);
         this.name = Objects.requireNonNull(name);
         this.parameterReferenceManager = parameterReferenceManager;
@@ -357,7 +358,7 @@ public class StandardParameterContext implements ParameterContext {
 
     @Override
     public Map<String, Parameter> getEffectiveParameterUpdates(final Map<String, Parameter> parameterUpdates, final List<ParameterContext> inheritedParameterContexts,
-                                                               final SensitiveParameterProvider sensitiveParameterProvider, final NonSensitiveParameterProvider nonSensitiveParameterProvider) {
+                                                               final ParameterProvider sensitiveParameterProvider, final ParameterProvider nonSensitiveParameterProvider) {
         Objects.requireNonNull(parameterUpdates, "Parameter Updates must be specified");
         Objects.requireNonNull(inheritedParameterContexts, "Inherited parameter contexts must be specified");
         final Map<String, Parameter> allProposedUpdates = new HashMap<>(parameterUpdates);
@@ -477,25 +478,31 @@ public class StandardParameterContext implements ParameterContext {
     }
 
     @Override
-    public Optional<SensitiveParameterProvider> getSensitiveParameterProvider() {
+    public Optional<ParameterProvider> getSensitiveParameterProvider() {
         return Optional.ofNullable(sensitiveParameterProvider);
     }
 
     @Override
-    public void verifyCanSetSensitiveParameterProvider(final SensitiveParameterProvider parameterProvider) {
+    public void verifyCanSetSensitiveParameterProvider(final ParameterProvider parameterProvider) {
         if (isParameterProviderUpdate(sensitiveParameterProvider, parameterProvider)) {
+            if (parameterProvider != null && nonSensitiveParameterProvider != null) {
+                if (parameterProvider.getIdentifier().equals(nonSensitiveParameterProvider.getIdentifier())) {
+                    throw new IllegalArgumentException(String.format("Parameter Provider [%s] may not be both the sensitive and non-sensitive provider for Parameter Context [%s]",
+                            parameterProvider.getIdentifier(), getName()));
+                }
+            }
             verifyCanSetParameters(getParameterProviderEffectiveUpdates(parameterProvider, true));
         }
     }
 
     @Override
-    public void setSensitiveParameterProvider(final SensitiveParameterProvider parameterProvider) {
+    public void setSensitiveParameterProvider(final ParameterProvider parameterProvider) {
         verifyCanSetSensitiveParameterProvider(parameterProvider);
         if (parameterProvider != null) {
             this.sensitiveParameterProvider = parameterProvider;
-            registerParameterProvider(parameterProvider);
+            registerParameterProvider(parameterProvider, ParameterSensitivity.SENSITIVE);
         } else if (this.sensitiveParameterProvider != null) {
-            deregisterParameterProvider(this.sensitiveParameterProvider);
+            deregisterParameterProvider(this.sensitiveParameterProvider, ParameterSensitivity.SENSITIVE);
             this.sensitiveParameterProvider = null;
         }
         setParameters(getParameterProviderEffectiveUpdates(parameterProvider, true));
@@ -514,25 +521,31 @@ public class StandardParameterContext implements ParameterContext {
     }
 
     @Override
-    public Optional<NonSensitiveParameterProvider> getNonSensitiveParameterProvider() {
+    public Optional<ParameterProvider> getNonSensitiveParameterProvider() {
         return Optional.ofNullable(nonSensitiveParameterProvider);
     }
 
     @Override
-    public void verifyCanSetNonSensitiveParameterProvider(final NonSensitiveParameterProvider parameterProvider) {
+    public void verifyCanSetNonSensitiveParameterProvider(final ParameterProvider parameterProvider) {
         if (isParameterProviderUpdate(nonSensitiveParameterProvider, parameterProvider)) {
+            if (parameterProvider != null && sensitiveParameterProvider != null) {
+                if (parameterProvider.getIdentifier().equals(sensitiveParameterProvider.getIdentifier())) {
+                    throw new IllegalArgumentException(String.format("Parameter Provider [%s] may not be both the sensitive and non-sensitive provider for Parameter Context [%s]",
+                            parameterProvider.getIdentifier(), getName()));
+                }
+            }
             verifyCanSetParameters(getParameterProviderEffectiveUpdates(parameterProvider, false));
         }
     }
 
     @Override
-    public void setNonSensitiveParameterProvider(final NonSensitiveParameterProvider parameterProvider) {
+    public void setNonSensitiveParameterProvider(final ParameterProvider parameterProvider) {
         verifyCanSetNonSensitiveParameterProvider(parameterProvider);
         if (parameterProvider != null) {
             this.nonSensitiveParameterProvider = parameterProvider;
-            registerParameterProvider(parameterProvider);
+            registerParameterProvider(parameterProvider, ParameterSensitivity.NON_SENSITIVE);
         } else if (this.nonSensitiveParameterProvider != null) {
-            deregisterParameterProvider(this.nonSensitiveParameterProvider);
+            deregisterParameterProvider(this.nonSensitiveParameterProvider, ParameterSensitivity.NON_SENSITIVE);
             this.nonSensitiveParameterProvider = null;
         }
         setParameters(getParameterProviderEffectiveUpdates(parameterProvider, false));
@@ -571,17 +584,17 @@ public class StandardParameterContext implements ParameterContext {
         return parametersToRemove;
     }
 
-    private void deregisterParameterProvider(final ParameterProvider parameterProvider) {
+    private void deregisterParameterProvider(final ParameterProvider parameterProvider, final ParameterSensitivity sensitivity) {
         if (parameterProvider != null) {
             final ParameterProviderNode parameterProviderNode = getParameterProviderNode(parameterProvider);
-            parameterProviderNode.removeReference(this);
+            parameterProviderNode.removeReference(new ParameterProviderUsageReference(this, sensitivity));
         }
     }
 
-    private void registerParameterProvider(final ParameterProvider parameterProvider) {
+    private void registerParameterProvider(final ParameterProvider parameterProvider, final ParameterSensitivity sensitivity) {
         if (parameterProvider != null) {
             final ParameterProviderNode parameterProviderNode = getParameterProviderNode(parameterProvider);
-            parameterProviderNode.addReference(this);
+            parameterProviderNode.addReference(new ParameterProviderUsageReference(this, sensitivity));
         }
     }
 
@@ -626,12 +639,12 @@ public class StandardParameterContext implements ParameterContext {
 
     @Override
     public void verifyCanUpdateParameterContext(final Map<String, Parameter> parameterUpdates, final List<ParameterContext> inheritedParameterContexts,
-                                                final SensitiveParameterProvider sensitiveParameterProvider, final NonSensitiveParameterProvider nonSensitiveParameterProvider) {
+                                                final ParameterProvider sensitiveParameterProvider, final ParameterProvider nonSensitiveParameterProvider) {
         verifyCanUpdateParameterContext(parameterUpdates, inheritedParameterContexts, sensitiveParameterProvider, nonSensitiveParameterProvider, false);
     }
 
     private void verifyCanUpdateParameterContext(final Map<String, Parameter> parameterUpdates, final List<ParameterContext> inheritedParameterContexts,
-                                                 final SensitiveParameterProvider sensitiveParameterProvider, final NonSensitiveParameterProvider nonSensitiveParameterProvider,
+                                                 final ParameterProvider sensitiveParameterProvider, final ParameterProvider nonSensitiveParameterProvider,
                                                  final boolean duringUpdate) {
         if (inheritedParameterContexts == null) {
             return;
@@ -948,8 +961,8 @@ public class StandardParameterContext implements ParameterContext {
         private ParameterReferenceManager parameterReferenceManager;
         private Authorizable parentAuthorizable;
         private ParameterProviderLookup parameterProviderLookup;
-        private SensitiveParameterProvider sensitiveParameterProvider;
-        private NonSensitiveParameterProvider nonSensitiveParameterProvider;
+        private ParameterProvider sensitiveParameterProvider;
+        private ParameterProvider nonSensitiveParameterProvider;
 
         /**
          * Sets the ParameterContext id -- required
@@ -1006,7 +1019,7 @@ public class StandardParameterContext implements ParameterContext {
          * @param sensitiveParameterProvider The sensitive ParameterProvider
          * @return The builder
          */
-        public Builder sensitiveParameterProvider(final SensitiveParameterProvider sensitiveParameterProvider) {
+        public Builder sensitiveParameterProvider(final ParameterProvider sensitiveParameterProvider) {
             this.sensitiveParameterProvider = sensitiveParameterProvider;
             return this;
         }
@@ -1016,7 +1029,7 @@ public class StandardParameterContext implements ParameterContext {
          * @param nonSensitiveParameterProvider The non-sensitive ParameterProvider
          * @return The builder
          */
-        public Builder nonSensitiveParameterProvider(final NonSensitiveParameterProvider nonSensitiveParameterProvider) {
+        public Builder nonSensitiveParameterProvider(final ParameterProvider nonSensitiveParameterProvider) {
             this.nonSensitiveParameterProvider = nonSensitiveParameterProvider;
             return this;
         }

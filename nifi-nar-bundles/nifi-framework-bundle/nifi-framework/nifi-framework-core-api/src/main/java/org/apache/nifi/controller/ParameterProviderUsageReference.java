@@ -14,9 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.parameter.tests.system;
+package org.apache.nifi.controller;
 
-import org.apache.nifi.parameter.NonSensitiveParameterProvider;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterSensitivity;
 
-public class DynamicPropertyNonSensitiveParameterProvider extends AbstractDynamicPropertyParameterProvider implements NonSensitiveParameterProvider {
+public class ParameterProviderUsageReference {
+
+    private final ParameterContext parameterContext;
+
+    private final ParameterSensitivity sensitivity;
+
+    public ParameterProviderUsageReference(final ParameterContext parameterContext, final ParameterSensitivity sensitivity) {
+        this.parameterContext = parameterContext;
+        this.sensitivity = sensitivity;
+    }
+
+    public ParameterContext getParameterContext() {
+        return parameterContext;
+    }
+
+    public ParameterSensitivity getSensitivity() {
+        return sensitivity;
+    }
 }

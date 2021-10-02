@@ -124,7 +124,7 @@ public class VerifiableParameterProviderSystemIT extends NiFiSystemIT {
 
     @Test
     public void testValidProcessorWithoutVerifiableParameterProviderAnnotation() throws NiFiClientException, IOException, InterruptedException {
-        final ParameterProviderEntity parameterProvider = getClientUtil().createParameterProvider("DynamicPropertyNonSensitiveParameterProvider");
+        final ParameterProviderEntity parameterProvider = getClientUtil().createParameterProvider("DynamicPropertyParameterProvider");
 
         // Even though processor does not implement VerifiableProcessor, validation should still be run
         final Map<String, String> properties = new HashMap<>();

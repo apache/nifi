@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.parameter;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -27,7 +29,9 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public abstract class AbstractEnvironmentVariableParameterProvider extends AbstractParameterProvider {
+@Tags({"environment", "variable"})
+@CapabilityDescription("Fetches parameters from environment variables")
+public class EnvironmentVariableParameterProvider extends AbstractParameterProvider {
     private final Map<String, String> environmentVariables = System.getenv();
 
     public static final PropertyDescriptor INCLUDE_REGEX = new PropertyDescriptor.Builder()
@@ -75,7 +79,6 @@ public abstract class AbstractEnvironmentVariableParameterProvider extends Abstr
                 .map(entry -> {
                     final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
                             .name(entry.getKey())
-                            .sensitive(this instanceof SensitiveParameterProvider)
                             .build();
                     return new Parameter(parameterDescriptor, entry.getValue(), null, true);
                 })

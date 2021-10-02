@@ -75,7 +75,6 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.groups.StandardVersionedFlowStatus;
 import org.apache.nifi.logging.LogLevel;
-import org.apache.nifi.parameter.NonSensitiveParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
@@ -2035,13 +2034,13 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         if (versionedParameterContext.getSensitiveParameterProvider() != null && !currentParameterContext.getSensitiveParameterProvider().isPresent()) {
             final ParameterProviderNode parameterProviderNode = currentParameterContext.getParameterProviderLookup().getParameterProvider(versionedParameterContext.getSensitiveParameterProvider());
             if (parameterProviderNode != null) {
-                currentParameterContext.setSensitiveParameterProvider((SensitiveParameterProvider) parameterProviderNode.getParameterProvider());
+                currentParameterContext.setSensitiveParameterProvider(parameterProviderNode.getParameterProvider());
             }
         }
         if (versionedParameterContext.getNonSensitiveParameterProvider() != null && !currentParameterContext.getNonSensitiveParameterProvider().isPresent()) {
             final ParameterProviderNode parameterProviderNode = currentParameterContext.getParameterProviderLookup().getParameterProvider(versionedParameterContext.getNonSensitiveParameterProvider());
             if (parameterProviderNode != null) {
-                currentParameterContext.setNonSensitiveParameterProvider((NonSensitiveParameterProvider) parameterProviderNode.getParameterProvider());
+                currentParameterContext.setNonSensitiveParameterProvider(parameterProviderNode.getParameterProvider());
             }
         }
     }

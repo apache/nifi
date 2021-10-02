@@ -20,17 +20,16 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.parameter.AbstractParameterProvider;
-import org.apache.nifi.parameter.NonSensitiveParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
-import org.apache.nifi.parameter.SensitiveParameterProvider;
+import org.apache.nifi.parameter.ParameterProvider;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class DummyParameterProvider extends AbstractParameterProvider implements NonSensitiveParameterProvider {
+public class DummyParameterProvider extends AbstractParameterProvider implements ParameterProvider {
 
     private static final String[] STATIC_PARAMETERS = new String[] { "Parameter One", "Parameter Two" };
 
@@ -53,7 +52,6 @@ public class DummyParameterProvider extends AbstractParameterProvider implements
                 .map(parameterName -> {
                     final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
                             .name(parameterName)
-                            .sensitive(this instanceof SensitiveParameterProvider)
                             .build();
                     return new Parameter(parameterDescriptor, parameterName + "-value", null, true);
                 })

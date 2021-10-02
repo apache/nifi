@@ -34,6 +34,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ParameterProviderNode;
+import org.apache.nifi.controller.ParameterProviderUsageReference;
 import org.apache.nifi.controller.ParametersApplication;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.TerminationAwareLogger;
@@ -49,7 +50,7 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterProvider;
-import org.apache.nifi.parameter.SensitiveParameterProvider;
+import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.parameter.VerifiableParameterProvider;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
@@ -81,7 +82,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-    private final Set<ParameterContext> referencingParameterContexts;
+    private final Set<ParameterProviderUsageReference> referencingParameterContexts;
 
     private final List<Parameter> fetchedParameters = new ArrayList<>();
 
@@ -203,11 +204,6 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     }
 
     @Override
-    public boolean isSensitiveParameterProvider() {
-        return parameterProviderRef.get().getParameterProvider() instanceof SensitiveParameterProvider;
-    }
-
-    @Override
     public String toString() {
         return "ParameterProvider[id=" + getIdentifier() + "]";
     }
@@ -221,8 +217,9 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     public ParameterLookup getParameterLookup() {
         return ParameterLookup.EMPTY;
     }
+
     @Override
-    public Set<ParameterContext> getReferences() {
+    public Set<ParameterProviderUsageReference> getReferences() {
         readLock.lock();
         try {
             return Collections.unmodifiableSet(referencingParameterContexts);
@@ -232,20 +229,29 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     }
 
     @Override
-    public void addReference(final ParameterContext parameterContext) {
+    public void addReference(final ParameterProviderUsageReference reference) {
         writeLock.lock();
         try {
-            referencingParameterContexts.add(parameterContext);
+            referencingParameterContexts.stream()
+                    .filter(existingReference -> existingReference.getSensitivity() != reference.getSensitivity())
+                    .findFirst()
+                    .ifPresent(existingReference -> {
+                        throw new IllegalArgumentException(String.format("Parameter Provider [%s] cannot provide %s parameters to Parameter Context [%s] " +
+                                "because it already providers %s values for Parameter Context [%s]",
+                                getIdentifier(), reference.getSensitivity().getName(), reference.getParameterContext().getName(),
+                                existingReference.getSensitivity().getName(), existingReference.getParameterContext().getName()));
+                    });
+            referencingParameterContexts.add(reference);
         } finally {
             writeLock.unlock();
         }
     }
 
     @Override
-    public void removeReference(final ParameterContext parameterContext) {
+    public void removeReference(final ParameterProviderUsageReference reference) {
         writeLock.lock();
         try {
-            referencingParameterContexts.remove(parameterContext);
+            referencingParameterContexts.remove(reference);
         } finally {
             writeLock.unlock();
         }
@@ -280,10 +286,6 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
             if (descriptor == null) {
                 throw new IllegalStateException("Parameter is missing a Parameter Descriptor");
             }
-            if (descriptor.isSensitive() != isSensitiveParameterProvider()) {
-                throw new IllegalStateException(String.format("Fetched parameter [%s] does not match the sensitivity of Parameter Provider [%s]",
-                        descriptor.getName(), configurationContext.getName()));
-            }
         }
 
         writeLock.lock();
@@ -302,8 +304,8 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
         }
         readLock.lock();
         try {
-            for (final ParameterContext parameterContext : getReferences()) {
-                parameterContext.verifyCanSetParameters(getFetchedParameterUpdateMap(parameterContext, parameterNames));
+            for (final ParameterProviderUsageReference reference : getReferences()) {
+                reference.getParameterContext().verifyCanSetParameters(getFetchedParameterUpdateMap(reference, parameterNames));
             }
         } finally {
             readLock.unlock();
@@ -313,17 +315,13 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     @Override
     public void verifyCanDelete() {
         try {
-            for (final ParameterContext parameterContext : getReferences()) {
-                parameterContext.getSensitiveParameterProvider().ifPresent(sensitiveProvider -> {
-                    if (getParameterProvider().getIdentifier().equals(sensitiveProvider.getIdentifier())) {
-                        parameterContext.verifyCanSetSensitiveParameterProvider(null);
-                    }
-                });
-                parameterContext.getNonSensitiveParameterProvider().ifPresent(nonSensitiveProvider -> {
-                    if (getParameterProvider().getIdentifier().equals(nonSensitiveProvider.getIdentifier())) {
-                        parameterContext.verifyCanSetNonSensitiveParameterProvider(null);
-                    }
-                });
+            for (final ParameterProviderUsageReference reference : getReferences()) {
+                final ParameterContext parameterContext = reference.getParameterContext();
+                if (reference.getSensitivity() == ParameterSensitivity.SENSITIVE) {
+                    parameterContext.verifyCanSetSensitiveParameterProvider(null);
+                } else {
+                    parameterContext.verifyCanSetNonSensitiveParameterProvider(null);
+                }
             }
         } catch (final IllegalStateException e) {
             throw new IllegalStateException(String.format("Cannot delete Parameter Provider [%s] due to: %s", getIdentifier(), e.getMessage()), e);
@@ -397,18 +395,23 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     /**
      * Using the existing parameters from the ParameterContext and the fetched parameters in the provider, constructs
      * a map from Parameter name to updated Parameter (or null if the parameter has been removed in the fetch).
-     * @param parameterContext A ParameterContext
+     * @param reference A ParameterProviderUsageReference
      * @return A map from name to Parameter (or null if parameter should be removed)
      */
-    private Map<String, Parameter> getFetchedParameterUpdateMap(final ParameterContext parameterContext, final Set<String> parameterNames) {
+    private Map<String, Parameter> getFetchedParameterUpdateMap(final ParameterProviderUsageReference reference, final Set<String> parameterNames) {
+        final ParameterContext parameterContext = reference.getParameterContext();
         final Set<String> parameterNameFilter = parameterNames == null ? new HashSet<>() : parameterNames;
         final Map<String, Parameter> parameterUpdateMap = new HashMap<>();
-        final Map<ParameterDescriptor, Parameter> filteredFetchedParameters = fetchedParameters
+
+        // Get a list of the parameters with their sensitivity set based on the reference type
+        final List<Parameter> adjustedParameters = setSensitivity(fetchedParameters, reference.getSensitivity());
+
+        final Map<ParameterDescriptor, Parameter> filteredFetchedParameters = adjustedParameters
                 .stream()
                 .filter(parameter -> parameterNameFilter.contains(parameter.getDescriptor().getName()))
                 .collect(Collectors.toMap(Parameter::getDescriptor, Function.identity()));
 
-        final boolean isSensitive = isSensitiveParameterProvider();
+        final boolean isSensitive = reference.getSensitivity() == ParameterSensitivity.SENSITIVE;
         final Map<ParameterDescriptor, Parameter> currentParameters = parameterContext.getParameters();
         // Find parameters of the same sensitivity that were removed
         currentParameters.entrySet().stream()
@@ -441,12 +444,29 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
 
     /**
      * Sets provided = true on all parameters in the list
-     * @param parameterProviders A list of Parameters
+     * @param parameters A list of Parameters
      * @return An equivalent list, but with provided = true
      */
-    private static List<Parameter> toProvidedParameters(final List<Parameter> parameterProviders) {
-        return parameterProviders == null ? Collections.emptyList() : parameterProviders.stream()
+    private static List<Parameter> toProvidedParameters(final List<Parameter> parameters) {
+        return parameters == null ? Collections.emptyList() : parameters.stream()
                 .map(parameter -> new Parameter(parameter.getDescriptor(), parameter.getValue(), null, true))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Sets the sensitivity of all parameters in the list based on the provided sensitivity
+     * @param parameters A list of Parameters
+     * @return An equivalent list, but with the appropriate sensitivity
+     */
+    private static List<Parameter> setSensitivity(final List<Parameter> parameters, final ParameterSensitivity sensitivity) {
+        return parameters == null ? Collections.emptyList() : parameters.stream()
+                .map(parameter -> {
+                        final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
+                                .from(parameter.getDescriptor())
+                                .sensitive(sensitivity == ParameterSensitivity.SENSITIVE)
+                                .build();
+                        return new Parameter(descriptor, parameter.getValue(), parameter.getParameterContextId(), parameter.isProvided());
+                })
                 .collect(Collectors.toList());
     }
 
@@ -460,8 +480,8 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
         readLock.lock();
         try {
             return getReferences().stream()
-                    .map(parameterContext ->
-                            new ParametersApplication(parameterContext, getFetchedParameterUpdateMap(parameterContext, parameterNames)))
+                    .map(reference ->
+                            new ParametersApplication(reference.getParameterContext(), getFetchedParameterUpdateMap(reference, parameterNames)))
                     .collect(Collectors.toList());
         } finally {
             readLock.unlock();

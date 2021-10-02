@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.web.dao;
 
-import org.apache.nifi.parameter.NonSensitiveParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
-import org.apache.nifi.parameter.SensitiveParameterProvider;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 
 import java.util.List;
@@ -84,18 +83,18 @@ public interface ParameterContextDAO extends ParameterContextLookup {
     void verifyUpdate(ParameterContextDTO parameterContextDto, boolean verifyComponentStates);
 
     /**
-     * Returns the SensitiveParameterProvider if the provided DTO contains a valid reference.
+     * Returns the sensitive ParameterProvider if the provided DTO contains a valid reference.
      * @param parameterContextDTO The parameter context DTO
-     * @return A SensitiveParameterProvider, if relevant, or null if not specified
+     * @return The sensitive ParameterProvider, if relevant, or null if not specified
      */
-    SensitiveParameterProvider getSensitiveParameterProvider(final ParameterContextDTO parameterContextDTO);
+    ParameterProvider getSensitiveParameterProvider(final ParameterContextDTO parameterContextDTO);
 
     /**
-     * Returns the NonSensitiveParameterProvider if the provided DTO contains a valid reference.
+     * Returns the non-sensitive ParameterProvider if the provided DTO contains a valid reference.
      * @param parameterContextDTO The parameter context DTO
-     * @return A NonSensitiveParameterProvider, if relevant, or null if not specified
+     * @return The non-sensitive ParameterProvider, if relevant, or null if not specified
      */
-    NonSensitiveParameterProvider getNonSensitiveParameterProvider(final ParameterContextDTO parameterContextDTO);
+    ParameterProvider getNonSensitiveParameterProvider(final ParameterContextDTO parameterContextDTO);
 
     /**
      * Determines whether this parameter context can be removed.

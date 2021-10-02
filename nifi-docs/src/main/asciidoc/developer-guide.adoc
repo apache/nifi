@@ -2092,24 +2092,6 @@ preferred method for obtaining a Controller Service is to reference
 the Controller Service in a PropertyDescriptor,
 as is discussed in the <<interacting-with-controller-service>> section.
 
-A ParameterProvider must implement either `SensitiveParameterProvider`
-or `NonSensitiveParameterProvider`, and the framework enforces that only a
-`SensitiveParameterProvider` may be set as the sensitive provider on a Parameter
-Context, and likewise with a `NonSensitiveParameterProvider`.  If a basic
-ParameterProvider implementation may be reasonably used for either sensitivity, a common
-pattern would be to implement an abstract version of the ParameterProvider, and
-simply create both versions as follows:
-[source]
-----
-public class MySensitiveParameterProvider extends AbstractMyParameterProvider implements SensitiveParameterProvider {
-
-}
-...
-public class MyNonSensitiveParameterProvider extends AbstractMyParameterProvider implements NonSensitiveParameterProvider {
-
-}
-----
-
 == UI Extensions
 
 There are two UI extension points that are available in NiFi:

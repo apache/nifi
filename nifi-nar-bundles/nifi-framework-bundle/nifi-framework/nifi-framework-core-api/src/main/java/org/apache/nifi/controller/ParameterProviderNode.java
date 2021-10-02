@@ -19,7 +19,6 @@ package org.apache.nifi.controller;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterProvider;
 
 import java.util.List;
@@ -51,25 +50,23 @@ public interface ParameterProviderNode extends ComponentNode {
 
     void verifyCanDelete();
 
-    boolean isSensitiveParameterProvider();
-
     /**
      * Returns all ParameterContexts that reference this ParameterProvider
      * @return
      */
-    Set<ParameterContext> getReferences();
+    Set<ParameterProviderUsageReference> getReferences();
 
     /**
-     * Indicates that the given parameter context is now referencing this Parameter Provider
-     * @param parameterContext the parameter context referencing this provider
+     * Indicates that a parameter context is now referencing this Parameter Provider
+     * @param reference the reference to this provider
      */
-    void addReference(ParameterContext parameterContext);
+    void addReference(ParameterProviderUsageReference reference);
 
     /**
-     * Indicates that the given parameter context is no longer referencing this Parameter Provider
-     * @param parameterContext the parameter context referencing this provider
+     * Indicates that a parameter context is no longer referencing this Parameter Provider
+     * @param reference the reference this provider
      */
-    void removeReference(ParameterContext parameterContext);
+    void removeReference(ParameterProviderUsageReference reference);
 
     /**
      * Verifies that the given configuration is valid for the Parameter Provider

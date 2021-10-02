@@ -75,6 +75,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ParameterProviderNode;
+import org.apache.nifi.controller.ParameterProviderUsageReference;
 import org.apache.nifi.controller.ParametersApplication;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
@@ -119,14 +120,12 @@ import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.history.PreviousValue;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.parameter.NonSensitiveParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterReferenceManager;
-import org.apache.nifi.parameter.SensitiveParameterProvider;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.prometheus.util.AbstractMetricsRegistry;
@@ -1521,8 +1520,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Map<String, Parameter> parameterUpdates = parameterContextDAO.getParameters(parameterContextDto, parameterContext);
         final List<ParameterContext> inheritedParameterContexts = parameterContextDAO.getInheritedParameterContexts(parameterContextDto);
-        final SensitiveParameterProvider sensitiveParameterProvider = parameterContextDAO.getSensitiveParameterProvider(parameterContextDto);
-        final NonSensitiveParameterProvider nonSensitiveParameterProvider = parameterContextDAO.getNonSensitiveParameterProvider(parameterContextDto);
+        final ParameterProvider sensitiveParameterProvider = parameterContextDAO.getSensitiveParameterProvider(parameterContextDto);
+        final ParameterProvider nonSensitiveParameterProvider = parameterContextDAO.getNonSensitiveParameterProvider(parameterContextDto);
         final Map<String, Parameter> proposedParameterUpdates = parameterContext.getEffectiveParameterUpdates(parameterUpdates, inheritedParameterContexts,
                 sensitiveParameterProvider, nonSensitiveParameterProvider);
         final Map<String, ParameterEntity> parameterEntities = parameterContextDto.getParameters().stream()
@@ -4867,7 +4866,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ParameterProviderReferencingComponentsEntity getParameterProviderReferencingComponents(final String parameterProviderId) {
         final ParameterProviderNode provider = parameterProviderDAO.getParameterProvider(parameterProviderId);
-        final Set<ParameterContext> references = provider.getReferences();
+        final Set<ParameterContext> references = provider.getReferences().stream().map(ParameterProviderUsageReference::getParameterContext).collect(Collectors.toSet());
         return createParameterProviderReferencingComponentsEntity(references);
     }
 

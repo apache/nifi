@@ -17,7 +17,19 @@
 package org.apache.nifi.parameter;
 
 /**
- * A base interface for all non-sensitive <code>ParameterProvider</code>s
+ * Indicates the sensitivity of a parameter.
  */
-public interface NonSensitiveParameterProvider extends ParameterProvider {
+public enum ParameterSensitivity {
+    SENSITIVE("Sensitive"),
+    NON_SENSITIVE("Non-Sensitive");
+
+    private String name;
+
+    ParameterSensitivity(final String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
 }

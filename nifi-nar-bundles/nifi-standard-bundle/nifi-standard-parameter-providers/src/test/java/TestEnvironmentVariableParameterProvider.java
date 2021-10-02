@@ -16,9 +16,7 @@
  */
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.parameter.AbstractEnvironmentVariableParameterProvider;
-import org.apache.nifi.parameter.EnvironmentVariableNonSensitiveParameterProvider;
-import org.apache.nifi.parameter.EnvironmentVariableSensitiveParameterProvider;
+import org.apache.nifi.parameter.EnvironmentVariableParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.reporting.InitializationException;
@@ -37,45 +35,41 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class TestEnvironmentVariableParameterProvider {
-    private ParameterProvider getParameterProvider(final boolean sensitive) {
-        return sensitive ? new EnvironmentVariableSensitiveParameterProvider() : new EnvironmentVariableNonSensitiveParameterProvider();
+    private ParameterProvider getParameterProvider() {
+        return new EnvironmentVariableParameterProvider();
     }
 
-    private void runProviderTest(final boolean sensitive, final String includePattern, final String excludePattern) throws InitializationException, IOException {
+    private void runProviderTest(final String includePattern, final String excludePattern) throws InitializationException, IOException {
         final Map<String, String> env = System.getenv();
         final Map<String, String> filteredVariables = env.entrySet().stream()
                 .filter(entry -> entry.getKey().matches(includePattern))
                 .filter(entry -> excludePattern == null || !entry.getKey().matches(excludePattern))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        final ParameterProvider parameterProvider = getParameterProvider(sensitive);
+        final ParameterProvider parameterProvider = getParameterProvider();
         final MockParameterProviderInitializationContext initContext = new MockParameterProviderInitializationContext("id", "name",
                 new MockComponentLog("providerId", parameterProvider));
         parameterProvider.initialize(initContext);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(AbstractEnvironmentVariableParameterProvider.INCLUDE_REGEX, includePattern);
+        properties.put(EnvironmentVariableParameterProvider.INCLUDE_REGEX, includePattern);
         if (excludePattern != null) {
-            properties.put(AbstractEnvironmentVariableParameterProvider.EXCLUDE_REGEX, excludePattern);
+            properties.put(EnvironmentVariableParameterProvider.EXCLUDE_REGEX, excludePattern);
         }
         final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);
 
         final List<Parameter> parameters = parameterProvider.fetchParameters(mockConfigurationContext);
 
         assertEquals(filteredVariables.size(), parameters.size());
-        for(final Parameter parameter : parameters) {
-            assertEquals(sensitive, parameter.getDescriptor().isSensitive());
-            assertNotNull(parameter.getValue());
-        }
     }
 
     @Test
     public void testSensitiveParameterProvider() throws InitializationException, IOException {
-        runProviderTest(true, "P.*", null);
+        runProviderTest("P.*", null);
     }
 
     @Test
     public void testNonSensitiveParameterProvider() throws InitializationException, IOException {
-        runProviderTest(false, ".*", "P.*");
+        runProviderTest(".*", "P.*");
     }
 }

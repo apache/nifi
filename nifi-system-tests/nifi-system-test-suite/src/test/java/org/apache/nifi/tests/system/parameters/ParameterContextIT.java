@@ -225,12 +225,12 @@ public class ParameterContextIT extends NiFiSystemIT {
         // Neither property is required
         waitForInvalidProcessor(processorId);
 
-        final ParameterProviderEntity nonSensitiveProvider = createParameterProvider("DynamicPropertyNonSensitiveParameterProvider");
+        final ParameterProviderEntity nonSensitiveProvider = createParameterProvider("DynamicPropertyParameterProvider");
         final Map<String, String> nonSensitiveProviderProperties = new HashMap<>();
         nonSensitiveProviderProperties.put("Non Sensitive", "My non-sensitive value");
         updateParameterProviderProperties(nonSensitiveProvider, nonSensitiveProviderProperties);
 
-        final ParameterProviderEntity sensitiveProvider = createParameterProvider("DynamicPropertySensitiveParameterProvider");
+        final ParameterProviderEntity sensitiveProvider = createParameterProvider("DynamicPropertyParameterProvider");
         final Map<String, String> sensitiveProviderProperties = new HashMap<>();
         sensitiveProviderProperties.put("Sensitive", "My sensitive value");
         updateParameterProviderProperties(sensitiveProvider, sensitiveProviderProperties);

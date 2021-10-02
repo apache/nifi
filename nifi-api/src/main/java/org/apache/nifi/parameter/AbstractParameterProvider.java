@@ -33,19 +33,7 @@ public abstract class AbstractParameterProvider extends AbstractConfigurableComp
         logger = config.getLogger();
         name = config.getName();
         nodeTypeProvider = config.getNodeTypeProvider();
-        verifyInterfaces();
         init(config);
-    }
-
-    private void verifyInterfaces() {
-        if (!(this instanceof SensitiveParameterProvider) && !(this instanceof NonSensitiveParameterProvider)) {
-            throw new IllegalStateException(String.format("Parameter Provider [%s] must be either a SensitiveParameterProvider or a NonSensitiveParameterProvider, but is neither",
-                    name));
-        }
-        if ((this instanceof SensitiveParameterProvider) && (this instanceof NonSensitiveParameterProvider)) {
-            throw new IllegalStateException(String.format("Parameter Provider [%s] must be either a SensitiveParameterProvider or a NonSensitiveParameterProvider, but is both",
-                    name));
-        }
     }
 
     /**

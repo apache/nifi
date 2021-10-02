@@ -26,6 +26,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ParameterProviderNode;
+import org.apache.nifi.controller.ParameterProviderUsageReference;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -36,14 +37,12 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.parameter.NonSensitiveParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.ReferenceOnlyParameterContext;
-import org.apache.nifi.parameter.SensitiveParameterProvider;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterReferenceManager;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
@@ -459,17 +458,14 @@ public abstract class AbstractFlowManager implements FlowManager {
                 }
             }
         }
-        for(final ParameterContext parameterContext : parameterProvider.getReferences()) {
-            parameterContext.getSensitiveParameterProvider().ifPresent(sensitiveProvider -> {
-                if (parameterProvider.getIdentifier().equals(sensitiveProvider.getIdentifier())) {
-                    parameterContext.setSensitiveParameterProvider(null);
-                }
-            });
-            parameterContext.getNonSensitiveParameterProvider().ifPresent(nonSensitiveProvider -> {
-                if (parameterProvider.getIdentifier().equals(nonSensitiveProvider.getIdentifier())) {
-                    parameterContext.setNonSensitiveParameterProvider(null);
-                }
-            });
+        for (final ParameterProviderUsageReference reference : parameterProvider.getReferences()) {
+            switch (reference.getSensitivity()) {
+                case SENSITIVE:
+                    reference.getParameterContext().setSensitiveParameterProvider(null);
+                    break;
+                case NON_SENSITIVE:
+                    reference.getParameterContext().setNonSensitiveParameterProvider(null);
+            }
         }
 
         allParameterProviders.remove(parameterProvider.getIdentifier());
@@ -514,23 +510,9 @@ public abstract class AbstractFlowManager implements FlowManager {
 
         final ParameterProviderNode sensitiveParameterProviderNode = getParameterProvider(sensitiveParameterProviderId);
         final ParameterProvider sensitiveParameterProvider = sensitiveParameterProviderNode == null ? null : sensitiveParameterProviderNode.getParameterProvider();
-        if (sensitiveParameterProvider != null && !(sensitiveParameterProvider instanceof SensitiveParameterProvider)) {
-            throw new IllegalArgumentException(String.format("Cannot set Non-Sensitive Parameter Provider [%s] as a Sensitive Parameter Provider for Parameter Context [%s]",
-                    sensitiveParameterProviderNode.getName(), name));
-        } else if (sensitiveParameterProvider == null && sensitiveParameterProviderId != null) {
-            throw new IllegalArgumentException(String.format("Cannot create Parameter Context [%s] referencing Sensitive Parameter Provider [%s] that could not be found", id,
-                    sensitiveParameterProviderId));
-        }
 
         final ParameterProviderNode nonSensitiveParameterProviderNode = getParameterProvider(nonSensitiveParameterProviderId);
         final ParameterProvider nonSensitiveParameterProvider = nonSensitiveParameterProviderNode == null ? null : nonSensitiveParameterProviderNode.getParameterProvider();
-        if (nonSensitiveParameterProvider != null && !(nonSensitiveParameterProvider instanceof NonSensitiveParameterProvider)) {
-            throw new IllegalArgumentException(String.format("Cannot set Sensitive Parameter Provider [%s] as a Non-Sensitive Parameter Provider for Parameter Context [%s]",
-                    nonSensitiveParameterProviderNode.getName(), name));
-        } else if (nonSensitiveParameterProvider == null && nonSensitiveParameterProviderId != null) {
-            throw new IllegalArgumentException(String.format("Cannot create Parameter Context [%s] referencing Non-Sensitive Parameter Provider [%s] that could not be found", id,
-                    nonSensitiveParameterProviderId));
-        }
         final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(this);
         final ParameterContext parameterContext = new StandardParameterContext.Builder()
                 .id(id)
@@ -538,8 +520,8 @@ public abstract class AbstractFlowManager implements FlowManager {
                 .parameterReferenceManager(referenceManager)
                 .parentAuthorizable(getParameterContextParent())
                 .parameterProviderLookup(this)
-                .sensitiveParameterProvider((SensitiveParameterProvider) sensitiveParameterProvider)
-                .nonSensitiveParameterProvider((NonSensitiveParameterProvider) nonSensitiveParameterProvider)
+                .sensitiveParameterProvider(sensitiveParameterProvider)
+                .nonSensitiveParameterProvider(nonSensitiveParameterProvider)
                 .build();
         parameterContext.setParameters(parameters);
 

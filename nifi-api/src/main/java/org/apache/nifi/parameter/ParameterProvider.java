@@ -69,7 +69,7 @@ public interface ParameterProvider extends ConfigurableComponent {
     /**
      * Fetches parameters from an external source.
      * @param context The <code>ConfigurationContext</code>for the provider
-     * @return A list of fetched Parameters
+     * @return A list of fetched Parameters.  The framework will set the sensitivity appropriately based on how the ParameterProvider is referenced in a ParameterContext.
      * @throws IOException if there is an I/O problem while fetching the Parameters
      */
     List<Parameter> fetchParameters(ConfigurationContext context) throws IOException;

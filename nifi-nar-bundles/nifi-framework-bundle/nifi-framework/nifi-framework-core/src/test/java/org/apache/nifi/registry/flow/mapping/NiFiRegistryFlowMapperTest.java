@@ -63,11 +63,10 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.parameter.NonSensitiveParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
-import org.apache.nifi.parameter.SensitiveParameterProvider;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistry;
@@ -123,9 +122,9 @@ public class NiFiRegistryFlowMapperTest {
     @Mock
     private ParameterProviderNode parameterProviderNode;
     @Mock
-    private SensitiveParameterProvider sensitiveParameterProvider;
+    private ParameterProvider sensitiveParameterProvider;
     @Mock
-    private NonSensitiveParameterProvider nonSensitiveParameterProvider;
+    private ParameterProvider nonSensitiveParameterProvider;
 
     private NiFiRegistryFlowMapper flowMapper = new NiFiRegistryFlowMapper(extensionManager);
 

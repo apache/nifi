@@ -23,7 +23,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.AbstractParameterProvider;
-import org.apache.nifi.parameter.NonSensitiveParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.VerifiableParameterProvider;
 
@@ -35,7 +34,7 @@ import java.util.Objects;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.processor.util.StandardValidators.POSITIVE_INTEGER_VALIDATOR;
 
-public class EnsureParameterProviderConfigurationCorrect extends AbstractParameterProvider implements VerifiableParameterProvider, NonSensitiveParameterProvider {
+public class EnsureParameterProviderConfigurationCorrect extends AbstractParameterProvider implements VerifiableParameterProvider {
     static final PropertyDescriptor SUCCESSFUL_VERIFICATION = new PropertyDescriptor.Builder()
         .name("Successful Verification")
         .displayName("Successful Verification")

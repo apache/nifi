@@ -121,7 +121,7 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
      * @return A map of effective parameter updates
      */
     Map<String, Parameter> getEffectiveParameterUpdates(final Map<String, Parameter> parameters, final List<ParameterContext> inheritedParameterContexts,
-                                                        final SensitiveParameterProvider sensitiveParameterProvider, final NonSensitiveParameterProvider nonSensitiveParameterProvider);
+                                                        final ParameterProvider sensitiveParameterProvider, final ParameterProvider nonSensitiveParameterProvider);
 
     /**
      * Returns the ParameterReferenceManager that is associated with this ParameterContext
@@ -137,55 +137,55 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
 
     /**
      *
-     * @return The {@link SensitiveParameterProvider}, or <code>Optional.empty()</code>
+     * @return The sensitive {@link ParameterProvider}, or <code>Optional.empty()</code>
      * if none is set.  In the latter case, sensitive Parameters are set manually.
      */
-    Optional<SensitiveParameterProvider> getSensitiveParameterProvider();
+    Optional<ParameterProvider> getSensitiveParameterProvider();
 
     /**
-     * If a provider is specified, ensures the SensitiveParameterProvider can be set (and any user-entered sensitive parameters removed).
+     * If a provider is specified, ensures the sensitive ParameterProvider can be set (and any user-entered sensitive parameters removed).
      * If <code>null</code> is specified, ensures any existing provided sensitive parameters can be removed.
-     * @param parameterProvider A SensitiveParameterProvider
+     * @param parameterProvider A ParameterProvider
      * @throws IllegalStateException if setting the given ParameterProvider would not be legal
      */
-    void verifyCanSetSensitiveParameterProvider(SensitiveParameterProvider parameterProvider);
+    void verifyCanSetSensitiveParameterProvider(ParameterProvider parameterProvider);
 
     /**
-     * Sets a {@link SensitiveParameterProvider} that will be used to provide sensitive Parameters.
-     * @param parameterProvider A SensitiveParameterProvider.
+     * Sets a {@link ParameterProvider} that will be used to provide sensitive Parameters.
+     * @param parameterProvider A ParameterProvider.
      */
-    void setSensitiveParameterProvider(SensitiveParameterProvider parameterProvider);
+    void setSensitiveParameterProvider(ParameterProvider parameterProvider);
 
     /**
      *
-     * @return The {@link NonSensitiveParameterProvider}, or <code>Optional.empty()</code>
+     * @return The non-sensitive {@link ParameterProvider}, or <code>Optional.empty()</code>
      * if none is set.  In the latter case, non-sensitive Parameters are set manually.
      */
-    Optional<NonSensitiveParameterProvider> getNonSensitiveParameterProvider();
+    Optional<ParameterProvider> getNonSensitiveParameterProvider();
 
     /**
-     * If a provider is specified, ensures the NonSensitiveParameterProvider can be set (and any user-entered non-sensitive parameters removed).
+     * If a provider is specified, ensures the non-sensitive ParameterProvider can be set (and any user-entered non-sensitive parameters removed).
      * If <code>null</code> is specified, ensures any existing provided non-sensitive parameters can be removed.
-     * @param parameterProvider A NonSensitiveParameterProvider
+     * @param parameterProvider A ParameterProvider
      * @throws IllegalStateException if setting the given ParameterProvider would not be legal
      */
-    void verifyCanSetNonSensitiveParameterProvider(NonSensitiveParameterProvider parameterProvider);
+    void verifyCanSetNonSensitiveParameterProvider(ParameterProvider parameterProvider);
 
     /**
-     * Sets a {@link NonSensitiveParameterProvider} that will be used to provide non-sensitive Parameters.
-     * @param parameterProvider A NonSensitiveParameterProvider.
+     * Sets a {@link ParameterProvider} that will be used to provide non-sensitive Parameters.
+     * @param parameterProvider A ParameterProvider.
      */
-    void setNonSensitiveParameterProvider(NonSensitiveParameterProvider parameterProvider);
+    void setNonSensitiveParameterProvider(ParameterProvider parameterProvider);
 
     /**
      * Verifies whether the parameter context can be updated with the provided parameters and inherited parameter contexts.
      * @param parameterUpdates A map from parameter name to updated parameter (null if removal is desired)
      * @param inheritedParameterContexts the list of ParameterContexts from which to inherit parameters
-     * @param sensitiveParameterProvider The SensitiveParameterProvider to set, or null if it should be unset
-     * @param nonSensitiveParameterProvider The NonSensitiveParameterProvider to set, or null if it should be unset
+     * @param sensitiveParameterProvider The sensitive ParameterProvider to set, or null if it should be unset
+     * @param nonSensitiveParameterProvider The non-sensitive ParameterProvider to set, or null if it should be unset
      */
     void verifyCanUpdateParameterContext(Map<String, Parameter> parameterUpdates, List<ParameterContext> inheritedParameterContexts,
-                                         SensitiveParameterProvider sensitiveParameterProvider, NonSensitiveParameterProvider nonSensitiveParameterProvider);
+                                         ParameterProvider sensitiveParameterProvider, ParameterProvider nonSensitiveParameterProvider);
 
     /**
      * Updates the ParameterContexts within this context to match the given list of ParameterContexts. All parameter in these
