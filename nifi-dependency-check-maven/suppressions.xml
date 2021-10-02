@@ -16,7 +16,7 @@
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
     <suppress>
         <notes>NiFi packages contain other project names, which can cause incorrect identification</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.nifi/.*$</packageUrl>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.nifi.*$</packageUrl>
         <cpe regex="true">^cpe:.*$</cpe>
     </suppress>
     <suppress>
