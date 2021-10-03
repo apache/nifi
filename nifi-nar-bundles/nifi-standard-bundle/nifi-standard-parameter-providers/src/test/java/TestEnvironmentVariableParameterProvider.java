@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class TestEnvironmentVariableParameterProvider {
     private ParameterProvider getParameterProvider() {
