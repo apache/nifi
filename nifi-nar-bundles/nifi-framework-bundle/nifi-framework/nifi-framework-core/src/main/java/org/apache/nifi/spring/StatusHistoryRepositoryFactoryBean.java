@@ -40,8 +40,6 @@ public class StatusHistoryRepositoryFactoryBean implements FactoryBean<StatusHis
 
     @Override
     public StatusHistoryRepository getObject() throws Exception {
-        nifiProperties = applicationContext.getBean("nifiProperties", NiFiProperties.class);
-        extensionManager = applicationContext.getBean("extensionManager", ExtensionManager.class);
         final String implementationClassName = nifiProperties.getProperty(NiFiProperties.COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION, DEFAULT_COMPONENT_STATUS_REPO_IMPLEMENTATION);
         if (implementationClassName == null) {
             throw new BeanCreationException("Cannot create Status History Repository because the NiFi Properties is missing the following property: "
