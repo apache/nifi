@@ -204,7 +204,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
 
         String json = mapper.writeValueAsString(query);
 
-        SearchResponse response = clientService.search(json, index, type);
+        SearchResponse response = clientService.search(json, index, type, null);
 
         if (response.getNumberOfHits() > 1) {
             throw new LookupFailureException(String.format("Expected 1 response, got %d for query %s",
@@ -268,7 +268,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
         try {
             final String json = mapper.writeValueAsString(buildQuery(query));
 
-            SearchResponse response = clientService.search(json, index, type);
+            SearchResponse response = clientService.search(json, index, type, null);
 
             if (response.getNumberOfHits() == 0) {
                 return null;

@@ -34,7 +34,7 @@ public class ElasticsearchError extends RuntimeException {
 
     protected boolean isElastic;
 
-    public ElasticsearchError(Exception ex) {
+    public ElasticsearchError(final Exception ex) {
         super(ex);
         final boolean isKnownException = ELASTIC_ERROR_NAMES.contains(ex.getClass().getSimpleName());
         final boolean isServiceUnavailable = "ResponseException".equals(ex.getClass().getSimpleName())
