@@ -117,7 +117,7 @@ public class SimpleProcessLogger implements ComponentLog {
     @Override
     public void warn(LogMessage logMessage) {
         if (isWarnEnabled()) {
-            logWithLogMessage(LogLevel.WARN, logMessage);
+            log(LogLevel.WARN, logMessage);
             logRepository.addLogMessage(logMessage);
         }
     }
@@ -174,7 +174,7 @@ public class SimpleProcessLogger implements ComponentLog {
     @Override
     public void trace(LogMessage logMessage) {
         if (isTraceEnabled()) {
-            logWithLogMessage(LogLevel.TRACE, logMessage);
+            log(LogLevel.TRACE, logMessage);
             logRepository.addLogMessage(logMessage);
         }
     }
@@ -262,7 +262,7 @@ public class SimpleProcessLogger implements ComponentLog {
     @Override
     public void info(LogMessage logMessage) {
         if (isInfoEnabled()) {
-            logWithLogMessage(LogLevel.INFO, logMessage);
+            log(LogLevel.INFO, logMessage);
             logRepository.addLogMessage(logMessage);
         }
     }
@@ -328,7 +328,7 @@ public class SimpleProcessLogger implements ComponentLog {
     @Override
     public void error(LogMessage logMessage) {
         if (isErrorEnabled()) {
-            logWithLogMessage(LogLevel.ERROR, logMessage);
+            log(LogLevel.ERROR, logMessage);
             logRepository.addLogMessage(logMessage);
         }
     }
@@ -406,7 +406,7 @@ public class SimpleProcessLogger implements ComponentLog {
     @Override
     public void debug(LogMessage logMessage) {
         if (isDebugEnabled()) {
-            logWithLogMessage(LogLevel.DEBUG, logMessage);
+            log(LogLevel.DEBUG, logMessage);
             logRepository.addLogMessage(logMessage);
         }
     }

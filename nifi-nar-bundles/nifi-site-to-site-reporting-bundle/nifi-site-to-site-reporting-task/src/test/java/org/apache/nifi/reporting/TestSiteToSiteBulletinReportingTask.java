@@ -77,7 +77,7 @@ public class TestSiteToSiteBulletinReportingTask {
     public void testSerializedForm() throws IOException, InitializationException {
         // creating the list of bulletins
         final List<Bulletin> bulletins = new ArrayList<>();
-        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", ComponentType.PROCESSOR, "source-name", "category", "severity", "message", "group-path", "flowFileUUID"));
+        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", ComponentType.PROCESSOR, "source-name", "category", "severity", "message", "group-path", "flowFileUuid"));
 
         // mock the access to the list of bulletins
         final ReportingContext context = Mockito.mock(ReportingContext.class);
@@ -118,7 +118,7 @@ public class TestSiteToSiteBulletinReportingTask {
         assertEquals("message", bulletinJson.getString("bulletinMessage"));
         assertEquals("group-name", bulletinJson.getString("bulletinGroupName"));
         assertEquals("group-path", bulletinJson.getString("bulletinGroupPath"));
-        assertEquals("flowFileUUID", bulletinJson.getString("bulletinFlowFileUUID"));
+        assertEquals("flowFileUuid", bulletinJson.getString("bulletinFlowFileUuid"));
     }
 
     @Test

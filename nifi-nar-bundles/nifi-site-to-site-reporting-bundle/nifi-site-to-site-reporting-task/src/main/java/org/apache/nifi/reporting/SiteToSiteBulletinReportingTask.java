@@ -192,7 +192,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         addField(builder, "bulletinSourceName", bulletin.getSourceName(), allowNullValues);
         addField(builder, "bulletinSourceType", bulletin.getSourceType() == null ? null : bulletin.getSourceType().name(), allowNullValues);
         addField(builder, "bulletinTimestamp", df.format(bulletin.getTimestamp()), allowNullValues);
-        addField(builder, "bulletinFlowFileUUID", bulletin.getFlowFileUUID(), allowNullValues);
+        addField(builder, "bulletinFlowFileUuid", bulletin.getFlowFileUuid(), allowNullValues);
 
         return builder.build();
     }

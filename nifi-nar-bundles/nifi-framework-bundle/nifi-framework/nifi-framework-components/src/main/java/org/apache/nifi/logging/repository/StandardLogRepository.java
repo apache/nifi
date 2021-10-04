@@ -28,17 +28,20 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 public class StandardLogRepository implements LogRepository {
 
-    private final EnumMap<LogLevel, Collection<LogObserver>> observers = new EnumMap<>(LogLevel.class);
+    private final Map<LogLevel, Collection<LogObserver>> observers = new EnumMap<>(LogLevel.class);
     private final Map<String, LogObserver> observerLookup = new HashMap<>();
 
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
@@ -69,11 +72,11 @@ public class StandardLogRepository implements LogRepository {
     @Override
     public void addLogMessage(final LogLevel level, final String format, final Object[] params) {
         replaceThrowablesWithMessage(params);
-        final Optional<String> flowFileUUID = getFlowFileUUIDFromObjects(params);
+        final Optional<String> flowFileUuid = getFirstFlowFileUuidFromObjects(params);
         final String formattedMessage = MessageFormatter.arrayFormat(format, params).getMessage();
         final LogMessage logMessage = new LogMessage.Builder(System.currentTimeMillis(), level)
                 .message(formattedMessage)
-                .flowFileUUID(flowFileUUID.orElse(null))
+                .flowFileUuid(flowFileUuid.orElse(null))
                 .createLogMessage();
         addLogMessage(logMessage);
     }
@@ -81,22 +84,24 @@ public class StandardLogRepository implements LogRepository {
     @Override
     public void addLogMessage(final LogLevel level, final String format, final Object[] params, final Throwable t) {
         replaceThrowablesWithMessage(params);
-        final Optional<String> flowFileUUID = getFlowFileUUIDFromObjects(params);
+        final Optional<String> flowFileUuid = getFirstFlowFileUuidFromObjects(params);
         final String formattedMessage = MessageFormatter.arrayFormat(format, params, t).getMessage();
         final LogMessage logMessage = new LogMessage.Builder(System.currentTimeMillis(), level)
                 .message(formattedMessage)
                 .throwable(t)
-                .flowFileUUID(flowFileUUID.orElse(null))
+                .flowFileUuid(flowFileUuid.orElse(null))
                 .createLogMessage();
         addLogMessage(logMessage);
     }
 
-    private Optional<String> getFlowFileUUIDFromObjects(Object[] params) {
-        for (Object param : params) {
-            if (param instanceof FlowFile) {
-                final FlowFile flowFile = (FlowFile) param;
-                return Optional.of(flowFile.getAttribute(CoreAttributes.UUID.key()));
-            }
+    private Optional<String> getFirstFlowFileUuidFromObjects(Object[] params) {
+        final List<FlowFile> flowFiles = Arrays.stream(params)
+                .filter(FlowFile.class::isInstance)
+                .map(FlowFile.class::cast)
+                .collect(Collectors.toList());
+
+        if (flowFiles.size() == 1) {
+            return Optional.of(flowFiles.get(0).getAttribute(CoreAttributes.UUID.key()));
         }
         return Optional.empty();
     }

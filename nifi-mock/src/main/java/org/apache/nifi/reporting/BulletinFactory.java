@@ -59,7 +59,7 @@ public class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
-        bulletin.setFlowFileUUID(flowFileUUID);
+        bulletin.setFlowFileUuid(flowFileUUID);
         return bulletin;
     }
 
@@ -91,7 +91,7 @@ public class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
-        bulletin.setFlowFileUUID(flowFileUUID);
+        bulletin.setFlowFileUuid(flowFileUUID);
         return bulletin;
     }
 }

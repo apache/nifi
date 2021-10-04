@@ -31,8 +31,7 @@ public final class BulletinFactory {
     }
 
     public static Bulletin createBulletin(final Connectable connectable, final String category, final String severity, final String message) {
-        final ComponentType type;
-        type = getComponentType(connectable);
+        final ComponentType type = getComponentType(connectable);
 
         final ProcessGroup group = connectable.getProcessGroup();
         final String groupId = connectable.getProcessGroupIdentifier();
@@ -104,7 +103,7 @@ public final class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
-        bulletin.setFlowFileUUID(flowFileUUID);
+        bulletin.setFlowFileUuid(flowFileUUID);
         return bulletin;
     }
 

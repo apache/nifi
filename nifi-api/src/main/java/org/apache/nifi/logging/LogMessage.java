@@ -29,7 +29,7 @@ public class LogMessage {
     private final String message;
     private final LogLevel logLevel;
     private final Throwable throwable;
-    private final String flowFileUUID;
+    private final String flowFileUuid;
     private final Object[] objects;
 
     public static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
@@ -41,7 +41,7 @@ public class LogMessage {
         private final LogLevel logLevel;
         private String message;
         private Throwable throwable;
-        private String flowFileUUID;
+        private String flowFileUuid;
         private Object[] objects;
 
         public Builder(final long time, final LogLevel logLevel) {
@@ -59,8 +59,8 @@ public class LogMessage {
             return this;
         }
 
-        public Builder flowFileUUID(String flowFileUUID) {
-            this.flowFileUUID = flowFileUUID;
+        public Builder flowFileUuid(String flowFileUuid) {
+            this.flowFileUuid = flowFileUuid;
             return this;
         }
 
@@ -70,16 +70,16 @@ public class LogMessage {
         }
 
         public LogMessage createLogMessage() {
-            return new LogMessage(time, logLevel, message, throwable, flowFileUUID, objects);
+            return new LogMessage(time, logLevel, message, throwable, flowFileUuid, objects);
         }
     }
 
-    private LogMessage(final long time, final LogLevel logLevel, final String message, final Throwable throwable, final String flowFileUUID, final Object[] objects) {
+    private LogMessage(final long time, final LogLevel logLevel, final String message, final Throwable throwable, final String flowFileUuid, final Object[] objects) {
         this.logLevel = logLevel;
         this.throwable = throwable;
         this.message = message;
         this.time = time;
-        this.flowFileUUID = flowFileUUID;
+        this.flowFileUuid = flowFileUuid;
         this.objects = objects;
     }
 
@@ -99,8 +99,8 @@ public class LogMessage {
         return throwable;
     }
 
-    public String getFlowFileUUID() {
-        return flowFileUUID;
+    public String getFlowFileUuid() {
+        return flowFileUuid;
     }
 
     public Object[] getObjects() {
