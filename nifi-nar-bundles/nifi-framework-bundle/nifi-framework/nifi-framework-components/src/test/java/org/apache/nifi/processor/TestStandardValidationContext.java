@@ -45,7 +45,6 @@ public class TestStandardValidationContext {
             .allowableValues("abc", "xyz")
             .defaultValue("abc")
             .build();
-        final PropertyConfiguration configurationA = new PropertyConfiguration("abc", new StandardParameterTokenList("abc", Collections.emptyList()), Collections.emptyList());
 
         final PropertyDescriptor descriptorB = new PropertyDescriptor.Builder()
             .name("B")
@@ -58,7 +57,6 @@ public class TestStandardValidationContext {
         final Function<String, PropertyDescriptor> propertyLookup = propName -> propName.equals("A") ? descriptorA : null;
 
         final Map<PropertyDescriptor, PropertyConfiguration> properties = new HashMap<>();
-        properties.put(descriptorA, configurationA);
         properties.put(descriptorB, configurationB);
 
         StandardValidationContext context = new StandardValidationContext(csProvider, properties, null, "1234", "12345", VariableRegistry.EMPTY_REGISTRY, null, false);
