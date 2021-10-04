@@ -34,7 +34,7 @@ public class AzureKeyVaultSecretSensitivePropertyProvider implements SensitivePr
 
     private SecretClient secretClient;
 
-    public AzureKeyVaultSecretSensitivePropertyProvider(final SecretClient secretClient) {
+    AzureKeyVaultSecretSensitivePropertyProvider(final SecretClient secretClient) {
         this.secretClient = secretClient;
     }
 
