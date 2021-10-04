@@ -39,15 +39,13 @@ public abstract class AbstractSecretBasedParameterValueProvider extends Abstract
     public static final PropertyDescriptor DEFAULT_SECRET_NAME = new PropertyDescriptor.Builder()
             .displayName("Default Secret Name")
             .name("default-secret-name")
-            .required(true)
-            .defaultValue("Default")
             .description("The default secret name to use.  This secret represents a default Parameter Context if there is not a matching key within the mapped Parameter Context secret")
             .addValidator(NON_EMPTY_VALIDATOR)
             .build();
 
     private List<PropertyDescriptor> descriptors;
 
-    private String defaultSecretName;
+    private String defaultSecretName = null;
 
     private Map<String, String> contextToSecretMapping;
 
@@ -112,7 +110,7 @@ public abstract class AbstractSecretBasedParameterValueProvider extends Abstract
     @Override
     public String getParameterValue(final String contextName, final String parameterName) {
         final String contextBasedValue = getSecretValue(getSecretName(contextName), parameterName);
-        return contextBasedValue != null ? contextBasedValue : getSecretValue(defaultSecretName, parameterName);
+        return contextBasedValue != null || defaultSecretName == null ? contextBasedValue : getSecretValue(defaultSecretName, parameterName);
     }
 
     private String getSecretName(final String contextName) {

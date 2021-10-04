@@ -553,4 +553,22 @@ An example of configuring this provider in the dataflow configuration file is:
 nifi.stateless.parameter.provider.AWSSecretsManager.name=AWS SecretsManager Provider
 nifi.stateless.parameter.provider.AWSSecretsManager.type=org.apache.nifi.stateless.parameter.AwsSecretsManagerParameterValueProvider
 nifi.stateless.parameter.provider.AWSSecretsManager.properties.aws-credentials-file=./conf/bootstrap-aws.conf
+nifi.stateless.parameter.provider.AWSSecretsManager.properties.default-secret-name=Default
+nifi.stateless.parameter.provider.AWSSecretsManager.properties.MyContextName=MappedSecretName
 ```
+
+This provider will map each ParameterContext to a secret of the same name.  In the above example, the Parameter Context named `MyContextName`
+will instead be mapped to a secret named `MappedSecretName`.
+
+Additionally, the provider will assume there is a secret named `Default` that may contain any parameters not found in other mapped ParameterContexts.
+For example, assume the following dataflow and AWS SecretsManager configuration:
+
+- Flow contains a ParameterContext named `ABC`, with parameters `foo` and `bar`.
+- Flow contains a ParameterContext named `MyContextName`, with parameter `baz`.
+- AWS SecretsManager contains a secret named `ABC`, with a key of `foo`.
+- AWS SecretsManager also contains a secret named `Default`, with keys `foo` and `bar`.
+- AWS SecretsManager also contains a secret named `MappedSecretName`, with a key of `baz`.
+
+When executing the dataflow with the above provider configuration, the `foo` parameter will be pulled from the `ABC` secret, since it was found directly in the mapped secret.
+However, the `bar` parameter will be pulled from the `Default` secret, because it was not found in the `ABC` secret, but was found in the `Default` secret, which is indicated by the `default-secret-name` property.
+Additionally, Stateless will pull the `baz` parameter from the `MappedSecretName` secret because of the `MyContextName` mapping property.

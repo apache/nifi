@@ -108,8 +108,18 @@ public class TestSecretsManagerParameterValueProvider {
 
         final Map<String, String> dynamicProperties = new HashMap<>();
         dynamicProperties.put(CONTEXT, mappedSecretName);
-        provider.init(createContext(CONFIG_FILE, dynamicProperties));
+        provider.init(createContext(CONFIG_FILE, null, dynamicProperties));
         assertEquals(VALUE, provider.getParameterValue(CONTEXT, PARAMETER));
+    }
+
+    @Test
+    public void testGetParameterValueWithNoDefault() throws JsonProcessingException {
+        mockGetSecretValue("Does not exist", PARAMETER, null, false, true);
+
+        provider.init(createContext(CONFIG_FILE, null, Collections.emptyMap()));
+
+        // Nothing to fall back to here
+        assertNull(provider.getParameterValue("Does not exist", PARAMETER));
     }
 
     private void runGetParameterValueTest(final String configFileName) throws JsonProcessingException {
@@ -149,10 +159,10 @@ public class TestSecretsManagerParameterValueProvider {
     }
 
     private static ParameterValueProviderInitializationContext createContext(final String awsConfigFilename) {
-        return createContext(awsConfigFilename, Collections.emptyMap());
+        return createContext(awsConfigFilename, DEFAULT_SECRET_NAME, Collections.emptyMap());
     }
 
-    private static ParameterValueProviderInitializationContext createContext(final String awsConfigFilename, final Map<String, String> dynamicProperties) {
+    private static ParameterValueProviderInitializationContext createContext(final String awsConfigFilename, final String defaultSecretName, final Map<String, String> dynamicProperties) {
         return new ParameterValueProviderInitializationContext() {
             @Override
             public String getIdentifier() {
@@ -164,7 +174,7 @@ public class TestSecretsManagerParameterValueProvider {
                 if (descriptor.equals(AwsSecretsManagerParameterValueProvider.AWS_CREDENTIALS_FILE)) {
                     return new StandardPropertyValue(awsConfigFilename, null, null);
                 } else if (descriptor.equals(AwsSecretsManagerParameterValueProvider.DEFAULT_SECRET_NAME)) {
-                    return new StandardPropertyValue(DEFAULT_SECRET_NAME, null, null);
+                    return new StandardPropertyValue(defaultSecretName, null, null);
                 }
                 return null;
             }
@@ -173,7 +183,7 @@ public class TestSecretsManagerParameterValueProvider {
             public Map<String, String> getAllProperties() {
                 final Map<String, String> properties = new HashMap<>(dynamicProperties);
                 properties.put(AwsSecretsManagerParameterValueProvider.AWS_CREDENTIALS_FILE.getName(), awsConfigFilename);
-                properties.put(AwsSecretsManagerParameterValueProvider.DEFAULT_SECRET_NAME.getName(), DEFAULT_SECRET_NAME);
+                properties.put(AwsSecretsManagerParameterValueProvider.DEFAULT_SECRET_NAME.getName(), defaultSecretName);
                 return properties;
             }
         };
