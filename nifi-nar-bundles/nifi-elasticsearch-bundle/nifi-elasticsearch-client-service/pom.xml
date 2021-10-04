@@ -26,9 +26,15 @@
     <packaging>jar</packaging>
 
     <properties>
+        <!-- use with integration-tests only -->
         <es.int.version>5.6.16</es.int.version>
-        <script.name>setup-5.script</script.name>
-        <type.name>faketype</type.name>
+        <es.int.script.name>setup-5.script</es.int.script.name>
+        <es.int.type.name>faketype</es.int.type.name>
+        <es.int.clusterName>testCluster</es.int.clusterName>
+        <es.int.transportPort>9500</es.int.transportPort>
+        <es.int.httpPort>9400</es.int.httpPort>
+        <es.int.timeout>90</es.int.timeout>
+        <es.int.logLevel>ERROR</es.int.logLevel>
     </properties>
 
     <dependencies>
@@ -105,6 +111,18 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-web-test-utils</artifactId>
+            <version>1.15.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-utils</artifactId>
+            <version>1.15.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-elasticsearch-client-service-api</artifactId>
             <version>1.15.0-SNAPSHOT</version>
             <scope>provided</scope>
@@ -160,61 +178,152 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-artifact</artifactId>
+            <version>3.6.3</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-json</artifactId>
             <version>${nifi.groovy.version}</version>
             <scope>test</scope>
-	</dependency>
-	<dependency>
+        </dependency>
+        <dependency>
             <groupId>org.elasticsearch.client</groupId>
             <artifactId>elasticsearch-rest-client</artifactId>
             <version>5.6.16</version>
         </dependency>
     </dependencies>
 
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>3.0.0-M3</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.github.alexcojocaru</groupId>
+                    <artifactId>elasticsearch-maven-plugin</artifactId>
+                    <version>6.19</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
     <profiles>
         <profile>
-            <id>integration-6</id>
+            <!-- use with elasticsearch-oss only (-default can be used if x-pack-ml permissions fixed) -->
+            <id>elasticsearch-6</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
             <properties>
                 <es.int.version>6.8.13</es.int.version>
-                <type.name>_doc</type.name>
-                <script.name>setup-6.script</script.name>
+                <es.int.type.name>_doc</es.int.type.name>
+                <es.int.script.name>setup-6.script</es.int.script.name>
             </properties>
         </profile>
         <profile>
-            <id>integration-7</id>
+            <!-- use with elasticsearch-oss or elasticsearch-default -->
+            <id>elasticsearch-7</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
             <properties>
-                <es.int.version>7.10.0</es.int.version>
-                <script.name>setup-7.script</script.name>
-                <type.name>_doc</type.name>
+                <es.int.version>7.10.2</es.int.version>
+                <es.int.script.name>setup-7.script</es.int.script.name>
+                <es.int.type.name/>
             </properties>
         </profile>
+
         <profile>
-            <id>integration-tests</id>
+            <!-- OSS Elasticsearch (no XPack features); required for ES 5.x or < 6.3-->
+            <id>elasticsearch-oss</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
-                        <version>3.0.0-M3</version>
                         <configuration>
                             <systemPropertyVariables>
-                                <type_name>${type.name}</type_name>
+                                <type_name>${es.int.type.name}</type_name>
+                                <es_version>${es.int.version}</es_version>
+                                <es_flavour>oss</es_flavour>
                             </systemPropertyVariables>
                         </configuration>
                     </plugin>
                     <plugin>
                         <groupId>com.github.alexcojocaru</groupId>
                         <artifactId>elasticsearch-maven-plugin</artifactId>
-                        <version>6.19</version>
                         <configuration>
-                            <clusterName>testCluster</clusterName>
-                            <transportPort>9500</transportPort>
-                            <httpPort>9400</httpPort>
+                            <clusterName>${es.int.clusterName}</clusterName>
+                            <transportPort>${es.int.transportPort}</transportPort>
+                            <httpPort>${es.int.httpPort}</httpPort>
                             <version>${es.int.version}</version>
-                            <timeout>90</timeout>
-                            <logLevel>ERROR</logLevel>
-                            <pathInitScript>${project.basedir}/src/test/resources/${script.name}</pathInitScript>
+                            <timeout>${es.int.timeout}</timeout>
+                            <logLevel>${es.int.logLevel}</logLevel>
+                            <pathInitScript>${project.basedir}/src/test/resources/${es.int.script.name}</pathInitScript>
+                            <keepExistingData>false</keepExistingData>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>start-elasticsearch</id>
+                                <phase>pre-integration-test</phase>
+                                <goals>
+                                    <goal>runforked</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>stop-elasticsearch</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>stop</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <!-- Elasticsearch (default) with XPack (only for ES 6.3+ although there are XPack permission problems in 6.x startup) -->
+            <id>elasticsearch-default</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <type_name>${es.int.type.name}</type_name>
+                                <es_version>${es.int.version}</es_version>
+                                <es_flavour>default</es_flavour>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.github.alexcojocaru</groupId>
+                        <artifactId>elasticsearch-maven-plugin</artifactId>
+                        <configuration>
+                            <flavour>default</flavour>
+                            <clusterName>${es.int.clusterName}</clusterName>
+                            <transportPort>${es.int.transportPort}</transportPort>
+                            <httpPort>${es.int.httpPort}</httpPort>
+                            <version>${es.int.version}</version>
+                            <timeout>${es.int.timeout}</timeout>
+                            <logLevel>${es.int.logLevel}</logLevel>
+                            <pathInitScript>${project.basedir}/src/test/resources/${es.int.script.name}</pathInitScript>
+                            <keepExistingData>false</keepExistingData>
                         </configuration>
                         <executions>
                             <execution>

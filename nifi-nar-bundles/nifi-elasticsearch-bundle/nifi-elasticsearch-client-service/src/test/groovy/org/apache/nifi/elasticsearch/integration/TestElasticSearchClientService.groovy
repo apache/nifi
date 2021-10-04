@@ -68,11 +68,31 @@ class TestElasticSearchClientService extends AbstractControllerService implement
     }
 
     @Override
-    SearchResponse search(String query, String index, String type) {
+    SearchResponse search(String query, String index, String type, Map<String, String> requestParameters) {
         List hits = [[
             "_source": data
         ]]
-        return new SearchResponse(hits, null, 1, 100, false)
+        return new SearchResponse(hits, null, null, null, null, 1, 100, false, null)
+    }
+
+    @Override
+    SearchResponse scroll(String scroll) {
+        return search(null, null, null, null)
+    }
+
+    @Override
+    String initialisePointInTime(String index, String keepAlive) {
+        return null
+    }
+
+    @Override
+    DeleteOperationResponse deletePointInTime(String pitId) {
+        return null
+    }
+
+    @Override
+    DeleteOperationResponse deleteScroll(String scrollId) {
+        return null
     }
 
     @Override

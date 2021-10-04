@@ -18,7 +18,11 @@
 package org.apache.nifi.processors.elasticsearch.mock
 
 import org.apache.nifi.controller.AbstractControllerService
-import org.apache.nifi.elasticsearch.*
+import org.apache.nifi.elasticsearch.DeleteOperationResponse
+import org.apache.nifi.elasticsearch.ElasticSearchClientService
+import org.apache.nifi.elasticsearch.IndexOperationRequest
+import org.apache.nifi.elasticsearch.IndexOperationResponse
+import org.apache.nifi.elasticsearch.SearchResponse
 
 class AbstractMockElasticsearchClient extends AbstractControllerService implements ElasticSearchClientService {
     boolean throwRetriableError
@@ -60,7 +64,27 @@ class AbstractMockElasticsearchClient extends AbstractControllerService implemen
     }
 
     @Override
-    SearchResponse search(String query, String index, String type) {
+    SearchResponse search(String query, String index, String type, Map<String, String> requestParameters) {
+        return null
+    }
+
+    @Override
+    SearchResponse scroll(String scroll) {
+        return null
+    }
+
+    @Override
+    String initialisePointInTime(String index, String keepAlive) {
+        return null
+    }
+
+    @Override
+    DeleteOperationResponse deletePointInTime(String pitId) {
+        return null
+    }
+
+    @Override
+    DeleteOperationResponse deleteScroll(String scrollId) {
         return null
     }
 

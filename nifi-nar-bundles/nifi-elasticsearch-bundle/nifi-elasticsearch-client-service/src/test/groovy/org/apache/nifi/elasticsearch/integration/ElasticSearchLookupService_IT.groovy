@@ -31,7 +31,9 @@ import org.apache.nifi.serialization.record.type.RecordDataType
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.Assert
+import org.junit.Assume
 import org.junit.Before
+import org.junit.BeforeClass
 import org.junit.Test
 
 class ElasticSearchLookupService_IT {
@@ -39,7 +41,15 @@ class ElasticSearchLookupService_IT {
     private ElasticSearchClientService service
     private ElasticSearchLookupService lookupService
 
-    static String TYPE  = System.getProperty("type_name")
+    @BeforeClass
+    static void beforeAll() throws Exception {
+        Assume.assumeTrue("Elasticsearch integration-tests not setup", ElasticSearchClientService_IT.isElasticsearchSetup())
+
+        System.out.println(
+                String.format("%n%n%n%n%n%n%n%n%n%n%n%n%n%n%nTYPE: %s%nVERSION: %s%nFLAVOUR %s%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n",
+                        ElasticSearchClientService_IT.TYPE, ElasticSearchClientService_IT.VERSION, ElasticSearchClientService_IT.FLAVOUR)
+        )
+    }
 
     @Before
     void before() throws Exception {
@@ -56,7 +66,7 @@ class ElasticSearchLookupService_IT {
         runner.setProperty(TestControllerServiceProcessor.LOOKUP_SERVICE, "Lookup Service")
         runner.setProperty(lookupService, ElasticSearchLookupService.CLIENT_SERVICE, "Client Service")
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "user_details")
-        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, TYPE)
+        setTypeOnLookupService()
 
         try {
             runner.enableControllerService(service)
@@ -64,6 +74,14 @@ class ElasticSearchLookupService_IT {
         } catch (Exception ex) {
             ex.printStackTrace()
             throw ex
+        }
+    }
+
+    void setTypeOnLookupService() {
+        if (ElasticSearchClientService_IT.TYPE != null) {
+            runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, ElasticSearchClientService_IT.TYPE)
+        } else {
+            runner.removeProperty(lookupService, ElasticSearchLookupService.TYPE)
         }
     }
 
@@ -107,7 +125,7 @@ class ElasticSearchLookupService_IT {
         ]
 
         coordinates.each { coordinate ->
-            def exception
+            def exception = null
 
             try {
                 lookupService.lookup(coordinate)
@@ -143,7 +161,7 @@ class ElasticSearchLookupService_IT {
 
         runner.disableControllerService(lookupService)
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "nested")
-        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, TYPE)
+        setTypeOnLookupService()
         runner.enableControllerService(lookupService)
 
         Optional<Record> response = lookupService.lookup(coordinates)
@@ -164,7 +182,7 @@ class ElasticSearchLookupService_IT {
     void testDetectedSchema() throws LookupFailureException {
         runner.disableControllerService(lookupService)
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "complex")
-        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, TYPE)
+        setTypeOnLookupService()
         runner.enableControllerService(lookupService)
         def coordinates = ["_id": "1" ]
 
@@ -186,7 +204,7 @@ class ElasticSearchLookupService_IT {
         Assert.assertEquals("2018-04-10T12:18:05Z", subRec.getValue("dateField"))
     }
 
-    Record getSubRecord(Record rec, String fieldName) {
+    static Record getSubRecord(Record rec, String fieldName) {
         RecordSchema schema = rec.schema
         RecordSchema subSchema = ((RecordDataType)schema.getField(fieldName).get().dataType).childSchema
         rec.getAsRecord(fieldName, subSchema)
@@ -198,7 +216,7 @@ class ElasticSearchLookupService_IT {
         runner.setProperty(lookupService, "\$.subField.longField", "/longField2")
         runner.setProperty(lookupService, '$.subField.dateField', '/dateField2')
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "nested")
-        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, TYPE)
+        setTypeOnLookupService()
         runner.enableControllerService(lookupService)
 
         def coordinates = ["msg": "Hello, world"]

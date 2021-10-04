@@ -38,7 +38,7 @@ class DeleteByQueryElasticsearchTest {
         runner.setProperty(DeleteByQueryElasticsearch.CLIENT_SERVICE, CLIENT_NAME)
     }
 
-    private void postTest(TestRunner runner, String queryParam) {
+    private static void postTest(TestRunner runner, String queryParam) {
         runner.assertTransferCount(DeleteByQueryElasticsearch.REL_FAILURE, 0)
         runner.assertTransferCount(DeleteByQueryElasticsearch.REL_SUCCESS, 1)
 
