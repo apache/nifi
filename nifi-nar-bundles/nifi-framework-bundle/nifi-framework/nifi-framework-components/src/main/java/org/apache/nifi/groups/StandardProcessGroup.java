@@ -158,6 +158,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -4293,16 +4294,30 @@ public final class StandardProcessGroup implements ProcessGroup {
         //As Input Port (IP1) originally belonged to PGA the new connection would be incorrectly linked to the old Input Port
         //instead of the one being in PGB, so it needs to be removed first before updating the connections.
 
-        for (final String removedVersionedId : inputPortsRemoved) {
+        Iterator<String> inputPortsRemovedIterator = inputPortsRemoved.iterator();
+        while (inputPortsRemovedIterator.hasNext()) {
+            final String removedVersionedId = inputPortsRemovedIterator.next();
             final Port port = inputPortsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", port, group);
-            group.removeInputPort(port);
+            try {
+                group.removeInputPort(port);
+                inputPortsRemovedIterator.remove();
+            } catch (IllegalStateException e) {
+                LOG.info("Removing {} from {} not possible at the moment, will try again after updated the connections.", port, group);
+            }
         }
 
-        for (final String removedVersionedId : outputPortsRemoved) {
+        Iterator<String> outputPortsRemovedIterator = outputPortsRemoved.iterator();
+        while (outputPortsRemovedIterator.hasNext()) {
+            final String removedVersionedId = outputPortsRemovedIterator.next();
             final Port port = outputPortsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", port, group);
-            group.removeOutputPort(port);
+            try {
+                group.removeOutputPort(port);
+                outputPortsRemovedIterator.remove();
+            } catch (IllegalStateException e) {
+                LOG.info("Removing {} from {} not possible at the moment, will try again after updated the connections.", port, group);
+            }
         }
 
         // Add and update Connections
@@ -4341,6 +4356,20 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Funnel funnel = funnelsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", funnel, group);
             group.removeFunnel(funnel);
+        }
+
+        //Removing remaining input ports
+        for (final String removedVersionedId : inputPortsRemoved) {
+            final Port port = inputPortsByVersionedId.get(removedVersionedId);
+            LOG.info("Removing {} from {}", port, group);
+            group.removeInputPort(port);
+        }
+
+        //Removing remaining output ports
+        for (final String removedVersionedId : outputPortsRemoved) {
+            final Port port = outputPortsByVersionedId.get(removedVersionedId);
+            LOG.info("Removing {} from {}", port, group);
+            group.removeOutputPort(port);
         }
 
         // Now that all input/output ports have been removed, we should be able to update
