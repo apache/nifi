@@ -165,10 +165,12 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         this.client = builder.build();
     }
 
-    private Response runQuery(String endpoint, String query, String index, String type) {
-        StringBuilder sb = new StringBuilder()
-            .append("/").append(index);
-        if (type != null && !type.equals("")) {
+    private Response runQuery(String endpoint, String query, String index, String type, Map<String, String> requestParameters) {
+        StringBuilder sb = new StringBuilder();
+        if (StringUtils.isNotBlank(index)) {
+            sb.append("/").append(index);
+        }
+        if (StringUtils.isNotBlank(type)) {
             sb.append("/").append(type);
         }
 
@@ -177,12 +179,13 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         HttpEntity queryEntity = new NStringEntity(query, ContentType.APPLICATION_JSON);
 
         try {
-            return client.performRequest("POST", sb.toString(), Collections.emptyMap(), queryEntity);
+            return client.performRequest("POST", sb.toString(), requestParameters != null ? requestParameters : Collections.emptyMap(), queryEntity);
         } catch (Exception e) {
             throw new ElasticsearchError(e);
         }
     }
 
+    @SuppressWarnings("unchecked")
     private Map<String, Object> parseResponse(Response response) {
         final int code = response.getStatusLine().getStatusCode();
 
@@ -293,7 +296,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     @Override
     public Long count(String query, String index, String type) {
-        Response response = runQuery("_count", query, index, type);
+        Response response = runQuery("_count", query, index, type, null);
         Map<String, Object> parsed = parseResponse(response);
 
         return ((Integer)parsed.get("count")).longValue();
@@ -331,23 +334,27 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     @Override
     public DeleteOperationResponse deleteByQuery(String query, String index, String type) {
-        long start = System.currentTimeMillis();
-        Response response = runQuery("_delete_by_query", query, index, type);
-        long end   = System.currentTimeMillis();
+        final StopWatch watch = new StopWatch();
+        watch.start();
+        Response response = runQuery("_delete_by_query", query, index, type, null);
+        watch.stop();
 
         // check for errors in response
         parseResponse(response);
 
-        return new DeleteOperationResponse(end - start);
+        return new DeleteOperationResponse(watch.getDuration(TimeUnit.MILLISECONDS));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Map<String, Object> get(String index, String type, String id) {
         try {
             StringBuilder endpoint = new StringBuilder();
             endpoint.append(index);
-            if (!StringUtils.isEmpty(type)) {
+            if (StringUtils.isNotBlank(type)) {
                 endpoint.append("/").append(type);
+            } else {
+                endpoint.append("/_doc");
             }
             endpoint.append("/").append(id);
             Response response = client.performRequest("GET", endpoint.toString(), new BasicHeader("Content-Type", "application/json"));
@@ -364,6 +371,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     /*
      * In pre-7.X ElasticSearch, it should return just a number. 7.X and after they are returning a map.
      */
+    @SuppressWarnings("unchecked")
     private int handleSearchCount(Object raw) {
         if (raw instanceof Number) {
             return Integer.parseInt(raw.toString());
@@ -375,44 +383,143 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     }
 
     @Override
-    public SearchResponse search(String query, String index, String type) {
-        Response response = runQuery("_search", query, index, type);
-        Map<String, Object> parsed = parseResponse(response);
+    public SearchResponse search(String query, String index, String type, Map<String, String> requestParameters) {
+        try {
+            final Response response = runQuery("_search", query, index, type, requestParameters);
+            return buildSearchResponse(response);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
 
-        int took = (Integer)parsed.get("took");
-        boolean timedOut = (Boolean)parsed.get("timed_out");
-        Map<String, Object> aggregations = parsed.get("aggregations") != null
+    @Override
+    public SearchResponse scroll(String scroll) {
+        try {
+            final HttpEntity scrollEntity = new NStringEntity(scroll, ContentType.APPLICATION_JSON);
+            final Response response = client.performRequest("POST", "/_search/scroll", Collections.emptyMap(), scrollEntity);
+
+            return buildSearchResponse(response);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    @Override
+    public String initialisePointInTime(String index, String keepAlive) {
+        try {
+            final Map<String, String> params = new HashMap<String, String>() {{
+                if (StringUtils.isNotBlank(keepAlive)) {
+                    put("keep_alive", keepAlive);
+                }
+            }};
+            final Response response = client.performRequest("POST", index + "/_pit", params);
+            final String body = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug(String.format("Response for initialising Point in Time: %s", body));
+            }
+
+            return (String) mapper.readValue(body, Map.class).get("id");
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    @Override
+    public DeleteOperationResponse deletePointInTime(String pitId) {
+        try {
+            final HttpEntity pitEntity = new NStringEntity(String.format("{\"id\": \"%s\"}", pitId), ContentType.APPLICATION_JSON);
+
+            final StopWatch watch = new StopWatch();
+            watch.start();
+            final Response response = client.performRequest("DELETE", "/_pit", Collections.emptyMap(), pitEntity);
+            watch.stop();
+
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug(String.format("Response for deleting Point in Time: %s",
+                        IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8))
+                );
+            }
+
+            return new DeleteOperationResponse(watch.getDuration(TimeUnit.MILLISECONDS));
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    @Override
+    public DeleteOperationResponse deleteScroll(String scrollId) {
+        try {
+            final HttpEntity scrollBody = new NStringEntity(String.format("{\"scroll_id\": \"%s\"}", scrollId), ContentType.APPLICATION_JSON);
+
+            final StopWatch watch = new StopWatch();
+            watch.start();
+            final Response response = client.performRequest("DELETE", "/_search/scroll", Collections.emptyMap(), scrollBody);
+            watch.stop();
+
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug(String.format("Response for deleting Scroll: %s",
+                        IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8))
+                );
+            }
+
+            return new DeleteOperationResponse(watch.getDuration(TimeUnit.MILLISECONDS));
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private SearchResponse buildSearchResponse(final Response response) throws JsonProcessingException {
+        final Map<String, Object> parsed = parseResponse(response);
+
+        final int took = (Integer)parsed.get("took");
+        final boolean timedOut = (Boolean)parsed.get("timed_out");
+        final String pitId = parsed.get("pit_id") != null ? (String)parsed.get("pit_id") : null;
+        final String scrollId = parsed.get("_scroll_id") != null ? (String)parsed.get("_scroll_id") : null;
+        final Map<String, Object> aggregations = parsed.get("aggregations") != null
                 ? (Map<String, Object>)parsed.get("aggregations") : new HashMap<>();
-        Map<String, Object> hitsParent = (Map<String, Object>)parsed.get("hits");
-        int count = handleSearchCount(hitsParent.get("total"));
-        List<Map<String, Object>> hits = (List<Map<String, Object>>)hitsParent.get("hits");
+        final Map<String, Object> hitsParent = (Map<String, Object>)parsed.get("hits");
+        final int count = handleSearchCount(hitsParent.get("total"));
+        final List<Map<String, Object>> hits = (List<Map<String, Object>>)hitsParent.get("hits");
+        final String searchAfter = getSearchAfter(hits);
 
-        SearchResponse esr = new SearchResponse(hits, aggregations, count, took, timedOut);
+        final SearchResponse esr = new SearchResponse(hits, aggregations, pitId, scrollId, searchAfter, count, took, timedOut);
 
         if (getLogger().isDebugEnabled()) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("******************");
-            sb.append(String.format("Took: %d", took));
-            sb.append(String.format("Timed out: %s", timedOut));
-            sb.append(String.format("Aggregation count: %d", aggregations.size()));
-            sb.append(String.format("Hit count: %d", hits.size()));
-            sb.append(String.format("Total found: %d", count));
-            sb.append("******************");
-
-            getLogger().debug(sb.toString());
+            final String searchSummary = "******************" +
+                    String.format("Took: %d", took) +
+                    String.format("Timed out: %s", timedOut) +
+                    String.format("Aggregation count: %d", aggregations.size()) +
+                    String.format("Hit count: %d", hits.size()) +
+                    String.format("PIT Id: %s", pitId) +
+                    String.format("Scroll Id: %s", scrollId) +
+                    String.format("Search After: %s", searchAfter) +
+                    String.format("Total found: %d", count) +
+                    "******************";
+            getLogger().debug(searchSummary);
         }
 
         return esr;
     }
 
+    private String getSearchAfter(final List<Map<String, Object>> hits) throws JsonProcessingException {
+        String searchAfter = null;
+        if (!hits.isEmpty()) {
+            final Object lastHitSort = hits.get(hits.size() - 1).get("sort");
+            if (lastHitSort != null && !"null".equalsIgnoreCase(lastHitSort.toString())) {
+                searchAfter = mapper.writeValueAsString(lastHitSort);
+            }
+        }
+        return searchAfter;
+    }
+
     @Override
     public String getTransitUrl(String index, String type) {
-        return new StringBuilder()
-                .append(this.url)
-                .append(StringUtils.isNotBlank(index) ? "/" : "")
-                .append(StringUtils.isNotBlank(index) ? index : "")
-                .append(StringUtils.isNotBlank(type) ? "/" : "")
-                .append(StringUtils.isNotBlank(type) ? type : "")
-                .toString();
+        return this.url +
+                (StringUtils.isNotBlank(index) ? "/" : "") +
+                (StringUtils.isNotBlank(index) ? index : "") +
+                (StringUtils.isNotBlank(type) ? "/" : "") +
+                (StringUtils.isNotBlank(type) ? type : "");
     }
 }

@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 public class IndexOperationResponse {
-    private long took;
+    private final long took;
     private boolean hasErrors;
     private List<Map<String, Object>> items;
 
@@ -40,6 +40,7 @@ public class IndexOperationResponse {
         return hasErrors;
     }
 
+    @SuppressWarnings("unchecked")
     public static IndexOperationResponse fromJsonResponse(String response) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> parsedResponse = mapper.readValue(response, Map.class);
@@ -56,5 +57,14 @@ public class IndexOperationResponse {
 
     public List<Map<String, Object>> getItems() {
         return items;
+    }
+
+    @Override
+    public String toString() {
+        return "IndexOperationResponse{" +
+                "took=" + took +
+                ", hasErrors=" + hasErrors +
+                ", items=" + items +
+                '}';
     }
 }

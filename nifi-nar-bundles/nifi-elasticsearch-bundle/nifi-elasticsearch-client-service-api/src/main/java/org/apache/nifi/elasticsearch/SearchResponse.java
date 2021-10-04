@@ -26,14 +26,20 @@ public class SearchResponse {
     private long numberOfHits;
     private int took;
     private boolean timedOut;
+    private String pitId;
+    private String scrollId;
+    private String searchAfter;
 
     public SearchResponse(List<Map<String, Object>> hits, Map<String, Object> aggregations,
-                          int numberOfHits, int took, boolean timedOut) {
+                          String pitId, String scrollId, String searchAfter, int numberOfHits, int took, boolean timedOut) {
         this.hits = hits;
         this.aggregations = aggregations;
+        this.pitId = pitId;
+        this.scrollId = scrollId;
         this.numberOfHits = numberOfHits;
         this.took = took;
         this.timedOut = timedOut;
+        this.searchAfter = searchAfter;
     }
 
     public Map<String, Object> getAggregations() {
@@ -42,6 +48,18 @@ public class SearchResponse {
 
     public List<Map<String, Object>> getHits() {
         return hits;
+    }
+
+    public String getPitId() {
+        return pitId;
+    }
+
+    public String getScrollId() {
+        return scrollId;
+    }
+
+    public String getSearchAfter() {
+        return searchAfter;
     }
 
     public long getNumberOfHits() {
@@ -62,6 +80,11 @@ public class SearchResponse {
                 "hits=" + hits +
                 ", aggregations=" + aggregations +
                 ", numberOfHits=" + numberOfHits +
+                ", took=" + took +
+                ", timedOut=" + timedOut +
+                ", pitId='" + pitId + '\'' +
+                ", scrollId='" + scrollId + '\'' +
+                ", searchAfter='" + searchAfter + '\'' +
                 '}';
     }
 }

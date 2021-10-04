@@ -24,8 +24,8 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.ByteArrayOutputStream;
@@ -61,6 +61,7 @@ public interface ElasticsearchRestProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(JsonValidator.INSTANCE)
             .build();
+
     PropertyDescriptor QUERY_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("el-query-attribute")
             .displayName("Query Attribute")
@@ -111,11 +112,11 @@ public interface ElasticsearchRestProcessor {
         if (context.getProperty(QUERY).isSet()) {
             retVal = context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue();
         } else if (input != null) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            final ByteArrayOutputStream out = new ByteArrayOutputStream();
             session.exportTo(input, out);
             out.close();
 
-            retVal = new String(out.toByteArray());
+            retVal = out.toString();
         }
 
         return retVal;
