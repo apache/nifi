@@ -229,18 +229,27 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     }
 
     @Override
-    public void addReference(final ParameterProviderUsageReference reference) {
-        writeLock.lock();
+    public void verifyCanAddReference(final ParameterProviderUsageReference reference) {
+        readLock.lock();
         try {
             referencingParameterContexts.stream()
                     .filter(existingReference -> existingReference.getSensitivity() != reference.getSensitivity())
                     .findFirst()
                     .ifPresent(existingReference -> {
                         throw new IllegalArgumentException(String.format("Parameter Provider [%s] cannot provide %s parameters to Parameter Context [%s] " +
-                                "because it already providers %s values for Parameter Context [%s]",
+                                        "because it already providers %s values for Parameter Context [%s]",
                                 getIdentifier(), reference.getSensitivity().getName(), reference.getParameterContext().getName(),
                                 existingReference.getSensitivity().getName(), existingReference.getParameterContext().getName()));
                     });
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public void addReference(final ParameterProviderUsageReference reference) {
+        writeLock.lock();
+        try {
             referencingParameterContexts.add(reference);
         } finally {
             writeLock.unlock();

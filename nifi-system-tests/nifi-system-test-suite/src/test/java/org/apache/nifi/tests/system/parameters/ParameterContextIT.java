@@ -271,7 +271,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         // Processor is still valid with user-entered parameter
         waitForValidProcessor(processorId);
 
-        // Check sensitivity restrictions
+        // Can't set the same provider for both sensitivities
         assertThrows(NiFiClientException.class, () -> updateParameterContext(updatedContextEntity, Collections.emptyMap(), Collections.emptyList(), sensitiveProvider, sensitiveProvider));
         assertThrows(NiFiClientException.class, () -> updateParameterContext(updatedContextEntity, Collections.emptyMap(), Collections.emptyList(), nonSensitiveProvider, nonSensitiveProvider));
     }

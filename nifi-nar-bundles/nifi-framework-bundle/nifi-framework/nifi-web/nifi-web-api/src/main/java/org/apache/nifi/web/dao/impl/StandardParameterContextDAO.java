@@ -305,6 +305,11 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         final ParameterProvider sensitiveParameterProvider = getSensitiveParameterProvider(parameterContextDto);
         final ParameterProvider nonSensitiveParameterProvider = getNonSensitiveParameterProvider(parameterContextDto);
 
+        if (sensitiveParameterProvider != null && nonSensitiveParameterProvider != null && sensitiveParameterProvider.getIdentifier().equals(nonSensitiveParameterProvider.getIdentifier())) {
+            throw new IllegalArgumentException(String.format("Parameter Provider [%s] may not be both the sensitive and non-sensitive provider for Parameter Context [%s]",
+                    sensitiveParameterProvider.getIdentifier(), currentContext.getName()));
+        }
+
         final Map<String, Parameter> parameters = parameterContextDto.getParameters() == null ? Collections.emptyMap() : getParameters(parameterContextDto, currentContext);
 
         currentContext.verifyCanUpdateParameterContext(parameters, inheritedParameterContexts, sensitiveParameterProvider, nonSensitiveParameterProvider);
