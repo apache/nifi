@@ -72,7 +72,7 @@ class TestElasticSearchClientService extends AbstractControllerService implement
         List hits = [[
             "_source": data
         ]]
-        return new SearchResponse(hits, null, null, null, null, 1, 100, false)
+        return new SearchResponse(hits, null, null, null, null, 1, 100, false, null)
     }
 
     @Override

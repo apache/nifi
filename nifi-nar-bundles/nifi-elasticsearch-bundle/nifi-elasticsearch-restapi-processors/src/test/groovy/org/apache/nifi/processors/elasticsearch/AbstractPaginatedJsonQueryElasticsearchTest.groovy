@@ -80,7 +80,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
 
 
         // paged query hits splitting
-        runner.setProperty(AbstractJsonQueryElasticsearch.SPLIT_UP_HITS, AbstractJsonQueryElasticsearch.SPLIT_UP_YES)
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT)
         input = runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 10, 0, 0)
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(
@@ -102,7 +102,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
 
 
         // paged query hits combined
-        runner.setProperty(AbstractJsonQueryElasticsearch.SPLIT_UP_HITS, AbstractPaginatedJsonQueryElasticsearch.SPLIT_UP_COMBINE)
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractPaginatedJsonQueryElasticsearch.FLOWFILE_PER_QUERY)
         input = runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 0)
         hits = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0)
@@ -244,7 +244,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
 
     abstract void testPagination(final AllowableValue paginationType)
 
-    void runMultiple(final TestRunner runner, final int maxIterations) {
+    private void runMultiple(final TestRunner runner, final int maxIterations) {
         if (isInput()) {
             // with an input FlowFile, the processor still only triggers a single time and completes all processing
             runOnce(runner)
@@ -254,7 +254,6 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
             runner.run(maxIterations, true, true)
         }
     }
-
 
     private void assertSendEvent(final TestRunner runner, final MockFlowFile input) {
         if (isInput()) {

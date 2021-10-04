@@ -88,9 +88,9 @@ class TestElasticsearchClientService extends AbstractControllerService implement
             def mapper = new JsonSlurper()
             def hits = mapper.parseText(HITS_RESULT)
             def aggs = returnAggs && pageCount == 1 ? mapper.parseText(AGGS_RESULT) :  null
-            response = new SearchResponse((hits as List<Map<String, Object>>), aggs as Map<String, Object>, "pitId-${pageCount}", "scrollId-${pageCount}", "[\"searchAfter-${pageCount}\"]", 15, 5, false)
+            response = new SearchResponse((hits as List<Map<String, Object>>), aggs as Map<String, Object>, "pitId-${pageCount}", "scrollId-${pageCount}", "[\"searchAfter-${pageCount}\"]", 15, 5, false, null)
         } else {
-            response = new SearchResponse([], [:], "pitId-${pageCount}", "scrollId-${pageCount}", "[\"searchAfter-${pageCount}\"]", 0, 1, false)
+            response = new SearchResponse([], [:], "pitId-${pageCount}", "scrollId-${pageCount}", "[\"searchAfter-${pageCount}\"]", 0, 1, false, null)
         }
         return response
     }

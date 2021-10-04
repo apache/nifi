@@ -28,7 +28,7 @@ public class JsonQueryParameters {
         return query;
     }
 
-    public void setQuery(String query) {
+    public void setQuery(final String query) {
         this.query = query;
     }
 
@@ -36,7 +36,7 @@ public class JsonQueryParameters {
         return index;
     }
 
-    public void setIndex(String index) {
+    public void setIndex(final String index) {
         this.index = index;
     }
 
@@ -44,7 +44,7 @@ public class JsonQueryParameters {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
@@ -52,7 +52,7 @@ public class JsonQueryParameters {
         return queryAttr;
     }
 
-    public void setQueryAttr(String queryAttr) {
+    public void setQueryAttr(final String queryAttr) {
         this.queryAttr = queryAttr;
     }
 
@@ -60,11 +60,11 @@ public class JsonQueryParameters {
         return hitCount;
     }
 
-    public void setHitCount(int hitCount) {
+    public void setHitCount(final int hitCount) {
         this.hitCount = hitCount;
     }
 
-    public void addHitCount(int hitCount) {
+    public void addHitCount(final int hitCount) {
         this.hitCount += hitCount;
     }
 }

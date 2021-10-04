@@ -29,9 +29,11 @@ public class SearchResponse {
     private final String pitId;
     private final String scrollId;
     private final String searchAfter;
+    private final List<String> warnings;
 
     public SearchResponse(final List<Map<String, Object>> hits, final Map<String, Object> aggregations, final String pitId,
-                          final String scrollId, final String searchAfter, final int numberOfHits, final int took, final boolean timedOut) {
+                          final String scrollId, final String searchAfter, final int numberOfHits, final int took, final boolean timedOut,
+                          final List<String> warnings) {
         this.hits = hits;
         this.aggregations = aggregations;
         this.pitId = pitId;
@@ -40,6 +42,7 @@ public class SearchResponse {
         this.took = took;
         this.timedOut = timedOut;
         this.searchAfter = searchAfter;
+        this.warnings = warnings;
     }
 
     public Map<String, Object> getAggregations() {
@@ -74,6 +77,10 @@ public class SearchResponse {
         return took;
     }
 
+    public List<String> getWarnings() {
+        return this.warnings;
+    }
+
     @Override
     public String toString() {
         return "SearchResponse{" +
@@ -85,6 +92,7 @@ public class SearchResponse {
                 ", pitId='" + pitId + '\'' +
                 ", scrollId='" + scrollId + '\'' +
                 ", searchAfter='" + searchAfter + '\'' +
+                ", warnings='" + warnings + '\'' +
                 '}';
     }
 }

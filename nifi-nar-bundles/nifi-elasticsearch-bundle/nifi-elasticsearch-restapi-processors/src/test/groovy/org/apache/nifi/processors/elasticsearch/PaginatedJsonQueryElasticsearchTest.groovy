@@ -60,7 +60,7 @@ class PaginatedJsonQueryElasticsearchTest extends AbstractPaginatedJsonQueryElas
 
 
         // test hits splitting
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SPLIT_UP_HITS, AbstractJsonQueryElasticsearch.SPLIT_UP_YES)
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT)
         runOnce(runner)
         testCounts(runner, 1, 20, 0, 0)
         int count = 0
@@ -76,7 +76,7 @@ class PaginatedJsonQueryElasticsearchTest extends AbstractPaginatedJsonQueryElas
 
 
         // test hits combined
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SPLIT_UP_HITS, AbstractPaginatedJsonQueryElasticsearch.SPLIT_UP_COMBINE)
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractPaginatedJsonQueryElasticsearch.FLOWFILE_PER_QUERY)
         runOnce(runner)
         testCounts(runner, 1, 1, 0, 0)
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "20")

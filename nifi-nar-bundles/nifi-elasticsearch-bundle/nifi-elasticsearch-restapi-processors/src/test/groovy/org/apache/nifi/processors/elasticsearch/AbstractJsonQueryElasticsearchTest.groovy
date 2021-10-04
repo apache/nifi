@@ -50,11 +50,11 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         runner.removeProperty(AbstractJsonQueryElasticsearch.TYPE)
         runner.removeProperty(AbstractJsonQueryElasticsearch.QUERY)
         runner.removeProperty(AbstractJsonQueryElasticsearch.QUERY_ATTRIBUTE)
-        runner.removeProperty(AbstractJsonQueryElasticsearch.SPLIT_UP_AGGREGATIONS)
-        runner.removeProperty(AbstractJsonQueryElasticsearch.SPLIT_UP_HITS)
+        runner.removeProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT)
+        runner.removeProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT)
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner.&run)
-        if (processor instanceof ConsumeElasticsearch) {
+        if (processor instanceof SearchElasticsearch) {
             assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 3 validation failures:\n" +
                     "'%s' is invalid because %s is required\n" +
                     "'%s' is invalid because %s is required\n" +
@@ -80,12 +80,12 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         runner.setProperty(AbstractJsonQueryElasticsearch.INDEX, "")
         runner.setProperty(AbstractJsonQueryElasticsearch.TYPE, "")
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, "not-json")
-        runner.setProperty(AbstractJsonQueryElasticsearch.SPLIT_UP_AGGREGATIONS, "not-enum")
-        runner.setProperty(AbstractJsonQueryElasticsearch.SPLIT_UP_HITS, "not-enum2")
+        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT, "not-enum")
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, "not-enum2")
 
         final String expectedAllowedSplitHits = processor instanceof AbstractPaginatedJsonQueryElasticsearch
-            ? [AbstractJsonQueryElasticsearch.SPLIT_UP_NO, AbstractJsonQueryElasticsearch.SPLIT_UP_YES, AbstractPaginatedJsonQueryElasticsearch.SPLIT_UP_COMBINE].join(", ")
-            : [AbstractJsonQueryElasticsearch.SPLIT_UP_NO, AbstractJsonQueryElasticsearch.SPLIT_UP_YES].join(", ")
+            ? [AbstractJsonQueryElasticsearch.FLOWFILE_PER_RESPONSE, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT, AbstractPaginatedJsonQueryElasticsearch.FLOWFILE_PER_QUERY].join(", ")
+            : [AbstractJsonQueryElasticsearch.FLOWFILE_PER_RESPONSE, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT].join(", ")
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner.&run)
         assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 7 validation failures:\n" +
@@ -101,8 +101,8 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
                 AbstractJsonQueryElasticsearch.INDEX.getName(), AbstractJsonQueryElasticsearch.INDEX.getName(),
                 AbstractJsonQueryElasticsearch.TYPE.getName(), AbstractJsonQueryElasticsearch.TYPE.getName(),
                 AbstractJsonQueryElasticsearch.CLIENT_SERVICE.getDisplayName(),
-                AbstractJsonQueryElasticsearch.SPLIT_UP_HITS.getName(), expectedAllowedSplitHits,
-                AbstractJsonQueryElasticsearch.SPLIT_UP_AGGREGATIONS.getName(), [AbstractJsonQueryElasticsearch.SPLIT_UP_NO, AbstractJsonQueryElasticsearch.SPLIT_UP_YES].join(", "),
+                AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT.getName(), expectedAllowedSplitHits,
+                AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT.getName(), [AbstractJsonQueryElasticsearch.FLOWFILE_PER_RESPONSE, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT].join(", "),
                 AbstractJsonQueryElasticsearch.CLIENT_SERVICE.getDisplayName()
         )))
     }
@@ -128,7 +128,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
 
 
         // test splitting hits
-        runner.setProperty(AbstractJsonQueryElasticsearch.SPLIT_UP_HITS, AbstractJsonQueryElasticsearch.SPLIT_UP_YES)
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT)
         runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 10, 0, 0)
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(
@@ -178,7 +178,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
 
 
         // test splitting aggregations
-        runner.setProperty(AbstractJsonQueryElasticsearch.SPLIT_UP_AGGREGATIONS, AbstractJsonQueryElasticsearch.SPLIT_UP_YES)
+        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT)
         runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 2)
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10")
@@ -269,8 +269,8 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         testCounts(runner, 0, 1, 0, 0)
     }
 
-    static void testCounts(TestRunner runner, int success, int hits, int failure, int aggregations) {
-        runner.assertTransferCount(AbstractJsonQueryElasticsearch.REL_ORIGINAL, success)
+    static void testCounts(TestRunner runner, int original, int hits, int failure, int aggregations) {
+        runner.assertTransferCount(AbstractJsonQueryElasticsearch.REL_ORIGINAL, original)
         runner.assertTransferCount(AbstractJsonQueryElasticsearch.REL_HITS, hits)
         runner.assertTransferCount(AbstractJsonQueryElasticsearch.REL_FAILURE, failure)
         runner.assertTransferCount(AbstractJsonQueryElasticsearch.REL_AGGREGATIONS, aggregations)

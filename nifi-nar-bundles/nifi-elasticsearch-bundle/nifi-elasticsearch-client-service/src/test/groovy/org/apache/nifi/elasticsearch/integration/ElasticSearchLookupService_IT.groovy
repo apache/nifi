@@ -31,6 +31,7 @@ import org.apache.nifi.serialization.record.type.RecordDataType
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.Assert
+import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -42,9 +43,11 @@ class ElasticSearchLookupService_IT {
 
     @BeforeClass
     static void beforeAll() throws Exception {
+        Assume.assumeTrue("Elasticsearch integration-tests not setup", ElasticSearchClientService_IT.isElasticsearchSetup())
+
         System.out.println(
                 String.format("%n%n%n%n%n%n%n%n%n%n%n%n%n%n%nTYPE: %s%nVERSION: %s%nFLAVOUR %s%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n",
-                        ElasticSearch5ClientService_IT.TYPE, ElasticSearch5ClientService_IT.VERSION, ElasticSearch5ClientService_IT.FLAVOUR)
+                        ElasticSearchClientService_IT.TYPE, ElasticSearchClientService_IT.VERSION, ElasticSearchClientService_IT.FLAVOUR)
         )
     }
 
@@ -75,8 +78,8 @@ class ElasticSearchLookupService_IT {
     }
 
     void setTypeOnLookupService() {
-        if (ElasticSearch5ClientService_IT.TYPE != null) {
-            runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, ElasticSearch5ClientService_IT.TYPE)
+        if (ElasticSearchClientService_IT.TYPE != null) {
+            runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, ElasticSearchClientService_IT.TYPE)
         } else {
             runner.removeProperty(lookupService, ElasticSearchLookupService.TYPE)
         }

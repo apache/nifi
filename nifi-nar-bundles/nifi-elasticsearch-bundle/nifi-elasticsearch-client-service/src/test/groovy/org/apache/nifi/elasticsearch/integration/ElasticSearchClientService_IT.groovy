@@ -48,14 +48,14 @@ import static org.hamcrest.CoreMatchers.is
 import static org.mockito.Mockito.mock
 import static org.mockito.Mockito.when
 
-class ElasticSearch5ClientService_IT {
+class ElasticSearchClientService_IT {
     private TestRunner runner
     private ElasticSearchClientServiceImpl service
 
     static final String INDEX = "messages"
     static final String TYPE  = StringUtils.isBlank(System.getProperty("type_name")) ? null : System.getProperty("type_name")
 
-    static final ComparableVersion VERSION = new ComparableVersion(System.getProperty("es_version"))
+    static final ComparableVersion VERSION = new ComparableVersion(System.getProperty("es_version", "0.0.0"))
     static final ComparableVersion ES_7_10 = new ComparableVersion("7.10")
 
     static final String FLAVOUR = System.getProperty("es_flavour")
@@ -64,9 +64,25 @@ class ElasticSearch5ClientService_IT {
     private static TlsConfiguration generatedTlsConfiguration
     private static TlsConfiguration truststoreTlsConfiguration
 
+    static boolean isElasticsearchSetup() {
+        boolean setup = true
+        if (StringUtils.isBlank(System.getProperty("es_version"))) {
+            System.err.println("Cannot run Elasticsearch integration-tests: Elasticsearch version (5, 6, 7) not specified")
+            setup = false
+        }
+
+        if (StringUtils.isBlank(System.getProperty("es_flavour"))) {
+            System.err.println("Cannot run Elasticsearch integration-tests: Elasticsearch flavour (oss, default) not specified")
+            setup = false
+        }
+
+        return setup
+    }
 
     @BeforeClass
     static void beforeAll() throws Exception {
+        Assume.assumeTrue("Elasticsearch integration-tests not setup", isElasticsearchSetup())
+
         System.out.println(
                 String.format("%n%n%n%n%n%n%n%n%n%n%n%n%n%n%nTYPE: %s%nVERSION: %s%nFLAVOUR %s%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n",
                         TYPE, VERSION, FLAVOUR)
@@ -154,6 +170,25 @@ class ElasticSearch5ClientService_IT {
             def docCount = aggRes["doc_count"]
             Assert.assertEquals("${key} did not match.", expected[key as String], docCount)
         }
+    }
+
+    @Test
+    void testSearchWarnings() {
+        String query
+        String type = TYPE
+        if (VERSION.toString().startsWith("7.")) {
+            // querying with _type in ES 7.x is deprecated
+            query = prettyPrint(toJson([size: 1, query: [match_all: [:]]]))
+            type = "a-type"
+        } else if (VERSION.toString().startsWith("6.")) {
+            // "query_string" query option "all_fields" in ES 6.x is deprecated
+            query = prettyPrint(toJson([size: 1, query: [query_string: [query: 1, all_fields: true]]]))
+        } else {
+            // "mlt" query in ES 5.x is deprecated
+            query = prettyPrint(toJson([size: 1, query: [mlt: [fields: ["msg"], like: 1]]]))
+        }
+        final SearchResponse response = service.search(query, INDEX, type, null)
+        Assert.assertTrue("Missing warnings", !response.warnings.isEmpty())
     }
 
     @Test
@@ -259,7 +294,7 @@ class ElasticSearch5ClientService_IT {
         Assume.assumeThat("Requires XPack features", FLAVOUR, is(DEFAULT))
 
         // initialise
-        final String pitId = service.initialisePointInTime(INDEX, null)
+        final String pitId = service.initialisePointInTime(INDEX, "10s")
 
         final Map<String, Object> queryMap = [
                 size: 2,
@@ -281,7 +316,7 @@ class ElasticSearch5ClientService_IT {
         Assert.assertNotNull("Aggregations missing", response.aggregations)
         Assert.assertEquals("Aggregation count is wrong", 1, response.aggregations.size())
         Assert.assertNull("Unexpected ScrollId", response.scrollId)
-        Assert.assertNull("Unexpected Search_After", response.searchAfter)
+        Assert.assertNotNull("Unexpected Search_After", response.searchAfter)
         Assert.assertNotNull("pitId missing", response.pitId)
 
         final Map termCounts = response.aggregations.get("term_counts") as Map
@@ -302,7 +337,7 @@ class ElasticSearch5ClientService_IT {
         Assert.assertNotNull("Aggregations missing", secondResponse.aggregations)
         Assert.assertEquals("Aggregation count is wrong", 0, secondResponse.aggregations.size())
         Assert.assertNull("Unexpected ScrollId", secondResponse.scrollId)
-        Assert.assertNull("Unexpected Search_After", secondResponse.searchAfter)
+        Assert.assertNotNull("Unexpected Search_After", secondResponse.searchAfter)
         Assert.assertNotNull("pitId missing", secondResponse.pitId)
 
         Assert.assertNotEquals("Same results", secondResponse.hits, response.hits)

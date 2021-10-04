@@ -28,7 +28,6 @@
     <properties>
         <!-- use with integration-tests only -->
         <es.int.version>5.6.16</es.int.version>
-        <es.int.flavour>oss</es.int.flavour>
         <es.int.script.name>setup-5.script</es.int.script.name>
         <es.int.type.name>faketype</es.int.type.name>
         <es.int.clusterName>testCluster</es.int.clusterName>
@@ -216,8 +215,11 @@
 
     <profiles>
         <profile>
-            <!-- use with integration-tests only (-default can be used if x-pack-ml permissions fixed) -->
-            <id>integration-6</id>
+            <!-- use with elasticsearch-oss only (-default can be used if x-pack-ml permissions fixed) -->
+            <id>elasticsearch-6</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
             <properties>
                 <es.int.version>6.8.13</es.int.version>
                 <es.int.type.name>_doc</es.int.type.name>
@@ -225,8 +227,11 @@
             </properties>
         </profile>
         <profile>
-            <!-- use with integration-tests or integration-tests-default -->
-            <id>integration-7</id>
+            <!-- use with elasticsearch-oss or elasticsearch-default -->
+            <id>elasticsearch-7</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
             <properties>
                 <es.int.version>7.10.2</es.int.version>
                 <es.int.script.name>setup-7.script</es.int.script.name>
@@ -236,7 +241,10 @@
 
         <profile>
             <!-- OSS Elasticsearch (no XPack features); required for ES 5.x or < 6.3-->
-            <id>integration-tests</id>
+            <id>elasticsearch-oss</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
             <build>
                 <plugins>
                     <plugin>
@@ -246,7 +254,7 @@
                             <systemPropertyVariables>
                                 <type_name>${es.int.type.name}</type_name>
                                 <es_version>${es.int.version}</es_version>
-                                <es_flavour>${es.int.flavour}</es_flavour>
+                                <es_flavour>oss</es_flavour>
                             </systemPropertyVariables>
                         </configuration>
                     </plugin>
@@ -286,7 +294,10 @@
 
         <profile>
             <!-- Elasticsearch (default) with XPack (only for ES 6.3+ although there are XPack permission problems in 6.x startup) -->
-            <id>integration-tests-default</id>
+            <id>elasticsearch-default</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
             <build>
                 <plugins>
                     <plugin>
@@ -296,7 +307,7 @@
                             <systemPropertyVariables>
                                 <type_name>${es.int.type.name}</type_name>
                                 <es_version>${es.int.version}</es_version>
-                                <es_flavour>${es.int.flavour}</es_flavour>
+                                <es_flavour>default</es_flavour>
                             </systemPropertyVariables>
                         </configuration>
                     </plugin>

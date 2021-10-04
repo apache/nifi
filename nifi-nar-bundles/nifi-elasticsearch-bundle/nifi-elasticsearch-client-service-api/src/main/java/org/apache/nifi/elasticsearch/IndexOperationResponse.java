@@ -28,6 +28,8 @@ public class IndexOperationResponse {
     private boolean hasErrors;
     private List<Map<String, Object>> items;
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     public IndexOperationResponse(final long took) {
         this.took = took;
     }
@@ -42,13 +44,12 @@ public class IndexOperationResponse {
 
     @SuppressWarnings("unchecked")
     public static IndexOperationResponse fromJsonResponse(final String response) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> parsedResponse = mapper.readValue(response, Map.class);
-        int took = (int) parsedResponse.get("took");
-        boolean hasErrors = (boolean) parsedResponse.get("errors");
-        List<Map<String, Object>> items = (List<Map<String, Object>>)parsedResponse.get("items");
+        final Map<String, Object> parsedResponse = OBJECT_MAPPER.readValue(response, Map.class);
+        final int took = (int) parsedResponse.get("took");
+        final boolean hasErrors = (boolean) parsedResponse.get("errors");
+        final List<Map<String, Object>> items = (List<Map<String, Object>>)parsedResponse.get("items");
 
-        IndexOperationResponse retVal = new IndexOperationResponse(took);
+        final IndexOperationResponse retVal = new IndexOperationResponse(took);
         retVal.hasErrors = hasErrors;
         retVal.items = items;
 

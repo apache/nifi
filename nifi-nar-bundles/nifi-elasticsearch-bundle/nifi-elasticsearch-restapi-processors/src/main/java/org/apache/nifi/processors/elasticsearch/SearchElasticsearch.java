@@ -58,19 +58,21 @@ import java.util.Set;
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @TriggerSerially
 @DefaultSchedule(period="1 min")
-@Tags({"elasticsearch", "elasticsearch 5", "query", "scroll", "page", "consume", "json"})
+@Tags({"elasticsearch", "elasticsearch 5", "query", "scroll", "page", "search", "json"})
 @CapabilityDescription("A processor that allows the user to repeatedly run a paginated query (with aggregations) written with the Elasticsearch JSON DSL. " +
-        "Search After/Point in Time queries must include a valid \"sort\" field.")
-@Stateful(scopes = Scope.LOCAL, description = "The pagination state (scrollId, searchAfter, pitId, hitCount, pageCount, expirationTimestamp) " +
+        "Search After/Point in Time queries must include a valid \"sort\" field. The processor will retrieve multiple pages of results " +
+        "until either no more results are available or the Pagination Keep Alive expiration is reached, after which the query will " +
+        "restart with the first page of results being retrieved.")
+@Stateful(scopes = Scope.LOCAL, description = "The pagination state (scrollId, searchAfter, pitId, hitCount, pageCount, pageExpirationTimestamp) " +
         "is retained in between invocations of this processor until the Scroll/PiT has expired " +
         "(when the current time is later than the last query execution plus the Pagination Keep Alive interval).")
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "Care should be taken on the size of each page because each response " +
         "from Elasticsearch will be loaded into memory all at once and converted into the resulting flowfiles.")
-public class ConsumeElasticsearch extends AbstractPaginatedJsonQueryElasticsearch implements ElasticsearchRestProcessor {
+public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch implements ElasticsearchRestProcessor {
     static final String STATE_SCROLL_ID = "scrollId";
     static final String STATE_PIT_ID = "pitId";
     static final String STATE_SEARCH_AFTER = "searchAfter";
-    static final String STATE_EXPIRATION_TIMESTAMP = "expirationTimestamp";
+    static final String STATE_PAGE_EXPIRATION_TIMESTAMP = "pageExpirationTimestamp";
     static final String STATE_PAGE_COUNT = "pageCount";
     static final String STATE_HIT_COUNT = "hitCount";
 
@@ -91,7 +93,7 @@ public class ConsumeElasticsearch extends AbstractPaginatedJsonQueryElasticsearc
         relationships = Collections.unmodifiableSet(rels);
 
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(ConsumeElasticsearch.QUERY);
+        descriptors.add(SearchElasticsearch.QUERY);
         descriptors.addAll(paginatedPropertyDescriptors);
 
         propertyDescriptors = Collections.unmodifiableList(descriptors);
@@ -117,7 +119,7 @@ public class ConsumeElasticsearch extends AbstractPaginatedJsonQueryElasticsearc
         paginatedQueryJsonParameters.setScrollId(stateMap.get(STATE_SCROLL_ID));
         paginatedQueryJsonParameters.setSearchAfter(stateMap.get(STATE_SEARCH_AFTER));
         paginatedQueryJsonParameters.setPitId(stateMap.get(STATE_PIT_ID));
-        paginatedQueryJsonParameters.setExpirationTimestamp(stateMap.get(STATE_EXPIRATION_TIMESTAMP));
+        paginatedQueryJsonParameters.setPageExpirationTimestamp(stateMap.get(STATE_PAGE_EXPIRATION_TIMESTAMP));
 
         return paginatedQueryJsonParameters;
     }
@@ -125,50 +127,6 @@ public class ConsumeElasticsearch extends AbstractPaginatedJsonQueryElasticsearc
     @Override
     void finishQuery(final FlowFile input, final PaginatedJsonQueryParameters paginatedQueryJsonParameters,
                      final ProcessSession session, final SearchResponse response) throws IOException {
-        updateState(paginatedQueryJsonParameters, session, response);
-    }
-
-    @Override
-    boolean isExpired(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, final ProcessSession session,
-                      final SearchResponse response) throws IOException {
-        final boolean expiredQuery = StringUtils.isNotEmpty(paginatedJsonQueryParameters.getExpirationTimestamp())
-                && Instant.ofEpochMilli(Long.parseLong(paginatedJsonQueryParameters.getExpirationTimestamp())).isBefore(Instant.now());
-        if (expiredQuery) {
-            getLogger().debug("Existing paginated query has expired, resetting for new query");
-            session.clearState(Scope.LOCAL);
-
-            resetPaginatedJsonQueryParameters(paginatedJsonQueryParameters);
-
-            clearElasticsearchState(session, response);
-        }
-        return expiredQuery;
-    }
-
-    @Override
-    String getScrollId(final ProcessSession session, final SearchResponse response) throws IOException {
-        return response == null || StringUtils.isBlank(response.getScrollId())
-                ? session.getState(Scope.LOCAL).get(STATE_SCROLL_ID)
-                : response.getScrollId();
-    }
-
-    @Override
-    String getPitId(final ProcessSession session, final SearchResponse response) throws IOException {
-        return response == null || StringUtils.isBlank(response.getScrollId())
-                ? session.getState(Scope.LOCAL).get(STATE_PIT_ID)
-                : response.getPitId();
-    }
-
-    private void resetPaginatedJsonQueryParameters(final PaginatedJsonQueryParameters paginatedJsonQueryParameters) {
-        paginatedJsonQueryParameters.setPageCount(0);
-        paginatedJsonQueryParameters.setHitCount(0);
-        paginatedJsonQueryParameters.setExpirationTimestamp(null);
-        paginatedJsonQueryParameters.setPitId(null);
-        paginatedJsonQueryParameters.setScrollId(null);
-        paginatedJsonQueryParameters.setSearchAfter(null);
-    }
-
-    private void updateState(final PaginatedJsonQueryParameters paginatedQueryJsonParameters,
-                             final ProcessSession session, final SearchResponse response) throws IOException {
         if (response.getHits().isEmpty()) {
             getLogger().debug("No more results for paginated query, resetting local state for future queries");
             session.clearState(Scope.LOCAL);
@@ -187,8 +145,44 @@ public class ConsumeElasticsearch extends AbstractPaginatedJsonQueryElasticsearc
             }
             newStateMap.put(STATE_HIT_COUNT, Integer.toString(paginatedQueryJsonParameters.getHitCount()));
             newStateMap.put(STATE_PAGE_COUNT, Integer.toString(paginatedQueryJsonParameters.getPageCount()));
-            newStateMap.put(STATE_EXPIRATION_TIMESTAMP, paginatedQueryJsonParameters.getExpirationTimestamp());
+            newStateMap.put(STATE_PAGE_EXPIRATION_TIMESTAMP, paginatedQueryJsonParameters.getPageExpirationTimestamp());
             session.setState(newStateMap, Scope.LOCAL);
         }
+        session.commitAsync();
+    }
+
+    @Override
+    boolean isExpired(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, final ProcessSession session,
+                      final SearchResponse response) throws IOException {
+        final boolean expiredQuery = StringUtils.isNotEmpty(paginatedJsonQueryParameters.getPageExpirationTimestamp())
+                && Instant.ofEpochMilli(Long.parseLong(paginatedJsonQueryParameters.getPageExpirationTimestamp())).isBefore(Instant.now());
+        if (expiredQuery) {
+            getLogger().debug("Existing paginated query has expired, resetting for new query");
+            session.clearState(Scope.LOCAL);
+
+            paginatedJsonQueryParameters.setPageCount(0);
+            paginatedJsonQueryParameters.setHitCount(0);
+            paginatedJsonQueryParameters.setPageExpirationTimestamp(null);
+            paginatedJsonQueryParameters.setPitId(null);
+            paginatedJsonQueryParameters.setScrollId(null);
+            paginatedJsonQueryParameters.setSearchAfter(null);
+
+            clearElasticsearchState(session, response);
+        }
+        return expiredQuery;
+    }
+
+    @Override
+    String getScrollId(final ProcessSession session, final SearchResponse response) throws IOException {
+        return response == null || StringUtils.isBlank(response.getScrollId())
+                ? session.getState(Scope.LOCAL).get(STATE_SCROLL_ID)
+                : response.getScrollId();
+    }
+
+    @Override
+    String getPitId(final ProcessSession session, final SearchResponse response) throws IOException {
+        return response == null || StringUtils.isBlank(response.getScrollId())
+                ? session.getState(Scope.LOCAL).get(STATE_PIT_ID)
+                : response.getPitId();
     }
 }

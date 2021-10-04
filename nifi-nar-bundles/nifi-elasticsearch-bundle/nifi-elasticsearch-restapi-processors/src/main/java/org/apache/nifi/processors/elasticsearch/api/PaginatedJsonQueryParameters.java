@@ -22,14 +22,14 @@ public class PaginatedJsonQueryParameters extends JsonQueryParameters {
     private String scrollId = null;
     private String searchAfter = null;
     private String pitId = null;
-    private String expirationTimestamp = null;
+    private String pageExpirationTimestamp = null;
     private String keepAlive;
 
     public int getPageCount() {
         return pageCount;
     }
 
-    public void setPageCount(int pageCount) {
+    public void setPageCount(final int pageCount) {
         this.pageCount = pageCount;
     }
 
@@ -41,7 +41,7 @@ public class PaginatedJsonQueryParameters extends JsonQueryParameters {
         return scrollId;
     }
 
-    public void setScrollId(String scrollId) {
+    public void setScrollId(final String scrollId) {
         this.scrollId = scrollId;
     }
 
@@ -49,7 +49,7 @@ public class PaginatedJsonQueryParameters extends JsonQueryParameters {
         return searchAfter;
     }
 
-    public void setSearchAfter(String searchAfter) {
+    public void setSearchAfter(final String searchAfter) {
         this.searchAfter = searchAfter;
     }
 
@@ -57,23 +57,23 @@ public class PaginatedJsonQueryParameters extends JsonQueryParameters {
         return pitId;
     }
 
-    public void setPitId(String pitId) {
+    public void setPitId(final String pitId) {
         this.pitId = pitId;
     }
 
-    public String getExpirationTimestamp() {
-        return expirationTimestamp;
+    public String getPageExpirationTimestamp() {
+        return pageExpirationTimestamp;
     }
 
-    public void setExpirationTimestamp(String expirationTimestamp) {
-        this.expirationTimestamp = expirationTimestamp;
+    public void setPageExpirationTimestamp(final String pageExpirationTimestamp) {
+        this.pageExpirationTimestamp = pageExpirationTimestamp;
     }
 
     public String getKeepAlive() {
         return keepAlive;
     }
 
-    public void setKeepAlive(String keepAlive) {
+    public void setKeepAlive(final String keepAlive) {
         this.keepAlive = keepAlive;
     }
 }

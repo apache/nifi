@@ -30,6 +30,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public interface ElasticsearchRestProcessor {
     String ATTR_RECORD_COUNT = "record.count";
@@ -107,7 +108,7 @@ public interface ElasticsearchRestProcessor {
                     "configured will be sent to this relationship as part of a failed record record set.")
             .autoTerminateDefault(true).build();
 
-    default String getQuery(FlowFile input, ProcessContext context, ProcessSession session) throws IOException {
+    default String getQuery(final FlowFile input, final ProcessContext context, final ProcessSession session) throws IOException {
         String retVal = null;
         if (context.getProperty(QUERY).isSet()) {
             retVal = context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue();
@@ -116,7 +117,7 @@ public interface ElasticsearchRestProcessor {
             session.exportTo(input, out);
             out.close();
 
-            retVal = out.toString();
+            retVal = out.toString(StandardCharsets.UTF_8);
         }
 
         return retVal;

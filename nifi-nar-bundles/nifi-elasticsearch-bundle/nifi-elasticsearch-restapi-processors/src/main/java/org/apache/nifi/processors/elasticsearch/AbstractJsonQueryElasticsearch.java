@@ -55,32 +55,32 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
             .description("Aggregations are routed to this relationship.")
             .build();
 
-    public static final AllowableValue SPLIT_UP_YES = new AllowableValue(
+    public static final AllowableValue FLOWFILE_PER_HIT = new AllowableValue(
             "splitUp-yes",
-            "Yes",
-            "Split up results."
+            "Per Hit",
+            "Flowfile per hit."
     );
-    public static final AllowableValue SPLIT_UP_NO = new AllowableValue(
+    public static final AllowableValue FLOWFILE_PER_RESPONSE = new AllowableValue(
             "splitUp-no",
-            "No",
-            "Don't split up results."
+            "Per Response",
+            "Flowfile per response."
     );
 
-    public static final PropertyDescriptor SPLIT_UP_HITS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SEARCH_RESULTS_SPLIT = new PropertyDescriptor.Builder()
             .name("el-rest-split-up-hits")
-            .displayName("Split up search results")
-            .description("Split up search results into one flowfile per result.")
-            .allowableValues(SPLIT_UP_NO, SPLIT_UP_YES)
-            .defaultValue(SPLIT_UP_NO.getValue())
+            .displayName("Search Results Split")
+            .description("Output a flowfile containing all hits or one flowfile for each individual hit.")
+            .allowableValues(FLOWFILE_PER_RESPONSE, FLOWFILE_PER_HIT)
+            .defaultValue(FLOWFILE_PER_RESPONSE.getValue())
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
-    public static final PropertyDescriptor SPLIT_UP_AGGREGATIONS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor AGGREGATION_RESULTS_SPLIT = new PropertyDescriptor.Builder()
             .name("el-rest-split-up-aggregations")
-            .displayName("Split up aggregation results")
-            .description("Split up aggregation results into one flowfile per result.")
-            .allowableValues(SPLIT_UP_NO, SPLIT_UP_YES)
-            .defaultValue(SPLIT_UP_NO.getValue())
+            .displayName("Aggregation Results Split")
+            .description("Output a flowfile containing all aggregations or one flowfile for each individual aggregation.")
+            .allowableValues(FLOWFILE_PER_RESPONSE, FLOWFILE_PER_HIT)
+            .defaultValue(FLOWFILE_PER_RESPONSE.getValue())
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
@@ -108,8 +108,8 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
         descriptors.add(INDEX);
         descriptors.add(TYPE);
         descriptors.add(CLIENT_SERVICE);
-        descriptors.add(SPLIT_UP_HITS);
-        descriptors.add(SPLIT_UP_AGGREGATIONS);
+        descriptors.add(SEARCH_RESULTS_SPLIT);
+        descriptors.add(AGGREGATION_RESULTS_SPLIT);
 
         propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
@@ -128,8 +128,8 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
     public void onScheduled(final ProcessContext context) {
         clientService = new AtomicReference<>(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));
 
-        splitUpHits = context.getProperty(SPLIT_UP_HITS).getValue();
-        splitUpAggregations = context.getProperty(SPLIT_UP_AGGREGATIONS).getValue();
+        splitUpHits = context.getProperty(SEARCH_RESULTS_SPLIT).getValue();
+        splitUpAggregations = context.getProperty(AGGREGATION_RESULTS_SPLIT).getValue();
     }
 
     @OnStopped
@@ -213,7 +213,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
                                     final String transitUri, final StopWatch stopWatch) throws IOException {
         if (aggregations != null && !aggregations.isEmpty()) {
             final List<FlowFile> aggsFlowFiles = new ArrayList<>();
-            if (splitUpAggregations.equals(SPLIT_UP_YES.getValue())) {
+            if (splitUpAggregations.equals(FLOWFILE_PER_HIT.getValue())) {
                 int aggCount = 0;
                 for (final Map.Entry<String, Object> agg : aggregations.entrySet()) {
                     final FlowFile aggFlowFile = createChildFlowFile(session, parent);
@@ -241,11 +241,18 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
         return session.putAllAttributes(ff, attributes);
     }
 
+    /*
+     * The List<FlowFile> hitsFlowFiles parameter and return value are used in order to allow pagination of query results
+     * in AbstractPaginatedJsonQueryElasticsearch. The List is created in onTrigger and passed to doQuery => handleResponse => handleHits,
+     * for non-paginated queries the return value will always be an empty List as the FlowFiles will have been transferred;
+     * for paginated queries, the List could contain one (or more) FlowFiles, to which further hits may be appended when the next
+     * SearchResponse is processed, i.e. this approach allows recursion for paginated queries, but is unnecessary for single-response queries.
+     */
     List<FlowFile> handleHits(final List<Map<String, Object>> hits, final Q queryJsonParameters, final ProcessSession session,
                               final FlowFile parent, final Map<String, String> attributes, final List<FlowFile> hitsFlowFiles,
                               final String transitUri, final StopWatch stopWatch) throws IOException {
         if (hits != null && !hits.isEmpty()) {
-            if (SPLIT_UP_YES.getValue().equals(splitUpHits)) {
+            if (FLOWFILE_PER_HIT.getValue().equals(splitUpHits)) {
                 for (final Map<String, Object> hit : hits) {
                     final FlowFile hitFlowFile = createChildFlowFile(session, parent);
                     final String json = mapper.writeValueAsString(hit);
@@ -258,14 +265,19 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
             }
         }
 
+        transferResultFlowFiles(session, hitsFlowFiles, transitUri, stopWatch);
+
+        return hitsFlowFiles;
+    }
+
+    private void transferResultFlowFiles(final ProcessSession session, final List<FlowFile> hitsFlowFiles, final String transitUri,
+                                         final StopWatch stopWatch) {
         // output any results
         if (!hitsFlowFiles.isEmpty()) {
             session.transfer(hitsFlowFiles, REL_HITS);
             hitsFlowFiles.forEach(ff -> session.getProvenanceReporter().receive(ff, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS)));
             hitsFlowFiles.clear();
         }
-
-        return hitsFlowFiles;
     }
 
     List<FlowFile> handleResponse(final SearchResponse response, final boolean newQuery, final Q queryJsonParameters,
