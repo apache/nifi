@@ -485,23 +485,40 @@ This protection scheme uses https://www.vaultproject.io/docs/secrets/kv/kv-v1[Ha
 ==== AWS_KMS [[AWS_KMS]]
 This protection scheme uses https://aws.amazon.com/kms/[AWS Key Management] Service for encryption and decryption. AWS KMS configuration properties can be stored in the `bootstrap-aws.conf` file, as referenced in the `bootstrap.conf` of NiFi or NiFi Registry. If the configuration properties are not specified in `bootstrap-aws.conf`, then the provider will attempt to use the AWS default credentials provider, which checks standard environment variables and system properties.  Therefore, when using the AWS_KMS protection scheme, the `nifi(.registry)?.bootstrap.protection.aws.kms.conf` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as described in the <<administration-guide.adoc#_aws_kms_provider, AWS KMS provider>> section in the link:administration-guide.html[NiFi Administration Guide].
 
-==== AZURE_KEYVAULT_KEY [[AZURE_KEYVAULT_KEY]]
-This protection scheme uses keys managed by https://docs.microsoft.com/en-us/azure/key-vault/keys/about-keys[Azure Key Vault Keys] for encryption and decryption.
-Azure Key Vault configuration properties can be stored in the `bootstrap-azure.conf` file, as referenced in the `bootstrap.conf` of NiFi or NiFi Registry.
-The provider will utilize the Azure default credentials provider chain as described in the
-https://docs.microsoft.com/en-us/java/api/overview/azure/security-keyvault-keys-readme?view=azure-java-stable[Azure Key Vault Key client library for Java] documentation.
-Therefore, when using this protection scheme, the `nifi.bootstrap.protection.azure.keyvault.conf` property
-in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool
-and must be configured as described in the <<administration-guide.adoc#_azure_key_vault_key_provider, Azure Key Vault Key provider>> section in the link:administration-guide.html[NiFi Administration Guide].
+==== Microsoft Azure Key Vault Sensitive Property Providers
 
-==== AZURE_KEYVAULT_SECRET [[AZURE_KEYVAULT_SECRET]]
-This protection scheme uses secrets managed by https://docs.microsoft.com/en-us/azure/key-vault/secrets/about-secrets[Azure Key Vault Secrets] for encryption and decryption.
-Azure Key Vault configuration properties can be stored in the `bootstrap-azure.conf` file, as referenced in the `bootstrap.conf` of NiFi or NiFi Registry.
-The provider will utilize the Azure default credentials provider chain as described in the
-https://docs.microsoft.com/en-us/java/api/overview/azure/security-keyvault-keys-readme?view=azure-java-stable[Azure Key Vault Key client library for Java] documentation.
-Therefore, when using this protection scheme, the `nifi.bootstrap.protection.azure.keyvault.conf` property
-in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool
-and must be configured as described in the <<administration-guide.adoc#_azure_key_vault_secret_provider, Azure Key Vault Secrets provider>> section in the link:administration-guide.html[NiFi Administration Guide].
+Azure Key Vault configuration properties can be stored in the `bootstrap-azure.conf` file, as referenced in the
+`bootstrap.conf` of NiFi or NiFi Registry.
+
+Azure Key Vault providers will use the
+https://docs.microsoft.com/en-us/java/api/com.azure.identity.defaultazurecredential[DefaultAzureCredential]
+for authentication.
+The https://docs.microsoft.com/en-us/java/api/overview/azure/identity-readme#key-concepts[Azure Identity] client library
+describes the process for credentials resolution, which leverages environment variables, system properties, and falls
+back to
+https://docs.microsoft.com/en-us/java/api/overview/azure/identity-readme#managed-identity-support[Managed Identity]
+authentication.
+
+When using Azure Key Vault providers, `bootstrap.conf` must contain the
+`nifi.bootstrap.protection.azure.keyvault.conf` property. The `bootstrap.conf` file location must be specified using the
+`-b` argument when running the Encrypt Config Tool.
+
+===== AZURE_KEYVAULT_KEY [[AZURE_KEYVAULT_KEY]]
+
+This protection scheme uses keys managed by
+https://docs.microsoft.com/en-us/azure/key-vault/keys/about-keys[Azure Key Vault Keys] for encryption and decryption.
+
+See <<administration-guide.adoc#azure-key-vault-key-provider,Azure Key Vault Key Provider>> in the NiFi System
+Administrator's Guide for required properties.
+
+===== AZURE_KEYVAULT_SECRET [[AZURE_KEYVAULT_SECRET]]
+
+This protection scheme uses secrets managed by
+https://docs.microsoft.com/en-us/azure/key-vault/secrets/about-secrets[Azure Key Vault Secrets] for storing and
+retrieving sensitive property values.
+
+See <<administration-guide.adoc#azure-key-vault-secret-provider,Azure Key Vault Secret Provider>> in the NiFi System
+Administrator's Guide for required properties.
 
 ==== GCP_KMS [[GCP_KMS]]
 This protection scheme uses Google Cloud Key Management Service (https://cloud.google.com/security-key-management[Google Cloud Key Management Service]) for encryption and decryption. Google Cloud KMS configuration properties are to be stored in the `bootstrap-gcp.conf` file, as referenced in the `bootstrap.conf` of NiFi or NiFi Registry. Credentials must be configured as per the following documentation: https://cloud.google.com/kms/docs/reference/libraries[Google Cloud KMS documentation]. Therefore, when using the GCP_KMS protection scheme, the `nifi(.registry)?.bootstrap.protection.gcp.kms.conf` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as described in the <<administration-guide.adoc#_google_cloud_kms_provider,Google Cloud KMS provider>> section in the link:administration-guide.html[NiFi Administration Guide].
