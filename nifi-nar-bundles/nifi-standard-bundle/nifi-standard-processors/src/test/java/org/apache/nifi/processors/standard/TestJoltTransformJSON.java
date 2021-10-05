@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -351,6 +352,32 @@ public class TestJoltTransformJSON {
         runner.setProperty(JoltTransformJSON.MODULES,customJarPath);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM,JoltTransformJSON.CUSTOMR);
         runner.enqueue(JSON_INPUT);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
+        transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(),"application/json");
+        Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
+        Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/chainrOutput.json")));
+        assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
+    }
+
+    @Test
+    public void testExpressionLanguageJarFile() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
+        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/chainrSpec.json")));
+        final String customJoltTransform = "TestCustomJoltTransform";
+
+        Map<String, String> customSpecs = new HashMap<>();
+        customSpecs.put("JOLT_SPEC", spec);
+        customSpecs.put("CUSTOM_JOLT_CLASS", customJoltTransform);
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, "${JOLT_SPEC}");
+        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS,"${CUSTOM_JOLT_CLASS}");
+        runner.setProperty(JoltTransformJSON.MODULES, "${CUSTOM_JAR}");
+        runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM,JoltTransformJSON.CUSTOMR);
+        runner.setVariable("CUSTOM_JAR", customJarPath);
+        runner.enqueue(JSON_INPUT, customSpecs);
         runner.run();
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);

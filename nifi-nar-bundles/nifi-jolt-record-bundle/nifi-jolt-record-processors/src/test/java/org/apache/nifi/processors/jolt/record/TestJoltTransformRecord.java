@@ -39,6 +39,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -580,6 +581,33 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrOutput.json"))),
                 new String(transformed.toByteArray()));
+    }
+
+    @Test
+    public void testExpressionLanguageJarFile() throws IOException {
+        generateTestData(1, null);
+        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrOutputSchema.avsc")));
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        runner.setProperty(writer, "Pretty Print JSON", "true");
+        runner.enableControllerService(writer);
+        URL t = getClass().getResource("/TestJoltTransformRecord/TestCustomJoltTransform.jar");
+        assert t != null;
+        final String customJarPath = t.getPath();
+        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/customChainrSpec.json")));
+        final String customJoltTransform = "TestCustomJoltTransform";
+        final String customClass = "TestCustomJoltTransform";
+        runner.setProperty(JoltTransformRecord.JOLT_SPEC, "${JOLT_SPEC}");
+        runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
+        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "${CUSTOM_CLASS}");
+        runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.CUSTOMR);
+        runner.setVariable("CUSTOM_JAR", customJarPath);
+        Map<String, String> customSpecs = new HashMap<>();
+        customSpecs.put("JOLT_SPEC", spec);
+        customSpecs.put("CUSTOM_JOLT_CLASS", customJoltTransform);
+        customSpecs.put("CUSTOM_CLASS", customClass);
+        runner.enqueue(new byte[0], customSpecs);
+        runner.assertValid();
     }
 
     @Test
