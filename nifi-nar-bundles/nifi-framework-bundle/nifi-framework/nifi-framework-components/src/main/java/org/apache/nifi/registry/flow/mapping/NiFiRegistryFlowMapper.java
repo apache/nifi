@@ -477,6 +477,7 @@ public class NiFiRegistryFlowMapper {
             versionedDescriptor.setName(descriptor.getName());
             versionedDescriptor.setDisplayName(descriptor.getDisplayName());
             versionedDescriptor.setSensitive(descriptor.isSensitive());
+            versionedDescriptor.setDynamic(descriptor.isDynamic());
 
             final VersionedResourceDefinition versionedResourceDefinition = mapResourceDefinition(descriptor.getResourceDefinition());
             versionedDescriptor.setResourceDefinition(versionedResourceDefinition);

@@ -68,6 +68,11 @@ public class StandardFlowAnalysisRuleContext extends AbstractFlowAnalysisRuleCon
     }
 
     @Override
+    public int getMaxTimerDrivenThreadCount() {
+        return flowController.getMaxTimerDrivenThreadCount();
+    }
+
+    @Override
     public String getClusterNodeIdentifier() {
         final NodeIdentifier nodeId = flowController.getNodeId();
         return nodeId == null ? null : nodeId.getId();
