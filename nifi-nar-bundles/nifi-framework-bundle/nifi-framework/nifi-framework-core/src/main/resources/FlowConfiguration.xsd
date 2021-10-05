@@ -146,6 +146,15 @@
 
             <!-- Indicates that a relationship with the given name can be auto-terminated -->
             <xs:element name="autoTerminatedRelationship" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
+
+            <xs:element name="retryCounts" type="xs:nonNegativeInteger" minOccurs="0" maxOccurs="1" />
+
+            <xs:element name="retriedRelationships" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
+
+            <xs:element name="backoffMechanism" type="BackoffMechanism" minOccurs="0" maxOccurs="1" />
+
+            <xs:element name="maxBackoffPeriod" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
+
         </xs:sequence>
     </xs:complexType>
 
@@ -464,6 +473,13 @@
             <xs:enumeration value="TIMER_DRIVEN"></xs:enumeration>
             <xs:enumeration value="PRIMARY_NODE_ONLY"></xs:enumeration>
             <xs:enumeration value="CRON_DRIVEN"></xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="BackoffMechanism">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="PENALIZE_FLOWFILE"></xs:enumeration>
+            <xs:enumeration value="YIELD_PROCESSOR"></xs:enumeration>
         </xs:restriction>
     </xs:simpleType>
 

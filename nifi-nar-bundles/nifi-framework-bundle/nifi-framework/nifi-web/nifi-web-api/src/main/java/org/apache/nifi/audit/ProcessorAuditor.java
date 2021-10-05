@@ -80,6 +80,10 @@ public class ProcessorAuditor extends NiFiAuditor {
     private static final String SCHEDULING_STRATEGY = "Scheduling Strategy";
     private static final String EXECUTION_NODE = "Execution Node";
     private static final String EXTENSION_VERSION = "Extension Version";
+    private static final String RETRY_COUNTS = "Retry Counts";
+    private static final String RETRIED_RELATIONSHIPS = "Retried Relationships";
+    private static final String BACKOFF_MECHANISM = "Backoff Mechanism";
+    private static final String MAX_BACKOFF_PERIOD = "Max Backoff Period";
 
     /**
      * Audits the creation of processors via createProcessor().
@@ -422,6 +426,24 @@ public class ProcessorAuditor extends NiFiAuditor {
             }
             if (newConfig.getExecutionNode() != null) {
                 values.put(EXECUTION_NODE, processor.getExecutionNode().name());
+            }
+
+            if (newConfig.getRetryCounts() != null) {
+                values.put(RETRY_COUNTS, String.valueOf(processor.getRetryCounts()));
+            }
+
+            if (newConfig.getRetriedRelationships() != null) {
+                final List<String> retriedRelationships = new ArrayList<>(processor.getRetriedRelationships());
+                Collections.sort(retriedRelationships, Collator.getInstance(Locale.US));
+                values.put(RETRIED_RELATIONSHIPS, StringUtils.join(retriedRelationships, ", "));
+            }
+
+            if (newConfig.getBackoffMechanism() != null) {
+                values.put(BACKOFF_MECHANISM, processor.getBackoffMechanism().name());
+            }
+
+            if (newConfig.getMaxBackoffPeriod() != null) {
+                values.put(MAX_BACKOFF_PERIOD, processor.getMaxBackoffPeriod());
             }
         }
 

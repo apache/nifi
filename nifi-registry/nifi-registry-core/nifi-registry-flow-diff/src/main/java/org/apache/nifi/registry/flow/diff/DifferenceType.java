@@ -54,6 +54,26 @@ public enum DifferenceType {
     YIELD_DURATION_CHANGED("Yield Duration Changed"),
 
     /**
+     * The component has a different retry count in each of the flows
+     */
+    RETRY_COUNTS_CHANGED("Retry Counts Changed"),
+
+    /**
+     * The component has a different retried relationship in each of the flows
+     */
+    RETRIED_RELATIONSHIPS_CHANGED("Retried Relationships Changed"),
+
+    /**
+     * The component has a different backoff mechanism in each of the flows
+     */
+    BACKOFF_MECHANISM_CHANGED("Backoff Mechanism Changed"),
+
+    /**
+     * The component has a different max backoff period in each of the flows
+     */
+    MAX_BACKOFF_PERIOD_CHANGED("Max Backoff Period Changed"),
+
+    /**
      * The component has a different bulletin level in each of the flows
      */
     BULLETIN_LEVEL_CHANGED("Bulletin Level Changed"),

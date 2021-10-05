@@ -481,6 +481,12 @@ public class FingerprintFactory {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "executionNode"));
         // run duration nanos
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "runDurationNanos"));
+        // retry counts
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "retryCounts"));
+        // backoff mechanism
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "backoffMechanism"));
+        // max backoff period
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "maxBackoffPeriod"));
 
         // get the temp instance of the Processor so that we know the default property values
         final BundleCoordinate coordinate = getCoordinate(className, bundle);
@@ -502,6 +508,12 @@ public class FingerprintFactory {
         final List<Element> sortedAutoTerminateElems = sortElements(autoTerminateElems, getElementTextComparator());
         for (final Element autoTerminateElem : sortedAutoTerminateElems) {
             builder.append(autoTerminateElem.getTextContent());
+        }
+
+        final NodeList retriedRelationshipsElems = DomUtils.getChildNodesByTagName(processorElem, "retriedRelationships");
+        final List<Element> sortedRetriedRelationshipsElems = sortElements(retriedRelationshipsElems, getElementTextComparator());
+        for (final Element retriedRelationshipElem : sortedRetriedRelationshipsElems) {
+            builder.append(retriedRelationshipElem.getTextContent());
         }
 
         return builder;

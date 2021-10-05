@@ -291,6 +291,24 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      */
     public abstract ScheduledState getDesiredState();
 
+    public abstract int getRetryCounts();
+
+    public abstract void setRetryCounts(int retryCounts);
+
+    public abstract Set<String> getRetriedRelationships();
+
+    public abstract void setRetriedRelationships(Set<String> retriedRelationships);
+
+    public abstract boolean isRetriedRelationship(Relationship relationship);
+
+    public abstract BackoffMechanism getBackoffMechanism();
+
+    public abstract void setBackoffMechanism(BackoffMechanism backoffMechanism);
+
+    public abstract String getMaxBackoffPeriod();
+
+    public abstract void setMaxBackoffPeriod(String maxBackoffPeriod);
+
     /**
      * This method will be called once the processor's configuration has been restored (on startup, reload, e.g.)
      *

@@ -157,6 +157,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final int hashCode;
     private volatile boolean hasActiveThreads = false;
 
+    private final AtomicInteger retryCounts;
+    private final AtomicReference<Set<String>> retriedRelationships;
+    private final AtomicReference<BackoffMechanism> backoffMechanism;
+    private final AtomicReference<String> maxBackoffPeriod;
+
     public StandardProcessorNode(final LoggableComponent<Processor> processor, final String uuid,
                                  final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
                                  final ControllerServiceProvider controllerServiceProvider, final ComponentVariableRegistry variableRegistry,
@@ -201,6 +206,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         schedulingStrategy = SchedulingStrategy.TIMER_DRIVEN;
         executionNode = isExecutionNodeRestricted() ? ExecutionNode.PRIMARY : ExecutionNode.ALL;
         this.hashCode = new HashCodeBuilder(7, 67).append(identifier).toHashCode();
+
+        retryCounts = new AtomicInteger(0);
+        retriedRelationships = new AtomicReference<>(new HashSet<>());
+        backoffMechanism = new AtomicReference<>(BackoffMechanism.PENALIZE_FLOWFILE);
+        maxBackoffPeriod = new AtomicReference<>("0 sec");
 
         try {
             if (processorDetails.getProcClass().isAnnotationPresent(DefaultSchedule.class)) {
@@ -1863,6 +1873,57 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return desiredState;
     }
 
+    @Override
+    public int getRetryCounts() {
+        return retryCounts.get();
+    }
+
+    @Override
+    public synchronized void setRetryCounts(int retryCounts) {
+        this.retryCounts.set(retryCounts);
+    }
+
+    @Override
+    public Set<String> getRetriedRelationships() {
+        if (retriedRelationships.get() == null) {
+            return new HashSet<>();
+        }
+        return retriedRelationships.get();
+    }
+
+    @Override
+    public synchronized void setRetriedRelationships(Set<String> retriedRelationships) {
+        this.retriedRelationships.set(retriedRelationships);
+    }
+
+    @Override
+    public boolean isRetriedRelationship(final Relationship relationship) {
+        if (this.retriedRelationships.get() == null || relationship == null) {
+            return false;
+        } else {
+            return this.retriedRelationships.get().contains(relationship.getName());
+        }
+    }
+
+    @Override
+    public BackoffMechanism getBackoffMechanism() {
+        return backoffMechanism.get();
+    }
+
+    @Override
+    public synchronized void setBackoffMechanism(BackoffMechanism backoffMechanism) {
+        this.backoffMechanism.set(backoffMechanism);
+    }
+
+    @Override
+    public String getMaxBackoffPeriod() {
+        return maxBackoffPeriod.get();
+    }
+
+    @Override
+    public synchronized void setMaxBackoffPeriod(String maxBackoffPeriod) {
+        this.maxBackoffPeriod.set(maxBackoffPeriod);
+    }
     private void monitorAsyncTask(final Future<?> taskFuture, final Future<?> monitoringFuture, final long completionTimestamp) {
         if (taskFuture.isDone()) {
             monitoringFuture.cancel(false); // stop scheduling this task

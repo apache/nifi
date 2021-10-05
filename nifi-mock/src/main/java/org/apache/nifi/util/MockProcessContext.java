@@ -579,4 +579,14 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     public boolean isConnectedToCluster() {
         return isConnected;
     }
+
+    @Override
+    public int getRetryCounts() {
+        return 0;
+    }
+
+    @Override
+    public boolean isRetriedRelationship(Relationship relationship) {
+        return false;
+    }
 }

@@ -347,4 +347,14 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     public boolean isConnectedToCluster() {
         return nodeTypeProvider.isConnected();
     }
+
+    @Override
+    public boolean isRetriedRelationship(Relationship relationship) {
+        return procNode.isRetriedRelationship(relationship);
+    }
+
+    @Override
+    public int getRetryCounts() {
+        return procNode.getRetryCounts();
+    }
 }

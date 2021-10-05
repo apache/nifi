@@ -371,6 +371,12 @@ public class StandardFlowSnippet implements FlowSnippet {
                 procNode.setPenalizationPeriod(config.getPenaltyDuration());
                 procNode.setBulletinLevel(LogLevel.valueOf(config.getBulletinLevel()));
                 procNode.setAnnotationData(config.getAnnotationData());
+                procNode.setRetryCounts(config.getRetryCounts());
+                procNode.setRetriedRelationships(config.getRetriedRelationships());
+                if (config.getBackoffMechanism() != null) {
+                    procNode.setBackoffMechanism(BackoffMechanism.valueOf(config.getBackoffMechanism()));
+                }
+                procNode.setMaxBackoffPeriod(config.getMaxBackoffPeriod());
                 procNode.setStyle(processorDTO.getStyle());
 
                 if (config.getRunDurationMillis() != null) {

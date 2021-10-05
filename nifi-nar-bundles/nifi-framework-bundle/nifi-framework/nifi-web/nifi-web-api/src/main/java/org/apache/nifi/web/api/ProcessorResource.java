@@ -32,8 +32,10 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
@@ -832,6 +834,33 @@ public class ProcessorResource extends ApplicationResource {
         if (proposedPosition != null) {
             if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
                 throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
+        }
+
+        final ProcessorConfigDTO processorConfig = requestProcessorDTO.getConfig();
+        if (processorConfig != null) {
+            if (processorConfig.getRetryCounts() != null && processorConfig.getRetryCounts() < 0) {
+                throw new IllegalArgumentException("Retry Counts should not be less than zero.");
+            }
+
+            if (processorConfig.getBackoffMechanism() != null) {
+                try {
+                    BackoffMechanism.valueOf(processorConfig.getBackoffMechanism());
+                } catch (Exception e) {
+                    throw new IllegalArgumentException("Backoff Mechanism " + processorConfig.getBackoffMechanism() + " is invalid.");
+                }
+            }
+
+            if (processorConfig.getMaxBackoffPeriod() != null && !FormatUtils.TIME_DURATION_PATTERN.matcher(processorConfig.getMaxBackoffPeriod()).matches()) {
+                throw new IllegalArgumentException("Max Backoff Period should be specified as time, for example 5 mins");
+            }
+
+            if (processorConfig.getRetriedRelationships() != null && processorConfig.getAutoTerminatedRelationships() != null) {
+                for (String relationship : processorConfig.getAutoTerminatedRelationships()) {
+                    if (processorConfig.getRetriedRelationships().stream().anyMatch(rel -> rel.equals(relationship))) {
+                        throw new IllegalArgumentException("Auto terminated relationship " + relationship + " can not be retried");
+                    }
+                }
             }
         }
 
