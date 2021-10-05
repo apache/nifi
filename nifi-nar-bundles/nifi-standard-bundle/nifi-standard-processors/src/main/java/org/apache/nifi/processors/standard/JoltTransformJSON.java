@@ -18,13 +18,14 @@ package org.apache.nifi.processors.standard;
 
 import com.bazaarvoice.jolt.JoltTransform;
 import com.bazaarvoice.jolt.JsonUtils;
+import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -73,6 +74,7 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("Applies a list of Jolt specifications to the flowfile JSON payload. A new FlowFile is created "
         + "with transformed content and is routed to the 'success' relationship. If the JSON transform "
         + "fails, the original FlowFile is routed to the 'failure' relationship.")
+@RequiresInstanceClassLoading
 public class JoltTransformJSON extends AbstractProcessor {
 
     public static final AllowableValue SHIFTR = new AllowableValue("jolt-transform-shift", "Shift", "Shift input JSON/data to create the output JSON.");
@@ -109,7 +111,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             .displayName("Custom Transformation Class Name")
             .description("Fully Qualified Class Name for Custom Transformation")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -120,6 +122,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .dynamicallyModifiesClasspath(true)
             .build();
 
     static final PropertyDescriptor TRANSFORM_CACHE_SIZE = new PropertyDescriptor.Builder()
@@ -160,7 +163,7 @@ public class JoltTransformJSON extends AbstractProcessor {
      * For some cases the key could be empty. It means that it represents default transform (e.g. for custom transform
      * when there is no jolt-record-spec specified).
      */
-    private LoadingCache<Optional<String>, JoltTransform> transformCache;
+    private Cache<Optional<String>, JoltTransform> transformCache;
 
     static {
         final List<PropertyDescriptor> _properties = new ArrayList<>();
@@ -187,8 +190,6 @@ public class JoltTransformJSON extends AbstractProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
     }
-
-
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
@@ -217,10 +218,18 @@ public class JoltTransformJSON extends AbstractProcessor {
                 final String specValue =  validationContext.getProperty(JOLT_SPEC).getValue();
 
                 if (validationContext.isExpressionLanguagePresent(specValue)) {
-                    final String invalidExpressionMsg = validationContext.newExpressionLanguageCompiler().validateExpression(specValue,true);
+                    final String invalidExpressionMsg = validationContext.newExpressionLanguageCompiler().validateExpression(specValue, true);
                     if (!StringUtils.isEmpty(invalidExpressionMsg)) {
                         results.add(new ValidationResult.Builder().valid(false)
                                 .subject(JOLT_SPEC.getDisplayName())
+                                .explanation("Invalid Expression Language: " + invalidExpressionMsg)
+                                .build());
+                    }
+                } else if (validationContext.isExpressionLanguagePresent(customTransform)) {
+                    final String invalidExpressionMsg = validationContext.newExpressionLanguageCompiler().validateExpression(customTransform, true);
+                    if (!StringUtils.isEmpty(invalidExpressionMsg)) {
+                        results.add(new ValidationResult.Builder().valid(false)
+                                .subject(CUSTOM_CLASS.getDisplayName())
                                 .explanation("Invalid Expression Language: " + invalidExpressionMsg)
                                 .build());
                     }
@@ -242,7 +251,8 @@ public class JoltTransformJSON extends AbstractProcessor {
                     }
                 }
             } catch (final Exception e) {
-                getLogger().info("Processor is not valid - " + e.toString());
+//                getLogger().info("Processor is not valid - " + e.toString());
+                getLogger().error("processor is not valid: ", e);
                 String message = "Specification not valid for the selected transformation." ;
                 results.add(new ValidationResult.Builder().valid(false)
                         .explanation(message)
@@ -306,7 +316,7 @@ public class JoltTransformJSON extends AbstractProcessor {
         logger.info("Transformed {}", new Object[]{original});
     }
 
-    private JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) throws Exception {
+    private JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) {
         final Optional<String> specString;
         if (context.getProperty(JOLT_SPEC).isSet()) {
             specString = Optional.of(context.getProperty(JOLT_SPEC).evaluateAttributeExpressions(flowFile).getValue());
@@ -314,7 +324,14 @@ public class JoltTransformJSON extends AbstractProcessor {
             specString = Optional.empty();
         }
 
-        return transformCache.get(specString);
+        return transformCache.get(specString, currString -> {
+            try {
+                return createTransform(context, currString.orElse(null), flowFile);
+            } catch (Exception e) {
+                getLogger().error("Problem getting transform", e);
+            }
+            return null;
+        });
     }
 
     @OnScheduled
@@ -322,7 +339,7 @@ public class JoltTransformJSON extends AbstractProcessor {
         int maxTransformsToCache = context.getProperty(TRANSFORM_CACHE_SIZE).asInteger();
         transformCache = Caffeine.newBuilder()
                 .maximumSize(maxTransformsToCache)
-                .build(specString -> createTransform(context, specString.orElse(null)));
+                .build();
 
         try {
             if (context.getProperty(MODULES).isSet()) {
@@ -335,7 +352,7 @@ public class JoltTransformJSON extends AbstractProcessor {
         }
     }
 
-    private JoltTransform createTransform(final ProcessContext context, final String specString) throws Exception {
+    private JoltTransform createTransform(final ProcessContext context, final String specString, final FlowFile flowFile) throws Exception {
         final Object specJson;
         if (context.getProperty(JOLT_SPEC).isSet() && !SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())) {
             specJson = JsonUtils.jsonToObject(specString, DEFAULT_CHARSET);
@@ -344,7 +361,7 @@ public class JoltTransformJSON extends AbstractProcessor {
         }
 
         if (CUSTOMR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())) {
-            return TransformFactory.getCustomTransform(Thread.currentThread().getContextClassLoader(), context.getProperty(CUSTOM_CLASS).getValue(), specJson);
+            return TransformFactory.getCustomTransform(Thread.currentThread().getContextClassLoader(), context.getProperty(CUSTOM_CLASS).evaluateAttributeExpressions(flowFile).getValue(), specJson);
         } else {
             return TransformFactory.getTransform(Thread.currentThread().getContextClassLoader(), context.getProperty(JOLT_TRANSFORM).getValue(), specJson);
         }
