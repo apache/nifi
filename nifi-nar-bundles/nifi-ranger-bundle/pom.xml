@@ -35,6 +35,12 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Override zookeeper -->
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>3.4.14</version>
+            </dependency>
             <!-- Override commons-io:2.5 from ranger -->
             <dependency>
                 <groupId>commons-io</groupId>

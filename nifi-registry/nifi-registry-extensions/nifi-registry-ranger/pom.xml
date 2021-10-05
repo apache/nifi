@@ -85,6 +85,12 @@
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
+            <!-- Override zookeeper -->
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>3.4.14</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>
