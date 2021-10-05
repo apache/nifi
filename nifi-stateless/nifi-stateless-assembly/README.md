@@ -540,7 +540,7 @@ Alternatively, if you use the AWS Console to create a secret, follow these steps
 2. Enter one Secret key/value for each Parameter, where the key is the Parameter Name and the value is the Parameter value
 3. On the next page, enter the name of the Parameter Context as the Secret name.  Save the Secret.
 
-This Parameter Provider requires the following properties:
+This Parameter Provider allows the following properties:
 
 | Property Name | Description | Example Value |
 |---------------|-------------|---------------|

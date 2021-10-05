@@ -21,6 +21,7 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.secretsmanager.AWSSecretsManager;
 import com.amazonaws.services.secretsmanager.AWSSecretsManagerClientBuilder;
+import com.amazonaws.services.secretsmanager.model.AWSSecretsManagerException;
 import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest;
 import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
 import com.amazonaws.services.secretsmanager.model.ResourceNotFoundException;
@@ -63,8 +64,7 @@ public class AwsSecretsManagerParameterValueProvider extends AbstractSecretBased
             .displayName("AWS Credentials File")
             .name("aws-credentials-file")
             .required(false)
-            .defaultValue("./conf/bootstrap-aws.conf")
-            .description("Location of the bootstrap-aws.conf file that configures the AWS credentials.  If not provided, the default AWS credentials will be used.")
+            .description("Location of the configuration file (e.g., ./conf/bootstrap-aws.conf) that configures the AWS credentials.  If not provided, the default AWS credentials will be used.")
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
 
@@ -102,6 +102,9 @@ public class AwsSecretsManagerParameterValueProvider extends AbstractSecretBased
             return parseParameterValue(getSecretValueResult.getSecretString(), keyName);
         } catch (final ResourceNotFoundException e) {
             logger.debug("Secret [{}] not found", secretName);
+            return null;
+        } catch (final AWSSecretsManagerException e) {
+            logger.debug("Error retrieving secret [{}]", secretName);
             return null;
         }
     }
