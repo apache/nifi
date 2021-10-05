@@ -38,7 +38,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.BasicConfigurator;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -65,7 +64,6 @@ import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.hadoop.util.HadoopInputFile;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -83,11 +81,6 @@ public class PutParquetTest {
     private PutParquet proc;
     private MockRecordParser readerFactory;
     private TestRunner testRunner;
-
-    @BeforeAll
-    public static void setupBeforeClass() {
-        BasicConfigurator.configure();
-    }
 
     @BeforeEach
     public void setup() throws IOException {

@@ -78,7 +78,6 @@ class NiFiRegistryMode implements ToolMode {
             if (options.v) {
                 verboseEnabled = true
             }
-            EncryptConfigLogger.configureLogger(verboseEnabled)
 
             NiFiRegistryConfiguration config = new NiFiRegistryConfiguration(options)
             run(config)

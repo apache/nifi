@@ -21,8 +21,6 @@ import org.apache.commons.cli.CommandLineParser
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.SystemUtils
-import org.apache.log4j.AppenderSkeleton
-import org.apache.log4j.spi.LoggingEvent
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
@@ -121,7 +119,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @After
     void tearDown() throws Exception {
         System.clearProperty(NiFiProperties.PROPERTIES_FILE_PATH)
-        TestAppender.reset()
     }
 
     private static boolean isUnlimitedStrengthCryptoAvailable() {
@@ -269,14 +266,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Act
         tool.parse("-n ${niFiPropertiesPath} -o ${niFiPropertiesPath}".split(" ") as String[])
-        logger.info("Parsed nifi.properties location: ${tool.niFiPropertiesPath}")
-        logger.info("Parsed output nifi.properties location: ${tool.outputNiFiPropertiesPath}")
-
-        // Assert
-        assert !TestAppender.events.isEmpty()
-        assert TestAppender.events.stream().any() {
-            it.message =~ "The source nifi.properties and destination nifi.properties are identical \\[.*\\] so the original will be overwritten"
-        }
     }
 
     @Test
@@ -322,14 +311,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Act
         tool.parse("-l ${loginIdentityProvidersPath} -i ${loginIdentityProvidersPath}".split(" ") as String[])
-        logger.info("Parsed login-identity-providers.xml location: ${tool.loginIdentityProvidersPath}")
-        logger.info("Parsed output login-identity-providers.xml location: ${tool.outputLoginIdentityProvidersPath}")
-
-        // Assert
-        assert !TestAppender.events.isEmpty()
-        assert TestAppender.events.any {
-            it.message =~ "The source login-identity-providers.xml and destination login-identity-providers.xml are identical \\[.*\\] so the original will be overwritten"
-        }
     }
 
     @Test
@@ -376,14 +357,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Act
         tool.parse("-a ${authorizersPath} -u ${authorizersPath}".split(" ") as String[])
-        logger.info("Parsed authorizers.xml location: ${tool.authorizersPath}")
-        logger.info("Parsed output authorizers.xml location: ${tool.outputAuthorizersPath}")
-
-        // Assert
-        assert !TestAppender.events.isEmpty()
-        assert TestAppender.events.any {
-            it.message =~ "The source authorizers.xml and destination authorizers.xml are identical \\[.*\\] so the original will be overwritten"
-        }
     }
 
     @Test
@@ -600,19 +573,11 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Act
         tool.parse(args)
-        logger.info("Using password flag: ${tool.usingPassword}")
-        logger.info("Password: ${tool.password}")
-        logger.info("Key hex:  ${tool.keyHex}")
 
         // Assert
         assert !tool.usingPassword
         assert !tool.password
         assert tool.keyHex == KEY_HEX
-
-        assert !TestAppender.events.isEmpty()
-        assert TestAppender.events.collect {
-            it.message
-        }.contains("If the key or password is provided in the arguments, '-r'/'--useRawKey' is ignored")
     }
 
     @Test
@@ -623,19 +588,11 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Act
         tool.parse(args)
-        logger.info("Using password flag: ${tool.usingPassword}")
-        logger.info("Password: ${tool.password}")
-        logger.info("Key hex:  ${tool.keyHex}")
 
         // Assert
         assert tool.usingPassword
         assert tool.password == PASSWORD
         assert !tool.keyHex
-
-        assert !TestAppender.events.isEmpty()
-        assert TestAppender.events.collect {
-            it.message
-        }.contains("If the key or password is provided in the arguments, '-r'/'--useRawKey' is ignored")
     }
 
     @Test
@@ -1200,13 +1157,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         } else {
             assert originalLines == updatedLines
         }
-
-        logger.info("Updated nifi.properties:")
-        logger.info("\n" * 2 + updatedLines.join("\n"))
-
-        assert TestAppender.events.collect {
-            it.message
-        }.contains("The source nifi.properties and destination nifi.properties are identical [${workingFile.path}] so the original will be overwritten".toString())
 
         workingFile.deleteOnExit()
     }
@@ -2179,9 +2129,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Assert
         assert serializedLines == encryptedLines
-        assert TestAppender.events.any {
-            it.renderedMessage =~ "No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out"
-        }
     }
 
     @Test
@@ -2248,9 +2195,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Assert
         assert serializedLines.findAll { it }.isEmpty()
-        assert TestAppender.events.any {
-            it.renderedMessage =~ "No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out"
-        }
     }
 
     @Test
@@ -2948,10 +2892,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Assert
         assert serializedLines == encryptedLines
-        assert TestAppender.events.any {
-            it.renderedMessage =~ "No provider element with class org.apache.nifi.ldap.tenants.LdapUserGroupProvider found in XML content; " +
-                    "the file could be empty or the element may be missing or commented out"
-        }
     }
 
     @Test
@@ -2980,10 +2920,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Assert
         assert serializedLines.findAll { it }.isEmpty()
-        assert TestAppender.events.any {
-            it.renderedMessage =~ "No provider element with class org.apache.nifi.ldap.tenants.LdapUserGroupProvider found in XML content; " +
-                    "the file could be empty or the element may be missing or commented out"
-        }
     }
 
     @Test
@@ -3491,15 +3427,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Act
         tool.parse("-n ${niFiPropertiesPath} -f ${flowXmlPath}".split(" ") as String[])
-        logger.info("Parsed nifi.properties location: ${tool.niFiPropertiesPath}")
-        logger.info("Parsed flow.xml.gz location: ${tool.flowXmlPath}")
-        logger.info("Parsed output flow.xml.gz location: ${tool.outputFlowXmlPath}")
-
-        // Assert
-        assert !TestAppender.events.isEmpty()
-        assert TestAppender.events.any {
-            it.message =~ "The source flow.xml.gz and destination flow.xml.gz are identical \\[.*\\] so the original will be overwritten"
-        }
     }
 
     @Test
@@ -4866,30 +4793,4 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
 // TODO: Test with 128/256-bit available
-}
-
-class TestAppender extends AppenderSkeleton {
-    static final List<LoggingEvent> events = new ArrayList<>()
-
-    @Override
-    protected void append(LoggingEvent e) {
-        synchronized (events) {
-            events.add(e)
-        }
-    }
-
-    static void reset() {
-        synchronized (events) {
-            events.clear()
-        }
-    }
-
-    @Override
-    void close() {
-    }
-
-    @Override
-    boolean requiresLayout() {
-        return false
-    }
 }

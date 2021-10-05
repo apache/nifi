@@ -770,6 +770,8 @@
                                         <exclude>c3p0:c3p0:*:*:compile</exclude>
                                         <!-- Versions of JSR305 before 3.0.1 are not allowed https://github.com/findbugsproject/findbugs/issues/128 -->
                                         <exclude>com.google.code.findbugs:jsr305:*:*:compile</exclude>
+                                        <!-- Log4J excluded in favor of log4j-over-slf4j and logback -->
+                                        <exclude>log4j:log4j:*</exclude>
                                     </excludes>
                                     <includes>
                                         <!-- Versions of JSR305 after 3.0.1 are allowed https://github.com/findbugsproject/findbugs/issues/128 -->

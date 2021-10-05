@@ -34,7 +34,6 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.log4j.BasicConfigurator;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -100,7 +99,6 @@ public class PutORCTest {
     @BeforeClass
     public static void setupBeforeClass() {
         Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-        BasicConfigurator.configure();
     }
 
     @Before
