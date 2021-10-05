@@ -59,7 +59,8 @@ public class TestFetchHDFS {
     @Test
     public void testFetchStaticFileThatExists() throws IOException {
         final String file = "src/test/resources/testdata/randombytes-1";
-        runner.setProperty(FetchHDFS.FILENAME, file);
+        final String fileWithMultipliedSeparators = "src/test////resources//testdata/randombytes-1";
+        runner.setProperty(FetchHDFS.FILENAME, fileWithMultipliedSeparators);
         runner.enqueue(new String("trigger flow file"));
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchHDFS.REL_SUCCESS, 1);
