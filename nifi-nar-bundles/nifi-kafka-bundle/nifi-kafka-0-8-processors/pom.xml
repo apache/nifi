@@ -20,7 +20,17 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>nifi-kafka-0-8-processors</artifactId>
-    <packaging>jar</packaging>  
+    <packaging>jar</packaging>
+    <dependencyManagement>
+        <dependencies>
+            <!-- Override zookeeper -->
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>3.4.14</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
