@@ -87,12 +87,16 @@
 #parameter-referencing-components-container {
     position: absolute;
     bottom: 10px;
-    top: 75px;
+    top: 62px;
     width: calc(100% - 5px);
     overflow: auto;
     border: 0 solid #CCCCCC;
     overflow: auto;
     padding: 2px;
+}
+
+#parameter-referencing-components-container div.referencing-component-references {
+    margin: 0;
 }
 
 .referencing-components-template {
@@ -112,7 +116,7 @@
 
 span.parameter-context-referencing-component-name {
     margin-left: 5px;
-    max-width: calc(100% - 70px);
+    max-width: calc(100% - 30px);
 }
 
 #parameter-context-updating-status {
@@ -209,4 +213,9 @@ span.parameter-context-referencing-component-name {
     color: #775351;
     max-width: calc(100% - 230px);
     z-index: 999;
+}
+
+#parameter-context-referencing-components ul.referencing-component-listing {
+    margin-bottom: 0;
+    margin-left: 10px;
 }
