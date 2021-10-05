@@ -3765,7 +3765,7 @@ Providing three total network interfaces, including  `nifi.web.http.network.inte
 |`nifi.web.https.ciphersuites.include`|Cipher suites used to initialize the SSLContext of the Jetty HTTPS port.  If unspecified, the runtime SSLContext defaults are used.
 |`nifi.web.https.ciphersuites.exclude`|Cipher suites that may not be used by an SSL client to establish a connection to Jetty.  If unspecified, the runtime SSLContext defaults are used.
 |`nifi.web.max.access.token.requests.per.second`| Maximum amount of requests per second the token endpoints will accept before filtering requests. The default value is `25`
-|`nifi.web.should.send.server.version`| Wether the Server header should be included in HTTP responses. The default value is `TRUE` +
+|`nifi.web.should.send.server.version`| Whether the Server header should be included in HTTP responses. The default value is `TRUE` +
 
 In Chrome, the SSL cipher negotiated with Jetty may be examined in the 'Developer Tools' plugin, in the 'Security' tab.
 In Firefox, the SSL cipher negotiated with Jetty may be examined in the 'Secure Connection' widget found to the left of the URL in the browser address bar.
