@@ -83,6 +83,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -382,7 +383,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         if (StringUtils.isEmpty(baseUrl)) {
             throw new ProcessException("Elasticsearch URL is empty or null, this indicates an invalid Expression (missing variables, e.g.)");
         }
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(baseUrl).newBuilder().addPathSegment("_bulk");
+        HttpUrl.Builder urlBuilder = Objects.requireNonNull(HttpUrl.parse(baseUrl)).newBuilder().addPathSegment("_bulk");
 
         // Find the user-added properties and set them as query parameters on the URL
         for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
@@ -397,14 +398,14 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
 
         final String index = context.getProperty(INDEX).evaluateAttributeExpressions(flowFile).getValue();
         if (StringUtils.isEmpty(index)) {
-            logger.error("No value for index in for {}, transferring to failure", new Object[]{flowFile});
+            logger.error("No value for index in for {}, transferring to failure", flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
         final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(flowFile).getValue();
         String indexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(flowFile).getValue();
         if (StringUtils.isEmpty(indexOp)) {
-            logger.error("No Index operation specified for {}, transferring to failure.", new Object[]{flowFile});
+            logger.error("No Index operation specified for {}, transferring to failure.", flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -417,7 +418,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             case "delete":
                 break;
             default:
-                logger.error("Index operation {} not supported for {}, transferring to failure.", new Object[]{indexOp, flowFile});
+                logger.error("Index operation {} not supported for {}, transferring to failure.", indexOp, flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
         }
@@ -430,9 +431,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
 
         final String atTimestamp = context.getProperty(AT_TIMESTAMP).evaluateAttributeExpressions(flowFile).getValue();
-        final String atTimestampPath = context.getProperty(AT_TIMESTAMP_RECORD_PATH).isSet()
-                ? context.getProperty(AT_TIMESTAMP_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue()
-                : null;
+        final String atTimestampPath = context.getProperty(AT_TIMESTAMP_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
         final RecordPath atPath = StringUtils.isEmpty(atTimestampPath) ? null : recordPathCache.getCompiled(atTimestampPath);
 
         int recordCount = 0;
@@ -480,7 +479,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                 recordCount++;
             }
         } catch (IdentifierNotFoundException infe) {
-            logger.error(infe.getMessage(), new Object[]{flowFile});
+            logger.error(infe.getMessage(), flowFile);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -492,7 +491,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             return;
         }
 
-        RequestBody requestBody = RequestBody.create(MediaType.parse("application/json"), sb.toString());
+        RequestBody requestBody = RequestBody.create(sb.toString(), MediaType.parse("application/json"));
         final Response getResponse;
         try {
             getResponse = sendRequestToElasticsearch(okHttpClient, url, username, password, "PUT", requestBody);
@@ -507,49 +506,50 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         final Set<Integer> failures = new HashSet<>();
 
         if (isSuccess(statusCode)) {
-            try (ResponseBody responseBody = getResponse.body()) {
-                final byte[] bodyBytes = responseBody.bytes();
+            try (final ResponseBody responseBody = getResponse.body()) {
+                if (responseBody != null) {
+                    final byte[] bodyBytes = responseBody.bytes();
 
-                JsonNode responseJson = parseJsonResponse(new ByteArrayInputStream(bodyBytes));
-                boolean errors = responseJson.get("errors").asBoolean(false);
-                // ES has no rollback, so if errors occur, log them and route the whole flow file to failure
-                if (errors) {
-                    ArrayNode itemNodeArray = (ArrayNode) responseJson.get("items");
-                    if(itemNodeArray != null) {
-                        if (itemNodeArray.size() > 0) {
-                            // All items are returned whether they succeeded or failed, so iterate through the item array
-                            // at the same time as the flow file list, moving each to success or failure accordingly,
-                            // but only keep the first error for logging
-                            String errorReason = null;
-                            for (int i = itemNodeArray.size() - 1; i >= 0; i--) {
-                                JsonNode itemNode = itemNodeArray.get(i);
-                                int status = itemNode.findPath("status").asInt();
-                                if (!isSuccess(status)) {
-                                    if (errorReason == null || logAllErrors) {
-                                        // Use "result" if it is present; this happens for status codes like 404 Not Found, which may not have an error/reason
-                                        String reason = itemNode.findPath("result").asText();
-                                        if (StringUtils.isEmpty(reason)) {
-                                            // If there was no result, we expect an error with a string description in the "reason" field
-                                            reason = itemNode.findPath("reason").asText();
+                    JsonNode responseJson = parseJsonResponse(new ByteArrayInputStream(bodyBytes));
+                    boolean errors = responseJson.get("errors").asBoolean(false);
+                    // ES has no rollback, so if errors occur, log them and route the whole flow file to failure
+                    if (errors) {
+                        ArrayNode itemNodeArray = (ArrayNode) responseJson.get("items");
+                        if (itemNodeArray != null) {
+                            if (itemNodeArray.size() > 0) {
+                                // All items are returned whether they succeeded or failed, so iterate through the item array
+                                // at the same time as the flow file list, moving each to success or failure accordingly,
+                                // but only keep the first error for logging
+                                String errorReason = null;
+                                for (int i = itemNodeArray.size() - 1; i >= 0; i--) {
+                                    JsonNode itemNode = itemNodeArray.get(i);
+                                    int status = itemNode.findPath("status").asInt();
+                                    if (!isSuccess(status)) {
+                                        if (errorReason == null || logAllErrors) {
+                                            // Use "result" if it is present; this happens for status codes like 404 Not Found, which may not have an error/reason
+                                            String reason = itemNode.findPath("result").asText();
+                                            if (StringUtils.isEmpty(reason)) {
+                                                // If there was no result, we expect an error with a string description in the "reason" field
+                                                reason = itemNode.findPath("reason").asText();
+                                            }
+                                            errorReason = reason;
+
+                                            logger.error("Failed to process record {} in FlowFile {} due to {}, transferring to failure",
+                                                    i, flowFile, errorReason);
                                         }
-                                        errorReason = reason;
-
-                                        logger.error("Failed to process record {} in FlowFile {} due to {}, transferring to failure",
-                                                new Object[]{i, flowFile, errorReason});
+                                        failures.add(i);
                                     }
-                                    failures.add(i);
                                 }
                             }
                         }
+                    } else {
+                        // Everything succeeded, route FF and end
+                        flowFile = session.putAttribute(flowFile, "record.count", Integer.toString(recordCount));
+                        session.transfer(flowFile, REL_SUCCESS);
+                        session.getProvenanceReporter().send(flowFile, url.toString());
+                        return;
                     }
-                } else {
-                    // Everything succeeded, route FF and end
-                    flowFile = session.putAttribute(flowFile, "record.count", Integer.toString(recordCount));
-                    session.transfer(flowFile, REL_SUCCESS);
-                    session.getProvenanceReporter().send(flowFile, url.toString());
-                    return;
                 }
-
             } catch (IOException ioe) {
                 // Something went wrong when parsing the response, log the error and route to failure
                 logger.error("Error parsing Bulk API response: {}", new Object[]{ioe.getMessage()}, ioe);
@@ -562,12 +562,12 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         } else if (statusCode / 100 == 5) {
             // 5xx -> RETRY, but a server error might last a while, so yield
             logger.warn("Elasticsearch returned code {} with message {}, transferring flow file to retry. This is likely a server problem, yielding...",
-                    new Object[]{statusCode, getResponse.message()});
+                    statusCode, getResponse.message());
             session.transfer(flowFile, REL_RETRY);
             context.yield();
             return;
         } else {  // 1xx, 3xx, 4xx, etc. -> NO RETRY
-            logger.warn("Elasticsearch returned code {} with message {}, transferring flow file to failure", new Object[]{statusCode, getResponse.message()});
+            logger.warn("Elasticsearch returned code {} with message {}, transferring flow file to failure", statusCode, getResponse.message());
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -582,17 +582,16 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             final RecordSetWriterFactory writerFactory = writerFactoryOptional.get();
 
             // We know there are a mixture of successes and failures, create FFs for each and rename input FF to avoid confusion.
-            final FlowFile inputFlowFile = flowFile;
-            final FlowFile successFlowFile = session.create(inputFlowFile);
-            final FlowFile failedFlowFile = session.create(inputFlowFile);
+            final FlowFile successFlowFile = session.create(flowFile);
+            final FlowFile failedFlowFile = session.create(flowFile);
 
             // Set up the reader and writers
             try (final OutputStream successOut = session.write(successFlowFile);
                  final OutputStream failedOut = session.write(failedFlowFile);
-                 final InputStream in = session.read(inputFlowFile);
-                 final RecordReader reader = readerFactory.createRecordReader(inputFlowFile, in, getLogger())) {
+                 final InputStream in = session.read(flowFile);
+                 final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
 
-                final RecordSchema schema = writerFactory.getSchema(inputFlowFile.getAttributes(), reader.getSchema());
+                final RecordSchema schema = writerFactory.getSchema(flowFile.getAttributes(), reader.getSchema());
 
                 try (final RecordSetWriter successWriter = writerFactory.createWriter(getLogger(), schema, successOut, successFlowFile);
                      final RecordSetWriter failedWriter = writerFactory.createWriter(getLogger(), schema, failedOut, failedFlowFile)) {
@@ -614,8 +613,8 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                 }
             } catch (final IOException | SchemaNotFoundException | MalformedRecordException e) {
                 // We failed while handling individual failures. Not much else we can do other than log, and route the whole thing to failure.
-                getLogger().error("Failed to process {} during individual record failure handling; route whole FF to failure", new Object[] {flowFile, e});
-                session.transfer(inputFlowFile, REL_FAILURE);
+                getLogger().error("Failed to process {} during individual record failure handling; route whole FF to failure", flowFile, e);
+                session.transfer(flowFile, REL_FAILURE);
                 if (successFlowFile != null) {
                     session.remove(successFlowFile);
                 }
@@ -631,7 +630,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             session.putAttribute(failedFlowFile, "failure.count", Integer.toString(failures.size()));
             session.transfer(successFlowFile, REL_SUCCESS);
             session.transfer(failedFlowFile, REL_FAILURE);
-            session.remove(inputFlowFile);
+            session.remove(flowFile);
         }
     }
 
@@ -649,10 +648,14 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                 atValue = atField.getValue();
             } else {
                 atDataType = RecordFieldType.STRING.getDataType();
-                atValue = atTimestamp;
+                atValue = atTimestamp.toString();
             }
+
+            final Object outputValue = RecordFieldType.STRING.getDataType().equals(atDataType) ? coerceTimestampStringToLong(atValue.toString()) : atValue;
+            final DataType outputDataType = outputValue.equals(atValue) ? atDataType : RecordFieldType.LONG.getDataType();
+
             generator.writeFieldName("@timestamp");
-            writeValue(generator, atValue, "@timestamp", atDataType);
+            writeValue(generator, outputValue, "@timestamp", outputDataType);
         }
 
         for (int i = 0; i < schema.getFieldCount(); i++) {
@@ -673,6 +676,12 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             writeValue(generator, value, fieldName, dataType);
         }
         generator.writeEndObject();
+    }
+
+    private Object coerceTimestampStringToLong(final String stringValue) {
+        return DataTypeUtils.isLongTypeCompatible(stringValue)
+                ? DataTypeUtils.toLong(stringValue, "@timestamp")
+                : stringValue;
     }
 
     @SuppressWarnings("unchecked")

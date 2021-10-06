@@ -57,6 +57,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
@@ -607,7 +608,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.clearTransferState();
 
         // these INT/STRING values might not make sense from an Elasticsearch point of view,
-        // but we want to prove we can handle them being selected from teh Record
+        // but we want to prove we can handle them being selected from the Record
         runner.setProperty(PutElasticsearchHttpRecord.AT_TIMESTAMP_RECORD_PATH, "/code"); // INT
         processor.setRecordChecks(record -> assertTimestamp(record, 101));
         runner.enqueue(new byte[0]);
@@ -619,6 +620,15 @@ public class TestPutElasticsearchHttpRecord {
 
         runner.setProperty(PutElasticsearchHttpRecord.AT_TIMESTAMP_RECORD_PATH, "/name"); // STRING
         processor.setRecordChecks(record -> assertTimestamp(record, "reç1"));
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        assertNotNull(runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0));
+        runner.clearTransferState();
+
+        runner.setProperty(PutElasticsearchHttpRecord.AT_TIMESTAMP_RECORD_PATH, "/coerce"); // STRING coerced to LONG
+        processor.setRecordChecks(record -> assertTimestamp(record, 1000));
         runner.enqueue(new byte[0]);
         runner.run(1, true, true);
 
@@ -753,6 +763,7 @@ public class TestPutElasticsearchHttpRecord {
             recordChecks = checks;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         protected void createElasticsearchClient(ProcessContext context) throws ProcessException {
             client = mock(OkHttpClient.class);
@@ -765,7 +776,7 @@ public class TestPutElasticsearchHttpRecord {
                     if (recordChecks != null) {
                         final ObjectMapper mapper = new ObjectMapper();
                         Buffer sink = new Buffer();
-                        realRequest.body().writeTo(sink);
+                        Objects.requireNonNull(realRequest.body()).writeTo(sink);
                         String line;
                         int recordIndex = 0;
                         boolean content = false;
@@ -927,12 +938,13 @@ public class TestPutElasticsearchHttpRecord {
         parser.addSchemaField("time", RecordFieldType.TIME);
         parser.addSchemaField("ts", RecordFieldType.TIMESTAMP);
         parser.addSchemaField("amount", RecordFieldType.DECIMAL);
+        parser.addSchemaField("coerce", RecordFieldType.STRING);
 
         final Date date = Date.valueOf(ISO_DATE);
         final Timestamp timestamp = Timestamp.valueOf(LOCAL_DATE_TIME);
         final Time time = Time.valueOf(LOCAL_TIME);
         for(int i=1; i<=numRecords; i++) {
-            parser.addRecord(i, "reç" + i, 100 + i, date, time, timestamp, new BigDecimal(Double.MAX_VALUE).multiply(BigDecimal.TEN));
+            parser.addRecord(i, "reç" + i, 100 + i, date, time, timestamp, new BigDecimal(Double.MAX_VALUE).multiply(BigDecimal.TEN), "1000");
         }
     }
 

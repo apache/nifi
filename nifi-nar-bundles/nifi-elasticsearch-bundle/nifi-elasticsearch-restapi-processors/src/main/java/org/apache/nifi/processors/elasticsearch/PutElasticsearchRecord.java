@@ -165,8 +165,8 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
     static final PropertyDescriptor AT_TIMESTAMP_RECORD_PATH = new PropertyDescriptor.Builder()
         .name("put-es-record-at-timestamp-path")
         .displayName("@timestamp Record Path")
-        .description("A RecordPath pointing to a field in the record(s) that contains the @timestamp for the document " +
-                "(required for Elasticsearch Data Streams). If left blank the @timestamp will be determined using the main property type")
+        .description("A RecordPath pointing to a field in the record(s) that contains the @timestamp for the document. " +
+                "If left blank the @timestamp will be determined using the main @timestamp property")
         .addValidator(new RecordPathValidator())
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
@@ -200,7 +200,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         .description("Specifies the format to use when writing Date field for @timestamp. "
                 + "If not specified, the default format '" + RecordFieldType.DATE.getDefaultFormat() + "' is used. "
                 + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy for a two-digit month, followed by "
-                + "a two-digit day, followed by a four-digit year, all separated by '/' characters, as in 01/01/2017).")
+                + "a two-digit day, followed by a four-digit year, all separated by '/' characters, as in 01/25/2017).")
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(new SimpleDateFormatValidator())
         .required(false)
@@ -227,7 +227,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                 + "If not specified, the default format '" + RecordFieldType.TIMESTAMP.getDefaultFormat() + "' is used. "
                 + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy HH:mm:ss for a two-digit month, followed by "
                 + "a two-digit day, followed by a four-digit year, all separated by '/' characters; and then followed by a two-digit hour in 24-hour format, followed by "
-                + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 01/01/2017 18:04:15).")
+                + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 01/25/2017 18:04:15).")
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(new SimpleDateFormatValidator())
         .required(false)
@@ -330,21 +330,11 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         final String type  = context.getProperty(TYPE).evaluateAttributeExpressions(input).getValue();
         final String atTimestamp  = context.getProperty(AT_TIMESTAMP).evaluateAttributeExpressions(input).getValue();
 
-        final String indexOpPath = context.getProperty(INDEX_OP_RECORD_PATH).isSet()
-                ? context.getProperty(INDEX_OP_RECORD_PATH).evaluateAttributeExpressions(input).getValue()
-                : null;
-        final String idPath = context.getProperty(ID_RECORD_PATH).isSet()
-                ? context.getProperty(ID_RECORD_PATH).evaluateAttributeExpressions(input).getValue()
-                : null;
-        final String indexPath = context.getProperty(INDEX_RECORD_PATH).isSet()
-                ? context.getProperty(INDEX_RECORD_PATH).evaluateAttributeExpressions(input).getValue()
-                : null;
-        final String typePath = context.getProperty(TYPE_RECORD_PATH).isSet()
-                ? context.getProperty(TYPE_RECORD_PATH).evaluateAttributeExpressions(input).getValue()
-                : null;
-        final String atTimestampPath = context.getProperty(AT_TIMESTAMP_RECORD_PATH).isSet()
-                ? context.getProperty(AT_TIMESTAMP_RECORD_PATH).evaluateAttributeExpressions(input).getValue()
-                : null;
+        final String indexOpPath = context.getProperty(INDEX_OP_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
+        final String idPath = context.getProperty(ID_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
+        final String indexPath = context.getProperty(INDEX_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
+        final String typePath = context.getProperty(TYPE_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
+        final String atTimestampPath = context.getProperty(AT_TIMESTAMP_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
 
         RecordPath ioPath = indexOpPath != null ? recordPathCache.getCompiled(indexOpPath) : null;
         RecordPath path = idPath != null ? recordPathCache.getCompiled(idPath) : null;
@@ -530,17 +520,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                 case DATE:
                 case TIME:
                 case TIMESTAMP:
-                    final String format;
-                    switch (chosenDataType.getFieldType()) {
-                        case DATE:
-                            format = this.dateFormat;
-                            break;
-                        case TIME:
-                            format = this.timeFormat;
-                            break;
-                        default:
-                            format = this.timestampFormat;
-                    }
+                    final String format = determineDateFormat(chosenDataType.getFieldType());
                     returnValue = coerceStringToLong(
                             fieldName,
                             DataTypeUtils.toString(coercedValue, () -> DataTypeUtils.getDateFormat(format))
@@ -575,6 +555,21 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         } else {
             return coerceStringToLong("@timestamp", fallback);
         }
+    }
+
+    private String determineDateFormat(final RecordFieldType recordFieldType) {
+        final String format;
+        switch (recordFieldType) {
+            case DATE:
+                format = this.dateFormat;
+                break;
+            case TIME:
+                format = this.timeFormat;
+                break;
+            default:
+                format = this.timestampFormat;
+        }
+        return format;
     }
 
     private Object coerceStringToLong(final String fieldName, final String stringValue) {
