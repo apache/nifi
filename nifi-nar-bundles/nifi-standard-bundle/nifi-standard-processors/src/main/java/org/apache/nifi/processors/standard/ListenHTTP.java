@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -36,7 +37,6 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -46,6 +46,8 @@ import org.apache.nifi.processors.standard.servlets.ListenHTTPServlet;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
@@ -65,7 +67,6 @@ import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Path;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -91,9 +92,6 @@ import java.util.stream.Collectors;
         + "For details see the documentation of the \"Listening Port for health check requests\" property.")
 public class ListenHTTP extends AbstractSessionFactoryProcessor {
     private static final String MATCH_ALL = ".*";
-
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> properties;
 
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final AtomicBoolean runOnPrimary = new AtomicBoolean(false);
@@ -253,6 +251,45 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             .defaultValue("200")
             .build();
 
+    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .name("record-reader")
+            .displayName("Record Reader")
+            .description("The Record Reader to use parsing the incoming FlowFile into Records")
+            .required(false)
+            .identifiesControllerService(RecordReaderFactory.class)
+            .build();
+
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .name("record-writer")
+            .displayName("Record Writer")
+            .description("The Record Writer to use for serializing Records after they have been transformed")
+            .required(false)
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .build();
+
+    protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            BASE_PATH,
+            PORT,
+            HEALTH_CHECK_PORT,
+            MAX_DATA_RATE,
+            SSL_CONTEXT_SERVICE,
+            CLIENT_AUTHENTICATION,
+            AUTHORIZED_DN_PATTERN,
+            AUTHORIZED_ISSUER_DN_PATTERN,
+            MAX_UNCONFIRMED_TIME,
+            HEADERS_AS_ATTRIBUTES_REGEX,
+            RETURN_CODE,
+            MULTIPART_REQUEST_MAX_SIZE,
+            MULTIPART_READ_BUFFER_SIZE,
+            MAX_THREAD_POOL_SIZE,
+            RECORD_READER,
+            RECORD_WRITER
+    ));
+
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Collections.singletonList(
+            RELATIONSHIP_SUCCESS
+    )));
+
     public static final String CONTEXT_ATTRIBUTE_PROCESSOR = "processor";
     public static final String CONTEXT_ATTRIBUTE_LOGGER = "logger";
     public static final String CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER = "sessionFactoryHolder";
@@ -273,13 +310,40 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     private final AtomicReference<ProcessSessionFactory> sessionFactoryReference = new AtomicReference<>();
     private final AtomicReference<StreamThrottler> throttlerRef = new AtomicReference<>();
 
+    private volatile boolean isRecordReaderSet;
+    private volatile boolean isRecordWriterSet;
+
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        List<ValidationResult> results = new ArrayList<>(1);
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (RECORD_READER.equals(descriptor)) {
+            isRecordReaderSet = StringUtils.isNotEmpty(newValue);
+        } else if (RECORD_WRITER.equals(descriptor)) {
+            isRecordWriterSet = StringUtils.isNotEmpty(newValue);
+        }
+    }
 
-        validatePortsAreNotEqual(context, results);
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final Set<ValidationResult> validationResults = new HashSet<>(super.customValidate(validationContext));
 
-        return results;
+        validatePortsAreNotEqual(validationContext, validationResults);
+
+        final String explanation = "%s must be set if %s is set in order to write FlowFiles as Records.";
+        if (isRecordReaderSet && !isRecordWriterSet) {
+            validationResults.add(new ValidationResult.Builder()
+                    .subject(RECORD_WRITER.getName())
+                    .explanation(String.format(explanation, RECORD_WRITER.getDisplayName(), RECORD_READER.getDisplayName()))
+                    .valid(false)
+                    .build());
+        } else if (isRecordWriterSet && !isRecordReaderSet) {
+            validationResults.add(new ValidationResult.Builder()
+                    .subject(RECORD_READER.getName())
+                    .explanation(String.format(explanation, RECORD_READER.getDisplayName(), RECORD_WRITER.getDisplayName()))
+                    .valid(false)
+                    .build());
+        }
+
+        return validationResults;
     }
 
     private void validatePortsAreNotEqual(ValidationContext context, Collection<ValidationResult> validationResults) {
@@ -298,37 +362,13 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(RELATIONSHIP_SUCCESS);
-        this.relationships = Collections.unmodifiableSet(relationships);
-
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(BASE_PATH);
-        descriptors.add(PORT);
-        descriptors.add(HEALTH_CHECK_PORT);
-        descriptors.add(MAX_DATA_RATE);
-        descriptors.add(SSL_CONTEXT_SERVICE);
-        descriptors.add(CLIENT_AUTHENTICATION);
-        descriptors.add(AUTHORIZED_DN_PATTERN);
-        descriptors.add(AUTHORIZED_ISSUER_DN_PATTERN);
-        descriptors.add(MAX_UNCONFIRMED_TIME);
-        descriptors.add(HEADERS_AS_ATTRIBUTES_REGEX);
-        descriptors.add(RETURN_CODE);
-        descriptors.add(MULTIPART_REQUEST_MAX_SIZE);
-        descriptors.add(MULTIPART_READ_BUFFER_SIZE);
-        descriptors.add(MAX_THREAD_POOL_SIZE);
-        this.properties = Collections.unmodifiableList(descriptors);
-    }
-
-    @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @OnStopped

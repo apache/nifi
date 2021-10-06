@@ -52,6 +52,9 @@ import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.MockRecordWriter;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
@@ -461,6 +464,36 @@ public class TestListenHTTP {
         assertEquals(maxThreadPoolSize, sizedThreadPool.getMaxThreads());
     }
 
+    @Test
+    public void testPOSTRequestsReceivedWithRecordReader() throws Exception {
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("mockRecordParser", parser);
+        runner.setProperty(ListenHTTP.RECORD_READER, "mockRecordParser");
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("code", RecordFieldType.LONG);
+
+        final List<Integer> keys = Arrays.asList(1, 2, 3, 4);
+        final List<String> names = Arrays.asList("rec1", "rec2", "rec3", "rec4");
+        final List<Long> codes = Arrays.asList(101L, 102L, 103L, 104L);
+
+        for (int i = 0; i < keys.size(); i++) {
+            parser.addRecord(keys.get(i), names.get(i), codes.get(i));
+        }
+
+
+        final MockRecordWriter writer = new MockRecordWriter();
+        runner.addControllerService("mockRecordWriter", writer);
+        runner.enableControllerService(parser);
+        runner.setProperty(ListenHTTP.RECORD_WRITER, "mockRecordWriter");
+
+        testPOSTRecordRequestsReceived();
+    }
+
     private void startSecureServer() {
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -527,6 +560,20 @@ public class TestListenHTTP {
                 mockFlowFiles.get(0).assertAttributeEquals("restlistener.remote.issuer.dn", LOCALHOST_DN);
             }
         }
+    }
+
+    private void testPOSTRecordRequestsReceived() throws Exception {
+        final List<String> messages = new ArrayList<>();
+        final String expectedMessage = "\"1\",\"rec1\",\"101\"\n" +
+                "\"2\",\"rec2\",\"102\"\n" +
+                "\"3\",\"rec3\",\"103\"\n" +
+                "\"4\",\"rec4\",\"104\"\n";
+        messages.add(expectedMessage);
+        startWebServerAndSendMessages(messages, HttpServletResponse.SC_OK, false, false);
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
+
+        runner.assertTransferCount(RELATIONSHIP_SUCCESS, 1);
+        mockFlowFiles.get(0).assertContentEquals(expectedMessage);
     }
 
     private void startWebServer() {
