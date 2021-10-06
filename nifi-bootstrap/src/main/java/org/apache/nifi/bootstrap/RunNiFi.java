@@ -45,7 +45,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileAttribute;
@@ -244,13 +243,10 @@ public class RunNiFi {
                     System.err.println("The <number of days> parameter value is not a number. The command parameters are: status-history <number of days> <dumpFile>");
                     System.exit(INVALID_CMD_ARGUMENT);
                 }
-                try {
-                    Paths.get(args[2]);
-                } catch (InvalidPathException e) {
-                    System.err.println("Invalid filename. The command parameters are: status-history <number of days> <dumpFile>");
-                    System.exit(INVALID_CMD_ARGUMENT);
+                final boolean isValid = DumpFileValidator.validate(args[2]);
+                if (isValid) {
+                    dumpFile = new File(args[2]);
                 }
-                dumpFile = new File(args[2]);
             } else {
                 final boolean isValid = DumpFileValidator.validate(args[1]);
                 if (isValid) {
@@ -811,8 +807,8 @@ public class RunNiFi {
         final Logger logger = defaultLogger;    // dump to bootstrap log file by default
         final Integer port = getCurrentPort(logger);
         if (port == null) {
-            cmdLogger.info("Apache NiFi is not currently running");
-            logger.info("Apache NiFi is not currently running");
+            cmdLogger.error("Apache NiFi is not currently running");
+            logger.error("Apache NiFi is not currently running");
             return;
         }
 

@@ -17,11 +17,9 @@
 package org.apache.nifi.spring;
 
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.util.NiFiProperties;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -31,28 +29,13 @@ import org.springframework.context.ApplicationContextAware;
  */
 public class StatusHistoryRepositoryFactoryBean implements FactoryBean<StatusHistoryRepository>, ApplicationContextAware {
 
-    private static final String DEFAULT_COMPONENT_STATUS_REPO_IMPLEMENTATION = "org.apache.nifi.controller.status.history.VolatileComponentStatusRepository";
 
-    private ApplicationContext applicationContext;
     private NiFiProperties nifiProperties;
     private ExtensionManager extensionManager;
-    private StatusHistoryRepository statusHistoryRepository;
 
     @Override
     public StatusHistoryRepository getObject() throws Exception {
-        final String implementationClassName = nifiProperties.getProperty(NiFiProperties.COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION, DEFAULT_COMPONENT_STATUS_REPO_IMPLEMENTATION);
-        if (implementationClassName == null) {
-            throw new BeanCreationException("Cannot create Status History Repository because the NiFi Properties is missing the following property: "
-                    + NiFiProperties.COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION);
-        }
-
-        try {
-            statusHistoryRepository = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, StatusHistoryRepository.class, nifiProperties);
-            statusHistoryRepository.start();
-            return statusHistoryRepository;
-        } catch (final Exception e) {
-            throw new RuntimeException(e);
-        }
+        return StatusHistoryRepositoryFactory.createStatusHistoryRepositoryFactory(nifiProperties, extensionManager);
     }
 
     @Override
@@ -61,8 +44,8 @@ public class StatusHistoryRepositoryFactoryBean implements FactoryBean<StatusHis
     }
 
     @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
+    public void setApplicationContext(ApplicationContext applicationContext) {
+        // This class uses setter injection instead of ApplicationContext.
     }
 
     public void setNifiProperties(NiFiProperties nifiProperties) {

@@ -14,18 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.status.history;
+package org.apache.nifi.controller.status.history.exception;
 
-/**
- * Factory class to create {@code StatusHistoryDump} instance.
- */
-public interface StatusHistoryDumpFactory {
+public class MissingStatusHistoryImplementationException extends RuntimeException {
 
-    /**
-     * Creates a status history dump object.
-     *
-     * @param days number of backdating days
-     * @return the status history dump
-     */
-    StatusHistoryDump create(final int days);
+    public MissingStatusHistoryImplementationException(final String message) {
+        super(message);
+    }
 }

@@ -36,6 +36,7 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
 import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepositoryFactory;
 import org.apache.nifi.diagnostics.DiagnosticsDump;
 import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
@@ -53,7 +54,6 @@ import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.services.FlowService;
-import org.apache.nifi.spring.StatusHistoryRepositoryFactoryBean;
 import org.apache.nifi.util.FlowParser;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -131,11 +131,7 @@ public class HeadlessNiFiServer implements NiFiServer {
             BulletinRepository bulletinRepository = new VolatileBulletinRepository();
             StandardFlowRegistryClient flowRegistryClient = new StandardFlowRegistryClient();
             flowRegistryClient.setProperties(props);
-
-            final StatusHistoryRepositoryFactoryBean statusHistoryRepositoryFactoryBean = new StatusHistoryRepositoryFactoryBean();
-            statusHistoryRepositoryFactoryBean.setNifiProperties(props);
-            statusHistoryRepositoryFactoryBean.setExtensionManager(extensionManager);
-            StatusHistoryRepository statusHistoryRepository = statusHistoryRepositoryFactoryBean.getObject();
+            StatusHistoryRepository statusHistoryRepository = StatusHistoryRepositoryFactory.createStatusHistoryRepositoryFactory(props, extensionManager);
 
             flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,

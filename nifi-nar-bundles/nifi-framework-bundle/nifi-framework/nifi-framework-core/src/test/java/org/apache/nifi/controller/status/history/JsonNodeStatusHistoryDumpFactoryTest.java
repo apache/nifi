@@ -58,9 +58,8 @@ public class JsonNodeStatusHistoryDumpFactoryTest {
     }
 
     @Test
-    public void testJsonNodeStatusDumpFactoryWithLessThanOneDayThrowsException() {
+    public void testJsonNodeStatusDumpFactoryWithZeroDayThrowsException() {
         final int zeroDays = 0;
-        final int negativeDays = -1;
         final StatusHistoryRepository statusHistoryRepository = mock(StatusHistoryRepository.class);
 
         JsonNodeStatusHistoryDumpFactory factory = new JsonNodeStatusHistoryDumpFactory();
@@ -71,6 +70,15 @@ public class JsonNodeStatusHistoryDumpFactoryTest {
         );
 
         assertEquals(String.format(EXPECTED_EXCEPTION_MESSAGE, zeroDays), zeroDaysException.getMessage());
+    }
+
+    @Test
+    public void testJsonNodeStatusDumpFactoryWithNegativeDaysThrowsException() {
+        final int negativeDays = -1;
+        final StatusHistoryRepository statusHistoryRepository = mock(StatusHistoryRepository.class);
+
+        JsonNodeStatusHistoryDumpFactory factory = new JsonNodeStatusHistoryDumpFactory();
+        factory.setStatusHistoryRepository(statusHistoryRepository);
 
         final IllegalArgumentException negativeDaysException = Assert.assertThrows(IllegalArgumentException.class,
                 () -> factory.create(negativeDays)

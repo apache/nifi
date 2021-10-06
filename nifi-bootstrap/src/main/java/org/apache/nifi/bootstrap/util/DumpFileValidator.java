@@ -40,7 +40,9 @@ public final class DumpFileValidator {
             final Path path = Paths.get(filePath);
             return checkFileCanBeCreated(path);
         } catch (InvalidPathException e) {
-            System.err.println("Invalid filename. The command parameters are: status-history <number of days> <dumpFile>");
+            final String errorMessage = "Invalid filename. The command parameters are: status-history <number of days> <dumpFile>";
+            logger.error(errorMessage);
+            System.err.println(errorMessage);
             return false;
         }
     }
@@ -49,7 +51,9 @@ public final class DumpFileValidator {
         try (final FileOutputStream outputStream = new FileOutputStream(path.toString());
              final Closeable onClose = () -> Files.delete(path)) {
         } catch (FileNotFoundException e) {
-            System.err.println("Invalid filename or there's no write permission to the currently selected file path.");
+            final String errorMessage = "Invalid filename or there's no write permission to the currently selected file path.";
+            logger.error(errorMessage);
+            System.err.println(errorMessage);
             return false;
         } catch (IOException e) {
             logger.error("Could not delete file while validating file path.");

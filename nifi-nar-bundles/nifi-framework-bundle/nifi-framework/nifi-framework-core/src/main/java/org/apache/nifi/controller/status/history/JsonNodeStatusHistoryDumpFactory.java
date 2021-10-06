@@ -29,7 +29,7 @@ public class JsonNodeStatusHistoryDumpFactory implements StatusHistoryDumpFactor
 
     @Override
     public StatusHistoryDump create(int days) {
-        Preconditions.checkArgument(days > 0, String.format("The number of days shall be greater than 0. The current value is %s.", days));
+        Preconditions.checkArgument(days > 0, String.format("The number of days shall be greater than 0. The current value is %d.", days));
         final LocalDateTime endOfToday = LocalDateTime.now().with(LocalTime.MAX);
         final LocalDateTime startOfDaysBefore = endOfToday.minusDays(days).with(LocalTime.MIN);
 
