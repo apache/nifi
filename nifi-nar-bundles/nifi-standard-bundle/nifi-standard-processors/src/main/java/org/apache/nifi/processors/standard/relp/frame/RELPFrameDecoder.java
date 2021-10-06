@@ -79,7 +79,7 @@ public class RELPFrameDecoder extends ByteToMessageDecoder {
                 final RELPFrame frame = decoder.getFrame();
 
                 logger.debug("Received RELP frame with transaction {} and command {}",
-                        new Object[] {frame.getTxnr(), frame.getCommand()});
+                       frame.getTxnr(), frame.getCommand());
                 handle(frame, ctx, sender, out);
                 in.markReaderIndex();
             }
@@ -101,7 +101,8 @@ public class RELPFrameDecoder extends ByteToMessageDecoder {
             final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender.toString());
             metadata.put(RELPMetadata.TXNR_KEY, String.valueOf(frame.getTxnr()));
             metadata.put(RELPMetadata.COMMAND_KEY, frame.getCommand());
-            out.add(eventFactory.create(frame.getData(), metadata, sender));
+            metadata.put(RELPMetadata.SENDER_KEY, sender.toString());
+            out.add(eventFactory.create(frame.getData(), metadata));
         }
     }
 }

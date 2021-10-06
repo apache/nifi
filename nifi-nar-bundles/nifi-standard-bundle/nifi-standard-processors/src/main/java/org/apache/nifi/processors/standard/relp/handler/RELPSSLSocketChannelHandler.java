@@ -68,7 +68,7 @@ public class RELPSSLSocketChannelHandler<E extends Event<SocketChannel>> extends
                     final RELPFrame frame = decoder.getFrame();
 
                     logger.debug("Received RELP frame with transaction {} and command {}",
-                            new Object[] {frame.getTxnr(), frame.getCommand()});
+                            frame.getTxnr(), frame.getCommand());
 
                     final SSLSocketChannelResponder responder = new SSLSocketChannelResponder(socketChannel, sslSocketChannel);
                     frameHandler.handle(frame, responder, sender.toString());

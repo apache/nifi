@@ -16,18 +16,12 @@
  */
 package org.apache.nifi.processor.util.listen.event;
 
-import java.net.InetSocketAddress;
 import java.util.Map;
 
 /**
  * Factory to create instances of a given type of NettyEvent.
  */
 public interface NettyEventFactory<E extends NettyEvent> {
-
-    /**
-     * The key in the metadata map for the sender.
-     */
-    String SENDER_KEY = "sender";
 
     /**
      * Creates an event for the given data and metadata.
@@ -37,6 +31,6 @@ public interface NettyEventFactory<E extends NettyEvent> {
      *
      * @return an instance of the given type
      */
-    E create(final byte[] data, final Map<String, String> metadata, final InetSocketAddress remoteAddress);
+    E create(final byte[] data, final Map<String, String> metadata);
 
 }

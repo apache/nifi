@@ -98,7 +98,7 @@ public abstract class EventBatcher<E extends NettyEvent> {
 
             } catch (final Exception e) {
                 logger.error("Failed to write contents of the message to FlowFile due to {}; will re-queue message and try again",
-                        new Object[]{e.getMessage()}, e);
+                        e.getMessage(), e);
                 errorEvents.offer(event);
                 break;
             }

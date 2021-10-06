@@ -28,9 +28,8 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.event.transport.EventSender;
+import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventServer;
-import org.apache.nifi.event.transport.netty.NettyEventSenderFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -47,9 +46,7 @@ import org.apache.nifi.processor.util.listen.AbstractListenEventProcessor;
 import org.apache.nifi.processor.util.listen.EventBatcher;
 import org.apache.nifi.processor.util.listen.FlowFileNettyEventBatch;
 import org.apache.nifi.processors.standard.relp.event.RELPNettyEvent;
-import org.apache.nifi.processors.standard.relp.handler.RELPNettyEventSenderFactory;
 import org.apache.nifi.processors.standard.relp.handler.RELPNettyEventServerFactory;
-import org.apache.nifi.processors.standard.relp.response.RELPResponse;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
@@ -57,7 +54,6 @@ import org.apache.nifi.ssl.SSLContextService;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -121,7 +117,6 @@ public class ListenRELP extends AbstractProcessor {
     protected volatile BlockingQueue<RELPNettyEvent> errorEvents;
     protected volatile String hostname;
     protected EventServer eventServer;
-    protected EventSender eventSender;
     protected volatile byte[] messageDemarcatorBytes;
     protected volatile SSLContext sslContext;
     protected volatile ClientAuth clientAuth;
@@ -162,8 +157,10 @@ public class ListenRELP extends AbstractProcessor {
     }
 
     @OnStopped
-    public void stopped() throws Exception {
-        eventServer.shutdown();
+    public void stopped() {
+        if (eventServer != null) {
+            eventServer.shutdown();
+        }
     }
 
     @Override
@@ -208,7 +205,11 @@ public class ListenRELP extends AbstractProcessor {
         if(sslContext != null) {
             eventFactory.setSslContext(sslContext);
         }
-        eventServer = eventFactory.getEventServer();
+        try {
+            eventServer = eventFactory.getEventServer();
+        } catch (EventException e) {
+            getLogger().debug("Failed to bind to [%hostname:%port].");
+        }
     }
 
     @Override
@@ -262,7 +263,6 @@ public class ListenRELP extends AbstractProcessor {
 
         final List<RELPNettyEvent> eventsAwaitingResponse = new ArrayList<>();
         getEventsAwaitingResponse(session, batches, eventsAwaitingResponse);
-        respondToEvents(session, eventsAwaitingResponse);
     }
 
     private void getEventsAwaitingResponse(final ProcessSession session, final Map<String, FlowFileNettyEventBatch> batches, final List<RELPNettyEvent> allEvents) {
@@ -287,37 +287,8 @@ public class ListenRELP extends AbstractProcessor {
             final String transitUri = getTransitUri(entry.getValue());
             session.getProvenanceReporter().receive(flowFile, transitUri);
 
-            allEvents.addAll(events);
         }
-    }
-
-    /**
-     * Commit the RELP events and respond to the client that the message/s are received.
-     * @param session The processor's session, for committing received RELP events to the NiFi repositories
-     * @param events The RELP events waiting to be responded to. Open and Close RELP commands will have already been responded to
-     *               by RELP Netty handlers earlier in the processing chain
-     */
-    protected void respondToEvents(final ProcessSession session, final List<RELPNettyEvent> events) {
-        // first commit the session so we guarantee we have all the events successfully
-        // written to FlowFiles and transferred to the success relationship
-        session.commitAsync(() -> {
-            // respond to each event to acknowledge successful receipt
-            for (final RELPNettyEvent event : events) {
-                respond(event.getSender(), RELPResponse.ok(event.getTxnr()));
-            }
-        });
-    }
-
-    protected void respond(final InetSocketAddress address, final RELPResponse relpResponse) {
-        NettyEventSenderFactory senderFactory = getNettyEventSenderFactory(address);
-        senderFactory.setSocketSendBufferSize(bufferSize);
-        senderFactory.setMaxConnections(maxConnections);
-
-        if (sslContext != null) {
-            senderFactory.setSslContext(sslContext);
-        }
-
-        senderFactory.getEventSender().sendEvent(relpResponse);
+        session.commitAsync();
     }
 
     protected String getRELPBatchKey(RELPNettyEvent event) {
@@ -353,9 +324,5 @@ public class ListenRELP extends AbstractProcessor {
 
     private NettyEventServerFactory getNettyEventServerFactory() {
         return new RELPNettyEventServerFactory(getLogger(), hostname, port, charset, events);
-    }
-
-    private NettyEventSenderFactory getNettyEventSenderFactory(final InetSocketAddress remoteAddress) {
-        return new RELPNettyEventSenderFactory(getLogger(), remoteAddress.getHostName(), remoteAddress.getPort(), charset);
     }
 }

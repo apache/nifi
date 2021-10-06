@@ -16,23 +16,21 @@
  */
 package org.apache.nifi.processor.util.listen.event;
 
-import java.net.InetSocketAddress;
-
 /**
  * Standard implementation of the NettyEvent.
  */
 public class StandardNettyEvent implements NettyEvent {
 
-    private final InetSocketAddress sender;
+    private final String sender;
     private final byte[] data;
 
-    public StandardNettyEvent(final InetSocketAddress sender, final byte[] data) {
+    public StandardNettyEvent(final String sender, final byte[] data) {
         this.sender = sender;
         this.data = data;
     }
 
     @Override
-    public InetSocketAddress getSender() {
+    public String getSender() {
         return sender;
     }
 

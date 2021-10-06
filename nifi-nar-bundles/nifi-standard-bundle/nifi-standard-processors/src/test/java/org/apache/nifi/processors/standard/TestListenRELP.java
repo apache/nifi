@@ -27,7 +27,6 @@ import org.apache.nifi.processor.util.listen.AbstractListenEventBatchingProcesso
 import org.apache.nifi.processors.standard.relp.event.RELPNettyEvent;
 import org.apache.nifi.processors.standard.relp.frame.RELPEncoder;
 import org.apache.nifi.processors.standard.relp.frame.RELPFrame;
-import org.apache.nifi.processors.standard.relp.response.RELPResponse;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
@@ -45,13 +44,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.net.ssl.SSLContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -186,13 +183,9 @@ public class TestListenRELP {
 
     @Test
     public void testBatchingWithDifferentSenders() {
-        InetSocketAddress sender1 = Mockito.mock(InetSocketAddress.class);
-        InetSocketAddress sender2 = Mockito.mock(InetSocketAddress.class);
-        InetSocketAddress sender3 = Mockito.mock(InetSocketAddress.class);
-
-        when(sender1.toString()).thenReturn("/192.168.1.50:55000");
-        when(sender2.toString()).thenReturn("/192.168.1.50:55001");
-        when(sender3.toString()).thenReturn("/192.168.1.50:55002");
+        String sender1 = "/192.168.1.50:55000";
+        String sender2 = "/192.168.1.50:55001";
+        String sender3 = "/192.168.1.50:55002";
 
         final List<RELPNettyEvent> mockEvents = new ArrayList<>();
         mockEvents.add(new RELPNettyEvent(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
@@ -277,11 +270,6 @@ public class TestListenRELP {
         public void onScheduled(ProcessContext context) throws IOException {
             super.onScheduled(context);
             events.addAll(mockEvents);
-        }
-
-        @Override
-        protected void respond(final InetSocketAddress address, final RELPResponse relpResponse) {
-            // do nothing
         }
     }
 }

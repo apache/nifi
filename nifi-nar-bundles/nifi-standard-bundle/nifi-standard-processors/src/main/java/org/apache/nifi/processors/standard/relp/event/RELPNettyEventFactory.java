@@ -18,7 +18,6 @@ package org.apache.nifi.processors.standard.relp.event;
 
 import org.apache.nifi.processor.util.listen.event.NettyEventFactory;
 
-import java.net.InetSocketAddress;
 import java.util.Map;
 
 /**
@@ -27,10 +26,10 @@ import java.util.Map;
 public class RELPNettyEventFactory implements NettyEventFactory<RELPNettyEvent> {
 
     @Override
-    public RELPNettyEvent create(final byte[] data, final Map<String, String> metadata, final InetSocketAddress sender) {
+    public RELPNettyEvent create(final byte[] data, final Map<String, String> metadata) {
         final long txnr = Long.valueOf(metadata.get(RELPMetadata.TXNR_KEY));
         final String command = metadata.get(RELPMetadata.COMMAND_KEY);
-       // final String sender = metadata.get(EventFactory.SENDER_KEY);
+        final String sender = metadata.get(RELPMetadata.SENDER_KEY);
         return new RELPNettyEvent(sender, data, txnr, command);
     }
 }

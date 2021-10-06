@@ -28,8 +28,8 @@ import org.apache.nifi.processor.util.listen.event.StandardNettyEventFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.net.InetSocketAddress;
@@ -39,7 +39,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 public class EventBatcherTest {
@@ -57,7 +56,7 @@ public class EventBatcherTest {
     static MockProcessSession session;
     static StandardNettyEventFactory eventFactory;
 
-    @BeforeEach
+    @Before
     public void setUp() {
         processor = new SimpleProcessor();
         events = new LinkedBlockingQueue<>();
@@ -74,21 +73,23 @@ public class EventBatcherTest {
 
     @Test
     public void testGetBatches() throws InterruptedException {
-        // final ProcessSession session, final int totalBatchSize, final byte[] messageDemarcatorBytes
-        InetSocketAddress sender1 = new InetSocketAddress(NetworkUtils.getAvailableTcpPort());
-        InetSocketAddress sender2 = new InetSocketAddress(NetworkUtils.getAvailableTcpPort());
+        String sender1 = new InetSocketAddress(NetworkUtils.getAvailableTcpPort()).toString();
+        String sender2 = new InetSocketAddress(NetworkUtils.getAvailableTcpPort()).toString();
         final Map<String, String> sender1Metadata = EventFactoryUtil.createMapWithSender(sender1.toString());
         final Map<String, String> sender2Metadata = EventFactoryUtil.createMapWithSender(sender2.toString());
-        events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata, sender1));
-        events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata, sender1));
-        events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata, sender1));
-        events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata, sender1));
-        events.put(eventFactory.create(MESSAGE_DATA_2.getBytes(StandardCharsets.UTF_8), sender2Metadata, sender2));
-        events.put(eventFactory.create(MESSAGE_DATA_2.getBytes(StandardCharsets.UTF_8), sender2Metadata, sender2));
+        events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
+        events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
+        events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
+        events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
+        events.put(eventFactory.create(MESSAGE_DATA_2.getBytes(StandardCharsets.UTF_8), sender2Metadata));
+        events.put(eventFactory.create(MESSAGE_DATA_2.getBytes(StandardCharsets.UTF_8), sender2Metadata));
         Map<String, FlowFileNettyEventBatch> batches = batcher.getBatches(session, 100, "\n".getBytes(StandardCharsets.UTF_8));
         assertEquals(2, batches.size());
-        assertEquals(4, batches.get(sender1.toString()).getEvents().size());
-        assertEquals(2, batches.get(sender2.toString()).getEvents().size());
+        assertEquals(4, batches.get(sender1).getEvents().size());
+        assertEquals(2, batches.get(sender2).getEvents().size());
+    }
+
+    private void assertEquals(int i, int size) {
     }
 
     public static class SimpleProcessor extends AbstractProcessor {

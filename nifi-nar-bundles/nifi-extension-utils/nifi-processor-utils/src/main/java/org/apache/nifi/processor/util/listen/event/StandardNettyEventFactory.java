@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processor.util.listen.event;
 
-import java.net.InetSocketAddress;
 import java.util.Map;
 
 /**
@@ -25,8 +24,8 @@ import java.util.Map;
 public class StandardNettyEventFactory implements NettyEventFactory<StandardNettyEvent> {
 
     @Override
-    public StandardNettyEvent create(final byte[] data, final Map<String, String> metadata, final InetSocketAddress senderAddress) {
-        return new StandardNettyEvent(senderAddress, data);
+    public StandardNettyEvent create(final byte[] data, final Map<String, String> metadata) {
+        return new StandardNettyEvent(metadata.get(EventFactory.SENDER_KEY), data);
     }
 
 }

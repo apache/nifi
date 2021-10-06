@@ -16,14 +16,18 @@
  */
 package org.apache.nifi.processors.standard.relp.frame;
 
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.apache.nifi.event.transport.netty.channel.ByteArrayMessageChannelHandler;
 import org.apache.nifi.processors.standard.relp.event.RELPNettyEvent;
+import org.apache.nifi.processors.standard.relp.response.RELPChannelResponse;
+import org.apache.nifi.processors.standard.relp.response.RELPResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.Charset;
 import java.util.concurrent.BlockingQueue;
 
 /**
@@ -34,14 +38,22 @@ public class RELPNettyEventChannelHandler extends SimpleChannelInboundHandler<RE
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ByteArrayMessageChannelHandler.class);
     private final BlockingQueue<RELPNettyEvent> events;
+    private final RELPEncoder encoder;
 
-    public RELPNettyEventChannelHandler(BlockingQueue<RELPNettyEvent> events) {
+    public RELPNettyEventChannelHandler(BlockingQueue<RELPNettyEvent> events, final Charset charset) {
         this.events = events;
+        this.encoder = new RELPEncoder(charset);
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, RELPNettyEvent msg) {
         LOGGER.debug("RELP Message Received Length [{}] Remote Address [{}] ", msg.getData().length, msg.getSender());
-        events.offer(msg);
+        if (events.offer(msg)) {
+            LOGGER.debug("Added RELP message to event queue");
+            ctx.writeAndFlush(Unpooled.wrappedBuffer(new RELPChannelResponse(encoder, RELPResponse.ok(msg.getTxnr())).toByteArray()));
+        } else {
+            LOGGER.debug("Failed to add RELP message to event queue because queue was full");
+            ctx.writeAndFlush(Unpooled.wrappedBuffer(new RELPChannelResponse(encoder, RELPResponse.serverFullError(msg.getTxnr())).toByteArray()));
+        }
     }
 }

@@ -47,7 +47,7 @@ public class RELPNettyEventServerFactory extends NettyEventServerFactory {
                                        final BlockingQueue<RELPNettyEvent> events) {
         super(address, port, TransportProtocol.TCP);
         final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);
-        final RELPNettyEventChannelHandler relpChannelHandler = new RELPNettyEventChannelHandler(events);
+        final RELPNettyEventChannelHandler relpChannelHandler = new RELPNettyEventChannelHandler(events, charset);
 
         setHandlerSupplier(() -> Arrays.asList(
                 logExceptionChannelHandler,
