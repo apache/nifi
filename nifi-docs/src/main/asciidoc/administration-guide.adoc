@@ -3225,12 +3225,14 @@ Providing three total locations, including  `nifi.content.repository.directory.d
 |`nifi.content.repository.archive.max.retention.period`|If archiving is enabled (see `nifi.content.repository.archive.enabled` below), then
 this property specifies the maximum amount of time to keep the archived data. The default value is `12 hours`.
 |`nifi.content.repository.archive.max.usage.percentage`|If archiving is enabled (see `nifi.content.repository.archive.enabled` below), then this property must have a value that indicates the content repository disk usage percentage at which archived data begins to be removed. If the archive is empty and content repository disk usage is above this percentage, then archiving is temporarily disabled. Archiving will resume when disk usage is below this percentage. The default value is `50%`.
-|`nifi.content.repository.archive.backpressure.percentage`| This property is used to control the content repository disk usage percentage at which backpressure is applied to the processes writing to the content repository. +
-Once this percentage is reached, the content repository will refuse any additional writes. +
-Writes will be refused until the archive delete process has brought the content repository disk usage percentage below `nifi.content.repository.archive.max.usage.percentage`. +
+|`nifi.content.repository.archive.backpressure.percentage`| This property is used to control the content repository disk usage percentage at which backpressure is applied to the processes writing to the content repository. Once this percentage is reached, the content repository will refuse any additional writes. Writes will be refused until the archive delete process has brought the content repository disk usage percentage below `nifi.content.repository.archive.max.usage.percentage`. +
+ +
 The value must be a valid percentage e.g. `60%` +
+ +
 For example, if `nifi.content.repository.archive.max.usage.percentage` is `50%` and `nifi.content.repository.archive.backpressure.percentage` is `60%`, then if the content repository reaches 60% utilisation of storage capacity, all further writes are blocked until utilisation is brought back down to 50%.  +
+ +
 When not set, the default value is derived as 2% greater than `nifi.content.repository.archive.max.usage.percentage`. +
+ +
 For example, if `nifi.content.repository.archive.max.usage.percentage` is `50%` and `nifi.content.repository.archive.backpressure.percentage` is not set, the effective value of `nifi.content.repository.archive.backpressure.percentage` will be `52%`.
 |`nifi.content.repository.archive.enabled`|To enable content archiving, set this to `true` and specify a value for the `nifi.content.repository.archive.max.usage.percentage` property above. Content archiving enables the provenance UI to view or replay content that is no longer in a dataflow queue. By default, archiving is enabled.
 |`nifi.content.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
