@@ -30,7 +30,7 @@ import java.util.Properties;
 /**
  * Amazon Web Services Service Client Provider base class
  */
-public abstract class AbstractAwsClientProvider<Client extends SdkClient> extends BootstrapPropertiesClientProvider<Client> {
+public abstract class AbstractAwsClientProvider<T extends SdkClient> extends BootstrapPropertiesClientProvider<T> {
     private static final String ACCESS_KEY_PROPS_NAME = "aws.access.key.id";
 
     private static final String SECRET_KEY_PROPS_NAME = "aws.secret.access.key";
@@ -48,7 +48,7 @@ public abstract class AbstractAwsClientProvider<Client extends SdkClient> extend
      * @return KMS Client
      */
     @Override
-    protected Client getConfiguredClient(final Properties clientProperties) {
+    protected T getConfiguredClient(final Properties clientProperties) {
         final String accessKey = clientProperties.getProperty(ACCESS_KEY_PROPS_NAME);
         final String secretKey = clientProperties.getProperty(SECRET_KEY_PROPS_NAME);
         final String region = clientProperties.getProperty(REGION_KEY_PROPS_NAME);
@@ -78,12 +78,12 @@ public abstract class AbstractAwsClientProvider<Client extends SdkClient> extend
      * @param region AWS region
      * @return The created client
      */
-    protected abstract Client createClient(AwsCredentials credentials, String region);
+    protected abstract T createClient(AwsCredentials credentials, String region);
 
     /**
      * Create a default client with the given credentials provider.
      * @param credentialsProvider AWS credentials provider
      * @return The created client
      */
-    protected abstract Client createDefaultClient(AwsCredentialsProvider credentialsProvider);
+    protected abstract T createDefaultClient(AwsCredentialsProvider credentialsProvider);
 }
