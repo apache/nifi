@@ -20,7 +20,7 @@ package org.apache.nifi.elasticsearch;
 import java.util.List;
 import java.util.Map;
 
-public class SearchResponse {
+public class SearchResponse implements OperationResponse {
     private final List<Map<String, Object>> hits;
     private final Map<String, Object> aggregations;
     private final long numberOfHits;
@@ -73,7 +73,8 @@ public class SearchResponse {
         return timedOut;
     }
 
-    public int getTook() {
+    @Override
+    public long getTook() {
         return took;
     }
 

@@ -25,6 +25,7 @@ import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl
 import org.apache.nifi.elasticsearch.IndexOperationRequest
 import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.elasticsearch.SearchResponse
+import org.apache.nifi.elasticsearch.UpdateOperationResponse
 import org.apache.nifi.security.util.StandardTlsConfiguration
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder
 import org.apache.nifi.security.util.TlsConfiguration
@@ -109,6 +110,7 @@ class ElasticSearchClientService_IT {
         runner.setProperty(service, ElasticSearchClientService.SOCKET_TIMEOUT, "60000")
         runner.setProperty(service, ElasticSearchClientService.RETRY_TIMEOUT, "60000")
         runner.setProperty(service, ElasticSearchClientService.SUPPRESS_NULLS, ElasticSearchClientService.ALWAYS_SUPPRESS.getValue())
+
         try {
             runner.enableControllerService(service)
         } catch (Exception ex) {
@@ -125,21 +127,21 @@ class ElasticSearchClientService_IT {
     @Test
     void testBasicSearch() throws Exception {
         String query = prettyPrint(toJson([
-            size: 10,
-            query: [
-                match_all: [:]
-            ],
-            aggs: [
-                term_counts: [
-                    terms: [
-                        field: "msg",
-                        size: 5
-                    ]
+                size: 10,
+                query: [
+                        match_all: [:]
+                ],
+                aggs: [
+                        term_counts: [
+                                terms: [
+                                        field: "msg",
+                                        size: 5
+                                ]
+                        ]
                 ]
-            ]
         ]))
-        
-        
+
+
         SearchResponse response = service.search(query, INDEX, TYPE, null)
         Assert.assertNotNull("Response was null", response)
 
@@ -158,17 +160,64 @@ class ElasticSearchClientService_IT {
         def buckets = termCounts.get("buckets")
         Assert.assertNotNull("Buckets branch was empty", buckets)
         def expected = [
-            "one": 1,
-            "two": 2,
-            "three": 3,
-            "four": 4,
-            "five": 5
+                "one": 1,
+                "two": 2,
+                "three": 3,
+                "four": 4,
+                "five": 5
         ]
 
         buckets.each { aggRes ->
             def key = aggRes["key"]
             def docCount = aggRes["doc_count"]
             Assert.assertEquals("${key} did not match.", expected[key as String], docCount)
+        }
+    }
+
+    @Test
+    void testBasicSearchRequestParameters() throws Exception {
+        String query = prettyPrint(toJson([
+                size: 10,
+                query: [
+                        match_all: [:]
+                ],
+                aggs: [
+                        term_counts: [
+                                terms: [
+                                        field: "msg",
+                                        size: 5
+                                ]
+                        ]
+                ]
+        ]))
+
+
+        SearchResponse response = service.search(query, "messages", TYPE, [preference: "_local"])
+        Assert.assertNotNull("Response was null", response)
+
+        Assert.assertEquals("Wrong count", 15, response.numberOfHits)
+        Assert.assertFalse("Timed out", response.isTimedOut())
+        Assert.assertNotNull("Hits was null", response.getHits())
+        Assert.assertEquals("Wrong number of hits", 10, response.hits.size())
+        Assert.assertNotNull("Aggregations are missing", response.aggregations)
+        Assert.assertEquals("Aggregation count is wrong", 1, response.aggregations.size())
+
+        Map termCounts = response.aggregations.get("term_counts") as Map
+        Assert.assertNotNull("Term counts was missing", termCounts)
+        def buckets = termCounts.get("buckets")
+        Assert.assertNotNull("Buckets branch was empty", buckets)
+        def expected = [
+                "one": 1,
+                "two": 2,
+                "three": 3,
+                "four": 4,
+                "five": 5
+        ]
+
+        buckets.each { aggRes ->
+            String key = aggRes["key"]
+            def docCount = aggRes["doc_count"]
+            Assert.assertEquals("${key} did not match.", expected[key], docCount)
         }
     }
 
@@ -361,13 +410,55 @@ class ElasticSearchClientService_IT {
     @Test
     void testDeleteByQuery() throws Exception {
         String query = prettyPrint(toJson([
-            query: [
-                match: [
-                    msg: "five"
+                query: [
+                        match: [
+                                msg: "five"
+                        ]
                 ]
-            ]
         ]))
-        DeleteOperationResponse response = service.deleteByQuery(query, INDEX, TYPE)
+        DeleteOperationResponse response = service.deleteByQuery(query, INDEX, TYPE, null)
+        Assert.assertNotNull(response)
+        Assert.assertTrue(response.getTook() > 0)
+    }
+
+    @Test
+    void testDeleteByQueryRequestParameters() throws Exception {
+        String query = prettyPrint(toJson([
+                query: [
+                        match: [
+                                msg: "six"
+                        ]
+                ]
+        ]))
+        DeleteOperationResponse response = service.deleteByQuery(query, INDEX, TYPE, [refresh: "true"])
+        Assert.assertNotNull(response)
+        Assert.assertTrue(response.getTook() > 0)
+    }
+
+    @Test
+    void testUpdateByQuery() throws Exception {
+        String query = prettyPrint(toJson([
+                query: [
+                        match: [
+                                msg: "four"
+                        ]
+                ]
+        ]))
+        UpdateOperationResponse response = service.updateByQuery(query, INDEX, TYPE, null)
+        Assert.assertNotNull(response)
+        Assert.assertTrue(response.getTook() > 0)
+    }
+
+    @Test
+    void testUpdateByQueryRequestParameters() throws Exception {
+        String query = prettyPrint(toJson([
+                query: [
+                        match: [
+                                msg: "four"
+                        ]
+                ]
+        ]))
+        UpdateOperationResponse response = service.updateByQuery(query, INDEX, TYPE, [refresh: "true", slices: "1"])
         Assert.assertNotNull(response)
         Assert.assertTrue(response.getTook() > 0)
     }
@@ -375,17 +466,17 @@ class ElasticSearchClientService_IT {
     @Test
     void testDeleteById() throws Exception {
         final String ID = "1"
-        final def originalDoc = service.get(INDEX, TYPE, ID)
-        DeleteOperationResponse response = service.deleteById(INDEX, TYPE, ID)
+        final def originalDoc = service.get(INDEX, TYPE, ID, null)
+        DeleteOperationResponse response = service.deleteById(INDEX, TYPE, ID, null)
         Assert.assertNotNull(response)
         Assert.assertTrue(response.getTook() > 0)
-        def doc = service.get(INDEX, TYPE, ID)
+        def doc = service.get(INDEX, TYPE, ID, null)
         Assert.assertNull(doc)
-        doc = service.get(INDEX, TYPE, "2")
+        doc = service.get(INDEX, TYPE, "2", null)
         Assert.assertNotNull(doc)
 
         // replace the deleted doc
-        service.add(new IndexOperationRequest(INDEX, TYPE, "1", originalDoc, IndexOperationRequest.Operation.Index))
+        service.add(new IndexOperationRequest(INDEX, TYPE, "1", originalDoc, IndexOperationRequest.Operation.Index), null)
         waitForIndexRefresh() // (affects later tests using _search or _bulk)
     }
 
@@ -394,7 +485,7 @@ class ElasticSearchClientService_IT {
         Map old
         1.upto(15) { index ->
             String id = String.valueOf(index)
-            def doc = service.get(INDEX, TYPE, id)
+            def doc = service.get(INDEX, TYPE, id, null)
             Assert.assertNotNull("Doc was null", doc)
             Assert.assertNotNull("${doc.toString()}\t${doc.keySet().toString()}", doc.get("msg"))
             old = doc
@@ -434,22 +525,22 @@ class ElasticSearchClientService_IT {
 
         // index with nulls
         suppressNulls(false)
-        IndexOperationResponse response = service.bulk([new IndexOperationRequest("nulls", TYPE, "1", doc, IndexOperationRequest.Operation.Index)])
+        IndexOperationResponse response = service.bulk([new IndexOperationRequest("nulls", TYPE, "1", doc, IndexOperationRequest.Operation.Index)], null)
         Assert.assertNotNull(response)
         Assert.assertTrue(response.getTook() > 0)
         waitForIndexRefresh()
 
-        Map<String, Object> result = service.get("nulls", TYPE, "1")
+        Map<String, Object> result = service.get("nulls", TYPE, "1", null)
         Assert.assertEquals(doc, result)
 
         // suppress nulls
         suppressNulls(true)
-        response = service.bulk([new IndexOperationRequest("nulls", TYPE, "2", doc, IndexOperationRequest.Operation.Index)])
+        response = service.bulk([new IndexOperationRequest("nulls", TYPE, "2", doc, IndexOperationRequest.Operation.Index)], null)
         Assert.assertNotNull(response)
         Assert.assertTrue(response.getTook() > 0)
         waitForIndexRefresh()
 
-        result = service.get("nulls", TYPE, "2")
+        result = service.get("nulls", TYPE, "2", null)
         Assert.assertTrue("Non-nulls (present): " + result.toString(), result.keySet().containsAll(["msg", "is_blank"]))
         Assert.assertFalse("is_null (should be omitted): " + result.toString(), result.keySet().contains("is_null"))
         Assert.assertFalse("is_empty (should be omitted): " + result.toString(), result.keySet().contains("is_empty"))
@@ -479,7 +570,7 @@ class ElasticSearchClientService_IT {
                 put("msg", "test")
             }}, IndexOperationRequest.Operation.Index))
         }
-        IndexOperationResponse response = service.bulk(payload)
+        IndexOperationResponse response = service.bulk(payload, [refresh: "true"])
         Assert.assertNotNull(response)
         Assert.assertTrue(response.getTook() > 0)
         waitForIndexRefresh()
@@ -488,9 +579,9 @@ class ElasticSearchClientService_IT {
          * Now, check to ensure that both indexes got populated appropriately.
          */
         String query = "{ \"query\": { \"match_all\": {}}}"
-        Long indexA = service.count(query, "bulk_a", TYPE)
-        Long indexB = service.count(query, "bulk_b", TYPE)
-        Long indexC = service.count(query, "bulk_c", TYPE)
+        Long indexA = service.count(query, "bulk_a", TYPE, null)
+        Long indexB = service.count(query, "bulk_b", TYPE, null)
+        Long indexC = service.count(query, "bulk_c", TYPE, null)
 
         Assert.assertNotNull(indexA)
         Assert.assertNotNull(indexB)
@@ -500,7 +591,46 @@ class ElasticSearchClientService_IT {
         Assert.assertEquals(10, indexB.intValue())
         Assert.assertEquals(5, indexC.intValue())
 
-        Long total = service.count(query, "bulk_*", TYPE)
+        Long total = service.count(query, "bulk_*", TYPE, null)
+        Assert.assertNotNull(total)
+        Assert.assertEquals(25, total.intValue())
+    }
+
+    @Test
+    void testBulkRequestParameters() throws Exception {
+        List<IndexOperationRequest> payload = new ArrayList<>()
+        for (int x = 0; x < 20; x++) {
+            String index = x % 2 == 0 ? "bulk_a": "bulk_b"
+            payload.add(new IndexOperationRequest(index, TYPE, String.valueOf(x), new HashMap<String, Object>(){{
+                put("msg", "test")
+            }}, IndexOperationRequest.Operation.Index))
+        }
+        for (int x = 0; x < 5; x++) {
+            payload.add(new IndexOperationRequest("bulk_c", TYPE, String.valueOf(x), new HashMap<String, Object>(){{
+                put("msg", "test")
+            }}, IndexOperationRequest.Operation.Index))
+        }
+        IndexOperationResponse response = service.bulk(payload, [refresh: "true"])
+        Assert.assertNotNull(response)
+        Assert.assertTrue(response.getTook() > 0)
+
+        /*
+         * Now, check to ensure that both indexes got populated and refreshed appropriately.
+         */
+        String query = "{ \"query\": { \"match_all\": {}}}"
+        Long indexA = service.count(query, "bulk_a", TYPE, null)
+        Long indexB = service.count(query, "bulk_b", TYPE, null)
+        Long indexC = service.count(query, "bulk_c", TYPE, null)
+
+        Assert.assertNotNull(indexA)
+        Assert.assertNotNull(indexB)
+        Assert.assertNotNull(indexC)
+        Assert.assertEquals(indexA, indexB)
+        Assert.assertEquals(10, indexA.intValue())
+        Assert.assertEquals(10, indexB.intValue())
+        Assert.assertEquals(5, indexC.intValue())
+
+        Long total = service.count(query, "bulk_*", TYPE, null)
         Assert.assertNotNull(total)
         Assert.assertEquals(25, total.intValue())
     }
@@ -510,8 +640,8 @@ class ElasticSearchClientService_IT {
         final String TEST_ID = "update-test"
         Map<String, Object> doc = new HashMap<>()
         doc.put("msg", "Buongiorno, mondo")
-        service.add(new IndexOperationRequest(INDEX, TYPE, TEST_ID, doc, IndexOperationRequest.Operation.Index))
-        Map<String, Object> result = service.get(INDEX, TYPE, TEST_ID)
+        service.add(new IndexOperationRequest(INDEX, TYPE, TEST_ID, doc, IndexOperationRequest.Operation.Index), [refresh: "true"])
+        Map<String, Object> result = service.get(INDEX, TYPE, TEST_ID, null)
         Assert.assertEquals("Not the same", doc, result)
 
         Map<String, Object> updates = new HashMap<>()
@@ -520,8 +650,8 @@ class ElasticSearchClientService_IT {
         merged.putAll(updates)
         merged.putAll(doc)
         IndexOperationRequest request = new IndexOperationRequest(INDEX, TYPE, TEST_ID, updates, IndexOperationRequest.Operation.Update)
-        service.add(request)
-        result = service.get(INDEX, TYPE, TEST_ID)
+        service.add(request, [refresh: "true"])
+        result = service.get(INDEX, TYPE, TEST_ID, null)
         Assert.assertTrue(result.containsKey("from"))
         Assert.assertTrue(result.containsKey("msg"))
         Assert.assertEquals("Not the same after update.", merged, result)
@@ -532,17 +662,17 @@ class ElasticSearchClientService_IT {
         upsertItems.put("upsert_2", 1)
         upsertItems.put("upsert_3", true)
         request = new IndexOperationRequest(INDEX, TYPE, UPSERTED_ID, upsertItems, IndexOperationRequest.Operation.Upsert)
-        service.add(request)
-        result = service.get(INDEX, TYPE, UPSERTED_ID)
+        service.add(request, [refresh: "true"])
+        result = service.get(INDEX, TYPE, UPSERTED_ID, null)
         Assert.assertEquals(upsertItems, result)
 
         List<IndexOperationRequest> deletes = new ArrayList<>()
         deletes.add(new IndexOperationRequest(INDEX, TYPE, TEST_ID, null, IndexOperationRequest.Operation.Delete))
         deletes.add(new IndexOperationRequest(INDEX, TYPE, UPSERTED_ID, null, IndexOperationRequest.Operation.Delete))
-        Assert.assertFalse(service.bulk(deletes).hasErrors())
+        Assert.assertFalse(service.bulk(deletes, [refresh: "true"]).hasErrors())
         waitForIndexRefresh() // wait 1s for index refresh (doesn't prevent GET but affects later tests using _search or _bulk)
-        Assert.assertNull(service.get(INDEX, TYPE, TEST_ID))
-        Assert.assertNull(service.get(INDEX, TYPE, UPSERTED_ID))
+        Assert.assertNull(service.get(INDEX, TYPE, TEST_ID, null))
+        Assert.assertNull(service.get(INDEX, TYPE, UPSERTED_ID, null))
     }
 
     @Test
@@ -552,7 +682,7 @@ class ElasticSearchClientService_IT {
                 new IndexOperationRequest(INDEX, TYPE, "2", [ "msg": "two", intField: 1], IndexOperationRequest.Operation.Create), // already exists
                 new IndexOperationRequest(INDEX, TYPE, "1", [ "msg": "one", intField: "notaninteger"], IndexOperationRequest.Operation.Index) // can't parse int field
         ]
-        def response = service.bulk(ops)
+        def response = service.bulk(ops, [refresh: "true"])
         assert response.hasErrors()
         assert response.items.findAll {
             def key = it.keySet().stream().findFirst().get()

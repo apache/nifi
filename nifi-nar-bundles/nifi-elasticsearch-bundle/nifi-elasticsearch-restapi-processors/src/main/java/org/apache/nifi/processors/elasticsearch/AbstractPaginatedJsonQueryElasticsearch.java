@@ -141,14 +141,17 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
             if (!newQuery && PAGINATION_SCROLL.getValue().equals(paginationType)) {
                 response = clientService.get().scroll(queryJson);
             } else {
+                final Map<String, String> requestParameters = getUrlQueryParameters(context, input);
+                if (PAGINATION_SCROLL.getValue().equals(paginationType)) {
+                    requestParameters.put("scroll", paginatedJsonQueryParameters.getKeepAlive());
+                }
+
                 response = clientService.get().search(
                         queryJson,
                         // Point in Time uses general /_search API not /index/_search
                         PAGINATION_POINT_IN_TIME.getValue().equals(paginationType) ? null : paginatedJsonQueryParameters.getIndex(),
                         paginatedJsonQueryParameters.getType(),
-                        PAGINATION_SCROLL.getValue().equals(paginationType)
-                                ? Collections.singletonMap("scroll", paginatedJsonQueryParameters.getKeepAlive())
-                                : null
+                        requestParameters
                 );
                 paginatedJsonQueryParameters.setPitId(response.getPitId());
                 paginatedJsonQueryParameters.setSearchAfter(response.getSearchAfter());

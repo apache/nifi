@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -23,6 +24,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.elasticsearch.SearchResponse;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -46,11 +48,16 @@ import java.util.concurrent.TimeUnit;
         "Elasticsearch JSON DSL. It does not automatically paginate queries for the user. If an incoming relationship is added to this " +
         "processor, it will use the flowfile's content for the query. Care should be taken on the size of the query because the entire response " +
         "from Elasticsearch will be loaded into memory all at once and converted into the resulting flowfiles.")
+@DynamicProperty(
+        name = "The name of a URL query parameter to add",
+        value = "The value of the URL query parameter",
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing. " +
+                "These parameters will override any matching parameters in the query request body")
 public class JsonQueryElasticsearch extends AbstractJsonQueryElasticsearch<JsonQueryParameters> {
     @Override
     JsonQueryParameters buildJsonQueryParameters(final FlowFile input, final ProcessContext context, final ProcessSession session)
             throws IOException {
-
         final JsonQueryParameters jsonQueryParameters = new JsonQueryParameters();
         populateCommonJsonQueryParameters(jsonQueryParameters, input, context, session);
         return jsonQueryParameters;
@@ -64,7 +71,7 @@ public class JsonQueryElasticsearch extends AbstractJsonQueryElasticsearch<JsonQ
                 queryJsonParameters.getQuery(),
                 queryJsonParameters.getIndex(),
                 queryJsonParameters.getType(),
-                null
+                getUrlQueryParameters(context, input)
         );
         if (input != null) {
             session.getProvenanceReporter().send(

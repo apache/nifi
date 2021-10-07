@@ -30,6 +30,7 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.elasticsearch.api.JsonQueryParameters;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
@@ -122,6 +123,17 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return propertyDescriptors;
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                .dynamic(true)
+                .build();
     }
 
     @OnScheduled
