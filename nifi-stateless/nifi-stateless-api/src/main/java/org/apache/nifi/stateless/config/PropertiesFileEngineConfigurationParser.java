@@ -32,6 +32,8 @@ import java.io.UncheckedIOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -117,6 +119,11 @@ public class PropertiesFileEngineConfigurationParser {
             @Override
             public File getExtensionsDirectory() {
                 return extensionsDirectory;
+            }
+
+            @Override
+            public Collection<File> getReadOnlyExtensionsDirectories() {
+                return Collections.emptyList();
             }
 
             @Override

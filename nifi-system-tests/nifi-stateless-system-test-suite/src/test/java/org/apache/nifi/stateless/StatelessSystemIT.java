@@ -19,6 +19,7 @@ package org.apache.nifi.stateless;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.stateless.bootstrap.StatelessBootstrap;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
@@ -42,11 +43,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class StatelessSystemIT {
     private final List<StatelessDataflow> createdFlows = new ArrayList<>();
@@ -87,6 +90,11 @@ public class StatelessSystemIT {
             @Override
             public File getExtensionsDirectory() {
                 return new File("target/nifi-stateless-assembly/extensions");
+            }
+
+            @Override
+            public Collection<File> getReadOnlyExtensionsDirectories() {
+                return Collections.emptyList();
             }
 
             @Override
@@ -168,6 +176,20 @@ public class StatelessSystemIT {
             @Override
             public Set<String> getFailurePortNames() {
                 return failurePortNames;
+            }
+
+            @Override
+            public Set<String> getInputPortNames() {
+                return versionedFlowSnapshot.getFlowContents().getInputPorts().stream()
+                    .map(VersionedPort::getName)
+                    .collect(Collectors.toSet());
+            }
+
+            @Override
+            public Set<String> getOutputPortNames() {
+                return versionedFlowSnapshot.getFlowContents().getOutputPorts().stream()
+                    .map(VersionedPort::getName)
+                    .collect(Collectors.toSet());
             }
 
             @Override

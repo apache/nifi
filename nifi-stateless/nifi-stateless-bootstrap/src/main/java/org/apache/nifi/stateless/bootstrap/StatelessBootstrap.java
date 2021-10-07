@@ -39,6 +39,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -122,6 +123,11 @@ public class StatelessBootstrap {
             final File dependency = statelessNarContents[i];
             final URL url = dependency.toURI().toURL();
             urls[i] = url;
+        }
+
+        logger.info("Creating Stateless Bootstrap with the following URLs in the classpath: {}", Arrays.asList(urls));
+        if (rootClassLoader instanceof URLClassLoader) {
+            logger.info("Additionally, Root ClassLoader has the following URLs available: {}", Arrays.asList(((URLClassLoader) rootClassLoader).getURLs()));
         }
 
         final URLClassLoader statelessClassLoader = new URLClassLoader(urls, rootClassLoader);

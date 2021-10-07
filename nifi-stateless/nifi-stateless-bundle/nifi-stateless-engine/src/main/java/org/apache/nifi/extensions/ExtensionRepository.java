@@ -26,6 +26,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 public interface ExtensionRepository {
+    void initialize() throws IOException;
+
     BundleAvailability getBundleAvailability(BundleCoordinate bundleCoordinate) throws IOException;
 
     Future<Set<Bundle>> fetch(Set<BundleCoordinate> bundleCoordinates, ExecutorService executorService, int concurrentDownloads);
