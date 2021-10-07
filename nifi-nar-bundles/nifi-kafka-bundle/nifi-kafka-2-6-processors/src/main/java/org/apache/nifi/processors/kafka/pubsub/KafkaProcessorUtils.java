@@ -190,6 +190,7 @@ public final class KafkaProcessorUtils {
             .name("aws.profilename")
             .displayName("AWS Profile Name")
             .description("The AWS Profile to consider when there are multiple profiles in the instance.")
+            .dependsOn(SASL_MECHANISM, SASL_MECHANISM_AWS_MSK_IAM)
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -198,6 +199,7 @@ public final class KafkaProcessorUtils {
             .name("aws.arn")
             .displayName("AWS Role ARN")
             .description("The awsRoleArn specifies the ARN for the IAM role the client should use.")
+            .dependsOn(SASL_MECHANISM, SASL_MECHANISM_AWS_MSK_IAM)
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -208,6 +210,7 @@ public final class KafkaProcessorUtils {
             .description("specifies the session name that this particular client should use while assuming the IAM role. If the same IAM Role "
                 + "is used in multiple contexts, the session names can be used to differentiate between the different contexts. "
                 + "The awsRoleSessionName is optional")
+            .dependsOn(SASL_MECHANISM, SASL_MECHANISM_AWS_MSK_IAM)
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -542,13 +545,13 @@ public final class KafkaProcessorUtils {
     }
 
     private static void setGssApiJaasConfig(final Map<String, Object> mapToPopulate, final ProcessContext context) {
-        final SelfContainedKerberosUserService kerberosUserService = context.getProperty(SELF_CONTAINED_KERBEROS_USER_SERVICE).asControllerService(SelfContainedKerberosUserService.class);
+        final SelfContainedKerberosUserService selfContKerberosUserService = context.getProperty(SELF_CONTAINED_KERBEROS_USER_SERVICE).asControllerService(SelfContainedKerberosUserService.class);
 
         final String jaasConfig;
-        if (kerberosUserService == null) {
+        if (selfContKerberosUserService == null) {
             jaasConfig = createGssApiJaasConfig(context);
         } else {
-            jaasConfig = createGssApiJaasConfig(kerberosUserService);
+            jaasConfig = createGssApiJaasConfig(selfContKerberosUserService);
         }
 
         mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, jaasConfig);
@@ -577,8 +580,8 @@ public final class KafkaProcessorUtils {
                     + "principal=\"" + principal + "\";";
     }
 
-    static String createGssApiJaasConfig(final SelfContainedKerberosUserService kerberosUserService) {
-        final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
+    static String createGssApiJaasConfig(final SelfContainedKerberosUserService selfContKerberosUserService) {
+        final KerberosUser kerberosUser = selfContKerberosUserService.createKerberosUser();
         final AppConfigurationEntry configEntry = kerberosUser.getConfigurationEntry();
         final StringBuilder configBuilder = new StringBuilder(configEntry.getLoginModuleName())
                 .append(" ").append(getControlFlagValue(configEntry.getControlFlag()));
