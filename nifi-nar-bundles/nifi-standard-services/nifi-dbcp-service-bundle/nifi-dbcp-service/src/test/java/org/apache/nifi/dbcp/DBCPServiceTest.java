@@ -17,6 +17,7 @@
 package org.apache.nifi.dbcp;
 
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.kerberos.MockKerberosCredentialsService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
@@ -39,6 +40,8 @@ import java.util.ArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DBCPServiceTest {
     private static final String SERVICE_ID = DBCPConnectionPool.class.getName();
@@ -67,6 +70,38 @@ public class DBCPServiceTest {
         runner.setProperty(service, DBCPConnectionPool.DB_USER, String.class.getSimpleName());
         runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, String.class.getName());
         runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+    }
+
+    @Test
+    public void testCustomValidateOfKerberosProperties() throws InitializationException {
+        // direct principal + password and no kerberos services is valid
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_PRINCIPAL, "foo@FOO.COM");
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_PASSWORD, "fooPassword");
+        runner.assertValid(service);
+
+        // direct principal + password with kerberos credential service is invalid
+        final KerberosCredentialsService kerberosCredentialsService = enabledKerberosCredentialsService(runner);
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE, kerberosCredentialsService.getIdentifier());
+        runner.assertNotValid(service);
+
+        // kerberos credential service by itself is valid
+        runner.removeProperty(service, DBCPConnectionPool.KERBEROS_PRINCIPAL);
+        runner.removeProperty(service, DBCPConnectionPool.KERBEROS_PASSWORD);
+        runner.assertValid(service);
+
+        // kerberos credential service with kerberos user service is invalid
+        final KerberosUserService kerberosUserService = enableKerberosUserService(runner);
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        runner.assertNotValid(service);
+
+        // kerberos user service by itself is valid
+        runner.removeProperty(service, DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE);
+        runner.assertValid(service);
+
+        // kerberos user service with direct principal + password is invalid
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_PRINCIPAL, "foo@FOO.COM");
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_PASSWORD, "fooPassword");
+        runner.assertNotValid(service);
     }
 
     @Test
@@ -249,4 +284,24 @@ public class DBCPServiceTest {
             assertNotNull(connection);
         }
     }
+
+    private KerberosUserService enableKerberosUserService(final TestRunner runner) throws InitializationException {
+        final KerberosUserService kerberosUserService = mock(KerberosUserService.class);
+        when(kerberosUserService.getIdentifier()).thenReturn("userService1");
+        runner.addControllerService(kerberosUserService.getIdentifier(), kerberosUserService);
+        runner.enableControllerService(kerberosUserService);
+        return kerberosUserService;
+    }
+
+    private KerberosCredentialsService enabledKerberosCredentialsService(final TestRunner runner) throws InitializationException {
+        final KerberosCredentialsService credentialsService = mock(KerberosCredentialsService.class);
+        when(credentialsService.getIdentifier()).thenReturn("credsService1");
+        when(credentialsService.getPrincipal()).thenReturn("principal1");
+        when(credentialsService.getKeytab()).thenReturn("keytab1");
+
+        runner.addControllerService(credentialsService.getIdentifier(), credentialsService);
+        runner.enableControllerService(credentialsService);
+        return credentialsService;
+    }
+
 }

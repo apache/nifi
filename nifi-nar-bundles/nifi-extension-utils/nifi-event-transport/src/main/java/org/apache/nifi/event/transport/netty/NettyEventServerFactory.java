@@ -29,12 +29,16 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.EventServerFactory;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
-import org.apache.nifi.event.transport.netty.channel.ssl.ServerSslHandlerChannelInitializer;
 import org.apache.nifi.event.transport.netty.channel.StandardChannelInitializer;
+import org.apache.nifi.event.transport.netty.channel.ssl.ServerSslHandlerChannelInitializer;
 import org.apache.nifi.security.util.ClientAuth;
 
 import javax.net.ssl.SSLContext;
+import java.net.InetAddress;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -44,7 +48,7 @@ import java.util.function.Supplier;
  * Netty Event Server Factory
  */
 public class NettyEventServerFactory extends EventLoopGroupFactory implements EventServerFactory {
-    private final String address;
+    private final InetAddress address;
 
     private final int port;
 
@@ -58,7 +62,11 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
 
     private ClientAuth clientAuth = ClientAuth.NONE;
 
-    public NettyEventServerFactory(final String address, final int port, final TransportProtocol protocol) {
+    private Duration shutdownQuietPeriod = ShutdownQuietPeriod.DEFAULT.getDuration();
+
+    private Duration shutdownTimeout = ShutdownTimeout.DEFAULT.getDuration();
+
+    public NettyEventServerFactory(final InetAddress address, final int port, final TransportProtocol protocol) {
         this.address = address;
         this.port = port;
         this.protocol = protocol;
@@ -98,6 +106,24 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
      */
     public void setClientAuth(final ClientAuth clientAuth) {
         this.clientAuth = clientAuth;
+    }
+
+    /**
+     * Set shutdown quiet period
+     *
+     * @param quietPeriod shutdown quiet period
+     */
+    public void setShutdownQuietPeriod(final Duration quietPeriod) {
+        this.shutdownQuietPeriod = quietPeriod;
+    }
+
+    /**
+     * Set shutdown timeout
+     *
+     * @param timeout shutdown timeout
+     */
+    public void setShutdownTimeout(final Duration timeout) {
+        this.shutdownTimeout = timeout;
     }
 
     /**
@@ -145,7 +171,7 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
         final ChannelFuture bindFuture = bootstrap.bind(address, port);
         try {
             final ChannelFuture channelFuture = bindFuture.syncUninterruptibly();
-            return new NettyEventServer(group, channelFuture.channel());
+            return new NettyEventServer(group, channelFuture.channel(), shutdownQuietPeriod, shutdownTimeout);
         } catch (final Exception e) {
             group.shutdownGracefully();
             throw new EventException(String.format("Channel Bind Failed [%s:%d]", address, port), e);

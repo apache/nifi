@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.KafkaException;
@@ -83,7 +84,8 @@ public class ConsumerPoolTest {
                 true,
                 StandardCharsets.UTF_8,
                 null,
-                null) {
+                null,
+                true) {
             @Override
             protected Consumer<byte[], byte[]> createKafkaConsumer() {
                 return consumer;
@@ -103,7 +105,8 @@ public class ConsumerPoolTest {
                 true,
                 StandardCharsets.UTF_8,
                 Pattern.compile(".*"),
-                null) {
+                null,
+                true) {
             @Override
             protected Consumer<byte[], byte[]> createKafkaConsumer() {
                 return consumer;
@@ -147,13 +150,14 @@ public class ConsumerPoolTest {
         final ConsumerRecords<byte[], byte[]> firstRecs = createConsumerRecords("foo", 1, 1L, firstPassValues);
 
         when(consumer.poll(any(Duration.class))).thenReturn(firstRecs, createConsumerRecords("nifi", 0, 0L, new byte[][]{}));
+        when(consumer.groupMetadata()).thenReturn(mock(ConsumerGroupMetadata.class));
         try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
             lease.poll();
             lease.commit();
         }
         testPool.close();
         verify(mockSession, times(3)).create();
-        verify(mockSession, times(1)).commitAsync(Mockito.any(Runnable.class));
+        verify(mockSession, times(1)).commitAsync(Mockito.any(Runnable.class), Mockito.any(java.util.function.Consumer.class));
         final PoolStats stats = testPool.getPoolStats();
         assertEquals(1, stats.consumerCreatedCount);
         assertEquals(1, stats.consumerClosedCount);
@@ -192,7 +196,8 @@ public class ConsumerPoolTest {
             true,
             StandardCharsets.UTF_8,
             null,
-            new int[] {1, 2, 3}) {
+            new int[] {1, 2, 3},
+            true) {
             @Override
             protected Consumer<byte[], byte[]> createKafkaConsumer() {
                 return consumer;
@@ -272,13 +277,14 @@ public class ConsumerPoolTest {
         final ConsumerRecords<byte[], byte[]> firstRecs = createConsumerRecords("foo", 1, 1L, firstPassValues);
 
         when(consumer.poll(any(Duration.class))).thenReturn(firstRecs, createConsumerRecords("nifi", 0, 0L, new byte[][]{}));
+        when(consumer.groupMetadata()).thenReturn(mock(ConsumerGroupMetadata.class));
         try (final ConsumerLease lease = testDemarcatedPool.obtainConsumer(mockSession, mockContext)) {
             lease.poll();
             lease.commit();
         }
         testDemarcatedPool.close();
         verify(mockSession, times(1)).create();
-        verify(mockSession, times(1)).commitAsync(Mockito.any(Runnable.class));
+        verify(mockSession, times(1)).commitAsync(Mockito.any(Runnable.class), Mockito.any(java.util.function.Consumer.class));
         final PoolStats stats = testDemarcatedPool.getPoolStats();
         assertEquals(1, stats.consumerCreatedCount);
         assertEquals(1, stats.consumerClosedCount);

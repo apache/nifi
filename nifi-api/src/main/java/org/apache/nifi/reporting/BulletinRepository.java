@@ -90,4 +90,9 @@ public interface BulletinRepository {
      * @return all bulletins for the controller
      */
     List<Bulletin> findBulletinsForController(int max);
+
+    /**
+     * @return the max ID of any bulletin that has been added, or -1 if no bulletins have been added
+     */
+    long getMaxBulletinId();
 }

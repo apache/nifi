@@ -29,6 +29,8 @@ import org.junit.Test;
 
 import java.io.File;
 import java.util.List;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 
@@ -58,7 +60,7 @@ public class TestPutHTMLElement extends AbstractHTMLTest {
         testRunner.assertTransferCount(PutHTMLElement.REL_NOT_FOUND, 0);
 
         List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(PutHTMLElement.REL_SUCCESS);
-        assertTrue(ffs.size() == 1);
+        assertEquals(1, ffs.size());
         String data = new String(testRunner.getContentAsByteArray(ffs.get(0)));
 
         //Contents will be the entire HTML doc. So lets use Jsoup again just the grab the element we want.
@@ -85,7 +87,7 @@ public class TestPutHTMLElement extends AbstractHTMLTest {
         testRunner.assertTransferCount(PutHTMLElement.REL_NOT_FOUND, 0);
 
         List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(PutHTMLElement.REL_SUCCESS);
-        assertTrue(ffs.size() == 1);
+        assertEquals(1, ffs.size());
         String data = new String(testRunner.getContentAsByteArray(ffs.get(0)));
 
         //Contents will be the entire HTML doc. So lets use Jsoup again just the grab the element we want.
@@ -93,7 +95,7 @@ public class TestPutHTMLElement extends AbstractHTMLTest {
         Elements eles = doc.select("#put");
         Element ele = eles.get(0);
 
-        assertTrue(StringUtils.equals("<p>modified value</p> \n<a href=\"httpd://localhost\"></a>", ele.html()));
+        assertEquals("<p>modified value</p><a href=\"httpd://localhost\"></a>", ele.html());
     }
 
     @Test
@@ -112,7 +114,7 @@ public class TestPutHTMLElement extends AbstractHTMLTest {
         testRunner.assertTransferCount(PutHTMLElement.REL_NOT_FOUND, 0);
 
         List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(PutHTMLElement.REL_SUCCESS);
-        assertTrue(ffs.size() == 1);
+        assertEquals(1, ffs.size());
         String data = new String(testRunner.getContentAsByteArray(ffs.get(0)));
 
         //Contents will be the entire HTML doc. So lets use Jsoup again just the grab the element we want.

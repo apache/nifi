@@ -21,6 +21,8 @@
     <name>NiFi Flow</name>
     <position x="0.0" y="0.0"/>
     <comment/>
+    <flowfileConcurrency>UNBOUNDED</flowfileConcurrency>
+    <flowfileOutboundPolicy>STREAM_WHEN_AVAILABLE</flowfileOutboundPolicy>
     <processor>
       <id>28a67671-015a-1000-77dd-8130e16012ec</id>
       <name>PutFile</name>

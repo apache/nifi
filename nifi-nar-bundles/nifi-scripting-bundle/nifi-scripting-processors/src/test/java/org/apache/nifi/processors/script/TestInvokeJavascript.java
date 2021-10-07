@@ -25,20 +25,21 @@ import org.apache.nifi.util.MockProcessorInitializationContext;
 import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestInvokeJavascript extends BaseScriptTest {
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setupInvokeScriptProcessor();
     }
@@ -48,10 +49,10 @@ public class TestInvokeJavascript extends BaseScriptTest {
      * and stores the value in an attribute of the outgoing flowfile.
      * Confirms that the scripted processor transfers the incoming flowfile with an attribute added.
      *
-     * @throws Exception Any error encountered while testing
+     * @Any error encountered while testing
      */
     @Test
-    public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
+    public void testReadFlowFileContentAndStoreInFlowFileAttribute() {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
         runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/javascript");
@@ -70,10 +71,10 @@ public class TestInvokeJavascript extends BaseScriptTest {
      * stores the value in an attribute of the outgoing flowfile.
      * Confirms that the scripted processor can return property descriptors defined in it.
      *
-     * @throws Exception Any error encountered while testing
+     * @Any error encountered while testing
      */
     @Test
-    public void testScriptDefinedAttribute() throws Exception {
+    public void testScriptDefinedAttribute() {
         InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
         MockProcessContext context = new MockProcessContext(processor);
         MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(processor, context);
@@ -105,10 +106,10 @@ public class TestInvokeJavascript extends BaseScriptTest {
      * stores the value in an attribute of the outgoing flowfile.
      * Confirms that the scripted processor can return relationships defined in it.
      *
-     * @throws Exception Any error encountered while testing
+     * @Any error encountered while testing
      */
     @Test
-    public void testScriptDefinedRelationship() throws Exception {
+    public void testScriptDefinedRelationship() {
         InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
         MockProcessContext context = new MockProcessContext(processor);
         MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(processor, context);
@@ -140,10 +141,9 @@ public class TestInvokeJavascript extends BaseScriptTest {
      * Tests a script that throws a ProcessException within.
      * The expected result is that the exception will be propagated.
      *
-     * @throws Exception Any error encountered while testing
      */
-    @Test(expected = AssertionError.class)
-    public void testInvokeScriptCausesException() throws Exception {
+    @Test
+    public void testInvokeScriptCausesException() {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
@@ -151,17 +151,16 @@ public class TestInvokeJavascript extends BaseScriptTest {
         );
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
-        runner.run();
-
+        assertThrows(AssertionError.class, () -> runner.run());
     }
 
     /**
      * Tests a script that routes the FlowFile to failure.
      *
-     * @throws Exception Any error encountered while testing
+     * @Any error encountered while testing
      */
     @Test
-    public void testScriptRoutesToFailure() throws Exception {
+    public void testScriptRoutesToFailure() {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "javascript/testScriptRoutesToFailure.js")
@@ -178,10 +177,10 @@ public class TestInvokeJavascript extends BaseScriptTest {
     /**
      * Tests an empty script with Nashorn (which throws an NPE if it is loaded), this test verifies an empty script is not attempted to be loaded.
      *
-     * @throws Exception Any error encountered while testing
+     * @Any error encountered while testing
      */
     @Test
-    public void testEmptyScript() throws Exception {
+    public void testEmptyScript() {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, "");
         runner.assertNotValid();

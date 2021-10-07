@@ -40,6 +40,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Audits processor creation/removal and configuration changes.
@@ -276,6 +277,10 @@ public class ParameterContextAuditor extends NiFiAuditor {
                     values.put(parameterDTO.getName(), parameter.getValue());
                 }
             });
+        }
+        if (!parameterContext.getInheritedParameterContexts().isEmpty()) {
+            values.put("Inherited Parameter Contexts", parameterContext.getInheritedParameterContexts()
+                    .stream().map(pc -> pc.getIdentifier()).collect(Collectors.joining(", ")));
         }
 
         return values;

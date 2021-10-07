@@ -100,6 +100,18 @@
                 <artifactId>commons-compress</artifactId>
                 <version>1.21</version>
             </dependency>
+            <!-- Override commons-beanutils -->
+            <dependency>
+                <groupId>commons-beanutils</groupId>
+                <artifactId>commons-beanutils</artifactId>
+                <version>1.9.4</version>
+            </dependency>
+            <!-- Override zookeeper -->
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>3.4.14</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>

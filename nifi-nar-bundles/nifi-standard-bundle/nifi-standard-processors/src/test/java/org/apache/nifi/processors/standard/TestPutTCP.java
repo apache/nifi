@@ -18,12 +18,14 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
-import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
@@ -37,6 +39,7 @@ import org.junit.rules.Timeout;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
+import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -44,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestPutTCP {
     private final static String TCP_SERVER_ADDRESS = "127.0.0.1";
@@ -70,7 +74,6 @@ public class TestPutTCP {
 
     private EventServer eventServer;
     private int port;
-    private TransportProtocol PROTOCOL = TransportProtocol.TCP;
     private TestRunner runner;
     private BlockingQueue<ByteArrayMessage> messages;
 
@@ -105,14 +108,14 @@ public class TestPutTCP {
     @Test
     public void testRunSuccess() throws Exception {
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
-        createTestServer(TCP_SERVER_ADDRESS, port);
+        createTestServer(port);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
     }
 
     @Test
     public void testRunSuccessSslContextService() throws Exception {
-        final TlsConfiguration tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
 
         final SSLContext sslContext = SslContextUtils.createSslContext(tlsConfiguration);
         assertNotNull("SSLContext not found", sslContext);
@@ -124,7 +127,7 @@ public class TestPutTCP {
         runner.enableControllerService(sslContextService);
         runner.setProperty(PutTCP.SSL_CONTEXT_SERVICE, identifier);
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
-        createTestServer(TCP_SERVER_ADDRESS, port, sslContext);
+        createTestServer(port, sslContext);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
     }
@@ -132,7 +135,7 @@ public class TestPutTCP {
     @Test
     public void testRunSuccessServerVariableExpression() throws Exception {
         configureProperties(TCP_SERVER_ADDRESS_EL, OUTGOING_MESSAGE_DELIMITER, false);
-        createTestServer(TCP_SERVER_ADDRESS, port);
+        createTestServer(port);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
     }
@@ -140,7 +143,7 @@ public class TestPutTCP {
     @Test
     public void testRunSuccessPruneSenders() throws Exception {
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
-        createTestServer(TCP_SERVER_ADDRESS, port);
+        createTestServer(port);
         sendTestData(VALID_FILES);
         assertTransfers(VALID_FILES.length);
         assertMessagesReceived(VALID_FILES);
@@ -156,7 +159,7 @@ public class TestPutTCP {
     @Test
     public void testRunSuccessMultiCharDelimiter() throws Exception {
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR, false);
-        createTestServer(TCP_SERVER_ADDRESS, port);
+        createTestServer(port);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
     }
@@ -164,7 +167,7 @@ public class TestPutTCP {
     @Test
     public void testRunSuccessConnectionPerFlowFile() throws Exception {
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, true);
-        createTestServer(TCP_SERVER_ADDRESS, port);
+        createTestServer(port);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
     }
@@ -172,7 +175,7 @@ public class TestPutTCP {
     @Test
     public void testRunSuccessConnectionFailure() throws Exception {
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
-        createTestServer(TCP_SERVER_ADDRESS, port);
+        createTestServer(port);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
 
@@ -182,7 +185,7 @@ public class TestPutTCP {
         runner.assertQueueEmpty();
 
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
-        createTestServer(TCP_SERVER_ADDRESS, port);
+        createTestServer(port);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
     }
@@ -190,7 +193,7 @@ public class TestPutTCP {
     @Test
     public void testRunSuccessEmptyFile() throws Exception {
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
-        createTestServer(TCP_SERVER_ADDRESS, port);
+        createTestServer(port);
         sendTestData(EMPTY_FILE);
         assertTransfers(1);
         runner.assertQueueEmpty();
@@ -199,7 +202,7 @@ public class TestPutTCP {
     @Test
     public void testRunSuccessLargeValidFile() throws Exception {
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, true);
-        createTestServer(TCP_SERVER_ADDRESS, port);
+        createTestServer(port);
         final String[] testData = createContent(VALID_LARGE_FILE_SIZE);
         sendTestData(testData);
         assertMessagesReceived(testData);
@@ -208,25 +211,29 @@ public class TestPutTCP {
     @Test
     public void testRunSuccessFiveHundredMessages() throws Exception {
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
-        createTestServer(TCP_SERVER_ADDRESS, port);
+        createTestServer(port);
         Thread.sleep(1000);
         final String[] testData = createContent(VALID_SMALL_FILE_SIZE);
         sendTestData(testData, LOAD_TEST_ITERATIONS, LOAD_TEST_THREAD_COUNT);
         assertMessagesReceived(testData, LOAD_TEST_ITERATIONS);
     }
 
-    private void createTestServer(final String address, final int port, final SSLContext sslContext) throws Exception {
+    private void createTestServer(final int port) throws Exception {
+        createTestServer(port, null);
+    }
+
+    private void createTestServer(final int port, final SSLContext sslContext) throws Exception {
         messages = new LinkedBlockingQueue<>();
         final byte[] delimiter = getDelimiter();
-        NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), address, port, PROTOCOL, delimiter, VALID_LARGE_FILE_SIZE, messages);
+        final InetAddress listenAddress = InetAddress.getByName(TCP_SERVER_ADDRESS);
+        NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(),
+                listenAddress, port, TransportProtocol.TCP, delimiter, VALID_LARGE_FILE_SIZE, messages);
         if (sslContext != null) {
             serverFactory.setSslContext(sslContext);
         }
+        serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         eventServer = serverFactory.getEventServer();
-    }
-
-    private void createTestServer(final String address, final int port) throws Exception {
-        createTestServer(address, port, null);
     }
 
     private void shutdownServer() {
@@ -276,7 +283,7 @@ public class TestPutTCP {
             for (String item : sentData) {
                 final ByteArrayMessage message = messages.take();
                 assertNotNull(String.format("Message [%d] not found", i), message);
-                assert(Arrays.asList(sentData).contains(new String(message.getMessage())));
+                assertTrue(Arrays.asList(sentData).contains(new String(message.getMessage())));
             }
         }
 

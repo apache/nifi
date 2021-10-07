@@ -38,10 +38,8 @@
 
                 <!-- exclude jaxb/activation/annotation libs from lib, they'll be included in the java11 subdir -->
                 <!-- TODO: remove these once minimum Java version is 11 -->
-                <exclude>javax.xml.bind:jaxb-api</exclude>
-                <exclude>com.sun.xml.bind:jaxb-impl</exclude>
-                <exclude>com.sun.xml.bind:jaxb-core</exclude>
-                <exclude>javax.activation:javax.activation-api</exclude>
+                <exclude>org.glassfish.jaxb:jaxb-runtime</exclude>
+                <exclude>jakarta.xml.bind:jakarta.xml.bind-api</exclude>
                 <exclude>javax.annotation:javax.annotation-api</exclude>
 
                 <!-- exclude AspectJ library from lib, it'll be included in the aspectj subdir -->
@@ -59,10 +57,8 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>javax.xml.bind:jaxb-api</include>
-                <include>com.sun.xml.bind:jaxb-impl</include>
-                <include>com.sun.xml.bind:jaxb-core</include>
-                <include>javax.activation:javax.activation-api</include>
+                <include>org.glassfish.jaxb:jaxb-runtime</include>
+                <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
                 <include>javax.annotation:javax.annotation-api</include>
             </includes>
         </dependencySet>

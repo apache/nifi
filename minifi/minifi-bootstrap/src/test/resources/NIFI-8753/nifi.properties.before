@@ -94,7 +94,6 @@ nifi.web.jetty.threads=200
 # security properties #
 nifi.sensitive.props.key=
 nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
-nifi.sensitive.props.provider=BC
 
 nifi.security.keystore=/tmp/ssl/localhost-ks.jks
 nifi.security.keystoreType=JKS

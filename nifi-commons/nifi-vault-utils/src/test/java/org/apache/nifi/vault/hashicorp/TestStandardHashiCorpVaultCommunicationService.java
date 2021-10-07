@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.vault.hashicorp;
 
-import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultSslProperties;
@@ -28,8 +28,6 @@ import org.mockito.Mockito;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -96,26 +94,22 @@ public class TestStandardHashiCorpVaultCommunicationService {
     }
 
     @Test
-    public void testTLS() throws GeneralSecurityException, IOException {
-        TlsConfiguration tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
-        try {
-            Mockito.when(sslProperties.getKeyStore()).thenReturn(tlsConfiguration.getKeystorePath());
-            Mockito.when(sslProperties.getKeyStorePassword()).thenReturn(tlsConfiguration.getKeystorePassword());
-            Mockito.when(sslProperties.getKeyStoreType()).thenReturn(tlsConfiguration.getKeystoreType().getType());
-            Mockito.when(sslProperties.getTrustStore()).thenReturn(tlsConfiguration.getTruststorePath());
-            Mockito.when(sslProperties.getTrustStorePassword()).thenReturn(tlsConfiguration.getTruststorePassword());
-            Mockito.when(sslProperties.getTrustStoreType()).thenReturn(tlsConfiguration.getTruststoreType().getType());
-            Mockito.when(sslProperties.getEnabledProtocols()).thenReturn(Arrays.stream(tlsConfiguration.getEnabledProtocols())
-                    .collect(Collectors.joining(",")));
-            Mockito.when(sslProperties.getEnabledCipherSuites()).thenReturn(CIPHER_SUITE_VALUE);
+    public void testTLS() {
+        TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
 
-            Mockito.when(properties.getUri()).thenReturn(URI_VALUE.replace("http", "https"));
-            this.configureService();
+        Mockito.when(sslProperties.getKeyStore()).thenReturn(tlsConfiguration.getKeystorePath());
+        Mockito.when(sslProperties.getKeyStorePassword()).thenReturn(tlsConfiguration.getKeystorePassword());
+        Mockito.when(sslProperties.getKeyStoreType()).thenReturn(tlsConfiguration.getKeystoreType().getType());
+        Mockito.when(sslProperties.getTrustStore()).thenReturn(tlsConfiguration.getTruststorePath());
+        Mockito.when(sslProperties.getTrustStorePassword()).thenReturn(tlsConfiguration.getTruststorePassword());
+        Mockito.when(sslProperties.getTrustStoreType()).thenReturn(tlsConfiguration.getTruststoreType().getType());
+        Mockito.when(sslProperties.getEnabledProtocols()).thenReturn(Arrays.stream(tlsConfiguration.getEnabledProtocols())
+                .collect(Collectors.joining(",")));
+        Mockito.when(sslProperties.getEnabledCipherSuites()).thenReturn(CIPHER_SUITE_VALUE);
 
-            this.ensureTlsPropertiesAccessed(1);
-        } finally {
-            Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
-            Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
-        }
+        Mockito.when(properties.getUri()).thenReturn(URI_VALUE.replace("http", "https"));
+        this.configureService();
+
+        this.ensureTlsPropertiesAccessed(1);
     }
 }

@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.authorization;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.Collections;
@@ -25,7 +24,9 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 public class TestAbstractPolicyBasedAuthorizer {
@@ -324,8 +325,8 @@ public class TestAbstractPolicyBasedAuthorizer {
         when(authorizer.getAccessPolicies()).thenReturn(new HashSet<AccessPolicy>());
 
         final String fingerprint = authorizer.getFingerprint();
-        Assert.assertNotNull(fingerprint);
-        Assert.assertTrue(fingerprint.length() > 0);
+        assertNotNull(fingerprint);
+        assertTrue(fingerprint.length() > 0);
     }
 
 }

@@ -38,8 +38,8 @@ public class MapCacheServer extends AbstractCacheServer {
     private final MapCache cache;
 
     public MapCacheServer(final String identifier, final SSLContext sslContext, final int port, final int maxSize,
-            final EvictionPolicy evictionPolicy, final File persistencePath) throws IOException {
-        super(identifier, sslContext, port);
+            final EvictionPolicy evictionPolicy, final File persistencePath, final int maxReadSize) throws IOException {
+        super(identifier, sslContext, port, maxReadSize);
 
         final MapCache simpleCache = new SimpleMapCache(identifier, maxSize, evictionPolicy);
 
@@ -123,7 +123,7 @@ public class MapCacheServer extends AbstractCacheServer {
                 break;
             }
             case "subMap": {
-                final int numKeys = dis.readInt();
+                final int numKeys = validateSize(dis.readInt());
                 for(int i=0;i<numKeys;i++) {
                     final byte[] key = readValue(dis);
                     final ByteBuffer existingValue = cache.get(ByteBuffer.wrap(key));
@@ -249,12 +249,4 @@ public class MapCacheServer extends AbstractCacheServer {
             stop();
         }
     }
-
-    private byte[] readValue(final DataInputStream dis) throws IOException {
-        final int numBytes = dis.readInt();
-        final byte[] buffer = new byte[numBytes];
-        dis.readFully(buffer);
-        return buffer;
-    }
-
 }

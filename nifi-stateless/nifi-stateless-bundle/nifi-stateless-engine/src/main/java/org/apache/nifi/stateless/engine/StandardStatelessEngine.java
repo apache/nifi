@@ -42,7 +42,9 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.extensions.ExtensionRepository;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
@@ -56,7 +58,6 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -170,14 +171,13 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         childGroup.setName("Stateless Flow");
         rootGroup.addProcessGroup(childGroup);
 
+        LogRepositoryFactory.purge();
         childGroup.updateFlow(dataflowDefinition.getFlowSnapshot(), "stateless-component-id-seed", false, true, true);
 
         final ParameterValueProvider parameterValueProvider = createParameterValueProvider(dataflowDefinition);
 
         // Map existing parameter contexts by name
-        final Set<ParameterContext> parameterContexts = flowManager.getParameterContextManager().getParameterContexts();
-        final Map<String, ParameterContext> parameterContextMap = parameterContexts.stream()
-            .collect(Collectors.toMap(ParameterContext::getName, context -> context));
+        final Map<String, ParameterContext> parameterContextMap = flowManager.getParameterContextManager().getParameterContextNameMapping();
 
         // Update Parameters to match those that are provided in the flow configuration, plus those overrides provided
         final List<ParameterContextDefinition> parameterContextDefinitions = dataflowDefinition.getParameterContexts();
@@ -189,7 +189,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
         final List<ReportingTaskNode> reportingTaskNodes = createReportingTasks(dataflowDefinition);
         final StandardStatelessFlow dataflow = new StandardStatelessFlow(childGroup, reportingTaskNodes, controllerServiceProvider, processContextFactory,
-            repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler);
+            repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler, bulletinRepository);
 
         final LogComponentStatuses logComponentStatuses = new LogComponentStatuses(flowFileEventRepository, counterRepository, flowManager);
         dataflow.scheduleBackgroundTask(logComponentStatuses, 1, TimeUnit.MINUTES);
@@ -224,6 +224,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         final String providerId = UUID.randomUUID().toString();
         final InstanceClassLoader classLoader = extensionManager.createInstanceClassLoader(providerType, providerId, bundle, Collections.emptySet());
 
+        final ClassLoader initialClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final Class<?> rawClass = Class.forName(providerType, true, classLoader);
             Thread.currentThread().setContextClassLoader(classLoader);
@@ -244,6 +245,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             return parameterValueProvider;
         } catch (final Exception e) {
             throw new IllegalStateException("Could not create Parameter Value Provider " + definition.getName() + " of type " + definition.getType(), e);
+        } finally {
+            Thread.currentThread().setContextClassLoader(initialClassLoader);
         }
     }
 
@@ -263,7 +266,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         final Map<PropertyDescriptor, PropertyConfiguration> fullPropertyMap = buildConfiguredAndDefaultPropertyMap(component, explicitlyConfiguredPropertyMap);
 
         final ValidationContext validationContext = new StandardValidationContext(controllerServiceProvider, fullPropertyMap,
-            null, null, componentId, VariableRegistry.EMPTY_REGISTRY, null);
+            null, null, componentId, VariableRegistry.EMPTY_REGISTRY, null, true);
 
         final Collection<ValidationResult> validationResults = component.validate(validationContext);
         return validationResults.stream()

@@ -489,6 +489,28 @@ To enable authentication via Apache Knox the following properties must be config
 this listing. The audience that is populated in the token can be configured in Knox.
 |==================================================================================================================================================
 
+[[json_web_token]]
+=== JSON Web Tokens
+
+NiFi uses JSON Web Tokens to provide authenticated access after the initial login process. Generated JSON Web Tokens include the authenticated user identity
+as well as the issuer and expiration from the configured Login Identity Provider.
+
+NiFi uses generated RSA Key Pairs with a key size of 4096 bits to support the `PS512` algorithm for JSON Web Signatures. The system stores RSA
+Public Keys using the configured local State Provider and retains the RSA Private Key in memory. This approach supports signature verification
+for the expiration configured in the Login Identity Provider without persisting the private key.
+
+JSON Web Token support includes revocation on logout using JSON Web Token Identifiers. The system denies access for expired tokens based on the
+Login Identity Provider configuration, but revocation invalidates the token prior to expiration. The system stores revoked identifiers using the
+configured local State Provider and runs a scheduled command to delete revoked identifiers after the associated expiration.
+
+The following settings can be configured in _nifi.properties_ to control JSON Web Token signing.
+
+[options="header"]
+|==================================================================================================================================================
+| Property Name | Description
+|`nifi.security.user.jws.key.rotation.period` | JSON Web Signature Key Rotation Period defines how often the system generates a new RSA Key Pair, expressed as an ISO 8601 duration. The default is one hour: `PT1H`
+|==================================================================================================================================================
+
 [[multi-tenant-authorization]]
 == Multi-Tenant Authorization
 
@@ -1773,7 +1795,7 @@ If no administrator action is taken, the configuration values remain unencrypted
 
 For more information, see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
 
-In addition to the default AES encryption provider, other providers can be configured in their respective `bootstrap-*.conf` files. Following is a list of additional encryption providers and their configuration:
+Configuring each Sensitive Property Provider requires including the appropriate file reference property in `bootstrap.conf`. The default `bootstrap.conf` includes commented file reference properties for available providers.
 
 === HashiCorp Vault providers
 Two encryption providers are currently configurable in the `bootstrap-hashicorp-vault.conf` file:
@@ -1845,6 +1867,19 @@ This protection scheme uses keys managed by https://docs.microsoft.com/en-us/azu
 |Property Name|Description|Default
 |`azure.keyvault.key.id`|The identifier of the key that the Azure Key Vault client uses for encryption and decryption.|_none_
 |`azure.keyvault.encryption.algorithm`|The encryption algorithm that the Azure Key Vault client uses for encryption and decryption.|_none_
+|===
+
+=== Google Cloud KMS provider
+This protection scheme uses Google Cloud Key Management Service (https://cloud.google.com/security-key-management[Google Cloud Key Management Service]) for encryption and decryption. Google Cloud KMS configuration properties are to be stored in the `bootstrap-gcp.conf` file, as referenced in the `bootstrap.conf` of NiFi or NiFi Registry. Credentials must be configured as per the following documentation: https://cloud.google.com/kms/docs/reference/libraries[Google Cloud KMS documentation]
+
+==== Required properties
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`gcp.kms.project`|The project containing the key that the Google Cloud KMS client uses for encryption and decryption.|_none_
+|`gcp.kms.location`|The geographic region of the project containing the key that the Google Cloud KMS client uses for encryption and decryption.|_none_
+|`gcp.kms.keyring`|The keyring containing the key that the Google Cloud KMS client uses for encryption and decryption.|_none_
+|`gcp.kms.key`|The key identifier that the Google Cloud KMS client uses for encryption and decryption.|_none_
 |===
 
 === Property Context Mapping
@@ -2100,14 +2135,9 @@ configured in the _state-management.xml_ file. See <<state_providers>> for more 
 ** `nifi.cluster.is.node` - Set this to _true_.
 ** `nifi.cluster.node.address` - Set this to the fully qualified hostname of the node. If left blank, it defaults to `localhost`.
 ** `nifi.cluster.node.protocol.port` - Set this to an open port that is higher than 1024 (anything lower requires root).
-** `nifi.cluster.node.protocol.threads` - The number of threads that should be used to communicate with other nodes in the cluster. This property
-defaults to `10`. A thread pool is used for replicating requests to all nodes, and the
-thread pool will never have fewer than this number of threads. It will grow as needed up to the maximum value set by the `nifi.cluster.node.protocol.max.threads`
-property.
 ** `nifi.cluster.node.protocol.max.threads` - The maximum number of threads that should be used to communicate with other nodes in the cluster. This property
-defaults to `50`. A thread pool is used for replication requests to all nodes, and the thread pool will have a "core" size that is configured by the
-`nifi.cluster.node.protocol.threads` property. However, if necessary, the thread pool will increase the number of active threads to the limit
-set by this property.
+defaults to `50`. A thread pool is used for replicating requests to all nodes. The thread pool will increase the number of active threads to the limit
+set by this property. It is typically recommended that this property be set to 4-8 times the number of nodes in your cluster.
 ** `nifi.zookeeper.connect.string` - The Connect String that is needed to connect to Apache ZooKeeper. This is a comma-separated list
 of hostname:port pairs. For example, `localhost:2181,localhost:2182,localhost:2183`. This should contain a list of all ZooKeeper
 instances in the ZooKeeper quorum.
@@ -2640,8 +2670,13 @@ configured recipients whenever NiFi is started.
 defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
 configured recipients whenever NiFi is stopped.
 |`nifi.died.notification.services`|This property is a comma-separated list of Notification Service identifiers that correspond to the Notification Services
-defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
-configured recipients if the bootstrap determines that NiFi has unexpectedly died.
+                                 defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
+                                 configured recipients if the bootstrap determines that NiFi has unexpectedly died.
+|`nifi.diagnostics.on.shutdown.enabled`|(true or false) This property decides whether to run NiFi diagnostics before shutting down.
+|`nifi.diagnostics.on.shutdown.verbose`|(true or false) This property decides whether to run NiFi diagnostics in verbose mode.
+|`nifi.diagnostics.on.shutdown.directory`|This property specifies the location of the NiFi diagnostics directory.
+|`nifi.diagnostics.on.shutdown.max.filecount`|This property specifies the maximum permitted number of diagnostic files. If the limit is exceeded, the oldest files are deleted.
+|`nifi.diagnostics.on.shutdown.max.directory.size`|This property specifies the maximum permitted size of the diagnostics directory. If the limit is exceeded, the oldest files are deleted.
 |====
 
 [[notification_services]]
@@ -3766,7 +3801,6 @@ These properties pertain to various security features in NiFi. Many of these pro
 |*Property*|*Description*
 |`nifi.sensitive.props.key`|This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
 |`nifi.sensitive.props.algorithm`|The algorithm used to encrypt sensitive properties. The default value is `NIFI_PBKDF2_AES_GCM_256`.
-|`nifi.sensitive.props.provider`|The sensitive property provider. The default value is `BC`.
 |`nifi.sensitive.props.additional.keys`|The comma separated list of properties in _nifi.properties_ to encrypt in addition to the default sensitive properties (see <<encrypt-config_tool>>).
 |`nifi.security.autoreload.enabled`|Specifies whether the SSL context factory should be automatically reloaded if updates to the keystore and truststore are detected. By default, it is set to `false`.
 |`nifi.security.autoreload.interval`|Specifies the interval at which the keystore and truststore are checked for updates. Only applies if `nifi.security.autoreload.enabled` is set to `true`. The default value is `10 secs`.
@@ -3838,8 +3872,6 @@ Configure these properties for cluster nodes.
 |`nifi.cluster.is.node`|Set this to `true` if the instance is a node in a cluster. The default value is `false`.
 |`nifi.cluster.node.address`|The fully qualified address of the node. It is blank by default.
 |`nifi.cluster.node.protocol.port`|The node's protocol port. It is blank by default.
-|`nifi.cluster.node.protocol.threads`|The number of threads that should be used to communicate with other nodes
-in the cluster. This property defaults to `10`, but for large clusters, this value may need to be larger.
 |`nifi.cluster.node.protocol.max.threads`|The maximum number of threads that should be used to communicate with other nodes in the cluster. This property defaults to `50`.
 |`nifi.cluster.node.event.history.size`|When the state of a node in the cluster is changed, an event is generated
 and can be viewed in the Cluster page. This value indicates how many events to keep in memory for each node. The default value is `25`.
@@ -3855,7 +3887,9 @@ by the `nifi.cluster.flow.election.max.candidates` property, the cluster will no
 |`nifi.cluster.flow.election.max.candidates`|Specifies the number of Nodes required in the cluster to cause early election of Flows. This allows the Nodes in the cluster to avoid having to wait a
 long time before starting processing if we reach at least this number of nodes in the cluster.
 |`nifi.cluster.load.balance.port`|Specifies the port to listen on for incoming connections for load balancing data across the cluster. The default value is `6342`.
-|`nifi.cluster.load.balance.host`|Specifies the hostname to listen on for incoming connections for load balancing data across the cluster. If not specified, will default to the value used by the `nifi.cluster.node.address` property.
+|`nifi.cluster.load.balance.host`|Specifies the hostname to listen on for incoming connections for load balancing data across the cluster. If not specified, will default to the value used by the
+`nifi.cluster.node.address` property. The value set here does not have to be a hostname/IP address that is addressable outside of the cluster. However, all nodes within the cluster must be able to
+connect to the node using this hostname/IP address.
 |`nifi.cluster.load.balance.connections.per.node`|The maximum number of connections to create between this node and each other node in the cluster. For example, if there are 5 nodes in the cluster and this value is set to 4, there will be up to 20 socket connections established for load-balancing purposes (5 x 4 = 20). The default value is `1`.
 |`nifi.cluster.load.balance.max.thread.count`|The maximum number of threads to use for transferring data from this node to other nodes in the cluster. While a given thread can only write to a single socket at a time, a single thread is capable of servicing multiple connections simultaneously because a given connection may not be available for reading/writing at any given time. The default value is `8`—i.e., up to 8 threads will be responsible for transferring data to other nodes, regardless of how many nodes are in the cluster.
 
@@ -3888,6 +3922,11 @@ that is specified.
 |`nifi.zookeeper.security.truststore`|Filename of the Truststore that will be used to verify the ZooKeeper server(s).
 |`nifi.zookeeper.security.truststoreType`|Optional. The type of the Truststore. Must be `PKCS12`, `JKS`, or `PEM`. If not specified the type will be determined from the file extension (`.p12`, `.jks`, `.pem`).
 |`nifi.zookeeper.security.truststorePasswd`|The password for the Truststore.
+|`nifi.zookeeper.jute.maxbuffer`|Maximum buffer size in bytes for packets sent to and received from ZooKeeper.
+Defaults to `1048575` bytes (`0xfffff` in hexadecimal) following ZooKeeper default `jute.maxbuffer` property.
+
+The link:http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#Unsafe+Options[ZooKeeper Administrator's Guide] categorizes this property as an *unsafe option*.
+Changing this property *requires* setting `jute.maxbuffer` on ZooKeeper servers.
 |====
 
 [[kerberos_properties]]
@@ -4262,3 +4301,21 @@ Example configuration:
    nifi.nar.library.provider.hdfs2.implementation=org.apache.nifi.nar.hadoop.HDFSNarProvider
    nifi.nar.library.provider.hdfs2.resources=/etc/hadoop/core-site.xml
    nifi.nar.library.provider.hdfs2.source.directory=/other/dir/for/customNars
+
+== NiFi diagnostics
+
+It is possible to run diagnostics on NiFi with
+
+```
+$ ./bin/nifi.sh --diagnostics --verbose <dumpfilePath>
+```
+
+During the diagnostic, NiFi sends a request to an already running NiFi instance, which collects information about clusters,
+components, part of the configuration, memory usage, etc., and writes it to the specified file or, failing that, to the logs.
+
+The verbose switch is optional and can be used to control the level of diagnostic detail. In case of a missing dump file path, NiFi writes the diagnostics information to the bootstrap.log file.
+
+=== Automatic diagnostics on restart and shutdown
+
+NiFi supports automatic diagnostics in the event of a shutdown. The feature is disabled by default. The settings can be found in the nifi.properties file and the feature can be enabled there also.
+In the case of a lengthy diagnostic, NiFi may terminate before the diagnostics are completed. In this case, the graceful.shutdown.seconds property should be set to a higher value in the bootstrap.conf.

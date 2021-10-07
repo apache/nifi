@@ -162,23 +162,12 @@ limitations under the License.
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.2.3</version>
+                <version>${logback.version}</version>
             </dependency>
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-core</artifactId>
-                <version>1.2.3</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>jcl-over-slf4j</artifactId>
-                <scope>provided</scope>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-api</artifactId>
-                    </exclusion>
-                </exclusions>
+                <version>${logback.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -636,16 +625,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.quartz-scheduler</groupId>
                 <artifactId>quartz</artifactId>
-                <version>2.2.1</version>
-                <exclusions>
-                    <!-- | Exclude the quartz 2.2.1 bundled version of c3p0 because it is
-                    lgpl licensed | We also don't use the JDBC related features of quartz for
-                    which the dependency would matter -->
-                    <exclusion>
-                        <groupId>c3p0</groupId>
-                        <artifactId>c3p0</artifactId>
-                    </exclusion>
-                </exclusions>
+                <version>2.3.2</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework</groupId>
@@ -1005,12 +985,6 @@ limitations under the License.
                 <artifactId>curator-recipes</artifactId>
                 <version>2.11.0</version>
             </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-log4j12</artifactId>
-                <version>${org.slf4j.version}</version>
-            </dependency>
-
 
             <!-- Test Dependencies for testing interactions with ZooKeeper -->
             <dependency>
@@ -1028,7 +1002,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
-                <version>1.8.3</version>
+                <version>1.14.2</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>

@@ -25,6 +25,10 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.concurrent.TimeUnit;
+
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,10 +52,10 @@ public class NettyEventServerTest {
         final NettyEventServer server = new NettyEventServer(group, channel);
         when(channel.isOpen()).thenReturn(true);
         when(channel.close()).thenReturn(closeFuture);
-        doReturn(shutdownFuture).when(group).shutdownGracefully();
+        doReturn(shutdownFuture).when(group).shutdownGracefully(anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS));
         server.shutdown();
 
         verify(channel).close();
-        verify(group).shutdownGracefully();
+        verify(group).shutdownGracefully(anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS));
     }
 }

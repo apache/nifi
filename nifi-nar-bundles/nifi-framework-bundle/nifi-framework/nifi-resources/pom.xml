@@ -89,7 +89,6 @@
 
         <nifi.sensitive.props.key.protected />
         <nifi.sensitive.props.algorithm>NIFI_PBKDF2_AES_GCM_256</nifi.sensitive.props.algorithm>
-        <nifi.sensitive.props.provider>BC</nifi.sensitive.props.provider>
         <nifi.sensitive.props.additional.keys />
 
         <nifi.h2.url.append>;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE</nifi.h2.url.append>
@@ -162,6 +161,7 @@
         <nifi.security.user.authorizer>single-user-authorizer</nifi.security.user.authorizer>
         <nifi.security.allow.anonymous.authentication>false</nifi.security.allow.anonymous.authentication>
         <nifi.security.user.login.identity.provider>single-user-provider</nifi.security.user.login.identity.provider>
+        <nifi.security.user.jws.key.rotation.period>PT1H</nifi.security.user.jws.key.rotation.period>
         <nifi.security.x509.principal.extractor />
         <nifi.security.ocsp.responder.url />
         <nifi.security.ocsp.responder.certificate />
@@ -209,7 +209,6 @@
         <nifi.cluster.is.node>false</nifi.cluster.is.node>
         <nifi.cluster.node.address />
         <nifi.cluster.node.protocol.port />
-        <nifi.cluster.node.protocol.threads>10</nifi.cluster.node.protocol.threads>
         <nifi.cluster.node.protocol.max.threads>50</nifi.cluster.node.protocol.max.threads>
         <nifi.cluster.node.event.history.size>25</nifi.cluster.node.event.history.size>
         <nifi.cluster.node.connection.timeout>5 sec</nifi.cluster.node.connection.timeout>
@@ -232,6 +231,7 @@
         <nifi.zookeeper.session.timeout>10 secs</nifi.zookeeper.session.timeout>
         <nifi.zookeeper.root.node>/nifi</nifi.zookeeper.root.node>
         <nifi.zookeeper.client.secure>false</nifi.zookeeper.client.secure>
+        <nifi.zookeeper.jute.maxbuffer />
         <nifi.zookeeper.security.keystore />
         <nifi.zookeeper.security.keystoreType />
         <nifi.zookeeper.security.keystorePasswd />

@@ -18,13 +18,20 @@
 package org.apache.nifi.elasticsearch;
 
 public class DeleteOperationResponse {
-    private long took;
+    private final long took;
 
-    public DeleteOperationResponse(long took) {
+    public DeleteOperationResponse(final long took) {
         this.took = took;
     }
 
     public long getTook() {
         return took;
+    }
+
+    @Override
+    public String toString() {
+        return "DeleteOperationResponse{" +
+                "took=" + took +
+                '}';
     }
 }

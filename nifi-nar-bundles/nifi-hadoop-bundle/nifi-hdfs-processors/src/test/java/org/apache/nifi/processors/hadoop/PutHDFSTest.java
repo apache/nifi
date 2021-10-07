@@ -22,6 +22,8 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.AclEntry;
+import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.util.Progressable;
@@ -43,6 +45,7 @@ import org.ietf.jgss.GSSException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import javax.security.sasl.SaslException;
 import java.io.ByteArrayOutputStream;
@@ -51,6 +54,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -61,6 +66,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class PutHDFSTest {
 
@@ -210,6 +218,42 @@ public class PutHDFSTest {
         assertTrue(mockFileSystem.exists(new Path("target/test-classes/randombytes-1")));
         assertEquals("randombytes-1", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         assertEquals("target/test-classes", flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
+        assertEquals("true", flowFile.getAttribute(PutHDFS.TARGET_HDFS_DIR_CREATED_ATTRIBUTE));
+
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+        final ProvenanceEventRecord sendEvent = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.SEND, sendEvent.getEventType());
+        // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
+        assertTrue(sendEvent.getTransitUri().endsWith("target/test-classes/randombytes-1"));
+    }
+
+    @Test
+    public void testPutFileWhenTargetDirExists() throws IOException {
+        String targetDir = "target/test-classes";
+        PutHDFS proc = new TestablePutHDFS(kerberosProperties, mockFileSystem);
+        proc.getFileSystem().mkdirs(new Path(targetDir));
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutHDFS.DIRECTORY, targetDir);
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
+        try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
+
+        List<MockFlowFile> failedFlowFiles = runner
+                .getFlowFilesForRelationship(new Relationship.Builder().name("failure").build());
+        assertTrue(failedFlowFiles.isEmpty());
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+        MockFlowFile flowFile = flowFiles.get(0);
+        assertTrue(mockFileSystem.exists(new Path("target/test-classes/randombytes-1")));
+        assertEquals("randombytes-1", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        assertEquals("target/test-classes", flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
+        assertEquals("false", flowFile.getAttribute(PutHDFS.TARGET_HDFS_DIR_CREATED_ATTRIBUTE));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
@@ -432,6 +476,89 @@ public class PutHDFSTest {
             fileSystem.getFileStatus(new Path("target/test-classes/randombytes-1")).getPermission());
     }
 
+    /**
+     * Multiple invocations of PutHDFS on the same target directory should query the remote filesystem ACL once, and
+     * use the cached ACL afterwards.
+     */
+    @Test
+    public void testPutHDFSAclCache() {
+        final MockFileSystem fileSystem = Mockito.spy(new MockFileSystem());
+        final Path directory = new Path("/withACL");
+        assertTrue(fileSystem.mkdirs(directory));
+        final String acl = "user::rwx,group::rwx,other::rwx";
+        final String aclDefault = "default:user::rwx,default:group::rwx,default:other::rwx";
+        fileSystem.setAcl(directory, AclEntry.parseAclSpec(String.join(",", acl, aclDefault), true));
+
+        final PutHDFS processor = new TestablePutHDFS(kerberosProperties, fileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.setProperty(PutHDFS.DIRECTORY, directory.toString());
+        runner.setProperty(PutHDFS.UMASK, "077");
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.FILENAME.key(), "empty");
+        runner.enqueue(new byte[16], attributes);
+        runner.run(3);  // fetch data once; hit AclCache twice
+        verify(fileSystem, times(1)).getAclStatus(any(Path.class));
+    }
+
+    /**
+     * When no default ACL is present on the remote directory, usage of {@link PutHDFS#UMASK}
+     * should be ok.
+     */
+    @Test
+    public void testPutFileWithNoDefaultACL() {
+        final List<Boolean> setUmask = Arrays.asList(false, true);
+        for (boolean setUmaskIt : setUmask) {
+            final MockFileSystem fileSystem = new MockFileSystem();
+            final Path directory = new Path("/withNoDACL");
+            assertTrue(fileSystem.mkdirs(directory));
+            final String acl = "user::rwx,group::rwx,other::rwx";
+            fileSystem.setAcl(directory, AclEntry.parseAclSpec(acl, true));
+
+            final PutHDFS processor = new TestablePutHDFS(kerberosProperties, fileSystem);
+            final TestRunner runner = TestRunners.newTestRunner(processor);
+            runner.setProperty(PutHDFS.DIRECTORY, directory.toString());
+            if (setUmaskIt) {
+                runner.setProperty(PutHDFS.UMASK, "077");
+            }
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), "empty");
+            runner.enqueue(new byte[16], attributes);
+            runner.run();
+            assertEquals(1, runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS).size());
+            assertEquals(0, runner.getFlowFilesForRelationship(PutHDFS.REL_FAILURE).size());
+        }
+    }
+
+    /**
+     * When default ACL is present on the remote directory, usage of {@link PutHDFS#UMASK}
+     * should trigger failure of the flow file.
+     */
+    @Test
+    public void testPutFileWithDefaultACL() {
+        final List<Boolean> setUmask = Arrays.asList(false, true);
+        for (boolean setUmaskIt : setUmask) {
+            final MockFileSystem fileSystem = new MockFileSystem();
+            final Path directory = new Path("/withACL");
+            assertTrue(fileSystem.mkdirs(directory));
+            final String acl = "user::rwx,group::rwx,other::rwx";
+            final String aclDefault = "default:user::rwx,default:group::rwx,default:other::rwx";
+            fileSystem.setAcl(directory, AclEntry.parseAclSpec(String.join(",", acl, aclDefault), true));
+
+            final PutHDFS processor = new TestablePutHDFS(kerberosProperties, fileSystem);
+            final TestRunner runner = TestRunners.newTestRunner(processor);
+            runner.setProperty(PutHDFS.DIRECTORY, directory.toString());
+            if (setUmaskIt) {
+                runner.setProperty(PutHDFS.UMASK, "077");
+            }
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), "empty");
+            runner.enqueue(new byte[16], attributes);
+            runner.run();
+            assertEquals(setUmaskIt ? 0 : 1, runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS).size());
+            assertEquals(setUmaskIt ? 1 : 0, runner.getFlowFilesForRelationship(PutHDFS.REL_FAILURE).size());
+        }
+    }
+
     @Test
     public void testPutFileWithCloseException() throws IOException {
         mockFileSystem = new MockFileSystem(true);
@@ -486,8 +613,9 @@ public class PutHDFSTest {
         }
     }
 
-    private class MockFileSystem extends FileSystem {
+    private static class MockFileSystem extends FileSystem {
         private final Map<Path, FileStatus> pathToStatus = new HashMap<>();
+        private final Map<Path, List<AclEntry>> pathToAcl = new HashMap<>();
         private final boolean failOnClose;
 
         public MockFileSystem() {
@@ -496,6 +624,15 @@ public class PutHDFSTest {
 
         public MockFileSystem(boolean failOnClose) {
             this.failOnClose = failOnClose;
+        }
+
+        public void setAcl(final Path path, final List<AclEntry> aclSpec) {
+            pathToAcl.put(path, aclSpec);
+        }
+
+        @Override
+        public AclStatus getAclStatus(final Path path) {
+            return new AclStatus.Builder().addEntries(pathToAcl.getOrDefault(path, new ArrayList<>())).build();
         }
 
         @Override

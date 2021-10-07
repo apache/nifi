@@ -20,10 +20,8 @@ package org.apache.nifi.kafka.connect;
 import org.apache.kafka.connect.errors.RetriableException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -33,22 +31,20 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StatelessNiFiSinkTaskIT {
     private final File DEFAULT_OUTPUT_DIRECTORY = new File("target/sink-output");
 
-    @Rule
-    public final TestName testName = new TestName();
-
     @Test
-    public void testSimpleFlow() throws IOException {
+    public void testSimpleFlow(TestInfo testInfo) throws IOException {
         final StatelessNiFiSinkTask sinkTask = new StatelessNiFiSinkTask();
         sinkTask.initialize(Mockito.mock(SinkTaskContext.class));
 
-        final Map<String, String> properties = createDefaultProperties();
+        final Map<String, String> properties = createDefaultProperties(testInfo);
         sinkTask.start(properties);
 
         final SinkRecord record = new SinkRecord("topic", 0, null, "key", null, "Hello World", 0L);
@@ -56,7 +52,7 @@ public class StatelessNiFiSinkTaskIT {
         final File[] files = DEFAULT_OUTPUT_DIRECTORY.listFiles();
         if (files != null) {
             for (final File file : files) {
-                assertTrue("Failed to delete existing file " + file.getAbsolutePath(), file.delete());
+                assertTrue(file.delete(), "Failed to delete existing file " + file.getAbsolutePath());
             }
         }
 
@@ -75,11 +71,11 @@ public class StatelessNiFiSinkTaskIT {
     }
 
     @Test
-    public void testParameters() throws IOException {
+    public void testParameters(TestInfo testInfo) throws IOException {
         final StatelessNiFiSinkTask sinkTask = new StatelessNiFiSinkTask();
         sinkTask.initialize(Mockito.mock(SinkTaskContext.class));
 
-        final Map<String, String> properties = createDefaultProperties();
+        final Map<String, String> properties = createDefaultProperties(testInfo);
         properties.put("parameter.Directory", "target/sink-output-2");
         sinkTask.start(properties);
 
@@ -89,7 +85,7 @@ public class StatelessNiFiSinkTaskIT {
         final File[] files = outputDir.listFiles();
         if (files != null) {
             for (final File file : files) {
-                assertTrue("Failed to delete existing file " + file.getAbsolutePath(), file.delete());
+                assertTrue(file.delete(), "Failed to delete existing file " + file.getAbsolutePath());
             }
         }
 
@@ -108,11 +104,11 @@ public class StatelessNiFiSinkTaskIT {
     }
 
     @Test
-    public void testWrongOutputPort() {
+    public void testWrongOutputPort(TestInfo testInfo) {
         final StatelessNiFiSinkTask sinkTask = new StatelessNiFiSinkTask();
         sinkTask.initialize(Mockito.mock(SinkTaskContext.class));
 
-        final Map<String, String> properties = createDefaultProperties();
+        final Map<String, String> properties = createDefaultProperties(testInfo);
         properties.put(StatelessNiFiSinkConnector.FAILURE_PORTS, "Success, Failure");
         sinkTask.start(properties);
 
@@ -121,28 +117,24 @@ public class StatelessNiFiSinkTaskIT {
         final File[] files = DEFAULT_OUTPUT_DIRECTORY.listFiles();
         if (files != null) {
             for (final File file : files) {
-                assertTrue("Failed to delete existing file " + file.getAbsolutePath(), file.delete());
+                assertTrue(file.delete(), "Failed to delete existing file " + file.getAbsolutePath());
             }
         }
 
-        try {
-            sinkTask.put(Collections.singleton(record));
-            sinkTask.flush(Collections.emptyMap());
-            Assert.fail("Expected RetriableException to be thrown");
-        } catch (final RetriableException re) {
-            // Expected
-        }
+        assertThrows(RetriableException.class, () -> {
+                    sinkTask.put(Collections.singleton(record));
+                    sinkTask.flush(Collections.emptyMap());
+                }, "Expected RetriableException to be thrown");
     }
 
-    private Map<String, String> createDefaultProperties() {
+    private Map<String, String> createDefaultProperties(TestInfo testInfo) {
         final Map<String, String> properties = new HashMap<>();
         properties.put(StatelessKafkaConnectorUtil.DATAFLOW_TIMEOUT, "30 sec");
         properties.put(StatelessNiFiSinkConnector.INPUT_PORT_NAME, "In");
         properties.put(StatelessKafkaConnectorUtil.FLOW_SNAPSHOT, "src/test/resources/flows/Write_To_File.json");
         properties.put(StatelessKafkaConnectorUtil.NAR_DIRECTORY, "target/nifi-kafka-connector-bin/nars");
         properties.put(StatelessKafkaConnectorUtil.WORKING_DIRECTORY, "target/nifi-kafka-connector-bin/working");
-        properties.put(StatelessKafkaConnectorUtil.DATAFLOW_NAME, testName.getMethodName());
+        properties.put(StatelessKafkaConnectorUtil.DATAFLOW_NAME, testInfo.getTestMethod().get().getName());
         return properties;
     }
-
 }

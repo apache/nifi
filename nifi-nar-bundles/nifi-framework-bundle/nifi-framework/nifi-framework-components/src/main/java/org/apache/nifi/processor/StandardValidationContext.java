@@ -64,7 +64,7 @@ public class StandardValidationContext extends AbstractValidationContext impleme
     private final String componentId;
     private final ParameterContext parameterContext;
     private final AtomicReference<Map<PropertyDescriptor, String>> effectiveValuesRef = new AtomicReference<>();
-
+    private final boolean validateConnections;
 
     public StandardValidationContext(
             final ControllerServiceProvider controllerServiceProvider,
@@ -73,7 +73,8 @@ public class StandardValidationContext extends AbstractValidationContext impleme
             final String groupId,
             final String componentId,
             final VariableRegistry variableRegistry,
-            final ParameterContext parameterContext) {
+            final ParameterContext parameterContext,
+            final boolean validateConnections) {
         super(parameterContext, properties);
 
         this.controllerServiceProvider = controllerServiceProvider;
@@ -83,6 +84,7 @@ public class StandardValidationContext extends AbstractValidationContext impleme
         this.groupId = groupId;
         this.componentId = componentId;
         this.parameterContext = parameterContext;
+        this.validateConnections = validateConnections;
 
         preparedQueries = new HashMap<>(properties.size());
         for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : properties.entrySet()) {
@@ -121,7 +123,7 @@ public class StandardValidationContext extends AbstractValidationContext impleme
         final ProcessGroup serviceGroup = serviceNode.getProcessGroup();
         final String serviceGroupId = serviceGroup == null ? null : serviceGroup.getIdentifier();
         return new StandardValidationContext(controllerServiceProvider, serviceNode.getProperties(), serviceNode.getAnnotationData(), serviceGroupId,
-            serviceNode.getIdentifier(), variableRegistry, serviceNode.getProcessGroup().getParameterContext());
+            serviceNode.getIdentifier(), variableRegistry, serviceNode.getProcessGroup().getParameterContext(), validateConnections);
     }
 
     @Override
@@ -241,6 +243,10 @@ public class StandardValidationContext extends AbstractValidationContext impleme
         return value != null;
     }
 
+    @Override
+    public boolean isValidateConnections() {
+        return validateConnections;
+    }
 
     @Override
     public String toString() {

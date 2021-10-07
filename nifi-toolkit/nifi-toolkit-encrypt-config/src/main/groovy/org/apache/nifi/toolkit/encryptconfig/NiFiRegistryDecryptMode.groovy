@@ -52,7 +52,6 @@ class NiFiRegistryDecryptMode extends DecryptMode {
             if (options.v) {
                 verboseEnabled = true
             }
-            EncryptConfigLogger.configureLogger(verboseEnabled)
 
             DecryptConfiguration config = new DecryptConfiguration()
 

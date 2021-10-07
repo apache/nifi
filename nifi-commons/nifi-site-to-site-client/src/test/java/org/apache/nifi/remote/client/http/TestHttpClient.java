@@ -22,6 +22,7 @@ import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTE
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.PROTOCOL_VERSION;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.SERVER_SIDE_TRANSACTION_TTL;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -65,6 +66,7 @@ import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.StandardDataPacket;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ControllerDTO;
@@ -115,6 +117,8 @@ public class TestHttpClient {
     private static Set<PeerDTO> peers;
     private static Set<PeerDTO> peersSecure;
     private static String serverChecksum;
+
+    private static TlsConfiguration tlsConfiguration;
 
     public static class SiteInfoServlet extends HttpServlet {
 
@@ -181,7 +185,7 @@ public class TestHttpClient {
     public static class PortTransactionsServlet extends HttpServlet {
 
         @Override
-        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
             final int reqProtocolVersion = getReqProtocolVersion(req);
 
@@ -201,7 +205,7 @@ public class TestHttpClient {
     public static class PortTransactionsAccessDeniedServlet extends HttpServlet {
 
         @Override
-        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
             respondWithText(resp, "Unable to perform the desired action" +
                     " due to insufficient permissions. Contact the system administrator.", 403);
@@ -213,7 +217,7 @@ public class TestHttpClient {
     public static class InputPortTransactionServlet extends HttpServlet {
 
         @Override
-        protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             final int reqProtocolVersion = getReqProtocolVersion(req);
 
             final TransactionResultEntity entity = new TransactionResultEntity();
@@ -226,7 +230,7 @@ public class TestHttpClient {
         }
 
         @Override
-        protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
             final int reqProtocolVersion = getReqProtocolVersion(req);
 
@@ -244,7 +248,7 @@ public class TestHttpClient {
     public static class OutputPortTransactionServlet extends HttpServlet {
 
         @Override
-        protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             final int reqProtocolVersion = getReqProtocolVersion(req);
 
             final TransactionResultEntity entity = new TransactionResultEntity();
@@ -257,7 +261,7 @@ public class TestHttpClient {
         }
 
         @Override
-        protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
             final int reqProtocolVersion = getReqProtocolVersion(req);
 
@@ -332,7 +336,7 @@ public class TestHttpClient {
     public static class FlowFilesTimeoutAfterDataExchangeServlet extends HttpServlet {
 
         @Override
-        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
             final int reqProtocolVersion = getReqProtocolVersion(req);
 
@@ -398,7 +402,7 @@ public class TestHttpClient {
 
     private static int getReqProtocolVersion(HttpServletRequest req) {
         final String reqProtocolVersionStr = req.getHeader(PROTOCOL_VERSION);
-        assertTrue(!isEmpty(reqProtocolVersionStr));
+        assertFalse(isEmpty(reqProtocolVersionStr));
         return Integer.parseInt(reqProtocolVersionStr);
     }
 
@@ -454,11 +458,12 @@ public class TestHttpClient {
         wrongPathContextHandler.insertHandler(wrongPathServletHandler);
 
         final SslContextFactory sslContextFactory = new SslContextFactory.Server();
-        sslContextFactory.setKeyStorePath("src/test/resources/certs/keystore.jks");
-        sslContextFactory.setKeyStorePassword("passwordpassword");
-        sslContextFactory.setKeyStoreType("JKS");
+
+        setTlsConfiguration();
+        sslContextFactory.setKeyStorePath(tlsConfiguration.getKeystorePath());
+        sslContextFactory.setKeyStorePassword(tlsConfiguration.getKeystorePassword());
+        sslContextFactory.setKeyStoreType(tlsConfiguration.getKeystoreType().getType());
         sslContextFactory.setProtocol(TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        sslContextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1");
 
         httpConnector = new ServerConnector(server);
 
@@ -597,10 +602,6 @@ public class TestHttpClient {
 
     @Before
     public void before() throws Exception {
-
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "TRACE");
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote.protocol.http.HttpClientTransaction", "DEBUG");
-
         testCaseFinished = new CountDownLatch(1);
 
         final PeerDTO peer = new PeerDTO();
@@ -693,13 +694,12 @@ public class TestHttpClient {
         return new SiteToSiteClient.Builder().transportProtocol(SiteToSiteTransportProtocol.HTTP)
                 .url("https://localhost:" + sslConnector.getLocalPort() + "/nifi")
                 .timeout(3, TimeUnit.MINUTES)
-                .keystoreFilename("src/test/resources/certs/keystore.jks")
-                .keystorePass("passwordpassword")
-                .keystoreType(KeystoreType.JKS)
-                .truststoreFilename("src/test/resources/certs/truststore.jks")
-                .truststorePass("passwordpassword")
-                .truststoreType(KeystoreType.JKS)
-                ;
+                .keystoreFilename(tlsConfiguration.getKeystorePath())
+                .keystorePass(tlsConfiguration.getKeystorePassword())
+                .keystoreType(KeystoreType.valueOf(tlsConfiguration.getKeystoreType().getType()))
+                .truststoreFilename(tlsConfiguration.getTruststorePath())
+                .truststorePass(tlsConfiguration.getTruststorePassword())
+                .truststoreType(KeystoreType.valueOf(tlsConfiguration.getTruststoreType().getType()));
     }
 
     private static void consumeDataPacket(DataPacket packet) throws IOException {
@@ -1400,4 +1400,7 @@ public class TestHttpClient {
         }
     }
 
+    private static void setTlsConfiguration() {
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
+    }
 }

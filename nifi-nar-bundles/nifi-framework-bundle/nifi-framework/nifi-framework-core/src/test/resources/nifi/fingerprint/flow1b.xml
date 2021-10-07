@@ -15,12 +15,27 @@
 -->
 <flowController>
     <maxThreadCount>15</maxThreadCount>
+    <parameterContexts>
+        <parameterContext>
+            <id>8dafcb3b-82cb-30d4-b9e2-0174454e312e</id>
+            <name>Parameter Context 1</name>
+            <description/>
+            <parameter>
+                <name>Parameter Name</name>
+                <description/>
+                <sensitive>false</sensitive>
+                <value>Parameter Value</value>
+            </parameter>
+        </parameterContext>
+    </parameterContexts>
     <rootGroup>
         <id>e3909250-331d-420b-a9b3-cc54ad459401</id>
         <name>NiFi Flow</name>
         <position x="0.0" y="0.0"/>
         <style/>
         <comment/>
+        <flowfileConcurrency>UNBOUNDED</flowfileConcurrency>
+        <flowfileOutboundPolicy>STREAM_WHEN_AVAILABLE</flowfileOutboundPolicy>
         <processor>
             <id>d89ada5d-35fb-44ff-83f1-4cc00b48b2df</id>
             <name>GenerateFlowFile1</name>
@@ -49,6 +64,10 @@
                 <name>file.size</name>
                 <value>5</value>
             </property>
+            <property>
+                <name>generate-ff-custom-text</name>
+                <value>#{Custom_Text}</value>
+            </property>
             <annotationData/>
         </processor>
         <processor>
@@ -71,6 +90,8 @@
             <position x="0.0" y="0.0"/>
             <style>process-group</style>
             <comment/>
+            <flowfileConcurrency>UNBOUNDED</flowfileConcurrency>
+            <flowfileOutboundPolicy>STREAM_WHEN_AVAILABLE</flowfileOutboundPolicy>
             <processor>
                 <id>34caa1d6-cf14-4ec0-9f18-12859c37d55d</id>
                 <name>LogAttribute</name>
@@ -92,6 +113,17 @@
                 <comments>foobar</comments>
                 <running>false</running>
             </inputPort>
+            <inputPort>
+                <id>f37849cc-0177-1000-0000-00007d8cb44d</id>
+                <name>Public-In</name>
+                <position x="0.0" y="1.0"/>
+                <comments>Public Port for Site to Site</comments>
+                <scheduledState>STOPPED</scheduledState>
+                <maxConcurrentTasks>1</maxConcurrentTasks>
+                <allowRemoteAccess>true</allowRemoteAccess>
+                <userAccessControl>user1</userAccessControl>
+                <groupAccessControl>group1</groupAccessControl>
+            </inputPort>
             <outputPort>
                 <id>a65695bb-a938-4d3d-bf5d-f70a335268ec</id>
                 <name>Out</name>
@@ -99,6 +131,17 @@
                 <style>output-port</style>
                 <comments/>
                 <running>false</running>
+            </outputPort>
+            <outputPort>
+                <id>fa543349-0178-1000-ffff-ffffd7f12ba4</id>
+                <name>Public-Out</name>
+                <position x="0.0" y="1.0"/>
+                <comments/>
+                <scheduledState>RUNNING</scheduledState>
+                <maxConcurrentTasks>1</maxConcurrentTasks>
+                <allowRemoteAccess>true</allowRemoteAccess>
+                <userAccessControl>user1</userAccessControl>
+                <groupAccessControl>group1</groupAccessControl>
             </outputPort>
             <connection>
                 <id>b25c3c8f-8dfe-4dda-950e-b6edfb6c99f4</id>
@@ -169,5 +212,6 @@
             <maxWorkQueueSize>0</maxWorkQueueSize>
             <flowFileExpiration>0 s</flowFileExpiration>
         </connection>
+        <parameterContextId>8dafcb3b-82cb-30d4-b9e2-0174454e312e</parameterContextId>
     </rootGroup>
 </flowController>

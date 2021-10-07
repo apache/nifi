@@ -23,6 +23,7 @@ import org.apache.nifi.controller.queue.DropFlowFileAction;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
@@ -191,7 +192,7 @@ public class StandardRebalancingPartition implements RebalancingPartition {
                 // Wait up to #pollWaitMillis milliseconds to get a FlowFile. If none, then check if stopped
                 // and if not, poll again.
                 try {
-                    polled = queue.poll(expiredRecords, -1, pollWaitMillis);
+                    polled = queue.poll(expiredRecords, -1, pollWaitMillis, PollStrategy.ALL_FLOWFILES);
                 } catch (final InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     continue;
@@ -211,7 +212,7 @@ public class StandardRebalancingPartition implements RebalancingPartition {
                 final List<FlowFileRecord> toDistribute = new ArrayList<>();
                 toDistribute.add(polled);
 
-                final List<FlowFileRecord> additionalRecords = queue.poll(999, expiredRecords, -1);
+                final List<FlowFileRecord> additionalRecords = queue.poll(999, expiredRecords, -1, PollStrategy.ALL_FLOWFILES);
                 toDistribute.addAll(additionalRecords);
 
                 flowFileQueue.handleExpiredRecords(expiredRecords);

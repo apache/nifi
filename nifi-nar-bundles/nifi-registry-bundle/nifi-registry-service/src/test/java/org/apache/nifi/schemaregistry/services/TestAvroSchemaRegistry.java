@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.schemaregistry.services;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -33,8 +24,17 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestAvroSchemaRegistry {
 
@@ -63,16 +63,11 @@ public class TestAvroSchemaRegistry {
         SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().name(schemaName).build();
         RecordSchema locatedSchema = delegate.retrieveSchema(schemaIdentifier);
         assertEquals(fooSchemaText, locatedSchema.getSchemaText().get());
-        try {
-            delegate.retrieveSchema(SchemaIdentifier.builder().name("barSchema").build());
-            Assert.fail("Expected a SchemaNotFoundException to be thrown but it was not");
-        } catch (final SchemaNotFoundException expected) {
-        }
-
+        assertThrows(SchemaNotFoundException.class, () -> delegate.retrieveSchema(SchemaIdentifier.builder().name("barSchema").build()));
     }
 
     @Test
-    public void validateStrictAndNonStrictSchemaRegistrationFromDynamicProperties() throws Exception {
+    public void validateStrictAndNonStrictSchemaRegistrationFromDynamicProperties() {
         String schemaName = "fooSchema";
         ConfigurationContext configContext = mock(ConfigurationContext.class);
         Map<PropertyDescriptor, String> properties = new HashMap<>();

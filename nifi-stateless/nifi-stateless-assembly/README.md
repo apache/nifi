@@ -483,3 +483,35 @@ nifi.stateless.parameter.provider.Props File Provider.type=com.myorg.nifi.parame
 nifi.stateless.parameter.provider.Props File Provider.bundle=com.myorg:nifi-custom-parameter-provider-nar:0.0.1
 nifi.stateless.parameter.provider.Props File Provider.properties.Filename=/tmp/parameters.properties
 ```
+
+##### Built-in Parameter Value Providers
+Following is a list of Parameter Value Providers already available in Stateless.
+
+**HashiCorpVaultParameterValueProvider**
+
+This provider reads parameter values from HashiCorp Vault, and expects secrets to exist in
+the Key/Value (unversioned) Secrets Engine.  The connection to a Vault server can be configured
+via the `./conf/bootstrap-hashicorp-vault.conf` file, which comes with NiFi.
+
+An example of creating a single secret in the correct format is:
+
+```
+vault kv put "nifi-kv/Context/param" value=my-vault-value
+```
+
+In this example, `nifi-kv` would be supplied by the `vault.kv.path` property in the `bootstrap-hashicorp-vault.conf` file, 
+`Context` is the name of a Parameter Context, and `param` is the name of the parameter whose value should be retrieved from the Vault server.
+
+This Parameter Provider requires the following properties:
+
+| Property Name | Description | Example Value |
+|---------------|-------------|---------------|
+| nifi.stateless.parameter.provider.\<key>.properties.vault-configuration-file | The filename of a configuration file specifying the Vault settings | ./conf/bootstrap-hashicorp-vault.conf |
+
+An example of configuring this provider in the dataflow configuration file is:
+
+```
+nifi.stateless.parameter.provider.Vault.name=HashiCorp Vault Provider
+nifi.stateless.parameter.provider.Vault.type=org.apache.nifi.stateless.parameter.HashiCorpVaultParameterValueProvider
+nifi.stateless.parameter.provider.Vault.properties.vault-configuration-file=./conf/bootstrap-hashicorp-vault.conf
+```

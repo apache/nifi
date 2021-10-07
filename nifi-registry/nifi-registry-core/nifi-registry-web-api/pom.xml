@@ -215,7 +215,7 @@
             <plugin>
                 <groupId>org.asciidoctor</groupId>
                 <artifactId>asciidoctor-maven-plugin</artifactId>
-                <version>1.5.7.1</version>
+                <version>1.5.8</version>
                 <configuration>
                     <sourceDirectory>${asciidoc.source.dir}</sourceDirectory>
                     <sourceDocumentName>rest-api.adoc</sourceDocumentName>

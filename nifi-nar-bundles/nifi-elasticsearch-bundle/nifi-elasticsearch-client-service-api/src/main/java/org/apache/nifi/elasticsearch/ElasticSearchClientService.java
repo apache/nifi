@@ -191,9 +191,45 @@ public interface ElasticSearchClientService extends ControllerService {
      * @param query A JSON string reprensenting the query.
      * @param index The index to target. Optional.
      * @param type The type to target. Optional. Will not be used in future versions of Elasticsearch.
+     * @param requestParameters A collection of URL request parameters. Optional.
      * @return A SearchResponse object if successful.
      */
-    SearchResponse search(String query, String index, String type);
+    SearchResponse search(String query, String index, String type, Map<String, String> requestParameters);
+
+    /**
+     * Retrieve next page of results from a Scroll.
+     *
+     * @param scroll A JSON string containing scrollId and optional scroll (keep alive) retention period.
+     * @return A SearchResponse object if successful.
+     */
+    SearchResponse scroll(String scroll);
+
+    /**
+     * Initialise a Point in Time for paginated queries.
+     * Requires Elasticsearch 7.10+ and XPack features.
+     *
+     * @param index Index targeted.
+     * @param keepAlive Point in Time's retention period (maximum time Elasticsearch will retain the PiT between requests). Optional.
+     * @return the Point in Time Id (pit_id)
+     */
+    String initialisePointInTime(String index, String keepAlive);
+
+    /**
+     * Delete a Point in Time.
+     * Requires Elasticsearch 7.10+ and XPack features.
+     *
+     * @param pitId Point in Time Id to be deleted.
+     * @return A DeleteOperationResponse object if successful.
+     */
+    DeleteOperationResponse deletePointInTime(String pitId);
+
+    /**
+     * Delete a Scroll.
+     *
+     * @param scrollId Scroll Id to be deleted.
+     * @return A DeleteOperationResponse object if successful.
+     */
+    DeleteOperationResponse deleteScroll(String scrollId);
 
     /**
      * Build a transit URL to use with the provenance reporter.

@@ -37,8 +37,12 @@ public class SimpleProcessLogger implements ComponentLog {
     private final Object component;
 
     public SimpleProcessLogger(final String componentId, final Object component) {
+        this(component, LogRepositoryFactory.getRepository(componentId));
+    }
+
+    public SimpleProcessLogger(final Object component, final LogRepository logRepository) {
         this.logger = LoggerFactory.getLogger(component.getClass());
-        this.logRepository = LogRepositoryFactory.getRepository(componentId);
+        this.logRepository = logRepository;
         this.component = component;
     }
 
@@ -91,7 +95,7 @@ public class SimpleProcessLogger implements ComponentLog {
             return;
         }
 
-        os = addProcessorAndThrowable(os, t, logger.isDebugEnabled());
+        os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
         logger.warn(msg, os);
         logRepository.addLogMessage(LogLevel.WARN, msg, os, t);
@@ -151,7 +155,7 @@ public class SimpleProcessLogger implements ComponentLog {
             return;
         }
 
-        os = addProcessorAndThrowable(os, t, true);
+        os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
 
         logger.trace(msg, os);
@@ -231,7 +235,7 @@ public class SimpleProcessLogger implements ComponentLog {
             return;
         }
 
-        os = addProcessorAndThrowable(os, t, logger.isDebugEnabled());
+        os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
 
         logger.info(msg, os);
@@ -289,16 +293,16 @@ public class SimpleProcessLogger implements ComponentLog {
             return;
         }
 
-        os = addProcessorAndThrowable(os, t, true);
+        os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
 
         logger.error(msg, os);
         logRepository.addLogMessage(LogLevel.ERROR, msg, os, t);
     }
 
-    private Object[] addProcessorAndThrowable(final Object[] os, final Throwable t, final boolean includeStackTrace) {
+    private Object[] addProcessorAndThrowable(final Object[] os, final Throwable t) {
         final Object[] modifiedArgs;
-        if (t == null || !includeStackTrace) {
+        if (t == null) {
             modifiedArgs = new Object[os.length + 2];
             modifiedArgs[0] = component.toString();
             System.arraycopy(os, 0, modifiedArgs, 1, os.length);
@@ -346,7 +350,7 @@ public class SimpleProcessLogger implements ComponentLog {
             return;
         }
 
-        os = addProcessorAndThrowable(os, t, true);
+        os = addProcessorAndThrowable(os, t);
         msg = "{} " + msg + ": {}";
 
         logger.debug(msg, os);
