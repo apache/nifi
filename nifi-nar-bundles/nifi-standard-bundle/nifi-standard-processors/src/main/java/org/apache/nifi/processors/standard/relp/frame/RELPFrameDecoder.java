@@ -28,7 +28,6 @@ import org.apache.nifi.processors.standard.relp.event.RELPMetadata;
 import org.apache.nifi.processors.standard.relp.response.RELPChannelResponse;
 import org.apache.nifi.processors.standard.relp.response.RELPResponse;
 
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
@@ -75,8 +74,7 @@ public class RELPFrameDecoder extends ByteToMessageDecoder {
         }
     }
 
-    private void handle(final RELPFrame frame, final ChannelHandlerContext ctx, final String sender, final List<Object> out)
-            throws IOException, InterruptedException {
+    private void handle(final RELPFrame frame, final ChannelHandlerContext ctx, final String sender, final List<Object> out) {
         // respond to open and close commands immediately, create and queue an event for everything else
         if (CMD_OPEN.equals(frame.getCommand())) {
             Map<String,String> offers = RELPResponse.parseOffers(frame.getData(), charset);
