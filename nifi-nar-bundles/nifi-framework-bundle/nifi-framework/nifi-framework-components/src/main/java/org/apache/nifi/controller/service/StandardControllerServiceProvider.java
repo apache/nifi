@@ -303,21 +303,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             logger.debug("All dependent services for {} have now begun enabling. Will wait for them to complete", serviceNode);
         }
 
-        for (final ControllerServiceNode dependentService : dependentServices) {
-            try {
-                final boolean enabled = dependentService.awaitEnabled(30, TimeUnit.SECONDS);
-
-                if (enabled) {
-                    logger.debug("Successfully enabled dependent service {}; service state = {}", dependentService, dependentService.getState());
-                } else {
-                    logger.debug("After 30 seconds, {} is still not enabled. Will continue attempting to enable additional Controller Services", dependentService);
-                }
-            } catch (final Exception e) {
-                logger.error("Failed to enable service {}, so may be unable to enable {}", dependentService, serviceNode, e);
-                // Nothing we can really do. Will attempt to enable this service anyway.
-            }
-        }
-
         logger.debug("All dependent services have been enabled for {}; will now start service itself", serviceNode);
         return this.enableControllerService(serviceNode);
     }
