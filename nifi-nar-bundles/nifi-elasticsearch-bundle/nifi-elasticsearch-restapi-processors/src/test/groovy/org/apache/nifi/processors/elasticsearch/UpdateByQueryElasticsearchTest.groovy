@@ -3,7 +3,7 @@
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
+ * (the "License") you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
@@ -15,24 +15,34 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.elasticsearch;
+package org.apache.nifi.processors.elasticsearch
 
-public class DeleteOperationResponse implements OperationResponse {
-    private final long took;
+import org.apache.nifi.util.TestRunner
+import org.apache.nifi.util.TestRunners
 
-    public DeleteOperationResponse(final long took) {
-        this.took = took;
+class UpdateByQueryElasticsearchTest extends AbstractByQueryElasticsearchTest {
+    @Override
+    String queryAttr() {
+        return "es.update.query"
     }
 
     @Override
-    public long getTook() {
-        return took;
+    String tookAttr() {
+        return UpdateByQueryElasticsearch.TOOK_ATTRIBUTE
     }
 
     @Override
-    public String toString() {
-        return "DeleteOperationResponse{" +
-                "took=" + took +
-                '}';
+    String errorAttr() {
+        return UpdateByQueryElasticsearch.ERROR_ATTRIBUTE
+    }
+
+    @Override
+    TestRunner setupRunner() {
+        return TestRunners.newTestRunner(UpdateByQueryElasticsearch.class)
+    }
+
+    @Override
+    void expectError(final TestElasticsearchClientService client) {
+        client.setThrowErrorInUpdate(true)
     }
 }

@@ -37,5 +37,48 @@
     not too large for it to handle. When failures do occur, this processor is capable of attempting to write the records
     that failed to an output record writer so that only failed records can be processed downstream or replayed.
 </p>
+<p>
+    The index, operation and (optional) type fields are configured with default values that can be overridden using
+    record path operations that find an index or type value in the record set.
+    The ID and operation type (create, index, update, upsert or delete) can also be extracted in a similar fashion from
+    the record set. The following is an example of a document exercising all of these features:
+</p>
+<pre>
+    {
+        "metadata": {
+            "id": "12345",
+            "index": "test",
+            "type": "message",
+            "operation": "index"
+        },
+        "message": "Hello, world",
+        "from": "john.smith"
+    }
+</pre>
+<pre>
+    {
+        "metadata": {
+            "id": "12345",
+            "index": "test",
+            "type": "message",
+            "operation": "delete"
+        }
+    }
+</pre>
+<p>The record path operations below would extract the relevant data:</p>
+<ul>
+    <li>/metadata/id</li>
+    <li>/metadata/index</li>
+    <li>metadata/type</li>
+    <li>metadata/operation</li>
+</ul>
+<p>Valid values for "operation" are:</p>
+<ul>
+    <li>create</li>
+    <li>delete</li>
+    <li>index</li>
+    <li>update</li>
+    <li>upsert</li>
+</ul>
 </body>
 </html>

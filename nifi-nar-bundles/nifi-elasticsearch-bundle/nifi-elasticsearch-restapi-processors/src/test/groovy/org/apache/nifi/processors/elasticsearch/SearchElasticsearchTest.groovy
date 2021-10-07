@@ -27,8 +27,8 @@ import java.time.Instant
 
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
-import static org.hamcrest.MatcherAssert.assertThat
 import static org.hamcrest.CoreMatchers.is
+import static org.hamcrest.MatcherAssert.assertThat
 import static org.junit.Assert.fail
 
 class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticsearchTest {

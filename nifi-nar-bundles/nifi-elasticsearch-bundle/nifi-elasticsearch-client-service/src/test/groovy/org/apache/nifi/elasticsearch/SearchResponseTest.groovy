@@ -34,6 +34,7 @@ class SearchResponseTest {
         def warnings = ["auth"]
         def response = new SearchResponse(results, aggs as Map<String, Object>, pitId, scrollId, searchAfter, num, took, timeout, warnings)
         def str = response.toString()
+
         Assert.assertEquals(results, response.hits)
         Assert.assertEquals(aggs, response.aggregations)
         Assert.assertEquals(pitId, response.pitId)

@@ -17,22 +17,15 @@
 
 package org.apache.nifi.elasticsearch;
 
-public class DeleteOperationResponse implements OperationResponse {
+public class UpdateOperationResponse implements OperationResponse {
     private final long took;
 
-    public DeleteOperationResponse(final long took) {
+    public UpdateOperationResponse(long took) {
         this.took = took;
     }
 
     @Override
     public long getTook() {
         return took;
-    }
-
-    @Override
-    public String toString() {
-        return "DeleteOperationResponse{" +
-                "took=" + took +
-                '}';
     }
 }

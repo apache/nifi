@@ -21,8 +21,9 @@ import java.util.Arrays;
 import java.util.Map;
 
 /**
- * A POJO that represents an "operation on an index." It should not be confused with just indexing documents, as it
+ * A POJO that represents an "operation on an index". It should not be confused with just indexing documents, as it
  * covers all CRUD-related operations that can be executed against an Elasticsearch index with documents.
+ * Type is optional and  will not be used in future versions of Elasticsearch.
  */
 public class IndexOperationRequest {
     private final String index;

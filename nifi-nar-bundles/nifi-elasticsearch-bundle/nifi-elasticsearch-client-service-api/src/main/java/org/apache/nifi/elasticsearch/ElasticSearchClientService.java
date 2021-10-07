@@ -26,7 +26,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -83,6 +82,11 @@ public interface ElasticSearchClientService extends ControllerService {
             .defaultValue("60000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
+    /**
+     * @deprecated this setting is no longer used and will be removed in a future version.
+     * Property retained for now to prevent existing Flows with this processor from breaking upon upgrade.
+     */
+    @Deprecated
     PropertyDescriptor RETRY_TIMEOUT = new PropertyDescriptor.Builder()
             .name("el-cs-retry-timeout")
             .displayName("Retry timeout")
@@ -119,71 +123,85 @@ public interface ElasticSearchClientService extends ControllerService {
      * Index a document.
      *
      * @param operation A document to index.
+     * @param requestParameters A collection of URL request parameters. Optional.
      * @return IndexOperationResponse if successful
-     * @throws IOException thrown when there is an error.
      */
-    IndexOperationResponse add(IndexOperationRequest operation);
+    IndexOperationResponse add(IndexOperationRequest operation, Map<String, String> requestParameters);
 
     /**
      * Bulk process multiple documents.
      *
      * @param operations A list of index operations.
+     * @param requestParameters A collection of URL request parameters. Optional.
      * @return IndexOperationResponse if successful.
-     * @throws IOException thrown when there is an error.
      */
-    IndexOperationResponse bulk(List<IndexOperationRequest> operations);
+    IndexOperationResponse bulk(List<IndexOperationRequest> operations, Map<String, String> requestParameters);
 
     /**
      * Count the documents that match the criteria.
      *
      * @param query A query in the JSON DSL syntax
      * @param index The index to target.
-     * @param type The type to target.
-     * @return
+     * @param type The type to target. Will not be used in future versions of Elasticsearch.
+     * @param requestParameters A collection of URL request parameters. Optional.
+     * @return number of documents matching the query
      */
-    Long count(String query, String index, String type);
+    Long count(String query, String index, String type, Map<String, String> requestParameters);
 
     /**
      * Delete a document by its ID from an index.
      *
      * @param index The index to target.
-     * @param type The type to target. Optional.
+     * @param type The type to target. Optional. Will not be used in future versions of Elasticsearch.
      * @param id The document ID to remove from the selected index.
+     * @param requestParameters A collection of URL request parameters. Optional.
      * @return A DeleteOperationResponse object if successful.
      */
-    DeleteOperationResponse deleteById(String index, String type, String id);
+    DeleteOperationResponse deleteById(String index, String type, String id, Map<String, String> requestParameters);
 
 
     /**
      * Delete multiple documents by ID from an index.
      * @param index The index to target.
-     * @param type The type to target. Optional.
+     * @param type The type to target. Optional. Will not be used in future versions of Elasticsearch.
      * @param ids A list of document IDs to remove from the selected index.
+     * @param requestParameters A collection of URL request parameters. Optional.
      * @return A DeleteOperationResponse object if successful.
-     * @throws IOException thrown when there is an error.
      */
-    DeleteOperationResponse deleteById(String index, String type, List<String> ids);
+    DeleteOperationResponse deleteById(String index, String type, List<String> ids, Map<String, String> requestParameters);
 
     /**
      * Delete documents by query.
      *
      * @param query A valid JSON query to be used for finding documents to delete.
      * @param index The index to target.
-     * @param type The type to target within the index. Optional.
+     * @param type The type to target within the index. Optional. Will not be used in future versions of Elasticsearch.
+     * @param requestParameters A collection of URL request parameters. Optional.
      * @return A DeleteOperationResponse object if successful.
      */
-    DeleteOperationResponse deleteByQuery(String query, String index, String type);
+    DeleteOperationResponse deleteByQuery(String query, String index, String type, Map<String, String> requestParameters);
+
+    /**
+     * Update documents by query.
+     *
+     * @param query A valid JSON query to be used for finding documents to update.
+     * @param index The index to target.
+     * @param type The type to target within the index. Optional. Will not be used in future versions of Elasticsearch.
+     * @param requestParameters A collection of URL request parameters. Optional.
+     * @return An UpdateOperationResponse object if successful.
+     */
+    UpdateOperationResponse updateByQuery(String query, String index, String type, Map<String, String> requestParameters);
 
     /**
      * Get a document by ID.
      *
      * @param index The index that holds the document.
-     * @param type The document type. Optional.
+     * @param type The document type. Optional. Will not be used in future versions of Elasticsearch.
      * @param id The document ID
+     * @param requestParameters A collection of URL request parameters. Optional.
      * @return Map if successful, null if not found.
-     * @throws IOException thrown when there is an error.
      */
-    Map<String, Object> get(String index, String type, String id);
+    Map<String, Object> get(String index, String type, String id, Map<String, String> requestParameters);
 
     /**
      * Perform a search using the JSON DSL.

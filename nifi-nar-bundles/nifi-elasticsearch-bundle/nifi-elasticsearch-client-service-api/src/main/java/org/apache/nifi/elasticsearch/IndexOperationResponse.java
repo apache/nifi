@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-public class IndexOperationResponse {
+public class IndexOperationResponse implements OperationResponse {
     private final long took;
     private boolean hasErrors;
     private List<Map<String, Object>> items;
@@ -34,6 +34,7 @@ public class IndexOperationResponse {
         this.took = took;
     }
 
+    @Override
     public long getTook() {
         return took;
     }

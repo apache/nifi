@@ -18,3 +18,4 @@ org.apache.nifi.processors.elasticsearch.JsonQueryElasticsearch
 org.apache.nifi.processors.elasticsearch.PaginatedJsonQueryElasticsearch
 org.apache.nifi.processors.elasticsearch.SearchElasticsearch
 org.apache.nifi.processors.elasticsearch.PutElasticsearchRecord
+org.apache.nifi.processors.elasticsearch.UpdateByQueryElasticsearch

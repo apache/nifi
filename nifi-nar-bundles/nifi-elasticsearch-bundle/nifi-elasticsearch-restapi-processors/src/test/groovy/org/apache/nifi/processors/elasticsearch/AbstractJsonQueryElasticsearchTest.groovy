@@ -29,8 +29,8 @@ import org.junit.Test
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
 import static org.hamcrest.CoreMatchers.equalTo
-import static org.hamcrest.MatcherAssert.assertThat
 import static org.hamcrest.CoreMatchers.is
+import static org.hamcrest.MatcherAssert.assertThat
 import static org.junit.Assert.assertThrows
 
 abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryElasticsearch> {
@@ -267,6 +267,27 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         runner.setIncomingConnection(false)
         runner.run()
         testCounts(runner, 0, 1, 0, 0)
+    }
+
+    @Test
+    void testRequestParameters() {
+        final TestRunner runner = createRunner(false)
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([query: [ match_all: [:] ]])))
+        runner.setProperty("refresh", "true")
+        runner.setProperty("slices", '${slices}')
+        runner.setVariable("slices", "auto")
+
+        runOnce(runner)
+
+        final TestElasticsearchClientService service = runner.getControllerService("esService") as TestElasticsearchClientService
+        if (getProcessor() instanceof SearchElasticsearch || getProcessor() instanceof PaginatedJsonQueryElasticsearch) {
+            Assert.assertEquals(3, service.getRequestParameters().size())
+            Assert.assertEquals("600s", service.getRequestParameters().get("scroll"))
+        } else {
+            Assert.assertEquals(2, service.getRequestParameters().size())
+        }
+        Assert.assertEquals("true", service.getRequestParameters().get("refresh"))
+        Assert.assertEquals("auto", service.getRequestParameters().get("slices"))
     }
 
     static void testCounts(TestRunner runner, int original, int hits, int failure, int aggregations) {

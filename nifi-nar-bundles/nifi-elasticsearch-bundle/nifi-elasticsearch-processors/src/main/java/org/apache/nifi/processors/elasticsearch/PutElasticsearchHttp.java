@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.elasticsearch;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -142,8 +141,6 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
-
-    private static final ObjectMapper mapper = new ObjectMapper();
 
     static {
         final Set<Relationship> _rels = new HashSet<>();

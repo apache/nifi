@@ -87,7 +87,7 @@ public class ElasticSearchStringLookupService extends AbstractControllerService 
     public Optional<String> lookup(Map<String, Object> coordinates) throws LookupFailureException {
         try {
             final String id = (String) coordinates.get(ID);
-            final Map<String, Object> enums = esClient.get(index, type, id);
+            final Map<String, Object> enums = esClient.get(index, type, id, null);
             if (enums == null) {
                 return Optional.empty();
             } else {

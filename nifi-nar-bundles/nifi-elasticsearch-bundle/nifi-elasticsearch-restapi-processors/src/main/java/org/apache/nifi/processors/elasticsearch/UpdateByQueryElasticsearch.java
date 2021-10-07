@@ -30,12 +30,12 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import java.util.Map;
 
 @WritesAttributes({
-        @WritesAttribute(attribute = "elasticsearch.delete.took", description = "The amount of time that it took to complete the delete operation in ms."),
-        @WritesAttribute(attribute = "elasticsearch.delete.error", description = "The error message provided by Elasticsearch if there is an error running the delete.")
+        @WritesAttribute(attribute = "elasticsearch.update.took", description = "The amount of time that it took to complete the update operation in ms."),
+        @WritesAttribute(attribute = "elasticsearch.update.error", description = "The error message provided by Elasticsearch if there is an error running the update.")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@Tags({ "elastic", "elasticsearch", "delete", "query"})
-@CapabilityDescription("Delete from an Elasticsearch index using a query. The query can be loaded from a flowfile body " +
+@Tags({ "elastic", "elasticsearch", "update", "query"})
+@CapabilityDescription("Update documents in an Elasticsearch index using a query. The query can be loaded from a flowfile body " +
         "or from the Query parameter.")
 @DynamicProperty(
         name = "The name of a URL query parameter to add",
@@ -43,9 +43,9 @@ import java.util.Map;
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing. " +
                 "These parameters will override any matching parameters in the query request body")
-public class DeleteByQueryElasticsearch extends AbstractByQueryElasticsearch {
-    static final String TOOK_ATTRIBUTE = "elasticsearch.delete.took";
-    static final String ERROR_ATTRIBUTE = "elasticsearch.delete.error";
+public class UpdateByQueryElasticsearch extends AbstractByQueryElasticsearch {
+    static final String TOOK_ATTRIBUTE = "elasticsearch.update.took";
+    static final String ERROR_ATTRIBUTE = "elasticsearch.update.error";
 
     @Override
     String getTookAttribute() {
@@ -60,6 +60,6 @@ public class DeleteByQueryElasticsearch extends AbstractByQueryElasticsearch {
     @Override
     OperationResponse performOperation(final ElasticSearchClientService clientService, final String query,
                                        final String index, final String type, final Map<String, String> requestParameters) {
-        return clientService.deleteByQuery(query, index, type, requestParameters);
+        return clientService.updateByQuery(query, index, type, requestParameters);
     }
 }

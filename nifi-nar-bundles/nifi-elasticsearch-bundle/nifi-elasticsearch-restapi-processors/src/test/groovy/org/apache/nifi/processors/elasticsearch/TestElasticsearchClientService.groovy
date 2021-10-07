@@ -24,63 +24,78 @@ import org.apache.nifi.elasticsearch.ElasticSearchClientService
 import org.apache.nifi.elasticsearch.IndexOperationRequest
 import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.elasticsearch.SearchResponse
+import org.apache.nifi.elasticsearch.UpdateOperationResponse
 
 class TestElasticsearchClientService extends AbstractControllerService implements ElasticSearchClientService {
     private boolean returnAggs
     private boolean throwErrorInSearch
     private boolean throwErrorInDelete
     private boolean throwErrorInPit
+    private boolean throwErrorInUpdate
     private int pageCount = 0
     private int maxPages = 1
     private String query
+    private Map<String, String> requestParameters
 
     TestElasticsearchClientService(boolean returnAggs) {
         this.returnAggs = returnAggs
     }
 
-    @Override
-    IndexOperationResponse add(IndexOperationRequest operation) {
-        return bulk(Arrays.asList(operation) as List<IndexOperationRequest>)
+    private void common(boolean throwError, Map<String, String> requestParameters) {
+        if (throwError) {
+            throw new IOException("Simulated IOException")
+        }
+        this.requestParameters = requestParameters
     }
 
     @Override
-    IndexOperationResponse bulk(List<IndexOperationRequest> operations) {
+    IndexOperationResponse add(IndexOperationRequest operation, Map<String, String> requestParameters) {
+        return bulk(Arrays.asList(operation) as List<IndexOperationRequest>, requestParameters)
+    }
+
+    @Override
+    IndexOperationResponse bulk(List<IndexOperationRequest> operations, Map<String, String> requestParameters) {
+        common(false, requestParameters)
         return new IndexOperationResponse(100L)
     }
 
     @Override
-    Long count(String query, String index, String type) {
+    Long count(String query, String index, String type, Map<String, String> requestParameters) {
+        common(false, requestParameters)
         return null
     }
 
     @Override
-    DeleteOperationResponse deleteById(String index, String type, String id) {
-        return deleteById(index, type, Arrays.asList(id))
+    DeleteOperationResponse deleteById(String index, String type, String id, Map<String, String> requestParameters) {
+        return deleteById(index, type, Arrays.asList(id), requestParameters)
     }
 
     @Override
-    DeleteOperationResponse deleteById(String index, String type, List<String> ids) {
-        if (throwErrorInDelete) {
-            throw new IOException("Simulated IOException")
-        }
+    DeleteOperationResponse deleteById(String index, String type, List<String> ids, Map<String, String> requestParameters) {
+        common(throwErrorInDelete, requestParameters)
         return new DeleteOperationResponse(100L)
     }
 
     @Override
-    DeleteOperationResponse deleteByQuery(String query, String index, String type) {
-        return deleteById(index, type, Arrays.asList("1"))
+    DeleteOperationResponse deleteByQuery(String query, String index, String type, Map<String, String> requestParameters) {
+        return deleteById(index, type, Arrays.asList("1"), requestParameters)
     }
 
     @Override
-    Map<String, Object> get(String index, String type, String id) {
+    UpdateOperationResponse updateByQuery(String query, String index, String type, Map<String, String> requestParameters) {
+        common(throwErrorInUpdate, requestParameters)
+        return new UpdateOperationResponse(100L)
+    }
+
+    @Override
+    Map<String, Object> get(String index, String type, String id, Map<String, String> requestParameters) {
+        common(false, requestParameters)
         return [ "msg": "one" ]
     }
 
     @Override
     SearchResponse search(String query, String index, String type, Map<String, String> requestParameters) {
-        if (throwErrorInSearch) {
-            throw new IOException("Simulated IOException")
-        }
+        common(throwErrorInSearch, requestParameters)
 
         this.query = query
         final SearchResponse response
@@ -101,7 +116,7 @@ class TestElasticsearchClientService extends AbstractControllerService implement
             throw new IOException("Simulated IOException - scroll")
         }
 
-        return search(null, null, null, null)
+        return search(null, null, null, requestParameters)
     }
 
     @Override
@@ -295,11 +310,19 @@ class TestElasticsearchClientService extends AbstractControllerService implement
         this.throwErrorInPit = throwErrorInPit
     }
 
+    void setThrowErrorInUpdate(boolean throwErrorInUpdate) {
+        this.throwErrorInUpdate = throwErrorInUpdate
+    }
+
     void resetPageCount() {
         this.pageCount = 0
     }
 
     void setMaxPages(int maxPages) {
         this.maxPages = maxPages
+    }
+
+    Map<String, String> getRequestParameters() {
+        return this.requestParameters
     }
 }

@@ -23,43 +23,49 @@ import org.apache.nifi.elasticsearch.ElasticSearchClientService
 import org.apache.nifi.elasticsearch.IndexOperationRequest
 import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.elasticsearch.SearchResponse
+import org.apache.nifi.elasticsearch.UpdateOperationResponse
 
 class AbstractMockElasticsearchClient extends AbstractControllerService implements ElasticSearchClientService {
     boolean throwRetriableError
     boolean throwFatalError
 
     @Override
-    IndexOperationResponse add(IndexOperationRequest operation) {
+    IndexOperationResponse add(IndexOperationRequest operation, Map<String, String> requestParameters) {
         return null
     }
 
     @Override
-    IndexOperationResponse bulk(List<IndexOperationRequest> operations) {
+    IndexOperationResponse bulk(List<IndexOperationRequest> operations, Map<String, String> requestParameters) {
         return null
     }
 
     @Override
-    Long count(String query, String index, String type) {
+    Long count(String query, String index, String type, Map<String, String> requestParameters) {
         return null
     }
 
     @Override
-    DeleteOperationResponse deleteById(String index, String type, String id) {
+    DeleteOperationResponse deleteById(String index, String type, String id, Map<String, String> requestParameters) {
         return null
     }
 
     @Override
-    DeleteOperationResponse deleteById(String index, String type, List<String> ids) {
+    DeleteOperationResponse deleteById(String index, String type, List<String> ids, Map<String, String> requestParameters) {
         return null
     }
 
     @Override
-    DeleteOperationResponse deleteByQuery(String query, String index, String type) {
+    DeleteOperationResponse deleteByQuery(String query, String index, String type, Map<String, String> requestParameters) {
         return null
     }
 
     @Override
-    Map<String, Object> get(String index, String type, String id) {
+    UpdateOperationResponse updateByQuery(String query, String index, String type, Map<String, String> requestParameters) {
+        return null
+    }
+
+    @Override
+    Map<String, Object> get(String index, String type, String id, Map<String, String> requestParameters) {
         return null
     }
 
