@@ -15,31 +15,8 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.flow;
+package org.apache.nifi.stateless.engine;
 
-import org.apache.nifi.stateless.config.ParameterContextDefinition;
-import org.apache.nifi.stateless.config.ParameterValueProviderDefinition;
-import org.apache.nifi.stateless.config.ReportingTaskDefinition;
-
-import java.util.List;
-import java.util.Set;
-
-public interface DataflowDefinition<T> {
-    T getFlowSnapshot();
-
-    String getFlowName();
-
-    Set<String> getFailurePortNames();
-
-    Set<String> getInputPortNames();
-
-    Set<String> getOutputPortNames();
-
-    List<ParameterContextDefinition> getParameterContexts();
-
-    List<ReportingTaskDefinition> getReportingTaskDefinitions();
-
-    List<ParameterValueProviderDefinition> getParameterValueProviderDefinitions();
-
-    TransactionThresholds getTransactionThresholds();
+public interface FlowPurgeAction {
+    void purge();
 }

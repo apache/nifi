@@ -62,6 +62,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
     private final StatelessStateManagerProvider stateManagerProvider;
     private final Long maxProvenanceEventId;
     private final DataflowTriggerContext triggerContext;
+    private final FlowPurgeAction purgeAction;
 
     private final BlockingQueue<CompletionAction> completionActionQueue;
     private volatile boolean canceled = false;
@@ -69,7 +70,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
 
     public StandardExecutionProgress(final ProcessGroup rootGroup, final List<FlowFileQueue> internalFlowFileQueues, final BlockingQueue<TriggerResult> resultQueue,
                                      final RepositoryContextFactory repositoryContextFactory, final Set<String> failurePortNames, final AsynchronousCommitTracker commitTracker,
-                                     final StatelessStateManagerProvider stateManagerProvider, final DataflowTriggerContext triggerContext) {
+                                     final StatelessStateManagerProvider stateManagerProvider, final DataflowTriggerContext triggerContext, final FlowPurgeAction purgeAction) {
         this.rootGroup = rootGroup;
         this.internalFlowFileQueues = internalFlowFileQueues;
         this.resultQueue = resultQueue;
@@ -80,6 +81,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
         this.stateManagerProvider = stateManagerProvider;
         this.maxProvenanceEventId = provenanceRepository.getMaxEventId();
         this.triggerContext = triggerContext;
+        this.purgeAction = purgeAction;
 
         completionActionQueue = new LinkedBlockingQueue<>();
     }
@@ -243,8 +245,8 @@ public class StandardExecutionProgress implements ExecutionProgress {
         commitTracker.triggerFailureCallbacks(new RuntimeException("Dataflow Canceled"));
         stateManagerProvider.rollbackUpdates();
         completionActionQueue.offer(CompletionAction.CANCEL);
+        purgeAction.purge();
         resultQueue.offer(new CanceledTriggerResult());
-        contentRepository.purge();
     }
 
     @Override
@@ -252,8 +254,8 @@ public class StandardExecutionProgress implements ExecutionProgress {
         commitTracker.triggerFailureCallbacks(cause);
         stateManagerProvider.rollbackUpdates();
         completionActionQueue.offer(CompletionAction.CANCEL);
+        purgeAction.purge();
         resultQueue.offer(new ExceptionalTriggerResult(cause));
-        contentRepository.purge();
     }
 
     public Map<String, List<FlowFile>> drainOutputQueues() {

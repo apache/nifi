@@ -32,6 +32,7 @@ import java.io.UncheckedIOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class PropertiesFileEngineConfigurationParser {
     private static final Logger logger = LoggerFactory.getLogger(PropertiesFileEngineConfigurationParser.class);
@@ -46,6 +48,7 @@ public class PropertiesFileEngineConfigurationParser {
 
     private static final String NAR_DIRECTORY = PREFIX + "nar.directory";
     private static final String EXTENSIONS_DIRECTORY = PREFIX + "extensions.directory";
+    private static final String READONLY_EXTENSIONS_DIRECTORY = PREFIX + "readonly.extensions.directory.";
     private static final String WORKING_DIRECTORY = PREFIX + "working.directory";
     private static final String CONTENT_REPO_DIRECTORY = PREFIX + "content.repository.directory";
 
@@ -92,6 +95,8 @@ public class PropertiesFileEngineConfigurationParser {
             throw new StatelessConfigurationException("Extensions Directory " + narDirectory.getAbsolutePath() + " specified in properties file does not exist and could not be created");
         }
 
+        final List<File> readOnlyExtensionsDirectories = getReadOnlyExtensionsDirectories(properties);
+
         final String contentRepoDirectoryFilename = properties.getProperty(CONTENT_REPO_DIRECTORY, "");
         final File contentRepoDirectory = contentRepoDirectoryFilename.isEmpty() ? null : new File(contentRepoDirectoryFilename);
 
@@ -120,6 +125,11 @@ public class PropertiesFileEngineConfigurationParser {
             }
 
             @Override
+            public Collection<File> getReadOnlyExtensionsDirectories() {
+                return readOnlyExtensionsDirectories;
+            }
+
+            @Override
             public File getKrb5File() {
                 return krb5File;
             }
@@ -145,6 +155,17 @@ public class PropertiesFileEngineConfigurationParser {
             }
         };
     }
+
+
+    private List<File> getReadOnlyExtensionsDirectories(final Properties properties) {
+        return properties.keySet().stream()
+            .map(Object::toString)
+            .filter(key -> key.startsWith(READONLY_EXTENSIONS_DIRECTORY))
+            .map(properties::getProperty)
+            .map(File::new)
+            .collect(Collectors.toList());
+    }
+
 
     private List<ExtensionClientDefinition> parseExtensionClients(final Properties properties) {
         final Map<String, ExtensionClientDefinition> extensionClientDefinitions = new LinkedHashMap<>();
