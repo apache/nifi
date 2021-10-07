@@ -31,31 +31,55 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.Function;
 
 public class FileSystemExtensionRepository implements ExtensionRepository {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemExtensionRepository.class);
 
     private final ExtensionDiscoveringManager extensionManager;
     private final NarClassLoaders narClassLoaders;
-    private final File narLibDirectory;
+    private final File writableLibDirectory;
+    private final Set<File> readOnlyExtensionDirectories;
     private final File workingDirectory;
     private final List<ExtensionClient> clients;
 
 
-    public FileSystemExtensionRepository(final ExtensionDiscoveringManager extensionManager, final File narLibDirectory, final File workingDirectory,
-                                         final NarClassLoaders narClassLoaders, final List<ExtensionClient> clients) {
+    public FileSystemExtensionRepository(final ExtensionDiscoveringManager extensionManager, final File writableLibDirectory, final Collection<File> readOnlyExtensionDirectories,
+                                         final File workingDirectory, final NarClassLoaders narClassLoaders, final List<ExtensionClient> clients) {
         this.extensionManager = extensionManager;
-        this.narLibDirectory = narLibDirectory;
+        this.writableLibDirectory = writableLibDirectory;
+        this.readOnlyExtensionDirectories = readOnlyExtensionDirectories == null ? Collections.emptySet() : new HashSet<>(readOnlyExtensionDirectories);
         this.workingDirectory = workingDirectory;
         this.narClassLoaders = narClassLoaders;
         this.clients = clients;
+    }
+
+    @Override
+    public void initialize() throws IOException {
+        if (readOnlyExtensionDirectories.isEmpty()) {
+            return;
+        }
+
+        final Set<File> readOnlyNars = new HashSet<>();
+        for (final File extensionDir : readOnlyExtensionDirectories) {
+            final File[] narFiles = extensionDir.listFiles(file -> file.getName().endsWith(".nar"));
+            if (narFiles == null) {
+                logger.warn("Failed to perform listing of read-only extensions directory {}. Will not load extensions from this directory.", extensionDir.getAbsolutePath());
+                continue;
+            }
+
+            readOnlyNars.addAll(Arrays.asList(narFiles));
+        }
+
+        loadExtensions(readOnlyNars);
     }
 
     @Override
@@ -87,29 +111,29 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
             return CompletableFuture.completedFuture(Collections.emptySet());
         }
 
-        final DownloadQueue downloadQueue = new DownloadQueue(extensionManager, executorService, concurrentDownloads, bundleCoordinates, narLibDirectory, clients);
+        final DownloadQueue downloadQueue = new DownloadQueue(extensionManager, executorService, concurrentDownloads, bundleCoordinates, writableLibDirectory, clients);
         final CompletableFuture<Void> downloadFuture = downloadQueue.download();
         logger.info("Beginning download of extensions {}", bundleCoordinates);
 
-        final CompletableFuture<Set<Bundle>> loadFuture = downloadFuture.thenApply(new Function<Void, Set<Bundle>>() {
-            @Override
-            public Set<Bundle> apply(final Void aVoid) {
-                final Set<File> downloadedFiles = downloadQueue.getDownloadedFiles();
-
-                try {
-                    return loadExtensions(downloadedFiles);
-                } catch (final Exception e) {
-                    throw new RuntimeException("Could not load extensions", e);
-                }
-            }
-        });
+        // When the download completes, load the extensions & return that future.
+        final CompletableFuture<Set<Bundle>> loadFuture = downloadFuture.thenApply(voidDownloadResult -> loadExtensions(downloadQueue));
 
         return loadFuture;
     }
 
+    private Set<Bundle> loadExtensions(final DownloadQueue downloadQueue) {
+        final Set<File> downloadedFiles = downloadQueue.getDownloadedFiles();
+        logger.info("Completed download of {} bundles. Unpacking NAR files now", downloadedFiles.size());
+
+        try {
+            return loadExtensions(downloadedFiles);
+        } catch (final Exception e) {
+            throw new RuntimeException("Could not load extensions", e);
+        }
+    }
+
     private Set<Bundle> loadExtensions(final Set<File> downloadedFiles) throws IOException {
         final List<File> unpackedDirs = new ArrayList<>();
-        logger.info("Completed download of {} bundles. Unpacking NAR files now", downloadedFiles.size());
 
         final long start = System.currentTimeMillis();
         for (final File downloadedFile : downloadedFiles) {

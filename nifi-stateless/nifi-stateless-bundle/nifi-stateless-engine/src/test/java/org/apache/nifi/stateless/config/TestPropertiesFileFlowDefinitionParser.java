@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -91,6 +92,11 @@ public class TestPropertiesFileFlowDefinitionParser {
             @Override
             public File getExtensionsDirectory() {
                 return null;
+            }
+
+            @Override
+            public Collection<File> getReadOnlyExtensionsDirectories() {
+                return Collections.emptyList();
             }
 
             @Override

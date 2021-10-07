@@ -568,6 +568,12 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             return tempComponent;
         } catch (final Exception e) {
             logger.error("Could not instantiate class of type {} using ClassLoader for bundle {}", classType, bundleCoordinate, e);
+            if (logger.isDebugEnabled() && bundleClassLoader instanceof URLClassLoader) {
+                final URLClassLoader urlClassLoader = (URLClassLoader) bundleClassLoader;
+                final List<URL> availableUrls = Arrays.asList(urlClassLoader.getURLs());
+                logger.debug("Available URLs for Bundle ClassLoader {}: {}", bundleCoordinate, availableUrls);
+            }
+
             return null;
         }
     }

@@ -96,7 +96,7 @@ import static java.util.Objects.requireNonNull;
 
 public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSnapshot> {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessEngine.class);
-    private static final int CONCURRENT_EXTENSION_DOWNLOADS = 4;
+    private static final int CONCURRENT_EXTENSION_DOWNLOADS = 8;
 
     // Member Variables injected via Builder
     private final ExtensionManager extensionManager;
@@ -122,7 +122,6 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     private ProcessContextFactory processContextFactory;
     private RepositoryContextFactory repositoryContextFactory;
     private boolean initialized = false;
-
 
     private StandardStatelessEngine(final Builder builder) {
         this.extensionManager = requireNonNull(builder.extensionManager, "Extension Manager must be provided");
@@ -207,7 +206,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         // Create a Composite Parameter Value Provider that wraps all of the others.
         final CompositeParameterValueProvider provider = new CompositeParameterValueProvider(providers);
         final ParameterValueProviderInitializationContext initializationContext =
-                new StandardParameterValueProviderInitializationContext(provider, Collections.emptyMap(), UUID.randomUUID().toString());
+            new StandardParameterValueProviderInitializationContext(provider, Collections.emptyMap(), UUID.randomUUID().toString());
         provider.initialize(initializationContext);
         return provider;
     }
@@ -292,7 +291,6 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         }
     }
 
-
     private void loadNecessaryExtensions(final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition) {
         final VersionedProcessGroup group = dataflowDefinition.getFlowSnapshot().getFlowContents();
         final Set<BundleCoordinate> requiredBundles = gatherRequiredBundles(group);
@@ -315,11 +313,12 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             requiredBundles.add(coordinate);
         }
 
+        final Set<BundleCoordinate> unavailableBundles = determineUnavailableBundles(requiredBundles);
         final ExecutorService executor = new FlowEngine(CONCURRENT_EXTENSION_DOWNLOADS, "Download Extensions", true);
-        final Future<Set<Bundle>> future = extensionRepository.fetch(requiredBundles, executor, CONCURRENT_EXTENSION_DOWNLOADS);
+        final Future<Set<Bundle>> future = extensionRepository.fetch(unavailableBundles, executor, CONCURRENT_EXTENSION_DOWNLOADS);
         executor.shutdown();
 
-        logger.info("Waiting for bundles to complete download...");
+        logger.info("Waiting for {} bundles to complete download...", unavailableBundles.size());
         final long downloadStart = System.currentTimeMillis();
         final Set<Bundle> downloadedBundles;
         try {
@@ -331,6 +330,26 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
         final long downloadMillis = System.currentTimeMillis() - downloadStart;
         logger.info("Successfully downloaded {} bundles in {} millis", downloadedBundles.size(), downloadMillis);
+    }
+
+    private Set<BundleCoordinate> determineUnavailableBundles(final Set<BundleCoordinate> coordinates) {
+        final Set<BundleCoordinate> unavailable = new HashSet<>();
+        determineUnavailableBundles(coordinates, unavailable);
+        return unavailable;
+    }
+
+    private void determineUnavailableBundles(final Set<BundleCoordinate> coordinates, final Set<BundleCoordinate> unavailable) {
+        for (final BundleCoordinate coordinate : coordinates) {
+            final Bundle bundle = extensionManager.getBundle(coordinate);
+            if (bundle == null) {
+                unavailable.add(coordinate);
+            } else {
+                final BundleCoordinate parentCoordinate = bundle.getBundleDetails().getDependencyCoordinate();
+                if (parentCoordinate != null) {
+                    determineUnavailableBundles(Collections.singleton(parentCoordinate), unavailable);
+                }
+            }
+        }
     }
 
     private Set<BundleCoordinate> gatherRequiredBundles(final VersionedProcessGroup group) {
@@ -420,7 +439,6 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return resolved;
     }
 
-
     private BundleCoordinate determineBundleCoordinate(final ConfigurableExtensionDefinition extensionDefinition, final String extensionType) {
         final String explicitCoordinates = extensionDefinition.getBundleCoordinates();
         if (explicitCoordinates != null && !explicitCoordinates.trim().isEmpty()) {
@@ -475,7 +493,6 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return new BundleCoordinate(splits[0], splits[1], splits[2]);
     }
 
-
     private String resolveExtensionClassName(final ConfigurableExtensionDefinition extensionDefinition, final String extensionType) {
         final String specifiedType = extensionDefinition.getType();
         if (specifiedType.contains(".")) {
@@ -526,7 +543,6 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             context.setParameters(updatedParameters);
         }
     }
-
 
     private void registerParameterContext(final ParameterContextDefinition parameterContextDefinition, final Map<String, ParameterContext> parameterContextMap) {
         final String contextName = parameterContextDefinition.getName();

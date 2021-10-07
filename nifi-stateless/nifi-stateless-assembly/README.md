@@ -211,6 +211,13 @@ The following properties may be used for configuring security parameters:
 | nifi.stateless.sensitive.props.key | The dataflow does not hold sensitive passwords, but some processors may have a need to encrypt data before storing it. This key is used to allow processors to encrypt and decrypt data. At present, the only Processor supported by the community that makes use of this feature is hte GetJMSTopic processor, which is deprecated. However, it is provided here for completeness. | Some Passphrase That's Difficult to Guess |
 | nifi.stateless.kerberos.krb5.file | The KRB5 file to use for interacting with Kerberos. This is only necessary if the dataflow interacts with a Kerberized data source/sink. If not specified, will default to `/etc/krb5.conf` | /etc/krb5.conf |
 
+A key tenant of NiFi is a separation between the framework and the extensions that operate on data. As such, we must have a mechanism for dictating where extensions can be located.
+The following properties may be used to indicate where extensions are to be located:
+
+| Property Name | Description | Example Value |
+|---------------|-------------|---------------|
+| nifi.stateless.extensions.directory | The directory that contains extensions that should be loaded. If extensions are to be downloaded (see below), they will be written to this directory, so it must be writable by the user who launches the application. | /var/lib/nifi/extensions |
+| nifi.stateless.readonly.extensions.directory.<suffix> | One or more directories may be specified as read-only extensions directories. Extensions will be loaded from these directories (but not their subdirectories), but these directories do not need to be writable. | /mnt/nifi-extensions/aws-extensions/ |
 
 When Stateless NiFi is started, it parses the provided dataflow and determines which bundles/extensions are necessary
 to run the dataflow. If an extension is not available, or the version referenced by the flow is not available, Stateless
@@ -222,7 +229,7 @@ the first `type` property refers to the same client as the first `baseUrl` prope
 `ABC`. Similarly, the second `type` and `baseUrl` properties refer to the same client because they have the same 'key':
 `XYZ`.
 
-Any extension that is downloaded will be stored in the directory specified by the `nifi.stateless.nar.directory` property described above.
+Any extension that is downloaded will be stored in the directory specified by the `nifi.stateless.extensions.directory` property described above.
 
 | Property Name | Description | Example Value |
 |---------------|-------------|---------------|

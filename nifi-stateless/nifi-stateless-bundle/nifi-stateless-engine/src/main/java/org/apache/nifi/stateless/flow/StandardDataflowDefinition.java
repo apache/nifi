@@ -19,9 +19,10 @@ package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedControllerService;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
 import org.apache.nifi.stateless.config.ParameterValueProviderDefinition;
 import org.apache.nifi.stateless.config.ReportingTaskDefinition;
@@ -30,6 +31,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -65,6 +67,20 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
     @Override
     public Set<String> getFailurePortNames() {
         return failurePortNames;
+    }
+
+    @Override
+    public Set<String> getInputPortNames() {
+        return flowSnapshot.getFlowContents().getInputPorts().stream()
+            .map(VersionedPort::getName)
+            .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<String> getOutputPortNames() {
+        return flowSnapshot.getFlowContents().getOutputPorts().stream()
+            .map(VersionedPort::getName)
+            .collect(Collectors.toSet());
     }
 
     @Override

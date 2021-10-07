@@ -433,7 +433,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         final BlockingQueue<TriggerResult> resultQueue = new LinkedBlockingQueue<>();
 
         final ExecutionProgress executionProgress = new StandardExecutionProgress(rootGroup, internalFlowFileQueues, resultQueue,
-            repositoryContextFactory, dataflowDefinition.getFailurePortNames(), tracker, stateManagerProvider, triggerContext);
+            repositoryContextFactory, dataflowDefinition.getFailurePortNames(), tracker, stateManagerProvider, triggerContext, this::purge);
 
         final AtomicReference<Future<?>> processFuture = new AtomicReference<>();
         final DataflowTrigger trigger = new DataflowTrigger() {
@@ -598,6 +598,8 @@ public class StandardStatelessFlow implements StatelessDataflow {
             ((DrainableFlowFileQueue) connection.getFlowFileQueue()).drainTo(flowFiles);
             flowFiles.clear();
         }
+
+        repositoryContextFactory.getContentRepository().purge();
     }
 
     @Override

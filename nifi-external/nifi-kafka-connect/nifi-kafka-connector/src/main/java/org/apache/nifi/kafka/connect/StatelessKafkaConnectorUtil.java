@@ -38,6 +38,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -271,6 +272,11 @@ public class StatelessKafkaConnectorUtil {
             @Override
             public File getExtensionsDirectory() {
                 return extensionsDirectory;
+            }
+
+            @Override
+            public Collection<File> getReadOnlyExtensionsDirectories() {
+                return Collections.emptyList();
             }
 
             @Override

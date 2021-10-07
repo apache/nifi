@@ -788,6 +788,16 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
             }
 
             @Override
+            public Set<String> getInputPortNames() {
+                return Collections.emptySet();
+            }
+
+            @Override
+            public Set<String> getOutputPortNames() {
+                return failurePortNames;
+            }
+
+            @Override
             public List<ParameterContextDefinition> getParameterContexts() {
                 return null;
             }
@@ -854,6 +864,11 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
             @Override
             public File getExtensionsDirectory() {
                 return narDirectory;
+            }
+
+            @Override
+            public Collection<File> getReadOnlyExtensionsDirectories() {
+                return Collections.emptyList();
             }
 
             @Override
