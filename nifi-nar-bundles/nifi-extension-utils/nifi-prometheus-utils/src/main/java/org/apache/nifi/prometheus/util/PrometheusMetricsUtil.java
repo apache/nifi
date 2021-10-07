@@ -18,7 +18,6 @@
 package org.apache.nifi.prometheus.util;
 
 import io.prometheus.client.CollectorRegistry;
-import io.prometheus.client.SimpleCollector;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.status.ConnectionStatus;
@@ -34,8 +33,6 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -100,20 +97,6 @@ public class PrometheusMetricsUtil {
         final String componentType = StringUtils.isEmpty(compType) ? DEFAULT_LABEL_STRING : compType;
         final String componentId = StringUtils.isEmpty(status.getId()) ? DEFAULT_LABEL_STRING : status.getId();
         final String componentName = StringUtils.isEmpty(status.getName()) ? DEFAULT_LABEL_STRING : status.getName();
-
-        // Clear all collectors to deal with removed/renamed components -- for root PG only
-        if("RootProcessGroup".equals(componentType)) {
-            try {
-                for (final Field field : PrometheusMetricsUtil.class.getDeclaredFields()) {
-                    if (Modifier.isStatic(field.getModifiers()) && (field.get(null) instanceof SimpleCollector)) {
-                        SimpleCollector<?> sc = (SimpleCollector<?>) (field.get(null));
-                        sc.clear();
-                    }
-                }
-            } catch (IllegalAccessException e) {
-                // ignore
-            }
-        }
 
         nifiMetricsRegistry.setDataPoint(status.getFlowFilesSent(), "AMOUNT_FLOWFILES_SENT", instanceId, componentType, componentName, componentId, parentPGId);
         nifiMetricsRegistry.setDataPoint(status.getFlowFilesTransferred(), "AMOUNT_FLOWFILES_TRANSFERRED", instanceId, componentType, componentName, componentId, parentPGId);

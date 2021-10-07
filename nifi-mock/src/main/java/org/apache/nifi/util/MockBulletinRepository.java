@@ -20,6 +20,7 @@ import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MockBulletinRepository implements BulletinRepository {
@@ -45,7 +46,7 @@ public class MockBulletinRepository implements BulletinRepository {
     @Override
     public List<Bulletin> findBulletins(BulletinQuery bulletinQuery) {
         // TODO: Implement
-        return null;
+        return new ArrayList<Bulletin>();
     }
 
     @Override

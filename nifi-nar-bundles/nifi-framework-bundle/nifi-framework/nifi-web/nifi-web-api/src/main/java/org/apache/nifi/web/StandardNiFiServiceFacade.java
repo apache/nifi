@@ -5587,9 +5587,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public Collection<CollectorRegistry> generateFlowMetrics() {
-
         final String instanceId = StringUtils.isEmpty(controllerFacade.getInstanceId()) ? "" : controllerFacade.getInstanceId();
         ProcessGroupStatus rootPGStatus = controllerFacade.getProcessGroupStatus("root");
+
+        nifiMetricsRegistry.clear();
         PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootPGStatus, instanceId, "", "RootProcessGroup",
                 PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS.getValue());
 
