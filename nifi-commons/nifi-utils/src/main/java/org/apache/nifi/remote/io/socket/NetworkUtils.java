@@ -17,8 +17,11 @@
 package org.apache.nifi.remote.io.socket;
 
 import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.Socket;
 import java.net.ServerSocket;
+import java.net.SocketException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -88,5 +91,14 @@ public class NetworkUtils {
         }
 
         return (result != null && result);
+    }
+
+    public static InetAddress getInterfaceAddress(final String interfaceIPAddress) throws SocketException {
+        InetAddress nicIPAddress = null;
+        if (interfaceIPAddress != null && !interfaceIPAddress.isEmpty()) {
+            NetworkInterface netIF = NetworkInterface.getByName(interfaceIPAddress);
+            nicIPAddress = netIF.getInetAddresses().nextElement();
+        }
+        return nicIPAddress;
     }
 }

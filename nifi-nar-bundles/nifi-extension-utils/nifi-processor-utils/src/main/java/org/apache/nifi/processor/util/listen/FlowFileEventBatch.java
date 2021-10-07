@@ -14,21 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processor.util.listen.event;
+package org.apache.nifi.processor.util.listen;
 
-/**
- * An interface to represent Netty compatible events
- */
-public interface NettyEvent {
+import org.apache.nifi.event.transport.message.ByteArrayMessage;
+import org.apache.nifi.flowfile.FlowFile;
 
-    /**
-     * @return the sending host of the data, as a socket
-     */
-    String getSender();
+import java.util.List;
 
-    /**
-     * @return raw data for this event
-     */
-    byte[] getData();
+public final class FlowFileEventBatch<E extends ByteArrayMessage> {
 
+        private FlowFile flowFile;
+        private List<E> events;
+
+        public FlowFileEventBatch(final FlowFile flowFile, final List<E> events) {
+            this.flowFile = flowFile;
+            this.events = events;
+        }
+
+        public FlowFile getFlowFile() {
+            return flowFile;
+        }
+
+        public List<E> getEvents() {
+            return events;
+        }
+
+        public void setFlowFile(FlowFile flowFile) {
+            this.flowFile = flowFile;
+        }
 }

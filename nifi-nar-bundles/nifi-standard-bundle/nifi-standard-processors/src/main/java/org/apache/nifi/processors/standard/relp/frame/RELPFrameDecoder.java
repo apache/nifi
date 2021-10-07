@@ -23,21 +23,18 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.event.EventFactoryUtil;
 import org.apache.nifi.processor.util.listen.response.ChannelResponse;
+import org.apache.nifi.processors.standard.relp.event.RELPMessageFactory;
 import org.apache.nifi.processors.standard.relp.event.RELPMetadata;
-import org.apache.nifi.processors.standard.relp.event.RELPNettyEventFactory;
 import org.apache.nifi.processors.standard.relp.response.RELPChannelResponse;
 import org.apache.nifi.processors.standard.relp.response.RELPResponse;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Decode RELP message bytes into a RELPNettyEvent
+ * Decode RELP message bytes into a RELPMessage
  */
 public class RELPFrameDecoder extends ByteToMessageDecoder {
 
@@ -45,7 +42,7 @@ public class RELPFrameDecoder extends ByteToMessageDecoder {
     private RELPDecoder decoder;
     private final ComponentLog logger;
     private final RELPEncoder encoder;
-    private final RELPNettyEventFactory eventFactory;
+    private final RELPMessageFactory eventFactory;
 
     static final String CMD_OPEN = "open";
     static final String CMD_CLOSE = "close";
@@ -54,21 +51,13 @@ public class RELPFrameDecoder extends ByteToMessageDecoder {
         this.charset = charset;
         this.logger = logger;
         this.encoder = new RELPEncoder(charset);
-        this.eventFactory = new RELPNettyEventFactory();
+        this.eventFactory = new RELPMessageFactory();
     }
 
     @Override
     protected void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
         final int total = in.readableBytes();
-        InetSocketAddress sender = null;
-        final SocketAddress socketAddress = ctx.channel().remoteAddress();
-        if (socketAddress instanceof InetSocketAddress) {
-            final InetSocketAddress remoteAddress = (InetSocketAddress) socketAddress;
-            sender = remoteAddress;
-        } else {
-            throw new UnknownHostException("Failed to retrieve the RELP client's socket address.");
-        }
-
+        final String senderSocket = ctx.channel().remoteAddress().toString();
         this.decoder = new RELPDecoder(total, charset);
 
         // go through the buffer parsing the RELP command
@@ -80,13 +69,13 @@ public class RELPFrameDecoder extends ByteToMessageDecoder {
 
                 logger.debug("Received RELP frame with transaction {} and command {}",
                        frame.getTxnr(), frame.getCommand());
-                handle(frame, ctx, sender, out);
+                handle(frame, ctx, senderSocket, out);
                 in.markReaderIndex();
             }
         }
     }
 
-    private void handle(final RELPFrame frame, final ChannelHandlerContext ctx, final InetSocketAddress sender, final List<Object> out)
+    private void handle(final RELPFrame frame, final ChannelHandlerContext ctx, final String sender, final List<Object> out)
             throws IOException, InterruptedException {
         // respond to open and close commands immediately, create and queue an event for everything else
         if (CMD_OPEN.equals(frame.getCommand())) {
@@ -98,10 +87,10 @@ public class RELPFrameDecoder extends ByteToMessageDecoder {
             ctx.writeAndFlush(Unpooled.wrappedBuffer(response.toByteArray()));
             ctx.close();
         } else {
-            final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender.toString());
+            final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender);
             metadata.put(RELPMetadata.TXNR_KEY, String.valueOf(frame.getTxnr()));
             metadata.put(RELPMetadata.COMMAND_KEY, frame.getCommand());
-            metadata.put(RELPMetadata.SENDER_KEY, sender.toString());
+            metadata.put(RELPMetadata.SENDER_KEY, sender);
             out.add(eventFactory.create(frame.getData(), metadata));
         }
     }

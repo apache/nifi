@@ -20,8 +20,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import org.apache.nifi.event.transport.netty.channel.ByteArrayMessageChannelHandler;
-import org.apache.nifi.processors.standard.relp.event.RELPNettyEvent;
+import org.apache.nifi.processors.standard.relp.event.RELPMessage;
 import org.apache.nifi.processors.standard.relp.response.RELPChannelResponse;
 import org.apache.nifi.processors.standard.relp.response.RELPResponse;
 import org.slf4j.Logger;
@@ -31,23 +30,23 @@ import java.nio.charset.Charset;
 import java.util.concurrent.BlockingQueue;
 
 /**
- * Decode data received into a RELPNettyEvent
+ * Decode data received into a RELPMessage
  */
 @ChannelHandler.Sharable
-public class RELPNettyEventChannelHandler extends SimpleChannelInboundHandler<RELPNettyEvent> {
+public class RELPMessageChannelHandler extends SimpleChannelInboundHandler<RELPMessage> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ByteArrayMessageChannelHandler.class);
-    private final BlockingQueue<RELPNettyEvent> events;
+    private static final Logger LOGGER = LoggerFactory.getLogger(RELPMessageChannelHandler.class);
+    private final BlockingQueue<RELPMessage> events;
     private final RELPEncoder encoder;
 
-    public RELPNettyEventChannelHandler(BlockingQueue<RELPNettyEvent> events, final Charset charset) {
+    public RELPMessageChannelHandler(BlockingQueue<RELPMessage> events, final Charset charset) {
         this.events = events;
         this.encoder = new RELPEncoder(charset);
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, RELPNettyEvent msg) {
-        LOGGER.debug("RELP Message Received Length [{}] Remote Address [{}] ", msg.getData().length, msg.getSender());
+    protected void channelRead0(ChannelHandlerContext ctx, RELPMessage msg) {
+        LOGGER.debug("RELP Message Received Length [{}] Remote Address [{}] ", msg.getMessage().length, msg.getSender());
         if (events.offer(msg)) {
             LOGGER.debug("Added RELP message to event queue");
             ctx.writeAndFlush(Unpooled.wrappedBuffer(new RELPChannelResponse(encoder, RELPResponse.ok(msg.getTxnr())).toByteArray()));

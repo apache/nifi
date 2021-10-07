@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.event.transport.message;
 
+import org.apache.nifi.event.transport.NetworkEvent;
+
 /**
  * Byte Array Message with Sender
  */
-public class ByteArrayMessage {
+public class ByteArrayMessage implements NetworkEvent {
     private final byte[] message;
 
     private final String sender;

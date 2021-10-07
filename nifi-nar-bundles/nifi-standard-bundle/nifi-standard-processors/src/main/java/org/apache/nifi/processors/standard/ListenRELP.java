@@ -44,9 +44,10 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.listen.AbstractListenEventBatchingProcessor;
 import org.apache.nifi.processor.util.listen.AbstractListenEventProcessor;
 import org.apache.nifi.processor.util.listen.EventBatcher;
-import org.apache.nifi.processor.util.listen.FlowFileNettyEventBatch;
-import org.apache.nifi.processors.standard.relp.event.RELPNettyEvent;
-import org.apache.nifi.processors.standard.relp.handler.RELPNettyEventServerFactory;
+import org.apache.nifi.processor.util.listen.FlowFileEventBatch;
+import org.apache.nifi.processors.standard.relp.event.RELPMessage;
+import org.apache.nifi.processors.standard.relp.handler.RELPMessageServerFactory;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
@@ -54,7 +55,6 @@ import org.apache.nifi.ssl.SSLContextService;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.NetworkInterface;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -113,8 +113,8 @@ public class ListenRELP extends AbstractProcessor {
     protected Set<Relationship> relationships;
     protected volatile int port;
     protected volatile Charset charset;
-    protected volatile BlockingQueue<RELPNettyEvent> events;
-    protected volatile BlockingQueue<RELPNettyEvent> errorEvents;
+    protected volatile BlockingQueue<RELPMessage> events;
+    protected volatile BlockingQueue<RELPMessage> errorEvents;
     protected volatile String hostname;
     protected EventServer eventServer;
     protected volatile byte[] messageDemarcatorBytes;
@@ -129,11 +129,11 @@ public class ListenRELP extends AbstractProcessor {
         bufferSize = context.getProperty(AbstractListenEventProcessor.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
 
-        hostname = DEFAULT_ADDRESS;
-        if (StringUtils.isNotEmpty(nicIPAddressStr)) {
-            final NetworkInterface networkInterface = NetworkInterface.getByName(nicIPAddressStr);
-            final InetAddress interfaceAddress = networkInterface.getInetAddresses().nextElement();
-            hostname = interfaceAddress.getHostName();
+        final InetAddress socketAddress = NetworkUtils.getInterfaceAddress(nicIPAddressStr);
+        if (socketAddress != null) {
+            hostname =  socketAddress.getHostName();
+        } else {
+            hostname = DEFAULT_ADDRESS;
         }
 
         charset = Charset.forName(context.getProperty(AbstractListenEventProcessor.CHARSET).getValue());
@@ -202,7 +202,7 @@ public class ListenRELP extends AbstractProcessor {
     private void initializeRelpServer() {
         final NettyEventServerFactory eventFactory = getNettyEventServerFactory();
         eventFactory.setSocketReceiveBuffer(bufferSize);
-        if(sslContext != null) {
+        if (sslContext != null) {
             eventFactory.setSslContext(sslContext);
         }
         try {
@@ -222,11 +222,11 @@ public class ListenRELP extends AbstractProcessor {
         return descriptors;
     }
 
-    protected Map<String, String> getAttributes(FlowFileNettyEventBatch batch) {
-        final List<RELPNettyEvent> events = batch.getEvents();
+    protected Map<String, String> getAttributes(FlowFileEventBatch batch) {
+        final List<RELPMessage> events = batch.getEvents();
 
         // the sender and command will be the same for all events based on the batch key
-        final String sender = events.get(0).getSender().toString();
+        final String sender = events.get(0).getSender();
         final String command = events.get(0).getCommand();
 
         final int numAttributes = events.size() == 1 ? 5 : 4;
@@ -245,9 +245,9 @@ public class ListenRELP extends AbstractProcessor {
         return attributes;
     }
 
-    protected String getTransitUri(FlowFileNettyEventBatch batch) {
-        final List<RELPNettyEvent> events = batch.getEvents();
-        final String sender = events.get(0).getSender().toString();
+    protected String getTransitUri(FlowFileEventBatch batch) {
+        final List<RELPMessage> events = batch.getEvents();
+        final String sender = events.get(0).getSender();
         final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
         final String transitUri = new StringBuilder().append("relp").append("://").append(senderHost).append(":")
                 .append(port).toString();
@@ -259,16 +259,16 @@ public class ListenRELP extends AbstractProcessor {
         EventBatcher eventBatcher = getEventBatcher();
 
         final int batchSize = context.getProperty(AbstractListenEventBatchingProcessor.MAX_BATCH_SIZE).asInteger();
-        Map<String, FlowFileNettyEventBatch> batches = eventBatcher.getBatches(session, batchSize, messageDemarcatorBytes);
+        Map<String, FlowFileEventBatch> batches = eventBatcher.getBatches(session, batchSize, messageDemarcatorBytes);
 
-        final List<RELPNettyEvent> eventsAwaitingResponse = new ArrayList<>();
+        final List<RELPMessage> eventsAwaitingResponse = new ArrayList<>();
         getEventsAwaitingResponse(session, batches, eventsAwaitingResponse);
     }
 
-    private void getEventsAwaitingResponse(final ProcessSession session, final Map<String, FlowFileNettyEventBatch> batches, final List<RELPNettyEvent> allEvents) {
-        for (Map.Entry<String, FlowFileNettyEventBatch> entry : batches.entrySet()) {
+    private void getEventsAwaitingResponse(final ProcessSession session, final Map<String, FlowFileEventBatch> batches, final List<RELPMessage> allEvents) {
+        for (Map.Entry<String, FlowFileEventBatch> entry : batches.entrySet()) {
             FlowFile flowFile = entry.getValue().getFlowFile();
-            final List<RELPNettyEvent> events = entry.getValue().getEvents();
+            final List<RELPMessage> events = entry.getValue().getEvents();
 
             if (flowFile.getSize() == 0L || events.size() == 0) {
                 session.remove(flowFile);
@@ -291,14 +291,14 @@ public class ListenRELP extends AbstractProcessor {
         session.commitAsync();
     }
 
-    protected String getRELPBatchKey(RELPNettyEvent event) {
-        return event.getSender().toString() + "_" + event.getCommand();
+    protected String getRELPBatchKey(final RELPMessage event) {
+        return event.getSender() + "_" + event.getCommand();
     }
 
     protected EventBatcher getEventBatcher() {
-        return new EventBatcher<RELPNettyEvent>(getLogger(), events, errorEvents) {
+        return new EventBatcher<RELPMessage>(getLogger(), events, errorEvents) {
             @Override
-            protected String getBatchKey(RELPNettyEvent event) {
+            protected String getBatchKey(RELPMessage event) {
                 return getRELPBatchKey(event);
             }
         };
@@ -323,6 +323,6 @@ public class ListenRELP extends AbstractProcessor {
     }
 
     private NettyEventServerFactory getNettyEventServerFactory() {
-        return new RELPNettyEventServerFactory(getLogger(), hostname, port, charset, events);
+        return new RELPMessageServerFactory(getLogger(), hostname, port, charset, events);
     }
 }

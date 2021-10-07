@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.processor.util.listen;
 
+import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processor.util.listen.event.NettyEvent;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public abstract class EventBatcher<E extends NettyEvent> {
+public abstract class EventBatcher<E extends ByteArrayMessage> {
 
     public static final int POLL_TIMEOUT_MS = 20;
 
@@ -56,10 +56,10 @@ public abstract class EventBatcher<E extends NettyEvent> {
      * @return a Map from the batch key to the FlowFile and events for that batch, the size of events in all
      * the batches will be <= batchSize
      */
-    public Map<String, FlowFileNettyEventBatch> getBatches(final ProcessSession session, final int totalBatchSize,
-                                                         final byte[] messageDemarcatorBytes) {
+    public Map<String, FlowFileEventBatch> getBatches(final ProcessSession session, final int totalBatchSize,
+                                                      final byte[] messageDemarcatorBytes) {
 
-        final Map<String, FlowFileNettyEventBatch> batches = new HashMap<String, FlowFileNettyEventBatch>();
+        final Map<String, FlowFileEventBatch> batches = new HashMap<String, FlowFileEventBatch>();
         for (int i = 0; i < totalBatchSize; i++) {
             final E event = getMessage(true, true, session);
             if (event == null) {
@@ -67,11 +67,11 @@ public abstract class EventBatcher<E extends NettyEvent> {
             }
 
             final String batchKey = getBatchKey(event);
-            FlowFileNettyEventBatch batch = batches.get(batchKey);
+            FlowFileEventBatch batch = batches.get(batchKey);
 
             // if we don't have a batch for this key then create a new one
             if (batch == null) {
-                batch = new FlowFileNettyEventBatch(session.create(), new ArrayList<E>());
+                batch = new FlowFileEventBatch(session.create(), new ArrayList<E>());
                 batches.put(batchKey, batch);
             }
 
@@ -81,7 +81,7 @@ public abstract class EventBatcher<E extends NettyEvent> {
             // append the event's data to the FlowFile, write the demarcator first if not on the first event
             final boolean writeDemarcator = (i > 0);
             try {
-                final byte[] rawMessage = event.getData();
+                final byte[] rawMessage = event.getMessage();
                 FlowFile appendedFlowFile = session.append(batch.getFlowFile(), new OutputStreamCallback() {
                     @Override
                     public void process(final OutputStream out) throws IOException {

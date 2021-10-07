@@ -14,23 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processor.util.listen.event;
+package org.apache.nifi.processors.standard.relp.event;
 
-import java.util.Map;
+import org.apache.nifi.event.transport.message.ByteArrayMessage;
 
 /**
- * Factory to create instances of a given type of NettyEvent.
+ * A RELP message which adds a transaction number and command to the ByteArrayMessage.
  */
-public interface NettyEventFactory<E extends NettyEvent> {
+public class RELPMessage extends ByteArrayMessage {
 
-    /**
-     * Creates an event for the given data and metadata.
-     *
-     * @param data raw data from a channel
-     * @param metadata additional metadata
-     *
-     * @return an instance of the given type
-     */
-    E create(final byte[] data, final Map<String, String> metadata);
+    private final long txnr;
+    private final String command;
 
+    public RELPMessage(final String sender, final byte[] data, final long txnr, final String command) {
+        super(data, sender);
+        this.txnr = txnr;
+        this.command = command;
+    }
+
+    public long getTxnr() {
+        return txnr;
+    }
+
+    public String getCommand() {
+        return command;
+    }
 }

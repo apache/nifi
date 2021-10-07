@@ -14,32 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processor.util.listen;
+package org.apache.nifi.processor.util.listen.event;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.util.listen.event.NettyEvent;
+import org.apache.nifi.event.transport.NetworkEvent;
 
-import java.util.List;
+import java.util.Map;
 
-public final class FlowFileNettyEventBatch<E extends NettyEvent> {
+/**
+ * Factory to create instances of a given type of NettyEvent.
+ */
+public interface NetworkEventFactory<E extends NetworkEvent> {
 
-        private FlowFile flowFile;
-        private List<E> events;
+    /**
+     * Creates an event for the given data and metadata.
+     *
+     * @param data raw data from a channel
+     * @param metadata additional metadata
+     *
+     * @return an instance of the given type
+     */
+    E create(final byte[] data, final Map<String, String> metadata);
 
-        public FlowFileNettyEventBatch(final FlowFile flowFile, final List<E> events) {
-            this.flowFile = flowFile;
-            this.events = events;
-        }
-
-        public FlowFile getFlowFile() {
-            return flowFile;
-        }
-
-        public List<E> getEvents() {
-            return events;
-        }
-
-        public void setFlowFile(FlowFile flowFile) {
-            this.flowFile = flowFile;
-        }
 }

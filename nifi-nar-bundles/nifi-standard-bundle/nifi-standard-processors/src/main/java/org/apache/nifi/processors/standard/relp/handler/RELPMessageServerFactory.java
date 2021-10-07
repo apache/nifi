@@ -20,9 +20,9 @@ import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processors.standard.relp.event.RELPNettyEvent;
+import org.apache.nifi.processors.standard.relp.event.RELPMessage;
 import org.apache.nifi.processors.standard.relp.frame.RELPFrameDecoder;
-import org.apache.nifi.processors.standard.relp.frame.RELPNettyEventChannelHandler;
+import org.apache.nifi.processors.standard.relp.frame.RELPMessageChannelHandler;
 
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -31,7 +31,7 @@ import java.util.concurrent.BlockingQueue;
 /**
  * Netty Event Server Factory for RELP events/messages
  */
-public class RELPNettyEventServerFactory extends NettyEventServerFactory {
+public class RELPMessageServerFactory extends NettyEventServerFactory {
 
     /**
      * RELP Netty Event Server Factory to receive RELP events
@@ -40,14 +40,14 @@ public class RELPNettyEventServerFactory extends NettyEventServerFactory {
      * @param port Remote Port Number
      * @param events Blocking Queue for events received
      */
-    public RELPNettyEventServerFactory(final ComponentLog log,
-                                       final String address,
-                                       final int port,
-                                       final Charset charset,
-                                       final BlockingQueue<RELPNettyEvent> events) {
+    public RELPMessageServerFactory(final ComponentLog log,
+                                    final String address,
+                                    final int port,
+                                    final Charset charset,
+                                    final BlockingQueue<RELPMessage> events) {
         super(address, port, TransportProtocol.TCP);
         final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);
-        final RELPNettyEventChannelHandler relpChannelHandler = new RELPNettyEventChannelHandler(events, charset);
+        final RELPMessageChannelHandler relpChannelHandler = new RELPMessageChannelHandler(events, charset);
 
         setHandlerSupplier(() -> Arrays.asList(
                 logExceptionChannelHandler,

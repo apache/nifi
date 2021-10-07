@@ -147,7 +147,7 @@ public class RELPDecoder {
         if (b == RELPFrame.SEPARATOR) {
             final String command = new String(currBytes.toByteArray(), charset);
             frameBuilder.command(command);
-            logger.debug("Command is {}", new Object[] {command});
+            logger.debug("Command is {}", command);
 
             currBytes.reset();
             currState = RELPState.LENGTH;
@@ -160,7 +160,7 @@ public class RELPDecoder {
         if (b == RELPFrame.SEPARATOR || (currBytes.size() > 0 && b == RELPFrame.DELIMITER)) {
             final int dataLength = Integer.parseInt(new String(currBytes.toByteArray(), charset));
             frameBuilder.dataLength(dataLength);
-            logger.debug("Length is {}", new Object[] {dataLength});
+            logger.debug("Length is {}", dataLength);
 
             currBytes.reset();
 

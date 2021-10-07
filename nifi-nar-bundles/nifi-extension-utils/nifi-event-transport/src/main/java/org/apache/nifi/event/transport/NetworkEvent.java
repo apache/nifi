@@ -14,29 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.relp.event;
-
-import org.apache.nifi.processor.util.listen.event.StandardNettyEvent;
+package org.apache.nifi.event.transport;
 
 /**
- * A RELP event which includes the transaction number and command to the StandardEvent.
+ * An interface to represent network delivered event/messages
  */
-public class RELPNettyEvent extends StandardNettyEvent {
+public interface NetworkEvent {
 
-    private final long txnr;
-    private final String command;
+    /**
+     * @return the sending host of the data, as a socket
+     */
+    String getSender();
 
-    public RELPNettyEvent(final String sender, final byte[] data, final long txnr, final String command) {
-        super(sender, data);
-        this.txnr = txnr;
-        this.command = command;
-    }
+    /**
+     * @return raw data for this event
+     */
+    byte[] getMessage();
 
-    public long getTxnr() {
-        return txnr;
-    }
-
-    public String getCommand() {
-        return command;
-    }
 }

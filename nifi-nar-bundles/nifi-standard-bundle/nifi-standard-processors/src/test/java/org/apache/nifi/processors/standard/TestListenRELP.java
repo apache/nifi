@@ -24,7 +24,7 @@ import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.listen.AbstractListenEventBatchingProcessor;
-import org.apache.nifi.processors.standard.relp.event.RELPNettyEvent;
+import org.apache.nifi.processors.standard.relp.event.RELPMessage;
 import org.apache.nifi.processors.standard.relp.frame.RELPEncoder;
 import org.apache.nifi.processors.standard.relp.frame.RELPFrame;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -187,13 +187,13 @@ public class TestListenRELP {
         String sender2 = "/192.168.1.50:55001";
         String sender3 = "/192.168.1.50:55002";
 
-        final List<RELPNettyEvent> mockEvents = new ArrayList<>();
-        mockEvents.add(new RELPNettyEvent(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
-        mockEvents.add(new RELPNettyEvent(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
-        mockEvents.add(new RELPNettyEvent(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
-        mockEvents.add(new RELPNettyEvent(sender2, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
-        mockEvents.add(new RELPNettyEvent(sender3, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
-        mockEvents.add(new RELPNettyEvent(sender3, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        final List<RELPMessage> mockEvents = new ArrayList<>();
+        mockEvents.add(new RELPMessage(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        mockEvents.add(new RELPMessage(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        mockEvents.add(new RELPMessage(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        mockEvents.add(new RELPMessage(sender2, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        mockEvents.add(new RELPMessage(sender3, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        mockEvents.add(new RELPMessage(sender3, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
 
         MockListenRELP mockListenRELP = new MockListenRELP(mockEvents);
         runner = TestRunners.newTestRunner(mockListenRELP);
@@ -255,13 +255,13 @@ public class TestListenRELP {
     }
 
     private class MockListenRELP extends ListenRELP {
-        private final List<RELPNettyEvent> mockEvents;
+        private final List<RELPMessage> mockEvents;
 
         public MockListenRELP() {
             this.mockEvents = new ArrayList<>();
         }
 
-        public MockListenRELP(List<RELPNettyEvent> mockEvents) {
+        public MockListenRELP(List<RELPMessage> mockEvents) {
             this.mockEvents = mockEvents;
         }
 

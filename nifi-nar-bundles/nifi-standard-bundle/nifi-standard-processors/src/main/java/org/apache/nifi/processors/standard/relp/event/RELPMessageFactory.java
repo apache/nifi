@@ -14,29 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processor.util.listen.event;
+package org.apache.nifi.processors.standard.relp.event;
+
+import org.apache.nifi.processor.util.listen.event.NetworkEventFactory;
+
+import java.util.Map;
 
 /**
- * Standard implementation of the NettyEvent.
+ * An EventFactory implementation to create RELPEvents.
  */
-public class StandardNettyEvent implements NettyEvent {
-
-    private final String sender;
-    private final byte[] data;
-
-    public StandardNettyEvent(final String sender, final byte[] data) {
-        this.sender = sender;
-        this.data = data;
-    }
+public class RELPMessageFactory implements NetworkEventFactory<RELPMessage> {
 
     @Override
-    public String getSender() {
-        return sender;
+    public RELPMessage create(final byte[] data, final Map<String, String> metadata) {
+        final long txnr = Long.valueOf(metadata.get(RELPMetadata.TXNR_KEY));
+        final String command = metadata.get(RELPMetadata.COMMAND_KEY);
+        final String sender = metadata.get(RELPMetadata.SENDER_KEY);
+        return new RELPMessage(sender, data, txnr, command);
     }
-
-    @Override
-    public byte[] getData() {
-        return data;
-    }
-
 }

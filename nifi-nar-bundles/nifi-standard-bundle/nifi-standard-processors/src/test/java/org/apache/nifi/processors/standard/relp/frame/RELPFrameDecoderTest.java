@@ -20,7 +20,7 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processors.standard.relp.event.RELPNettyEvent;
+import org.apache.nifi.processors.standard.relp.event.RELPMessage;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.Test;
 
@@ -71,10 +71,9 @@ class RELPFrameDecoderTest {
         assert(channel.writeInbound(eventBytes.buffer()));
         assertEquals(5, channel.inboundMessages().size());
 
-        RELPNettyEvent event = channel.readInbound();
-        assertEquals(RELPNettyEvent.class, event.getClass());
-        assertEquals(SYSLOG_FRAME_DATA, new String(event.getData(), StandardCharsets.UTF_8));
-
+        RELPMessage event = channel.readInbound();
+        assertEquals(RELPMessage.class, event.getClass());
+        assertEquals(SYSLOG_FRAME_DATA, new String(event.getMessage(), StandardCharsets.UTF_8));
         assertEquals(2, channel.outboundMessages().size());
     }
 
