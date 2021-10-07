@@ -220,8 +220,8 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
     static final PropertyDescriptor AT_TIMESTAMP_RECORD_PATH = new PropertyDescriptor.Builder()
             .name("put-es-record-at-timestamp-path")
             .displayName("@timestamp Record Path")
-            .description("A RecordPath pointing to a field in the record(s) that contains the @timestamp for the document " +
-                    "(required for Elasticsearch Data Streams). If left blank the @timestamp will be determined using the main property type")
+            .description("A RecordPath pointing to a field in the record(s) that contains the @timestamp for the document. " +
+                    "If left blank the @timestamp will be determined using the main @timestamp property")
             .required(false)
             .addValidator(new RecordPathValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -232,7 +232,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             .description("Specifies the format to use when reading/writing Date fields. "
                     + "If not specified, the default format '" + RecordFieldType.DATE.getDefaultFormat() + "' is used. "
                     + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy for a two-digit month, followed by "
-                    + "a two-digit day, followed by a four-digit year, all separated by '/' characters, as in 01/01/2017).")
+                    + "a two-digit day, followed by a four-digit year, all separated by '/' characters, as in 01/25/2017).")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(new SimpleDateFormatValidator())
             .required(false)
@@ -253,7 +253,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                     + "If not specified, the default format '" + RecordFieldType.TIMESTAMP.getDefaultFormat() + "' is used. "
                     + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy HH:mm:ss for a two-digit month, followed by "
                     + "a two-digit day, followed by a four-digit year, all separated by '/' characters; and then followed by a two-digit hour in 24-hour format, followed by "
-                    + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 01/01/2017 18:04:15).")
+                    + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 01/25/2017 18:04:15).")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(new SimpleDateFormatValidator())
             .required(false)
@@ -285,10 +285,10 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         descriptors.add(LOG_ALL_ERRORS);
         descriptors.add(ID_RECORD_PATH);
         descriptors.add(AT_TIMESTAMP_RECORD_PATH);
+        descriptors.add(AT_TIMESTAMP);
         descriptors.add(INDEX);
         descriptors.add(TYPE);
         descriptors.add(INDEX_OP);
-        descriptors.add(AT_TIMESTAMP);
         descriptors.add(SUPPRESS_NULLS);
         descriptors.add(DATE_FORMAT);
         descriptors.add(TIME_FORMAT);
