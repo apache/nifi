@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import io.jsonwebtoken.JwtException;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -35,6 +34,7 @@ import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.web.api.cookie.ApplicationCookieName;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 import org.apache.nifi.web.api.dto.AccessStatusDTO;
 import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
@@ -43,16 +43,13 @@ import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.LogoutException;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationRequestToken;
-import org.apache.nifi.web.security.jwt.JwtService;
-import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
+import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
+import org.apache.nifi.web.security.jwt.revocation.JwtLogoutListener;
 import org.apache.nifi.web.security.kerberos.KerberosService;
 import org.apache.nifi.web.security.knox.KnoxService;
 import org.apache.nifi.web.security.logout.LogoutRequest;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
 import org.apache.nifi.web.security.x509.X509AuthenticationRequestToken;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
@@ -61,10 +58,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.oauth2.server.resource.BearerTokenAuthenticationToken;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
-import org.springframework.web.util.WebUtils;
 
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
@@ -80,6 +78,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.net.URI;
 import java.security.cert.X509Certificate;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -95,7 +94,6 @@ public class AccessResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(AccessResource.class);
     protected static final String AUTHENTICATION_NOT_ENABLED_MSG = "User authentication/authorization is only supported when running over HTTPS.";
-    static final String LOGOUT_REQUEST_IDENTIFIER = "nifi-logout-request-identifier";
 
     private X509CertificateExtractor certificateExtractor;
     private X509AuthenticationProvider x509AuthenticationProvider;
@@ -103,7 +101,9 @@ public class AccessResource extends ApplicationResource {
 
     private LoginIdentityProvider loginIdentityProvider;
     private JwtAuthenticationProvider jwtAuthenticationProvider;
-    private JwtService jwtService;
+    private JwtLogoutListener jwtLogoutListener;
+    private BearerTokenProvider bearerTokenProvider;
+    private BearerTokenResolver bearerTokenResolver;
     private KnoxService knoxService;
     private KerberosService kerberosService;
     protected LogoutRequestManager logoutRequestManager;
@@ -232,8 +232,6 @@ public class AccessResource extends ApplicationResource {
             }
     )
     public Response getAccessStatus(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
-
-        // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
             throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
         }
@@ -243,33 +241,23 @@ public class AccessResource extends ApplicationResource {
         try {
             final X509Certificate[] certificates = certificateExtractor.extractClientCertificate(httpServletRequest);
 
-            // if there is not certificate, consider a token
             if (certificates == null) {
-                // look for an authorization token in header or cookie
-                final String authorization = new NiFiBearerTokenResolver().resolve(httpServletRequest);
-
-                // if there is no authorization header, we don't know the user
-                if (authorization == null) {
+                final String bearerToken = bearerTokenResolver.resolve(httpServletRequest);
+                if (bearerToken == null) {
                     accessStatus.setStatus(AccessStatusDTO.Status.UNKNOWN.name());
-                    accessStatus.setMessage("No credentials supplied, unknown user.");
+                    accessStatus.setMessage("Access Unknown: Certificate and Token not found.");
                 } else {
                     try {
-                        // authenticate the token
-                        final JwtAuthenticationRequestToken jwtRequest = new JwtAuthenticationRequestToken(authorization, httpServletRequest.getRemoteAddr());
-                        final NiFiAuthenticationToken authenticationResponse = (NiFiAuthenticationToken) jwtAuthenticationProvider.authenticate(jwtRequest);
-                        final NiFiUser nifiUser = ((NiFiUserDetails) authenticationResponse.getDetails()).getNiFiUser();
+                        final BearerTokenAuthenticationToken authenticationToken = new BearerTokenAuthenticationToken(bearerToken);
+                        final Authentication authentication = jwtAuthenticationProvider.authenticate(authenticationToken);
+                        final NiFiUserDetails userDetails = (NiFiUserDetails) authentication.getPrincipal();
+                        final String identity = userDetails.getUsername();
 
-                        // set the user identity
-                        accessStatus.setIdentity(nifiUser.getIdentity());
-
-                        // attempt authorize to /flow
+                        accessStatus.setIdentity(identity);
                         accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                        accessStatus.setMessage("You are already logged in.");
-                    } catch (final InvalidAuthenticationException iae) {
-                        if (WebUtils.getCookie(httpServletRequest, NiFiBearerTokenResolver.JWT_COOKIE_NAME) != null) {
-                            removeCookie(httpServletResponse, NiFiBearerTokenResolver.JWT_COOKIE_NAME);
-                        }
-
+                        accessStatus.setMessage("Access Granted: Token authenticated.");
+                    } catch (final AuthenticationException iae) {
+                        applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.AUTHORIZATION_BEARER);
                         throw iae;
                     }
                 }
@@ -281,15 +269,12 @@ public class AccessResource extends ApplicationResource {
                     final X509AuthenticationRequestToken x509Request = new X509AuthenticationRequestToken(
                             proxiedEntitiesChain, proxiedEntityGroups, principalExtractor, certificates, httpServletRequest.getRemoteAddr());
 
-                    final NiFiAuthenticationToken authenticationResponse = (NiFiAuthenticationToken) x509AuthenticationProvider.authenticate(x509Request);
+                    final Authentication authenticationResponse = x509AuthenticationProvider.authenticate(x509Request);
                     final NiFiUser nifiUser = ((NiFiUserDetails) authenticationResponse.getDetails()).getNiFiUser();
 
-                    // set the user identity
                     accessStatus.setIdentity(nifiUser.getIdentity());
-
-                    // attempt authorize to /flow
                     accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                    accessStatus.setMessage("You are already logged in.");
+                    accessStatus.setMessage("Access Granted: Certificate authenticated.");
                 } catch (final IllegalArgumentException iae) {
                     throw new InvalidAuthenticationException(iae.getMessage(), iae);
                 }
@@ -300,7 +285,6 @@ public class AccessResource extends ApplicationResource {
             throw new AdministrationException(ase.getMessage(), ase);
         }
 
-        // create the entity
         final AccessStatusEntity entity = new AccessStatusEntity();
         entity.setAccessStatus(accessStatus);
 
@@ -334,7 +318,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(code = 500, message = "Unable to create access token because an unexpected error occurred.")
             }
     )
-    public Response createAccessTokenFromTicket(@Context HttpServletRequest httpServletRequest) {
+    public Response createAccessTokenFromTicket(@Context final HttpServletRequest httpServletRequest, @Context final HttpServletResponse httpServletResponse) {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
@@ -351,8 +335,7 @@ public class AccessResource extends ApplicationResource {
         String authorizationHeaderValue = httpServletRequest.getHeader(KerberosService.AUTHORIZATION_HEADER_NAME);
 
         if (!kerberosService.isValidKerberosHeader(authorizationHeaderValue)) {
-            final Response response = generateNotAuthorizedResponse().header(KerberosService.AUTHENTICATION_CHALLENGE_HEADER_NAME, KerberosService.AUTHORIZATION_NEGOTIATE).build();
-            return response;
+            return generateNotAuthorizedResponse().header(KerberosService.AUTHENTICATION_CHALLENGE_HEADER_NAME, KerberosService.AUTHORIZATION_NEGOTIATE).build();
         } else {
             try {
                 // attempt to authenticate
@@ -363,20 +346,16 @@ public class AccessResource extends ApplicationResource {
                 }
 
                 final String expirationFromProperties = properties.getKerberosAuthenticationExpiration();
-                long expiration = FormatUtils.getTimeDuration(expirationFromProperties, TimeUnit.MILLISECONDS);
+                long expiration = Math.round(FormatUtils.getPreciseTimeDuration(expirationFromProperties, TimeUnit.MILLISECONDS));
                 final String rawIdentity = authentication.getName();
                 String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
                 expiration = validateTokenExpiration(expiration, mappedIdentity);
 
-                // create the authentication token
                 final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, "KerberosService");
-
-                // generate JWT for response
-                final String token = jwtService.generateSignedToken(loginAuthenticationToken);
-
-                // build the response
+                final String token = bearerTokenProvider.getBearerToken(loginAuthenticationToken);
                 final URI uri = URI.create(generateResourceUri("access", "kerberos"));
-                return generateTokenResponse(generateCreatedResponse(uri, token), token);
+                setBearerToken(httpServletResponse, token);
+                return generateCreatedResponse(uri, token).build();
             } catch (final AuthenticationException e) {
                 throw new AccessDeniedException(e.getMessage(), e);
             }
@@ -411,9 +390,10 @@ public class AccessResource extends ApplicationResource {
             }
     )
     public Response createAccessToken(
-            @Context HttpServletRequest httpServletRequest,
-            @FormParam("username") String username,
-            @FormParam("password") String password) {
+            @Context final HttpServletRequest httpServletRequest,
+            @Context final HttpServletResponse httpServletResponse,
+            @FormParam("username") final String username,
+            @FormParam("password") final String password) {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
@@ -447,12 +427,10 @@ public class AccessResource extends ApplicationResource {
             throw new AdministrationException(iae.getMessage(), iae);
         }
 
-        // generate JWT for response
-        final String token = jwtService.generateSignedToken(loginAuthenticationToken);
-
-        // build the response
+        final String bearerToken = bearerTokenProvider.getBearerToken(loginAuthenticationToken);
         final URI uri = URI.create(generateResourceUri("access", "token"));
-        return generateTokenResponse(generateCreatedResponse(uri, token), token);
+        setBearerToken(httpServletResponse, bearerToken);
+        return generateCreatedResponse(uri, bearerToken).build();
     }
 
     @DELETE
@@ -482,29 +460,21 @@ public class AccessResource extends ApplicationResource {
         }
 
         try {
-            logger.info("Logging out " + mappedUserIdentity);
-            logOutUser(httpServletRequest);
-            removeCookie(httpServletResponse, NiFiBearerTokenResolver.JWT_COOKIE_NAME);
-            logger.debug("Invalidated JWT for user [{}]", mappedUserIdentity);
+            logger.info("Logout Started [{}]", mappedUserIdentity);
+            logger.debug("Removing Authorization Cookie [{}]", mappedUserIdentity);
+            applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.AUTHORIZATION_BEARER);
+
+            final String bearerToken = bearerTokenResolver.resolve(httpServletRequest);
+            jwtLogoutListener.logout(bearerToken);
 
             // create a LogoutRequest and tell the LogoutRequestManager about it for later retrieval
             final LogoutRequest logoutRequest = new LogoutRequest(UUID.randomUUID().toString(), mappedUserIdentity);
             logoutRequestManager.start(logoutRequest);
 
-            // generate a cookie to store the logout request identifier
-            final Cookie cookie = new Cookie(LOGOUT_REQUEST_IDENTIFIER, logoutRequest.getRequestIdentifier());
-            cookie.setPath("/");
-            cookie.setHttpOnly(true);
-            cookie.setMaxAge(60);
-            cookie.setSecure(true);
-            httpServletResponse.addCookie(cookie);
-
+            applicationCookieService.addCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER, logoutRequest.getRequestIdentifier());
             return generateOkResponse().build();
-        } catch (final JwtException e) {
-            logger.error("JWT processing failed for [{}], due to: ", mappedUserIdentity, e.getMessage(), e);
-            return Response.serverError().build();
         } catch (final LogoutException e) {
-            logger.error("Logout failed for user [{}] due to: ", mappedUserIdentity, e.getMessage(), e);
+            logger.error("Logout Failed Identity [{}]", mappedUserIdentity, e);
             return Response.serverError().build();
         }
     }
@@ -539,22 +509,16 @@ public class AccessResource extends ApplicationResource {
     LogoutRequest completeLogoutRequest(final HttpServletResponse httpServletResponse) {
         LogoutRequest logoutRequest = null;
 
-        // check if a logout request identifier is present and if so complete the request
-        final Cookie cookie = WebUtils.getCookie(httpServletRequest, LOGOUT_REQUEST_IDENTIFIER);
-        final String logoutRequestIdentifier = cookie == null ? null : cookie.getValue();
-        if (logoutRequestIdentifier != null) {
+        final Optional<String> cookieValue = getLogoutRequestIdentifier();
+        if (cookieValue.isPresent()) {
+            final String logoutRequestIdentifier = cookieValue.get();
             logoutRequest = logoutRequestManager.complete(logoutRequestIdentifier);
-        }
-
-        if (logoutRequest == null) {
-            logger.warn("Logout request did not exist for identifier: " + logoutRequestIdentifier);
+            logger.info("Logout Request [{}] Completed [{}]", logoutRequestIdentifier, logoutRequest.getMappedUserIdentity());
         } else {
-            logger.info("Completed logout request for " + logoutRequest.getMappedUserIdentity());
+            logger.warn("Logout Request Cookie [{}] not found", ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER.getCookieName());
         }
 
-        // remove the cookie if it existed
         removeLogoutRequestCookie(httpServletResponse);
-
         return logoutRequest;
     }
 
@@ -579,8 +543,22 @@ public class AccessResource extends ApplicationResource {
         return getNiFiUri() + "logout-complete";
     }
 
-    void removeLogoutRequestCookie(final HttpServletResponse httpServletResponse) {
-        removeCookie(httpServletResponse, LOGOUT_REQUEST_IDENTIFIER);
+    /**
+     * Send Set-Cookie header to remove Logout Request Identifier cookie from client
+     *
+     * @param httpServletResponse HTTP Servlet Response
+     */
+    protected void removeLogoutRequestCookie(final HttpServletResponse httpServletResponse) {
+        applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER);
+    }
+
+    /**
+     * Get Logout Request Identifier from current HTTP Request Cookie header
+     *
+     * @return Optional Logout Request Identifier
+     */
+    protected Optional<String> getLogoutRequestIdentifier() {
+        return applicationCookieService.getCookieValue(httpServletRequest, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER);
     }
 
     // setters
@@ -588,12 +566,20 @@ public class AccessResource extends ApplicationResource {
         this.loginIdentityProvider = loginIdentityProvider;
     }
 
-    public void setJwtService(JwtService jwtService) {
-        this.jwtService = jwtService;
+    public void setBearerTokenProvider(final BearerTokenProvider bearerTokenProvider) {
+        this.bearerTokenProvider = bearerTokenProvider;
+    }
+
+    public void setBearerTokenResolver(final BearerTokenResolver bearerTokenResolver) {
+        this.bearerTokenResolver = bearerTokenResolver;
     }
 
     public void setJwtAuthenticationProvider(JwtAuthenticationProvider jwtAuthenticationProvider) {
         this.jwtAuthenticationProvider = jwtAuthenticationProvider;
+    }
+
+    public void setJwtLogoutListener(final JwtLogoutListener jwtLogoutListener) {
+        this.jwtLogoutListener = jwtLogoutListener;
     }
 
     public void setKerberosService(KerberosService kerberosService) {
@@ -614,11 +600,6 @@ public class AccessResource extends ApplicationResource {
 
     public void setKnoxService(KnoxService knoxService) {
         this.knoxService = knoxService;
-    }
-
-    private void logOutUser(HttpServletRequest httpServletRequest) {
-        final String jwt = new NiFiBearerTokenResolver().resolve(httpServletRequest);
-        jwtService.logOut(jwt);
     }
 
     public void setLogoutRequestManager(LogoutRequestManager logoutRequestManager) {

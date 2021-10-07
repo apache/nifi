@@ -28,11 +28,14 @@ import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.ZooKeeperServer;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,14 +67,12 @@ public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
     private static ServerCnxnFactory serverConnectionFactory;
     private static NiFiProperties nifiProperties;
 
-    private static final String CLIENT_KEYSTORE = "src/test/resources/localhost-ks.jks";
-    private static final String CLIENT_TRUSTSTORE = "src/test/resources/localhost-ts.jks";
-    private static final String CLIENT_KEYSTORE_TYPE = "JKS";
-    private static final String CLIENT_TRUSTSTORE_TYPE = "JKS";
-    private static final String SERVER_KEYSTORE = "src/test/resources/localhost-ks.jks";
-    private static final String SERVER_TRUSTSTORE = "src/test/resources/localhost-ts.jks";
-    private static final String KEYSTORE_PASSWORD = "OI7kMpWzzVNVx/JGhTL/0uO4+PWpGJ46uZ/pfepbkwI";
-    private static final String TRUSTSTORE_PASSWORD = "wAOR0nQJ2EXvOP0JZ2EaqA/n7W69ILS4sWAHghmIWCc";
+    private static TlsConfiguration tlsConfiguration;
+
+    @BeforeClass
+    public static void setTlsConfiguration() {
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
+    }
 
     @Before
     public void setup() throws Exception {
@@ -86,22 +87,22 @@ public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
                 dataDir,
                 tempDir,
                 clientPort,
-                Paths.get(SERVER_KEYSTORE),
-                KEYSTORE_PASSWORD,
-                Paths.get(SERVER_TRUSTSTORE),
-                TRUSTSTORE_PASSWORD
+                Paths.get(tlsConfiguration.getKeystorePath()),
+                tlsConfiguration.getKeystorePassword(),
+                Paths.get(tlsConfiguration.getTruststorePath()),
+                tlsConfiguration.getTruststorePassword()
         );
         zkServer = serverConnectionFactory.getZooKeeperServer();
 
         // Set up state provider (client) TLS properties, normally injected through StateProviderContext annotation
         nifiProperties = createSecureClientProperties(
                 clientPort,
-                Paths.get(CLIENT_KEYSTORE),
-                CLIENT_KEYSTORE_TYPE,
-                KEYSTORE_PASSWORD,
-                Paths.get(CLIENT_TRUSTSTORE),
-                CLIENT_TRUSTSTORE_TYPE,
-                TRUSTSTORE_PASSWORD
+                Paths.get(tlsConfiguration.getKeystorePath()),
+                tlsConfiguration.getKeystoreType().getType(),
+                tlsConfiguration.getKeystorePassword(),
+                Paths.get(tlsConfiguration.getTruststorePath()),
+                tlsConfiguration.getTruststoreType().getType(),
+                tlsConfiguration.getTruststorePassword()
                 );
 
         // Set up state provider properties
@@ -138,12 +139,12 @@ public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
                 }
 
                 propValueMap.put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, Boolean.TRUE.toString());
-                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, CLIENT_KEYSTORE);
-                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, KEYSTORE_PASSWORD);
-                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, CLIENT_KEYSTORE_TYPE);
-                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, CLIENT_TRUSTSTORE);
-                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, TRUSTSTORE_PASSWORD);
-                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, CLIENT_TRUSTSTORE_TYPE);
+                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
+                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, tlsConfiguration.getKeystorePassword());
+                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
+                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
+                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, tlsConfiguration.getTruststorePassword());
+                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
 
                 return propValueMap;
             }

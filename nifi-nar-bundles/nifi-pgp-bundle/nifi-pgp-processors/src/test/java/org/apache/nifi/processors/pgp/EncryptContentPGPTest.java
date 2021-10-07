@@ -49,12 +49,12 @@ import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
 import org.bouncycastle.openpgp.operator.bc.BcPublicKeyDataDecryptorFactory;
 import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyDecryptorBuilder;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -63,12 +63,12 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class EncryptContentPGPTest {
     private static final String PASSPHRASE = UUID.randomUUID().toString();
 
@@ -91,7 +91,7 @@ public class EncryptContentPGPTest {
     @Mock
     private PGPPublicKeyService publicKeyService;
 
-    @BeforeClass
+    @BeforeAll
     public static void setKeys() throws Exception {
         rsaSecretKey = PGPSecretKeyGenerator.generateRsaSecretKey(PASSPHRASE.toCharArray());
         final PGPSecretKeyRing dsaElGamalSecretKeyRing = PGPSecretKeyGenerator.generateDsaElGamalSecretKeyRing(PASSPHRASE.toCharArray());
@@ -107,7 +107,7 @@ public class EncryptContentPGPTest {
         }
     }
 
-    @Before
+    @BeforeEach
     public void setRunner() {
         runner = TestRunners.newTestRunner(new EncryptContentPGP());
     }
@@ -248,7 +248,7 @@ public class EncryptContentPGPTest {
         final Optional<PGPEncryptedData> encryptedData = StreamSupport.stream(encryptedDataList.spliterator(), false)
                 .filter(pgpEncryptedData -> pgpEncryptedData instanceof PGPPublicKeyEncryptedData)
                 .findFirst();
-        assertTrue("Public Key Encrypted Data not found", encryptedData.isPresent());
+        assertTrue(encryptedData.isPresent(), "Public Key Encrypted Data not found");
 
         final PGPPublicKeyEncryptedData publicKeyEncryptedData = (PGPPublicKeyEncryptedData) encryptedData.get();
         final String decryptedData = getDecryptedData(publicKeyEncryptedData, privateKey);
@@ -264,7 +264,7 @@ public class EncryptContentPGPTest {
         final Optional<PGPEncryptedData> encryptedData = StreamSupport.stream(encryptedDataList.spliterator(), false)
                 .filter(pgpEncryptedData -> pgpEncryptedData instanceof PGPPBEEncryptedData)
                 .findFirst();
-        assertTrue("Password Based Encrypted Data not found", encryptedData.isPresent());
+        assertTrue(encryptedData.isPresent(), "Password Based Encrypted Data not found");
 
         final PGPPBEEncryptedData passwordBasedEncryptedData = (PGPPBEEncryptedData) encryptedData.get();
         final String decryptedData = getDecryptedData(passwordBasedEncryptedData, passphrase);

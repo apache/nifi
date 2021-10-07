@@ -24,9 +24,14 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,10 +61,10 @@ public class PropertiesFileEngineConfigurationParser {
     private static final String KRB5_FILE = PREFIX + "kerberos.krb5.file";
 
     private static final String DEFAULT_KRB5_FILENAME = "/etc/krb5.conf";
-    private static final String DEFAULT_ENCRYPTION_PASSWORD = "nifi-stateless";
 
     private static final Pattern EXTENSION_CLIENT_PATTERN = Pattern.compile("\\Qnifi.stateless.extension.client.\\E(.*?)\\.(.+)");
 
+    private static final int PROPERTIES_KEY_LENGTH = 24;
 
     public StatelessEngineConfiguration parseEngineConfiguration(final File propertiesFile) throws IOException, StatelessConfigurationException {
         if (!propertiesFile.exists()) {
@@ -93,7 +98,7 @@ public class PropertiesFileEngineConfigurationParser {
         final String krb5Filename = properties.getProperty(KRB5_FILE, DEFAULT_KRB5_FILENAME);
         final File krb5File = new File(krb5Filename);
 
-        final String sensitivePropsKey = properties.getProperty(SENSITIVE_PROPS_KEY, DEFAULT_ENCRYPTION_PASSWORD);
+        final String sensitivePropsKey = getSensitivePropsKey(propertiesFile, properties);
         final SslContextDefinition sslContextDefinition = parseSslContextDefinition(properties);
 
         final List<ExtensionClientDefinition> extensionClients = parseExtensionClients(properties);
@@ -218,4 +223,24 @@ public class PropertiesFileEngineConfigurationParser {
         return propertyValue.trim();
     }
 
+    private String getSensitivePropsKey(final File propertiesFile, final Properties properties) {
+        String sensitivePropsKey = properties.getProperty(SENSITIVE_PROPS_KEY);
+        if (sensitivePropsKey == null || sensitivePropsKey.isEmpty()) {
+            logger.warn("Generating Random Properties Encryption Key [{}]", SENSITIVE_PROPS_KEY);
+            final SecureRandom secureRandom = new SecureRandom();
+            final byte[] sensitivePropertiesKeyBinary = new byte[PROPERTIES_KEY_LENGTH];
+            secureRandom.nextBytes(sensitivePropertiesKeyBinary);
+            final Base64.Encoder encoder = Base64.getEncoder().withoutPadding();
+            sensitivePropsKey = encoder.encodeToString(sensitivePropertiesKeyBinary);
+
+            properties.put(SENSITIVE_PROPS_KEY, sensitivePropsKey);
+            try (final OutputStream outputStream = new FileOutputStream(propertiesFile)) {
+                properties.store(outputStream, StatelessEngineConfiguration.class.getSimpleName());
+            } catch (final IOException e) {
+                final String message = String.format("Store Configuration Properties [%s] Failed", propertiesFile);
+                throw new UncheckedIOException(message, e);
+            }
+        }
+        return sensitivePropsKey;
+    }
 }

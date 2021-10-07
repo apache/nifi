@@ -128,6 +128,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.processor.Processor;
@@ -1448,7 +1449,8 @@ public final class DtoFactory {
         return dto;
     }
 
-    public ParameterContextDTO createParameterContextDto(final ParameterContext parameterContext, final RevisionManager revisionManager) {
+    public ParameterContextDTO createParameterContextDto(final ParameterContext parameterContext, final RevisionManager revisionManager,
+                                                         final boolean includeInheritedParameters, final ParameterContextLookup parameterContextLookup) {
         final ParameterContextDTO dto = new ParameterContextDTO();
         dto.setId(parameterContext.getIdentifier());
         dto.setName(parameterContext.getName());
@@ -1465,16 +1467,27 @@ public final class DtoFactory {
         dto.setBoundProcessGroups(boundGroups);
 
         final Set<ParameterEntity> parameterEntities = new LinkedHashSet<>();
-        for (final Parameter parameter : parameterContext.getParameters().values()) {
-            parameterEntities.add(createParameterEntity(parameterContext, parameter, revisionManager));
+        final Map<ParameterDescriptor, Parameter> parameters = includeInheritedParameters ? parameterContext.getEffectiveParameters()
+                : parameterContext.getParameters();
+        for (final Parameter parameter : parameters.values()) {
+            parameterEntities.add(createParameterEntity(parameterContext, parameter, revisionManager, parameterContextLookup));
         }
+
+        final List<ParameterContextReferenceEntity> parameterContextRefs = new ArrayList<>();
+        if (parameterContext.getInheritedParameterContexts() != null) {
+            parameterContextRefs.addAll(parameterContext.getInheritedParameterContexts().stream()
+                    .map(pc -> entityFactory.createParameterReferenceEntity(createParameterContextReference(pc), createPermissionsDto(pc)))
+                    .collect(Collectors.toList()));
+        }
+        dto.setInheritedParameterContexts(parameterContextRefs);
 
         dto.setParameters(parameterEntities);
         return dto;
     }
 
-    public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager) {
-        final ParameterDTO dto = createParameterDto(parameterContext, parameter, revisionManager);
+    public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager,
+                                                 final ParameterContextLookup parameterContextLookup) {
+        final ParameterDTO dto = createParameterDto(parameterContext, parameter, revisionManager, parameterContextLookup);
         final ParameterEntity entity = new ParameterEntity();
         entity.setParameter(dto);
 
@@ -1484,7 +1497,8 @@ public final class DtoFactory {
         return entity;
     }
 
-    public ParameterDTO createParameterDto(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager) {
+    public ParameterDTO createParameterDto(final ParameterContext parameterContext, final Parameter parameter,
+                                           final RevisionManager revisionManager, final ParameterContextLookup parameterContextLookup) {
         final ParameterDescriptor descriptor = parameter.getDescriptor();
 
         final ParameterDTO dto = new ParameterDTO();
@@ -1503,6 +1517,11 @@ public final class DtoFactory {
 
         final Set<AffectedComponentEntity> referencingComponentEntities = createAffectedComponentEntities(referencingComponents, revisionManager);
         dto.setReferencingComponents(referencingComponentEntities);
+
+        final ParameterContext containingParameterContext = (parameter.getParameterContextId() == null)
+                ? parameterContext : parameterContextLookup.getParameterContext(parameter.getParameterContextId());
+        ParameterContextReferenceDTO refDto = createParameterContextReference(containingParameterContext);
+        dto.setParameterContext(entityFactory.createParameterReferenceEntity(refDto, createPermissionsDto(containingParameterContext)));
 
         return dto;
     }
@@ -1660,6 +1679,7 @@ public final class DtoFactory {
             dto.getProperties().put(descriptor.getName(), propertyValue);
         }
 
+        dto.setReferencedAttributes(controllerServiceNode.getReferencedAttributeNames());
         dto.setValidationStatus(controllerServiceNode.getValidationStatus(1, TimeUnit.MILLISECONDS).name());
 
         // add the validation errors
@@ -3994,6 +4014,7 @@ public final class DtoFactory {
         dto.setSchedulingStrategy(procNode.getSchedulingStrategy().name());
         dto.setExecutionNode(procNode.getExecutionNode().name());
         dto.setAnnotationData(procNode.getAnnotationData());
+        dto.setReferencedAttributes(procNode.getReferencedAttributeNames());
 
         // set up the default values for concurrent tasks and scheduling period
         final Map<String, String> defaultConcurrentTasks = new HashMap<>();
@@ -4124,6 +4145,7 @@ public final class DtoFactory {
         copy.setParentGroupId(original.getParentGroupId());
         copy.setName(original.getName());
         copy.setProperties(copy(original.getProperties()));
+        copy.setReferencedAttributes(copy(original.getReferencedAttributes()));
         copy.setReferencingComponents(copy(original.getReferencingComponents()));
         copy.setState(original.getState());
         copy.setType(original.getType());
@@ -4236,6 +4258,7 @@ public final class DtoFactory {
         copy.setBulletinLevel(original.getBulletinLevel());
         copy.setDefaultConcurrentTasks(original.getDefaultConcurrentTasks());
         copy.setDefaultSchedulingPeriod(original.getDefaultSchedulingPeriod());
+        copy.setReferencedAttributes(original.getReferencedAttributes());
         copy.setLossTolerant(original.isLossTolerant());
 
         return copy;

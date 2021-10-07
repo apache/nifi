@@ -232,27 +232,28 @@ public final class KafkaProcessorUtils {
             .identifiesControllerService(SSLContextService.class)
             .build();
     public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-        .name("kerberos-credentials-service")
-        .displayName("Kerberos Credentials Service")
-        .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
-        .identifiesControllerService(KerberosCredentialsService.class)
-        .required(false)
-        .build();
+            .name("kerberos-credentials-service")
+            .displayName("Kerberos Credentials Service")
+            .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+            .identifiesControllerService(KerberosCredentialsService.class)
+            .required(false)
+            .build();
     public static final PropertyDescriptor SELF_CONTAINED_KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
-    	.name("kerberos-user-service")
-    	.displayName("Kerberos User Service")
-    	.description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
-    	.identifiesControllerService(SelfContainedKerberosUserService.class)
-    	.required(false)
-    	.build();
+            .name("kerberos-user-service")
+            .displayName("Kerberos User Service")
+            .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
+            .identifiesControllerService(SelfContainedKerberosUserService.class)
+            .required(false)
+            .build();
+
     static final PropertyDescriptor FAILURE_STRATEGY = new PropertyDescriptor.Builder()
-        .name("Failure Strategy")
-        .displayName("Failure Strategy")
-        .description("Dictates how the processor handles a FlowFile if it is unable to publish the data to Kafka")
-        .required(true)
-        .allowableValues(FAILURE_STRATEGY_FAILURE_RELATIONSHIP, FAILURE_STRATEGY_ROLLBACK)
-        .defaultValue(FAILURE_STRATEGY_FAILURE_RELATIONSHIP.getValue())
-        .build();
+            .name("Failure Strategy")
+            .displayName("Failure Strategy")
+            .description("Dictates how the processor handles a FlowFile if it is unable to publish the data to Kafka")
+            .required(true)
+            .allowableValues(FAILURE_STRATEGY_FAILURE_RELATIONSHIP, FAILURE_STRATEGY_ROLLBACK)
+            .defaultValue(FAILURE_STRATEGY_FAILURE_RELATIONSHIP.getValue())
+            .build();
 
     public static final String JAVA_SECURITY_AUTH_LOGIN_CONFIG = "java.security.auth.login.config";
 
@@ -261,6 +262,8 @@ public final class KafkaProcessorUtils {
 
         final String securityProtocol = validationContext.getProperty(SECURITY_PROTOCOL).getValue();
         final String saslMechanism = validationContext.getProperty(SASL_MECHANISM).getValue();
+        final KerberosUserService kerberosUserService = validationContext.getProperty(SELF_CONTAINED_KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+
         final KerberosUserService kerberosUserService = validationContext.getProperty(SELF_CONTAINED_KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
 
         final String explicitPrincipal = validationContext.getProperty(USER_PRINCIPAL).evaluateAttributeExpressions().getValue();
@@ -286,19 +289,19 @@ public final class KafkaProcessorUtils {
         }
 
         if (kerberosUserService != null && (explicitPrincipal != null || explicitKeytab != null)) {
-	    results.add(new ValidationResult.Builder()
-	        .subject("Kerberos User")
-                .valid(false)
-	        .explanation("Cannot specify both a Kerberos User Service and a principal/keytab")
-                .build());
+            results.add(new ValidationResult.Builder()
+                    .subject("Kerberos User")
+                    .valid(false)
+                    .explanation("Cannot specify both a Kerberos User Service and a principal/keytab")
+                    .build());
         }
 
         if (kerberosUserService != null && credentialsService != null) {
             results.add(new ValidationResult.Builder()
-                .subject("Kerberos User")
-                .valid(false)
-                .explanation("Cannot specify both a Kerberos User Service and a Kerberos Credentials Service")
-                .build());
+                    .subject("Kerberos User")
+                    .valid(false)
+                    .explanation("Cannot specify both a Kerberos User Service and a Kerberos Credentials Service")
+                    .build());
         }
 
         final String allowExplicitKeytabVariable = System.getenv(ALLOW_EXPLICIT_KEYTAB);
@@ -336,11 +339,11 @@ public final class KafkaProcessorUtils {
             final String jvmJaasConfigFile = System.getProperty(JAVA_SECURITY_AUTH_LOGIN_CONFIG);
             if (kerberosUserService == null && resolvedPrincipal == null && resolvedKeytab == null && StringUtils.isBlank(jvmJaasConfigFile)) {
                 results.add(new ValidationResult.Builder()
-                    .subject("Kerberos Credentials")
-                    .valid(false)
-                    .explanation("Kerberos credentials must be provided by a Kerberos Credentials Service, " +
-                            "Kerberos User Service, explicit principal/keytab properties, or JVM JAAS configuration")
-                    .build());
+                        .subject("Kerberos Credentials")
+                        .valid(false)
+                        .explanation("Kerberos credentials must be provided by a Kerberos Credentials Service, " +
+                                "Kerberos User Service, explicit principal/keytab properties, or JVM JAAS configuration")
+                        .build());
             }
         }
 
@@ -583,6 +586,7 @@ public final class KafkaProcessorUtils {
     static String createGssApiJaasConfig(final SelfContainedKerberosUserService selfContKerberosUserService) {
         final KerberosUser kerberosUser = selfContKerberosUserService.createKerberosUser();
         final AppConfigurationEntry configEntry = kerberosUser.getConfigurationEntry();
+
         final StringBuilder configBuilder = new StringBuilder(configEntry.getLoginModuleName())
                 .append(" ").append(getControlFlagValue(configEntry.getControlFlag()));
         final Map<String, ?> options = configEntry.getOptions();

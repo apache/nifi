@@ -27,6 +27,7 @@ import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
 import org.apache.nifi.event.transport.netty.codec.SocketByteArrayMessageDecoder;
 import org.apache.nifi.logging.ComponentLog;
 
+import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 
@@ -40,15 +41,15 @@ public class ByteArrayMessageNettyEventServerFactory extends NettyEventServerFac
      * Netty Event Server Factory with configurable delimiter and queue of Byte Array Messages
      *
      * @param log Component Log
-     * @param address Remote Address
-     * @param port Remote Port Number
+     * @param address Listen Address
+     * @param port Listen Port Number
      * @param protocol Channel Protocol
      * @param delimiter Message Delimiter
      * @param maxFrameLength Maximum Frame Length for delimited TCP messages
      * @param messages Blocking Queue for events received
      */
     public ByteArrayMessageNettyEventServerFactory(final ComponentLog log,
-                                                   final String address,
+                                                   final InetAddress address,
                                                    final int port,
                                                    final TransportProtocol protocol,
                                                    final byte[] delimiter,

@@ -67,7 +67,7 @@ public class CSVUtils {
         .name("Quote Character")
         .description("The character that is used to quote values so that escape characters do not have to be used. If the property has been specified via Expression Language " +
                 "but the expression gets evaluated to an invalid Quote Character at runtime, then it will be skipped and the default Quote Character will be used.")
-        .addValidator(new CSVValidators.SingleCharacterValidator())
+        .addValidator(CSVValidators.SINGLE_CHAR_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .dependsOn(CSV_FORMAT, CUSTOM)
         .defaultValue("\"")
@@ -101,7 +101,7 @@ public class CSVUtils {
     public static final PropertyDescriptor COMMENT_MARKER = new PropertyDescriptor.Builder()
         .name("Comment Marker")
         .description("The character that is used to denote the start of a comment. Any line that begins with this comment will be ignored.")
-        .addValidator(new CSVValidators.SingleCharacterValidator())
+        .addValidator(CSVValidators.SINGLE_CHAR_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .dependsOn(CSV_FORMAT, CUSTOM)
         .required(false)
@@ -109,8 +109,9 @@ public class CSVUtils {
     public static final PropertyDescriptor ESCAPE_CHAR = new PropertyDescriptor.Builder()
         .name("Escape Character")
         .description("The character that is used to escape characters that would otherwise have a specific meaning to the CSV Parser. If the property has been specified via Expression Language " +
-                "but the expression gets evaluated to an invalid Escape Character at runtime, then it will be skipped and the default Escape Character will be used.")
-        .addValidator(new CSVValidators.SingleCharacterValidator())
+                "but the expression gets evaluated to an invalid Escape Character at runtime, then it will be skipped and the default Escape Character will be used. " +
+                "Setting it to an empty string means no escape character should be used.")
+        .addValidator(CSVValidators.EMPTY_OR_SINGLE_CHAR_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .dependsOn(CSV_FORMAT, CUSTOM)
         .defaultValue("\\")
@@ -284,7 +285,7 @@ public class CSVUtils {
         final Character quoteChar = getCharUnescaped(context, QUOTE_CHAR, variables);
         format = format.withQuote(quoteChar);
 
-        final Character escapeChar = getCharUnescaped(context, ESCAPE_CHAR, variables);
+        final Character escapeChar = context.getProperty(CSVUtils.ESCAPE_CHAR).evaluateAttributeExpressions(variables).getValue().isEmpty() ? null : getCharUnescaped(context, ESCAPE_CHAR, variables);
         format = format.withEscape(escapeChar);
 
         format = format.withTrim(context.getProperty(TRIM_FIELDS).asBoolean());

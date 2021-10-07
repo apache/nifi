@@ -75,8 +75,6 @@ class DecryptMode implements ToolMode {
             if (options.v) {
                 verboseEnabled = true
             }
-            EncryptConfigLogger.configureLogger(verboseEnabled)
-
             DecryptConfiguration config = new DecryptConfiguration(options)
 
             run(config)

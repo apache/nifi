@@ -56,11 +56,9 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.ProvenanceRepository;
-import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -73,6 +71,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -141,7 +140,7 @@ public class LoadBalancedQueueIT {
     private final AtomicReference<LoadBalanceCompression> compressionReference = new AtomicReference<>();
 
     @Before
-    public void setup() throws IOException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, TlsException {
+    public void setup() throws IOException, GeneralSecurityException {
         compressionReference.set(LoadBalanceCompression.DO_NOT_COMPRESS);
 
         nodeIdentifiers = new HashSet<>();
@@ -190,13 +189,7 @@ public class LoadBalancedQueueIT {
         clientRepoRecords = Collections.synchronizedList(new ArrayList<>());
         clientFlowFileRepo = createFlowFileRepository(clientRepoRecords);
 
-        final String keystore = "src/test/resources/localhost-ks.jks";
-        final String keystorePass = "OI7kMpWzzVNVx/JGhTL/0uO4+PWpGJ46uZ/pfepbkwI";
-        final String keyPass = keystorePass;
-        final String truststore = "src/test/resources/localhost-ts.jks";
-        final String truststorePass = "wAOR0nQJ2EXvOP0JZ2EaqA/n7W69ILS4sWAHghmIWCc";
-        TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(keystore, keystorePass, keyPass, KeystoreType.JKS,
-                truststore, truststorePass, KeystoreType.JKS, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
+        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
         sslContext = SslContextFactory.createSslContext(tlsConfiguration);
     }
 

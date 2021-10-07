@@ -43,4 +43,8 @@ public interface StatelessEngineConfiguration {
     String getSensitivePropsKey();
 
     List<ExtensionClientDefinition> getExtensionClients();
+
+    default boolean isLogExtensionDiscovery() {
+        return true;
+    }
 }

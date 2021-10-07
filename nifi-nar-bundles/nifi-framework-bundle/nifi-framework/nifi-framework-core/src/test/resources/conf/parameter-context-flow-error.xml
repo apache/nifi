@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<flowController encoding-version="1.4">
+    <maxTimerDrivenThreadCount>10</maxTimerDrivenThreadCount>
+    <maxEventDrivenThreadCount>1</maxEventDrivenThreadCount>
+    <registries/>
+    <parameterContexts>
+        <parameterContext>
+            <id>context</id>
+            <name>Context</name>
+            <description/>
+            <inheritedParameterContextId>referenced-context</inheritedParameterContextId>
+            <inheritedParameterContextId>referenced-context-2</inheritedParameterContextId>
+            <parameter>
+                <name>foo</name>
+                <description/>
+                <sensitive>true</sensitive>
+                <value>enc{c5e2924eeec6d395ba09090cd50c5f2cee1ba23735d7eadfedae96d0b0fd257b}</value>
+            </parameter>
+        </parameterContext>
+        <parameterContext>
+            <id>referenced-context</id>
+            <name>Referenced Context</name>
+            <description/>
+        </parameterContext>
+    </parameterContexts>
+    <rootGroup>
+        <id>2ae3cdb4-0179-1000-6ddc-ed1dca231bac</id>
+        <name>NiFi Flow</name>
+        <position x="0.0" y="0.0"/>
+        <comment/>
+        <flowfileConcurrency>UNBOUNDED</flowfileConcurrency>
+        <flowfileOutboundPolicy>STREAM_WHEN_AVAILABLE</flowfileOutboundPolicy>
+        <processor>
+            <id>c40fc154-ef89-48b8-82bf-ff6cc9e8f591</id>
+            <name>DummyScheduledProcessor</name>
+            <position x="0.0" y="0.0"/>
+            <styles/>
+            <comment>&lt;tagName&gt; "This" is an ' example with many characters that need to be filtered and escaped  in it. &#127; &#134; </comment>
+            <class>org.apache.nifi.controller.DummyScheduledProcessor</class>
+            <maxConcurrentTasks>5</maxConcurrentTasks>
+            <schedulingPeriod>0 0 0 1/1 * ?</schedulingPeriod>
+            <penalizationPeriod>30 sec</penalizationPeriod>
+            <yieldPeriod>1 sec</yieldPeriod>
+            <bulletinLevel>WARN</bulletinLevel>
+            <lossTolerant>false</lossTolerant>
+            <scheduledState>STOPPED</scheduledState>
+            <schedulingStrategy>CRON_DRIVEN</schedulingStrategy>
+            <executionNode>ALL</executionNode>
+            <runDurationNanos>0</runDurationNanos>
+        </processor>
+        <variable name="Name with  escape needed" value="Value with  escape needed"/>
+        <inheritedParameterContextId>context</inheritedParameterContextId>
+    </rootGroup>
+    <controllerServices/>
+    <reportingTasks/>
+</flowController>

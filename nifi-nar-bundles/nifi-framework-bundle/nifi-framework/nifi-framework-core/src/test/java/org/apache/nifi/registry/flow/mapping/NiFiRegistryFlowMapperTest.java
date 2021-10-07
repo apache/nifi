@@ -80,6 +80,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -139,6 +140,8 @@ public class NiFiRegistryFlowMapperTest {
 
         // verify single parameter context
         assertEquals(1, versionedParameterContexts.size());
+        assertEquals(1, versionedParameterContexts.get("context10").getInheritedParameterContexts().size());
+        assertEquals("other-context", versionedParameterContexts.get("context10").getInheritedParameterContexts().get(0));
 
         final String expectedName = innerProcessGroup.getParameterContext().getName();
         verifyParameterContext(innerProcessGroup.getParameterContext(), versionedParameterContexts.get(expectedName));
@@ -261,6 +264,7 @@ public class NiFiRegistryFlowMapperTest {
             when(parameterContext.getName()).thenReturn("context" + (counter++));
             final Map<ParameterDescriptor, Parameter> parametersMap = Maps.newHashMap();
             when(parameterContext.getParameters()).thenReturn(parametersMap);
+            when(parameterContext.getInheritedParameterContextNames()).thenReturn(Arrays.asList("other-context"));
 
             addParameter(parametersMap, "value" + (counter++), false);
             addParameter(parametersMap, "value" + (counter++), true);

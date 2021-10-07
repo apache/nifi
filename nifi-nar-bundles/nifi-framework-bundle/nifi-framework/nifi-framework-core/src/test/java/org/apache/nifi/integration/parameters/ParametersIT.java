@@ -41,6 +41,7 @@ import org.apache.nifi.processor.StandardProcessContext;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +49,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BiConsumer;
 
 import static org.junit.Assert.assertEquals;
 
@@ -76,6 +78,61 @@ public class ParametersIT extends FrameworkIntegrationTest {
         final FlowFileRecord flowFileRecord = flowFileQueue.poll(Collections.emptySet());
 
         assertEquals("unit", flowFileRecord.getAttribute("test"));
+    }
+
+    @Test
+    public void testNestedParamSubstitution_configProcessorFirst() throws ExecutionException, InterruptedException {
+        runParameterSubstitutionInNestedParameterContextTest((updateAttribute, parameterContext) -> {
+            updateAttribute.setProperties(Collections.singletonMap("test", "#{test}"));
+            getRootGroup().setParameterContext(parameterContext);
+        }, "unit");
+    }
+
+    @Test
+    public void testNestedParamSubstitution_configProcessorLast() throws ExecutionException, InterruptedException {
+        runParameterSubstitutionInNestedParameterContextTest((updateAttribute, parameterContext) -> {
+            getRootGroup().setParameterContext(parameterContext);
+            updateAttribute.setProperties(Collections.singletonMap("test", "#{test}"));
+        }, "unit");
+    }
+
+    @Test
+    public void testNestedParamSubstitution_updateParamContext() throws ExecutionException, InterruptedException {
+        runParameterSubstitutionInNestedParameterContextTest((updateAttribute, parameterContext) -> {
+            getRootGroup().setParameterContext(parameterContext);
+            updateAttribute.setProperties(Collections.singletonMap("test", "#{test}"));
+            parameterContext.setParameters(Collections.singletonMap("test", new Parameter(new ParameterDescriptor.Builder().name("test").build(), "bar")));
+
+            getRootGroup().setParameterContext(parameterContext);
+        }, "bar");
+    }
+
+    public void runParameterSubstitutionInNestedParameterContextTest(BiConsumer<ProcessorNode, ParameterContext> testConsumer, String expectedValue) throws ExecutionException, InterruptedException {
+        final ProcessorNode generate = createProcessorNode(GenerateProcessor.class);
+        final ProcessorNode updateAttribute = createProcessorNode(UpdateAttributeNoEL.class);
+        final ProcessorNode terminate = getTerminateProcessor();
+
+        final Connection generatedFlowFileConnection = connect(generate, updateAttribute, REL_SUCCESS);
+        final Connection updatedAttributeConnection = connect(updateAttribute, terminate, REL_SUCCESS);
+
+        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager, null);
+        parameterContext.setParameters(Collections.singletonMap("foo", new Parameter(new ParameterDescriptor.Builder().name("foo").build(), "bar")));
+
+        final ParameterContext referencedParameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context-2", referenceManager, null);
+        referencedParameterContext.setParameters(Collections.singletonMap("test", new Parameter(new ParameterDescriptor.Builder().name("test").build(), "unit")));
+
+        parameterContext.setInheritedParameterContexts(Arrays.asList(referencedParameterContext));
+
+        testConsumer.accept(updateAttribute, parameterContext);
+
+        triggerOnce(generate);
+        triggerOnce(updateAttribute);
+
+        final FlowFileQueue flowFileQueue = updatedAttributeConnection.getFlowFileQueue();
+        final FlowFileRecord flowFileRecord = flowFileQueue.poll(Collections.emptySet());
+
+        assertEquals(expectedValue, flowFileRecord.getAttribute("test"));
     }
 
     @Test
@@ -127,6 +184,7 @@ public class ParametersIT extends FrameworkIntegrationTest {
 
         assertEquals("UNIT", flowFileRecord.getAttribute("test"));
     }
+
 
     @Test
     public void testMixAndMatchELAndParameters() throws ExecutionException, InterruptedException {

@@ -1224,6 +1224,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, badurlport);
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/doesnotExist");
+        runner.setProperty(InvokeAWSGatewayApi.TIMEOUT, "1 sec");
         createFlowFiles(runner);
 
         runner.run();
@@ -1252,6 +1253,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, badurlhost);
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/doesnotExist");
+        runner.setProperty(InvokeAWSGatewayApi.TIMEOUT, "1 sec");
         createFlowFiles(runner);
 
         runner.run();

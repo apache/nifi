@@ -813,6 +813,11 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public boolean referencesParameterContext(final ParameterContext parameterContext) {
+        return false;
+    }
+
+    @Override
     public String getDefaultFlowFileExpiration() {
         return defaultFlowfileExpiration;
     }

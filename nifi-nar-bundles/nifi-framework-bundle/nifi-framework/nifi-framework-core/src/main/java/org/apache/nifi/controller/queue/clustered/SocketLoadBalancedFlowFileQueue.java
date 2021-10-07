@@ -32,6 +32,7 @@ import org.apache.nifi.controller.queue.IllegalClusterStateException;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueDiagnostics;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.RemoteQueuePartitionDiagnostics;
@@ -85,6 +86,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -95,6 +97,9 @@ import java.util.stream.Collectors;
 public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue implements LoadBalancedFlowFileQueue {
     private static final Logger logger = LoggerFactory.getLogger(SocketLoadBalancedFlowFileQueue.class);
     private static final int NODE_SWAP_THRESHOLD = 1000;
+    private static final Comparator<NodeIdentifier> loadBalanceEndpointComparator =
+        Comparator.comparing(NodeIdentifier::getLoadBalanceAddress)
+            .thenComparing(NodeIdentifier::getLoadBalancePort);
 
     private final List<FlowFilePrioritizer> prioritizers = new ArrayList<>();
     private final ConnectionEventListener eventListener;
@@ -139,7 +144,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         rebalancingPartition = new StandardRebalancingPartition(swapManager, swapThreshold, eventReporter, this, this::drop);
 
         // Create a RemoteQueuePartition for each node
-        nodeIdentifiers = clusterCoordinator == null ? Collections.emptySet() : clusterCoordinator.getNodeIdentifiers();
+        nodeIdentifiers = clusterCoordinator == null ? Collections.emptySet() : new TreeSet<>(loadBalanceEndpointComparator);
+
+        if (clusterCoordinator != null) {
+            nodeIdentifiers.addAll(clusterCoordinator.getNodeIdentifiers());
+        }
 
         final List<NodeIdentifier> sortedNodeIdentifiers = new ArrayList<>(nodeIdentifiers);
         sortedNodeIdentifiers.sort(Comparator.comparing(NodeIdentifier::getApiAddress));
@@ -656,16 +665,19 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             }
 
             // Determine which Node Identifiers, if any, were removed.
-            final Set<NodeIdentifier> removedNodeIds = new HashSet<>(this.nodeIdentifiers);
+            final Set<NodeIdentifier> removedNodeIds = new TreeSet<>(loadBalanceEndpointComparator);
+            removedNodeIds.addAll(this.nodeIdentifiers);
             removedNodeIds.removeAll(updatedNodeIdentifiers);
             logger.debug("{} The following Node Identifiers were removed from the cluster: {}", this, removedNodeIds);
 
+            final Function<NodeIdentifier, String> mapKeyTransform = nodeId -> nodeId.getLoadBalanceAddress() + ":" + nodeId.getLoadBalancePort();
+
             // Build up a Map of Node ID to Queue Partition so that we can easily pull over the existing
             // QueuePartition objects instead of having to create new ones.
-            final Map<NodeIdentifier, QueuePartition> partitionMap = new HashMap<>();
+            final Map<String, QueuePartition> partitionMap = new HashMap<>();
             for (final QueuePartition partition : this.queuePartitions) {
                 final Optional<NodeIdentifier> nodeIdOption = partition.getNodeIdentifier();
-                nodeIdOption.ifPresent(nodeIdentifier -> partitionMap.put(nodeIdentifier, partition));
+                nodeIdOption.ifPresent(nodeIdentifier -> partitionMap.put(mapKeyTransform.apply(nodeIdentifier), partition));
             }
 
             // Re-define 'queuePartitions' array
@@ -683,13 +695,15 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             boolean localPartitionIncluded = false;
             for (int i = 0; i < sortedNodeIdentifiers.size(); i++) {
                 final NodeIdentifier nodeId = sortedNodeIdentifiers.get(i);
+                final String nodeIdMapKey = mapKeyTransform.apply(nodeId);
+
                 if (nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
                     updatedQueuePartitions[i] = localPartition;
                     localPartitionIncluded = true;
 
                     // If we have RemoteQueuePartition with this Node ID with data, that data must be migrated to the local partition.
                     // This can happen if we didn't previously know our Node UUID.
-                    final QueuePartition existingPartition = partitionMap.get(nodeId);
+                    final QueuePartition existingPartition = partitionMap.get(nodeIdMapKey);
                     if (existingPartition != null && existingPartition != localPartition) {
                         final FlowFileQueueContents partitionContents = existingPartition.packageForRebalance(localPartition.getSwapPartitionName());
                         logger.debug("Transferred data from {} to {}", existingPartition, localPartition);
@@ -699,7 +713,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                     continue;
                 }
 
-                final QueuePartition existingPartition = partitionMap.get(nodeId);
+                final QueuePartition existingPartition = partitionMap.get(nodeIdMapKey);
                 updatedQueuePartitions[i] = existingPartition == null ? createRemotePartition(nodeId) : existingPartition;
             }
 
@@ -721,7 +735,9 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 // Not all partitions need to be rebalanced, so just ensure that we rebalance any FlowFiles that are destined
                 // for a node that is no longer in the cluster.
                 for (final NodeIdentifier removedNodeId : removedNodeIds) {
-                    final QueuePartition removedPartition = partitionMap.get(removedNodeId);
+                    final String removedNodeMapKey = mapKeyTransform.apply(removedNodeId);
+
+                    final QueuePartition removedPartition = partitionMap.get(removedNodeMapKey);
                     if (removedPartition == null) {
                         continue;
                     }
@@ -733,7 +749,9 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
             // Unregister any client for which the node was removed from the cluster
             for (final NodeIdentifier removedNodeId : removedNodeIds) {
-                final QueuePartition removedPartition = partitionMap.get(removedNodeId);
+                final String removedNodeMapKey = mapKeyTransform.apply(removedNodeId);
+
+                final QueuePartition removedPartition = partitionMap.get(removedNodeMapKey);
                 if (removedPartition instanceof RemoteQueuePartition) {
                     ((RemoteQueuePartition) removedPartition).onRemoved();
                 }
@@ -913,22 +931,22 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     }
 
     @Override
-    public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords) {
-        final FlowFileRecord flowFile = localPartition.poll(expiredRecords);
+    public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
+        final FlowFileRecord flowFile = localPartition.poll(expiredRecords, pollStrategy);
         onAbort(expiredRecords);
         return flowFile;
     }
 
     @Override
-    public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
-        final List<FlowFileRecord> flowFiles = localPartition.poll(maxResults, expiredRecords);
+    public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
+        final List<FlowFileRecord> flowFiles = localPartition.poll(maxResults, expiredRecords, pollStrategy);
         onAbort(expiredRecords);
         return flowFiles;
     }
 
     @Override
-    public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords) {
-        final List<FlowFileRecord> flowFiles = localPartition.poll(filter, expiredRecords);
+    public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
+        final List<FlowFileRecord> flowFiles = localPartition.poll(filter, expiredRecords, pollStrategy);
         onAbort(expiredRecords);
         return flowFiles;
     }
@@ -1089,7 +1107,16 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         public void onNodeAdded(final NodeIdentifier nodeId) {
             partitionWriteLock.lock();
             try {
+                if (nodeIdentifiers.contains(nodeId)) {
+                    logger.debug("Node Identifier {} added to cluster but already known in set: {}", nodeId, nodeIdentifiers);
+                    return;
+                }
+
                 final Set<NodeIdentifier> updatedNodeIds = new HashSet<>(nodeIdentifiers);
+
+                // If there is any Node Identifier already that has the same identifier as the new one, remove it. This allows us to ensure that we
+                // have the correct Node Identifier in terms of Load Balancing host/port, even if the newly connected node changed its load balancing host/port
+                updatedNodeIds.removeIf(id -> id.getId().equals(nodeId.getId()));
                 updatedNodeIds.add(nodeId);
 
                 logger.debug("Node Identifier {} added to cluster. Node ID's changing from {} to {}", nodeId, nodeIdentifiers, updatedNodeIds);

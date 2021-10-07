@@ -21,6 +21,9 @@ import org.apache.nifi.attribute.expression.language.exception.AttributeExpressi
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.processor.exception.ProcessException;
 
+import java.util.Collections;
+import java.util.Set;
+
 /**
  * An implementation of PreparedQuery that throws an
  * {@link AttributeExpressionLanguageException} when attempting to evaluate the
@@ -50,5 +53,10 @@ public class InvalidPreparedQuery implements PreparedQuery {
     @Override
     public VariableImpact getVariableImpact() {
         return VariableImpact.NEVER_IMPACTED;
+    }
+
+    @Override
+    public Set<String> getExplicitlyReferencedAttributes() {
+        return Collections.emptySet();
     }
 }

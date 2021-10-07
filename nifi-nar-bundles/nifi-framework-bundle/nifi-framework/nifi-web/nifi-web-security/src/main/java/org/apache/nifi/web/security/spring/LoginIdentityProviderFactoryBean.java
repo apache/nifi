@@ -35,8 +35,6 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.properties.SensitivePropertyProviderFactoryAware;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.xml.sax.SAXException;
@@ -65,7 +63,6 @@ import java.util.Map;
 public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderFactoryAware
         implements FactoryBean, DisposableBean, LoginIdentityProviderLookup {
 
-    private static final Logger logger = LoggerFactory.getLogger(LoginIdentityProviderFactoryBean.class);
     private static final String LOGIN_IDENTITY_PROVIDERS_XSD = "/login-identity-providers.xsd";
     private static final String JAXB_GENERATED_PATH = "org.apache.nifi.authentication.generated";
     private static final JAXBContext JAXB_CONTEXT = initializeJaxbContext();

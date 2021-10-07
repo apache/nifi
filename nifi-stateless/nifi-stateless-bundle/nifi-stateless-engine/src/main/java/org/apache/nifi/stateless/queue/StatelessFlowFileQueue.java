@@ -21,6 +21,7 @@ import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueDiagnostics;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -162,7 +163,7 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     }
 
     @Override
-    public synchronized FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords) {
+    public synchronized FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         while (!flowFiles.isEmpty()) {
             final FlowFileRecord flowFile = flowFiles.peek();
             if (flowFile == null) {
@@ -178,7 +179,7 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
                 continue;
             }
 
-            if (flowFile.isPenalized()) {
+            if (flowFile.isPenalized() && pollStrategy == PollStrategy.UNPENALIZED_FLOWFILES) {
                 return null;
             }
 
@@ -187,6 +188,11 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
         }
 
         return null;
+    }
+
+    @Override
+    public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords) {
+        return poll(expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
     private boolean isExpired(final FlowFileRecord flowFile) {
@@ -199,10 +205,10 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     }
 
     @Override
-    public synchronized List<FlowFileRecord> poll(final int maxResults, final Set<FlowFileRecord> expiredRecords) {
+    public synchronized List<FlowFileRecord> poll(final int maxResults, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         final List<FlowFileRecord> selected = new ArrayList<>(Math.min(maxResults, flowFiles.size()));
         for (int i=0; i < maxResults; i++) {
-            final FlowFileRecord flowFile = poll(expiredRecords);
+            final FlowFileRecord flowFile = poll(expiredRecords, pollStrategy);
             if (flowFile != null) {
                 selected.add(flowFile);
             }
@@ -216,7 +222,12 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     }
 
     @Override
-    public synchronized List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords) {
+    public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
+        return poll(maxResults, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
+    }
+
+    @Override
+    public synchronized List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         final List<FlowFileRecord> selected = new ArrayList<>();
 
         // Use an iterator to iterate over all FlowFiles in the queue. This allows us to
@@ -235,7 +246,7 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
                 continue;
             }
 
-            if (flowFile.isPenalized()) {
+            if (flowFile.isPenalized() && pollStrategy == PollStrategy.UNPENALIZED_FLOWFILES) {
                 break;
             }
 
@@ -252,6 +263,11 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
 
         unacknowledgedCount.addAndGet(selected.size());
         return selected;
+    }
+
+    @Override
+    public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords) {
+        return poll(filter, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
     @Override

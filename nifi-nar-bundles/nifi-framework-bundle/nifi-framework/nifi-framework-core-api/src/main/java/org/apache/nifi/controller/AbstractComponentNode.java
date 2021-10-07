@@ -17,9 +17,12 @@
 package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -52,6 +55,7 @@ import org.apache.nifi.parameter.ParameterTokenList;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
+import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +64,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -78,6 +83,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class AbstractComponentNode implements ComponentNode {
+    private static final String PERFORM_VALIDATION_STEP_NAME = "Perform Validation";
     private static final Logger logger = LoggerFactory.getLogger(AbstractComponentNode.class);
 
     private final String id;
@@ -163,14 +169,17 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return getAdditionalClasspathResources((Collection<PropertyDescriptor>) propertyDescriptors);
     }
 
-    private Set<URL> getAdditionalClasspathResources(final Collection<PropertyDescriptor> propertyDescriptors) {
+    protected Set<URL> getAdditionalClasspathResources(final Collection<PropertyDescriptor> propertyDescriptors) {
+        return getAdditionalClasspathResources(propertyDescriptors, this::getEffectivePropertyValue);
+    }
+
+    protected Set<URL> getAdditionalClasspathResources(final Collection<PropertyDescriptor> propertyDescriptors, final Function<PropertyDescriptor, String> effectiveValueLookup) {
         final Set<URL> additionalUrls = new LinkedHashSet<>();
         final ResourceReferenceFactory resourceReferenceFactory = new StandardResourceReferenceFactory();
 
         for (final PropertyDescriptor descriptor : propertyDescriptors) {
             if (descriptor.isDynamicClasspathModifier()) {
-                final PropertyConfiguration propertyConfiguration = getProperty(descriptor);
-                final String value = propertyConfiguration == null ? null : propertyConfiguration.getEffectiveValue(getParameterContext());
+                final String value = effectiveValueLookup.apply(descriptor);
 
                 if (!StringUtils.isEmpty(value)) {
                     final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);
@@ -184,6 +193,36 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return additionalUrls;
     }
 
+    /**
+     * Determines if the given set of properties will result in a different classpath than the currently configured set of properties
+     * @param properties the properties to analyze
+     * @return <code>true</code> if the given set of properties will require a different classpath (and therefore a different classloader) than the currently
+     *         configured set of properties
+     */
+    protected boolean isClasspathDifferent(final Map<PropertyDescriptor, String> properties) {
+        // If any property in the given map modifies classpath and is different than the currently configured value,
+        // the given properties will require a different classpath.
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            final String value = entry.getValue();
+            final String currentlyConfiguredValue = getEffectivePropertyValue(descriptor);
+
+            if (descriptor.isDynamicClasspathModifier() && !Objects.equals(value, currentlyConfiguredValue)) {
+                return true;
+            }
+        }
+
+        // If any property in the currently configured properties modifies classpath and is not in the given set of properties,
+        // the given properties will require a different classpath.
+        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : getProperties().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.isDynamicClasspathModifier() && !properties.containsKey(descriptor)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     @Override
     public void setProperties(final Map<String, String> properties, final boolean allowRemovalOfRequiredProperties) {
@@ -195,10 +234,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
         try {
             verifyCanUpdateProperties(properties);
 
-            // Keep track of counts of each parameter reference. This way, when we complete the updates to property values, we can
-            // update our counts easily.
-            final ParameterParser elAgnosticParameterParser = new ExpressionLanguageAgnosticParameterParser();
-            final ParameterParser elAwareParameterParser = new ExpressionLanguageAwareParameterParser();
+            final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();
+            final Map<String, PropertyConfiguration> configurationMap = configurationMapper.mapRawPropertyValuesToPropertyConfiguration(this, properties);
 
             try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), id)) {
                 boolean classpathChanged = false;
@@ -219,25 +256,15 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     if (entry.getKey() != null && entry.getValue() == null) {
                         removeProperty(entry.getKey(), allowRemovalOfRequiredProperties);
                     } else if (entry.getKey() != null) {
-                        final String updatedValue = CharacterFilterUtils.filterInvalidXmlCharacters(entry.getValue());
-
                         // Use the EL-Agnostic Parameter Parser to gather the list of referenced Parameters. We do this because we want to to keep track of which parameters
                         // are referenced, regardless of whether or not they are referenced from within an EL Expression. However, we also will need to derive a different ParameterTokenList
                         // that we can provide to the PropertyConfiguration, so that when compiling the Expression Language Expressions, we are able to keep the Parameter Reference within
                         // the Expression's text.
-                        final ParameterTokenList updatedValueReferences = elAgnosticParameterParser.parseTokens(updatedValue);
-                        final List<ParameterReference> parameterReferences = updatedValueReferences.toReferenceList();
+                        final PropertyConfiguration propertyConfiguration = configurationMap.get(entry.getKey());
+                        final List<ParameterReference> parameterReferences = propertyConfiguration.getParameterReferences();
                         for (final ParameterReference reference : parameterReferences) {
                             // increment count in map for this parameter
                             parameterReferenceCounts.merge(reference.getParameterName(), 1, (a, b) -> a == -1 ? null : a + b);
-                        }
-
-                        final PropertyConfiguration propertyConfiguration;
-                        final boolean supportsEL = getPropertyDescriptor(entry.getKey()).isExpressionLanguageSupported();
-                        if (supportsEL) {
-                            propertyConfiguration = new PropertyConfiguration(updatedValue, elAwareParameterParser.parseTokens(updatedValue), parameterReferences);
-                        } else {
-                            propertyConfiguration = new PropertyConfiguration(updatedValue, updatedValueReferences, parameterReferences);
                         }
 
                         setProperty(entry.getKey(), propertyConfiguration, this.properties::get);
@@ -324,6 +351,72 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
     }
 
+    protected List<ConfigVerificationResult> verifyConfig(final Map<PropertyDescriptor, String> propertyValues, final String annotationData, final ParameterContext parameterContext) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+
+        try {
+            final long startNanos = System.nanoTime();
+
+            final Map<PropertyDescriptor, PropertyConfiguration> descriptorToConfigMap = new LinkedHashMap<>();
+            for (final Map.Entry<PropertyDescriptor, String> entry : propertyValues.entrySet()) {
+                final PropertyDescriptor descriptor = entry.getKey();
+                final String rawValue = entry.getValue();
+                final String propertyValue = rawValue == null ? descriptor.getDefaultValue() : rawValue;
+
+                final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList());
+                descriptorToConfigMap.put(descriptor, propertyConfiguration);
+            }
+
+            final ValidationContext validationContext = getValidationContextFactory().newValidationContext(descriptorToConfigMap, annotationData,
+                getProcessGroupIdentifier(), getIdentifier(), parameterContext, false);
+
+            final ValidationState validationState = performValidation(validationContext);
+            final ValidationStatus validationStatus = validationState.getStatus();
+
+            if (validationStatus == ValidationStatus.INVALID) {
+                for (final ValidationResult result : validationState.getValidationErrors()) {
+                    if (result.isValid()) {
+                        continue;
+                    }
+
+                    results.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName(PERFORM_VALIDATION_STEP_NAME)
+                        .outcome(Outcome.FAILED)
+                        .explanation("Component is invalid: " + result.toString())
+                        .build());
+                }
+
+                if (results.isEmpty()) {
+                    results.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName(PERFORM_VALIDATION_STEP_NAME)
+                        .outcome(Outcome.FAILED)
+                        .explanation("Component is invalid but provided no Validation Results to indicate why")
+                        .build());
+                }
+
+                logger.debug("{} is not valid with the given configuration. Will not attempt to perform any additional verification of configuration. Validation took {}. Reason not valid: {}",
+                    this, results, FormatUtils.formatNanos(System.nanoTime() - startNanos, false));
+                return results;
+            }
+
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName(PERFORM_VALIDATION_STEP_NAME)
+                .outcome(Outcome.SUCCESSFUL)
+                .explanation("Component Validation passed")
+                .build());
+        } catch (final Throwable t) {
+            logger.error("Failed to perform verification of component's configuration for {}", this, t);
+
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName(PERFORM_VALIDATION_STEP_NAME)
+                .outcome(Outcome.FAILED)
+                .explanation("Encountered unexpected failure when attempting to perform verification: " + t)
+                .build());
+        }
+
+        return results;
+    }
+
     @Override
     public Set<String> getReferencedParameterNames() {
         return Collections.unmodifiableSet(parameterReferenceCounts.keySet());
@@ -332,6 +425,19 @@ public abstract class AbstractComponentNode implements ComponentNode {
     @Override
     public boolean isReferencingParameter() {
         return !parameterReferenceCounts.isEmpty();
+    }
+
+    @Override
+    public Set<String> getReferencedAttributeNames() {
+        final Set<String> referencedAttributes = new HashSet<>();
+
+        for (final PropertyDescriptor descriptor : getPropertyDescriptors()) {
+            final String effectiveValue = getEffectivePropertyValue(descriptor);
+            final Set<String> attributes = Query.prepareWithParametersPreEvaluated(effectiveValue).getExplicitlyReferencedAttributes();
+            referencedAttributes.addAll(attributes);
+        }
+
+        return referencedAttributes;
     }
 
     // Keep setProperty/removeProperty private so that all calls go through setProperties
@@ -563,7 +669,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     @Override
     public ValidationState performValidation(final Map<PropertyDescriptor, PropertyConfiguration> properties, final String annotationData, final ParameterContext parameterContext) {
-        final ValidationContext validationContext = validationContextFactory.newValidationContext(properties, annotationData, getProcessGroupIdentifier(), getIdentifier(), parameterContext);
+        final ValidationContext validationContext = validationContextFactory.newValidationContext(properties, annotationData, getProcessGroupIdentifier(), getIdentifier(), parameterContext, true);
         return performValidation(validationContext);
     }
 
@@ -1090,7 +1196,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 return context;
             }
 
-            context = getValidationContextFactory().newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier(), getParameterContext());
+            context = getValidationContextFactory().newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier(), getParameterContext(), true);
 
             this.validationContext = context;
             logger.debug("Updating validation context to {}", context);

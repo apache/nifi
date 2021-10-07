@@ -42,6 +42,18 @@ public interface ExtensionDiscoveringManager extends ExtensionManager {
      *
      * @param narBundles the bundles to use for discovering extensions
      */
-    void discoverExtensions(Set<Bundle> narBundles);
+    default void discoverExtensions(Set<Bundle> narBundles) {
+        discoverExtensions(narBundles, true);
+    }
+
+    /**
+     * Discovers extensions in the provided bundles.
+     *
+     * This method is intended to be used to discover additional extensions after the application is running.
+     *
+     * @param narBundles the bundles to use for discovering extensions
+     * @param logDetails whether or not to log the details about what is loaded
+     */
+    void discoverExtensions(Set<Bundle> narBundles, boolean logDetails);
 
 }
