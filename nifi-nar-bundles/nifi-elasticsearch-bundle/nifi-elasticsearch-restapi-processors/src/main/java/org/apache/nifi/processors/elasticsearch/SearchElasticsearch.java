@@ -67,10 +67,11 @@ import java.util.Set;
         "until either no more results are available or the Pagination Keep Alive expiration is reached, after which the query will " +
         "restart with the first page of results being retrieved.")
 @DynamicProperty(
-        name = "A URL query parameter",
-        value = "The value to set it to",
+        name = "The name of a URL query parameter to add",
+        value = "The value of the URL query parameter",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
+        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing. " +
+                "These parameters will override any matching parameters in the query request body")
 @Stateful(scopes = Scope.LOCAL, description = "The pagination state (scrollId, searchAfter, pitId, hitCount, pageCount, pageExpirationTimestamp) " +
         "is retained in between invocations of this processor until the Scroll/PiT has expired " +
         "(when the current time is later than the last query execution plus the Pagination Keep Alive interval).")

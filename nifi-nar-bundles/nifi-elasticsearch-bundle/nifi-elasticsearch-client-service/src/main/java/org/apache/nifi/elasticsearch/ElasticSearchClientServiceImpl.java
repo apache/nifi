@@ -74,7 +74,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     private Charset responseCharset;
 
     static {
-        List<PropertyDescriptor> props = new ArrayList<>();
+        final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(ElasticSearchClientService.HTTP_HOSTS);
         props.add(ElasticSearchClientService.USERNAME);
         props.add(ElasticSearchClientService.PASSWORD);
@@ -105,7 +105,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                 mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
                 mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             }
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             getLogger().error("Could not initialize ElasticSearch client.", ex);
             throw new InitializationException(ex);
         }
@@ -119,7 +119,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     private void setupClient(final ConfigurationContext context) throws MalformedURLException, InitializationException {
         final String hosts = context.getProperty(HTTP_HOSTS).evaluateAttributeExpressions().getValue();
-        String[] hostsSplit = hosts.split(",[\\s]*");
+        final String[] hostsSplit = hosts.split(",[\\s]*");
         this.url = hostsSplit[0];
         final SSLContextService sslService =
                 context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
@@ -139,7 +139,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         try {
             sslContext = (sslService != null && (sslService.isKeyStoreConfigured() || sslService.isTrustStoreConfigured()))
                     ? sslService.createContext() : null;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Error building up SSL Context from the supplied configuration.", e);
             throw new InitializationException(e);
         }
@@ -182,7 +182,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final HttpEntity queryEntity = new NStringEntity(query, ContentType.APPLICATION_JSON);
         try {
             return performRequest("POST", sb.toString(), requestParameters, queryEntity);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ElasticsearchError(e);
         }
     }
@@ -360,9 +360,9 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
 
     public UpdateOperationResponse updateByQuery(final String query, final String index, final String type, final Map<String, String> requestParameters) {
-        long start = System.currentTimeMillis();
-        Response response = runQuery("_update_by_query", query, index, type, requestParameters);
-        long end   = System.currentTimeMillis();
+        final long start = System.currentTimeMillis();
+        final Response response = runQuery("_update_by_query", query, index, type, requestParameters);
+        final long end = System.currentTimeMillis();
 
         // check for errors in response
         parseResponse(response);
@@ -413,7 +413,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         try {
             final Response response = runQuery("_search", query, index, type, requestParameters);
             return buildSearchResponse(response);
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             throw new RuntimeException(ex);
         }
     }
@@ -424,7 +424,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             final HttpEntity scrollEntity = new NStringEntity(scroll, ContentType.APPLICATION_JSON);
             final Response response = performRequest("POST", "/_search/scroll", Collections.emptyMap(), scrollEntity);
             return buildSearchResponse(response);
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             throw new RuntimeException(ex);
         }
     }

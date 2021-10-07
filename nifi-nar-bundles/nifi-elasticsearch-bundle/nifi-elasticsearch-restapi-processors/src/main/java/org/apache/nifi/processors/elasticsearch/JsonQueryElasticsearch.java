@@ -49,10 +49,11 @@ import java.util.concurrent.TimeUnit;
         "processor, it will use the flowfile's content for the query. Care should be taken on the size of the query because the entire response " +
         "from Elasticsearch will be loaded into memory all at once and converted into the resulting flowfiles.")
 @DynamicProperty(
-        name = "A URL query parameter",
-        value = "The value to set it to",
+        name = "The name of a URL query parameter to add",
+        value = "The value of the URL query parameter",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
+        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing. " +
+                "These parameters will override any matching parameters in the query request body")
 public class JsonQueryElasticsearch extends AbstractJsonQueryElasticsearch<JsonQueryParameters> {
     @Override
     JsonQueryParameters buildJsonQueryParameters(final FlowFile input, final ProcessContext context, final ProcessSession session)

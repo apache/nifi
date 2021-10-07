@@ -75,10 +75,11 @@ import java.util.Set;
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "put", "index", "record"})
 @CapabilityDescription("A record-aware Elasticsearch put processor that uses the official Elastic REST client libraries.")
 @DynamicProperty(
-        name = "A URL query parameter",
-        value = "The value to set it to",
+        name = "The name of a URL query parameter to add",
+        value = "The value of the URL query parameter",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
+        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing. " +
+                "These parameters will override any matching parameters in the query request body")
 public class PutElasticsearchRecord extends AbstractProcessor implements ElasticsearchRestProcessor {
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("put-es-record-reader")
@@ -251,6 +252,8 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS
     )));
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     private RecordPathCache recordPathCache;
     private RecordReaderFactory readerFactory;
     private RecordSetWriterFactory writerFactory;
@@ -272,7 +275,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
     }
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
@@ -283,7 +286,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         this.readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         this.clientService = context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class);
         this.recordPathCache = new RecordPathCache(16);
@@ -313,7 +316,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
     ));
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> validationResults = new ArrayList<>();
 
         final PropertyValue indexOp = validationContext.getProperty(INDEX_OP);
@@ -338,8 +341,8 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) {
-        FlowFile input = session.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) {
+        final FlowFile input = session.get();
         if (input == null) {
             return;
         }
@@ -355,25 +358,25 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         final String typePath = context.getProperty(TYPE_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
         final String atTimestampPath = context.getProperty(AT_TIMESTAMP_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
 
-        RecordPath ioPath = indexOpPath != null ? recordPathCache.getCompiled(indexOpPath) : null;
-        RecordPath path = idPath != null ? recordPathCache.getCompiled(idPath) : null;
-        RecordPath iPath = indexPath != null ? recordPathCache.getCompiled(indexPath) : null;
-        RecordPath tPath = typePath != null ? recordPathCache.getCompiled(typePath) : null;
-        RecordPath atPath = atTimestampPath != null ? recordPathCache.getCompiled(atTimestampPath) : null;
+        final RecordPath ioPath = indexOpPath != null ? recordPathCache.getCompiled(indexOpPath) : null;
+        final RecordPath path = idPath != null ? recordPathCache.getCompiled(idPath) : null;
+        final RecordPath iPath = indexPath != null ? recordPathCache.getCompiled(indexPath) : null;
+        final RecordPath tPath = typePath != null ? recordPathCache.getCompiled(typePath) : null;
+        final RecordPath atPath = atTimestampPath != null ? recordPathCache.getCompiled(atTimestampPath) : null;
 
-        boolean retainId = context.getProperty(RETAIN_ID_FIELD).evaluateAttributeExpressions(input).asBoolean();
-        boolean retainTimestamp = context.getProperty(RETAIN_AT_TIMESTAMP_FIELD).evaluateAttributeExpressions(input).asBoolean();
+        final boolean retainId = context.getProperty(RETAIN_ID_FIELD).evaluateAttributeExpressions(input).asBoolean();
+        final boolean retainTimestamp = context.getProperty(RETAIN_AT_TIMESTAMP_FIELD).evaluateAttributeExpressions(input).asBoolean();
 
-        int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(input).asInteger();
-        List<FlowFile> badRecords = new ArrayList<>();
+        final int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(input).asInteger();
+        final List<FlowFile> badRecords = new ArrayList<>();
 
         try (final InputStream inStream = session.read(input);
             final RecordReader reader = readerFactory.createRecordReader(input, inStream, getLogger())) {
             final PushBackRecordSet recordSet = new PushBackRecordSet(reader.createRecordSet());
-            Record record;
-            List<IndexOperationRequest> operationList = new ArrayList<>();
-            List<Record> originals = new ArrayList<>();
+            final List<IndexOperationRequest> operationList = new ArrayList<>();
+            final List<Record> originals = new ArrayList<>();
 
+            Record record;
             while ((record = recordSet.next()) != null) {
                 final String idx = getFromRecordPath(record, iPath, index, false);
                 final String t   = getFromRecordPath(record, tPath, type, false);
@@ -408,16 +411,16 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                     badRecords.add(bad);
                 }
             }
-        } catch (ElasticsearchError ese) {
-            String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
+        } catch (final ElasticsearchError ese) {
+            final String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
                     ese.isElastic() ? "Moving to retry." : "Moving to failure");
             getLogger().error(msg, ese);
-            Relationship rel = ese.isElastic() ? REL_RETRY : REL_FAILURE;
+            final Relationship rel = ese.isElastic() ? REL_RETRY : REL_FAILURE;
             session.penalize(input);
             session.transfer(input, rel);
             removeBadRecordFlowFiles(badRecords, session);
             return;
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             getLogger().error("Could not index documents.", ex);
             session.transfer(input, REL_FAILURE);
             removeBadRecordFlowFiles(badRecords, session);
@@ -426,22 +429,21 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         session.transfer(input, REL_SUCCESS);
     }
 
-    private void removeBadRecordFlowFiles(List<FlowFile> bad, ProcessSession session) {
-        for (FlowFile badFlowFile : bad) {
+    private void removeBadRecordFlowFiles(final List<FlowFile> bad, final ProcessSession session) {
+        for (final FlowFile badFlowFile : bad) {
             session.remove(badFlowFile);
         }
 
         bad.clear();
     }
 
-    private FlowFile indexDocuments(BulkOperation bundle, ProcessContext context, ProcessSession session, FlowFile input) throws Exception {
-        IndexOperationResponse response = clientService.bulk(bundle.getOperationList(), getUrlQueryParameters(context, input));
+    private FlowFile indexDocuments(final BulkOperation bundle, final ProcessContext context, final ProcessSession session, final FlowFile input) throws Exception {
+        final IndexOperationResponse response = clientService.bulk(bundle.getOperationList(), getUrlQueryParameters(context, input));
         if (response.hasErrors()) {
             if(logErrors || getLogger().isDebugEnabled()) {
-                List<Map<String, Object>> errors = response.getItems();
-                ObjectMapper mapper = new ObjectMapper();
-                mapper.enable(SerializationFeature.INDENT_OUTPUT);
-                String output = String.format("An error was encountered while processing bulk operations. Server response below:%n%n%s", mapper.writeValueAsString(errors));
+                final List<Map<String, Object>> errors = response.getItems();
+                objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+                final String output = String.format("An error was encountered while processing bulk operations. Server response below:%n%n%s", objectMapper.writeValueAsString(errors));
 
                 if (logErrors) {
                     getLogger().error(output);
@@ -454,16 +456,16 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                 FlowFile errorFF = session.create(input);
                 try {
                     int added = 0;
-                    try (OutputStream os = session.write(errorFF);
-                         RecordSetWriter writer = writerFactory.createWriter(getLogger(), bundle.getSchema(), os, errorFF )) {
+                    try (final OutputStream os = session.write(errorFF);
+                         final RecordSetWriter writer = writerFactory.createWriter(getLogger(), bundle.getSchema(), os, errorFF )) {
 
                         writer.beginRecordSet();
                         for (int index = 0; index < response.getItems().size(); index++) {
-                            Map<String, Object> current = response.getItems().get(index);
+                            final Map<String, Object> current = response.getItems().get(index);
                             if (!current.isEmpty()) {
-                                String key = current.keySet().stream().findFirst().orElse(null);
+                                final String key = current.keySet().stream().findFirst().orElse(null);
                                 @SuppressWarnings("unchecked")
-                                Map<String, Object> inner = (Map<String, Object>) current.get(key);
+                                final Map<String, Object> inner = (Map<String, Object>) current.get(key);
                                 if (inner != null && inner.containsKey("error")) {
                                     writer.write(bundle.getOriginalRecords().get(index));
                                     added++;
@@ -478,7 +480,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                     session.transfer(errorFF, REL_FAILED_RECORDS);
 
                     return errorFF;
-                } catch (Exception ex) {
+                } catch (final Exception ex) {
                     getLogger().error("", ex);
                     session.remove(errorFF);
                     throw ex;
@@ -494,10 +496,10 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
             return fallback;
         }
 
-        RecordPathResult result = path.evaluate(record);
-        Optional<FieldValue> value = result.getSelectedFields().findFirst();
+        final RecordPathResult result = path.evaluate(record);
+        final Optional<FieldValue> value = result.getSelectedFields().findFirst();
         if (value.isPresent() && value.get().getValue() != null) {
-            FieldValue fieldValue = value.get();
+            final FieldValue fieldValue = value.get();
             if (!fieldValue.getField().getDataType().getFieldType().equals(RecordFieldType.STRING) ) {
                 throw new ProcessException(
                     String.format("Field referenced by %s must be a string.", path.getPath())

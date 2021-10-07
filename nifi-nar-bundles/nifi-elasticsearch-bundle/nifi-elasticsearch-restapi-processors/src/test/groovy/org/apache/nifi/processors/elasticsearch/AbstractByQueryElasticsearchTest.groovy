@@ -29,15 +29,15 @@ abstract class AbstractByQueryElasticsearchTest {
 
     private TestElasticsearchClientService client
 
-    abstract String queryAttr();
+    abstract String queryAttr()
 
-    abstract String tookAttr();
+    abstract String tookAttr()
 
-    abstract String errorAttr();
+    abstract String errorAttr()
 
-    abstract TestRunner setupRunner();
+    abstract TestRunner setupRunner()
 
-    abstract void expectError(final TestElasticsearchClientService client);
+    abstract void expectError(final TestElasticsearchClientService client)
 
     private void initClient(TestRunner runner) throws Exception {
         client = new TestElasticsearchClientService(true)

@@ -68,9 +68,9 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
         propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
-    abstract String tookAttribute();
+    abstract String getTookAttribute();
 
-    abstract String errorAttribute();
+    abstract String getErrorAttribute();
 
     abstract OperationResponse performOperation(final ElasticSearchClientService clientService, final String query,
                                                 final String index, final String type,
@@ -87,7 +87,7 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
     }
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
@@ -130,7 +130,7 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
             }
 
             final Map<String, String> attrs = new HashMap<>();
-            attrs.put(tookAttribute(), String.valueOf(or.getTook()));
+            attrs.put(getTookAttribute(), String.valueOf(or.getTook()));
             if (!StringUtils.isBlank(queryAttr)) {
                 attrs.put(queryAttr, query);
             }
@@ -138,9 +138,9 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
             input = session.putAllAttributes(input, attrs);
 
             session.transfer(input, REL_SUCCESS);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             if (input != null) {
-                input = session.putAttribute(input, errorAttribute(), e.getMessage());
+                input = session.putAttribute(input, getErrorAttribute(), e.getMessage());
                 session.transfer(input, REL_FAILURE);
             }
             getLogger().error("Error running \"by query\" operation: ", e);

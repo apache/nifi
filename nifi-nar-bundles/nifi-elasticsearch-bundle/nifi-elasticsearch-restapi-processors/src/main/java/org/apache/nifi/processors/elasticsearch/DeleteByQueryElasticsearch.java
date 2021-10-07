@@ -38,21 +38,22 @@ import java.util.Map;
 @CapabilityDescription("Delete from an Elasticsearch index using a query. The query can be loaded from a flowfile body " +
         "or from the Query parameter.")
 @DynamicProperty(
-        name = "A URL query parameter",
-        value = "The value to set it to",
+        name = "The name of a URL query parameter to add",
+        value = "The value of the URL query parameter",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
+        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing. " +
+                "These parameters will override any matching parameters in the query request body")
 public class DeleteByQueryElasticsearch extends AbstractByQueryElasticsearch {
     static final String TOOK_ATTRIBUTE = "elasticsearch.delete.took";
     static final String ERROR_ATTRIBUTE = "elasticsearch.delete.error";
 
     @Override
-    String tookAttribute() {
+    String getTookAttribute() {
         return TOOK_ATTRIBUTE;
     }
 
     @Override
-    String errorAttribute() {
+    String getErrorAttribute() {
         return ERROR_ATTRIBUTE;
     }
 
