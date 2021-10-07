@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -34,8 +35,10 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.pgp.attributes.DecryptionStrategy;
 import org.apache.nifi.processors.pgp.exception.PGPDecryptionException;
 import org.apache.nifi.processors.pgp.exception.PGPProcessException;
+import org.apache.nifi.processors.pgp.io.KeyIdentifierConverter;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import org.apache.nifi.util.StringUtils;
@@ -76,11 +79,12 @@ import java.util.Set;
  */
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"PGP", "GPG", "OpenPGP", "Encryption", "RFC 4880"})
-@CapabilityDescription("Decrypt Contents of OpenPGP Messages")
-@SeeAlso(EncryptContentPGP.class)
+@CapabilityDescription("Decrypt contents of OpenPGP messages. Using the Packaged Decryption Strategy preserves OpenPGP encoding to support subsequent signature verification.")
+@SeeAlso({EncryptContentPGP.class, SignContentPGP.class, VerifyContentPGP.class})
 @WritesAttributes({
         @WritesAttribute(attribute = PGPAttributeKey.LITERAL_DATA_FILENAME, description = "Filename from decrypted Literal Data"),
         @WritesAttribute(attribute = PGPAttributeKey.LITERAL_DATA_MODIFIED, description = "Modified Date from decrypted Literal Data"),
+        @WritesAttribute(attribute = PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_BLOCK_CIPHER, description = "Symmetric-Key Algorithm Block Cipher"),
         @WritesAttribute(attribute = PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_ID, description = "Symmetric-Key Algorithm Identifier")
 })
 public class DecryptContentPGP extends AbstractProcessor {
@@ -93,6 +97,19 @@ public class DecryptContentPGP extends AbstractProcessor {
     public static final Relationship FAILURE = new Relationship.Builder()
             .name("failure")
             .description("Decryption Failed")
+            .build();
+
+    public static final PropertyDescriptor DECRYPTION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("decryption-strategy")
+            .displayName("Decryption Strategy")
+            .description("Strategy for writing files to success after decryption")
+            .required(true)
+            .defaultValue(DecryptionStrategy.DECRYPTED.name())
+            .allowableValues(
+                    Arrays.stream(DecryptionStrategy.values()).map(strategy ->
+                            new AllowableValue(strategy.name(), strategy.name(), strategy.getDescription())
+                    ).toArray(AllowableValue[]::new)
+            )
             .build();
 
     public static final PropertyDescriptor PASSPHRASE = new PropertyDescriptor.Builder()
@@ -113,6 +130,7 @@ public class DecryptContentPGP extends AbstractProcessor {
     private static final Set<Relationship> RELATIONSHIPS = new HashSet<>(Arrays.asList(SUCCESS, FAILURE));
 
     private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
+            DECRYPTION_STRATEGY,
             PASSPHRASE,
             PRIVATE_KEY_SERVICE
     );
@@ -156,7 +174,8 @@ public class DecryptContentPGP extends AbstractProcessor {
 
         final char[] passphrase = getPassphrase(context);
         final PGPPrivateKeyService privateKeyService = getPrivateKeyService(context);
-        final DecryptStreamCallback callback = new DecryptStreamCallback(passphrase, privateKeyService);
+        final DecryptionStrategy decryptionStrategy = getDecryptionStrategy(context);
+        final DecryptStreamCallback callback = new DecryptStreamCallback(passphrase, privateKeyService, decryptionStrategy);
 
         try {
             flowFile = session.write(flowFile, callback);
@@ -213,16 +232,26 @@ public class DecryptContentPGP extends AbstractProcessor {
         return privateKeyService;
     }
 
+    private DecryptionStrategy getDecryptionStrategy(final ProcessContext context) {
+        final String strategy = context.getProperty(DECRYPTION_STRATEGY).getValue();
+        return DecryptionStrategy.valueOf(strategy);
+    }
+
     private class DecryptStreamCallback implements StreamCallback {
         private final char[] passphrase;
 
         private final PGPPrivateKeyService privateKeyService;
 
+        private final DecryptionStrategy decryptionStrategy;
+
         private final Map<String, String> attributes = new HashMap<>();
 
-        public DecryptStreamCallback(final char[] passphrase, final PGPPrivateKeyService privateKeyService) {
+        public DecryptStreamCallback(final char[] passphrase,
+                                     final PGPPrivateKeyService privateKeyService,
+                                     final DecryptionStrategy decryptionStrategy) {
             this.passphrase = passphrase;
             this.privateKeyService = privateKeyService;
+            this.decryptionStrategy = decryptionStrategy;
         }
 
         /**
@@ -236,13 +265,23 @@ public class DecryptContentPGP extends AbstractProcessor {
         public void process(final InputStream inputStream, final OutputStream outputStream) throws IOException {
             final PGPEncryptedDataList encryptedDataList = getEncryptedDataList(inputStream);
             final PGPEncryptedData encryptedData = findSupportedEncryptedData(encryptedDataList);
-            final PGPLiteralData literalData = getLiteralData(encryptedData);
 
-            attributes.put(PGPAttributeKey.LITERAL_DATA_FILENAME, literalData.getFileName());
-            attributes.put(PGPAttributeKey.LITERAL_DATA_MODIFIED, Long.toString(literalData.getModificationTime().getTime()));
+            if (DecryptionStrategy.PACKAGED == decryptionStrategy) {
+                try {
+                    final InputStream decryptedDataStream = getDecryptedDataStream(encryptedData);
+                    StreamUtils.copy(decryptedDataStream, outputStream);
+                } catch (final PGPException e) {
+                    final String message = String.format("PGP Decryption Failed [%s]", getEncryptedDataType(encryptedData));
+                    throw new PGPDecryptionException(message, e);
+                }
+            } else {
+                final PGPLiteralData literalData = getLiteralData(encryptedData);
+                attributes.put(PGPAttributeKey.LITERAL_DATA_FILENAME, literalData.getFileName());
+                attributes.put(PGPAttributeKey.LITERAL_DATA_MODIFIED, Long.toString(literalData.getModificationTime().getTime()));
 
-            getLogger().debug("PGP Decrypted File Name [{}] Modified [{}]", literalData.getFileName(), literalData.getModificationTime());
-            StreamUtils.copy(literalData.getInputStream(), outputStream);
+                getLogger().debug("PGP Decrypted File Name [{}] Modified [{}]", literalData.getFileName(), literalData.getModificationTime());
+                StreamUtils.copy(literalData.getInputStream(), outputStream);
+            }
 
             if (isVerified(encryptedData)) {
                 getLogger().debug("PGP Encrypted Data Verified");
@@ -286,7 +325,7 @@ public class DecryptContentPGP extends AbstractProcessor {
                     final Optional<PGPPrivateKey> privateKey = privateKeyService.findPrivateKey(keyId);
                     if (privateKey.isPresent()) {
                         supportedEncryptedData = publicKeyEncryptedData;
-                        final String keyIdentifier = Long.toHexString(keyId).toUpperCase();
+                        final String keyIdentifier = KeyIdentifierConverter.format(keyId);
                         getLogger().debug("PGP Private Key [{}] Found for Public Key Encrypted Data", keyIdentifier);
                         break;
                     }
@@ -354,7 +393,7 @@ public class DecryptContentPGP extends AbstractProcessor {
             } else {
                 final PBEDataDecryptorFactory decryptorFactory = new BcPBEDataDecryptorFactory(passphrase, new BcPGPDigestCalculatorProvider());
                 final int symmetricAlgorithm = passwordBasedEncryptedData.getSymmetricAlgorithm(decryptorFactory);
-                attributes.put(PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_ID, Integer.toString(symmetricAlgorithm));
+                setSymmetricKeyAlgorithmAttributes(symmetricAlgorithm);
                 return passwordBasedEncryptedData.getDataStream(decryptorFactory);
             }
         }
@@ -369,14 +408,20 @@ public class DecryptContentPGP extends AbstractProcessor {
                     final PGPPrivateKey privateKey = foundPrivateKey.get();
                     final PublicKeyDataDecryptorFactory decryptorFactory = new BcPublicKeyDataDecryptorFactory(privateKey);
                     final int symmetricAlgorithm = publicKeyEncryptedData.getSymmetricAlgorithm(decryptorFactory);
-                    attributes.put(PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_ID, Integer.toString(symmetricAlgorithm));
+                    setSymmetricKeyAlgorithmAttributes(symmetricAlgorithm);
                     return publicKeyEncryptedData.getDataStream(decryptorFactory);
                 } else {
-                    final String keyIdentifier = Long.toHexString(keyId).toUpperCase();
+                    final String keyIdentifier = KeyIdentifierConverter.format(keyId);
                     final String message = String.format("PGP Private Key [%s] not found for Public Key Encryption", keyIdentifier);
                     throw new PGPDecryptionException(message);
                 }
             }
+        }
+
+        private void setSymmetricKeyAlgorithmAttributes(final int symmetricAlgorithm) {
+            final String blockCipher = PGPUtil.getSymmetricCipherName(symmetricAlgorithm);
+            attributes.put(PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_BLOCK_CIPHER, blockCipher);
+            attributes.put(PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_ID, Integer.toString(symmetricAlgorithm));
         }
 
         private boolean isVerified(final PGPEncryptedData encryptedData) {
@@ -399,8 +444,7 @@ public class DecryptContentPGP extends AbstractProcessor {
 
         private PGPEncryptedDataList getEncryptedDataList(final InputStream inputStream) throws IOException {
             final InputStream decoderInputStream = PGPUtil.getDecoderStream(inputStream);
-            final PGPObjectFactory encryptedObjectFactory = new JcaPGPObjectFactory(decoderInputStream);
-            final PGPEncryptedDataList encryptedDataList = findEncryptedDataList(encryptedObjectFactory);
+            final PGPEncryptedDataList encryptedDataList = findEncryptedDataList(decoderInputStream);
             if (encryptedDataList == null) {
                 throw new PGPProcessException("PGP Encrypted Data Packets not found");
             } else {
@@ -409,9 +453,10 @@ public class DecryptContentPGP extends AbstractProcessor {
             }
         }
 
-        private PGPEncryptedDataList findEncryptedDataList(final PGPObjectFactory objectFactory) {
+        private PGPEncryptedDataList findEncryptedDataList(final InputStream inputStream) {
             PGPEncryptedDataList encryptedDataList = null;
 
+            final PGPObjectFactory objectFactory = new JcaPGPObjectFactory(inputStream);
             for (final Object object : objectFactory) {
                 getLogger().debug("PGP Object Read [{}]", object.getClass().getSimpleName());
                 if (object instanceof PGPEncryptedDataList) {
