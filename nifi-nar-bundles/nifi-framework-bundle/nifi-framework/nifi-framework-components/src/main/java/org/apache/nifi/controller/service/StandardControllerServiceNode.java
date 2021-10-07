@@ -31,6 +31,7 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
@@ -378,7 +379,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     public boolean awaitEnabled(final long timePeriod, final TimeUnit timeUnit) throws InterruptedException {
         LOG.debug("Waiting up to {} {} for {} to be enabled", timePeriod, timeUnit, this);
-        final boolean enabled = stateTransition.awaitState(ControllerServiceState.ENABLED, timePeriod, timeUnit);
+        final boolean enabled = stateTransition.awaitStateOrInvalid(ControllerServiceState.ENABLED, timePeriod, timeUnit);
 
         if (enabled) {
             LOG.debug("{} is enabled", this);
@@ -479,6 +480,15 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             default:
                 return false;
         }
+    }
+
+    @Override
+    public ValidationState performValidation(final ValidationContext validationContext) {
+        final ValidationState state = super.performValidation(validationContext);
+        if (state.getStatus() == ValidationStatus.INVALID) {
+            stateTransition.signalInvalid();
+        }
+        return state;
     }
 
     /**
