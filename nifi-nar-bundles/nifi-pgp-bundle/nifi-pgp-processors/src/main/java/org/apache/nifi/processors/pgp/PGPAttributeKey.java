@@ -37,4 +37,18 @@ class PGPAttributeKey {
     static final String COMPRESS_ALGORITHM = "pgp.compression.algorithm";
 
     static final String COMPRESS_ALGORITHM_ID = "pgp.compression.algorithm.id";
+
+    static final String SIGNATURE_CREATED = "pgp.signature.created";
+
+    static final String SIGNATURE_ALGORITHM = "pgp.signature.algorithm";
+
+    static final String SIGNATURE_HASH_ALGORITHM_ID = "pgp.signature.hash.algorithm.id";
+
+    static final String SIGNATURE_KEY_ALGORITHM_ID = "pgp.signature.key.algorithm.id";
+
+    static final String SIGNATURE_KEY_ID = "pgp.signature.key.id";
+
+    static final String SIGNATURE_TYPE_ID = "pgp.signature.type.id";
+
+    static final String SIGNATURE_VERSION = "pgp.signature.version";
 }
