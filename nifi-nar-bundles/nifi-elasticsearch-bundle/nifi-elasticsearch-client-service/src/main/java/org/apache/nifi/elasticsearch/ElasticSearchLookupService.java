@@ -83,15 +83,14 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
     private String type;
     private ObjectMapper mapper;
 
-    private final List<PropertyDescriptor> DESCRIPTORS;
+    private final List<PropertyDescriptor> descriptors;
 
     public ElasticSearchLookupService() {
-        List<PropertyDescriptor> _desc = new ArrayList<>();
-        _desc.addAll(super.getSupportedPropertyDescriptors());
-        _desc.add(CLIENT_SERVICE);
-        _desc.add(INDEX);
-        _desc.add(TYPE);
-        DESCRIPTORS = Collections.unmodifiableList(_desc);
+        List<PropertyDescriptor> desc = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        desc.add(CLIENT_SERVICE);
+        desc.add(INDEX);
+        desc.add(TYPE);
+        descriptors = Collections.unmodifiableList(desc);
     }
 
     private volatile ConcurrentHashMap<String, RecordPath> mappings;
@@ -104,26 +103,25 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
         type  = context.getProperty(TYPE).evaluateAttributeExpressions().getValue();
         mapper = new ObjectMapper();
 
-        List<PropertyDescriptor> dynamic = context.getProperties().entrySet().stream()
-            .filter( e -> e.getKey().isDynamic())
-            .map(e -> e.getKey())
+        List<PropertyDescriptor> dynamic = context.getProperties().keySet().stream()
+            .filter(PropertyDescriptor::isDynamic)
             .collect(Collectors.toList());
 
-        Map<String, RecordPath> _temp = new HashMap<>();
+        Map<String, RecordPath> temp = new HashMap<>();
         for (PropertyDescriptor desc : dynamic) {
             String value = context.getProperty(desc).getValue();
             String name  = desc.getName();
-            _temp.put(name, RecordPath.compile(value));
+            temp.put(name, RecordPath.compile(value));
         }
 
-        mappings = new ConcurrentHashMap<>(_temp);
+        mappings = new ConcurrentHashMap<>(temp);
 
         super.onEnabled(context);
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return DESCRIPTORS;
+        return descriptors;
     }
 
     @Override
@@ -151,7 +149,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
     public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
         Map<String, String> context = coordinates.entrySet().stream()
             .collect(Collectors.toMap(
-                e -> e.getKey(),
+                Map.Entry::getKey,
                 e -> e.getValue().toString()
             ));
         return lookup(coordinates, context);
@@ -176,7 +174,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
         }
     }
 
-    private void validateCoordinates(Map coordinates) throws LookupFailureException {
+    private void validateCoordinates(Map<String, Object> coordinates) throws LookupFailureException {
         List<String> reasons = new ArrayList<>();
 
         if (coordinates.containsKey("_id") && !(coordinates.get("_id") instanceof String)) {
@@ -187,12 +185,13 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
             reasons.add("When _id is used, it can be the only key used in the lookup.");
         }
 
-        if (reasons.size() > 0) {
+        if (!reasons.isEmpty()) {
             String error = String.join("\n", reasons);
             throw new LookupFailureException(error);
         }
     }
 
+    @SuppressWarnings("unchecked")
     private Record getById(final String _id, Map<String, String> context) throws IOException, LookupFailureException, SchemaNotFoundException {
         Map<String, Object> query = new HashMap<String, Object>(){{
             put("query", new HashMap<String, Object>() {{
@@ -213,7 +212,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
             return null;
         }
 
-        final Map<String, Object> source = (Map)response.getHits().get(0).get("_source");
+        final Map<String, Object> source = (Map<String, Object>)response.getHits().get(0).get("_source");
 
         RecordSchema toUse = getSchema(context, source, null);
 
@@ -256,14 +255,13 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
             }});
         }};
 
-        Map<String, Object> outter = new HashMap<String, Object>(){{
+        return new HashMap<String, Object>(){{
             put("size", 1);
             put("query", query);
         }};
-
-        return outter;
     }
 
+    @SuppressWarnings("unchecked")
     private Record getByQuery(final Map<String, Object> query, Map<String, String> context) throws LookupFailureException {
         try {
             final String json = mapper.writeValueAsString(buildQuery(query));
@@ -273,7 +271,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
             if (response.getNumberOfHits() == 0) {
                 return null;
             } else {
-                final Map<String, Object> source = (Map)response.getHits().get(0).get("_source");
+                final Map<String, Object> source = (Map<String, Object>)response.getHits().get(0).get("_source");
                 RecordSchema toUse = getSchema(context, source, null);
                 Record record = new MapRecord(toUse, source);
 
@@ -290,22 +288,19 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
     }
 
     private Record applyMappings(Record record, Map<String, Object> source) {
-        Record _rec = new MapRecord(record.getSchema(), new HashMap<>());
+        Record rec = new MapRecord(record.getSchema(), new HashMap<>());
 
-        mappings.entrySet().forEach(entry -> {
+        mappings.forEach((key, path) -> {
             try {
-                Object o = JsonPath.read(source, entry.getKey());
-                RecordPath path = entry.getValue();
-                Optional<FieldValue> first = path.evaluate(_rec).getSelectedFields().findFirst();
-                if (first.isPresent()) {
-                    first.get().updateValue(o);
-                }
+                Object o = JsonPath.read(source, key);
+                Optional<FieldValue> first = path.evaluate(rec).getSelectedFields().findFirst();
+                first.ifPresent(fieldValue -> fieldValue.updateValue(o));
             } catch (Exception ex) {
                 throw new RuntimeException(ex);
             }
         });
 
-        return _rec;
+        return rec;
     }
 
     @Override

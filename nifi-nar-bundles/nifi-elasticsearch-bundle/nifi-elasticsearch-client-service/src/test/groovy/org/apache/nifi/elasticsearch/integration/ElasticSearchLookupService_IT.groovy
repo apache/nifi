@@ -61,7 +61,6 @@ class ElasticSearchLookupService_IT {
         runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, "http://localhost:9400")
         runner.setProperty(service, ElasticSearchClientService.CONNECT_TIMEOUT, "10000")
         runner.setProperty(service, ElasticSearchClientService.SOCKET_TIMEOUT, "60000")
-        runner.setProperty(service, ElasticSearchClientService.RETRY_TIMEOUT, "60000")
         runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, "Client Service")
         runner.setProperty(TestControllerServiceProcessor.LOOKUP_SERVICE, "Lookup Service")
         runner.setProperty(lookupService, ElasticSearchLookupService.CLIENT_SERVICE, "Client Service")

@@ -30,6 +30,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public interface ElasticsearchRestProcessor {
     String ATTR_RECORD_COUNT = "record.count";
@@ -120,5 +122,16 @@ public interface ElasticsearchRestProcessor {
         }
 
         return retVal;
+    }
+
+    default Map<String, String> getUrlQueryParameters(final ProcessContext context, final FlowFile flowFile) {
+        return context.getProperties().entrySet().stream()
+                // filter non-null dynamic properties
+                .filter(e -> e.getKey().isDynamic() && e.getValue() != null)
+                // convert to Map of URL parameter keys and values
+                .collect(Collectors.toMap(
+                    e -> e.getKey().getName(),
+                    e -> context.getProperty(e.getKey()).evaluateAttributeExpressions(flowFile).getValue()
+                ));
     }
 }
