@@ -18,9 +18,12 @@ package org.apache.nifi.processors.pgp;
 
 import org.apache.nifi.pgp.service.api.PGPPrivateKeyService;
 import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
+import org.apache.nifi.pgp.util.PGPOperationUtils;
+import org.apache.nifi.processors.pgp.attributes.DecryptionStrategy;
 import org.apache.nifi.processors.pgp.exception.PGPDecryptionException;
 import org.apache.nifi.processors.pgp.exception.PGPProcessException;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -30,20 +33,23 @@ import org.bouncycastle.openpgp.PGPCompressedData;
 import org.bouncycastle.openpgp.PGPCompressedDataGenerator;
 import org.bouncycastle.openpgp.PGPEncryptedDataGenerator;
 import org.bouncycastle.openpgp.PGPException;
+import org.bouncycastle.openpgp.PGPLiteralData;
 import org.bouncycastle.openpgp.PGPLiteralDataGenerator;
+import org.bouncycastle.openpgp.PGPObjectFactory;
+import org.bouncycastle.openpgp.PGPOnePassSignature;
+import org.bouncycastle.openpgp.PGPOnePassSignatureList;
 import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPSecretKey;
 import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.bouncycastle.openpgp.PGPSignature;
-import org.bouncycastle.openpgp.PGPSignatureGenerator;
+import org.bouncycastle.openpgp.PGPSignatureList;
 import org.bouncycastle.openpgp.PGPUtil;
+import org.bouncycastle.openpgp.jcajce.JcaPGPObjectFactory;
 import org.bouncycastle.openpgp.operator.PBESecretKeyDecryptor;
-import org.bouncycastle.openpgp.operator.PGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.PGPDataEncryptorBuilder;
 import org.bouncycastle.openpgp.operator.bc.BcPGPDataEncryptorBuilder;
 import org.bouncycastle.openpgp.operator.bc.BcPublicKeyKeyEncryptionMethodGenerator;
-import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcePBEKeyEncryptionMethodGenerator;
 import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyDecryptorBuilder;
 import org.junit.jupiter.api.BeforeAll;
@@ -55,7 +61,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -66,6 +74,7 @@ import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.isA;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -94,8 +103,6 @@ public class DecryptContentPGPTest {
     private static final Charset DATA_CHARSET = StandardCharsets.UTF_8;
 
     private static final int BUFFER_SIZE = 128;
-
-    private static final boolean NESTED_SIGNATURE_DISABLED = false;
 
     private static final String SERVICE_ID = PGPPrivateKeyService.class.getSimpleName();
 
@@ -265,6 +272,23 @@ public class DecryptContentPGPTest {
     }
 
     @Test
+    public void testSuccessPublicKeyEncryptionRsaPrivateKeyPackaged() throws InitializationException, IOException, PGPException {
+        setPrivateKeyService();
+        final PGPPublicKey publicKey = rsaSecretKey.getPublicKey();
+        when(privateKeyService.findPrivateKey(eq(publicKey.getKeyID()))).thenReturn(Optional.of(rsaPrivateKey));
+
+        runner.setProperty(DecryptContentPGP.DECRYPTION_STRATEGY, DecryptionStrategy.PACKAGED.toString());
+
+        final byte[] contents = DATA.getBytes(DATA_CHARSET);
+        final byte[] signedData = PGPOperationUtils.getOnePassSignedLiteralData(contents, rsaPrivateKey);
+        final byte[] encryptedData = getPublicKeyEncryptedData(signedData, publicKey);
+        runner.enqueue(encryptedData);
+        runner.run();
+
+        assertSuccess(ENCRYPTION_ALGORITHM, DecryptionStrategy.PACKAGED);
+    }
+
+    @Test
     public void testSuccessPublicKeyEncryptionElGamalPrivateKey() throws InitializationException, IOException, PGPException {
         setPrivateKeyService();
         when(privateKeyService.findPrivateKey(eq(elGamalPrivateKey.getKeyID()))).thenReturn(Optional.of(elGamalPrivateKey));
@@ -281,8 +305,9 @@ public class DecryptContentPGPTest {
         final PGPPublicKey publicKey = rsaSecretKey.getPublicKey();
         when(privateKeyService.findPrivateKey(eq(publicKey.getKeyID()))).thenReturn(Optional.of(rsaPrivateKey));
 
-        final byte[] encryptedData = getPublicKeyEncryptedData(getLiteralData(), publicKey);
-        final byte[] signedData = getSignedData(encryptedData, publicKey, rsaPrivateKey);
+        final byte[] literalData = getLiteralData();
+        final byte[] encrypted = getPublicKeyEncryptedData(literalData, publicKey);
+        final byte[] signedData = PGPOperationUtils.getOnePassSignedData(encrypted, rsaPrivateKey);
         runner.enqueue(signedData);
         runner.run();
 
@@ -325,18 +350,71 @@ public class DecryptContentPGPTest {
     }
 
     private void assertSuccess() {
-        assertSuccess(ENCRYPTION_ALGORITHM);
+        assertSuccess(ENCRYPTION_ALGORITHM, DecryptionStrategy.DECRYPTED);
     }
 
     private void assertSuccess(final int encryptionAlgorithm) {
+        assertSuccess(encryptionAlgorithm, DecryptionStrategy.DECRYPTED);
+    }
+
+    private void assertSuccess(final int encryptionAlgorithm, final DecryptionStrategy decryptionStrategy) {
         runner.assertAllFlowFilesTransferred(DecryptContentPGP.SUCCESS);
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DecryptContentPGP.SUCCESS);
         final MockFlowFile flowFile = flowFiles.iterator().next();
-        flowFile.assertContentEquals(DATA, DATA_CHARSET);
 
-        flowFile.assertAttributeEquals(PGPAttributeKey.LITERAL_DATA_FILENAME, FILE_NAME);
-        flowFile.assertAttributeEquals(PGPAttributeKey.LITERAL_DATA_MODIFIED, Long.toString(MODIFIED_MILLISECONDS));
+        if (DecryptionStrategy.PACKAGED == decryptionStrategy) {
+            assertSuccessPackaged(flowFile.getContentStream());
+        } else {
+            flowFile.assertContentEquals(DATA, DATA_CHARSET);
+            flowFile.assertAttributeEquals(PGPAttributeKey.LITERAL_DATA_FILENAME, FILE_NAME);
+            flowFile.assertAttributeEquals(PGPAttributeKey.LITERAL_DATA_MODIFIED, Long.toString(MODIFIED_MILLISECONDS));
+        }
+
         flowFile.assertAttributeEquals(PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_ID, Integer.toString(encryptionAlgorithm));
+        flowFile.assertAttributeEquals(PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_BLOCK_CIPHER, PGPUtil.getSymmetricCipherName(encryptionAlgorithm));
+    }
+
+    private void assertSuccessPackaged(final InputStream inputStream) {
+        final PGPObjectFactory objectFactory = new JcaPGPObjectFactory(inputStream);
+        try {
+            final Object firstObject = objectFactory.nextObject();
+            assertOnePassSignatureEquals(firstObject);
+
+            final Object secondObject = objectFactory.nextObject();
+            assertLiteralDataEquals(secondObject);
+
+            final Object thirdObject = objectFactory.nextObject();
+            assertSignatureEquals(thirdObject);
+        } catch (final IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private void assertOnePassSignatureEquals(final Object object) {
+        assertTrue(object instanceof PGPOnePassSignatureList);
+        final PGPOnePassSignatureList onePassSignatureList = (PGPOnePassSignatureList) object;
+        final PGPOnePassSignature onePassSignature = onePassSignatureList.iterator().next();
+        assertEquals(onePassSignature.getKeyID(), rsaPrivateKey.getKeyID());
+    }
+
+    private void assertLiteralDataEquals(final Object object) throws IOException {
+        assertTrue(object instanceof PGPLiteralData);
+        final PGPLiteralData literalData = (PGPLiteralData) object;
+        assertEquals(FILE_NAME, literalData.getFileName());
+        assertEquals(MODIFIED, literalData.getModificationTime());
+
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        StreamUtils.copy(literalData.getDataStream(), outputStream);
+        final byte[] literalBinary = outputStream.toByteArray();
+        final String literal = new String(literalBinary, DATA_CHARSET);
+        assertEquals(DATA, literal);
+    }
+
+    private void assertSignatureEquals(final Object object) {
+        assertTrue(object instanceof PGPSignatureList);
+        final PGPSignatureList signatureList = (PGPSignatureList) object;
+        final PGPSignature signature = signatureList.iterator().next();
+        assertEquals(rsaPrivateKey.getKeyID(), signature.getKeyID());
     }
 
     private void assertFailureExceptionLogged(final Class<? extends Exception> exceptionClass) {
@@ -345,19 +423,6 @@ public class DecryptContentPGPTest {
         assertTrue(optionalLogMessage.isPresent());
         final LogMessage logMessage = optionalLogMessage.get();
         assertThat(Arrays.asList(logMessage.getArgs()), hasItem(isA(exceptionClass)));
-    }
-
-    private byte[] getSignedData(final byte[] contents, final PGPPublicKey publicKey, final PGPPrivateKey privateKey) throws PGPException, IOException {
-        final PGPContentSignerBuilder contentSignerBuilder = new JcaPGPContentSignerBuilder(publicKey.getAlgorithm(), PGPUtil.SHA1);
-        final PGPSignatureGenerator signatureGenerator = new PGPSignatureGenerator(contentSignerBuilder);
-        signatureGenerator.init(PGPSignature.BINARY_DOCUMENT, privateKey);
-
-        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        signatureGenerator.generateOnePassVersion(NESTED_SIGNATURE_DISABLED).encode(outputStream);
-        outputStream.write(contents);
-        signatureGenerator.update(contents);
-        signatureGenerator.generate().encode(outputStream);
-        return outputStream.toByteArray();
     }
 
     private byte[] getPublicKeyEncryptedData(final byte[] contents, final PGPPublicKey publicKey) throws IOException, PGPException {

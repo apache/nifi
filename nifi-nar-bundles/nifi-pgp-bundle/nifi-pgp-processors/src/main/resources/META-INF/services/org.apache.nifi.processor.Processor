@@ -14,3 +14,5 @@
 # limitations under the License.
 org.apache.nifi.processors.pgp.EncryptContentPGP
 org.apache.nifi.processors.pgp.DecryptContentPGP
+org.apache.nifi.processors.pgp.SignContentPGP
+org.apache.nifi.processors.pgp.VerifyContentPGP
