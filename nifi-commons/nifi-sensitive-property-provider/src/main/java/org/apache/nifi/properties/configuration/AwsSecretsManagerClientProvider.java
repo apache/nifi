@@ -22,6 +22,9 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
+import java.util.Collections;
+import java.util.Set;
+
 /**
  * Amazon Web Services Secrets Manager Client Provider
  */
@@ -38,5 +41,10 @@ public class AwsSecretsManagerClientProvider extends AbstractAwsClientProvider<S
     @Override
     protected SecretsManagerClient createDefaultClient(final AwsCredentialsProvider credentialsProvider) {
         return SecretsManagerClient.builder().credentialsProvider(credentialsProvider).build();
+    }
+
+    @Override
+    protected Set<String> getRequiredPropertyNames() {
+        return Collections.emptySet();
     }
 }

@@ -22,10 +22,15 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.kms.KmsClient;
 
+import java.util.Collections;
+import java.util.Set;
+
 /**
  * Amazon Web Services Key Management Service Client Provider
  */
 public class AwsKmsClientProvider extends AbstractAwsClientProvider<KmsClient> {
+
+    protected static final String KEY_ID_PROPERTY = "aws.kms.key.id";
 
     @Override
     protected KmsClient createClient(final AwsCredentials credentials, final String region) {
@@ -38,5 +43,10 @@ public class AwsKmsClientProvider extends AbstractAwsClientProvider<KmsClient> {
     @Override
     protected KmsClient createDefaultClient(final AwsCredentialsProvider credentialsProvider) {
         return KmsClient.builder().credentialsProvider(credentialsProvider).build();
+    }
+
+    @Override
+    protected Set<String> getRequiredPropertyNames() {
+        return Collections.singleton(KEY_ID_PROPERTY);
     }
 }
