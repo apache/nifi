@@ -73,6 +73,23 @@ public class TestFetchHDFS {
     }
 
     @Test
+    public void testFetchStaticFileThatExistsWithAbsolutePath() throws IOException {
+        final File destination = new File("src/test/resources/testdata/randombytes-1");
+        final String file = destination.getAbsolutePath();
+        final String fileWithMultipliedSeparators = "/" + destination.getAbsolutePath();
+        runner.setProperty(FetchHDFS.FILENAME, fileWithMultipliedSeparators);
+        runner.enqueue(new String("trigger flow file"));
+        runner.run();
+        runner.assertAllFlowFilesTransferred(FetchHDFS.REL_SUCCESS, 1);
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+        final ProvenanceEventRecord fetchEvent = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.FETCH, fetchEvent.getEventType());
+        // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
+        assertTrue(fetchEvent.getTransitUri().endsWith(file));
+    }
+
+    @Test
     public void testFetchStaticFileThatDoesNotExist() throws IOException {
         final String file = "src/test/resources/testdata/doesnotexist";
         runner.setProperty(FetchHDFS.FILENAME, file);
