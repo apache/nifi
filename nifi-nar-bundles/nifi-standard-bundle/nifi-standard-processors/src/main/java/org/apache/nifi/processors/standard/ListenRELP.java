@@ -260,12 +260,10 @@ public class ListenRELP extends AbstractProcessor {
 
         final int batchSize = context.getProperty(AbstractListenEventBatchingProcessor.MAX_BATCH_SIZE).asInteger();
         Map<String, FlowFileEventBatch> batches = eventBatcher.getBatches(session, batchSize, messageDemarcatorBytes);
-
-        final List<RELPMessage> eventsAwaitingResponse = new ArrayList<>();
-        getEventsAwaitingResponse(session, batches, eventsAwaitingResponse);
+        processEvents(session, batches);
     }
 
-    private void getEventsAwaitingResponse(final ProcessSession session, final Map<String, FlowFileEventBatch> batches, final List<RELPMessage> allEvents) {
+    private void processEvents(final ProcessSession session, final Map<String, FlowFileEventBatch> batches) {
         for (Map.Entry<String, FlowFileEventBatch> entry : batches.entrySet()) {
             FlowFile flowFile = entry.getValue().getFlowFile();
             final List<RELPMessage> events = entry.getValue().getEvents();
