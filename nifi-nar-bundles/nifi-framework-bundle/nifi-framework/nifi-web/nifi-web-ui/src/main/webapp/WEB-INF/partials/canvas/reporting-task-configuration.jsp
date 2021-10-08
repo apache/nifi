@@ -83,6 +83,10 @@
             </div>
             <div id="reporting-task-properties-tab-content" class="configuration-tab">
                 <div id="reporting-task-properties"></div>
+                <div id="reporting-task-properties-verification-results" class="verification-results">
+                    <div class="verification-results-header">Verification Results</div>
+                    <div id="reporting-task-properties-verification-results-listing" class="verification-results-listing"></div>
+                </div>
             </div>
             <div id="reporting-task-comments-tab-content" class="configuration-tab">
                 <textarea cols="30" rows="4" id="reporting-task-comments" name="reporting-task-comments" class="reporting-task-editable setting-input"></textarea>

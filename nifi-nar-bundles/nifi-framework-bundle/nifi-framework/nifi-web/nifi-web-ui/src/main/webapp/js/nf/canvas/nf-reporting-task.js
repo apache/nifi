@@ -28,9 +28,10 @@
                 'nf.ControllerService',
                 'nf.ControllerServices',
                 'nf.UniversalCapture',
-                'nf.CustomUi'],
-            function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi) {
-                return (nf.ReportingTask = factory($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi));
+                'nf.CustomUi',
+                'nf.Verify'],
+            function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify) {
+                return (nf.ReportingTask = factory($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ReportingTask =
@@ -43,7 +44,8 @@
                 require('nf.ControllerService'),
                 require('nf.ControllerServices'),
                 require('nf.UniversalCapture'),
-                require('nf.CustomUi')));
+                require('nf.CustomUi'),
+                require('nf.Verify')));
     } else {
         nf.ReportingTask = factory(root.$,
             root.nf.ErrorHandler,
@@ -54,9 +56,10 @@
             root.nf.ControllerService,
             root.nf.ControllerServices,
             root.nf.UniversalCapture,
-            root.nf.CustomUi);
+            root.nf.CustomUi,
+            root.nf.Verify);
     }
-}(this, function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi) {
+}(this, function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify) {
     'use strict';
 
     var nfSettings;
@@ -68,6 +71,9 @@
             api: '../nifi-api'
         }
     };
+
+    // the last submitted referenced attributes
+    var referencedAttributes = null;
 
     // load the controller services
     var controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
@@ -320,6 +326,30 @@
         }).fail(nfErrorHandler.handleAjaxError);
     };
 
+    /**
+     * Handles verification results.
+     */
+    var handleVerificationResults = function (verificationResults, referencedAttributeMap) {
+        // record the most recently submitted referenced attributes
+        referencedAttributes = referencedAttributeMap;
+
+        var verificationResultsContainer = $('#reporting-task-properties-verification-results');
+
+        // expand the dialog to make room for the verification result
+        if (verificationResultsContainer.is(':visible') === false) {
+            // show the verification results
+            $('#reporting-task-properties').css('bottom', '40%').propertytable('resetTableSize')
+            verificationResultsContainer.show();
+        }
+
+        // show borders if appropriate
+        var verificationResultsListing = $('#reporting-task-properties-verification-results-listing');
+        if (verificationResultsListing.get(0).scrollHeight > Math.round(verificationResultsListing.innerHeight())) {
+            verificationResultsListing.css('border-width', '1px');
+        }
+    };
+
+
     var nfReportingTask = {
         /**
          * Initializes the reporting task configuration dialog.
@@ -375,6 +405,14 @@
 
                         // removed the cached reporting task details
                         $('#reporting-task-configuration').removeData('reportingTaskDetails');
+
+                        // clean up an shown verification errors
+                        $('#reporting-task-properties-verification-results').hide();
+                        $('#reporting-task-properties-verification-results-listing').css('border-width', '0').empty();
+                        $('#reporting-task-properties').css('bottom', '0');
+
+                        // clear most recently submitted referenced attributes
+                        referencedAttributes = null;
                     },
                     open: function () {
                         nfCommon.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
@@ -605,7 +643,10 @@
                 // load the property table
                 $('#reporting-task-properties')
                     .propertytable('setGroupId', null)
-                    .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
+                    .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory)
+                    .propertytable('setPropertyVerificationCallback', function (proposedProperties) {
+                        nfVerify.verify(reportingTask['id'], reportingTaskEntity['uri'], proposedProperties, referencedAttributes, handleVerificationResults, $('#reporting-task-properties-verification-results-listing'));
+                    });
 
                 // show the details
                 $('#reporting-task-configuration').modal('show');

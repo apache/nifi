@@ -28,19 +28,12 @@ div.required-property-note {
     margin-left: 6px;
 }
 
-div.add-property {
+div.add-property, div.verify-properties {
     float: right;
     margin-bottom: 4px;
+    margin-left: 4px;
     font-size: 16px;
     text-transform: uppercase;
-}
-
-div.add-property-text {
-    float: left;
-    margin-left: 5px;
-    height: 19px;
-    line-height: 19px;
-    color: #262626;
 }
 
 div.property-table {
@@ -49,7 +42,6 @@ div.property-table {
     bottom: 0px;
     left: 0px;
     right: 0px;
-    min-height: 150px;
 }
 
 .property-table .fa {

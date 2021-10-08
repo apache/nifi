@@ -158,6 +158,8 @@
         <jsp:include page="/WEB-INF/partials/canvas/drop-request-status-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/flowfile-details-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/listing-request-status-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/verification-request-status-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/referenced-attributes-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/queue-listing.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/component-state-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/component-version-dialog.jsp"/>

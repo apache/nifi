@@ -285,6 +285,98 @@ div.local-changes-message {
 }
 
 /*
+    Referenced Attributes
+ */
+
+#referenced-attributes-table {
+    position: relative;
+    height: 240px;
+}
+
+#add-referenced-attribute {
+    float: right;
+    margin-bottom: 4px;
+    font-size: 16px;
+    text-transform: uppercase;
+}
+
+#referenced-attributes-title {
+    font-size: 12px;
+    float: left;
+    height: 28px;
+    line-height: 28px;
+    margin-left: 6px;
+}
+
+#verification-request-percent-complete {
+    margin-top: 10px;
+    border-radius: 0;
+}
+
+div.verification-results {
+    display: none;
+    position: absolute;
+    top: calc(60% - -10px);
+    right: 0;
+    left: 0;
+    bottom: 0;
+}
+
+div.verification-results-header {
+    color: #728e9b;
+    font-size: 16px;
+    font-family: 'Roboto Slab';
+    font-style: normal;
+    font-weight: bold;
+}
+
+div.verification-results-listing {
+    border: 0 solid #CCCCCC;
+    overflow: auto;
+    position: absolute;
+    top: 20px;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    padding: 10px;
+}
+
+div.verification-result {
+    margin-bottom: 8px;
+}
+
+div.verification-result-outcome {
+    float: left;
+    font-size: 14px;
+    width: 14px;
+    margin-right: 10px;
+}
+
+div.verification-result-outcome.fa-check {
+    color: #4fa885;
+}
+
+div.verification-result-outcome.fa-times {
+    color: #e21a1a;
+}
+
+div.verification-result-outcome.fa-exclamation {
+    color: #eB8f11;
+}
+
+div.verification-result-step-name {
+    float: left;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+div.verification-result-explanation {
+    font-size: 12px;
+    margin-left: 24px;
+    margin-top: 2px;
+}
+
+/*
     Variable Registry
  */
 

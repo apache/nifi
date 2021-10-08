@@ -218,6 +218,10 @@
             </div>
             <div id="processor-properties-tab-content" class="configuration-tab">
                 <div id="processor-properties"></div>
+                <div id="processor-properties-verification-results" class="verification-results">
+                    <div class="verification-results-header">Verification Results</div>
+                    <div id="processor-properties-verification-results-listing" class="verification-results-listing"></div>
+                </div>
             </div>
             <div id="processor-comments-tab-content" class="configuration-tab">
                 <textarea cols="30" rows="4" id="processor-comments" name="processor-comments" class="setting-input"></textarea>
