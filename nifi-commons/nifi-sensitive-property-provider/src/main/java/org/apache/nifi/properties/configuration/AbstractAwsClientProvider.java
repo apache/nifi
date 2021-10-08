@@ -25,9 +25,7 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.SdkClient;
 
-import java.util.Optional;
 import java.util.Properties;
-import java.util.Set;
 
 /**
  * Amazon Web Services Service Client Provider base class
@@ -41,17 +39,6 @@ public abstract class AbstractAwsClientProvider<T extends SdkClient> extends Boo
 
     public AbstractAwsClientProvider() {
         super(BootstrapProperties.BootstrapPropertyKey.AWS_SENSITIVE_PROPERTY_PROVIDER_CONF);
-    }
-
-    /**
-     * Get Client using Client Properties
-     *
-     * @param clientProperties Client Properties can be null
-     * @return Configured Client or empty when Client Properties object is null
-     */
-    @Override
-    public Optional<T> getClient(final Properties clientProperties) {
-        return isMissingProperties(clientProperties) ? Optional.empty() : Optional.of(getConfiguredClient(clientProperties));
     }
 
     /**
@@ -99,17 +86,4 @@ public abstract class AbstractAwsClientProvider<T extends SdkClient> extends Boo
      * @return The created client
      */
     protected abstract T createDefaultClient(AwsCredentialsProvider credentialsProvider);
-
-    /**
-     * Get Property Names required for initializing client in order to perform initial validation
-     *
-     * @return Set of required client property names
-     */
-    protected abstract Set<String> getRequiredPropertyNames();
-
-    private boolean isMissingProperties(final Properties clientProperties) {
-        return clientProperties == null || getRequiredPropertyNames().stream().anyMatch(propertyName ->
-                StringUtils.isBlank(clientProperties.getProperty(propertyName))
-        );
-    }
 }

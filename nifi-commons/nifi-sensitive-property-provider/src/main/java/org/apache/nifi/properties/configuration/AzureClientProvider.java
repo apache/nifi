@@ -19,11 +19,6 @@ package org.apache.nifi.properties.configuration;
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import org.apache.nifi.properties.BootstrapProperties;
-import org.apache.nifi.util.StringUtils;
-
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
 
 /**
  * Abstract Microsoft Azure Client Provider
@@ -34,35 +29,11 @@ public abstract class AzureClientProvider<T> extends BootstrapPropertiesClientPr
     }
 
     /**
-     * Get Client using Client Properties
-     *
-     * @param clientProperties Client Properties can be null
-     * @return Configured Client or empty when Client Properties object is null
-     */
-    @Override
-    public Optional<T> getClient(final Properties clientProperties) {
-        return isMissingProperties(clientProperties) ? Optional.empty() : Optional.of(getConfiguredClient(clientProperties));
-    }
-
-    /**
      * Get Default Azure Token Credential using Default Credentials Builder for environment variables and system properties
      *
      * @return Token Credential
      */
     protected TokenCredential getDefaultTokenCredential() {
         return new DefaultAzureCredentialBuilder().build();
-    }
-
-    /**
-     * Get Property Names required for initializing client in order to perform initial validation
-     *
-     * @return Set of required client property names
-     */
-    protected abstract Set<String> getRequiredPropertyNames();
-
-    private boolean isMissingProperties(final Properties clientProperties) {
-        return clientProperties == null || getRequiredPropertyNames().stream().anyMatch(propertyName ->
-            StringUtils.isBlank(clientProperties.getProperty(propertyName))
-        );
     }
 }
