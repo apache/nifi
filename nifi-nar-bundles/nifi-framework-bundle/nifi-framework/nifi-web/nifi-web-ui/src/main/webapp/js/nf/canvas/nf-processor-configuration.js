@@ -30,10 +30,11 @@
                 'nf.Processor',
                 'nf.ClusterSummary',
                 'nf.CustomUi',
+                'nf.Verify',
                 'nf.UniversalCapture',
                 'nf.Connection'],
-            function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfUniversalCapture, nfConnection) {
-                return (nf.ProcessorConfiguration = factory($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfUniversalCapture, nfConnection));
+            function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfVerify, nfUniversalCapture, nfConnection) {
+                return (nf.ProcessorConfiguration = factory($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfVerify, nfUniversalCapture, nfConnection));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ProcessorConfiguration =
@@ -48,6 +49,7 @@
                 require('nf.Processor'),
                 require('nf.ClusterSummary'),
                 require('nf.CustomUi'),
+                require('nf.Verify'),
                 require('nf.UniversalCapture'),
                 require('nf.Connection')));
     } else {
@@ -62,10 +64,11 @@
             root.nf.Processor,
             root.nf.ClusterSummary,
             root.nf.CustomUi,
+            root.nf.Verify,
             root.nf.UniversalCapture,
             root.nf.Connection);
     }
-}(this, function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfUniversalCapture, nfConnection) {
+}(this, function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfVerify, nfUniversalCapture, nfConnection) {
     'use strict';
 
     /**
@@ -80,6 +83,9 @@
     var ACTIVE_THREAD_COUNT_KEY = 'status.aggregateSnapshot.activeThreadCount',
         RUN_STATUS_KEY = 'status.aggregateSnapshot.runStatus',
         BULLETINS_KEY = 'bulletins';
+
+    // the last submitted referenced attributes
+    var referencedAttributes = null;
 
     /**
      * Gets the available scheduling strategies based on the specified processor.
@@ -499,6 +505,29 @@
         }
     };
 
+    /**
+     * Handles verification results.
+     */
+    var handleVerificationResults = function (verificationResults, referencedAttributeMap) {
+        // record the most recently submitted referenced attributes
+        referencedAttributes = referencedAttributeMap;
+
+        var verificationResultsContainer = $('#processor-properties-verification-results');
+
+        // expand the dialog to make room for the verification result
+        if (verificationResultsContainer.is(':visible') === false) {
+            // show the verification results
+            $('#processor-properties').css('bottom', '40%').propertytable('resetTableSize')
+            verificationResultsContainer.show();
+        }
+
+        // show borders if appropriate
+        var verificationResultsListing = $('#processor-properties-verification-results-listing');
+        if (verificationResultsListing.get(0).scrollHeight > Math.round(verificationResultsListing.innerHeight())) {
+            verificationResultsListing.css('border-width', '1px');
+        }
+    };
+
     return {
         /**
          * Initializes the processor properties tab.
@@ -562,8 +591,16 @@
                         // removed the cached processor details
                         $('#processor-configuration').removeData('processorDetails');
 
+                        // clean up an shown verification errors
+                        $('#processor-properties-verification-results').hide();
+                        $('#processor-properties-verification-results-listing').css('border-width', '0').empty();
+                        $('#processor-properties').css('bottom', '0');
+
+                        // clear most recently submitted referenced attributes
+                        referencedAttributes = null;
+
                         //stop any synchronization
-                        if(config.supportsStatusBar){
+                        if (config.supportsStatusBar){
                             $('#processor-configuration-status-bar').statusbar('disconnect');
                         }
                     },
@@ -982,7 +1019,10 @@
                     // load the property table
                     $('#processor-properties')
                         .propertytable('setGroupId', processor.parentGroupId)
-                        .propertytable('loadProperties', processor.config.properties, processor.config.descriptors, processorHistory.propertyHistory);
+                        .propertytable('loadProperties', processor.config.properties, processor.config.descriptors, processorHistory.propertyHistory)
+                        .propertytable('setPropertyVerificationCallback', function (proposedProperties) {
+                            nfVerify.verify(processor['id'], processorResponse['uri'], proposedProperties, referencedAttributes, handleVerificationResults, $('#processor-properties-verification-results-listing'));
+                        });
 
                     // show the details
                     $('#processor-configuration').modal('show');
@@ -997,13 +1037,12 @@
                     }
 
                     // Ensure the properties table has rendered correctly if initially selected
-                    if ($('#processor-configuration-tabs').find('.selected-tab').text() === 'Properties' &&
-                        $('#processor-properties').find('.slick-viewport').height() == 0) {
+                    if ($('#processor-configuration-tabs').find('.selected-tab').text() === 'Properties') {
                         $('#processor-properties').propertytable('resetTableSize');
                     }
 
-                    //execute the callback if one was provided
-                    if(typeof cb == 'function'){
+                    // execute the callback if one was provided
+                    if (typeof cb == 'function'){
                         cb();
                     }
                 }).fail(nfErrorHandler.handleAjaxError);

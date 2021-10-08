@@ -29,10 +29,11 @@
                 'nf.Settings',
                 'nf.UniversalCapture',
                 'nf.CustomUi',
+                'nf.Verify',
                 'nf.CanvasUtils',
                 'nf.Processor'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor) {
-                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
+                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfVerify, nfCustomUi, nfCanvasUtils, nfProcessor));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ControllerService =
@@ -46,6 +47,7 @@
                 require('nf.Settings'),
                 require('nf.UniversalCapture'),
                 require('nf.CustomUi'),
+                require('nf.Verify'),
                 require('nf.CanvasUtils'),
                 require('nf.Processor')));
     } else {
@@ -59,10 +61,11 @@
             root.nf.Settings,
             root.nf.UniversalCapture,
             root.nf.CustomUi,
+            root.nf.Verify,
             root.nf.CanvasUtils,
             root.nf.Processor);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
     'use strict';
 
     var nfControllerServices, nfReportingTask;
@@ -76,6 +79,9 @@
             api: '../nifi-api'
         }
     };
+
+    // the last submitted referenced attributes
+    var referencedAttributes = null;
 
     /**
      * Determines whether the user has made any changes to the controller service configuration
@@ -1697,6 +1703,29 @@
     };
 
     /**
+     * Handles verification results.
+     */
+    var handleVerificationResults = function (verificationResults, referencedAttributeMap) {
+        // record the most recently submitted referenced attributes
+        referencedAttributes = referencedAttributeMap;
+
+        var verificationResultsContainer = $('#controller-service-properties-verification-results');
+
+        // expand the dialog to make room for the verification result
+        if (verificationResultsContainer.is(':visible') === false) {
+            // show the verification results
+            $('#controller-service-properties').css('bottom', '40%').propertytable('resetTableSize')
+            verificationResultsContainer.show();
+        }
+
+        // show borders if appropriate
+        var verificationResultsListing = $('#controller-service-properties-verification-results-listing');
+        if (verificationResultsListing.get(0).scrollHeight > Math.round(verificationResultsListing.innerHeight())) {
+            verificationResultsListing.css('border-width', '1px');
+        }
+    };
+
+    /**
      * Track the current table
      */
     var currentTable;
@@ -1768,6 +1797,14 @@
 
                         // removed the cached controller service details
                         $('#controller-service-configuration').removeData('controllerServiceDetails');
+
+                        // clean up an shown verification errors
+                        $('#controller-service-properties-verification-results').hide();
+                        $('#controller-service-properties-verification-results-listing').css('border-width', '0').empty();
+                        $('#controller-service-properties').css('bottom', '0');
+
+                        // clear most recently submitted referenced attributes
+                        referencedAttributes = null;
                     },
                     open: function () {
                         nfCommon.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
@@ -2061,7 +2098,10 @@
                 // load the property table
                 $('#controller-service-properties')
                     .propertytable('setGroupId', controllerService.parentGroupId)
-                    .propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory);
+                    .propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory)
+                    .propertytable('setPropertyVerificationCallback', function (proposedProperties) {
+                        nfVerify.verify(controllerService['id'], controllerServiceEntity['uri'], proposedProperties, referencedAttributes, handleVerificationResults, $('#controller-service-properties-verification-results-listing'));
+                    });
 
                 // show the details
                 controllerServiceDialog.modal('show');
