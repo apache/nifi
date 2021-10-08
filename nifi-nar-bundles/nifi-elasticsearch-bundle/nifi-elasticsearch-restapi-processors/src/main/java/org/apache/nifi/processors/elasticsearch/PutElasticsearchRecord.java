@@ -252,12 +252,19 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS
     )));
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    static final List<String> ALLOWED_INDEX_OPERATIONS = Collections.unmodifiableList(Arrays.asList(
+            IndexOperationRequest.Operation.Create.getValue().toLowerCase(),
+            IndexOperationRequest.Operation.Delete.getValue().toLowerCase(),
+            IndexOperationRequest.Operation.Index.getValue().toLowerCase(),
+            IndexOperationRequest.Operation.Update.getValue().toLowerCase(),
+            IndexOperationRequest.Operation.Upsert.getValue().toLowerCase()
+    ));
 
     private RecordPathCache recordPathCache;
     private RecordReaderFactory readerFactory;
     private RecordSetWriterFactory writerFactory;
     private boolean logErrors;
+    private ObjectMapper errorMapper;
 
     private volatile ElasticSearchClientService clientService;
     private volatile String dateFormat;
@@ -305,15 +312,12 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         if (this.timestampFormat == null) {
             this.timestampFormat = RecordFieldType.TIMESTAMP.getDefaultFormat();
         }
-    }
 
-    static final List<String> ALLOWED_INDEX_OPERATIONS = Collections.unmodifiableList(Arrays.asList(
-            IndexOperationRequest.Operation.Create.getValue().toLowerCase(),
-            IndexOperationRequest.Operation.Delete.getValue().toLowerCase(),
-            IndexOperationRequest.Operation.Index.getValue().toLowerCase(),
-            IndexOperationRequest.Operation.Update.getValue().toLowerCase(),
-            IndexOperationRequest.Operation.Upsert.getValue().toLowerCase()
-    ));
+        if (errorMapper == null && (logErrors || getLogger().isDebugEnabled())) {
+            errorMapper = new ObjectMapper();
+            errorMapper.enable(SerializationFeature.INDENT_OUTPUT);
+        }
+    }
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
@@ -440,10 +444,9 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
     private FlowFile indexDocuments(final BulkOperation bundle, final ProcessContext context, final ProcessSession session, final FlowFile input) throws Exception {
         final IndexOperationResponse response = clientService.bulk(bundle.getOperationList(), getUrlQueryParameters(context, input));
         if (response.hasErrors()) {
-            if(logErrors || getLogger().isDebugEnabled()) {
+            if (logErrors || getLogger().isDebugEnabled()) {
                 final List<Map<String, Object>> errors = response.getItems();
-                objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-                final String output = String.format("An error was encountered while processing bulk operations. Server response below:%n%n%s", objectMapper.writeValueAsString(errors));
+                final String output = String.format("An error was encountered while processing bulk operations. Server response below:%n%n%s", errorMapper.writeValueAsString(errors));
 
                 if (logErrors) {
                     getLogger().error(output);

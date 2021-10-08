@@ -129,6 +129,8 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
 
+    final ObjectMapper mapper = new ObjectMapper();
+
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
@@ -278,7 +280,6 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
     }
 
     protected JsonNode parseJsonResponse(InputStream in) throws IOException {
-        final ObjectMapper mapper = new ObjectMapper();
         return mapper.readTree(in);
     }
 
