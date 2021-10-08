@@ -105,6 +105,7 @@
                   _) {
 
     var groupId = null;
+    var propertyVerificationCallback = null;
     var COMBO_MIN_WIDTH = 212;
     var EDITOR_MIN_WIDTH = 212;
     var EDITOR_MIN_HEIGHT = 100;
@@ -1784,6 +1785,22 @@
         }
     };
 
+    var marshalProperties = function (table) {
+        var properties = {};
+        var propertyGrid = table.data('gridInstance');
+        var propertyData = propertyGrid.getData();
+        $.each(propertyData.getItems(), function () {
+            if (this.hidden === true && !(this.dependent === true)) {
+                // hidden properties were removed by the user, clear the value
+                properties[this.property] = null;
+            } else if (this.value !== this.previousValue) {
+                // the value has changed
+                properties[this.property] = this.value;
+            }
+        });
+        return properties;
+    };
+
     /**
      * Performs the filtering.
      *
@@ -1954,7 +1971,8 @@
          *      return $.Deferred(function (deferred) {
          *          deferred.resolve();
          *      }).promise;
-         *   }
+         *   },
+         *   propertyVerificationCallback: function () {}
          * }
          *
          * @argument {object} options The options for the tag cloud
@@ -2125,7 +2143,7 @@
                         newPropertyDialog.on('click', 'div.new-property-ok', add).on('click', 'div.new-property-cancel', cancel);
 
                         // build the control to open the new property dialog
-                        var addProperty = $('<div class="add-property"></div>').appendTo(header);
+                        var addProperty = $('<div class="add-property" title="Add Property"></div>').appendTo(header);
                         $('<button class="button fa fa-plus"></button>').on('click', function () {
                             // close all fields currently being edited
                             saveRow(table);
@@ -2139,6 +2157,21 @@
                             // set the initial focus
                             newPropertyNameField.focus();
                         }).appendTo(addProperty);
+
+                        // build the control to trigger verification
+                        var verifyProperties = $('<div class="verify-properties hidden" title="Verify Properties"></div>').appendTo(header);
+                        $('<button class="button fa fa-check-circle-o"></button>').on('click', function () {
+                            // close all fields currently being edited
+                            saveRow(table);
+
+                            // invoke the verification callback with the current properties
+                            propertyVerificationCallback(marshalProperties(table));
+                        }).appendTo(verifyProperties);
+
+                        // if there is a verification callback registered show the verify button
+                        propertyVerificationCallback = options.propertyVerificationCallback;
+                        var supportsVerification = typeof propertyVerificationCallback === 'function';
+                        verifyProperties.toggleClass('hidden', !supportsVerification);
                     }
                     $('<div class="clear"></div>').appendTo(header);
 
@@ -2265,18 +2298,7 @@
             this.each(function () {
                 // get the property grid data
                 var table = $(this).find('div.property-table');
-                var propertyGrid = table.data('gridInstance');
-                var propertyData = propertyGrid.getData();
-                $.each(propertyData.getItems(), function () {
-                    if (this.hidden === true && !(this.dependent === true)) {
-                        // hidden properties were removed by the user, clear the value
-                        properties[this.property] = null;
-                    } else if (this.value !== this.previousValue) {
-                        // the value has changed
-                        properties[this.property] = this.value;
-                    }
-                });
-
+                properties = marshalProperties(table);
                 return false;
             });
 
@@ -2290,6 +2312,18 @@
         setGroupId: function (currentGroupId) {
             return this.each(function () {
                 groupId = currentGroupId;
+            });
+        },
+
+        /**
+         * Sets the property verification callback.
+         */
+        setPropertyVerificationCallback: function (currentPropertyVerificationCallback) {
+            return this.each(function () {
+                propertyVerificationCallback = currentPropertyVerificationCallback;
+
+                var supportsVerification = typeof currentPropertyVerificationCallback === 'function';
+                $(this).find('div.verify-properties').toggleClass('hidden', !supportsVerification);
             });
         }
     };

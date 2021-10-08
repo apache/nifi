@@ -501,6 +501,7 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas-utils.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-go-to.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-snippet.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-verify.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-connection.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-funnel.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-label.js</include>
