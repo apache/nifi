@@ -515,3 +515,60 @@ nifi.stateless.parameter.provider.Vault.name=HashiCorp Vault Provider
 nifi.stateless.parameter.provider.Vault.type=org.apache.nifi.stateless.parameter.HashiCorpVaultParameterValueProvider
 nifi.stateless.parameter.provider.Vault.properties.vault-configuration-file=./conf/bootstrap-hashicorp-vault.conf
 ```
+
+**AWS SecretsManagerParameterValueProvider**
+
+This provider reads parameter values from AWS SecretsManager.  Each AWS secret is mapped to a Parameter Context, with
+the Secret name representing the Parameter Context name and the key/value pairs in the Secret representing the 
+Parameter names and values.
+
+The AWS credentials can be configured via the `./conf/bootstrap-aws.conf` file, which comes with NiFi.
+
+Note: The provided AWS credentials must have the `secretsmanager:GetSecretValue` permission in order to use this provider.
+An example of creating a single secret in the correct format is:
+
+```
+aws secretsmanager create-secret --name "Context" --secret-string '{ "Param": "secretValue", "Param2": "secretValue2" }'
+```
+
+In this example, `Context` is the name of a Parameter Context, `Param` is the name of the parameter whose value
+should be retrieved from the Vault server, and `secretValue` is the actual value of the parameter.  Notice that
+there are multiple parameters stored in this secret: a second parameter named `Param2` has the value of `secretValue2`.
+
+Alternatively, if you use the AWS Console to create a secret, follow these steps:
+1. Select a secret type of "Other type of secrets (e.g. API key)"
+2. Enter one Secret key/value for each Parameter, where the key is the Parameter Name and the value is the Parameter value
+3. On the next page, enter the name of the Parameter Context as the Secret name.  Save the Secret.
+
+This Parameter Provider allows the following properties:
+
+| Property Name | Description | Example Value |
+|---------------|-------------|---------------|
+| nifi.stateless.parameter.provider.\<key>.properties.aws-credentials-file | The filename of a configuration file optionally specifying the AWS credentials.  If this property is not provided, or if the credentials are not provided in the file, the default AWS credentials chain will be followed. | `./conf/bootstrap-aws.conf` |
+| nifi.stateless.parameter.provider.\<key>.default-secret-name | The default AWS secret name to use.  This secret represents a default Parameter Context if there is not a matching key within the mapped Parameter Context secret. | `Default`  |
+
+An example of configuring this provider in the dataflow configuration file is:
+
+```
+nifi.stateless.parameter.provider.AWSSecretsManager.name=AWS SecretsManager Provider
+nifi.stateless.parameter.provider.AWSSecretsManager.type=org.apache.nifi.stateless.parameter.AwsSecretsManagerParameterValueProvider
+nifi.stateless.parameter.provider.AWSSecretsManager.properties.aws-credentials-file=./conf/bootstrap-aws.conf
+nifi.stateless.parameter.provider.AWSSecretsManager.properties.default-secret-name=Default
+nifi.stateless.parameter.provider.AWSSecretsManager.properties.MyContextName=MappedSecretName
+```
+
+This provider will map each ParameterContext to a secret of the same name.  In the above example, the Parameter Context named `MyContextName`
+will instead be mapped to a secret named `MappedSecretName`.
+
+Additionally, the provider will assume there is a secret named `Default` that may contain any parameters not found in other mapped ParameterContexts.
+For example, assume the following dataflow and AWS SecretsManager configuration:
+
+- Flow contains a ParameterContext named `ABC`, with parameters `foo` and `bar`.
+- Flow contains a ParameterContext named `MyContextName`, with parameter `baz`.
+- AWS SecretsManager contains a secret named `ABC`, with a key of `foo`.
+- AWS SecretsManager also contains a secret named `Default`, with keys `foo` and `bar`.
+- AWS SecretsManager also contains a secret named `MappedSecretName`, with a key of `baz`.
+
+When executing the dataflow with the above provider configuration, the `foo` parameter will be pulled from the `ABC` secret, since it was found directly in the mapped secret.
+However, the `bar` parameter will be pulled from the `Default` secret, because it was not found in the `ABC` secret, but was found in the `Default` secret, which is indicated by the `default-secret-name` property.
+Additionally, Stateless will pull the `baz` parameter from the `MappedSecretName` secret because of the `MyContextName` mapping property.
