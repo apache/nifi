@@ -141,9 +141,7 @@ public class ListenRELP extends AbstractProcessor {
         events = new LinkedBlockingQueue<>(context.getProperty(AbstractListenEventProcessor.MAX_MESSAGE_QUEUE_SIZE).asInteger());
         errorEvents = new LinkedBlockingQueue<>();
 
-        final String msgDemarcator = context.getProperty(AbstractListenEventBatchingProcessor.MESSAGE_DELIMITER)
-                                            .getValue()
-                                            .replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
+        final String msgDemarcator = getMessageDemarcator(context);
         messageDemarcatorBytes = msgDemarcator.getBytes(charset);
 
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
@@ -322,5 +320,11 @@ public class ListenRELP extends AbstractProcessor {
 
     private NettyEventServerFactory getNettyEventServerFactory() {
         return new RELPMessageServerFactory(getLogger(), hostname, port, charset, events);
+    }
+
+    private String getMessageDemarcator(final ProcessContext context) {
+        return context.getProperty(AbstractListenEventBatchingProcessor.MESSAGE_DELIMITER)
+                .getValue()
+                .replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
     }
 }
