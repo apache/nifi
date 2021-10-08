@@ -131,7 +131,7 @@ public class ListenRELP extends AbstractProcessor {
 
         final InetAddress socketAddress = NetworkUtils.getInterfaceAddress(nicIPAddressStr);
         if (socketAddress != null) {
-            hostname =  socketAddress.getHostName();
+            hostname = socketAddress.getHostName();
         } else {
             hostname = DEFAULT_ADDRESS;
         }

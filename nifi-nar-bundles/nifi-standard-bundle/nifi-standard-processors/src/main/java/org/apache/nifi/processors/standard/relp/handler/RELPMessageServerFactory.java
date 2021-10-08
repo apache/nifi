@@ -29,15 +29,16 @@ import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 
 /**
- * Netty Event Server Factory for RELP events/messages
+ * Netty Event Server Factory implementation for RELP Messages
  */
 public class RELPMessageServerFactory extends NettyEventServerFactory {
 
     /**
-     * RELP Netty Event Server Factory to receive RELP events
+     * RELP Message Server Factory to receive RELP messages
      * @param log Component Log
-     * @param address Remote Address
-     * @param port Remote Port Number
+     * @param address Server Address
+     * @param port Server Port Number
+     * @param charset Charset to use when decoding RELP messages
      * @param events Blocking Queue for events received
      */
     public RELPMessageServerFactory(final ComponentLog log,
