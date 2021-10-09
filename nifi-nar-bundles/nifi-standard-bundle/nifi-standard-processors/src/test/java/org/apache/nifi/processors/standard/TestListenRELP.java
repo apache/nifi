@@ -24,6 +24,7 @@ import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.listen.AbstractListenEventBatchingProcessor;
+import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.processors.standard.relp.event.RELPMessage;
 import org.apache.nifi.processors.standard.relp.frame.RELPEncoder;
 import org.apache.nifi.processors.standard.relp.frame.RELPFrame;
@@ -136,7 +137,7 @@ public class TestListenRELP {
     @Test
     public void testRELPFramesAreReceivedSuccessfullyWhenBatched() throws IOException {
 
-        runner.setProperty(AbstractListenEventBatchingProcessor.MAX_BATCH_SIZE, "5");
+        runner.setProperty(ListenerProperties.MAX_BATCH_SIZE, "5");
 
         final int syslogFrames = 3;
         final List<RELPFrame> frames = getFrames(syslogFrames);
@@ -198,7 +199,7 @@ public class TestListenRELP {
         MockListenRELP mockListenRELP = new MockListenRELP(mockEvents);
         runner = TestRunners.newTestRunner(mockListenRELP);
         runner.setProperty(AbstractListenEventBatchingProcessor.PORT, Integer.toString(NetworkUtils.availablePort()));
-        runner.setProperty(AbstractListenEventBatchingProcessor.MAX_BATCH_SIZE, "10");
+        runner.setProperty(ListenerProperties.MAX_BATCH_SIZE, "10");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(ListenRELP.REL_SUCCESS, 3);

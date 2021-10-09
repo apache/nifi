@@ -107,14 +107,14 @@ public class ListenRELP extends AbstractProcessor {
             .description("Messages received successfully will be sent out this relationship.")
             .build();
 
-    private static final String DEFAULT_ADDRESS = "127.0.0.1";
+    private static InetAddress DEFAULT_ADDRESS = NetworkUtils.getDefaultInterfaceAddress();
     protected List<PropertyDescriptor> descriptors;
     protected Set<Relationship> relationships;
     protected volatile int port;
     protected volatile Charset charset;
     protected volatile BlockingQueue<RELPMessage> events;
     protected volatile BlockingQueue<RELPMessage> errorEvents;
-    protected volatile String hostname;
+    protected volatile InetAddress hostname;
     protected EventServer eventServer;
     protected volatile byte[] messageDemarcatorBytes;
     protected volatile SSLContext sslContext;
@@ -130,7 +130,7 @@ public class ListenRELP extends AbstractProcessor {
 
         final InetAddress socketAddress = NetworkUtils.getInterfaceAddress(nicIPAddressStr);
         if (socketAddress != null) {
-            hostname = socketAddress.getHostName();
+            hostname = socketAddress;
         } else {
             hostname = DEFAULT_ADDRESS;
         }
@@ -205,7 +205,7 @@ public class ListenRELP extends AbstractProcessor {
         try {
             eventServer = eventFactory.getEventServer();
         } catch (EventException e) {
-            getLogger().debug("Failed to bind to [%hostname:%port].");
+            getLogger().debug("Failed to bind to [{}:{}].", hostname.getHostAddress(), port);
         }
     }
 

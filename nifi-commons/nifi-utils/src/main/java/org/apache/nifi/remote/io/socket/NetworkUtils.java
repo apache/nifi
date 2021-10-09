@@ -22,6 +22,7 @@ import java.net.NetworkInterface;
 import java.net.Socket;
 import java.net.ServerSocket;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -100,5 +101,13 @@ public class NetworkUtils {
             nicIPAddress = netIF.getInetAddresses().nextElement();
         }
         return nicIPAddress;
+    }
+
+    public static InetAddress getDefaultInterfaceAddress() {
+        try {
+            return InetAddress.getByName("127.0.0.1");
+        } catch (UnknownHostException e) {
+            return null;
+        }
     }
 }

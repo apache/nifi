@@ -24,6 +24,7 @@ import org.apache.nifi.processors.standard.relp.event.RELPMessage;
 import org.apache.nifi.processors.standard.relp.frame.RELPFrameDecoder;
 import org.apache.nifi.processors.standard.relp.frame.RELPMessageChannelHandler;
 
+import java.net.InetAddress;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
@@ -42,7 +43,7 @@ public class RELPMessageServerFactory extends NettyEventServerFactory {
      * @param events Blocking Queue for events received
      */
     public RELPMessageServerFactory(final ComponentLog log,
-                                    final String address,
+                                    final InetAddress address,
                                     final int port,
                                     final Charset charset,
                                     final BlockingQueue<RELPMessage> events) {
