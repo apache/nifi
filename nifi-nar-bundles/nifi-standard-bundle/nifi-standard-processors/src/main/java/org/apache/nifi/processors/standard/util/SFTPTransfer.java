@@ -263,7 +263,7 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     @Override
-    public List<FileInfo> getListing() throws IOException {
+    public List<FileInfo> getListing(final boolean applyFilters) throws IOException {
         final String path = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
         final int depth = 0;
 
@@ -277,11 +277,12 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         final List<FileInfo> listing = new ArrayList<>(1000);
-        getListing(path, depth, maxResults, listing);
+        getListing(path, depth, maxResults, listing, applyFilters);
         return listing;
     }
 
-    protected void getListing(final String path, final int depth, final int maxResults, final List<FileInfo> listing) throws IOException {
+    protected void getListing(final String path, final int depth, final int maxResults, final List<FileInfo> listing,
+                              final boolean applyFilters) throws IOException {
         if (maxResults < 1 || listing.size() >= maxResults) {
             return;
         }
@@ -346,8 +347,8 @@ public class SFTPTransfer implements FileTransfer {
                 }
 
                 // if is not a directory and is not a link and it matches FILE_FILTER_REGEX - then let's add it
-                if (!entry.isDirectory() && !(entry.getAttributes().getType() == FileMode.Type.SYMLINK) && isPathMatch) {
-                    if (pattern == null || pattern.matcher(entryFilename).matches()) {
+                if (!entry.isDirectory() && !(entry.getAttributes().getType() == FileMode.Type.SYMLINK) && (!applyFilters || isPathMatch)) {
+                    if (pattern == null || !applyFilters || pattern.matcher(entryFilename).matches()) {
                         listing.add(newFileInfo(entry, path));
                     }
                 }
@@ -379,7 +380,7 @@ public class SFTPTransfer implements FileTransfer {
             final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
 
             try {
-                getListing(newFullForwardPath, depth + 1, maxResults, listing);
+                getListing(newFullForwardPath, depth + 1, maxResults, listing, applyFilters);
             } catch (final IOException e) {
                 logger.error("Unable to get listing from " + newFullForwardPath + "; skipping", e);
             }

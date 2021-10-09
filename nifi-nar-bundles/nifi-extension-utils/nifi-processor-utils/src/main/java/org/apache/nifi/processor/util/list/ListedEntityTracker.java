@@ -257,7 +257,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
                 } else {
                     this.alreadyListedEntities = new ConcurrentHashMap<>(fetchedListedEntities);
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ProcessException("Failed to restore already-listed entities due to " + e, e);
             }
         }
