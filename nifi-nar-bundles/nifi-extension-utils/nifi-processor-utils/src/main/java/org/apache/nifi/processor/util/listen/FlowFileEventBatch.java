@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.processor.util.listen;
 
-import org.apache.nifi.event.transport.message.ByteArrayMessage;
+import org.apache.nifi.event.transport.NetworkEvent;
 import org.apache.nifi.flowfile.FlowFile;
 
 import java.util.List;
 
-public final class FlowFileEventBatch<E extends ByteArrayMessage> {
+public final class FlowFileEventBatch<E extends NetworkEvent> {
 
         private FlowFile flowFile;
         private List<E> events;

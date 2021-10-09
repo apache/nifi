@@ -41,10 +41,9 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.listen.AbstractListenEventBatchingProcessor;
-import org.apache.nifi.processor.util.listen.AbstractListenEventProcessor;
 import org.apache.nifi.processor.util.listen.EventBatcher;
 import org.apache.nifi.processor.util.listen.FlowFileEventBatch;
+import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.processors.standard.relp.event.RELPMessage;
 import org.apache.nifi.processors.standard.relp.handler.RELPMessageServerFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
@@ -125,8 +124,8 @@ public class ListenRELP extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(ProcessContext context) throws IOException {
-        maxConnections = context.getProperty(AbstractListenEventProcessor.MAX_CONNECTIONS).asInteger();
-        bufferSize = context.getProperty(AbstractListenEventProcessor.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        maxConnections = context.getProperty(ListenerProperties.MAX_CONNECTIONS).asInteger();
+        bufferSize = context.getProperty(ListenerProperties.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
 
         final InetAddress socketAddress = NetworkUtils.getInterfaceAddress(nicIPAddressStr);
@@ -136,9 +135,9 @@ public class ListenRELP extends AbstractProcessor {
             hostname = DEFAULT_ADDRESS;
         }
 
-        charset = Charset.forName(context.getProperty(AbstractListenEventProcessor.CHARSET).getValue());
-        port = context.getProperty(AbstractListenEventProcessor.PORT).evaluateAttributeExpressions().asInteger();
-        events = new LinkedBlockingQueue<>(context.getProperty(AbstractListenEventProcessor.MAX_MESSAGE_QUEUE_SIZE).asInteger());
+        charset = Charset.forName(context.getProperty(ListenerProperties.CHARSET).getValue());
+        port = context.getProperty(ListenerProperties.PORT).evaluateAttributeExpressions().asInteger();
+        events = new LinkedBlockingQueue<>(context.getProperty(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE).asInteger());
         errorEvents = new LinkedBlockingQueue<>();
 
         final String msgDemarcator = getMessageDemarcator(context);
@@ -164,14 +163,14 @@ public class ListenRELP extends AbstractProcessor {
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(AbstractListenEventProcessor.PORT);
-        descriptors.add(AbstractListenEventProcessor.RECV_BUFFER_SIZE);
-        descriptors.add(AbstractListenEventProcessor.MAX_MESSAGE_QUEUE_SIZE);
-        descriptors.add(AbstractListenEventProcessor.MAX_SOCKET_BUFFER_SIZE);
-        descriptors.add(AbstractListenEventProcessor.CHARSET);
-        descriptors.add(AbstractListenEventProcessor.MAX_CONNECTIONS);
-        descriptors.add(AbstractListenEventBatchingProcessor.MAX_BATCH_SIZE);
-        descriptors.add(AbstractListenEventBatchingProcessor.MESSAGE_DELIMITER);
+        descriptors.add(ListenerProperties.PORT);
+        descriptors.add(ListenerProperties.RECV_BUFFER_SIZE);
+        descriptors.add(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE);
+        descriptors.add(ListenerProperties.MAX_SOCKET_BUFFER_SIZE);
+        descriptors.add(ListenerProperties.CHARSET);
+        descriptors.add(ListenerProperties.MAX_CONNECTIONS);
+        descriptors.add(ListenerProperties.MAX_BATCH_SIZE);
+        descriptors.add(ListenerProperties.MESSAGE_DELIMITER);
         descriptors.add(NETWORK_INTF_NAME);
         descriptors.add(CLIENT_AUTH);
         descriptors.add(SSL_CONTEXT_SERVICE);
@@ -256,7 +255,7 @@ public class ListenRELP extends AbstractProcessor {
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         EventBatcher eventBatcher = getEventBatcher();
 
-        final int batchSize = context.getProperty(AbstractListenEventBatchingProcessor.MAX_BATCH_SIZE).asInteger();
+        final int batchSize = context.getProperty(ListenerProperties.MAX_BATCH_SIZE).asInteger();
         Map<String, FlowFileEventBatch> batches = eventBatcher.getBatches(session, batchSize, messageDemarcatorBytes);
         processEvents(session, batches);
     }
@@ -323,7 +322,7 @@ public class ListenRELP extends AbstractProcessor {
     }
 
     private String getMessageDemarcator(final ProcessContext context) {
-        return context.getProperty(AbstractListenEventBatchingProcessor.MESSAGE_DELIMITER)
+        return context.getProperty(ListenerProperties.MESSAGE_DELIMITER)
                 .getValue()
                 .replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
     }
