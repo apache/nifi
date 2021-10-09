@@ -30,6 +30,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -77,7 +79,8 @@ public class TestHashiCorpVaultParameterValueProvider {
 
             @Override
             public Map<String, String> getAllProperties() {
-                return null;
+                return Stream.of(HashiCorpVaultParameterValueProvider.VAULT_CONFIG_FILE, HashiCorpVaultParameterValueProvider.DEFAULT_SECRET_NAME)
+                        .collect(Collectors.toMap(PropertyDescriptor::getName, descriptor -> getProperty(descriptor).getValue()));
             }
         });
     }
