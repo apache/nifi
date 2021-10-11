@@ -393,11 +393,24 @@ public class DruidTranquilityController extends AbstractControllerService implem
         Set<ValidationResult> results = new HashSet<>();
         final String segmentGranularity = validationContext.getProperty(SEGMENT_GRANULARITY).getValue();
         final String queryGranularity = validationContext.getProperty(QUERY_GRANULARITY).getValue();
+        final String basicAuthUsername = validationContext.getProperty(PROP_BASIC_AUTH_USERNAME).getValue();
+        final String basicAuthPassword = validationContext.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue();
 
         // Verify that segment granularity is as least as large as query granularity
         if (TIME_ORDINALS.indexOf(segmentGranularity) < TIME_ORDINALS.indexOf(queryGranularity)) {
             results.add(new ValidationResult.Builder().valid(false).explanation(
                     "Segment Granularity must be at least as large as Query Granularity").build());
+        }
+
+        // Verify that username and password are both absent or both set
+        if (StringUtils.isNotBlank(basicAuthUsername) && StringUtils.isBlank(basicAuthPassword)) {
+            results.add(new ValidationResult.Builder().subject(PROP_BASIC_AUTH_PASSWORD.getDisplayName())
+                    .explanation("it is required when '" + PROP_BASIC_AUTH_USERNAME.getDisplayName() + "' is set").build()
+            );
+        } else if (StringUtils.isBlank(basicAuthUsername) && StringUtils.isNotBlank(basicAuthPassword)) {
+            results.add(new ValidationResult.Builder().subject(PROP_BASIC_AUTH_USERNAME.getDisplayName())
+                    .explanation("it is required when '" + PROP_BASIC_AUTH_PASSWORD.getDisplayName() + "' is set").build()
+            );
         }
 
         return results;
