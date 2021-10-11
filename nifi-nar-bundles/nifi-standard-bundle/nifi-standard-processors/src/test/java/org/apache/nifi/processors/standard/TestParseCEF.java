@@ -206,7 +206,6 @@ public class TestParseCEF {
         Assert.assertEquals("chocolate!", inner.get("test_test_test").asText());
     }
 
-
     @Test
     public void testSuccessfulParseToContentUTC() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ParseCEF());
@@ -288,7 +287,6 @@ public class TestParseCEF {
 
     }
 
-
     @Test
     public void testCustomValidator() {
         final TestRunner runner = TestRunners.newTestRunner(new ParseCEF());
@@ -313,5 +311,36 @@ public class TestParseCEF {
             }
         }
     }
+
+    @Test
+    public void testIncludeCustomExtensions() throws Exception {
+        String sample3 = "<159>Aug 09 08:56:28 8.8.8.8 CEF:0|x|Security|x.x.0|20|Transaction blocked|7| "
+            + "act=blocked app=https dvc=8.8.8.8 dst=8.8.8.8 dhost=www.flynas.com dpt=443 src=8.8.8.8 "
+            + "spt=53475 suser=x UserPath=LDAP://8.8.8.8 OU\\\\=1 - x x x x,OU\\\\=x x,DC\\\\=x,DC\\\\=com/x "
+            + "destinationTranslatedPort=36436 rt=1628488588000 in=65412 out=546 requestMethod=GET  "
+            + "category=20 http_response=200 http_proxy_status_code=302 duration=13 "
+            + "requestClientApplication=Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0;) like Gecko reason=-  "
+            + "cs1Label=Policy cs1=x x**x cs2Label=DynCat cs2=0 cs3Label=ContentType cs3=font/otf "
+            + "cn1Label=DispositionCode cn1=1047 cn2Label=ScanDuration cn2=13 "
+            + "request=https://www.flynas.com/css/fonts/GothamRounded-Book.otf URLRefer=https://www.flynas.com/en";
+
+        final TestRunner runner = TestRunners.newTestRunner(new ParseCEF());
+        runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_CONTENT);
+        runner.setProperty(ParseCEF.TIME_REPRESENTATION, ParseCEF.UTC);
+        runner.setProperty(ParseCEF.INCLUDE_CUSTOM_EXTENSIONS, "true");
+        runner.enqueue(sample3.getBytes());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 1);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
+
+        byte [] rawJson = mff.toByteArray();
+
+        JsonNode results = new ObjectMapper().readTree(rawJson);
+
+        JsonNode extension = results.get("extension");
+        Assert.assertEquals(200, extension.get("http_response").asInt());
+    }
+
 }
 

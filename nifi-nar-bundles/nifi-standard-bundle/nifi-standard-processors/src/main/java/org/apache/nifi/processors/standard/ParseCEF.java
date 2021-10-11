@@ -136,6 +136,16 @@ public class ParseCEF extends AbstractProcessor {
             .defaultValue("true")
             .build();
 
+    public static final PropertyDescriptor INCLUDE_CUSTOM_EXTENSIONS = new PropertyDescriptor.Builder()
+            .name("INCLUDE_CUSTOM_EXTENSIONS")
+            .displayName("Include custom extensions")
+            .description("If set to true, custom extensions (not specified in the CEF specifications) will be "
+                    + "included in the generated data/attributes.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .required(true)
+            .defaultValue("false")
+            .build();
+
     public static final String UTC = "UTC";
     public static final String LOCAL_TZ = "Local Timezone (system Default)";
     public static final PropertyDescriptor TIME_REPRESENTATION = new PropertyDescriptor.Builder()
@@ -176,6 +186,7 @@ public class ParseCEF extends AbstractProcessor {
         final List<PropertyDescriptor>properties = new ArrayList<>();
         properties.add(FIELDS_DESTINATION);
         properties.add(APPEND_RAW_MESSAGE_TO_JSON);
+        properties.add(INCLUDE_CUSTOM_EXTENSIONS);
         properties.add(TIME_REPRESENTATION);
         properties.add(DATETIME_REPRESENTATION);
         return properties;
@@ -258,6 +269,7 @@ public class ParseCEF extends AbstractProcessor {
 
         try {
             final String destination = context.getProperty(FIELDS_DESTINATION).getValue();
+            final boolean includeCustomExtensions = context.getProperty(INCLUDE_CUSTOM_EXTENSIONS).asBoolean();
 
             switch (destination) {
                 case DESTINATION_ATTRIBUTES:
@@ -270,7 +282,7 @@ public class ParseCEF extends AbstractProcessor {
                     }
 
                     // Process KVs composing the Extension field
-                    for (Map.Entry<String, Object> entry : event.getExtension(true).entrySet()) {
+                    for (Map.Entry<String, Object> entry : event.getExtension(true, includeCustomExtensions).entrySet()) {
                     attributes.put("cef.extension." + entry.getKey(), prettyResult(entry.getValue(), tzId));
 
                     flowFile = session.putAllAttributes(flowFile, attributes);
@@ -283,7 +295,7 @@ public class ParseCEF extends AbstractProcessor {
 
                     // Add two JSON objects containing one CEF field each
                     results.set("header", mapper.valueToTree(event.getHeader()));
-                    results.set("extension", mapper.valueToTree(event.getExtension(true)));
+                    results.set("extension", mapper.valueToTree(event.getExtension(true, includeCustomExtensions)));
 
                     // Add the original content to original CEF content
                     // to the resulting JSON
