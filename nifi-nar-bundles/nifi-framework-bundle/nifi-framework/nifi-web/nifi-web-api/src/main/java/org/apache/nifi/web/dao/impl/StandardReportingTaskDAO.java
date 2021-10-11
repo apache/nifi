@@ -261,7 +261,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
     }
 
     @Override
-    public List<ConfigVerificationResultDTO> verifyConfiguration(final String reportingTaskId, final ReportingTaskDTO reportingTask) {
+    public List<ConfigVerificationResultDTO> verifyConfiguration(final String reportingTaskId, final Map<String, String> properties) {
         final ReportingTaskNode taskNode = locateReportingTask(reportingTaskId);
 
         final LogRepository logRepository = new NopLogRepository();
@@ -269,7 +269,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final ParameterLookup parameterLookup = ParameterLookup.EMPTY;
-        final ConfigurationContext configurationContext = new StandardConfigurationContext(taskNode, reportingTask.getProperties(), reportingTask.getAnnotationData(),
+        final ConfigurationContext configurationContext = new StandardConfigurationContext(taskNode, properties, taskNode.getAnnotationData(),
             parameterLookup, flowController.getControllerServiceProvider(), null, flowController.getVariableRegistry());
 
         final List<ConfigVerificationResult> verificationResults = taskNode.verifyConfiguration(configurationContext, configVerificationLog, extensionManager);

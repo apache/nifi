@@ -20,8 +20,8 @@ package org.apache.nifi.cluster.coordination.http.endpoints;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
-import org.apache.nifi.web.api.dto.VerifyProcessorConfigRequestDTO;
-import org.apache.nifi.web.api.entity.VerifyProcessorConfigRequestEntity;
+import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 
 import java.net.URI;
 import java.util.List;
@@ -29,24 +29,28 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public class VerifyProcessorConfigEndpointMerger extends AbstractSingleEntityEndpoint<VerifyProcessorConfigRequestEntity> {
+public class VerifyConfigEndpointMerger extends AbstractSingleEntityEndpoint<VerifyConfigRequestEntity> {
     public static final Pattern VERIFY_PROCESSOR_CONFIG_URI_PATTERN = Pattern.compile("/nifi-api/processors/[a-f0-9\\-]{36}/config/verification-requests(/[a-f0-9\\-]{36})?");
+    public static final Pattern VERIFY_CONTROLLER_SERVICE_CONFIG_URI_PATTERN = Pattern.compile("/nifi-api/controller-services/[a-f0-9\\-]{36}/config/verification-requests(/[a-f0-9\\-]{36})?");
+    public static final Pattern VERIFY_REPORTING_TASK_CONFIG_URI_PATTERN = Pattern.compile("/nifi-api/reporting-tasks/[a-f0-9\\-]{36}/config/verification-requests(/[a-f0-9\\-]{36})?");
 
     @Override
-    protected Class<VerifyProcessorConfigRequestEntity> getEntityClass() {
-        return VerifyProcessorConfigRequestEntity.class;
+    protected Class<VerifyConfigRequestEntity> getEntityClass() {
+        return VerifyConfigRequestEntity.class;
     }
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
-        return VERIFY_PROCESSOR_CONFIG_URI_PATTERN.matcher(uri.getPath()).matches();
+        return VERIFY_PROCESSOR_CONFIG_URI_PATTERN.matcher(uri.getPath()).matches()
+            || VERIFY_CONTROLLER_SERVICE_CONFIG_URI_PATTERN.matcher(uri.getPath()).matches()
+            || VERIFY_REPORTING_TASK_CONFIG_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
     @Override
-    protected void mergeResponses(final VerifyProcessorConfigRequestEntity clientEntity, final Map<NodeIdentifier, VerifyProcessorConfigRequestEntity> entityMap,
+    protected void mergeResponses(final VerifyConfigRequestEntity clientEntity, final Map<NodeIdentifier, VerifyConfigRequestEntity> entityMap,
                                   final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
 
-        final VerifyProcessorConfigRequestDTO requestDto = clientEntity.getRequest();
+        final VerifyConfigRequestDTO requestDto = clientEntity.getRequest();
         final List<ConfigVerificationResultDTO> results = requestDto.getResults();
 
         // If the result hasn't been set, the task is not yet complete, so we don't have to bother merging the results.
@@ -56,9 +60,9 @@ public class VerifyProcessorConfigEndpointMerger extends AbstractSingleEntityEnd
 
         // Aggregate the Config Verification Results across all nodes into a single List
         final ConfigVerificationResultMerger resultMerger = new ConfigVerificationResultMerger();
-        for (final Map.Entry<NodeIdentifier, VerifyProcessorConfigRequestEntity> entry : entityMap.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, VerifyConfigRequestEntity> entry : entityMap.entrySet()) {
             final NodeIdentifier nodeId = entry.getKey();
-            final VerifyProcessorConfigRequestEntity entity = entry.getValue();
+            final VerifyConfigRequestEntity entity = entry.getValue();
 
             final List<ConfigVerificationResultDTO> nodeResults = entity.getRequest().getResults();
             resultMerger.addNodeResults(nodeId, nodeResults);

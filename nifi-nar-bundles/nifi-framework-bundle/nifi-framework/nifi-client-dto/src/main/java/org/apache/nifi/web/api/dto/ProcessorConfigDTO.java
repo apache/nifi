@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
-import io.swagger.annotations.ApiModelProperty.AccessMode;
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.Map;
@@ -51,7 +50,6 @@ public class ProcessorConfigDTO {
 
     private Map<String, String> defaultConcurrentTasks;
     private Map<String, String> defaultSchedulingPeriod;
-    private Set<String> referencedAttributes;
 
     public ProcessorConfigDTO() {
 
@@ -310,12 +308,4 @@ public class ProcessorConfigDTO {
         this.defaultSchedulingPeriod = defaultSchedulingPeriod;
     }
 
-    @ApiModelProperty(value = "The set of FlowFile Attributes that are referenced via Expression Language by the configured properties", accessMode = AccessMode.READ_ONLY)
-    public Set<String> getReferencedAttributes() {
-        return referencedAttributes;
-    }
-
-    public void setReferencedAttributes(final Set<String> referencedAttributes) {
-        this.referencedAttributes = referencedAttributes;
-    }
 }

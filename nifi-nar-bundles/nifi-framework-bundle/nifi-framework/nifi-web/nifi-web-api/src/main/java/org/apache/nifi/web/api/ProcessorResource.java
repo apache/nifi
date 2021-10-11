@@ -46,19 +46,21 @@ import org.apache.nifi.web.api.concurrent.UpdateStep;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
+import org.apache.nifi.web.api.dto.ConfigurationAnalysisDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
-import org.apache.nifi.web.api.dto.VerifyProcessorConfigRequestDTO;
+import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
+import org.apache.nifi.web.api.entity.ConfigurationAnalysisEntity;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.RunStatusDetailsRequestEntity;
-import org.apache.nifi.web.api.entity.VerifyProcessorConfigRequestEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
@@ -99,7 +101,7 @@ public class ProcessorResource extends ApplicationResource {
     private static final Logger logger = LoggerFactory.getLogger(ProcessorResource.class);
 
     private static final String VERIFICATION_REQUEST_TYPE = "verification-request";
-    private RequestManager<VerifyProcessorConfigRequestEntity, List<ConfigVerificationResultDTO>> updateRequestManager =
+    private RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> updateRequestManager =
         new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Processor Config Thread");
 
     private NiFiServiceFacade serviceFacade;
@@ -550,10 +552,72 @@ public class ProcessorResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/config/analysis")
+    @ApiOperation(
+        value = "Performs analysis of the component's configuration, providing information about which attributes are referenced.",
+        response = ConfigurationAnalysisEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /processors/{uuid}")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response analyzeConfiguration(
+        @ApiParam(value = "The processor id.", required = true) @PathParam("id") final String processorId,
+        @ApiParam(value = "The processor configuration analysis request.", required = true) final ConfigurationAnalysisEntity configurationAnalysis) {
+
+        if (configurationAnalysis == null || configurationAnalysis.getConfigurationAnalysis() == null) {
+            throw new IllegalArgumentException("Processor's configuration must be specified");
+        }
+
+        final ConfigurationAnalysisDTO dto = configurationAnalysis.getConfigurationAnalysis();
+        if (dto.getComponentId() == null) {
+            throw new IllegalArgumentException("Processor's identifier must be specified in the request");
+        }
+
+        if (!dto.getComponentId().equals(processorId)) {
+            throw new IllegalArgumentException("Processor's identifier in the request must match the identifier provided in the URL");
+        }
+
+        if (dto.getProperties() == null) {
+            throw new IllegalArgumentException("Processor's properties must be specified in the request");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, configurationAnalysis);
+        }
+
+        return withWriteLock(
+            serviceFacade,
+            configurationAnalysis,
+            lookup -> {
+                final ComponentAuthorizable processor = lookup.getProcessor(processorId);
+                processor.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            },
+            () -> { },
+            entity -> {
+                final ConfigurationAnalysisDTO analysis = entity.getConfigurationAnalysis();
+                final ConfigurationAnalysisEntity resultsEntity = serviceFacade.analyzeProcessorConfiguration(analysis.getComponentId(), analysis.getProperties());
+                return generateOkResponse(resultsEntity).build();
+            }
+        );
+    }
+
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}/config/verification-requests")
     @ApiOperation(
         value = "Performs verification of the Processor's configuration",
-        response = VerifyProcessorConfigRequestEntity.class,
+        response = VerifyConfigRequestEntity.class,
         notes = "This will initiate the process of verifying a given Processor configuration. This may be a long-running task. As a result, this endpoint will immediately return a " +
             "ProcessorConfigVerificationRequestEntity, and the process of performing the verification will occur asynchronously in the background. " +
             "The client may then periodically poll the status of the request by " +
@@ -574,22 +638,22 @@ public class ProcessorResource extends ApplicationResource {
     )
     public Response submitProcessorVerificationRequest(
         @ApiParam(value = "The processor id.", required = true) @PathParam("id") final String processorId,
-        @ApiParam(value = "The processor configuration verification request.", required = true) final VerifyProcessorConfigRequestEntity processorConfigRequest) {
+        @ApiParam(value = "The processor configuration verification request.", required = true) final VerifyConfigRequestEntity processorConfigRequest) {
 
         if (processorConfigRequest == null) {
             throw new IllegalArgumentException("Processor's configuration must be specified");
         }
 
-        final VerifyProcessorConfigRequestDTO requestDto = processorConfigRequest.getRequest();
-        if (requestDto == null || requestDto.getProcessorConfig() == null) {
-            throw new IllegalArgumentException("Processor's configuration must be specified");
+        final VerifyConfigRequestDTO requestDto = processorConfigRequest.getRequest();
+        if (requestDto == null || requestDto.getProperties() == null) {
+            throw new IllegalArgumentException("Processor's properties must be specified");
         }
 
-        if (requestDto.getProcessorId() == null) {
+        if (requestDto.getComponentId() == null) {
             throw new IllegalArgumentException("Processor's identifier must be specified in the request");
         }
 
-        if (!requestDto.getProcessorId().equals(processorId)) {
+        if (!requestDto.getComponentId().equals(processorId)) {
             throw new IllegalArgumentException("Processor's identifier in the request must match the identifier provided in the URL");
         }
 
@@ -619,7 +683,7 @@ public class ProcessorResource extends ApplicationResource {
     @Path("{id}/config/verification-requests/{requestId}")
     @ApiOperation(
         value = "Returns the Verification Request with the given ID",
-        response = VerifyProcessorConfigRequestEntity.class,
+        response = VerifyConfigRequestEntity.class,
         notes = "Returns the Verification Request with the given ID. Once an Verification Request has been created, "
             + "that request can subsequently be retrieved via this endpoint, and the request that is fetched will contain the updated state, such as percent complete, the "
             + "current state of the request, and any failures. ",
@@ -644,8 +708,8 @@ public class ProcessorResource extends ApplicationResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // request manager will ensure that the current is the user that submitted this request
-        final AsynchronousWebRequest<VerifyProcessorConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest = updateRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
-        final VerifyProcessorConfigRequestEntity updateRequestEntity = createVerifyProcessorConfigRequestEntity(asyncRequest, requestId);
+        final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest = updateRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+        final VerifyConfigRequestEntity updateRequestEntity = createVerifyProcessorConfigRequestEntity(asyncRequest, requestId);
         return generateOkResponse(updateRequestEntity).build();
     }
 
@@ -656,7 +720,7 @@ public class ProcessorResource extends ApplicationResource {
     @Path("{id}/config/verification-requests/{requestId}")
     @ApiOperation(
         value = "Deletes the Verification Request with the given ID",
-        response = VerifyProcessorConfigRequestEntity.class,
+        response = VerifyConfigRequestEntity.class,
         notes = "Deletes the Verification Request with the given ID. After a request is created, it is expected "
             + "that the client will properly clean up the request by DELETE'ing it, once the Verification process has completed. If the request is deleted before the request "
             + "completes, then the Verification request will finish the step that it is currently performing and then will cancel any subsequent steps.",
@@ -685,14 +749,14 @@ public class ProcessorResource extends ApplicationResource {
         // If this is a standalone node, or if this is the execution phase of the request, perform the actual request.
         if (!twoPhaseRequest || executionPhase) {
             // request manager will ensure that the current is the user that submitted this request
-            final AsynchronousWebRequest<VerifyProcessorConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
+            final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
                 updateRequestManager.removeRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
 
             if (!asyncRequest.isComplete()) {
                 asyncRequest.cancel();
             }
 
-            final VerifyProcessorConfigRequestEntity updateRequestEntity = createVerifyProcessorConfigRequestEntity(asyncRequest, requestId);
+            final VerifyConfigRequestEntity updateRequestEntity = createVerifyProcessorConfigRequestEntity(asyncRequest, requestId);
             return generateOkResponse(updateRequestEntity).build();
         }
 
@@ -986,23 +1050,23 @@ public class ProcessorResource extends ApplicationResource {
         return dto;
     }
 
-    public Response performAsyncConfigVerification(final VerifyProcessorConfigRequestEntity processorConfigRequest, final NiFiUser user) {
+    public Response performAsyncConfigVerification(final VerifyConfigRequestEntity processorConfigRequest, final NiFiUser user) {
         // Create an asynchronous request that will occur in the background, because this request may take an indeterminate amount of time.
         final String requestId = generateUuid();
-        logger.debug("Generated Config Verification Request with ID {} for Processor {}", requestId, processorConfigRequest.getRequest().getProcessorId());
+        logger.debug("Generated Config Verification Request with ID {} for Processor {}", requestId, processorConfigRequest.getRequest().getComponentId());
 
-        final VerifyProcessorConfigRequestDTO requestDto = processorConfigRequest.getRequest();
-        final String processorId = requestDto.getProcessorId();
+        final VerifyConfigRequestDTO requestDto = processorConfigRequest.getRequest();
+        final String processorId = requestDto.getComponentId();
         final List<UpdateStep> updateSteps = Collections.singletonList(new StandardUpdateStep("Verify Processor Configuration"));
 
-        final AsynchronousWebRequest<VerifyProcessorConfigRequestEntity, List<ConfigVerificationResultDTO>> request =
+        final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> request =
             new StandardAsynchronousWebRequest<>(requestId, processorConfigRequest, processorId, user, updateSteps);
 
         // Submit the request to be performed in the background
-        final Consumer<AsynchronousWebRequest<VerifyProcessorConfigRequestEntity, List<ConfigVerificationResultDTO>>> updateTask = asyncRequest -> {
+        final Consumer<AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>>> updateTask = asyncRequest -> {
             try {
                 final Map<String, String> attributes = requestDto.getAttributes() == null ? Collections.emptyMap() : requestDto.getAttributes();
-                final List<ConfigVerificationResultDTO> results = serviceFacade.verifyProcessorConfiguration(processorId, requestDto.getProcessorConfig(), attributes);
+                final List<ConfigVerificationResultDTO> results = serviceFacade.verifyProcessorConfiguration(processorId, requestDto.getProperties(), attributes);
                 asyncRequest.markStepComplete(results);
             } catch (final Exception e) {
                 logger.error("Failed to verify Processor configuration", e);
@@ -1013,30 +1077,30 @@ public class ProcessorResource extends ApplicationResource {
         updateRequestManager.submitRequest(VERIFICATION_REQUEST_TYPE, requestId, request, updateTask);
 
         // Generate the response
-        final VerifyProcessorConfigRequestEntity resultsEntity = createVerifyProcessorConfigRequestEntity(request, requestId);
+        final VerifyConfigRequestEntity resultsEntity = createVerifyProcessorConfigRequestEntity(request, requestId);
         return generateOkResponse(resultsEntity).build();
     }
 
-    private VerifyProcessorConfigRequestEntity createVerifyProcessorConfigRequestEntity(
-                    final AsynchronousWebRequest<VerifyProcessorConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest,
+    private VerifyConfigRequestEntity createVerifyProcessorConfigRequestEntity(
+                    final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest,
                     final String requestId) {
-        final VerifyProcessorConfigRequestDTO requestDto = asyncRequest.getRequest().getRequest();
+        final VerifyConfigRequestDTO requestDto = asyncRequest.getRequest().getRequest();
         final List<ConfigVerificationResultDTO> resultsList = asyncRequest.getResults();
 
-        final VerifyProcessorConfigRequestDTO dto = new VerifyProcessorConfigRequestDTO();
-        dto.setProcessorId(requestDto.getProcessorId());
-        dto.setProcessorConfig(requestDto.getProcessorConfig());
+        final VerifyConfigRequestDTO dto = new VerifyConfigRequestDTO();
+        dto.setComponentId(requestDto.getComponentId());
+        dto.setProperties(requestDto.getProperties());
         dto.setResults(resultsList);
 
-        dto.setComplete(resultsList != null);
+        dto.setComplete(asyncRequest.isComplete());
         dto.setFailureReason(asyncRequest.getFailureReason());
         dto.setLastUpdated(asyncRequest.getLastUpdated());
         dto.setPercentCompleted(asyncRequest.getPercentComplete());
         dto.setRequestId(requestId);
         dto.setState(asyncRequest.getState());
-        dto.setUri(generateResourceUri("processors", requestDto.getProcessorId(), "config", "verification-requests", requestId));
+        dto.setUri(generateResourceUri("processors", requestDto.getComponentId(), "config", "verification-requests", requestId));
 
-        final VerifyProcessorConfigRequestEntity entity = new VerifyProcessorConfigRequestEntity();
+        final VerifyConfigRequestEntity entity = new VerifyConfigRequestEntity();
         entity.setRequest(dto);
         return entity;
     }

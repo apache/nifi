@@ -23,6 +23,7 @@ import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface ReportingTaskDAO {
@@ -89,10 +90,10 @@ public interface ReportingTaskDAO {
     /**
      * Performs verification of the Configuration for the Reporting Task with the given ID
      * @param reportingTaskId the id of the Reporting Task
-     * @param reportingTask the configuration to verify
+     * @param properties the configured properties to verify
      * @return verification results
      */
-    List<ConfigVerificationResultDTO> verifyConfiguration(String reportingTaskId, ReportingTaskDTO reportingTask);
+    List<ConfigVerificationResultDTO> verifyConfiguration(String reportingTaskId, Map<String, String> properties);
 
     /**
      * Determines whether this reporting task can be removed.
