@@ -94,6 +94,7 @@ import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.events.BulletinFactory;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConfigurableComponent;
 import org.apache.nifi.flow.VersionedConnection;
@@ -798,13 +799,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         componentNode.getRawPropertyValues().forEach((desc, value) -> mergedProperties.put(desc.getName(), value));
         mergedProperties.putAll(properties);
 
-        final Set<String> sensitivePropertyNames = new HashSet<>();
+        final Set<String> propertiesNotSupportingEL = new HashSet<>();
         for (final String propertyName : mergedProperties.keySet()) {
-            if (componentNode.getPropertyDescriptor(propertyName).isSensitive()) {
-                sensitivePropertyNames.add(propertyName);
+            final PropertyDescriptor descriptor = componentNode.getPropertyDescriptor(propertyName);
+            final boolean allowsAttributes = descriptor.isExpressionLanguageSupported() || descriptor.getExpressionLanguageScope() == ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
+            if (descriptor.isSensitive() || !allowsAttributes) {
+                propertiesNotSupportingEL.add(propertyName);
             }
         }
-        sensitivePropertyNames.forEach(mergedProperties::remove);
+        propertiesNotSupportingEL.forEach(mergedProperties::remove);
 
         final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();
         final Map<String, PropertyConfiguration> configurationMap = configurationMapper.mapRawPropertyValuesToPropertyConfiguration(componentNode, mergedProperties);
