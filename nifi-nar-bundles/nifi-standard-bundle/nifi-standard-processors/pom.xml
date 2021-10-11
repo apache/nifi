@@ -344,7 +344,7 @@
         </dependency>
         <dependency>
             <groupId>com.fluenda</groupId>
-            <artifactId>ParCEFone</artifactId>
+            <artifactId>parcefone</artifactId>
         </dependency>
         <dependency>
             <groupId>com.github.wnameless.json</groupId>
