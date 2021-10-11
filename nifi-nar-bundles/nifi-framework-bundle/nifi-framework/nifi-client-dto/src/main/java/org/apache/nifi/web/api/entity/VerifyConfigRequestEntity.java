@@ -18,20 +18,20 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.VerifyReportingTaskConfigRequestDTO;
+import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name="verifyReportingTaskConfigRequest")
-public class VerifyReportingTaskConfigRequestEntity extends Entity {
-    private VerifyReportingTaskConfigRequestDTO request;
+@XmlRootElement(name="verifyConfigRequest")
+public class VerifyConfigRequestEntity extends Entity {
+    private VerifyConfigRequestDTO request;
 
     @ApiModelProperty("The request")
-    public VerifyReportingTaskConfigRequestDTO getRequest() {
+    public VerifyConfigRequestDTO getRequest() {
         return request;
     }
 
-    public void setRequest(final VerifyReportingTaskConfigRequestDTO request) {
+    public void setRequest(final VerifyConfigRequestDTO request) {
         this.request = request;
     }
 }

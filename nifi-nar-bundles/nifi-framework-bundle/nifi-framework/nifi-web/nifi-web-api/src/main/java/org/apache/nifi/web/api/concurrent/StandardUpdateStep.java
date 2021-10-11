@@ -37,7 +37,7 @@ public class StandardUpdateStep implements UpdateStep {
 
     @Override
     public synchronized String getFailureReason() {
-        return null;
+        return failureReason;
     }
 
     @Override

@@ -563,7 +563,9 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
             final Map<PropertyDescriptor, String> props = new LinkedHashMap<>();
             for (final PropertyDescriptor descriptor : supported) {
-                props.put(descriptor, null);
+                if (descriptor != null) {
+                    props.put(descriptor, descriptor.getDefaultValue());
+                }
             }
 
             properties.forEach((descriptor, config) -> props.put(descriptor, valueFunction.apply(config)));

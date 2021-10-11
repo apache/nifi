@@ -442,10 +442,10 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
-    public List<ConfigVerificationResultDTO> verifyProcessorConfiguration(final String processorId, final ProcessorConfigDTO processorConfig, final Map<String, String> attributes) {
+    public List<ConfigVerificationResultDTO> verifyProcessorConfiguration(final String processorId, final Map<String, String> properties, final Map<String, String> attributes) {
         final ProcessorNode processor = locateProcessor(processorId);
 
-        final ProcessContext processContext = new StandardProcessContext(processor, processorConfig.getProperties(), processorConfig.getAnnotationData(),
+        final ProcessContext processContext = new StandardProcessContext(processor, properties, processor.getAnnotationData(),
             processor.getProcessGroup().getParameterContext(), flowController.getControllerServiceProvider(),  flowController.getEncryptor(),
             new NopStateManager(), () -> false, flowController);
 

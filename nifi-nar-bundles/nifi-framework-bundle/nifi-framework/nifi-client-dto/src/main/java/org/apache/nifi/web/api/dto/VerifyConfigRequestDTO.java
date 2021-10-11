@@ -22,29 +22,40 @@ import io.swagger.annotations.ApiModelProperty.AccessMode;
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.List;
+import java.util.Map;
 
-@XmlType(name = "verifyReportingTaskConfigRequest")
-public class VerifyReportingTaskConfigRequestDTO extends AsynchronousRequestDTO<VerifyConfigUpdateStepDTO> {
-    private String reportingTaskId;
-    private ReportingTaskDTO reportingTask;
+@XmlType(name = "verifyConfigRequest")
+public class VerifyConfigRequestDTO extends AsynchronousRequestDTO<VerifyConfigUpdateStepDTO> {
+    private String componentId;
+    private Map<String, String> properties;
+    private Map<String, String> attributes;
     private List<ConfigVerificationResultDTO> results;
 
-    @ApiModelProperty("The ID of the Controller Service whose configuration was verified")
-    public String getReportingTaskId() {
-        return reportingTaskId;
+    @ApiModelProperty("The ID of the component whose configuration was verified")
+    public String getComponentId() {
+        return componentId;
     }
 
-    public void setReportingTaskId(final String reportingTaskId) {
-        this.reportingTaskId = reportingTaskId;
+    public void setComponentId(final String componentId) {
+        this.componentId = componentId;
     }
 
-    @ApiModelProperty("The Controller Service")
-    public ReportingTaskDTO getReportingTask() {
-        return reportingTask;
+    @ApiModelProperty("The configured component properties")
+    public Map<String, String> getProperties() {
+        return properties;
     }
 
-    public void setReportingTask(final ReportingTaskDTO reportingTask) {
-        this.reportingTask = reportingTask;
+    public void setProperties(final Map<String, String> properties) {
+        this.properties = properties;
+    }
+
+    @ApiModelProperty("FlowFile Attributes that should be used to evaluate Expression Language for resolving property values")
+    public Map<String, String> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(final Map<String, String> attributes) {
+        this.attributes = attributes;
     }
 
     @ApiModelProperty(value="The Results of the verification", accessMode = AccessMode.READ_ONLY)

@@ -401,7 +401,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     }
 
     @Override
-    public List<ConfigVerificationResultDTO> verifyConfiguration(final String controllerServiceId, final ControllerServiceDTO controllerService, final Map<String, String> variables) {
+    public List<ConfigVerificationResultDTO> verifyConfiguration(final String controllerServiceId, final Map<String, String> properties, final Map<String, String> variables) {
         final ControllerServiceNode serviceNode = locateControllerService(controllerServiceId);
 
         final LogRepository logRepository = new NopLogRepository();
@@ -409,7 +409,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final ParameterLookup parameterLookup = serviceNode.getProcessGroup() == null ? ParameterLookup.EMPTY : serviceNode.getProcessGroup().getParameterContext();
-        final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, controllerService.getProperties(), controllerService.getAnnotationData(),
+        final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, properties, serviceNode.getAnnotationData(),
             parameterLookup, flowController.getControllerServiceProvider(), null, flowController.getVariableRegistry());
 
         final List<ConfigVerificationResult> verificationResults = serviceNode.verifyConfiguration(configurationContext, configVerificationLog, variables, extensionManager);

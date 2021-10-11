@@ -19,7 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
-import org.apache.nifi.web.api.entity.VerifyReportingTaskConfigRequestEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 
 import java.io.IOException;
 
@@ -34,10 +34,10 @@ public interface ReportingTasksClient {
 
     ReportingTaskEntity activateReportingTask(String id, ReportingTaskRunStatusEntity runStatusEntity) throws NiFiClientException, IOException;
 
-    VerifyReportingTaskConfigRequestEntity submitConfigVerificationRequest(VerifyReportingTaskConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException;
+    VerifyConfigRequestEntity submitConfigVerificationRequest(VerifyConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException;
 
-    VerifyReportingTaskConfigRequestEntity getConfigVerificationRequest(String taskId, String verificationRequestId) throws NiFiClientException, IOException;
+    VerifyConfigRequestEntity getConfigVerificationRequest(String taskId, String verificationRequestId) throws NiFiClientException, IOException;
 
-    VerifyReportingTaskConfigRequestEntity deleteConfigVerificationRequest(String taskId, String verificationRequestId) throws NiFiClientException, IOException;
+    VerifyConfigRequestEntity deleteConfigVerificationRequest(String taskId, String verificationRequestId) throws NiFiClientException, IOException;
 
 }

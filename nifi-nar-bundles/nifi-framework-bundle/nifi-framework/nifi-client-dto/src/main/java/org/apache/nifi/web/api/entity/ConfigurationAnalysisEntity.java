@@ -18,20 +18,20 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.VerifyControllerServiceConfigRequestDTO;
+import org.apache.nifi.web.api.dto.ConfigurationAnalysisDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name="verifyControllerServiceConfigRequest")
-public class VerifyControllerServiceConfigRequestEntity extends Entity {
-    private VerifyControllerServiceConfigRequestDTO request;
+@XmlRootElement(name = "configurationAnalysis")
+public class ConfigurationAnalysisEntity extends Entity {
+    private ConfigurationAnalysisDTO configurationAnalysis;
 
-    @ApiModelProperty("The request")
-    public VerifyControllerServiceConfigRequestDTO getRequest() {
-        return request;
+    @ApiModelProperty("The configuration analysis")
+    public ConfigurationAnalysisDTO getConfigurationAnalysis() {
+        return configurationAnalysis;
     }
 
-    public void setRequest(final VerifyControllerServiceConfigRequestDTO request) {
-        this.request = request;
+    public void setConfigurationAnalysis(final ConfigurationAnalysisDTO configurationAnalysis) {
+        this.configurationAnalysis = configurationAnalysis;
     }
 }

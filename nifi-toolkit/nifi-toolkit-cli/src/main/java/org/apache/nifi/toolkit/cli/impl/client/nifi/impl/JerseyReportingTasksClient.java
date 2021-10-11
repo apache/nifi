@@ -23,7 +23,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
-import org.apache.nifi.web.api.entity.VerifyReportingTaskConfigRequestEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
@@ -96,34 +96,34 @@ public class JerseyReportingTasksClient extends AbstractJerseyClient implements 
     }
 
     @Override
-    public VerifyReportingTaskConfigRequestEntity submitConfigVerificationRequest(final VerifyReportingTaskConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException {
+    public VerifyConfigRequestEntity submitConfigVerificationRequest(final VerifyConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException {
         if (configRequestEntity == null) {
             throw new IllegalArgumentException("Config Request Entity cannot be null");
         }
         if (configRequestEntity.getRequest() == null) {
             throw new IllegalArgumentException("Config Request DTO cannot be null");
         }
-        if (configRequestEntity.getRequest().getReportingTaskId() == null) {
+        if (configRequestEntity.getRequest().getComponentId() == null) {
             throw new IllegalArgumentException("Reporting Task ID cannot be null");
         }
-        if (configRequestEntity.getRequest().getReportingTask() == null) {
-            throw new IllegalArgumentException("Reporting Task cannot be null");
+        if (configRequestEntity.getRequest().getProperties() == null) {
+            throw new IllegalArgumentException("Reporting Task properties cannot be null");
         }
 
         return executeAction("Error submitting Config Verification Request", () -> {
             final WebTarget target = reportingTasksTarget
                 .path("{id}/config/verification-requests")
-                .resolveTemplate("id", configRequestEntity.getRequest().getReportingTaskId());
+                .resolveTemplate("id", configRequestEntity.getRequest().getComponentId());
 
             return getRequestBuilder(target).post(
                 Entity.entity(configRequestEntity, MediaType.APPLICATION_JSON_TYPE),
-                VerifyReportingTaskConfigRequestEntity.class
+                VerifyConfigRequestEntity.class
             );
         });
     }
 
     @Override
-    public VerifyReportingTaskConfigRequestEntity getConfigVerificationRequest(final String taskId, final String verificationRequestId) throws NiFiClientException, IOException {
+    public VerifyConfigRequestEntity getConfigVerificationRequest(final String taskId, final String verificationRequestId) throws NiFiClientException, IOException {
         if (verificationRequestId == null) {
             throw new IllegalArgumentException("Verification Request ID cannot be null");
         }
@@ -134,12 +134,12 @@ public class JerseyReportingTasksClient extends AbstractJerseyClient implements 
                 .resolveTemplate("id", taskId)
                 .resolveTemplate("requestId", verificationRequestId);
 
-            return getRequestBuilder(target).get(VerifyReportingTaskConfigRequestEntity.class);
+            return getRequestBuilder(target).get(VerifyConfigRequestEntity.class);
         });
     }
 
     @Override
-    public VerifyReportingTaskConfigRequestEntity deleteConfigVerificationRequest(final String taskId, final String verificationRequestId) throws NiFiClientException, IOException {
+    public VerifyConfigRequestEntity deleteConfigVerificationRequest(final String taskId, final String verificationRequestId) throws NiFiClientException, IOException {
         if (verificationRequestId == null) {
             throw new IllegalArgumentException("Verification Request ID cannot be null");
         }
@@ -150,7 +150,7 @@ public class JerseyReportingTasksClient extends AbstractJerseyClient implements 
                 .resolveTemplate("id", taskId)
                 .resolveTemplate("requestId", verificationRequestId);
 
-            return getRequestBuilder(target).delete(VerifyReportingTaskConfigRequestEntity.class);
+            return getRequestBuilder(target).delete(VerifyConfigRequestEntity.class);
         });
     }
 }
