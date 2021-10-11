@@ -25,13 +25,13 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
@@ -59,7 +59,6 @@ import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
-import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RegistryDTO;
@@ -89,6 +88,7 @@ import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.BucketEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
+import org.apache.nifi.web.api.entity.ConfigurationAnalysisEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
@@ -638,11 +638,19 @@ public interface NiFiServiceFacade {
     /**
      * Performs verification of the given Processor Configuration for the Processor with the given ID
      * @param processorId the id of the processor
-     * @param processorConfig the configuration to verify
+     * @param properties the configured properties to verify
      * @param attributes a map of values that can be used for resolving FlowFile attributes for Expression Language
      * @return verification results
      */
-    List<ConfigVerificationResultDTO> verifyProcessorConfiguration(String processorId, ProcessorConfigDTO processorConfig, Map<String, String> attributes);
+    List<ConfigVerificationResultDTO> verifyProcessorConfiguration(String processorId, Map<String, String> properties, Map<String, String> attributes);
+
+    /**
+     * Performs analysis of the given properties, determining which attributes are referenced by properties
+     * @param processorId the ID of the processor
+     * @param properties the properties
+     * @return analysis results
+     */
+    ConfigurationAnalysisEntity analyzeProcessorConfiguration(String processorId, Map<String, String> properties);
 
     /**
      * Verifies the specified processor can be removed.
@@ -2046,12 +2054,19 @@ public interface NiFiServiceFacade {
     /**
      * Performs verification of the given Configuration for the Controller Service with the given ID
      * @param controllerServiceId the id of the controller service
-     * @param controllerService the configuration to verify
+     * @param properties the configured properties to verify
      * @param variables a map of values that can be used for resolving FlowFile attributes for Expression Language
      * @return verification results
      */
-    List<ConfigVerificationResultDTO> verifyControllerServiceConfiguration(String controllerServiceId, ControllerServiceDTO controllerService, Map<String, String> variables);
+    List<ConfigVerificationResultDTO> verifyControllerServiceConfiguration(String controllerServiceId, Map<String, String> properties, Map<String, String> variables);
 
+    /**
+     * Performs analysis of the given properties, determining which attributes are referenced by properties
+     * @param controllerServiceId the ID of the Controller Service
+     * @param properties the properties
+     * @return analysis results
+     */
+    ConfigurationAnalysisEntity analyzeControllerServiceConfiguration(String controllerServiceId, Map<String, String> properties);
 
     /**
      * Deletes the specified label.
@@ -2141,10 +2156,18 @@ public interface NiFiServiceFacade {
     /**
      * Performs verification of the given Configuration for the Reporting Task with the given ID
      * @param reportingTaskId the id of the reporting task
-     * @param reportingTask the configuration to verify
+     * @param properties the configured properties to verify
      * @return verification results
      */
-    List<ConfigVerificationResultDTO> verifyReportingTaskConfiguration(String reportingTaskId, ReportingTaskDTO reportingTask);
+    List<ConfigVerificationResultDTO> verifyReportingTaskConfiguration(String reportingTaskId, Map<String, String> properties);
+
+    /**
+     * Performs analysis of the given properties, determining which attributes are referenced by properties
+     * @param reportingTaskId the ID of the Reporting Task
+     * @param properties the properties
+     * @return analysis results
+     */
+    ConfigurationAnalysisEntity analyzeReportingTaskConfiguration(String reportingTaskId, Map<String, String> properties);
 
     /**
      * Deletes the specified reporting task.

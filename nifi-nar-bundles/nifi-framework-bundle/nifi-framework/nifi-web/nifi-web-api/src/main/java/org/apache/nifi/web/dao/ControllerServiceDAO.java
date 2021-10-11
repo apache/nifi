@@ -140,11 +140,11 @@ public interface ControllerServiceDAO {
     /**
      * Performs verification of the Configuration for the Controller Service with the given ID
      * @param controllerServiceId the id of the controller service
-     * @param controllerService the configuration to verify
+     * @param properties the configured properties to verify
      * @param variables a map of values that can be used for resolving FlowFile attributes for Expression Language
      * @return verification results
      */
-    List<ConfigVerificationResultDTO> verifyConfiguration(String controllerServiceId, ControllerServiceDTO controllerService, Map<String, String> variables);
+    List<ConfigVerificationResultDTO> verifyConfiguration(String controllerServiceId, Map<String, String> properties, Map<String, String> variables);
 
     /**
      * Clears the state of the specified controller service.

@@ -1679,7 +1679,6 @@ public final class DtoFactory {
             dto.getProperties().put(descriptor.getName(), propertyValue);
         }
 
-        dto.setReferencedAttributes(controllerServiceNode.getReferencedAttributeNames());
         dto.setValidationStatus(controllerServiceNode.getValidationStatus(1, TimeUnit.MILLISECONDS).name());
 
         // add the validation errors
@@ -4014,7 +4013,6 @@ public final class DtoFactory {
         dto.setSchedulingStrategy(procNode.getSchedulingStrategy().name());
         dto.setExecutionNode(procNode.getExecutionNode().name());
         dto.setAnnotationData(procNode.getAnnotationData());
-        dto.setReferencedAttributes(procNode.getReferencedAttributeNames());
 
         // set up the default values for concurrent tasks and scheduling period
         final Map<String, String> defaultConcurrentTasks = new HashMap<>();
@@ -4145,7 +4143,6 @@ public final class DtoFactory {
         copy.setParentGroupId(original.getParentGroupId());
         copy.setName(original.getName());
         copy.setProperties(copy(original.getProperties()));
-        copy.setReferencedAttributes(copy(original.getReferencedAttributes()));
         copy.setReferencingComponents(copy(original.getReferencingComponents()));
         copy.setState(original.getState());
         copy.setType(original.getType());
@@ -4258,7 +4255,6 @@ public final class DtoFactory {
         copy.setBulletinLevel(original.getBulletinLevel());
         copy.setDefaultConcurrentTasks(original.getDefaultConcurrentTasks());
         copy.setDefaultSchedulingPeriod(original.getDefaultSchedulingPeriod());
-        copy.setReferencedAttributes(original.getReferencedAttributes());
         copy.setLossTolerant(original.isLossTolerant());
 
         return copy;

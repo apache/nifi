@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
-import io.swagger.annotations.ApiModelProperty.AccessMode;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 
 import javax.xml.bind.annotation.XmlType;
@@ -46,7 +45,6 @@ public class ControllerServiceDTO extends ComponentDTO {
     private Boolean deprecated;
     private Boolean isExtensionMissing;
     private Boolean multipleVersionsAvailable;
-    private Set<String> referencedAttributes;
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
@@ -313,15 +311,6 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     public void setValidationStatus(String validationStatus) {
         this.validationStatus = validationStatus;
-    }
-
-    @ApiModelProperty(value = "The set of FlowFile Attributes that are referenced via Expression Language by the configured properties", accessMode = AccessMode.READ_ONLY)
-    public Set<String> getReferencedAttributes() {
-        return referencedAttributes;
-    }
-
-    public void setReferencedAttributes(final Set<String> referencedAttributes) {
-        this.referencedAttributes = referencedAttributes;
     }
 
     @Override

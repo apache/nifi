@@ -25,6 +25,7 @@ import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.AuthorizableLookup;
@@ -74,6 +75,8 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.PropertyConfiguration;
+import org.apache.nifi.controller.PropertyConfigurationMapper;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
@@ -111,6 +114,7 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.prometheus.util.BulletinMetricsRegistry;
@@ -174,6 +178,7 @@ import org.apache.nifi.web.api.dto.ComponentRestrictionPermissionDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ComponentValidationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
+import org.apache.nifi.web.api.dto.ConfigurationAnalysisDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.ControllerDTO;
@@ -251,6 +256,7 @@ import org.apache.nifi.web.api.entity.BucketEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
+import org.apache.nifi.web.api.entity.ConfigurationAnalysisEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
@@ -765,8 +771,52 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public List<ConfigVerificationResultDTO> verifyProcessorConfiguration(final String processorId, final ProcessorConfigDTO processorConfig, final Map<String, String> attributes) {
-        return processorDAO.verifyProcessorConfiguration(processorId, processorConfig, attributes);
+    public List<ConfigVerificationResultDTO> verifyProcessorConfiguration(final String processorId, final Map<String, String> properties, final Map<String, String> attributes) {
+        return processorDAO.verifyProcessorConfiguration(processorId, properties, attributes);
+    }
+
+    @Override
+    public ConfigurationAnalysisEntity analyzeProcessorConfiguration(final String processorId, final Map<String, String> properties) {
+        final ProcessorNode processorNode = processorDAO.getProcessor(processorId);
+        final ProcessGroup processGroup = processorNode.getProcessGroup();
+        final ParameterContext parameterContext = processGroup.getParameterContext();
+
+        final Map<String, String> referencedAttributes = determineReferencedAttributes(properties, processorNode, parameterContext);
+
+        final ConfigurationAnalysisDTO dto = new ConfigurationAnalysisDTO();
+        dto.setComponentId(processorId);
+        dto.setProperties(properties);
+        dto.setReferencedAttributes(referencedAttributes);
+
+        final ConfigurationAnalysisEntity entity = new ConfigurationAnalysisEntity();
+        entity.setConfigurationAnalysis(dto);
+        return entity;
+    }
+
+    private Map<String, String> determineReferencedAttributes(final Map<String, String> properties, final ComponentNode componentNode, final ParameterContext parameterContext) {
+        final Map<String, String> mergedProperties = new LinkedHashMap<>();
+        componentNode.getRawPropertyValues().forEach((desc, value) -> mergedProperties.put(desc.getName(), value));
+        mergedProperties.putAll(properties);
+
+        final Set<String> sensitivePropertyNames = new HashSet<>();
+        for (final String propertyName : mergedProperties.keySet()) {
+            if (componentNode.getPropertyDescriptor(propertyName).isSensitive()) {
+                sensitivePropertyNames.add(propertyName);
+            }
+        }
+        sensitivePropertyNames.forEach(mergedProperties::remove);
+
+        final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();
+        final Map<String, PropertyConfiguration> configurationMap = configurationMapper.mapRawPropertyValuesToPropertyConfiguration(componentNode, mergedProperties);
+
+        final Map<String, String> referencedAttributes = new HashMap<>();
+        for (final PropertyConfiguration propertyConfiguration : configurationMap.values()) {
+            final String effectiveValue = propertyConfiguration.getEffectiveValue(parameterContext == null ? ParameterLookup.EMPTY : parameterContext);
+            final Set<String> attributes = Query.prepareWithParametersPreEvaluated(effectiveValue).getExplicitlyReferencedAttributes();
+            attributes.forEach(attr -> referencedAttributes.put(attr, null));
+        }
+
+        return referencedAttributes;
     }
 
     private void awaitValidationCompletion(final ComponentNode component) {
@@ -2776,8 +2826,26 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public List<ConfigVerificationResultDTO> verifyControllerServiceConfiguration(final String controllerServiceId, final ControllerServiceDTO controllerService, final Map<String, String> variables) {
-        return controllerServiceDAO.verifyConfiguration(controllerServiceId, controllerService, variables);
+    public List<ConfigVerificationResultDTO> verifyControllerServiceConfiguration(final String controllerServiceId, final Map<String, String> properties, final Map<String, String> variables) {
+        return controllerServiceDAO.verifyConfiguration(controllerServiceId, properties, variables);
+    }
+
+    @Override
+    public ConfigurationAnalysisEntity analyzeControllerServiceConfiguration(final String controllerServiceId, final Map<String, String> properties) {
+        final ControllerServiceNode serviceNode = controllerServiceDAO.getControllerService(controllerServiceId);
+        final ProcessGroup processGroup = serviceNode.getProcessGroup();
+        final ParameterContext parameterContext = processGroup == null ? null : processGroup.getParameterContext();
+
+        final Map<String, String> referencedAttributes = determineReferencedAttributes(properties, serviceNode, parameterContext);
+
+        final ConfigurationAnalysisDTO dto = new ConfigurationAnalysisDTO();
+        dto.setComponentId(controllerServiceId);
+        dto.setProperties(properties);
+        dto.setReferencedAttributes(referencedAttributes);
+
+        final ConfigurationAnalysisEntity entity = new ConfigurationAnalysisEntity();
+        entity.setConfigurationAnalysis(dto);
+        return entity;
     }
 
     @Override
@@ -3159,8 +3227,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public List<ConfigVerificationResultDTO> verifyReportingTaskConfiguration(final String reportingTaskId, final ReportingTaskDTO reportingTask) {
-        return reportingTaskDAO.verifyConfiguration(reportingTaskId, reportingTask);
+    public List<ConfigVerificationResultDTO> verifyReportingTaskConfiguration(final String reportingTaskId, final Map<String, String> properties) {
+        return reportingTaskDAO.verifyConfiguration(reportingTaskId, properties);
+    }
+
+    @Override
+    public ConfigurationAnalysisEntity analyzeReportingTaskConfiguration(final String reportingTaskId, final Map<String, String> properties) {
+        final ReportingTaskNode taskNode = reportingTaskDAO.getReportingTask(reportingTaskId);
+
+        final Map<String, String> referencedAttributes = determineReferencedAttributes(properties, taskNode, null);
+
+        final ConfigurationAnalysisDTO dto = new ConfigurationAnalysisDTO();
+        dto.setComponentId(reportingTaskId);
+        dto.setProperties(properties);
+        dto.setReferencedAttributes(referencedAttributes);
+
+        final ConfigurationAnalysisEntity entity = new ConfigurationAnalysisEntity();
+        entity.setConfigurationAnalysis(dto);
+        return entity;
     }
 
     @Override

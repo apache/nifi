@@ -238,7 +238,6 @@ public class TemplateUtils {
                 processorConfig.setCustomUiUrl(null);
                 processorConfig.setDefaultConcurrentTasks(null);
                 processorConfig.setDefaultSchedulingPeriod(null);
-                processorConfig.setReferencedAttributes(null);
                 processorConfig.setAutoTerminatedRelationships(null);
             }
 
@@ -307,7 +306,6 @@ public class TemplateUtils {
             serviceDTO.setCustomUiUrl(null);
             serviceDTO.setValidationErrors(null);
             serviceDTO.setValidationStatus(null);
-            serviceDTO.setReferencedAttributes(null);
         }
     }
 
