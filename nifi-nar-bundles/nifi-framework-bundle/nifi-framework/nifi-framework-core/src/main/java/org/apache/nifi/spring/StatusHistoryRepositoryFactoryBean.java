@@ -21,13 +21,11 @@ import org.apache.nifi.controller.status.history.StatusHistoryRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.NiFiProperties;
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 
 /**
  * Factory bean for creating a singleton StatusHistoryRepository instance.
  */
-public class StatusHistoryRepositoryFactoryBean implements FactoryBean<StatusHistoryRepository>, ApplicationContextAware {
+public class StatusHistoryRepositoryFactoryBean implements FactoryBean<StatusHistoryRepository> {
 
 
     private NiFiProperties nifiProperties;
@@ -41,11 +39,6 @@ public class StatusHistoryRepositoryFactoryBean implements FactoryBean<StatusHis
     @Override
     public Class<?> getObjectType() {
         return StatusHistoryRepository.class;
-    }
-
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) {
-        // This class uses setter injection instead of ApplicationContext.
     }
 
     public void setNifiProperties(NiFiProperties nifiProperties) {

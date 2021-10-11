@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import org.apache.nifi.controller.status.history.exception.MissingStatusHistoryImplementationException;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.util.NiFiProperties;
 
-public class StatusHistoryRepositoryFactory {
+public final class StatusHistoryRepositoryFactory {
 
     private StatusHistoryRepositoryFactory() {
         // factory class, not to instantiate
@@ -32,7 +31,7 @@ public class StatusHistoryRepositoryFactory {
     public static StatusHistoryRepository createStatusHistoryRepositoryFactory(final NiFiProperties nifiProperties, final ExtensionManager extensionManager) {
         final String implementationClassName = nifiProperties.getProperty(NiFiProperties.COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION, DEFAULT_COMPONENT_STATUS_REPO_IMPLEMENTATION);
         if (implementationClassName == null) {
-            throw new MissingStatusHistoryImplementationException(
+            throw new IllegalArgumentException(
                     String.format("Cannot create Status History Repository because the NiFi Properties is missing the following property: %s",
                      NiFiProperties.COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION)
             );
