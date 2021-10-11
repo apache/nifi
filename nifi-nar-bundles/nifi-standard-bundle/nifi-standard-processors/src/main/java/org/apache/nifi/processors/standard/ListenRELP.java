@@ -66,8 +66,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
-
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"listen", "relp", "tcp", "logs"})
 @CapabilityDescription("Listens for RELP messages being sent to a given port over TCP. Each message will be " +
@@ -107,7 +105,6 @@ public class ListenRELP extends AbstractProcessor {
             .description("Messages received successfully will be sent out this relationship.")
             .build();
 
-    private static InetAddress DEFAULT_ADDRESS = NetworkUtils.getDefaultInterfaceAddress();
     protected List<PropertyDescriptor> descriptors;
     protected Set<Relationship> relationships;
     protected volatile int port;
@@ -126,15 +123,8 @@ public class ListenRELP extends AbstractProcessor {
     public void onScheduled(ProcessContext context) throws IOException {
         maxConnections = context.getProperty(ListenerProperties.MAX_CONNECTIONS).asInteger();
         bufferSize = context.getProperty(ListenerProperties.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-        final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
-
-        final InetAddress socketAddress = NetworkUtils.getInterfaceAddress(nicIPAddressStr);
-        if (socketAddress != null) {
-            hostname = socketAddress;
-        } else {
-            hostname = DEFAULT_ADDRESS;
-        }
-
+        final String networkInterface = context.getProperty(ListenerProperties.NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
+        hostname = NetworkUtils.getInterfaceAddress(networkInterface);
         charset = Charset.forName(context.getProperty(ListenerProperties.CHARSET).getValue());
         port = context.getProperty(ListenerProperties.PORT).evaluateAttributeExpressions().asInteger();
         events = new LinkedBlockingQueue<>(context.getProperty(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE).asInteger());
@@ -171,7 +161,7 @@ public class ListenRELP extends AbstractProcessor {
         descriptors.add(ListenerProperties.MAX_CONNECTIONS);
         descriptors.add(ListenerProperties.MAX_BATCH_SIZE);
         descriptors.add(ListenerProperties.MESSAGE_DELIMITER);
-        descriptors.add(NETWORK_INTF_NAME);
+        descriptors.add(ListenerProperties.NETWORK_INTF_NAME);
         descriptors.add(CLIENT_AUTH);
         descriptors.add(SSL_CONTEXT_SERVICE);
         this.descriptors = Collections.unmodifiableList(descriptors);
