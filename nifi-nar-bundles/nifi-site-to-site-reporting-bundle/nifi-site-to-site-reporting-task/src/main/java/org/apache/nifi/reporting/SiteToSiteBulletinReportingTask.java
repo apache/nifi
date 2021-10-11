@@ -162,13 +162,15 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             getLogger().info("Successfully sent {} Bulletins to destination in {} ms; Transaction ID = {}; First Event ID = {}",
                     bulletins.size(), transferMillis, transactionId, bulletins.get(0).getId());
-        } catch (ProcessException e) {
-            throw e;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             if (transaction != null) {
                 transaction.error();
             }
-            throw new ProcessException("Failed to send Bulletins to destination due to IOException:" + e.getMessage(), e);
+            if (e instanceof ProcessException) {
+                throw (ProcessException) e;
+            } else {
+                throw new ProcessException("Failed to send Bulletins to destination due to IOException:" + e.getMessage(), e);
+            }
         }
 
         lastSentBulletinId = currMaxId;

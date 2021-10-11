@@ -28,16 +28,13 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 public class StandardLogRepository implements LogRepository {
 
@@ -95,15 +92,17 @@ public class StandardLogRepository implements LogRepository {
     }
 
     private Optional<String> getFirstFlowFileUuidFromObjects(Object[] params) {
-        final List<FlowFile> flowFiles = Arrays.stream(params)
-                .filter(FlowFile.class::isInstance)
-                .map(FlowFile.class::cast)
-                .collect(Collectors.toList());
-
-        if (flowFiles.size() == 1) {
-            return Optional.of(flowFiles.get(0).getAttribute(CoreAttributes.UUID.key()));
+        int flowFileCount = 0;
+        FlowFile flowFileFound = null;
+        for (final Object param : params) {
+            if (param instanceof FlowFile) {
+                if (++flowFileCount > 1) {
+                    return Optional.empty();
+                }
+                flowFileFound = (FlowFile) param;
+            }
         }
-        return Optional.empty();
+        return Optional.ofNullable(flowFileFound).map(ff -> ff.getAttribute(CoreAttributes.UUID.key()));
     }
 
     private void replaceThrowablesWithMessage(final Object[] params) {
