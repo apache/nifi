@@ -122,7 +122,7 @@ public interface PropertyValue {
     ResourceReference asResource();
 
     /**
-     * @return a ResourceReferences for the configured property value. If no property value is set, a ResourceRferences will be returned that references no resources.
+     * @return a ResourceReferences for the configured property value. If no property value is set, a ResourceReferences will be returned that references no resources.
      * I.e., this method will never return <code>null</code>.
      */
     ResourceReferences asResources();

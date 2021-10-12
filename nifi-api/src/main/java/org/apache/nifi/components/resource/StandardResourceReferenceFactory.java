@@ -27,18 +27,20 @@ import java.util.Set;
 
 public class StandardResourceReferenceFactory implements ResourceReferenceFactory {
 
+    private static final ResourceReferences EMPTY_RESOURCE_REFERENCES = new StandardResourceReferences(Collections.emptyList());
+
     public ResourceReferences createResourceReferences(final String value, final ResourceDefinition resourceDefinition) {
         if (value == null) {
-            return new StandardResourceReferences(Collections.emptyList());
+            return EMPTY_RESOURCE_REFERENCES;
         }
 
         final String trimmed = value.trim();
         if (trimmed.isEmpty()) {
-            return null;
+            return EMPTY_RESOURCE_REFERENCES;
         }
 
         if (resourceDefinition == null) {
-            return null;
+            return EMPTY_RESOURCE_REFERENCES;
         }
 
         final List<ResourceReference> references;
