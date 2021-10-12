@@ -25,10 +25,10 @@ import java.util.List;
 import java.util.Objects;
 
 public class StandardResourceReferences implements ResourceReferences {
-    public List<ResourceReference> resourceReferences;
+    public final List<ResourceReference> resourceReferences;
 
     public StandardResourceReferences(final List<ResourceReference> resourceReferences) {
-        this.resourceReferences = Objects.requireNonNull(resourceReferences);
+        this.resourceReferences = new ArrayList<>(Objects.requireNonNull(resourceReferences));
     }
 
     @Override
