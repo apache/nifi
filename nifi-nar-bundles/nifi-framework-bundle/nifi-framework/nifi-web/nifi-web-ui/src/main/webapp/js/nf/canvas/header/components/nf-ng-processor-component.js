@@ -542,7 +542,7 @@
 
                                 // create the row for the processor type
                                 processorTypesData.addItem({
-                                    id: i,
+                                    id: i + '',
                                     label: nfCommon.substringAfterLast(type, '.'),
                                     type: type,
                                     bundle: documentedType.bundle,
