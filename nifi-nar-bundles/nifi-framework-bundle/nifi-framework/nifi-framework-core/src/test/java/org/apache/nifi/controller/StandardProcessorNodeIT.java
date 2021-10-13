@@ -279,7 +279,7 @@ public class StandardProcessorNodeIT {
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
                 mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
                 new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
-                mock(FlowRegistryClient.class), extensionManager);
+                mock(FlowRegistryClient.class), extensionManager, mock(StatusHistoryRepository.class));
 
         // Init processor
         final DynamicPropertiesTestProcessor processor = new DynamicPropertiesTestProcessor();
