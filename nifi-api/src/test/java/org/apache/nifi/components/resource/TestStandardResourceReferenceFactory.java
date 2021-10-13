@@ -19,6 +19,7 @@ package org.apache.nifi.components.resource;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.List;
 
@@ -81,7 +82,7 @@ public class TestStandardResourceReferenceFactory {
     }
 
     private void assertResourceReference(ResourceReference resourceReference, String location) {
-        assertEquals(location, resourceReference.getLocation());
+        assertEquals(new File(location).getAbsolutePath(), resourceReference.getLocation());
         assertEquals(ResourceType.FILE, resourceReference.getResourceType());
     }
 
