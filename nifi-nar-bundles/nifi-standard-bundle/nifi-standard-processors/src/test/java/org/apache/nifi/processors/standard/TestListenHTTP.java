@@ -466,12 +466,7 @@ public class TestListenHTTP {
 
     @Test
     public void testPOSTRequestsReceivedWithRecordReader() throws Exception {
-        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
-        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
-
-        final MockRecordParser parser = new MockRecordParser();
-        runner.addControllerService("mockRecordParser", parser);
-        runner.setProperty(ListenHTTP.RECORD_READER, "mockRecordParser");
+        final MockRecordParser parser = setupRecordReaderTest();
 
         parser.addSchemaField("id", RecordFieldType.INT);
         parser.addSchemaField("name", RecordFieldType.STRING);
@@ -485,13 +480,50 @@ public class TestListenHTTP {
             parser.addRecord(keys.get(i), names.get(i), codes.get(i));
         }
 
+        final String expectedMessage = "\"1\",\"rec1\",\"101\"\n" +
+                "\"2\",\"rec2\",\"102\"\n" +
+                "\"3\",\"rec3\",\"103\"\n" +
+                "\"4\",\"rec4\",\"104\"\n";
 
+        testPOSTRecordRequestsReceived(expectedMessage, HttpServletResponse.SC_OK);
+    }
+
+    @Test
+    public void testInvalidPOSTRequestsReceivedWithRecordReader() throws Exception {
+        final MockRecordParser parser = setupRecordReaderTest();
+        parser.failAfter(2);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("code", RecordFieldType.LONG);
+
+        final List<Integer> keys = Arrays.asList(1, 2, 3, 4);
+        final List<String> names = Arrays.asList("rec1", "rec2", "rec3", "rec4");
+        final List<Long> codes = Arrays.asList(101L, 102L, 103L, 104L);
+
+        for (int i = 0; i < keys.size(); i++) {
+            parser.addRecord(keys.get(i), names.get(i), codes.get(i));
+        }
+
+        final String expectedMessage = "\"1\",\"rec1\",\"101\"\n" +
+                "\"2\",\"rec2\",\"102\"\n";
+
+        testPOSTRecordRequestsReceived(expectedMessage, HttpServletResponse.SC_BAD_REQUEST);
+    }
+
+    private MockRecordParser setupRecordReaderTest() throws InitializationException {
+        final MockRecordParser parser = new MockRecordParser();
         final MockRecordWriter writer = new MockRecordWriter();
+
+        runner.addControllerService("mockRecordParser", parser);
+        runner.setProperty(ListenHTTP.RECORD_READER, "mockRecordParser");
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
         runner.addControllerService("mockRecordWriter", writer);
         runner.enableControllerService(parser);
         runner.setProperty(ListenHTTP.RECORD_WRITER, "mockRecordWriter");
 
-        testPOSTRecordRequestsReceived();
+        return parser;
     }
 
     private void startSecureServer() {
@@ -562,14 +594,10 @@ public class TestListenHTTP {
         }
     }
 
-    private void testPOSTRecordRequestsReceived() throws Exception {
+    private void testPOSTRecordRequestsReceived(final String expectedMessage, final int returnCode) throws Exception {
         final List<String> messages = new ArrayList<>();
-        final String expectedMessage = "\"1\",\"rec1\",\"101\"\n" +
-                "\"2\",\"rec2\",\"102\"\n" +
-                "\"3\",\"rec3\",\"103\"\n" +
-                "\"4\",\"rec4\",\"104\"\n";
         messages.add(expectedMessage);
-        startWebServerAndSendMessages(messages, HttpServletResponse.SC_OK, false, false);
+        startWebServerAndSendMessages(messages, returnCode, false, false);
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
 
         runner.assertTransferCount(RELATIONSHIP_SUCCESS, 1);

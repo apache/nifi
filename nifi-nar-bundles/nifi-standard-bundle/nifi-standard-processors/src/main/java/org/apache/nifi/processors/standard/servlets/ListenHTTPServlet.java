@@ -121,11 +121,12 @@ public class ListenHTTPServlet extends HttpServlet {
     private int port;
     private RecordReaderFactory readerFactory;
     private RecordSetWriterFactory writerFactory;
+    private ServletContext context;
 
     @SuppressWarnings("unchecked")
     @Override
     public void init(final ServletConfig config) throws ServletException {
-        final ServletContext context = config.getServletContext();
+        context = config.getServletContext();
         this.logger = (ComponentLog) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_LOGGER);
         this.sessionFactoryHolder = (AtomicReference<ProcessSessionFactory>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER);
         this.processContext = (ProcessContext) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PROCESS_CONTEXT_HOLDER);
@@ -135,7 +136,6 @@ public class ListenHTTPServlet extends HttpServlet {
         this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
         this.streamThrottler = (StreamThrottler) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_STREAM_THROTTLER);
         this.basePath = (String) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_BASE_PATH);
-        this.returnCode = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_RETURN_CODE);
         this.multipartRequestMaxSize = (long) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_MULTIPART_REQUEST_MAX_SIZE);
         this.multipartReadBufferSize = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_MULTIPART_READ_BUFFER_SIZE);
         this.port = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PORT);
@@ -156,6 +156,7 @@ public class ListenHTTPServlet extends HttpServlet {
 
     @Override
     protected void doPost(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
+        this.returnCode = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_RETURN_CODE);
 
         if (request.getLocalPort() != port) {
             super.doPost(request, response);
@@ -448,6 +449,7 @@ public class ListenHTTPServlet extends HttpServlet {
             }
         } catch (IOException | MalformedRecordException | SchemaNotFoundException e) {
             logger.error("Could not process record.", e);
+            returnCode = HttpServletResponse.SC_BAD_REQUEST;
         }
     }
 
