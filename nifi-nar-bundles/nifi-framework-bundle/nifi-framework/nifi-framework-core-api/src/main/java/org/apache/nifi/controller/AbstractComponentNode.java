@@ -473,7 +473,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         // allow the newly created component's internal state to be updated.
         if (!propertyConfiguration.equals(propertyModComparisonValue)) {
             try {
-                final String oldValue = oldConfiguration == null ? null : oldConfiguration.getEffectiveValue(getParameterContext());
+                final String oldValue = propertyModComparisonValue == null ? null : propertyModComparisonValue.getEffectiveValue(getParameterContext());
                 onPropertyModified(descriptor, oldValue, effectiveValue);
             } catch (final Exception e) {
                 // nothing really to do here...
