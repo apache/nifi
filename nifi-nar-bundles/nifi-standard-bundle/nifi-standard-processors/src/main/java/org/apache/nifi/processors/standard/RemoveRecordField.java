@@ -35,23 +35,13 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.record.path.FieldValue;
-import org.apache.nifi.record.path.RecordPath;
-import org.apache.nifi.record.path.RecordPathResult;
-import org.apache.nifi.record.path.util.Filters;
-import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.record.path.RecordFieldRemover;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.type.ChoiceDataType;
-import org.apache.nifi.serialization.record.type.RecordDataType;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 
 @EventDriven
@@ -130,159 +120,10 @@ public class RemoveRecordField extends AbstractRecordProcessor {
     @Override
     protected Record process(Record record, FlowFile flowFile, ProcessContext context, long count) {
         for (String recordPath : recordPaths) {
-            recordPath = preprocessRecordPath(recordPath);
-            RecordPathResult recordPathResult = RecordPath.compile(recordPath).evaluate(record);
-            List<FieldValue> selectedFields = recordPathResult.getSelectedFields().collect(Collectors.toList());
-
-            boolean modifySchema = allSquareBracketsContainAsteriskOnly(recordPath);
-
-            if (recordPath.endsWith("[*]") || recordPath.endsWith("[0..-1]")) {
-                if (!selectedFields.isEmpty()) {
-                    Optional<FieldValue> parentOptional = selectedFields.get(0).getParent();
-                    if (parentOptional.isPresent()) {
-                        FieldValue parent = parentOptional.get();
-                        if (Filters.isArray(parent)) {
-                            parent.updateValue(new Object[0]);
-                        } else if (Filters.isMap(parent)) {
-                            parent.updateValue(Collections.emptyMap());
-                        }
-                    }
-                }
-            } else {
-                for (FieldValue field : selectedFields) {
-                    field.remove(modifySchema);
-                }
-            }
-
-            if (modifySchema) {
-                List<List<String>> concretePaths = getConcretePaths(selectedFields);
-                removePathsFromSchema(record, concretePaths);
-            }
+            RecordFieldRemover recordFieldRemover = new RecordFieldRemover(record);
+            recordFieldRemover.remove(recordPath);
+            record = recordFieldRemover.getRecord();
         }
-
         return record;
-    }
-
-    private void removePathsFromSchema(Record record, List<List<String>> paths) {
-        for (List<String> path : paths) {
-            RecordSchema schema = record.getSchema();
-            removePathFromSchema(schema, path);
-        }
-    }
-
-    private void removePathFromSchema(RecordSchema schema, List<String> path) {
-        if (path.size() == 0) {
-            return;
-        } else if (path.size() == 1) {
-            schema.removeField(path.get(0));
-        } else {
-            Optional<RecordField> fieldOptional = schema.getField(path.get(0));
-            if (fieldOptional.isPresent()) {
-                RecordField field = fieldOptional.get();
-                if (path.size() == 2) {
-                    DataType dataType = field.getDataType();
-                    if (dataType instanceof RecordDataType) {
-                        RecordSchema childSchema = ((RecordDataType) dataType).getChildSchema();
-                        childSchema.removeField(path.get(1));
-                    } else if (dataType instanceof ChoiceDataType) {
-                        removePathFromChoiceDataType((ChoiceDataType) dataType, path.subList(1, path.size()));
-                    }
-                } else { // path.size() > 2
-                    DataType dataType = field.getDataType();
-                    if (dataType instanceof RecordDataType) {
-                        RecordSchema childSchema = ((RecordDataType) dataType).getChildSchema();
-                        removePathFromSchema(childSchema, path.subList(1,path.size()));
-                    } else if (dataType instanceof ChoiceDataType) {
-                        removePathFromChoiceDataType((ChoiceDataType) dataType, path.subList(1, path.size()));
-                    }
-                }
-            }
-        }
-    }
-
-    private void removePathFromChoiceDataType(ChoiceDataType choiceDataType, List<String> path) {
-        if (path.size() == 0) {
-            return;
-        } else if (path.size() == 1) {
-            for (DataType subType : choiceDataType.getPossibleSubTypes()) {
-                if (subType instanceof RecordDataType) {
-                    RecordSchema childSchema = ((RecordDataType) subType).getChildSchema();
-                    removePathFromSchema(childSchema, path);
-                }
-            }
-        } else {
-            List<DataType> possibleSubTypes = choiceDataType.getPossibleSubTypes();
-            for (DataType subType : possibleSubTypes) {
-                if (subType instanceof RecordDataType) {
-                    RecordSchema childSchema = ((RecordDataType) subType).getChildSchema();
-                    removePathFromSchema(childSchema, path);
-                } else if (subType instanceof ChoiceDataType) {
-                    removePathFromChoiceDataType((ChoiceDataType) subType, path);
-                }
-            }
-        }
-    }
-
-    private List<List<String>> getConcretePaths(List<FieldValue> selectedFields) {
-        List<List<String>> paths = new ArrayList<>(selectedFields.size());
-        for (FieldValue field : selectedFields) {
-            List<String> path = new ArrayList<>();
-            path.add(field.getField().getFieldName());
-
-            Optional<FieldValue> parentOptional = field.getParent();
-            while (parentOptional.isPresent()) {
-                FieldValue parent = parentOptional.get();
-                if (!parent.getField().getFieldName().equals("root")) {
-                    path.add(parent.getField().getFieldName());
-                }
-                parentOptional = parent.getParent();
-            }
-
-            Collections.reverse(path);
-            paths.add(path);
-        }
-        return paths;
-    }
-
-    private String preprocessRecordPath(String recordPath) {
-        if (recordPath.endsWith("]")) {
-            String lastSquareBracketsOperator = getLastSquareBracketsOperator(recordPath);
-            if (lastSquareBracketsOperator.equals("[*]")) {
-                return recordPath.substring(0, recordPath.lastIndexOf('[')) + "[*]";
-            } else if (lastSquareBracketsOperator.equals("[0..-1]")) {
-                return recordPath.substring(0, recordPath.lastIndexOf('[')) + "[0..-1]";
-            }
-        }
-        return recordPath;
-    }
-
-    private String getLastSquareBracketsOperator(String recordPath) {
-        int beginIndex = recordPath.lastIndexOf('[');
-        return recordPath.substring(beginIndex).replaceAll("\\s","");
-    }
-
-    private boolean allSquareBracketsContainAsteriskOnly(String recordPath) {
-        boolean allSquareBracketsContainAsteriskOnly = true;
-        boolean inSquareBrackets = false;
-        for (int i = 0; i < recordPath.length() && allSquareBracketsContainAsteriskOnly; ++i) {
-            char character = recordPath.charAt(i);
-            if (inSquareBrackets) {
-                switch (character) {
-                    case ' ':
-                    case '*':
-                        break;
-                    case ']':
-                        inSquareBrackets = false;
-                        break;
-                    default:
-                        allSquareBracketsContainAsteriskOnly = false;
-                }
-            } else {
-                if (character == '[') {
-                    inSquareBrackets = true;
-                }
-            }
-        }
-        return allSquareBracketsContainAsteriskOnly;
     }
 }

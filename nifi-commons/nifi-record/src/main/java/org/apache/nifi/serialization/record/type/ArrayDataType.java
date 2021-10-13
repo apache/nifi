@@ -18,7 +18,7 @@
 package org.apache.nifi.serialization.record.type;
 
 import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
 import org.apache.nifi.serialization.record.RecordFieldType;
 
 import java.util.Objects;
@@ -54,8 +54,12 @@ public class ArrayDataType extends DataType {
     }
 
     @Override
-    public void remove(RecordField field) {
-        elementType.remove(field); // TODO: potential recursion
+    public void removePath(final RecordFieldRemovalPath path) {
+        if (path.length() == 0) {
+            return;
+        }
+        DataType elementType = getElementType();
+        elementType.removePath(path.tail());
     }
 
     @Override

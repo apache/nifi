@@ -21,6 +21,7 @@ package org.apache.nifi.accumulo.data;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
@@ -117,5 +118,10 @@ public class KeySchema implements RecordSchema {
     @Override
     public void removeField(String fieldName) {
         throw new NotImplementedException("Field removal from Accumulo KeySchema is not implemented.");
+    }
+
+    @Override
+    public void removePath(RecordFieldRemovalPath path) {
+        throw new NotImplementedException("Path removal from Accumulo KeySchema is not implemented.");
     }
 }

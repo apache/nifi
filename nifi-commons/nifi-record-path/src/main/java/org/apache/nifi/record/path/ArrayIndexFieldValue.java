@@ -64,7 +64,7 @@ public class ArrayIndexFieldValue extends StandardFieldValue {
     }
 
     @Override
-    public void remove(boolean modifySchema) {
+    public void remove() {
         Optional<FieldValue> parentOptional = getParent();
         if (parentOptional.isPresent()) {
             FieldValue parent = parentOptional.get();

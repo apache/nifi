@@ -19,6 +19,7 @@ package org.apache.nifi.serialization;
 
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 
@@ -270,6 +271,22 @@ public class SimpleRecordSchema implements RecordSchema {
             schemaIdentifier = SchemaIdentifier.EMPTY;
             hashCode = 0;
             hashCode = hashCode();
+        }
+    }
+
+    @Override
+    public void removePath(RecordFieldRemovalPath path) {
+        if (path.length() == 0) {
+            return;
+        } else if (path.length() == 1) {
+            removeField(path.head());
+        } else {
+            Optional<RecordField> fieldOptional = getField(path.head());
+            if (fieldOptional.isPresent()) {
+                RecordField field = fieldOptional.get();
+                DataType dataType = field.getDataType();
+                dataType.removePath(path.tail());
+            }
         }
     }
 }

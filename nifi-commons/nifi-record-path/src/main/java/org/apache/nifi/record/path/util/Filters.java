@@ -89,13 +89,4 @@ public class Filters {
     public static boolean isMap(final DataType dataType) {
         return dataType.getFieldType() == RecordFieldType.MAP;
     }
-
-    public static boolean isChoice(final FieldValue fieldValue) {
-        final DataType dataType = fieldValue.getField().getDataType();
-        return isChoice(dataType);
-    }
-
-    public static boolean isChoice(final DataType dataType) {
-        return dataType.getFieldType() == RecordFieldType.CHOICE;
-    }
 }

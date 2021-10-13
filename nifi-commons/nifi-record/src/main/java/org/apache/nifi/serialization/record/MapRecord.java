@@ -328,18 +328,11 @@ public class MapRecord implements Record {
         }
     }
 
-    private void removeFieldFromSchema(final RecordField field) {
-        schema.removeField(field.getFieldName());
-    }
-
     @Override
-    public void remove(final RecordField field, boolean modifySchema) {
+    public void remove(final RecordField field) {
         final Optional<RecordField> existingField = resolveField(field);
 
         if (existingField.isPresent()) {
-            if (modifySchema) {
-                removeFieldFromSchema(existingField.get());
-            }
             values.remove(existingField.get().getFieldName());
         }
     }

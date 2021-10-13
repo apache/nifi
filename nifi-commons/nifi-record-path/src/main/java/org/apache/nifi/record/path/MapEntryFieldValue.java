@@ -22,6 +22,7 @@ import org.apache.nifi.serialization.record.RecordField;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public class MapEntryFieldValue extends StandardFieldValue {
     private final String mapKey;
@@ -46,8 +47,15 @@ public class MapEntryFieldValue extends StandardFieldValue {
     }
 
     @Override
-    public void remove(boolean modifySchema) {
-        ((Map<String, Object>) getParent().get().getValue()).remove(mapKey);
+    public void remove() {
+        Optional<FieldValue> parentOptional = getParent();
+        if (parentOptional.isPresent()) {
+            FieldValue parent = parentOptional.get();
+            if (parent.getValue() instanceof Map) {
+                Map<String, Object> parentValue = (Map<String, Object>) parent.getValue();
+                parentValue.remove(mapKey);
+            }
+        }
     }
 
     @Override

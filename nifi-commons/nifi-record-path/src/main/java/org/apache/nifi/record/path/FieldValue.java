@@ -63,5 +63,5 @@ public interface FieldValue {
      */
     void updateValue(Object newValue, DataType dataType);
 
-    void remove(boolean modifySchema);
+    void remove();
 }

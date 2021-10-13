@@ -142,7 +142,7 @@ public interface Record {
      */
     void setValue(RecordField field, Object value);
 
-    void remove(RecordField field, boolean modifySchema);
+    void remove(RecordField field);
 
     void regenerateSchema();
 

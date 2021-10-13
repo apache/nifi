@@ -92,4 +92,8 @@ public interface RecordSchema {
      */
     void removeField(String fieldName);
 
+    /**
+     * @param path the sequence of field names to be removed from the schema
+     */
+    void removePath(RecordFieldRemovalPath path);
 }

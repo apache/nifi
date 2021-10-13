@@ -36,7 +36,7 @@ public class DataType {
         return fieldType;
     }
 
-    public void remove(RecordField field) {
+    public void removePath(final RecordFieldRemovalPath path) {
 
     }
 

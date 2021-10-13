@@ -18,7 +18,7 @@
 package org.apache.nifi.serialization.record.type;
 
 import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
 import org.apache.nifi.serialization.record.RecordFieldType;
 
 import java.util.List;
@@ -42,10 +42,11 @@ public class ChoiceDataType extends DataType {
     }
 
     @Override
-    public void remove(RecordField field) {
-        for (DataType subType : possibleSubTypes) {
-            subType.remove(field);
+    public void removePath(final RecordFieldRemovalPath path) {
+        if (path.length() == 0) {
+            return;
         }
+        getPossibleSubTypes().forEach(subType -> subType.removePath(path));
     }
 
     @Override
