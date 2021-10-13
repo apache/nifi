@@ -27,11 +27,13 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.engine.FlowEngine;
@@ -60,6 +62,7 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
+import org.apache.nifi.test.processors.DynamicPropertiesTestProcessor;
 import org.apache.nifi.test.processors.ModifiesClasspathNoAnnotationProcessor;
 import org.apache.nifi.test.processors.ModifiesClasspathProcessor;
 import org.apache.nifi.util.MockPropertyValue;
@@ -219,15 +222,7 @@ public class StandardProcessorNodeIT {
 
         Bundle narBundle = SystemBundle.create(niFiProperties, narClassLoader);
 
-        HashMap<String, String> additionalProperties = new HashMap<>();
-        additionalProperties.put(NiFiProperties.ADMINISTRATIVE_YIELD_DURATION, "1 sec");
-        additionalProperties.put(NiFiProperties.STATE_MANAGEMENT_CONFIG_FILE, "target/test-classes/state-management.xml");
-        additionalProperties.put(NiFiProperties.STATE_MANAGEMENT_LOCAL_PROVIDER_ID, "local-provider");
-        additionalProperties.put(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName());
-        additionalProperties.put("nifi.remote.input.socket.port", "");
-        additionalProperties.put("nifi.remote.input.secure", "");
-
-        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties", additionalProperties);
+        final NiFiProperties nifiProperties = createBasicNiFiPropertiesWithMocks();
 
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
             mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
@@ -271,6 +266,71 @@ public class StandardProcessorNodeIT {
         }
     }
 
+    @Test
+    public void testDynamicPropertiesArePreservedAfterReload() throws ProcessorInstantiationException {
+        // Init NiFi
+        NarClassLoader narClassLoader = mock(NarClassLoader.class);
+        when(narClassLoader.getURLs()).thenReturn(new URL[0]);
+
+        Bundle narBundle = SystemBundle.create(niFiProperties, narClassLoader);
+
+        final NiFiProperties nifiProperties = createBasicNiFiPropertiesWithMocks();
+
+        final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
+                mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
+                new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
+                mock(FlowRegistryClient.class), extensionManager, mock(StatusHistoryRepository.class));
+
+        // Init processor
+        final DynamicPropertiesTestProcessor processor = new DynamicPropertiesTestProcessor();
+        final String uuid = UUID.randomUUID().toString();
+
+        final ValidationContextFactory validationContextFactory = createValidationContextFactory();
+        final TerminationAwareLogger componentLog = mock(TerminationAwareLogger.class);
+
+        final ReloadComponent reloadComponent = new StandardReloadComponent(flowController);
+
+        final StateManagerProvider stateManagerProvider = mock(StateManagerProvider.class);
+
+        final ProcessScheduler processScheduler = new StandardProcessScheduler(null, flowController, null,
+                stateManagerProvider, nifiProperties);
+
+        final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, narBundle.getBundleDetails().getCoordinate(), componentLog);
+        final StandardProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid, validationContextFactory, processScheduler,
+                null, new StandardComponentVariableRegistry(variableRegistry), reloadComponent, extensionManager, new SynchronousValidationTrigger());
+        processor.setProcessorNode(procNode);
+        ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(uuid, componentLog, null, null, KerberosConfig.NOT_CONFIGURED);
+        ((Processor) processor).initialize(initContext);
+        final BundleCoordinate existingCoordinate = procNode.getBundleCoordinate();
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(DynamicPropertiesTestProcessor.STATIC_PROPERTY.getName(), "${value}");
+        properties.put("dynamic-property", "value");
+        procNode.setProperties(properties);
+        procNode.performValidation();
+
+        // Start out with one dynamic property name
+        assertEquals(1, processor.getDynamicPropertyNames().size());
+
+        // Reload the processor, which happens during a 'terminate' operation
+        reloadComponent.reload(procNode, processor.getClass().getName(), existingCoordinate, null);
+
+        // After terminate, we should still have one dynamic property, and the static property should be untouched
+        assertEquals(1, ((DynamicPropertiesTestProcessor) procNode.getProcessor()).getDynamicPropertyNames().size());
+        assertEquals("${value}", procNode.getProperties().get(DynamicPropertiesTestProcessor.STATIC_PROPERTY).getRawValue());
+    }
+
+    private NiFiProperties createBasicNiFiPropertiesWithMocks() {
+        HashMap<String, String> additionalProperties = new HashMap<>();
+        additionalProperties.put(NiFiProperties.ADMINISTRATIVE_YIELD_DURATION, "1 sec");
+        additionalProperties.put(NiFiProperties.STATE_MANAGEMENT_CONFIG_FILE, "target/test-classes/state-management.xml");
+        additionalProperties.put(NiFiProperties.STATE_MANAGEMENT_LOCAL_PROVIDER_ID, "local-provider");
+        additionalProperties.put(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName());
+        additionalProperties.put("nifi.remote.input.socket.port", "");
+        additionalProperties.put("nifi.remote.input.secure", "");
+
+        return NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties", additionalProperties);
+    }
 
     @Test
     public void testUpdateOtherPropertyDoesNotImpactClasspath() throws MalformedURLException {
