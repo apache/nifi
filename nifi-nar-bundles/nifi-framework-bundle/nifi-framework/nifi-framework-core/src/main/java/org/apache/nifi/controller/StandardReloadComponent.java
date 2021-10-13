@@ -18,7 +18,6 @@ package org.apache.nifi.controller;
 
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
@@ -39,8 +38,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 public class StandardReloadComponent implements ReloadComponent {
@@ -100,9 +97,6 @@ public class StandardReloadComponent implements ReloadComponent {
         // need to refresh the properties in case we are changing from ghost component to real component
         existingNode.refreshProperties();
 
-        // set the new processor's properties based on the existing node, to preserve any dynamic properties
-        newNode.setProperties(getPropertiesForSetting(existingNode.getProperties()));
-
         logger.debug("Triggering async validation of {} due to processor reload", existingNode);
         flowController.getValidationTrigger().trigger(existingNode);
     }
@@ -161,9 +155,6 @@ public class StandardReloadComponent implements ReloadComponent {
         // need to refresh the properties in case we are changing from ghost component to real component
         existingNode.refreshProperties();
 
-        // set the new service's properties based on the existing node, to preserve any dynamic properties
-        newNode.setProperties(getPropertiesForSetting(existingNode.getProperties()));
-
         logger.debug("Triggering async validation of {} due to controller service reload", existingNode);
         flowController.getValidationTrigger().triggerAsync(existingNode);
     }
@@ -211,18 +202,8 @@ public class StandardReloadComponent implements ReloadComponent {
         // need to refresh the properties in case we are changing from ghost component to real component
         existingNode.refreshProperties();
 
-        // set the new task's properties based on the existing node, to preserve any dynamic properties
-        newNode.setProperties(getPropertiesForSetting(existingNode.getProperties()));
-
         logger.debug("Triggering async validation of {} due to reporting task reload", existingNode);
         flowController.getValidationTrigger().triggerAsync(existingNode);
-    }
-
-    private static Map<String, String> getPropertiesForSetting(final Map<PropertyDescriptor, PropertyConfiguration> propertyMap) {
-        final Map<String, String> propertiesForSetting = new HashMap<>();
-        propertyMap.entrySet().stream()
-                .forEach(entry -> propertiesForSetting.put(entry.getKey().getName(), entry.getValue() != null ? entry.getValue().getRawValue() : null));
-        return propertiesForSetting;
     }
 
 }
