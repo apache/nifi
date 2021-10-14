@@ -188,7 +188,7 @@
             <dependency>
                 <groupId>com.hierynomus</groupId>
                 <artifactId>sshj</artifactId>
-                <version>0.31.0</version>
+                <version>0.32.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
