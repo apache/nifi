@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -47,6 +48,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.StringUtils;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
@@ -99,6 +101,16 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor UNESCAPE_COMMA = new PropertyDescriptor.Builder()
+            .name("unescape.comma")
+            .displayName("Unescape Comma")
+            .description("When there is a comma in the header itself, with the help of this parameter, the header's own commas are not used in the splitting process.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .defaultValue("False")
+            .allowableValues("True", "False")
+            .required(false)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles that are sent to the AMQP destination are routed to this relationship")
@@ -116,6 +128,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(EXCHANGE);
         properties.add(ROUTING_KEY);
+        properties.add(UNESCAPE_COMMA);
         properties.addAll(getCommonPropertyDescriptors());
         propertyDescriptors = Collections.unmodifiableList(properties);
 
@@ -143,7 +156,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             return;
         }
 
-        final BasicProperties amqpProperties = extractAmqpPropertiesFromFlowFile(flowFile);
+        final BasicProperties amqpProperties = extractAmqpPropertiesFromFlowFile(flowFile,context.getProperty(UNESCAPE_COMMA).asBoolean());
         final String routingKey = context.getProperty(ROUTING_KEY).evaluateAttributeExpressions(flowFile).getValue();
         if (routingKey == null) {
             throw new IllegalArgumentException("Failed to determine 'routing key' with provided value '"
@@ -224,7 +237,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * {@link AMQPUtils#validateAMQPPriorityProperty}
      * {@link AMQPUtils#validateAMQPTimestampProperty}
      */
-    private BasicProperties extractAmqpPropertiesFromFlowFile(FlowFile flowFile) {
+    private BasicProperties extractAmqpPropertiesFromFlowFile(FlowFile flowFile,boolean escapeComma) {
         final AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
 
         updateBuilderFromAttribute(flowFile, "contentType", builder::contentType);
@@ -240,22 +253,29 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         updateBuilderFromAttribute(flowFile, "userId", builder::userId);
         updateBuilderFromAttribute(flowFile, "appId", builder::appId);
         updateBuilderFromAttribute(flowFile, "clusterId", builder::clusterId);
-        updateBuilderFromAttribute(flowFile, "headers", headers -> builder.headers(validateAMQPHeaderProperty(headers)));
+        updateBuilderFromAttribute(flowFile, "headers", headers -> builder.headers(validateAMQPHeaderProperty(headers,escapeComma)));
 
         return builder.build();
     }
 
     /**
      * Will validate if provided amqpPropValue can be converted to a {@link Map}.
-     * Should be passed in the format: amqp$headers=key=value,key=value etc.
-     *
+     * Should be passed in the format: amqp$headers=key=value
+     * With unescape comma parameter, header values may contain escaped commas. The header value is unescaped and then published.
      * @param amqpPropValue the value of the property
      * @return {@link Map} if valid otherwise null
      */
-    private Map<String, Object> validateAMQPHeaderProperty(String amqpPropValue) {
-        String[] strEntries = amqpPropValue.split(",");
+    private Map<String, Object> validateAMQPHeaderProperty(String amqpPropValue,boolean unescapeComma) {
+        String[] strEntries;
+        String splitAttribute = ",";
+        if(unescapeComma) {
+            splitAttribute = StringUtils.REGEX_COMMA_WITHOUT_ESCAPE;
+        }
+
+        strEntries = amqpPropValue.split(splitAttribute);
         Map<String, Object> headers = new HashMap<>();
         for (String strEntry : strEntries) {
+            strEntry = StringEscapeUtils.unescapeJava(strEntry);
             String[] kv = strEntry.split("=");
             if (kv.length == 2) {
                 headers.put(kv[0].trim(), kv[1].trim());
@@ -263,7 +283,6 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
                 getLogger().warn("Malformed key value pair for AMQP header property: " + amqpPropValue);
             }
         }
-
         return headers;
     }
 }

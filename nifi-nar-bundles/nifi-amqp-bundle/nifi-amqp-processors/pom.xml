@@ -21,6 +21,7 @@ language governing permissions and limitations under the License. -->
 
     <properties>
         <amqp-client.version>5.8.0</amqp-client.version>
+        <common-text.version>1.8</common-text.version>
     </properties>
 
     <dependencies>
@@ -47,6 +48,11 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-mock</artifactId>
             <version>1.15.0-SNAPSHOT</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>${common-text.version}</version>
         </dependency>
     </dependencies>
 

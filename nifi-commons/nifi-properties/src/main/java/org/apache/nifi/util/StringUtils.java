@@ -28,6 +28,10 @@ import java.util.stream.Collectors;
 public class StringUtils {
 
     public static final String EMPTY = "";
+    public static final char ESCAPE_CHAR = '\\';
+    public static final char COMMA = ',';
+    //With this regular expression, commas without "\"-escape in string can be found.
+    public static final String REGEX_COMMA_WITHOUT_ESCAPE = "(?<!\\\\),";
 
     public static boolean isBlank(final String str) {
         if (str == null || str.isEmpty()) {
@@ -509,5 +513,21 @@ public class StringUtils {
                 .filter(word -> !StringUtils.isBlank(word))
                 .map(word -> Character.toTitleCase(word.charAt(0)) + word.substring(1))
                 .collect(Collectors.joining(" "));
+    }
+
+    public static String escapeString(String str, char escapeChar, char charToEscape) {
+        if (str == null) {
+            return null;
+        }
+        StringBuilder result = new StringBuilder();
+        for (int i=0; i<str.length(); i++) {
+            char curChar = str.charAt(i);
+            if (curChar == escapeChar || curChar == charToEscape) {
+                // special char
+                result.append(escapeChar);
+            }
+            result.append(curChar);
+        }
+        return result.toString();
     }
 }
