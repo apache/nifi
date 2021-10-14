@@ -480,16 +480,22 @@ public class TestListenHTTP {
             parser.addRecord(keys.get(i), names.get(i), codes.get(i));
         }
 
-        final String expectedMessage = "\"1\",\"rec1\",\"101\"\n" +
+        final String message =
+                "\"1\",\"rec1\",\"101\"\n" +
                 "\"2\",\"rec2\",\"102\"\n" +
                 "\"3\",\"rec3\",\"103\"\n" +
                 "\"4\",\"rec4\",\"104\"\n";
+        final List<String> messages = new ArrayList<>();
+        messages.add(message);
+        startWebServerAndSendMessages(messages, HttpServletResponse.SC_OK, false, false);
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
 
-        testPOSTRecordRequestsReceived(expectedMessage, HttpServletResponse.SC_OK);
+        runner.assertTransferCount(RELATIONSHIP_SUCCESS, 1);
+        mockFlowFiles.get(0).assertContentEquals(message);
     }
 
     @Test
-    public void testInvalidPOSTRequestsReceivedWithRecordReader() throws Exception {
+    public void testInvalidPOSTRequestWithRecordReaderIsNotReceived() throws Exception {
         final MockRecordParser parser = setupRecordReaderTest();
         parser.failAfter(2);
 
@@ -505,10 +511,16 @@ public class TestListenHTTP {
             parser.addRecord(keys.get(i), names.get(i), codes.get(i));
         }
 
-        final String expectedMessage = "\"1\",\"rec1\",\"101\"\n" +
-                "\"2\",\"rec2\",\"102\"\n";
+        final String message =
+                "\"1\",\"rec1\",\"101\"\n" +
+                "\"2\",\"rec2\",\"102\"\n" +
+                "\"3\",\"rec3\",\"103\"\n" +
+                "\"4\",\"rec4\",\"104\"\n";
+        final List<String> messages = new ArrayList<>();
+        messages.add(message);
+        startWebServerAndSendMessages(messages, HttpServletResponse.SC_BAD_REQUEST, false, false);
 
-        testPOSTRecordRequestsReceived(expectedMessage, HttpServletResponse.SC_BAD_REQUEST);
+        runner.assertTransferCount(RELATIONSHIP_SUCCESS, 0);
     }
 
     private MockRecordParser setupRecordReaderTest() throws InitializationException {
@@ -592,16 +604,6 @@ public class TestListenHTTP {
                 mockFlowFiles.get(0).assertAttributeEquals("restlistener.remote.issuer.dn", LOCALHOST_DN);
             }
         }
-    }
-
-    private void testPOSTRecordRequestsReceived(final String expectedMessage, final int returnCode) throws Exception {
-        final List<String> messages = new ArrayList<>();
-        messages.add(expectedMessage);
-        startWebServerAndSendMessages(messages, returnCode, false, false);
-        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
-
-        runner.assertTransferCount(RELATIONSHIP_SUCCESS, 1);
-        mockFlowFiles.get(0).assertContentEquals(expectedMessage);
     }
 
     private void startWebServer() {

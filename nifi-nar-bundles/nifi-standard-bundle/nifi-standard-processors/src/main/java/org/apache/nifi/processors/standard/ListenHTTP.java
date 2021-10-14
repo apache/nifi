@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -89,7 +88,9 @@ import java.util.stream.Collectors;
         + "supported. GET, PUT, and DELETE will result in an error and the HTTP response status code 405. "
         + "GET is supported on <service_URI>/healthcheck. If the service is available, it returns \"200 OK\" with the content \"OK\". "
         + "The health check functionality can be configured to be accessible via a different port. "
-        + "For details see the documentation of the \"Listening Port for health check requests\" property.")
+        + "For details see the documentation of the \"Listening Port for health check requests\" property."
+        + "A Record Reader and Record Writer property can be enabled on the processor to process incoming requests as records. "
+        + "Record processing is not allowed for multipart requests and request in FlowFileV3 format (minifi).")
 public class ListenHTTP extends AbstractSessionFactoryProcessor {
     private static final String MATCH_ALL = ".*";
 
@@ -263,8 +264,9 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             .name("record-writer")
             .displayName("Record Writer")
             .description("The Record Writer to use for serializing Records after they have been transformed")
-            .required(false)
+            .required(true)
             .identifiesControllerService(RecordSetWriterFactory.class)
+            .dependsOn(RECORD_READER)
             .build();
 
     protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
@@ -310,38 +312,11 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     private final AtomicReference<ProcessSessionFactory> sessionFactoryReference = new AtomicReference<>();
     private final AtomicReference<StreamThrottler> throttlerRef = new AtomicReference<>();
 
-    private volatile boolean isRecordReaderSet;
-    private volatile boolean isRecordWriterSet;
-
-    @Override
-    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        if (RECORD_READER.equals(descriptor)) {
-            isRecordReaderSet = StringUtils.isNotEmpty(newValue);
-        } else if (RECORD_WRITER.equals(descriptor)) {
-            isRecordWriterSet = StringUtils.isNotEmpty(newValue);
-        }
-    }
-
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final Set<ValidationResult> validationResults = new HashSet<>(super.customValidate(validationContext));
 
         validatePortsAreNotEqual(validationContext, validationResults);
-
-        final String explanation = "%s must be set if %s is set in order to write FlowFiles as Records.";
-        if (isRecordReaderSet && !isRecordWriterSet) {
-            validationResults.add(new ValidationResult.Builder()
-                    .subject(RECORD_WRITER.getName())
-                    .explanation(String.format(explanation, RECORD_WRITER.getDisplayName(), RECORD_READER.getDisplayName()))
-                    .valid(false)
-                    .build());
-        } else if (isRecordWriterSet && !isRecordReaderSet) {
-            validationResults.add(new ValidationResult.Builder()
-                    .subject(RECORD_READER.getName())
-                    .explanation(String.format(explanation, RECORD_READER.getDisplayName(), RECORD_WRITER.getDisplayName()))
-                    .valid(false)
-                    .build());
-        }
 
         return validationResults;
     }

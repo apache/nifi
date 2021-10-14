@@ -29,14 +29,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processors.standard.ListenHTTP;
 import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
+import org.apache.nifi.processors.standard.exception.ListenHttpException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.record.PushBackRecordSet;
-import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.stream.io.StreamThrottler;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -121,12 +120,11 @@ public class ListenHTTPServlet extends HttpServlet {
     private int port;
     private RecordReaderFactory readerFactory;
     private RecordSetWriterFactory writerFactory;
-    private ServletContext context;
 
     @SuppressWarnings("unchecked")
     @Override
     public void init(final ServletConfig config) throws ServletException {
-        context = config.getServletContext();
+        final ServletContext context = config.getServletContext();
         this.logger = (ComponentLog) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_LOGGER);
         this.sessionFactoryHolder = (AtomicReference<ProcessSessionFactory>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER);
         this.processContext = (ProcessContext) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PROCESS_CONTEXT_HOLDER);
@@ -136,6 +134,7 @@ public class ListenHTTPServlet extends HttpServlet {
         this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
         this.streamThrottler = (StreamThrottler) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_STREAM_THROTTLER);
         this.basePath = (String) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_BASE_PATH);
+        this.returnCode = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_RETURN_CODE);
         this.multipartRequestMaxSize = (long) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_MULTIPART_REQUEST_MAX_SIZE);
         this.multipartReadBufferSize = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_MULTIPART_READ_BUFFER_SIZE);
         this.port = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PORT);
@@ -156,7 +155,6 @@ public class ListenHTTPServlet extends HttpServlet {
 
     @Override
     protected void doPost(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
-        this.returnCode = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_RETURN_CODE);
 
         if (request.getLocalPort() != port) {
             super.doPost(request, response);
@@ -258,7 +256,12 @@ public class ListenHTTPServlet extends HttpServlet {
                                  final ProcessSession session, final String foundSubject, final String foundIssuer, final Throwable t) throws IOException {
         session.rollback();
         logger.error("Unable to receive file from Remote Host: [{}] SubjectDN [{}] IssuerDN [{}] due to {}", request.getRemoteHost(), foundSubject, foundIssuer, t);
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, t.toString());
+        if (t instanceof ListenHttpException) {
+            final int returnCode = ((ListenHttpException) t).getReturnCode();
+            response.sendError(returnCode, t.toString());
+        } else {
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, t.toString());
+        }
     }
 
     private Set<FlowFile> handleMultipartRequest(HttpServletRequest request, ProcessSession session, String foundSubject, String foundIssuer)
@@ -438,18 +441,13 @@ public class ListenHTTPServlet extends HttpServlet {
     private void processRecord(InputStream in, FlowFile flowFile, OutputStream out) {
         try (final RecordReader reader = readerFactory.createRecordReader(flowFile, new BufferedInputStream(in), logger)) {
             final RecordSet recordSet = reader.createRecordSet();
-            final PushBackRecordSet pushBackSet = new PushBackRecordSet(recordSet);
-
             try (final RecordSetWriter writer = writerFactory.createWriter(logger, reader.getSchema(), out, flowFile)) {
-                // Reading in records and evaluate script
-                while (pushBackSet.isAnotherRecord()) {
-                    final Record record = pushBackSet.next();
-                    writer.write(record);
-                }
+                writer.write(recordSet);
             }
-        } catch (IOException | MalformedRecordException | SchemaNotFoundException e) {
-            logger.error("Could not process record.", e);
-            returnCode = HttpServletResponse.SC_BAD_REQUEST;
+        } catch (IOException | MalformedRecordException e) {
+            throw new ListenHttpException("Could not process record.", e, HttpServletResponse.SC_BAD_REQUEST);
+        } catch (SchemaNotFoundException e) {
+            throw new ListenHttpException("Could not find schema.", e, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
