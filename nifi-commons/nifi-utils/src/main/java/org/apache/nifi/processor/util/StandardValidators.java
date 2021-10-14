@@ -375,6 +375,25 @@ public class StandardValidators {
         }
     };
 
+    public static final Validator SINGLE_CHAR_VALIDATOR = (subject, input, context) -> {
+        if (input == null) {
+            return new ValidationResult.Builder()
+                    .input(input)
+                    .subject(subject)
+                    .valid(false)
+                    .explanation("Input is null for this property")
+                    .build();
+        }
+        if (input.length() != 1) {
+            return new ValidationResult.Builder()
+                    .input(input)
+                    .subject(subject)
+                    .valid(false)
+                    .explanation("Value must be exactly 1 character but was " + input.length() + " in length")
+                    .build();
+        }
+        return new ValidationResult.Builder().input(input).subject(subject).valid(true).build();
+    };
     /**
      * URL Validator that does not allow the Expression Language to be used
      */
@@ -980,4 +999,5 @@ public class StandardValidators {
             return new ValidationResult.Builder().subject(subject).input(value).explanation(reason).valid(reason == null).build();
         }
     }
+
 }
