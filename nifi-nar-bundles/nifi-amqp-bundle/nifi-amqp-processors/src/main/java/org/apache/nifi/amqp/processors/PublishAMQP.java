@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -98,7 +99,15 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
+    public static final PropertyDescriptor HEADER_SEPARATOR = new PropertyDescriptor.Builder()
+            .name("header.separator")
+            .displayName("Header Separator")
+            .description("The character that is used to split key-value for headers. The value must only one character. "
+                    + "Otherwise you will get an error message")
+            .defaultValue(",")
+            .addValidator(StandardValidators.SINGLE_CHAR_VALIDATOR)
+            .required(false)
+            .build();
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles that are sent to the AMQP destination are routed to this relationship")
@@ -116,6 +125,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(EXCHANGE);
         properties.add(ROUTING_KEY);
+        properties.add(HEADER_SEPARATOR);
         properties.addAll(getCommonPropertyDescriptors());
         propertyDescriptors = Collections.unmodifiableList(properties);
 
@@ -143,7 +153,8 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             return;
         }
 
-        final BasicProperties amqpProperties = extractAmqpPropertiesFromFlowFile(flowFile);
+        final BasicProperties amqpProperties = extractAmqpPropertiesFromFlowFile(flowFile,
+                context.getProperty(HEADER_SEPARATOR).toString().charAt(0));
         final String routingKey = context.getProperty(ROUTING_KEY).evaluateAttributeExpressions(flowFile).getValue();
         if (routingKey == null) {
             throw new IllegalArgumentException("Failed to determine 'routing key' with provided value '"
@@ -224,7 +235,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * {@link AMQPUtils#validateAMQPPriorityProperty}
      * {@link AMQPUtils#validateAMQPTimestampProperty}
      */
-    private BasicProperties extractAmqpPropertiesFromFlowFile(FlowFile flowFile) {
+    private BasicProperties extractAmqpPropertiesFromFlowFile(FlowFile flowFile,Character headerSeparator) {
         final AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
 
         updateBuilderFromAttribute(flowFile, "contentType", builder::contentType);
@@ -240,20 +251,20 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         updateBuilderFromAttribute(flowFile, "userId", builder::userId);
         updateBuilderFromAttribute(flowFile, "appId", builder::appId);
         updateBuilderFromAttribute(flowFile, "clusterId", builder::clusterId);
-        updateBuilderFromAttribute(flowFile, "headers", headers -> builder.headers(validateAMQPHeaderProperty(headers)));
+        updateBuilderFromAttribute(flowFile, "headers", headers -> builder.headers(validateAMQPHeaderProperty(headers,headerSeparator)));
 
         return builder.build();
     }
 
     /**
      * Will validate if provided amqpPropValue can be converted to a {@link Map}.
-     * Should be passed in the format: amqp$headers=key=value,key=value etc.
-     *
+     * Should be passed in the format: amqp$headers=key=value
+     * @param splitValue is used to split for property
      * @param amqpPropValue the value of the property
      * @return {@link Map} if valid otherwise null
      */
-    private Map<String, Object> validateAMQPHeaderProperty(String amqpPropValue) {
-        String[] strEntries = amqpPropValue.split(",");
+    private Map<String, Object> validateAMQPHeaderProperty(String amqpPropValue,Character splitValue) {
+        String[] strEntries = amqpPropValue.split(Pattern.quote(String.valueOf(splitValue)));
         Map<String, Object> headers = new HashMap<>();
         for (String strEntry : strEntries) {
             String[] kv = strEntry.split("=");
@@ -263,7 +274,6 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
                 getLogger().warn("Malformed key value pair for AMQP header property: " + amqpPropValue);
             }
         }
-
         return headers;
     }
 }
