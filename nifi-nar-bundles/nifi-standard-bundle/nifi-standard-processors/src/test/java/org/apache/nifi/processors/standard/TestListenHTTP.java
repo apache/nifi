@@ -27,6 +27,7 @@ import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -480,22 +481,21 @@ public class TestListenHTTP {
             parser.addRecord(keys.get(i), names.get(i), codes.get(i));
         }
 
-        final String message =
+        final String expectedMessage =
                 "\"1\",\"rec1\",\"101\"\n" +
                 "\"2\",\"rec2\",\"102\"\n" +
                 "\"3\",\"rec3\",\"103\"\n" +
                 "\"4\",\"rec4\",\"104\"\n";
-        final List<String> messages = new ArrayList<>();
-        messages.add(message);
-        startWebServerAndSendMessages(messages, HttpServletResponse.SC_OK, false, false);
+
+        startWebServerAndSendMessages(Collections.singletonList(""), HttpServletResponse.SC_OK, false, false);
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
 
         runner.assertTransferCount(RELATIONSHIP_SUCCESS, 1);
-        mockFlowFiles.get(0).assertContentEquals(message);
+        mockFlowFiles.get(0).assertContentEquals(expectedMessage);
     }
 
     @Test
-    public void testInvalidPOSTRequestWithRecordReaderIsNotReceived() throws Exception {
+    public void testReturn400WhenInvalidPOSTRequestSentWithRecordReader() throws Exception {
         final MockRecordParser parser = setupRecordReaderTest();
         parser.failAfter(2);
 
@@ -511,14 +511,7 @@ public class TestListenHTTP {
             parser.addRecord(keys.get(i), names.get(i), codes.get(i));
         }
 
-        final String message =
-                "\"1\",\"rec1\",\"101\"\n" +
-                "\"2\",\"rec2\",\"102\"\n" +
-                "\"3\",\"rec3\",\"103\"\n" +
-                "\"4\",\"rec4\",\"104\"\n";
-        final List<String> messages = new ArrayList<>();
-        messages.add(message);
-        startWebServerAndSendMessages(messages, HttpServletResponse.SC_BAD_REQUEST, false, false);
+        startWebServerAndSendMessages(Collections.singletonList(""), HttpServletResponse.SC_BAD_REQUEST, false, false);
 
         runner.assertTransferCount(RELATIONSHIP_SUCCESS, 0);
     }
@@ -532,7 +525,6 @@ public class TestListenHTTP {
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
         runner.addControllerService("mockRecordWriter", writer);
-        runner.enableControllerService(parser);
         runner.setProperty(ListenHTTP.RECORD_WRITER, "mockRecordWriter");
 
         return parser;

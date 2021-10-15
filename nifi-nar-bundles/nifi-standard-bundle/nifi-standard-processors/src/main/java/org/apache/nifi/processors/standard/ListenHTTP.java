@@ -66,6 +66,7 @@ import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Path;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -314,7 +315,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final Set<ValidationResult> validationResults = new HashSet<>(super.customValidate(validationContext));
+        final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
 
         validatePortsAreNotEqual(validationContext, validationResults);
 
