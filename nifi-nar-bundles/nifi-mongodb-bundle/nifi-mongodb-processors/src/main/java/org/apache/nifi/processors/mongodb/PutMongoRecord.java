@@ -19,6 +19,12 @@ package org.apache.nifi.processors.mongodb;
 import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.BulkWriteOptions;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.InsertOneModel;
+import com.mongodb.client.model.UpdateOneModel;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.WriteModel;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -39,15 +45,19 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @EventDriven
 @Tags({"mongodb", "insert", "record", "put"})
@@ -70,13 +80,43 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
+
     static final PropertyDescriptor INSERT_COUNT = new PropertyDescriptor.Builder()
             .name("insert_count")
-            .displayName("Insert Batch Size")
-            .description("The number of records to group together for one single insert operation against MongoDB.")
+            .displayName("Batch Size")
+            .description("The number of records to group together for one single insert/upsert operation against MongoDB.")
             .defaultValue("100")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor ORDERED = new PropertyDescriptor.Builder()
+            .name("ordered")
+            .displayName("Ordered")
+            .description("Perform ordered or unordered operations")
+            .allowableValues("True", "False")
+            .defaultValue("False")
+            .required(true)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor BYPASS_VALIDATION = new PropertyDescriptor.Builder()
+            .name("bypass-validation")
+            .displayName("Bypass Validation")
+            .description("Bypass schema validation during insert/update")
+            .allowableValues("True", "False")
+            .defaultValue("True")
+            .required(true)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor UPDATE_KEY_FIELDS = new PropertyDescriptor.Builder()
+            .name("update-key-fields")
+            .displayName("Update Key Fields")
+            .description("Comma separated list of fields that uniquely identifies a document. If this property is set NiFi will attempt an upsert operation on all documents." +
+                "If this property is not set all documents will be inserted.")
+            .required(false)
+            .addValidator(StandardValidators.createListValidator(true, false, StandardValidators.NON_EMPTY_VALIDATOR))
             .build();
 
     private final static Set<Relationship> relationships;
@@ -88,6 +128,9 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         _propertyDescriptors.add(WRITE_CONCERN);
         _propertyDescriptors.add(RECORD_READER_FACTORY);
         _propertyDescriptors.add(INSERT_COUNT);
+        _propertyDescriptors.add(ORDERED);
+        _propertyDescriptors.add(BYPASS_VALIDATION);
+        _propertyDescriptors.add(UPDATE_KEY_FIELDS);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         final Set<Relationship> _relationships = new HashSet<>();
@@ -118,15 +161,36 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
         final WriteConcern writeConcern = getWriteConcern(context);
 
-        List<Document> inserts = new ArrayList<>();
         int ceiling = context.getProperty(INSERT_COUNT).asInteger();
-        int added   = 0;
+        int written = 0;
         boolean error = false;
 
-        try (final InputStream inStream = session.read(flowFile);
-             final RecordReader reader = recordParserFactory.createRecordReader(flowFile, inStream, getLogger())) {
-            final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
+        boolean ordered = context.getProperty(ORDERED).asBoolean();
+        boolean bypass = context.getProperty(BYPASS_VALIDATION).asBoolean();
+
+        Map<String, List<String>> updateKeyFieldPathToFieldChain = new LinkedHashMap<>();
+        if (context.getProperty(UPDATE_KEY_FIELDS).isSet()) {
+            Arrays.stream(context.getProperty(UPDATE_KEY_FIELDS).getValue().split("\\s*,\\s*"))
+                .forEach(updateKeyField -> updateKeyFieldPathToFieldChain.put(
+                    updateKeyField,
+                    Arrays.asList(updateKeyField.split("\\."))
+                ));
+        }
+
+        BulkWriteOptions bulkWriteOptions = new BulkWriteOptions();
+        bulkWriteOptions.ordered(ordered);
+        bulkWriteOptions.bypassDocumentValidation(bypass);
+
+        try (
+            final InputStream inStream = session.read(flowFile);
+            final RecordReader reader = recordParserFactory.createRecordReader(flowFile, inStream, getLogger());
+        ) {
             RecordSchema schema = reader.getSchema();
+
+            final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
+
+            List<WriteModel<Document>> writeModels = new ArrayList<>();
+
             Record record;
             while ((record = reader.nextRecord()) != null) {
                 // Convert each Record to HashMap and put into the Mongo document
@@ -135,15 +199,30 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                 for (String name : schema.getFieldNames()) {
                     document.put(name, contentMap.get(name));
                 }
-                inserts.add(convertArrays(document));
-                if (inserts.size() == ceiling) {
-                    collection.insertMany(inserts);
-                    added += inserts.size();
-                    inserts = new ArrayList<>();
+                Document readyToUpsert = convertArrays(document);
+
+                WriteModel<Document> writeModel;
+                if (context.getProperty(UPDATE_KEY_FIELDS).isSet()) {
+                    Bson[] filters = buildFilters(updateKeyFieldPathToFieldChain, readyToUpsert);
+
+                    writeModel = new UpdateOneModel<>(
+                        Filters.and(filters),
+                        new Document("$set", readyToUpsert),
+                        new UpdateOptions().upsert(true)
+                    );
+                } else {
+                    writeModel = new InsertOneModel<>(readyToUpsert);
+                }
+
+                writeModels.add(writeModel);
+                if (writeModels.size() == ceiling) {
+                    collection.bulkWrite(writeModels, bulkWriteOptions);
+                    written += writeModels.size();
+                    writeModels = new ArrayList<>();
                 }
             }
-            if (inserts.size() > 0) {
-                collection.insertMany(inserts);
+            if (writeModels.size() > 0) {
+                collection.bulkWrite(writeModels, bulkWriteOptions);
             }
         } catch (SchemaNotFoundException | IOException | MalformedRecordException | MongoException e) {
             getLogger().error("PutMongoRecord failed with error:", e);
@@ -154,9 +233,9 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                 String url = clientService != null
                         ? clientService.getURI()
                         : context.getProperty(URI).evaluateAttributeExpressions().getValue();
-                session.getProvenanceReporter().send(flowFile, url, String.format("Added %d documents to MongoDB.", added));
+                session.getProvenanceReporter().send(flowFile, url, String.format("Written %d documents to MongoDB.", written));
                 session.transfer(flowFile, REL_SUCCESS);
-                getLogger().info("Inserted {} records into MongoDB", new Object[]{ added });
+                getLogger().info("Written {} records into MongoDB", new Object[]{ written });
             }
         }
     }
@@ -189,5 +268,37 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         }
 
         return retVal;
+    }
+
+    private Bson[] buildFilters(Map<String, List<String>> updateKeyFieldPathToFieldChain, Document readyToUpsert) {
+        Bson[] filters = updateKeyFieldPathToFieldChain.entrySet()
+            .stream()
+            .map(updateKeyFieldPath__fieldChain -> {
+                String fieldPath = updateKeyFieldPath__fieldChain.getKey();
+                List<String> fieldChain = updateKeyFieldPath__fieldChain.getValue();
+
+                Object value = readyToUpsert;
+                String previousField = null;
+                for (String field : fieldChain) {
+                    if (!(value instanceof Map)) {
+                        throw new ProcessException("field '" + previousField + "' (from field expression '" + fieldPath + "') is not an embedded document");
+                    }
+
+                    value = ((Map) value).get(field);
+
+                    if (value == null) {
+                        throw new ProcessException("field '" + field + "' (from field expression '" + fieldPath + "') has no value");
+                    }
+
+                    previousField = field;
+                }
+
+                Bson filter = Filters.eq(fieldPath, value);
+                return filter;
+            })
+            .collect(Collectors.toList())
+            .toArray(new Bson[0]);
+
+        return filters;
     }
 }
