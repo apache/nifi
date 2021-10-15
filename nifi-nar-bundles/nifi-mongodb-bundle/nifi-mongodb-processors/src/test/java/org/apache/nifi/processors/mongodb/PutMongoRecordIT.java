@@ -45,12 +45,16 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -242,5 +246,458 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
         runner.assertTransferCount(PutMongoRecord.REL_FAILURE, 0);
         runner.assertTransferCount(PutMongoRecord.REL_SUCCESS, 1);
+    }
+
+    @Test
+    void testUpsertAsInsert() throws Exception {
+        // GIVEN
+        TestRunner runner = init();
+
+        runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id");
+
+        recordReader.addSchemaField("id", RecordFieldType.INT);
+        recordReader.addSchemaField("person", RecordFieldType.RECORD);
+
+        final RecordSchema personSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("name", RecordFieldType.STRING.getDataType()),
+            new RecordField("age", RecordFieldType.INT.getDataType())
+        ));
+
+        List<List<Object[]>> inputs = Arrays.asList(
+            Arrays.asList(
+                new Object[]{1, new MapRecord(personSchema, new HashMap<String, Object>() {{
+                    put("name", "name1");
+                    put("age", 21);
+                }})},
+                new Object[]{2, new MapRecord(personSchema, new HashMap<String, Object>() {{
+                    put("name", "name2");
+                    put("age", 22);
+                }})}
+            )
+        );
+
+        Set<Map<String, Object>> expected = new HashSet<>(Arrays.asList(
+            new HashMap<String, Object>() {{
+                put("id", 1);
+                put("person", new Document(new HashMap<String, Object>() {{
+                    put("name", "name1");
+                    put("age", 21);
+                }}));
+            }},
+            new HashMap<String, Object>() {{
+                put("id", 2);
+                put("person", new Document(new HashMap<String, Object>() {{
+                    put("name", "name2");
+                    put("age", 22);
+                }}));
+            }}
+        ));
+
+        // WHEN
+        // THEN
+        testUpsertSuccess(runner, inputs, expected);
+    }
+
+    @Test
+    void testUpsertAsUpdate() throws Exception {
+        // GIVEN
+        TestRunner runner = init();
+
+        runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id");
+
+        recordReader.addSchemaField("id", RecordFieldType.INT);
+        recordReader.addSchemaField("person", RecordFieldType.RECORD);
+
+        final RecordSchema personSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("name", RecordFieldType.STRING.getDataType()),
+            new RecordField("age", RecordFieldType.INT.getDataType())
+        ));
+
+        List<List<Object[]>> inputs = Arrays.asList(
+            Arrays.asList(
+                new Object[]{1, new MapRecord(personSchema, new HashMap<String, Object>() {{
+                    put("name", "updating_name1");
+                    put("age", "age1".length());
+                }})},
+                new Object[]{2, new MapRecord(personSchema, new HashMap<String, Object>() {{
+                    put("name", "name2");
+                    put("age", "updating_age2".length());
+                }})}
+            ),
+            Arrays.asList(
+                new Object[]{1, new MapRecord(personSchema, new HashMap<String, Object>() {{
+                    put("name", "updated_name1");
+                    put("age", "age1".length());
+                }})},
+                new Object[]{2, new MapRecord(personSchema, new HashMap<String, Object>() {{
+                    put("name", "name2");
+                    put("age", "updated_age2".length());
+                }})}
+            )
+        );
+
+        Set<Map<String, Object>> expected = new HashSet<>(Arrays.asList(
+            new HashMap<String, Object>() {{
+                put("id", 1);
+                put("person", new Document(new HashMap<String, Object>() {{
+                    put("name", "updated_name1");
+                    put("age", "age1".length());
+                }}));
+            }},
+            new HashMap<String, Object>() {{
+                put("id", 2);
+                put("person", new Document(new HashMap<String, Object>() {{
+                    put("name", "name2");
+                    put("age", "updated_age2".length());
+                }}));
+            }}
+        ));
+
+        // WHEN
+        testUpsertSuccess(runner, inputs, expected);
+    }
+
+    @Test
+    void testUpsertAsInsertAndUpdate() throws Exception {
+        // GIVEN
+        TestRunner runner = init();
+
+        runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id");
+
+        recordReader.addSchemaField("id", RecordFieldType.INT);
+        recordReader.addSchemaField("person", RecordFieldType.RECORD);
+
+        final RecordSchema personSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("name", RecordFieldType.STRING.getDataType()),
+            new RecordField("age", RecordFieldType.INT.getDataType())
+        ));
+
+        List<List<Object[]>> inputs = Arrays.asList(
+            Collections.singletonList(
+                new Object[]{1, new MapRecord(personSchema, new HashMap<String, Object>() {{
+                    put("name", "updating_name1");
+                    put("age", "updating_age1".length());
+                }})}
+            ),
+            Arrays.asList(
+                new Object[]{1, new MapRecord(personSchema, new HashMap<String, Object>() {{
+                    put("name", "updated_name1");
+                    put("age", "updated_age1".length());
+                }})},
+                new Object[]{2, new MapRecord(personSchema, new HashMap<String, Object>() {{
+                    put("name", "inserted_name2");
+                    put("age", "inserted_age2".length());
+                }})}
+            )
+        );
+
+        Set<Map<String, Object>> expected = new HashSet<>(Arrays.asList(
+            new HashMap<String, Object>() {{
+                put("id", 1);
+                put("person", new Document(new HashMap<String, Object>() {{
+                    put("name", "updated_name1");
+                    put("age", "updated_age1".length());
+                }}));
+            }},
+            new HashMap<String, Object>() {{
+                put("id", 2);
+                put("person", new Document(new HashMap<String, Object>() {{
+                    put("name", "inserted_name2");
+                    put("age", "inserted_age2".length());
+                }}));
+            }}
+        ));
+
+        // WHEN
+        testUpsertSuccess(runner, inputs, expected);
+    }
+
+    @Test
+    void testRouteToFailureWhenKeyFieldDoesNotExist() throws Exception {
+        // GIVEN
+        TestRunner runner = init();
+
+        runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id,non_existent_field");
+
+        recordReader.addSchemaField("id", RecordFieldType.INT);
+        recordReader.addSchemaField("person", RecordFieldType.RECORD);
+
+        final RecordSchema personSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("name", RecordFieldType.STRING.getDataType()),
+            new RecordField("age", RecordFieldType.INT.getDataType())
+        ));
+
+        List<List<Object[]>> inputs = Arrays.asList(
+            Collections.singletonList(
+                new Object[]{1, new MapRecord(personSchema, new HashMap<String, Object>() {{
+                    put("name", "unimportant");
+                    put("age", "unimportant".length());
+                }})}
+            )
+        );
+
+        // WHEN
+        // THEN
+        testUpsertFailure(runner, inputs);
+    }
+
+    @Test
+    void testUpdateMany() throws Exception {
+        // GIVEN
+        TestRunner initRunner = init();
+
+        // Init Mongo data
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("team", RecordFieldType.STRING);
+        recordReader.addSchemaField("color", RecordFieldType.STRING);
+
+        List<Object[]> init = Arrays.asList(
+            new Object[]{"Joe", "A", "green"},
+            new Object[]{"Jane", "A", "green"},
+            new Object[]{"Jeff", "B", "blue"},
+            new Object[]{"Janet", "B", "blue"}
+        );
+
+        init.forEach(recordReader::addRecord);
+
+        initRunner.enqueue("");
+        initRunner.run();
+
+        // Update Mongo data
+        setup();
+        TestRunner updateRunner = init();
+
+        updateRunner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "team");
+        updateRunner.setProperty(PutMongoRecord.UPDATE_MODE, PutMongoRecord.UPDATE_MANY.getValue());
+
+        recordReader.addSchemaField("team", RecordFieldType.STRING);
+        recordReader.addSchemaField("color", RecordFieldType.STRING);
+
+        List<List<Object[]>> inputs = Arrays.asList(
+            Arrays.asList(
+                new Object[]{"A", "yellow"},
+                new Object[]{"B", "red"}
+            )
+        );
+
+        Set<Map<String, Object>> expected = new HashSet<>(Arrays.asList(
+            new HashMap<String, Object>() {{
+                put("name", "Joe");
+                put("team", "A");
+                put("color", "yellow");
+            }},
+            new HashMap<String, Object>() {{
+                put("name", "Jane");
+                put("team", "A");
+                put("color", "yellow");
+            }},
+            new HashMap<String, Object>() {{
+                put("name", "Jeff");
+                put("team", "B");
+                put("color", "red");
+            }},
+            new HashMap<String, Object>() {{
+                put("name", "Janet");
+                put("team", "B");
+                put("color", "red");
+            }}
+        ));
+
+        // WHEN
+        // THEN
+        testUpsertSuccess(updateRunner, inputs, expected);
+    }
+
+    @Test
+    void testUpdateModeFFAttributeSetToMany() throws Exception {
+        // GIVEN
+        TestRunner initRunner = init();
+
+        // Init Mongo data
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("team", RecordFieldType.STRING);
+        recordReader.addSchemaField("color", RecordFieldType.STRING);
+
+        List<Object[]> init = Arrays.asList(
+            new Object[]{"Joe", "A", "green"},
+            new Object[]{"Jane", "A", "green"},
+            new Object[]{"Jeff", "B", "blue"},
+            new Object[]{"Janet", "B", "blue"}
+        );
+
+        init.forEach(recordReader::addRecord);
+
+        initRunner.enqueue("");
+        initRunner.run();
+
+        // Update Mongo data
+        setup();
+        TestRunner updateRunner = init();
+
+        updateRunner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "team");
+        updateRunner.setProperty(PutMongoRecord.UPDATE_MODE, PutMongoRecord.UPDATE_FF_ATTRIBUTE.getValue());
+
+        recordReader.addSchemaField("team", RecordFieldType.STRING);
+        recordReader.addSchemaField("color", RecordFieldType.STRING);
+
+        List<List<Object[]>> inputs = Arrays.asList(
+            Arrays.asList(
+                new Object[]{"A", "yellow"},
+                new Object[]{"B", "red"}
+            )
+        );
+
+        Set<Map<String, Object>> expected = new HashSet<>(Arrays.asList(
+            new HashMap<String, Object>() {{
+                put("name", "Joe");
+                put("team", "A");
+                put("color", "yellow");
+            }},
+            new HashMap<String, Object>() {{
+                put("name", "Jane");
+                put("team", "A");
+                put("color", "yellow");
+            }},
+            new HashMap<String, Object>() {{
+                put("name", "Jeff");
+                put("team", "B");
+                put("color", "red");
+            }},
+            new HashMap<String, Object>() {{
+                put("name", "Janet");
+                put("team", "B");
+                put("color", "red");
+            }}
+        ));
+
+        // WHEN
+        inputs.forEach(input -> {
+            input.forEach(recordReader::addRecord);
+
+            MockFlowFile flowFile = new MockFlowFile(1);
+            flowFile.putAttributes(new HashMap<String, String>(){{
+                put(PutMongoRecord.MONGODB_UPDATE_MODE, "many");
+            }});
+            updateRunner.enqueue(flowFile);
+            updateRunner.run();
+        });
+
+        // THEN
+        assertEquals(0, updateRunner.getQueueSize().getObjectCount());
+
+        updateRunner.assertAllFlowFilesTransferred(PutMongoRecord.REL_SUCCESS, inputs.size());
+
+        Set<Map<String, Object>> actual = new HashSet<>();
+        for (Document document : collection.find()) {
+            actual.add(document.entrySet().stream()
+                .filter(key__value -> !key__value.getKey().equals("_id"))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        }
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void testRouteToFailureWhenUpdateModeFFAttributeSetToInvalid() throws Exception {
+        TestRunner runner = init();
+
+        runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "team");
+        runner.setProperty(PutMongoRecord.UPDATE_MODE, PutMongoRecord.UPDATE_FF_ATTRIBUTE.getValue());
+
+        recordReader.addSchemaField("team", RecordFieldType.STRING);
+        recordReader.addSchemaField("color", RecordFieldType.STRING);
+
+        List<List<Object[]>> inputs = Arrays.asList(
+            Arrays.asList(
+                new Object[]{"A", "yellow"},
+                new Object[]{"B", "red"}
+            )
+        );
+
+        // WHEN
+        // THEN
+        testUpsertFailure(runner, inputs);
+    }
+
+    @Test
+    void testRouteToFailureWhenKeyFieldReferencesNonEmbeddedDocument() throws Exception {
+        // GIVEN
+        TestRunner runner = init();
+
+        runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id,id.is_not_an_embedded_document");
+
+        recordReader.addSchemaField("id", RecordFieldType.INT);
+        recordReader.addSchemaField("person", RecordFieldType.RECORD);
+
+        final RecordSchema personSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("name", RecordFieldType.STRING.getDataType()),
+            new RecordField("age", RecordFieldType.INT.getDataType())
+        ));
+
+        List<List<Object[]>> inputs = Arrays.asList(
+            Collections.singletonList(
+                new Object[]{1, new MapRecord(personSchema, new HashMap<String, Object>() {{
+                    put("name", "unimportant");
+                    put("age", "unimportant".length());
+                }})}
+            )
+        );
+
+        // WHEN
+        // THEN
+        testUpsertFailure(runner, inputs);
+    }
+
+    private void testUpsertSuccess(TestRunner runner, List<List<Object[]>> inputs, Set<Map<String, Object>> expected) {
+        // GIVEN
+
+        // WHEN
+        inputs.forEach(input -> {
+            input.forEach(recordReader::addRecord);
+
+            runner.enqueue("");
+            runner.run();
+        });
+
+        // THEN
+        assertEquals(0, runner.getQueueSize().getObjectCount());
+
+        runner.assertAllFlowFilesTransferred(PutMongoRecord.REL_SUCCESS, inputs.size());
+
+        Set<Map<String, Object>> actual = new HashSet<>();
+        for (Document document : collection.find()) {
+            actual.add(document.entrySet().stream()
+                .filter(key__value -> !key__value.getKey().equals("_id"))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        }
+
+        assertEquals(expected, actual);
+    }
+
+    private void testUpsertFailure(TestRunner runner, List<List<Object[]>> inputs) {
+        // GIVEN
+        Set<Object> expected = Collections.emptySet();
+
+        // WHEN
+        inputs.forEach(input -> {
+            input.forEach(recordReader::addRecord);
+
+            runner.enqueue("");
+            runner.run();
+        });
+
+        // THEN
+        assertEquals(0, runner.getQueueSize().getObjectCount());
+
+        runner.assertAllFlowFilesTransferred(PutMongoRecord.REL_FAILURE, inputs.size());
+
+        Set<Map<String, Object>> actual = new HashSet<>();
+        for (Document document : collection.find()) {
+            actual.add(document.entrySet().stream()
+                .filter(key__value -> !key__value.getKey().equals("_id"))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        }
+
+        assertEquals(expected, actual);
     }
 }
