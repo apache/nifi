@@ -1820,7 +1820,6 @@ public class TestRecordPath {
     @Test
     public void testHashFailure() {
         final Record record = getCaseTestRecord();
-        //assertEquals("61409aa1fd47d4a5332de23cbf59a36f", RecordPath.compile("hash(/firstName, 'NOT_A_ALGO')").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertThrows(RecordPathException.class, () -> RecordPath.compile("hash(/firstName, 'NOT_A_ALGO')").evaluate(record)
                 .getSelectedFields().findFirst().get().getValue());
     }

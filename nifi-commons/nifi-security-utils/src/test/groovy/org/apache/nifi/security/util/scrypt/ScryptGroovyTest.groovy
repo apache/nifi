@@ -22,6 +22,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -165,7 +166,7 @@ class ScryptGroovyTest {
         assert calculatedHash == HASH
     }
 
-    @Disabled("This test was just to exercise the heap and debug OOME issues")
+    @EnabledIfSystemProperty(named = "nifi.test.unstable", matches = "true")
     @Test
     void testShouldCauseOutOfMemoryError() {
         SecureRandom secureRandom = new SecureRandom()

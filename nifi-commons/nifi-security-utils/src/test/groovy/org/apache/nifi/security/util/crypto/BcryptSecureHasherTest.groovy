@@ -21,6 +21,7 @@ import org.bouncycastle.util.encoders.Hex
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -250,7 +251,7 @@ class BcryptSecureHasherTest extends GroovyTestCase {
      * This test can have the minimum time threshold updated to determine if the performance
      * is still sufficient compared to the existing threat model.
      */
-    @Disabled("Long running test")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     @Test
     void testDefaultCostParamsShouldBeSufficient() {
         // Arrange

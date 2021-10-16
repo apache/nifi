@@ -109,9 +109,6 @@ class NiFiLegacyCipherProviderGroovyTest {
 
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
-        // Arrange
-        assumeTrue(CipherUtility.isUnlimitedStrengthCryptoSupported(),
-                "Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.")
 
         NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider()
 

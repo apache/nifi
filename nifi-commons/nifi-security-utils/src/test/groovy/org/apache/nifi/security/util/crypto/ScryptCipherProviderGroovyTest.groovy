@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -612,7 +613,8 @@ class ScryptCipherProviderGroovyTest {
         assert isScryptSalt
     }
 
-    @Disabled("This test can be run on a specific machine to evaluate if the default parameters are sufficient")
+    @EnabledIfSystemProperty(named = "nifi.test.unstable", matches = "true",
+        disabledReason = "This test can be run on a specific machine to evaluate if the default parameters are sufficient")
     @Test
     void testDefaultConstructorShouldProvideStrongParameters() {
         // Arrange

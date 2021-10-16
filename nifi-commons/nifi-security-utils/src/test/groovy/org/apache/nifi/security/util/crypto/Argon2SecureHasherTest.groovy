@@ -21,6 +21,7 @@ import org.bouncycastle.util.encoders.Hex
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -41,37 +42,6 @@ class Argon2SecureHasherTest extends GroovyTestCase {
 
     private static byte[] decodeHex(String hex) {
         Hex.decode(hex?.replaceAll("[^0-9a-fA-F]", ""))
-    }
-
-    @Disabled("Cannot override static salt")
-    @Test
-    void testShouldMatchReferenceVectors() {
-        /*
-         * TODO: Fix?
-         * Commented out because surefire is ignoring @Disabled
-         */
-
-//        // Arrange
-//        int hashLength = 32
-//        int memory = 32
-//        int parallelism = 4
-//        int iterations = 3
-//        logger.info("Generating Argon2 hash for hash length: ${hashLength} B, mem: ${memory} KiB, parallelism: ${parallelism}, iterations: ${iterations}")
-//
-//        Argon2SecureHasher a2sh = new Argon2SecureHasher(hashLength, memory, parallelism, iterations)
-//        // Override the static salt for the published test vector
-////        a2sh.staticSalt = [0x02] * 16
-//
-//        // Act
-//        byte[] hash = a2sh.hashRaw([0x01] * 32 as byte[])
-//        logger.info("Generated hash: ${Hex.encode(hash)}")
-//
-//        // Assert
-//        assert hash == decodeHex("0d 64 0d f5 8d 78 76 6c 08 c0 37 a3 4a 8b 53 c9 d0 " +
-//                "1e f0 45 2d 75 b6 5e b5 25 20 e9 6b 01 e6 59")
-//
-//        // Clean up
-////        Argon2SecureHasher.staticSalt = "NiFi Static Salt".bytes
     }
 
     @Test
@@ -299,14 +269,9 @@ class Argon2SecureHasherTest extends GroovyTestCase {
      * This test can have the minimum time threshold updated to determine if the performance
      * is still sufficient compared to the existing threat model.
      */
-    @Disabled("Long running test")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     @Test
     void testDefaultCostParamsShouldBeSufficient() {
-        if (true) {
-            return //TODO: junit5-fix
-            //This appears to be necessitated by a collision between the vintage and jupiter engines in the surefire plugin
-        }
-
         // Arrange
         int testIterations = 100 //_000
         byte[] inputBytes = "This is a sensitive value".bytes

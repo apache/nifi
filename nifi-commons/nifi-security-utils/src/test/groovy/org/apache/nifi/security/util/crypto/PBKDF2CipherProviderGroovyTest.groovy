@@ -22,6 +22,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -154,10 +155,6 @@ class PBKDF2CipherProviderGroovyTest {
 
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
-        // Arrange
-        assumeTrue(CipherUtility.isUnlimitedStrengthCryptoSupported(),
-                "Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.")
-
         RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT)
 
         final String PASSWORD = "shortPassword"
@@ -459,7 +456,7 @@ class PBKDF2CipherProviderGroovyTest {
         }
     }
 
-    @Disabled("This test can be run on a specific machine to evaluate if the default iteration count is sufficient")
+    @EnabledIfSystemProperty(named = "nifi.test.unstable", matches = "true")
     @Test
     void testDefaultConstructorShouldProvideStrongIterationCount() {
         // Arrange

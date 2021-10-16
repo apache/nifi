@@ -404,7 +404,6 @@ class HashServiceTest extends GroovyTestCase {
             // Get a new InputStream for each iteration, or it will calculate the hash of an empty input on iterations 1 - n
             InputStream input = new ByteArrayInputStream(sb.toString().bytes)
             String hash = HashService.hashValueStreaming(algorithm, input)
-//            logger.info("${algorithm.getName().padLeft(11)}(${inputFile.path}) [${hash.length() / 2}] = ${hash}")
             [(algorithm.name), hash]
         }
 
