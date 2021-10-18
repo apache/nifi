@@ -25,7 +25,7 @@
     <packaging>pom</packaging>
     <description>NiFi Email Processor Set</description>
     <properties>
-        <spring.version>5.3.9</spring.version>
+        <spring.version>5.3.11</spring.version>
     </properties>
     <modules>
         <module>nifi-email-processors</module>
