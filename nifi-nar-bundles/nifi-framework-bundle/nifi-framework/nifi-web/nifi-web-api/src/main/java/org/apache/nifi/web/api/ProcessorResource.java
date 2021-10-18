@@ -571,7 +571,7 @@ public class ProcessorResource extends ApplicationResource {
     )
     public Response analyzeConfiguration(
         @ApiParam(value = "The processor id.", required = true) @PathParam("id") final String processorId,
-        @ApiParam(value = "The processor configuration verification request.", required = true) final ConfigurationAnalysisEntity configurationAnalysis) {
+        @ApiParam(value = "The processor configuration analysis request.", required = true) final ConfigurationAnalysisEntity configurationAnalysis) {
 
         if (configurationAnalysis == null || configurationAnalysis.getConfigurationAnalysis() == null) {
             throw new IllegalArgumentException("Processor's configuration must be specified");

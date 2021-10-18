@@ -782,10 +782,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroup processGroup = processorNode.getProcessGroup();
         final ParameterContext parameterContext = processGroup.getParameterContext();
 
-        final Map<String, String> referencedAttributes = determineReferencedAttributes(properties, processorNode, parameterContext);
+        final ConfigurationAnalysisEntity configurationAnalysisEntity = analyzeConfiguration(processorNode, properties, parameterContext);
+        return configurationAnalysisEntity;
+    }
+
+    private ConfigurationAnalysisEntity analyzeConfiguration(final ComponentNode componentNode, final Map<String, String> properties, final ParameterContext parameterContext) {
+        final Map<String, String> referencedAttributes = determineReferencedAttributes(properties, componentNode, parameterContext);
 
         final ConfigurationAnalysisDTO dto = new ConfigurationAnalysisDTO();
-        dto.setComponentId(processorId);
+        dto.setComponentId(componentNode.getIdentifier());
         dto.setProperties(properties);
         dto.setReferencedAttributes(referencedAttributes);
 
@@ -2839,16 +2844,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroup processGroup = serviceNode.getProcessGroup();
         final ParameterContext parameterContext = processGroup == null ? null : processGroup.getParameterContext();
 
-        final Map<String, String> referencedAttributes = determineReferencedAttributes(properties, serviceNode, parameterContext);
-
-        final ConfigurationAnalysisDTO dto = new ConfigurationAnalysisDTO();
-        dto.setComponentId(controllerServiceId);
-        dto.setProperties(properties);
-        dto.setReferencedAttributes(referencedAttributes);
-
-        final ConfigurationAnalysisEntity entity = new ConfigurationAnalysisEntity();
-        entity.setConfigurationAnalysis(dto);
-        return entity;
+        final ConfigurationAnalysisEntity configurationAnalysisEntity = analyzeConfiguration(serviceNode, properties, parameterContext);
+        return configurationAnalysisEntity;
     }
 
     @Override
@@ -3237,17 +3234,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ConfigurationAnalysisEntity analyzeReportingTaskConfiguration(final String reportingTaskId, final Map<String, String> properties) {
         final ReportingTaskNode taskNode = reportingTaskDAO.getReportingTask(reportingTaskId);
-
-        final Map<String, String> referencedAttributes = determineReferencedAttributes(properties, taskNode, null);
-
-        final ConfigurationAnalysisDTO dto = new ConfigurationAnalysisDTO();
-        dto.setComponentId(reportingTaskId);
-        dto.setProperties(properties);
-        dto.setReferencedAttributes(referencedAttributes);
-
-        final ConfigurationAnalysisEntity entity = new ConfigurationAnalysisEntity();
-        entity.setConfigurationAnalysis(dto);
-        return entity;
+        final ConfigurationAnalysisEntity configurationAnalysisEntity = analyzeConfiguration(taskNode, properties, null);
+        return configurationAnalysisEntity;
     }
 
     @Override

@@ -865,7 +865,7 @@ public class ControllerServiceResource extends ApplicationResource {
     )
     public Response analyzeConfiguration(
         @ApiParam(value = "The controller service id.", required = true) @PathParam("id") final String controllerServiceId,
-        @ApiParam(value = "The configuration verification request.", required = true) final ConfigurationAnalysisEntity configurationAnalysis) {
+        @ApiParam(value = "The configuration analysis request.", required = true) final ConfigurationAnalysisEntity configurationAnalysis) {
 
         if (configurationAnalysis == null || configurationAnalysis.getConfigurationAnalysis() == null) {
             throw new IllegalArgumentException("Controller Service's configuration must be specified");

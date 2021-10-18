@@ -670,7 +670,7 @@ public class ReportingTaskResource extends ApplicationResource {
     )
     public Response analyzeConfiguration(
         @ApiParam(value = "The reporting task id.", required = true) @PathParam("id") final String reportingTaskId,
-        @ApiParam(value = "The configuration verification request.", required = true) final ConfigurationAnalysisEntity configurationAnalysis) {
+        @ApiParam(value = "The configuration analysis request.", required = true) final ConfigurationAnalysisEntity configurationAnalysis) {
 
         if (configurationAnalysis == null || configurationAnalysis.getConfigurationAnalysis() == null) {
             throw new IllegalArgumentException("Reporting Tasks's configuration must be specified");
