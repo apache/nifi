@@ -26,8 +26,8 @@
     <properties>
         <hwx.registry.version>0.9.1</hwx.registry.version>
         <!-- Override Spring Framework version from com.hortonworks.registries:common-auth -->
-        <spring.version>5.3.9</spring.version>
-        <spring.security.version>5.5.1</spring.security.version>
+        <spring.version>5.3.11</spring.version>
+        <spring.security.version>5.5.2</spring.security.version>
     </properties>
     <dependencyManagement>
         <dependencies>
