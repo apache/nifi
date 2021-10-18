@@ -20,7 +20,17 @@ package org.apache.nifi.processors.pgp.attributes;
  * Pretty Good Privacy File Signing Strategy
  */
 public enum SigningStrategy {
-    SIGNED,
+    SIGNED("Produce signed content packaged as an OpenPGP message"),
 
-    DETACHED
+    DETACHED("Produce detached signature based on associated content packaged according to OpenPGP encoding");
+
+    private final String description;
+
+    SigningStrategy(final String description) {
+        this.description = description;
+    }
+
+    public String getDescription() {
+        return description;
+    }
 }

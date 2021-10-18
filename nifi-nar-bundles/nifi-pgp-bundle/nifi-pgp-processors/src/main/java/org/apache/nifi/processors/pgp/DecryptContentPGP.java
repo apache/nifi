@@ -79,7 +79,7 @@ import java.util.Set;
  */
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"PGP", "GPG", "OpenPGP", "Encryption", "RFC 4880"})
-@CapabilityDescription("Decrypt Contents of OpenPGP Messages")
+@CapabilityDescription("Decrypt contents of OpenPGP messages. Using the Packaged Decryption Strategy preserves OpenPGP encoding to support subsequent signature verification.")
 @SeeAlso({EncryptContentPGP.class, SignContentPGP.class, VerifyContentPGP.class})
 @WritesAttributes({
         @WritesAttribute(attribute = PGPAttributeKey.LITERAL_DATA_FILENAME, description = "Filename from decrypted Literal Data"),
@@ -104,10 +104,10 @@ public class DecryptContentPGP extends AbstractProcessor {
             .displayName("Decryption Strategy")
             .description("Strategy for writing files to success after decryption")
             .required(true)
-            .defaultValue(DecryptionStrategy.DECRYPTED.toString())
+            .defaultValue(DecryptionStrategy.DECRYPTED.name())
             .allowableValues(
                     Arrays.stream(DecryptionStrategy.values()).map(strategy ->
-                            new AllowableValue(strategy.toString(), strategy.toString(), strategy.getDescription())
+                            new AllowableValue(strategy.name(), strategy.name(), strategy.getDescription())
                     ).toArray(AllowableValue[]::new)
             )
             .build();

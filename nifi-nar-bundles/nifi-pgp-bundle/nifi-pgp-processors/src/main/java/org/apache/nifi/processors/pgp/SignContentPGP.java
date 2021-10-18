@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -95,7 +96,7 @@ public class SignContentPGP extends AbstractProcessor {
             .displayName("Compression Algorithm")
             .description("Compression Algorithm for signing")
             .required(true)
-            .defaultValue(CompressionAlgorithm.ZIP.toString())
+            .defaultValue(CompressionAlgorithm.ZIP.name())
             .allowableValues(CompressionAlgorithm.values())
             .build();
 
@@ -104,7 +105,7 @@ public class SignContentPGP extends AbstractProcessor {
             .displayName("File Encoding")
             .description("File Encoding for signing")
             .required(true)
-            .defaultValue(FileEncoding.BINARY.toString())
+            .defaultValue(FileEncoding.BINARY.name())
             .allowableValues(FileEncoding.values())
             .build();
 
@@ -113,7 +114,7 @@ public class SignContentPGP extends AbstractProcessor {
             .displayName("Hash Algorithm")
             .description("Hash Algorithm for signing")
             .required(true)
-            .defaultValue(HashAlgorithm.SHA512.toString())
+            .defaultValue(HashAlgorithm.SHA512.name())
             .allowableValues(HashAlgorithm.values())
             .build();
 
@@ -122,8 +123,12 @@ public class SignContentPGP extends AbstractProcessor {
             .displayName("Signing Strategy")
             .description("Strategy for writing files to success after signing")
             .required(true)
-            .defaultValue(SigningStrategy.SIGNED.toString())
-            .allowableValues(SigningStrategy.values())
+            .defaultValue(SigningStrategy.SIGNED.name())
+            .allowableValues(
+                    Arrays.stream(SigningStrategy.values()).map(strategy ->
+                            new AllowableValue(strategy.name(), strategy.name(), strategy.getDescription())
+                    ).toArray(AllowableValue[]::new)
+            )
             .build();
 
     public static final PropertyDescriptor PRIVATE_KEY_SERVICE = new PropertyDescriptor.Builder()
@@ -190,7 +195,7 @@ public class SignContentPGP extends AbstractProcessor {
         }
 
         try {
-            final SignStreamCallback callback = getSignStreamCallback(context, flowFile);
+            final SignatureStreamCallback callback = getStreamCallback(context, flowFile);
             flowFile = session.write(flowFile, callback);
             flowFile = session.putAllAttributes(flowFile, callback.attributes);
             session.transfer(flowFile, SUCCESS);
@@ -200,14 +205,16 @@ public class SignContentPGP extends AbstractProcessor {
         }
     }
 
-    private SignStreamCallback getSignStreamCallback(final ProcessContext context, final FlowFile flowFile) {
+    private SignatureStreamCallback getStreamCallback(final ProcessContext context, final FlowFile flowFile) {
         final FileEncoding fileEncoding = getFileEncoding(context);
         final CompressionAlgorithm compressionAlgorithm = getCompressionAlgorithm(context);
         final HashAlgorithm hashAlgorithm = getHashAlgorithm(context);
         final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
         final SigningStrategy signingStrategy = getSigningStrategy(context);
         final PGPPrivateKey privateKey = getPrivateKey(context, flowFile);
-        return new SignStreamCallback(fileEncoding, compressionAlgorithm, filename, hashAlgorithm, signingStrategy, privateKey);
+        return SigningStrategy.SIGNED.equals(signingStrategy)
+                ? new SignedStreamCallback(fileEncoding, compressionAlgorithm, filename, hashAlgorithm, privateKey)
+                : new DetachedStreamCallback(fileEncoding, compressionAlgorithm, filename, hashAlgorithm, privateKey);
     }
 
     private PGPPrivateKey getPrivateKey(final ProcessContext context, final FlowFile flowFile) {
@@ -250,25 +257,21 @@ public class SignContentPGP extends AbstractProcessor {
         return SigningStrategy.valueOf(strategy);
     }
 
-    private class SignStreamCallback extends EncodingStreamCallback {
+    private class SignatureStreamCallback extends EncodingStreamCallback {
         private final PGPPrivateKey privateKey;
 
         private final HashAlgorithm hashAlgorithm;
 
-        private final SigningStrategy signingStrategy;
-
         private final Map<String, String> attributes = new HashMap<>();
 
-        private SignStreamCallback(final FileEncoding fileEncoding,
+        protected SignatureStreamCallback(final FileEncoding fileEncoding,
                                    final CompressionAlgorithm compressionAlgorithm,
                                    final String filename,
                                    final HashAlgorithm hashAlgorithm,
-                                   final SigningStrategy signingStrategy,
                                    final PGPPrivateKey privateKey
         ) {
             super(fileEncoding, compressionAlgorithm, filename);
             this.hashAlgorithm = hashAlgorithm;
-            this.signingStrategy = signingStrategy;
             this.privateKey = privateKey;
 
             attributes.put(PGPAttributeKey.COMPRESS_ALGORITHM, compressionAlgorithm.toString());
@@ -276,8 +279,66 @@ public class SignContentPGP extends AbstractProcessor {
             attributes.put(PGPAttributeKey.FILE_ENCODING, fileEncoding.toString());
         }
 
+        /***
+         * Write Signature to Output Stream
+         *
+         * @param signatureGenerator Signature Generator initialized with Private Key
+         * @param outputStream Output Stream for writing encoded signature
+         * @throws PGPException Thrown when failing to generate signature
+         * @throws IOException Thrown when failing to write signature
+         */
+        protected void writeSignature(final PGPSignatureGenerator signatureGenerator, final OutputStream outputStream) throws PGPException, IOException {
+            final PGPSignature signature = signatureGenerator.generate();
+            signature.encode(outputStream);
+            setSignatureAttributes(signature);
+        }
+
         /**
-         * Process Encoding passing Input Stream through Compression Output Stream
+         * Get Signature Generator initialized using configuration properties and Private Key
+         * @return Initialized Signature Generator
+         * @throws PGPException Thrown when failing to initialize signature generator
+         */
+        protected PGPSignatureGenerator getSignatureGenerator() throws PGPException {
+            final int keyAlgorithm = privateKey.getPublicKeyPacket().getAlgorithm();
+            final SecureRandom secureRandom = new SecureRandom();
+            final JcaPGPContentSignerBuilder builder = new JcaPGPContentSignerBuilder(keyAlgorithm, hashAlgorithm.getId()).setSecureRandom(secureRandom);
+            final PGPSignatureGenerator signatureGenerator = new PGPSignatureGenerator(builder);
+            signatureGenerator.init(PGPSignature.BINARY_DOCUMENT, privateKey);
+            return signatureGenerator;
+        }
+
+        private void setSignatureAttributes(final PGPSignature signature) {
+            setSignatureAlgorithm(signature.getKeyAlgorithm(), signature.getHashAlgorithm());
+            attributes.put(PGPAttributeKey.SIGNATURE_CREATED, Long.toString(signature.getCreationTime().getTime()));
+            attributes.put(PGPAttributeKey.SIGNATURE_KEY_ID, KeyIdentifierConverter.format(signature.getKeyID()));
+            attributes.put(PGPAttributeKey.SIGNATURE_TYPE_ID, Integer.toString(signature.getSignatureType()));
+            attributes.put(PGPAttributeKey.SIGNATURE_VERSION, Integer.toString(signature.getVersion()));
+        }
+
+        private void setSignatureAlgorithm(final int keyAlgorithm, final int hashAlgorithm) {
+            attributes.put(PGPAttributeKey.SIGNATURE_HASH_ALGORITHM_ID, Integer.toString(hashAlgorithm));
+            attributes.put(PGPAttributeKey.SIGNATURE_KEY_ALGORITHM_ID, Integer.toString(keyAlgorithm));
+            try {
+                final String algorithm = PGPUtil.getSignatureName(keyAlgorithm, hashAlgorithm);
+                attributes.put(PGPAttributeKey.SIGNATURE_ALGORITHM, algorithm);
+            } catch (final PGPException e) {
+                getLogger().debug("Signature Algorithm Key Identifier [{}] Hash Identifier [{}] not found", keyAlgorithm, hashAlgorithm);
+            }
+        }
+    }
+
+    private class DetachedStreamCallback extends SignatureStreamCallback {
+        private DetachedStreamCallback(final FileEncoding fileEncoding,
+                                        final CompressionAlgorithm compressionAlgorithm,
+                                        final String filename,
+                                        final HashAlgorithm hashAlgorithm,
+                                        final PGPPrivateKey privateKey
+        ) {
+            super(fileEncoding, compressionAlgorithm, filename, hashAlgorithm, privateKey);
+        }
+
+        /**
+         * Process Encoding writes detached signature through Compression Output Stream
          *
          * @param inputStream          Input Stream
          * @param encodingOutputStream Output Stream configured according to File Encoding
@@ -286,11 +347,29 @@ public class SignContentPGP extends AbstractProcessor {
          */
         @Override
         protected void processEncoding(final InputStream inputStream, final OutputStream encodingOutputStream) throws IOException, PGPException {
-            if (SigningStrategy.DETACHED == signingStrategy) {
-                processDetached(inputStream, encodingOutputStream);
-            } else {
-                super.processEncoding(inputStream, encodingOutputStream);
+            processDetached(inputStream, encodingOutputStream);
+        }
+
+        private void processDetached(final InputStream inputStream, final OutputStream outputStream) throws IOException, PGPException {
+            final PGPSignatureGenerator signatureGenerator = getSignatureGenerator();
+            final byte[] buffer = createOutputBuffer();
+            int read;
+            while ((read = inputStream.read(buffer)) >= 0) {
+                signatureGenerator.update(buffer, 0, read);
             }
+            writeSignature(signatureGenerator, outputStream);
+        }
+    }
+
+    private class SignedStreamCallback extends SignatureStreamCallback {
+
+        private SignedStreamCallback(final FileEncoding fileEncoding,
+                                   final CompressionAlgorithm compressionAlgorithm,
+                                   final String filename,
+                                   final HashAlgorithm hashAlgorithm,
+                                   final PGPPrivateKey privateKey
+        ) {
+            super(fileEncoding, compressionAlgorithm, filename, hashAlgorithm, privateKey);
         }
 
         /**
@@ -317,54 +396,12 @@ public class SignContentPGP extends AbstractProcessor {
             writeSignature(signatureGenerator, compressedOutputStream);
         }
 
-        private void processDetached(final InputStream inputStream, final OutputStream outputStream) throws IOException, PGPException {
-            final PGPSignatureGenerator signatureGenerator = getSignatureGenerator();
-            int read;
-            while ((read = inputStream.read()) >= 0) {
-                signatureGenerator.update((byte) read);
-            }
-            writeSignature(signatureGenerator, outputStream);
-        }
-
         private void processSigned(final InputStream inputStream, final OutputStream outputStream, final PGPSignatureGenerator signatureGenerator) throws IOException {
+            final byte[] buffer = createOutputBuffer();
             int read;
-            while ((read = inputStream.read()) >= 0) {
-                outputStream.write(read);
-                signatureGenerator.update((byte) read);
-            }
-        }
-
-        private void writeSignature(final PGPSignatureGenerator signatureGenerator, final OutputStream outputStream) throws PGPException, IOException {
-            final PGPSignature signature = signatureGenerator.generate();
-            signature.encode(outputStream);
-            setSignatureAttributes(signature);
-        }
-
-        private PGPSignatureGenerator getSignatureGenerator() throws PGPException {
-            final int keyAlgorithm = privateKey.getPublicKeyPacket().getAlgorithm();
-            final SecureRandom secureRandom = new SecureRandom();
-            final JcaPGPContentSignerBuilder builder = new JcaPGPContentSignerBuilder(keyAlgorithm, hashAlgorithm.getId()).setSecureRandom(secureRandom);
-            final PGPSignatureGenerator signatureGenerator = new PGPSignatureGenerator(builder);
-            signatureGenerator.init(PGPSignature.BINARY_DOCUMENT, privateKey);
-            return signatureGenerator;
-        }
-
-        private void setSignatureAttributes(final PGPSignature signature) {
-            setSignatureAlgorithm(signature.getKeyAlgorithm(), signature.getHashAlgorithm());
-            attributes.put(PGPAttributeKey.SIGNATURE_CREATED, Long.toString(signature.getCreationTime().getTime()));
-            attributes.put(PGPAttributeKey.SIGNATURE_KEY_ID, KeyIdentifierConverter.format(signature.getKeyID()));
-            attributes.put(PGPAttributeKey.SIGNATURE_TYPE_ID, Integer.toString(signature.getSignatureType()));
-            attributes.put(PGPAttributeKey.SIGNATURE_VERSION, Integer.toString(signature.getVersion()));
-        }
-
-        private void setSignatureAlgorithm(final int keyAlgorithm, final int hashAlgorithm) {
-            attributes.put(PGPAttributeKey.SIGNATURE_HASH_ALGORITHM_ID, Integer.toString(hashAlgorithm));
-            attributes.put(PGPAttributeKey.SIGNATURE_KEY_ALGORITHM_ID, Integer.toString(keyAlgorithm));
-            try {
-                final String algorithm = PGPUtil.getSignatureName(keyAlgorithm, hashAlgorithm);
-                attributes.put(PGPAttributeKey.SIGNATURE_ALGORITHM, algorithm);
-            } catch (final PGPException e) {
-                getLogger().debug("Signature Algorithm Key Identifier [{}] Hash Identifier [{}] not found", keyAlgorithm, hashAlgorithm);
+            while ((read = inputStream.read(buffer)) >= 0) {
+                outputStream.write(buffer, 0, read);
+                signatureGenerator.update(buffer, 0, read);
             }
         }
     }

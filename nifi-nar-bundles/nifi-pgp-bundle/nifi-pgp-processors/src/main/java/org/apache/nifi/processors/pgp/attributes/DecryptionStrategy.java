@@ -24,7 +24,7 @@ public enum DecryptionStrategy {
 
     PACKAGED("Produce decrypted content packaged as an OpenPGP message for additional processing");
 
-    private String description;
+    private final String description;
 
     DecryptionStrategy(final String description) {
         this.description = description;

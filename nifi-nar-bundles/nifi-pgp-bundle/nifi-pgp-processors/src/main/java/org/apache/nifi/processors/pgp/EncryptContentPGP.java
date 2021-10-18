@@ -76,7 +76,7 @@ import java.util.Set;
  */
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"PGP", "GPG", "OpenPGP", "Encryption", "RFC 4880"})
-@CapabilityDescription("Encrypt Contents using OpenPGP")
+@CapabilityDescription("Encrypt contents using OpenPGP. The processor reads input and detects OpenPGP messages to avoid unnecessary additional wrapping in Literal Data packets.")
 @SeeAlso({ DecryptContentPGP.class, SignContentPGP.class, VerifyContentPGP.class })
 @WritesAttributes({
         @WritesAttribute(attribute = PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM, description = "Symmetric-Key Algorithm"),

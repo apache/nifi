@@ -121,10 +121,6 @@ public class EncodingStreamCallback implements StreamCallback {
     }
 
     private OutputStream getEncodingOutputStream(final OutputStream outputStream) {
-        OutputStream encodingOutputStream = outputStream;
-        if (FileEncoding.ASCII.equals(fileEncoding)) {
-            encodingOutputStream = new ArmoredOutputStream(outputStream);
-        }
-        return encodingOutputStream;
+        return FileEncoding.ASCII.equals(fileEncoding) ? new ArmoredOutputStream(outputStream) : outputStream;
     }
 }

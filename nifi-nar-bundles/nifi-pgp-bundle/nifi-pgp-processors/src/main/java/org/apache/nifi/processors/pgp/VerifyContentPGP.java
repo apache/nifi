@@ -103,6 +103,8 @@ public class VerifyContentPGP extends AbstractProcessor {
             PUBLIC_KEY_SERVICE
     );
 
+    private static final int BUFFER_SIZE = 8192;
+
     /**
      * Get Relationships
      *
@@ -277,10 +279,11 @@ public class VerifyContentPGP extends AbstractProcessor {
         private void processSignedStream(final InputStream inputStream, final OutputStream outputStream, final PGPOnePassSignature onePassSignature) throws IOException {
             final String keyId = KeyIdentifierConverter.format(onePassSignature.getKeyID());
             getLogger().debug("Processing Data for One-Pass Signature with Key ID [{}]", keyId);
+            final byte[] buffer = new byte[BUFFER_SIZE];
             int read;
-            while ((read = inputStream.read()) >= 0) {
-                onePassSignature.update((byte) read);
-                outputStream.write(read);
+            while ((read = inputStream.read(buffer)) >= 0) {
+                onePassSignature.update(buffer, 0, read);
+                outputStream.write(buffer, 0, read);
             }
         }
 
