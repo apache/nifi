@@ -28,8 +28,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Properties;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -83,6 +85,33 @@ public class PropertiesFileEngineConfigurationParserTest {
 
         final StatelessEngineConfiguration reloadedConfiguration = parser.parseEngineConfiguration(propertiesFile);
         assertEquals(sensitivePropsKey, reloadedConfiguration.getSensitivePropsKey());
+    }
+
+    @Test
+    public void testReadOnlyExtensionsDirectoriesParsed() throws IOException, StatelessConfigurationException {
+        final Properties properties = getRequiredProperties();
+        properties.setProperty("nifi.stateless.readonly.extensions.directory.abc", "target/1");
+        properties.setProperty("nifi.stateless.readonly.extensions.directory.xyz", "target/2");
+        final File propertiesFile = getPropertiesFile(properties);
+
+        final StatelessEngineConfiguration configuration = parser.parseEngineConfiguration(propertiesFile);
+        assertNotNull(configuration);
+        final Collection<File> readOnlyExtensionsDirs = configuration.getReadOnlyExtensionsDirectories();
+        assertEquals(2, readOnlyExtensionsDirs.size());
+        assertTrue(readOnlyExtensionsDirs.contains(new File("target/1")));
+        assertTrue(readOnlyExtensionsDirs.contains(new File("target/2")));
+    }
+
+    @Test
+    public void testReadOnlyExtensionsDirectoriesNotSpecified() throws IOException, StatelessConfigurationException {
+        final Properties properties = getRequiredProperties();
+        final File propertiesFile = getPropertiesFile(properties);
+
+        final StatelessEngineConfiguration configuration = parser.parseEngineConfiguration(propertiesFile);
+        assertNotNull(configuration);
+        final Collection<File> readOnlyExtensionsDirs = configuration.getReadOnlyExtensionsDirectories();
+        assertNotNull(readOnlyExtensionsDirs);
+        assertEquals(0, readOnlyExtensionsDirs.size());
     }
 
     private Properties getRequiredProperties() {
