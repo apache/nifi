@@ -18,6 +18,7 @@
 package org.apache.nifi.stateless.engine;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
@@ -257,7 +258,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             final String propertyValue = property.getValue();
 
             final PropertyDescriptor descriptor = component.getPropertyDescriptor(propertyName);
-            final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList());
+            final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList(), VariableImpact.NEVER_IMPACTED);
 
             explicitlyConfiguredPropertyMap.put(descriptor, propertyConfiguration);
         }

@@ -19,6 +19,7 @@ package org.apache.nifi.controller;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -363,7 +364,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 final String rawValue = entry.getValue();
                 final String propertyValue = rawValue == null ? descriptor.getDefaultValue() : rawValue;
 
-                final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList());
+                final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList(), VariableImpact.NEVER_IMPACTED);
                 descriptorToConfigMap.put(descriptor, propertyConfiguration);
             }
 
@@ -609,7 +610,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
     private PropertyConfiguration createPropertyConfiguration(final String value, final boolean supportsEL) {
         final ParameterParser parser = new ExpressionLanguageAwareParameterParser();
         final ParameterTokenList references = parser.parseTokens(value);
-        return new PropertyConfiguration(value, references, references.toReferenceList());
+        final VariableImpact variableImpact = Query.prepare(value).getVariableImpact();
+        return new PropertyConfiguration(value, references, references.toReferenceList(), variableImpact);
     }
 
     /**

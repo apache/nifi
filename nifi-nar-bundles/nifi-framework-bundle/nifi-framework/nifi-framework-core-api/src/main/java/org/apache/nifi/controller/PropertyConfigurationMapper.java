@@ -17,6 +17,8 @@
 
 package org.apache.nifi.controller;
 
+import org.apache.nifi.attribute.expression.language.Query;
+import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
 import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
@@ -57,12 +59,12 @@ public class PropertyConfigurationMapper {
         final ParameterTokenList updatedValueReferences = elAgnosticParameterParser.parseTokens(updatedValue);
         final List<ParameterReference> parameterReferences = updatedValueReferences.toReferenceList();
 
-        final PropertyConfiguration propertyConfiguration;
         final boolean supportsEL = propertyDescriptor.isExpressionLanguageSupported();
         if (supportsEL) {
-            return new PropertyConfiguration(updatedValue, elAwareParameterParser.parseTokens(updatedValue), parameterReferences);
+            final VariableImpact variableImpact = Query.prepare(propertyValue).getVariableImpact();
+            return new PropertyConfiguration(updatedValue, elAwareParameterParser.parseTokens(updatedValue), parameterReferences, variableImpact);
         } else {
-            return new PropertyConfiguration(updatedValue, updatedValueReferences, parameterReferences);
+            return new PropertyConfiguration(updatedValue, updatedValueReferences, parameterReferences, VariableImpact.NEVER_IMPACTED);
         }
 
     }

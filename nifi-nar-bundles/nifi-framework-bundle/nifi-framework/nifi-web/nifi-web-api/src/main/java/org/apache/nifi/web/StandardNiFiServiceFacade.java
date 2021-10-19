@@ -4388,7 +4388,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ProcessGroupFlowEntity getProcessGroupFlow(final String groupId) {
+    public ProcessGroupFlowEntity getProcessGroupFlow(final String groupId, final boolean uiOnly) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
 
         // Get the Process Group Status but we only need a status depth of one because for any child process group,
@@ -4397,7 +4397,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // doesn't include that anyway. So we can avoid including the information in the status that is returned.
         final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(groupId, 1);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
-        return entityFactory.createProcessGroupFlowEntity(dtoFactory.createProcessGroupFlowDto(processGroup, groupStatus, revisionManager, this::getProcessGroupBulletins), permissions);
+        return entityFactory.createProcessGroupFlowEntity(dtoFactory.createProcessGroupFlowDto(processGroup, groupStatus, revisionManager, this::getProcessGroupBulletins, uiOnly), permissions);
     }
 
     @Override
@@ -4432,18 +4432,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private VariableRegistryEntity createVariableRegistryEntity(final ProcessGroup processGroup, final boolean includeAncestorGroups) {
+        final Set<String> variablesToIgnore = new HashSet<>();
+
         final VariableRegistryDTO registryDto = dtoFactory.createVariableRegistryDto(processGroup, revisionManager);
         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(processGroup.getIdentifier()));
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
+        registryDto.getVariables().forEach(entity -> variablesToIgnore.add(entity.getVariable().getName()));
 
         if (includeAncestorGroups) {
             ProcessGroup parent = processGroup.getParent();
             while (parent != null) {
                 final PermissionsDTO parentPerms = dtoFactory.createPermissionsDto(parent);
                 if (Boolean.TRUE.equals(parentPerms.getCanRead())) {
-                    final VariableRegistryDTO parentRegistryDto = dtoFactory.createVariableRegistryDto(parent, revisionManager);
+                    final VariableRegistryDTO parentRegistryDto = dtoFactory.createVariableRegistryDto(parent, revisionManager, variablesToIgnore);
                     final Set<VariableEntity> parentVariables = parentRegistryDto.getVariables();
                     registryDto.getVariables().addAll(parentVariables);
+                    registryDto.getVariables().forEach(entity -> variablesToIgnore.add(entity.getVariable().getName()));
                 }
 
                 parent = parent.getParent();
