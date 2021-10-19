@@ -51,10 +51,9 @@ import java.util.List;
 @Tags({"update", "record", "generic", "schema", "json", "csv", "avro", "freeform", "text", "remove", "delete"})
 @CapabilityDescription("Modifies the contents of a FlowFile that contains Record-oriented data (i.e., data that can be read via a RecordReader and written by a RecordWriter) "
         + "by removing selected fields. "
-        + "This Processor requires that at least one user-defined Property be added. The name of the Property should indicate a RecordPath that determines the field that should "
+        + "This Processor requires that at least one user-defined Property be added. The value of the Property should indicate a RecordPath that determines the field that should "
         + "be removed.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "record.index", description = "This attribute provides the current row index and is only available inside the literal value expression."),
         @WritesAttribute(attribute = "record.error.message", description = "This attribute provides on failure the error message encountered by the Reader or Writer.")
 })
 @SeeAlso({UpdateRecord.class, ConvertRecord.class})
@@ -108,7 +107,7 @@ public class RemoveRecordField extends AbstractRecordProcessor {
     public void collectRecordPaths(final ProcessContext context) {
         final List<String> recordPaths = new ArrayList<>(context.getProperties().size() - 2);
         for (final PropertyDescriptor property : context.getProperties().keySet()) {
-            if (property.getName().equals("field-to-remove-1") || property.isDynamic()) {
+            if (property.getName().equals(FIELD_TO_REMOVE_1.getName()) || property.isDynamic()) {
                 String path = context.getProperty(property).evaluateAttributeExpressions().getValue();
                 recordPaths.add(path);
             }
