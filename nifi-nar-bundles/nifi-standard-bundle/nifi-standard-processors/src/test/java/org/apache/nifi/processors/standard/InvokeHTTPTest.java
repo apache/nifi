@@ -59,6 +59,13 @@ import static java.net.HttpURLConnection.HTTP_MOVED_TEMP;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+import static org.apache.nifi.processors.standard.InvokeHTTP.GET_METHOD;
+import static org.apache.nifi.processors.standard.InvokeHTTP.POST_METHOD;
+import static org.apache.nifi.processors.standard.InvokeHTTP.PUT_METHOD;
+import static org.apache.nifi.processors.standard.InvokeHTTP.PATCH_METHOD;
+import static org.apache.nifi.processors.standard.InvokeHTTP.DELETE_METHOD;
+import static org.apache.nifi.processors.standard.InvokeHTTP.HEAD_METHOD;
+import static org.apache.nifi.processors.standard.InvokeHTTP.OPTIONS_METHOD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -95,20 +102,6 @@ public class InvokeHTTPTest {
     private static final String AUTHENTICATE_HEADER = "WWW-Authenticate";
 
     private static final String REPEATED_HEADER = "Repeated";
-
-    private static final String GET_METHOD = "GET";
-
-    private static final String DELETE_METHOD = "DELETE";
-
-    private static final String HEAD_METHOD = "HEAD";
-
-    private static final String OPTIONS_METHOD = "OPTIONS";
-
-    private static final String POST_METHOD = "POST";
-
-    private static final String PATCH_METHOD = "PATCH";
-
-    private static final String PUT_METHOD = "PUT";
 
     private static final String TEXT_PLAIN = "text/plain";
 

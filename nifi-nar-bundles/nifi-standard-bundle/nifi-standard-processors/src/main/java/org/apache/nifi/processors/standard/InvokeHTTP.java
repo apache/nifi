@@ -164,6 +164,14 @@ public class InvokeHTTP extends AbstractProcessor {
     public static final String HTTP = "http";
     public static final String HTTPS = "https";
 
+    public static final String GET_METHOD = "GET";
+    public static final String POST_METHOD = "POST";
+    public static final String PUT_METHOD = "PUT";
+    public static final String PATCH_METHOD = "PATCH";
+    public static final String DELETE_METHOD = "DELETE";
+    public static final String HEAD_METHOD = "HEAD";
+    public static final String OPTIONS_METHOD = "OPTIONS";
+
     private static final Pattern DYNAMIC_FORM_PARAMETER_NAME = Pattern.compile("post:form:(?<formDataName>.*)$");
     private static final String FORM_DATA_NAME_GROUP = "formDataName";
 
@@ -173,7 +181,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .description("HTTP request method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS). Arbitrary methods are also supported. "
                     + "Methods other than POST, PUT and PATCH will be sent without a message body.")
             .required(true)
-            .defaultValue("GET")
+            .defaultValue(GET_METHOD)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .build();
@@ -482,6 +490,15 @@ public class InvokeHTTP extends AbstractProcessor {
             .allowableValues("True", "False")
             .build();
 
+    public static final PropertyDescriptor UPDATE_FILENAME = new PropertyDescriptor.Builder()
+            .name("update-filename")
+            .description("If true and HTTP method is GET, the FlowFile's filename will be extracted from the remote URL.")
+            .displayName("Update Filename")
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
             = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
@@ -497,6 +514,7 @@ public class InvokeHTTP extends AbstractProcessor {
             PROP_DATE_HEADER,
             PROP_FOLLOW_REDIRECTS,
             DISABLE_HTTP2_PROTOCOL,
+            UPDATE_FILENAME,
             PROP_ATTRIBUTES_TO_SEND,
             PROP_USERAGENT,
             PROP_BASIC_AUTH_USERNAME,
@@ -815,7 +833,7 @@ public class InvokeHTTP extends AbstractProcessor {
             }
 
             String request = context.getProperty(PROP_METHOD).evaluateAttributeExpressions().getValue().toUpperCase();
-            if ("POST".equals(request) || "PUT".equals(request) || "PATCH".equals(request)) {
+            if (POST_METHOD.equals(request) || PUT_METHOD.equals(request) || PATCH_METHOD.equals(request)) {
                 return;
             } else if (putToAttribute) {
                 requestFlowFile = session.create();
@@ -909,6 +927,12 @@ public class InvokeHTTP extends AbstractProcessor {
                         // this will overwrite any existing flowfile attributes
                         responseFlowFile = session.putAllAttributes(responseFlowFile, convertAttributesFromHeaders(responseHttp));
 
+                        // update FlowFile's filename attribute with an extracted value from the remote URL
+                        if (context.getProperty(UPDATE_FILENAME).asBoolean() && GET_METHOD.equals(httpRequest.method())) {
+                            String fileName = getFileNameFromUrl(url);
+                            responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.FILENAME.key(), fileName);
+                        }
+
                         // transfer the message body to the payload
                         // can potentially be null in edge cases
                         if (bodyExists) {
@@ -992,7 +1016,6 @@ public class InvokeHTTP extends AbstractProcessor {
         }
     }
 
-
     private Request configureRequest(final ProcessContext context, final ProcessSession session, final FlowFile requestFlowFile, URL url) {
         final Request.Builder requestBuilder = new Request.Builder();
 
@@ -1010,25 +1033,25 @@ public class InvokeHTTP extends AbstractProcessor {
         // set the request method
         String method = trimToEmpty(context.getProperty(PROP_METHOD).evaluateAttributeExpressions(requestFlowFile).getValue()).toUpperCase();
         switch (method) {
-            case "GET":
+            case GET_METHOD:
                 requestBuilder.get();
                 break;
-            case "POST":
+            case POST_METHOD:
                 RequestBody requestBody = getRequestBodyToSend(session, context, requestFlowFile);
                 requestBuilder.post(requestBody);
                 break;
-            case "PUT":
+            case PUT_METHOD:
                 requestBody = getRequestBodyToSend(session, context, requestFlowFile);
                 requestBuilder.put(requestBody);
                 break;
-            case "PATCH":
+            case PATCH_METHOD:
                 requestBody = getRequestBodyToSend(session, context, requestFlowFile);
                 requestBuilder.patch(requestBody);
                 break;
-            case "HEAD":
+            case HEAD_METHOD:
                 requestBuilder.head();
                 break;
-            case "DELETE":
+            case DELETE_METHOD:
                 requestBuilder.delete();
                 break;
             default:
@@ -1147,7 +1170,6 @@ public class InvokeHTTP extends AbstractProcessor {
             }
         }
     }
-
 
     private void route(FlowFile request, FlowFile response, ProcessSession session, ProcessContext context, int statusCode) {
         // check if we should yield the processor
@@ -1268,5 +1290,18 @@ public class InvokeHTTP extends AbstractProcessor {
      */
     private static File getETagCacheDir() throws IOException {
         return Files.createTempDirectory(InvokeHTTP.class.getSimpleName()).toFile();
+    }
+
+    private String getFileNameFromUrl(URL url) {
+        String fileName;
+        String path = StringUtils.removeEnd(url.getPath(), "/");
+
+        if (StringUtils.isEmpty(path)) {
+            fileName = url.getHost();
+        } else {
+            fileName = path.substring(path.lastIndexOf('/') + 1);
+        }
+
+        return fileName;
     }
 }
