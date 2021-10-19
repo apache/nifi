@@ -598,7 +598,7 @@
                         referencedAttributes = null;
 
                         //stop any synchronization
-                        if(config.supportsStatusBar){
+                        if (config.supportsStatusBar){
                             $('#processor-configuration-status-bar').statusbar('disconnect');
                         }
                     },

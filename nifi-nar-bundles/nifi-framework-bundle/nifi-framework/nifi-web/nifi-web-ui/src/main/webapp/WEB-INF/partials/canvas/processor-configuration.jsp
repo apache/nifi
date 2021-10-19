@@ -218,7 +218,7 @@
             </div>
             <div id="processor-properties-tab-content" class="configuration-tab">
                 <div id="processor-properties"></div>
-                <div id="processor-properties-verification-results" class="validation-results">
+                <div id="processor-properties-verification-results" class="verification-results">
                     <div class="verification-results-header">Verification Results</div>
                     <div id="processor-properties-verification-results-listing" class="verification-results-listing"></div>
                 </div>

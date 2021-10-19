@@ -333,7 +333,7 @@
                             var verificationHeader = $('<div class="verification-result-header"></div>').appendTo(verificationResultContainer);
                             $('<div class="verification-result-outcome fa ' + outcomeClass + '"></div>').appendTo(verificationHeader);
                             $('<div class="verification-result-step-name"></div>').text(result.verificationStepName).appendTo(verificationHeader);
-                            $('<div class="clear"></div>').appendTo(verificationHeader)
+                            $('<div class="clear"></div>').appendTo(verificationHeader);
 
                             // build the explanation
                             $('<div class="verification-result-explanation"></div>').text(result.explanation).appendTo(verificationResultContainer);
