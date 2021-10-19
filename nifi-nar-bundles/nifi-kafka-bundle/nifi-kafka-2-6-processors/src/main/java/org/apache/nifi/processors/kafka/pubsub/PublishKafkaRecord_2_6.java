@@ -84,8 +84,8 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGIST
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK;
 
-@Tags({"Apache", "Kafka", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub", "2.5"})
-@CapabilityDescription("Sends the contents of a FlowFile as individual records to Apache Kafka using the Kafka 2.5 Producer API. "
+@Tags({"Apache", "Kafka", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub", "2.6"})
+@CapabilityDescription("Sends the contents of a FlowFile as individual records to Apache Kafka using the Kafka 2.6 Producer API. "
     + "The contents of the FlowFile are expected to be record-oriented data that can be read by the configured Record Reader. "
     + "The complementary NiFi processor for fetching messages is ConsumeKafkaRecord_2_6.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
