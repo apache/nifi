@@ -196,7 +196,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
     public static final AllowableValue BY_ENTITIES = new AllowableValue("entities", "Tracking Entities",
             "This strategy tracks information of all the listed entities within the latest 'Entity Tracking Time Window' to determine new/updated entities." +
-                    " This strategy can pick entities having old timestamp that can be missed with 'Tracing Timestamps'." +
+                    " This strategy can pick entities having old timestamp that can be missed with 'Tracking Timestamps'." +
                     " Works even when multiple subdirectories are being written at the same time while listing is running." +
                     " However additional DistributedMapCache controller service is required and more JVM heap memory is used." +
                     " See the description of 'Entity Tracking Time Window' property for further details on how it works.");
