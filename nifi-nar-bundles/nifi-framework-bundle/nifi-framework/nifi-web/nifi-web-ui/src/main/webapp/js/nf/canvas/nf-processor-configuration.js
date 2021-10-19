@@ -516,13 +516,15 @@
 
         // expand the dialog to make room for the verification result
         if (verificationResultsContainer.is(':visible') === false) {
-            // increase the height of the processor configuration dialog
-            var currentHeight = $('#processor-configuration').height();
-            $('#processor-configuration').height(currentHeight + 220).center();
-
             // show the verification results
-            $('#processor-properties').css('bottom', '220px').propertytable('resetTableSize')
+            $('#processor-properties').css('bottom', '40%').propertytable('resetTableSize')
             verificationResultsContainer.show();
+        }
+
+        // show borders if appropriate
+        var verificationResultsListing = $('#processor-properties-verification-results-listing');
+        if (verificationResultsListing.get(0).scrollHeight > Math.round(verificationResultsListing.innerHeight())) {
+            verificationResultsListing.css('border-width', '1px');
         }
     };
 

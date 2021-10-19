@@ -339,11 +339,6 @@
                             $('<div class="verification-result-explanation"></div>').text(result.explanation).appendTo(verificationResultContainer);
                         });
 
-                        // show borders if appropriate
-                        if (verificationResultsContainer.get(0).scrollHeight > Math.round(verificationResultsContainer.innerHeight())) {
-                            verificationResultsContainer.css('border-width', '1px');
-                        }
-
                         // invoke the verification callback if specified
                         if (typeof handleVerificationResults === 'function') {
                             handleVerificationResults(verificationResults, referencedAttributeMap);

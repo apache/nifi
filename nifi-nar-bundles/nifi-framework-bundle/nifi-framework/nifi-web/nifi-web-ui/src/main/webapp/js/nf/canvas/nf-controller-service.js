@@ -1713,13 +1713,15 @@
 
         // expand the dialog to make room for the verification result
         if (verificationResultsContainer.is(':visible') === false) {
-            // increase the height of the controller service configuration dialog
-            var currentHeight = $('#controller-service-configuration').height();
-            $('#controller-service-configuration').height(currentHeight + 220).center();
-
             // show the verification results
-            $('#controller-service-properties').css('bottom', '220px').propertytable('resetTableSize')
+            $('#controller-service-properties').css('bottom', '40%').propertytable('resetTableSize')
             verificationResultsContainer.show();
+        }
+
+        // show borders if appropriate
+        var verificationResultsListing = $('#controller-service-properties-verification-results-listing');
+        if (verificationResultsListing.get(0).scrollHeight > Math.round(verificationResultsListing.innerHeight())) {
+            verificationResultsListing.css('border-width', '1px');
         }
     };
 

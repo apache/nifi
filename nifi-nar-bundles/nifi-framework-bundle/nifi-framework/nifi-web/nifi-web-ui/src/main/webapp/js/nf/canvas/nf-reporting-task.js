@@ -337,13 +337,15 @@
 
         // expand the dialog to make room for the verification result
         if (verificationResultsContainer.is(':visible') === false) {
-            // increase the height of the reporting task configuration dialog
-            var currentHeight = $('#reporting-task-configuration').height();
-            $('#reporting-task-configuration').height(currentHeight + 220).center();
-
             // show the verification results
-            $('#reporting-task-properties').css('bottom', '220px').propertytable('resetTableSize')
+            $('#reporting-task-properties').css('bottom', '40%').propertytable('resetTableSize')
             verificationResultsContainer.show();
+        }
+
+        // show borders if appropriate
+        var verificationResultsListing = $('#reporting-task-properties-verification-results-listing');
+        if (verificationResultsListing.get(0).scrollHeight > Math.round(verificationResultsListing.innerHeight())) {
+            verificationResultsListing.css('border-width', '1px');
         }
     };
 
