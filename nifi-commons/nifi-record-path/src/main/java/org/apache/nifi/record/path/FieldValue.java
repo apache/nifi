@@ -63,5 +63,13 @@ public interface FieldValue {
      */
     void updateValue(Object newValue, DataType dataType);
 
+    /**
+     * Removes this FieldValue instance from its parent FieldValue instance
+     */
     void remove();
+
+    /**
+     * Removes the content of this FieldValue instance
+     */
+    void removeContent();
 }

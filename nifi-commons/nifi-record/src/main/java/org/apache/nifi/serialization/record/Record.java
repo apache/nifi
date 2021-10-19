@@ -142,8 +142,19 @@ public interface Record {
      */
     void setValue(RecordField field, Object value);
 
+    /**
+     * Removes the value of a given field from the record.
+     * It only removes the value of that field but does not modify the schema.
+     * To remove a field completely (from the schema as well as the data) the RecordFieldRemover class should be used.
+     *
+     * @param field the field that should be removed from the record
+     */
     void remove(RecordField field);
 
+    /**
+     * Creates a new schema for the record based on the schemas of the record's fields.
+     * In case the schema of any of the record's fields was changed, this method propagates these changes to the parent record.
+     */
     void regenerateSchema();
 
     /**

@@ -17,13 +17,11 @@
 
 package org.apache.nifi.record.path;
 
-import org.apache.nifi.record.path.util.Filters;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -61,11 +59,7 @@ public class RecordFieldRemover {
             Optional<FieldValue> parentOptional = selectedFields.get(0).getParent();
             if (parentOptional.isPresent()) {
                 FieldValue parent = parentOptional.get();
-                if (Filters.isArray(parent)) {
-                    parent.updateValue(new Object[0]);
-                } else if (Filters.isMap(parent)) {
-                    parent.updateValue(Collections.emptyMap());
-                }
+                parent.removeContent();
             }
         }
     }

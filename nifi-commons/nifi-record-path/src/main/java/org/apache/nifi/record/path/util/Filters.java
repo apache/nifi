@@ -71,22 +71,4 @@ public class Filters {
 
         return false;
     }
-
-    public static boolean isArray(final FieldValue fieldValue) {
-        final DataType dataType = fieldValue.getField().getDataType();
-        return isArray(dataType);
-    }
-
-    public static boolean isArray(final DataType dataType) {
-        return dataType.getFieldType() == RecordFieldType.ARRAY;
-    }
-
-    public static boolean isMap(final FieldValue fieldValue) {
-        final DataType dataType = fieldValue.getField().getDataType();
-        return isMap(dataType);
-    }
-
-    public static boolean isMap(final DataType dataType) {
-        return dataType.getFieldType() == RecordFieldType.MAP;
-    }
 }
