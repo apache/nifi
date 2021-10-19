@@ -1086,7 +1086,7 @@ public class ControllerServiceResource extends ApplicationResource {
         final Consumer<AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>>> updateTask = asyncRequest -> {
             try {
                 final Map<String, String> attributes = requestDto.getAttributes() == null ? Collections.emptyMap() : requestDto.getAttributes();
-                final List<ConfigVerificationResultDTO> results = serviceFacade.verifyControllerServiceConfiguration(serviceId, requestDto.getProperties(), attributes);
+                final List<ConfigVerificationResultDTO> results = serviceFacade.performControllerServiceConfigVerification(serviceId, requestDto.getProperties(), attributes);
                 asyncRequest.markStepComplete(results);
             } catch (final Exception e) {
                 logger.error("Failed to verify Controller Service configuration", e);
