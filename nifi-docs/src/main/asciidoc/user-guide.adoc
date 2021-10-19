@@ -301,7 +301,7 @@ While the options available from the context menu vary, the following options ar
 NOTE: For Processors, Ports, Remote Process Groups, Connections and Labels, it is possible to open the configuration dialog by double-clicking on the desired component.
 
 - *Start* or *Stop*: This option allows the user to start or stop a Processor; the option will be either Start or Stop, depending on the current state of the Processor.
-- *Run Once*: This option allows the user to run a selected Processor exactly once. If the Processor is prevented from executing (e.g. there are no incoming flow files or the outgoing connection has backpressure applied) the Processor won't get triggered. *Execution* settings apply - i.e. *Primary Node* and *All Nodes* setting will result in running the Processor only once on the Primary Node or one time on each of the nodes, respectively. Works only with *Timer Driven* and *CRON driven* Scheduling Strategy.
+- *Run Once*: This option allows the user to run a selected Processor exactly once. If the Processor is prevented from executing (e.g. there are no incoming FlowFiles or the outgoing connection has back pressure applied) the Processor won't get triggered. *Execution* settings apply - i.e. *Primary Node* and *All Nodes* setting will result in running the Processor only once on the Primary Node or one time on each of the nodes, respectively. Works only with *Timer Driven* and *CRON driven* Scheduling Strategy.
 - *Enable* or *Disable*: This option allows the user to enable or disable a Processor; the option will be either Enable or Disable, depending on the current state of the Processor.
 - *View data provenance*: This option displays the NiFi Data Provenance table, with information about data provenance events for the FlowFiles routed through that Processor (see <<data_provenance>>).
 - *View status history*: This option opens a graphical representation of the Processor's statistical information over time.
@@ -753,7 +753,7 @@ FlowFile Concurrency is used to control how data is brought into the Process Gro
 * Single Batch Per Node
 
 When the FlowFile Concurrency is set to "Unbounded", the Input Ports in the Process Group will ingest data as quickly as they
-are able, provided that backpressure does not prevent them from doing so.
+are able, provided that back pressure does not prevent them from doing so.
 
 When the FlowFile Concurrency is configured to "Single FlowFile Per Node", the Input Ports will only allow a single FlowFile through at at time.
 Once that FlowFile enters the Process Group, no additional FlowFiles will be brought in until all FlowFiles have left the Process Group (either by
@@ -779,7 +779,7 @@ There are two available options available:
 * Batch Output
 
 When the Outbound Policy is configured to "Stream When Available",
-data that arrives at an Output Port is immediately transferred out of the Process Group, assuming that no backpressure is applied.
+data that arrives at an Output Port is immediately transferred out of the Process Group, assuming that no back pressure is applied.
 
 When the Outbound Policy is configured to "Batch Output", the Output Ports will not transfer data out of the Process Group until
 all data that is in the Process Group is queued up at an Output Port (i.e., no data leaves the Process Group until all of the data has finished processing).
@@ -824,13 +824,13 @@ if a connection is configured to use <<Load_Balancing>>, it may transfer data to
 the Process Group while that FlowFile is still being processed. As a result, it is not recommended to use Load-Balanced Connections
 within a Process Group that is not configured for "Unbounded" FlowFile Concurrency.
 
-When using the Outbound Policy of "Batch Output", it is important to consider backpressure. Consider a case where no data will be transferred
-out of a Process Group until all data is finished processing. Also consider that the connection to Output Port A has a backpressure threshold
+When using the Outbound Policy of "Batch Output", it is important to consider back pressure. Consider a case where no data will be transferred
+out of a Process Group until all data is finished processing. Also consider that the connection to Output Port A has a back pressure threshold
 of 10,000 FlowFiles (the default). If that queue reaches the threshold of 10,000, the upstream Processor will no longer be triggered. As a result,
 data will not finish processing, and the flow will end in a deadlock, as the Output Port will not run until the processing completes and
 the Processor will not run until the Output Port runs. To avoid this, if a large number of FlowFiles are expected to be generated from a single
-input FlowFile, it is recommended that backpressure for Connections ending in an Output Port be configured in such a way to allow for the
-largest expected number of FlowFiles or backpressure for those Connections be disabled all together (by setting the Backpressure Threshold to 0).
+input FlowFile, it is recommended that back pressure for Connections ending in an Output Port be configured in such a way to allow for the
+largest expected number of FlowFiles or back pressure for those Connections be disabled all together (by setting the Back Pressure Threshold to 0).
 See <<Backpressure>> for more information.
 
 [[Default_Connection_Settings]]
@@ -1773,9 +1773,9 @@ image::remote-port-connection-status.png["Remote Port Statuses"]
 
 The on/off toggle switch provides a mechanism to enable and disable transmission for each port in the Remote Process Group independently. Those ports that are connected but are not currently transmitting can be configured by clicking the pencil icon (image:iconEdit.png["Edit"]) below the on/off toggle switch. Clicking this icon will allow the DFM to change the number of Concurrent Tasks, whether or not compression should be used when transmitting data to or from this port, and Batch Settings.
 
-For an Input Port, the batch settings control how NiFi sends data to the remote input port in a transaction. NiFi will transfer flow files, as they are queued in incoming relationships, until any of the limits (Count, Size, Duration) is met. If none of the settings are configured, a 500 milliseconds batch duration is used by default.
+For an Input Port, the batch settings control how NiFi sends data to the remote input port in a transaction. NiFi will transfer FlowFiles, as they are queued in incoming relationships, until any of the limits (Count, Size, Duration) is met. If none of the settings are configured, a 500 milliseconds batch duration is used by default.
 
-For an Output Port, the batch settings tells the remote NiFi how NiFi prefers to receive data from the remote output port in a transaction. The remote NiFi will use the specified settings (Count, Size, Duration) to control the transfer of flow files. If none of the settings are configured, a 5 seconds batch duration is used by default.
+For an Output Port, the batch settings tells the remote NiFi how NiFi prefers to receive data from the remote output port in a transaction. The remote NiFi will use the specified settings (Count, Size, Duration) to control the transfer of FlowFiles. If none of the settings are configured, a 5 seconds batch duration is used by default.
 
 
 [[navigating]]
@@ -1906,7 +1906,7 @@ The supported keywords are the following:
 
 - *Expiration*
 
-** *expiration*: Adds Connections to the result list that contain expired Flow Files.
+** *expiration*: Adds Connections to the result list that contain expired FlowFiles.
 
 ** *expires*: See "expiration".
 
