@@ -69,8 +69,8 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIB
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK;
 
-@Tags({"Apache", "Kafka", "Put", "Send", "Message", "PubSub", "2.5"})
-@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka using the Kafka 2.5 Producer API."
+@Tags({"Apache", "Kafka", "Put", "Send", "Message", "PubSub", "2.6"})
+@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka using the Kafka 2.6 Producer API."
     + "The messages to send may be individual FlowFiles or may be delimited, using a "
     + "user-specified delimiter, such as a new-line. "
     + "The complementary NiFi processor for fetching messages is ConsumeKafka_2_6.")
