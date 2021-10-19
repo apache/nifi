@@ -97,7 +97,7 @@ public class VerifyContentPGPTest {
         runner.enqueue(new byte[]{});
         runner.run();
 
-        assertFailureWarningLogged();
+        assertFailureErrorLogged();
     }
 
     @Test
@@ -105,13 +105,13 @@ public class VerifyContentPGPTest {
         runner.enqueue(DATA);
         runner.run();
 
-        assertFailureWarningLogged();
+        assertFailureErrorLogged();
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(VerifyContentPGP.FAILURE).iterator().next();
         flowFile.assertContentEquals(DATA);
     }
 
     @Test
-    public void testFailurePublicKeyNotFoundDataUnpacked() throws PGPException, IOException {
+    public void testFailurePublicKeyNotFoundDataUnchanged() throws PGPException, IOException {
         final byte[] signed = PGPOperationUtils.getOnePassSignedLiteralData(DATA_BINARY, rsaPrivateKey);
 
         final String publicKeyIdSearch = KeyIdentifierConverter.format((rsaPublicKey.getKeyID()));
@@ -120,9 +120,9 @@ public class VerifyContentPGPTest {
         runner.enqueue(signed);
         runner.run();
 
-        assertFailureWarningLogged();
+        assertFailureErrorLogged();
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(VerifyContentPGP.FAILURE).iterator().next();
-        flowFile.assertContentEquals(DATA);
+        flowFile.assertContentEquals(signed);
         assertFlowFileAttributesFound(flowFile);
     }
 
@@ -163,9 +163,9 @@ public class VerifyContentPGPTest {
         return flowFile;
     }
 
-    private void assertFailureWarningLogged() {
+    private void assertFailureErrorLogged() {
         runner.assertAllFlowFilesTransferred(VerifyContentPGP.FAILURE);
-        final Optional<LogMessage> optionalLogMessage = runner.getLogger().getWarnMessages().stream().findFirst();
+        final Optional<LogMessage> optionalLogMessage = runner.getLogger().getErrorMessages().stream().findFirst();
         assertTrue(optionalLogMessage.isPresent());
     }
 

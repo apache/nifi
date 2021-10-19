@@ -105,6 +105,8 @@ public class VerifyContentPGP extends AbstractProcessor {
 
     private static final int BUFFER_SIZE = 8192;
 
+    private static final String KEY_ID_UNKNOWN = "UNKNOWN";
+
     /**
      * Get Relationships
      *
@@ -139,19 +141,15 @@ public class VerifyContentPGP extends AbstractProcessor {
         }
 
         final PGPPublicKeyService publicKeyService = context.getProperty(PUBLIC_KEY_SERVICE).asControllerService(PGPPublicKeyService.class);
+        final VerifyStreamCallback callback = new VerifyStreamCallback(publicKeyService);
         try {
-            final VerifyStreamCallback callback = new VerifyStreamCallback(publicKeyService);
             flowFile = session.write(flowFile, callback);
             flowFile = session.putAllAttributes(flowFile, callback.attributes);
             final String keyId = flowFile.getAttribute(PGPAttributeKey.SIGNATURE_KEY_ID);
-            if (callback.verified) {
-                getLogger().info("Signature Key ID [{}] Verification Completed {}", keyId, flowFile);
-                session.transfer(flowFile, SUCCESS);
-            } else {
-                getLogger().warn("Signature Key ID [{}] Verification Failed {}", keyId, flowFile);
-                session.transfer(flowFile, FAILURE);
-            }
+            getLogger().info("Signature Key ID [{}] Verification Completed {}", keyId, flowFile);
+            session.transfer(flowFile, SUCCESS);
         } catch (final RuntimeException e) {
+            flowFile = session.putAllAttributes(flowFile, callback.attributes);
             getLogger().error("Processing Failed {}", flowFile, e);
             session.transfer(flowFile, FAILURE);
         }
@@ -182,10 +180,13 @@ public class VerifyContentPGP extends AbstractProcessor {
             final Iterator<?> objects = pgpObjectFactory.iterator();
             if (objects.hasNext()) {
                 processObjectFactory(objects, outputStream);
+            }
+
+            if (verified) {
+                getLogger().debug("One-Pass Signature Algorithm [{}] Verified", attributes.get(PGPAttributeKey.SIGNATURE_ALGORITHM));
             } else {
-                getLogger().debug("PGP Objects not found");
-                inputStream.reset();
-                StreamUtils.copy(inputStream, outputStream);
+                final String keyId = attributes.getOrDefault(PGPAttributeKey.SIGNATURE_KEY_ID, KEY_ID_UNKNOWN);
+                throw new PGPProcessException(String.format("Signature Key ID [%s] Verification Failed", keyId));
             }
         }
 
