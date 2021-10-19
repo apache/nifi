@@ -29,18 +29,14 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.record.path.RecordFieldRemover;
+import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.serialization.record.Record;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 
@@ -68,7 +64,7 @@ public class RemoveRecordField extends AbstractRecordProcessor {
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .addValidator(new RecordPathValidator())
             .build();
 
     @Override
@@ -88,19 +84,8 @@ public class RemoveRecordField extends AbstractRecordProcessor {
                 .dynamic(true)
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-                .addValidator(StandardValidators.NON_BLANK_VALIDATOR) //TODO: add validator
+                .addValidator(new RecordPathValidator())
                 .build();
-    }
-
-    @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final boolean containsDynamic = validationContext.getProperties().keySet().stream().anyMatch(PropertyDescriptor::isDynamic);
-
-        if (containsDynamic) {
-            return Collections.emptyList();
-        } else {
-            return Collections.emptyList(); //TODO: not ready
-        }
     }
 
     @OnScheduled
