@@ -2389,7 +2389,6 @@ image::local-changes-pg-inside.png["Local Changes Inside PG"]
 
 The following actions are not considered local changes:
 
-* disabling/enabling processors and controller services
 * stopping/starting processors
 * modifying sensitive property values
 * modifying remote process group URLs
