@@ -809,7 +809,7 @@
                 contentType: 'application/json'
             }).done(function(response) {
                 var configurationAnalysis = response.configurationAnalysis;
-                var combinedReferencedAttributes = $.extend({}, referencedAttributes, configurationAnalysis.referencedAttributes);
+                var combinedReferencedAttributes = $.extend({}, configurationAnalysis.referencedAttributes, referencedAttributes);
 
                 var referencedAttributesGrid = $('#referenced-attributes-table').data('gridInstance');
                 var referencedAttributesData = referencedAttributesGrid.getData();
