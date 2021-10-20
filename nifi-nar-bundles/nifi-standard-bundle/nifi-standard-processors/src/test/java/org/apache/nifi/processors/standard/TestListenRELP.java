@@ -62,11 +62,11 @@ import static org.mockito.Mockito.when;
 public class TestListenRELP {
 
     public static final String OPEN_FRAME_DATA = "relp_version=0\nrelp_software=librelp,1.2.7,http://librelp.adiscon.com\ncommands=syslog";
-    public static final String SYSLOG_FRAME_DATA = "this is a syslog message here";
+    public static final String RELP_FRAME_DATA = "this is a relp message here";
 
     private static final String LOCALHOST = "localhost";
     private static final Charset CHARSET = StandardCharsets.US_ASCII;
-    private static final Duration SENDER_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration SENDER_TIMEOUT = Duration.ofSeconds(10);
 
     static final RELPFrame OPEN_FRAME = new RELPFrame.Builder()
             .txnr(1)
@@ -75,11 +75,11 @@ public class TestListenRELP {
             .data(OPEN_FRAME_DATA.getBytes(CHARSET))
             .build();
 
-    static final RELPFrame SYSLOG_FRAME = new RELPFrame.Builder()
+    static final RELPFrame RELP_FRAME = new RELPFrame.Builder()
             .txnr(2)
             .command("syslog")
-            .dataLength(SYSLOG_FRAME_DATA.length())
-            .data(SYSLOG_FRAME_DATA.getBytes(CHARSET))
+            .dataLength(RELP_FRAME_DATA.length())
+            .data(RELP_FRAME_DATA.getBytes(CHARSET))
             .build();
 
     static final RELPFrame CLOSE_FRAME = new RELPFrame.Builder()
@@ -110,26 +110,26 @@ public class TestListenRELP {
 
     @Test
     public void testRELPFramesAreReceivedSuccessfully() throws IOException {
-        final int syslogFrames = 5;
-        final List<RELPFrame> frames = getFrames(syslogFrames);
+        final int relpFrames = 5;
+        final List<RELPFrame> frames = getFrames(relpFrames);
 
-        // three syslog frames should be transferred and three responses should be sent
-        run(frames, syslogFrames, syslogFrames, null);
+        // three RELP frames should be transferred
+        run(frames, relpFrames, null);
 
         final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
         Assert.assertNotNull(events);
-        Assert.assertEquals(syslogFrames, events.size());
+        Assert.assertEquals(relpFrames, events.size());
 
         final ProvenanceEventRecord event = events.get(0);
         Assert.assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
         Assert.assertTrue("transit uri must be set and start with proper protocol", event.getTransitUri().toLowerCase().startsWith("relp"));
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenRELP.REL_SUCCESS);
-        Assert.assertEquals(syslogFrames, mockFlowFiles.size());
+        Assert.assertEquals(relpFrames, mockFlowFiles.size());
 
         final MockFlowFile mockFlowFile = mockFlowFiles.get(0);
-        Assert.assertEquals(String.valueOf(SYSLOG_FRAME.getTxnr()), mockFlowFile.getAttribute(ListenRELP.RELPAttributes.TXNR.key()));
-        Assert.assertEquals(SYSLOG_FRAME.getCommand(), mockFlowFile.getAttribute(ListenRELP.RELPAttributes.COMMAND.key()));
+        Assert.assertEquals(String.valueOf(RELP_FRAME.getTxnr()), mockFlowFile.getAttribute(ListenRELP.RELPAttributes.TXNR.key()));
+        Assert.assertEquals(RELP_FRAME.getCommand(), mockFlowFile.getAttribute(ListenRELP.RELPAttributes.COMMAND.key()));
         Assert.assertFalse(StringUtils.isBlank(mockFlowFile.getAttribute(ListenRELP.RELPAttributes.PORT.key())));
         Assert.assertFalse(StringUtils.isBlank(mockFlowFile.getAttribute(ListenRELP.RELPAttributes.SENDER.key())));
     }
@@ -139,12 +139,12 @@ public class TestListenRELP {
 
         runner.setProperty(ListenerProperties.MAX_BATCH_SIZE, "5");
 
-        final int syslogFrames = 3;
-        final List<RELPFrame> frames = getFrames(syslogFrames);
+        final int relpFrames = 3;
+        final List<RELPFrame> frames = getFrames(relpFrames);
 
-        // one syslog frame should be transferred since we are batching, but three responses should be sent
+        // one relp frame should be transferred since we are batching
         final int expectedFlowFiles = 1;
-        run(frames, expectedFlowFiles, syslogFrames, null);
+        run(frames, expectedFlowFiles, null);
 
         final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
         Assert.assertNotNull(events);
@@ -158,7 +158,7 @@ public class TestListenRELP {
         Assert.assertEquals(expectedFlowFiles, mockFlowFiles.size());
 
         final MockFlowFile mockFlowFile = mockFlowFiles.get(0);
-        Assert.assertEquals(SYSLOG_FRAME.getCommand(), mockFlowFile.getAttribute(ListenRELP.RELPAttributes.COMMAND.key()));
+        Assert.assertEquals(RELP_FRAME.getCommand(), mockFlowFile.getAttribute(ListenRELP.RELPAttributes.COMMAND.key()));
         Assert.assertFalse(StringUtils.isBlank(mockFlowFile.getAttribute(ListenRELP.RELPAttributes.PORT.key())));
         Assert.assertFalse(StringUtils.isBlank(mockFlowFile.getAttribute(ListenRELP.RELPAttributes.SENDER.key())));
     }
@@ -177,9 +177,9 @@ public class TestListenRELP {
         runner.setProperty(ListenRELP.SSL_CONTEXT_SERVICE, serviceIdentifier);
         runner.setProperty(ListenRELP.CLIENT_AUTH, ClientAuth.NONE.name());
 
-        final int syslogFrames = 3;
-        final List<RELPFrame> frames = getFrames(syslogFrames);
-        run(frames, syslogFrames, syslogFrames, sslContext);
+        final int relpFrames = 3;
+        final List<RELPFrame> frames = getFrames(relpFrames);
+        run(frames, relpFrames, sslContext);
     }
 
     @Test
@@ -189,12 +189,12 @@ public class TestListenRELP {
         String sender3 = "/192.168.1.50:55002";
 
         final List<RELPMessage> mockEvents = new ArrayList<>();
-        mockEvents.add(new RELPMessage(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
-        mockEvents.add(new RELPMessage(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
-        mockEvents.add(new RELPMessage(sender1, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
-        mockEvents.add(new RELPMessage(sender2, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
-        mockEvents.add(new RELPMessage(sender3, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
-        mockEvents.add(new RELPMessage(sender3, SYSLOG_FRAME.getData(), SYSLOG_FRAME.getTxnr(), SYSLOG_FRAME.getCommand()));
+        mockEvents.add(new RELPMessage(sender1, RELP_FRAME.getData(), RELP_FRAME.getTxnr(), RELP_FRAME.getCommand()));
+        mockEvents.add(new RELPMessage(sender1, RELP_FRAME.getData(), RELP_FRAME.getTxnr(), RELP_FRAME.getCommand()));
+        mockEvents.add(new RELPMessage(sender1, RELP_FRAME.getData(), RELP_FRAME.getTxnr(), RELP_FRAME.getCommand()));
+        mockEvents.add(new RELPMessage(sender2, RELP_FRAME.getData(), RELP_FRAME.getTxnr(), RELP_FRAME.getCommand()));
+        mockEvents.add(new RELPMessage(sender3, RELP_FRAME.getData(), RELP_FRAME.getTxnr(), RELP_FRAME.getCommand()));
+        mockEvents.add(new RELPMessage(sender3, RELP_FRAME.getData(), RELP_FRAME.getTxnr(), RELP_FRAME.getCommand()));
 
         MockListenRELP mockListenRELP = new MockListenRELP(mockEvents);
         runner = TestRunners.newTestRunner(mockListenRELP);
@@ -206,12 +206,11 @@ public class TestListenRELP {
         runner.shutdown();
     }
 
-    private void run(final List<RELPFrame> frames, final int flowFiles, final int responses, final SSLContext sslContext)
+    private void run(final List<RELPFrame> frames, final int flowFiles, final SSLContext sslContext)
             throws IOException {
 
         final int port = NetworkUtils.availablePort();
         runner.setProperty(AbstractListenEventBatchingProcessor.PORT, Integer.toString(port));
-
         // Run Processor and start Dispatcher without shutting down
         runner.run(1, false, true);
         final byte[] relpMessages = getRELPMessages(frames);
@@ -232,12 +231,12 @@ public class TestListenRELP {
         return outputStream.toByteArray();
     }
 
-    private List<RELPFrame> getFrames(final int syslogFrames) {
+    private List<RELPFrame> getFrames(final int relpFrames) {
         final List<RELPFrame> frames = new ArrayList<>();
         frames.add(OPEN_FRAME);
 
-        for (int i = 0; i < syslogFrames; i++) {
-            frames.add(SYSLOG_FRAME);
+        for (int i = 0; i < relpFrames; i++) {
+            frames.add(RELP_FRAME);
         }
 
         frames.add(CLOSE_FRAME);

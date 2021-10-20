@@ -118,6 +118,7 @@ public class ListenRELP extends AbstractProcessor {
     protected volatile ClientAuth clientAuth;
     protected volatile int maxConnections;
     protected volatile int bufferSize;
+    protected volatile EventBatcher eventBatcher;
 
     @OnScheduled
     public void onScheduled(ProcessContext context) throws IOException {
@@ -129,6 +130,7 @@ public class ListenRELP extends AbstractProcessor {
         port = context.getProperty(ListenerProperties.PORT).evaluateAttributeExpressions().asInteger();
         events = new LinkedBlockingQueue<>(context.getProperty(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE).asInteger());
         errorEvents = new LinkedBlockingQueue<>();
+        eventBatcher = getEventBatcher();
 
         final String msgDemarcator = getMessageDemarcator(context);
         messageDemarcatorBytes = msgDemarcator.getBytes(charset);
@@ -276,11 +278,11 @@ public class ListenRELP extends AbstractProcessor {
         session.commitAsync();
     }
 
-    protected String getRELPBatchKey(final RELPMessage event) {
+    private String getRELPBatchKey(final RELPMessage event) {
         return event.getSender() + "_" + event.getCommand();
     }
 
-    protected EventBatcher getEventBatcher() {
+    private EventBatcher getEventBatcher() {
         return new EventBatcher<RELPMessage>(getLogger(), events, errorEvents) {
             @Override
             protected String getBatchKey(RELPMessage event) {

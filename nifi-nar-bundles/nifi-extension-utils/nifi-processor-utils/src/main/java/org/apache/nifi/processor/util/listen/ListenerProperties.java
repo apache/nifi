@@ -121,7 +121,7 @@ public class ListenerProperties {
             .name("Max Size of Message Queue")
             .description("The maximum size of the internal queue used to buffer messages being transferred from the underlying channel to the processor. " +
                     "Setting this value higher allows more messages to be buffered in memory during surges of incoming messages, but increases the total " +
-                    "memory used by the processor.")
+                    "memory used by the processor during these surges.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("10000")
             .required(true)

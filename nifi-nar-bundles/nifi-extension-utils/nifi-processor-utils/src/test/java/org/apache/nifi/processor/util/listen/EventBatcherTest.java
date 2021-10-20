@@ -39,20 +39,21 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 public class EventBatcherTest {
 
-    static final String MESSAGE_DATA_1 = "some message data";
-    static final String MESSAGE_DATA_2 = "some more data";
-    static Processor processor;
-    static final AtomicLong idGenerator = new AtomicLong(0L);
-    static final ComponentLog logger = mock(ComponentLog.class);
-    static BlockingQueue events;
-    static BlockingQueue errorEvents;
-    static EventBatcher batcher;
-    static MockProcessSession session;
-    static StandardNetworkEventFactory eventFactory;
+    final String MESSAGE_DATA_1 = "some message data";
+    final String MESSAGE_DATA_2 = "some more data";
+    Processor processor;
+    final AtomicLong idGenerator = new AtomicLong(0L);
+    final ComponentLog logger = mock(ComponentLog.class);
+    BlockingQueue events;
+    BlockingQueue errorEvents;
+    EventBatcher batcher;
+    MockProcessSession session;
+    StandardNetworkEventFactory eventFactory;
 
     @Before
     public void setUp() {
@@ -73,8 +74,8 @@ public class EventBatcherTest {
     public void testGetBatches() throws InterruptedException {
         String sender1 = new InetSocketAddress(NetworkUtils.getAvailableTcpPort()).toString();
         String sender2 = new InetSocketAddress(NetworkUtils.getAvailableTcpPort()).toString();
-        final Map<String, String> sender1Metadata = EventFactoryUtil.createMapWithSender(sender1.toString());
-        final Map<String, String> sender2Metadata = EventFactoryUtil.createMapWithSender(sender2.toString());
+        final Map<String, String> sender1Metadata = EventFactoryUtil.createMapWithSender(sender1);
+        final Map<String, String> sender2Metadata = EventFactoryUtil.createMapWithSender(sender2);
         events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
         events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
         events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
@@ -85,9 +86,6 @@ public class EventBatcherTest {
         assertEquals(2, batches.size());
         assertEquals(4, batches.get(sender1).getEvents().size());
         assertEquals(2, batches.get(sender2).getEvents().size());
-    }
-
-    private void assertEquals(int i, int size) {
     }
 
     public static class SimpleProcessor extends AbstractProcessor {

@@ -57,7 +57,7 @@ public class RELPFrameDecoder extends ByteToMessageDecoder {
     protected void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
         final int total = in.readableBytes();
         final String senderSocket = ctx.channel().remoteAddress().toString();
-        this.decoder = new RELPDecoder(total, charset);
+        this.decoder = new RELPDecoder(charset, total);
 
         // go through the buffer parsing the RELP command
         for (int i = 0; i < total; i++) {
