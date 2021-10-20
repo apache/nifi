@@ -50,6 +50,7 @@ import java.util.List;
         + "This Processor requires that at least one user-defined Property be added. The value of the Property should indicate a RecordPath that determines the field that should "
         + "be removed.")
 @WritesAttributes({
+        @WritesAttribute(attribute = "record.index", description = "This attribute provides the current row index and is only available inside the literal value expression."),
         @WritesAttribute(attribute = "record.error.message", description = "This attribute provides on failure the error message encountered by the Reader or Writer.")
 })
 @SeeAlso({UpdateRecord.class, ConvertRecord.class})
