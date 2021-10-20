@@ -642,7 +642,7 @@ public interface NiFiServiceFacade {
      * @param attributes a map of values that can be used for resolving FlowFile attributes for Expression Language
      * @return verification results
      */
-    List<ConfigVerificationResultDTO> verifyProcessorConfiguration(String processorId, Map<String, String> properties, Map<String, String> attributes);
+    List<ConfigVerificationResultDTO> performProcessorConfigVerification(String processorId, Map<String, String> properties, Map<String, String> attributes);
 
     /**
      * Performs analysis of the given properties, determining which attributes are referenced by properties
@@ -2058,7 +2058,7 @@ public interface NiFiServiceFacade {
      * @param variables a map of values that can be used for resolving FlowFile attributes for Expression Language
      * @return verification results
      */
-    List<ConfigVerificationResultDTO> verifyControllerServiceConfiguration(String controllerServiceId, Map<String, String> properties, Map<String, String> variables);
+    List<ConfigVerificationResultDTO> performControllerServiceConfigVerification(String controllerServiceId, Map<String, String> properties, Map<String, String> variables);
 
     /**
      * Performs analysis of the given properties, determining which attributes are referenced by properties
@@ -2159,7 +2159,7 @@ public interface NiFiServiceFacade {
      * @param properties the configured properties to verify
      * @return verification results
      */
-    List<ConfigVerificationResultDTO> verifyReportingTaskConfiguration(String reportingTaskId, Map<String, String> properties);
+    List<ConfigVerificationResultDTO> performReportingTaskConfigVerification(String reportingTaskId, Map<String, String> properties);
 
     /**
      * Performs analysis of the given properties, determining which attributes are referenced by properties
