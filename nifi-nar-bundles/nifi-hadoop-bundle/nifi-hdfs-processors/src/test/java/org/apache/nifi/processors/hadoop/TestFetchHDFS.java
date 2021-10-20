@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -57,7 +58,7 @@ public class TestFetchHDFS {
     }
 
     @Test
-    public void testFetchStaticFileThatExists() throws IOException {
+    public void testFetchStaticFileThatExists() {
         final String file = "src/test/resources/testdata/randombytes-1";
         final String fileWithMultipliedSeparators = "src/test////resources//testdata/randombytes-1";
         runner.setProperty(FetchHDFS.FILENAME, fileWithMultipliedSeparators);
@@ -73,10 +74,10 @@ public class TestFetchHDFS {
     }
 
     @Test
-    public void testFetchStaticFileThatExistsWithAbsolutePath() throws IOException {
+    public void testFetchStaticFileThatExistsWithAbsolutePath() {
         final File destination = new File("src/test/resources/testdata/randombytes-1");
         final String file = destination.getAbsolutePath();
-        final String fileWithMultipliedSeparators = "/" + destination.getAbsolutePath();
+        final String fileWithMultipliedSeparators = "/" + file;
         runner.setProperty(FetchHDFS.FILENAME, fileWithMultipliedSeparators);
         runner.enqueue(new String("trigger flow file"));
         runner.run();
@@ -85,12 +86,12 @@ public class TestFetchHDFS {
         assertEquals(1, provenanceEvents.size());
         final ProvenanceEventRecord fetchEvent = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.FETCH, fetchEvent.getEventType());
-        // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
-        assertTrue(fetchEvent.getTransitUri().endsWith(file));
+        // As absolute path call results a different format under Windows, the assertion directly looks for duplication.
+        assertFalse(fetchEvent.getTransitUri().contains(File.separator + File.separator));
     }
 
     @Test
-    public void testFetchStaticFileThatDoesNotExist() throws IOException {
+    public void testFetchStaticFileThatDoesNotExist() {
         final String file = "src/test/resources/testdata/doesnotexist";
         runner.setProperty(FetchHDFS.FILENAME, file);
         runner.enqueue(new String("trigger flow file"));
@@ -99,7 +100,7 @@ public class TestFetchHDFS {
     }
 
     @Test
-    public void testFetchFileThatExistsFromIncomingFlowFile() throws IOException {
+    public void testFetchFileThatExistsFromIncomingFlowFile() {
         final String file = "src/test/resources/testdata/randombytes-1";
         runner.setProperty(FetchHDFS.FILENAME, "${my.file}");
 
@@ -112,7 +113,7 @@ public class TestFetchHDFS {
     }
 
     @Test
-    public void testFilenameWithValidEL() throws IOException {
+    public void testFilenameWithValidEL() {
         final String file = "src/test/resources/testdata/${literal('randombytes-1')}";
         runner.setProperty(FetchHDFS.FILENAME, file);
         runner.enqueue(new String("trigger flow file"));
@@ -121,14 +122,14 @@ public class TestFetchHDFS {
     }
 
     @Test
-    public void testFilenameWithInvalidEL() throws IOException {
+    public void testFilenameWithInvalidEL() {
         final String file = "src/test/resources/testdata/${literal('randombytes-1'):foo()}";
         runner.setProperty(FetchHDFS.FILENAME, file);
         runner.assertNotValid();
     }
 
     @Test
-    public void testFilenameWithUnrecognizedEL() throws IOException {
+    public void testFilenameWithUnrecognizedEL() {
         final String file = "data_${literal('testing'):substring(0,4)%7D";
         runner.setProperty(FetchHDFS.FILENAME, file);
         runner.enqueue(new String("trigger flow file"));
