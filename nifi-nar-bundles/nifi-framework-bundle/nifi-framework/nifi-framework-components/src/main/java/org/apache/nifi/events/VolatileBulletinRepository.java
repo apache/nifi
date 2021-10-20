@@ -24,6 +24,7 @@ import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.Filter;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -152,31 +153,26 @@ public class VolatileBulletinRepository implements BulletinRepository {
 
     @Override
     public List<Bulletin> findBulletinsForSource(final String sourceId, final String groupId) {
+        final BulletinQuery bulletinQuery = new BulletinQuery.Builder().sourceIdMatches(Pattern.quote(sourceId)).groupIdMatches(Pattern.quote(groupId)).limit(COMPONENT_BUFFER_SIZE).build();
         final ConcurrentMap<String, RingBuffer<Bulletin>> componentMap = bulletinStoreMap.get(groupId);
         if (componentMap == null) {
             return Collections.emptyList();
         }
 
-        final RingBuffer<Bulletin> ringBuffer = componentMap.get(sourceId);
-        if (ringBuffer == null) {
-            return Collections.emptyList();
-        }
-
-        final BulletinQuery bulletinQuery = new BulletinQuery.Builder().sourceIdMatches(Pattern.quote(sourceId)).groupIdMatches(Pattern.quote(groupId)).limit(COMPONENT_BUFFER_SIZE).build();
-        final Filter<Bulletin> filter = createFilter(bulletinQuery);
-
-        final int max = bulletinQuery.getLimit() == null ? Integer.MAX_VALUE : bulletinQuery.getLimit();
-        final List<Bulletin> bulletinsForComponent = ringBuffer.getSelectedElements(filter, max);
-        return bulletinsForComponent;
+        return findBulletinsForSource(sourceId, bulletinQuery, Collections.singleton(componentMap));
     }
 
     @Override
     public List<Bulletin> findBulletinsForSource(final String sourceId) {
         final BulletinQuery bulletinQuery = new BulletinQuery.Builder().sourceIdMatches(Pattern.quote(sourceId)).limit(COMPONENT_BUFFER_SIZE).build();
+        return findBulletinsForSource(sourceId, bulletinQuery, this.bulletinStoreMap.values());
+    }
+
+    private List<Bulletin> findBulletinsForSource(final String sourceId, final BulletinQuery bulletinQuery, final Collection<ConcurrentMap<String, RingBuffer<Bulletin>>> bulletinStoreMaps) {
         final Filter<Bulletin> filter = createFilter(bulletinQuery);
 
         final int max = bulletinQuery.getLimit() == null ? Integer.MAX_VALUE : bulletinQuery.getLimit();
-        for (final ConcurrentMap<String, RingBuffer<Bulletin>> componentMap : bulletinStoreMap.values()) {
+        for (final ConcurrentMap<String, RingBuffer<Bulletin>> componentMap : bulletinStoreMaps) {
             final RingBuffer<Bulletin> ringBuffer = componentMap.get(sourceId);
             if (ringBuffer == null) {
                 continue;
