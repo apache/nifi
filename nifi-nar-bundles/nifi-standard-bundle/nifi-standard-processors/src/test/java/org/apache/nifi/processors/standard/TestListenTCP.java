@@ -17,6 +17,11 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.event.transport.EventSender;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
 import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
@@ -34,10 +39,8 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,6 +48,7 @@ public class TestListenTCP {
     private static final String SSL_CONTEXT_IDENTIFIER = SSLContextService.class.getName();
 
     private static final String LOCALHOST = "localhost";
+    private static final Duration SENDER_TIMEOUT = Duration.ofSeconds(10);
 
     private static SSLContext keyStoreSslContext;
 
@@ -64,8 +68,8 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testCustomValidate() throws InitializationException {
-        runner.setProperty(ListenTCP.PORT, "1");
+    public void testCustomValidate() throws Exception {
+        runner.setProperty(ListenerProperties.PORT, "1");
         runner.assertValid();
 
         enableSslContextService(keyStoreSslContext);
@@ -77,7 +81,7 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testRun() throws IOException {
+    public void testRun() throws Exception {
         final List<String> messages = new ArrayList<>();
         messages.add("This is message 1\n");
         messages.add("This is message 2\n");
@@ -94,7 +98,7 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testRunBatching() throws IOException {
+    public void testRunBatching() throws Exception {
         runner.setProperty(ListenerProperties.MAX_BATCH_SIZE, "3");
 
         final List<String> messages = new ArrayList<>();
@@ -116,7 +120,7 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testRunClientAuthRequired() throws IOException, InitializationException {
+    public void testRunClientAuthRequired() throws Exception {
         runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.REQUIRED.name());
         enableSslContextService(keyStoreSslContext);
 
@@ -136,7 +140,7 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testRunClientAuthNone() throws IOException, InitializationException {
+    public void testRunClientAuthNone() throws Exception {
         runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.NONE.name());
         enableSslContextService(keyStoreSslContext);
 
@@ -155,39 +159,16 @@ public class TestListenTCP {
         }
     }
 
-    protected void run(final List<String> messages, final int flowFiles, final SSLContext sslContext)
-            throws IOException {
+    private void run(final List<String> messages, final int flowFiles, final SSLContext sslContext)
+            throws Exception {
 
         final int port = NetworkUtils.availablePort();
-        runner.setProperty(ListenTCP.PORT, Integer.toString(port));
-
-        // Run Processor and start Dispatcher without shutting down
-        runner.run(1, false, true);
-
+        runner.setProperty(ListenerProperties.PORT, Integer.toString(port));
         final String message = StringUtils.join(messages, null);
         final byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
-        try (final Socket socket = getSocket(port, sslContext)) {
-            final OutputStream outputStream = socket.getOutputStream();
-            outputStream.write(bytes);
-            outputStream.flush();
-
-            // Run Processor for number of responses
-            runner.run(flowFiles, false, false);
-
-            runner.assertTransferCount(ListenTCP.REL_SUCCESS, flowFiles);
-        } finally {
-            runner.shutdown();
-        }
-    }
-
-    private Socket getSocket(final int port, final SSLContext sslContext) throws IOException {
-        final Socket socket;
-        if (sslContext == null) {
-            socket = new Socket(LOCALHOST, port);
-        } else {
-            socket = sslContext.getSocketFactory().createSocket(LOCALHOST, port);
-        }
-        return socket;
+        runner.run(1, false, true);
+        sendMessages(port, bytes, sslContext);
+        runner.run(flowFiles, false, false);
     }
 
     private void enableSslContextService(final SSLContext sslContext) throws InitializationException {
@@ -197,5 +178,19 @@ public class TestListenTCP {
         runner.addControllerService(SSL_CONTEXT_IDENTIFIER, sslContextService);
         runner.enableControllerService(sslContextService);
         runner.setProperty(ListenTCP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_IDENTIFIER);
+    }
+
+    private void sendMessages(final int port, final byte[] messages, final SSLContext sslContext) throws Exception {
+        final ByteArrayNettyEventSenderFactory eventSenderFactory = new ByteArrayNettyEventSenderFactory(runner.getLogger(), LOCALHOST, port, TransportProtocol.TCP);
+        eventSenderFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        eventSenderFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
+        if (sslContext != null) {
+            eventSenderFactory.setSslContext(sslContext);
+        }
+
+        eventSenderFactory.setTimeout(SENDER_TIMEOUT);
+        try (final EventSender<byte[]> eventSender = eventSenderFactory.getEventSender()) {
+            eventSender.sendEvent(messages);
+        }
     }
 }
