@@ -273,6 +273,47 @@
         });
     };
 
+    var verify = function (componentId, componentUri, proposedProperties, referencedAttributeMap, handleVerificationResults, verificationResultsContainer) {
+        // submit verification
+        performVerification(componentId, componentUri, proposedProperties, referencedAttributeMap).done(function (verificationResults) {
+            // empty the previous listing
+            verificationResultsContainer.empty();
+
+            // render the verification results
+            $.each(verificationResults, function (i, result) {
+                var verificationResultContainer = $('<div class="verification-result"></div>').appendTo(verificationResultsContainer);
+
+                // determine the icon for this result
+                var outcomeClass;
+                switch (result.outcome) {
+                    case 'SUCCESSFUL':
+                        outcomeClass = 'fa-check';
+                        break;
+                    case 'FAILED':
+                        outcomeClass = 'fa-times';
+                        break;
+                    case 'SKIPPED':
+                        outcomeClass = 'fa-exclamation';
+                        break;
+                }
+
+                // build the header
+                var verificationHeader = $('<div class="verification-result-header"></div>').appendTo(verificationResultContainer);
+                $('<div class="verification-result-outcome fa ' + outcomeClass + '"></div>').appendTo(verificationHeader);
+                $('<div class="verification-result-step-name"></div>').text(result.verificationStepName).appendTo(verificationHeader);
+                $('<div class="clear"></div>').appendTo(verificationHeader);
+
+                // build the explanation
+                $('<div class="verification-result-explanation"></div>').text(result.explanation).appendTo(verificationResultContainer);
+            });
+
+            // invoke the verification callback if specified
+            if (typeof handleVerificationResults === 'function') {
+                handleVerificationResults(verificationResults, referencedAttributeMap);
+            }
+        });
+    }
+
     /**
      * Updates the button model for the verification of this component and proposed properties.
      *
@@ -306,44 +347,8 @@
                     // hide the referenced attributes dialog prior to performing the verification
                     $('#referenced-attributes-dialog').modal('hide');
 
-                    // submit verification
-                    performVerification(componentId, componentUri, proposedProperties, referencedAttributeMap).done(function (verificationResults) {
-                        // empty the previous listing
-                        verificationResultsContainer.empty();
-
-                        // render the verification results
-                        $.each(verificationResults, function (i, result) {
-                            var verificationResultContainer = $('<div class="verification-result"></div>').appendTo(verificationResultsContainer);
-
-                            // determine the icon for this result
-                            var outcomeClass;
-                            switch (result.outcome) {
-                                case 'SUCCESSFUL':
-                                    outcomeClass = 'fa-check';
-                                    break;
-                                case 'FAILED':
-                                    outcomeClass = 'fa-times';
-                                    break;
-                                case 'SKIPPED':
-                                    outcomeClass = 'fa-exclamation';
-                                    break;
-                            }
-
-                            // build the header
-                            var verificationHeader = $('<div class="verification-result-header"></div>').appendTo(verificationResultContainer);
-                            $('<div class="verification-result-outcome fa ' + outcomeClass + '"></div>').appendTo(verificationHeader);
-                            $('<div class="verification-result-step-name"></div>').text(result.verificationStepName).appendTo(verificationHeader);
-                            $('<div class="clear"></div>').appendTo(verificationHeader);
-
-                            // build the explanation
-                            $('<div class="verification-result-explanation"></div>').text(result.explanation).appendTo(verificationResultContainer);
-                        });
-
-                        // invoke the verification callback if specified
-                        if (typeof handleVerificationResults === 'function') {
-                            handleVerificationResults(verificationResults, referencedAttributeMap);
-                        }
-                    });
+                    // verify
+                    verify(componentId, componentUri, proposedProperties, referencedAttributeMap, handleVerificationResults, verificationResultsContainer);
                 }
             }
         }, {
@@ -804,31 +809,38 @@
                 contentType: 'application/json'
             }).done(function(response) {
                 var configurationAnalysis = response.configurationAnalysis;
-                var combinedReferencedAttributes = $.extend({}, configurationAnalysis.referencedAttributes, referencedAttributes);
 
-                var referencedAttributesGrid = $('#referenced-attributes-table').data('gridInstance');
-                var referencedAttributesData = referencedAttributesGrid.getData();
+                // if the component does not support additional verification there is no need to prompt for attribute values
+                if (configurationAnalysis.supportsVerification === false) {
+                    verify(id, componentUrl, proposedProperties, {}, handleVerificationResults, verificationResultsContainer);
+                } else {
+                    // combine the previously entered referenced attributes with the updated attributes from the configuration analysis
+                    var combinedReferencedAttributes = $.extend({}, configurationAnalysis.referencedAttributes, referencedAttributes);
 
-                // begin the update
-                referencedAttributesData.beginUpdate();
+                    var referencedAttributesGrid = $('#referenced-attributes-table').data('gridInstance');
+                    var referencedAttributesData = referencedAttributesGrid.getData();
 
-                $.each(combinedReferencedAttributes, function (name, value) {
-                    referencedAttributesData.addItem({
-                        id: name,
-                        name: name,
-                        value: value
+                    // begin the update
+                    referencedAttributesData.beginUpdate();
+
+                    $.each(combinedReferencedAttributes, function (name, value) {
+                        referencedAttributesData.addItem({
+                            id: name,
+                            name: name,
+                            value: value
+                        });
                     });
-                });
 
-                // complete the update
-                referencedAttributesData.endUpdate();
-                referencedAttributesData.reSort();
+                    // complete the update
+                    referencedAttributesData.endUpdate();
+                    referencedAttributesData.reSort();
 
-                // update the button model for this verification
-                updateReferencedAttributesButtonModel(id, componentUrl, proposedProperties, handleVerificationResults, verificationResultsContainer);
+                    // update the button model for this verification
+                    updateReferencedAttributesButtonModel(id, componentUrl, proposedProperties, handleVerificationResults, verificationResultsContainer);
 
-                // show the dialog
-                $('#referenced-attributes-dialog').modal('show');
+                    // show the dialog
+                    $('#referenced-attributes-dialog').modal('show');
+                }
             }).fail(nfErrorHandler.handleAjaxError);
         }
     };
