@@ -311,7 +311,7 @@ div.local-changes-message {
 div.verification-results {
     display: none;
     position: absolute;
-    top: calc(60% + 10px);
+    top: calc(60% - -10px);
     right: 0;
     left: 0;
     bottom: 0;
