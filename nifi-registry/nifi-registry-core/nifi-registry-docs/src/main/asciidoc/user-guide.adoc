@@ -96,14 +96,14 @@ To see the flows in a particular bucket, select that bucket from the drop-down m
 
 image::bucket_menu.png["Bucket Menu"]
 
-Click on a flow to see its Description and Change Log:
+Click on a flow to see its Bucket Identifier, Flow Identifier, Description and Change Log:
 
 image::flow_change_log.png["Flow Change Log"]
 
 The Change Log includes all versions that were saved for a flow.  Clicking on the version reveals details about when the version was saved, which user committed the save, and any comments entered by the user.
 
 ==== Sorting & Filtering Flows
-Flows can be sorted alphabetically by Name (ascending or descending) or by Update (newest or oldest) using the drop-down at the top right of the UI.
+Flows can be sorted alphabetically by Name (ascending or descending), by Update (newest or oldest) or by Type (ascending or descending) using the Sort By drop-down.
 
 image::flows_sort_menu.png["Flows Sort Menu"]
 
@@ -114,16 +114,60 @@ The flow list can be filtered by:
 * flow ID
 * bucket name
 * bucket ID
+* type
 
 Here is an example filtering by flow name:
 
 image::flows_filter_by_name.png["Flows Filter By Name"]
 
+=== Import a Flow
+To import a flow into the registry:
+
+1. Click on the "Import New Flow" button. A bucket must exist for this button to be visible.
++
+image::import_new_flow_button.png["Import New Flow button"]
++
+2. Enter a unique flow name and a flow description if desired.
+3. Select the destination bucket.
+4. Drop or select a flow definition file.
++
+image::import_new_flow.png["Import New Flow dialog"]
++
+5. Select "Import".
+
+=== Import New Version of a Flow
+To import a new version of a flow:
+
+1. Click on the flow to see its details.
+2. Select the "Actions" drop-down and click the "Import new flow" menu option.
++
+image::import_new_version_action.png["Import New Version Action"]
++
+3. Drop or select a flow definition file.
++
+image::import_new_version.png["Import New Version dialog"]
++
+4. Select "Import".
+
+=== Export a Flow Version
+To export a version of a flow:
+
+1. Click on the flow to see its details.
+2. Select the "Actions" drop-down and click the "Export version" menu option.
++
+image::export_version_action.png["Export Version Action"]
++
+3. Choose the version of the flow to export. By default, the latest version is selected.
++
+image::export_version.png["Export Version dialog"]
++
+4. Select "Export".
+
 === Delete a Flow
 To delete a flow from the registry:
 
 1. Click on the flow to see its details.
-2. Select the "Actions" drop-down and click the "Delete" menu option.
+2. Select the "Actions" drop-down and click the "Delete flow" menu option.
 +
 image::flow_delete_action.png["Flow Delete Action"]
 3. Select "Delete" to confirm.
