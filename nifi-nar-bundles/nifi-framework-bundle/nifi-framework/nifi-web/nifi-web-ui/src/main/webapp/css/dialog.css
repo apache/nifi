@@ -308,6 +308,11 @@ div.local-changes-message {
     margin-left: 6px;
 }
 
+#verification-request-percent-complete {
+    margin-top: 10px;
+    border-radius: 0;
+}
+
 div.verification-results {
     display: none;
     position: absolute;
