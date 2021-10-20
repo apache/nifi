@@ -81,6 +81,7 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
+import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
@@ -118,6 +119,7 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.prometheus.util.BulletinMetricsRegistry;
 import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
@@ -158,6 +160,7 @@ import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
+import org.apache.nifi.reporting.VerifiableReportingTask;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.NiFiProperties;
@@ -772,7 +775,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public List<ConfigVerificationResultDTO> verifyProcessorConfiguration(final String processorId, final Map<String, String> properties, final Map<String, String> attributes) {
+    public List<ConfigVerificationResultDTO> performProcessorConfigVerification(final String processorId, final Map<String, String> properties, final Map<String, String> attributes) {
         return processorDAO.verifyProcessorConfiguration(processorId, properties, attributes);
     }
 
@@ -793,10 +796,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         dto.setComponentId(componentNode.getIdentifier());
         dto.setProperties(properties);
         dto.setReferencedAttributes(referencedAttributes);
+        dto.setSupportsVerification(isVerificationSupported(componentNode));
 
         final ConfigurationAnalysisEntity entity = new ConfigurationAnalysisEntity();
         entity.setConfigurationAnalysis(dto);
         return entity;
+    }
+
+    private boolean isVerificationSupported(final ComponentNode componentNode) {
+        if (componentNode instanceof ProcessorNode) {
+            return ((ProcessorNode) componentNode).getProcessor() instanceof VerifiableProcessor;
+        } else if (componentNode instanceof ControllerServiceNode) {
+            return ((ControllerServiceNode) componentNode).getControllerServiceImplementation() instanceof VerifiableControllerService;
+        } else if (componentNode instanceof ReportingTaskNode) {
+            return ((ReportingTaskNode) componentNode).getReportingTask() instanceof VerifiableReportingTask;
+        } else {
+            return false;
+        }
     }
 
     private Map<String, String> determineReferencedAttributes(final Map<String, String> properties, final ComponentNode componentNode, final ParameterContext parameterContext) {
@@ -2834,7 +2850,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public List<ConfigVerificationResultDTO> verifyControllerServiceConfiguration(final String controllerServiceId, final Map<String, String> properties, final Map<String, String> variables) {
+    public List<ConfigVerificationResultDTO> performControllerServiceConfigVerification(final String controllerServiceId, final Map<String, String> properties, final Map<String, String> variables) {
         return controllerServiceDAO.verifyConfiguration(controllerServiceId, properties, variables);
     }
 
@@ -3227,7 +3243,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public List<ConfigVerificationResultDTO> verifyReportingTaskConfiguration(final String reportingTaskId, final Map<String, String> properties) {
+    public List<ConfigVerificationResultDTO> performReportingTaskConfigVerification(final String reportingTaskId, final Map<String, String> properties) {
         return reportingTaskDAO.verifyConfiguration(reportingTaskId, properties);
     }
 

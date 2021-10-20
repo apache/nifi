@@ -158,7 +158,10 @@ public class StandardAsynchronousWebRequest<R, T> implements AsynchronousWebRequ
         this.cancelled = true;
         percentComplete = 100;
         fail("Request cancelled by user");
-        cancelCallback.run();
+
+        if (cancelCallback != null) {
+            cancelCallback.run();
+        }
     }
 
     @Override

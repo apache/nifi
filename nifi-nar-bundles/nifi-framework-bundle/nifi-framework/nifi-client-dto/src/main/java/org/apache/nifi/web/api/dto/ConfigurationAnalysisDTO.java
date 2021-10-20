@@ -27,6 +27,7 @@ public class ConfigurationAnalysisDTO {
     private String componentId;
     private Map<String, String> properties;
     private Map<String, String> referencedAttributes;
+    private boolean supportsVerification;
 
     @ApiModelProperty("The ID of the component")
     public String getComponentId() {
@@ -53,5 +54,14 @@ public class ConfigurationAnalysisDTO {
 
     public void setReferencedAttributes(final Map<String, String> referencedAttributes) {
         this.referencedAttributes = referencedAttributes;
+    }
+
+    @ApiModelProperty("Whether or not the component supports verification")
+    public boolean isSupportsVerification() {
+        return supportsVerification;
+    }
+
+    public void setSupportsVerification(final boolean supportsVerification) {
+        this.supportsVerification = supportsVerification;
     }
 }

@@ -308,6 +308,7 @@ public class ConsumerPool implements Closeable {
                 if (topicPattern == null) {
                     final Map<String, Long> messagesToConsumePerTopic = new HashMap<>();
 
+                    long toConsume = 0L;
                     for (final String topicName : topics) {
                         final List<PartitionInfo> partitionInfos = consumer.partitionsFor(topicName);
 
@@ -320,13 +321,7 @@ public class ConsumerPool implements Closeable {
                         final Map<TopicPartition, OffsetAndMetadata> committedOffsets = consumer.committed(topicPartitions, Duration.ofSeconds(30));
 
                         for (final TopicPartition topicPartition : endOffsets.keySet()) {
-                            long endOffset = endOffsets.get(topicPartition);
-                            // When no messages have been added to a topic, end offset is 0. However, after the first message is added,
-                            // the end offset points to where the next message will be. I.e., it goes from 0 to 2. We want the offset
-                            // of the last message, not the offset of where the next one will be. So we subtract one.
-                            if (endOffset > 0) {
-                                endOffset--;
-                            }
+                            final long endOffset = endOffsets.get(topicPartition);
 
                             final long beginningOffset = beginningOffsets.getOrDefault(topicPartition, 0L);
                             if (endOffset <= beginningOffset) {
@@ -339,6 +334,7 @@ public class ConsumerPool implements Closeable {
 
                             final long currentOffset = Math.max(beginningOffset, committedOffset);
                             final long messagesToConsume = endOffset - currentOffset;
+                            toConsume += messagesToConsume;
 
                             messagesToConsumePerTopic.merge(topicPartition.topic(), messagesToConsume, Long::sum);
                         }
@@ -351,12 +347,31 @@ public class ConsumerPool implements Closeable {
                         .build());
 
                     logger.info("Successfully determined offsets for {} topics. Number of messages left to consume per topic: {}", messagesToConsumePerTopic.size(), messagesToConsumePerTopic);
+
+                    if (readerFactory != null) {
+                        if (toConsume > 0) {
+                            final ConfigVerificationResult checkDataResult = checkRecordIsParsable(lease);
+                            verificationResults.add(checkDataResult);
+                        } else {
+                            verificationResults.add(new ConfigVerificationResult.Builder()
+                                .verificationStepName("Parse Records")
+                                .outcome(Outcome.SKIPPED)
+                                .explanation("There are no available Records to attempt parsing")
+                                .build());
+                        }
+                    }
+
                 } else {
                     verificationResults.add(new ConfigVerificationResult.Builder()
                         .verificationStepName("Determine Topic Offsets")
                         .outcome(Outcome.SKIPPED)
                         .explanation("Cannot determine Topic Offsets because a Topic Wildcard was used instead of an explicit Topic Name")
                         .build());
+
+                    if (readerFactory != null) {
+                        final ConfigVerificationResult checkDataResult = checkRecordIsParsable(lease);
+                        verificationResults.add(checkDataResult);
+                    }
                 }
             } catch (final Exception e) {
                 logger.error("Failed to determine Topic Offsets in order to verify configuration", e);
@@ -366,11 +381,12 @@ public class ConsumerPool implements Closeable {
                     .outcome(Outcome.FAILED)
                     .explanation("Could not fetch Topic Offsets: " + e)
                     .build());
-            }
 
-            if (readerFactory != null) {
-                final ConfigVerificationResult checkDataResult = checkRecordIsParsable(lease);
-                verificationResults.add(checkDataResult);
+                verificationResults.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Parse Records")
+                    .outcome(Outcome.SKIPPED)
+                    .explanation("Could not determine offsets so will not attempt to fetch records")
+                    .build());
             }
 
             return verificationResults;
