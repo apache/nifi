@@ -296,7 +296,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
         }
 
         final StopWatch stopWatch = new StopWatch(true);
-        final List<FileInfo> listing = transfer.getListing();
+        final List<FileInfo> listing = transfer.getListing(true);
         final long millis = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
 
         int newItems = 0;

@@ -29,7 +29,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.FileInfo;
@@ -47,6 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestListSFTP {
     @Rule
@@ -95,7 +99,7 @@ public class TestListSFTP {
             protected FileTransfer getFileTransfer(ProcessContext context) {
                 return new SFTPTransfer(context, getLogger()){
                     @Override
-                    protected void getListing(String path, int depth, int maxResults, List<FileInfo> listing) throws IOException {
+                    protected void getListing(String path, int depth, int maxResults, List<FileInfo> listing, boolean applyFilters) throws IOException {
                         if (path.contains("subdir")) {
                             reachScanningSubDir.countDown();
                             try {
@@ -105,7 +109,7 @@ public class TestListSFTP {
                             }
                         }
 
-                        super.getListing(path, depth, maxResults, listing);
+                        super.getListing(path, depth, maxResults, listing, applyFilters);
                     }
                 };
             }
@@ -193,6 +197,7 @@ public class TestListSFTP {
         Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS.get(TimeUnit.MILLISECONDS) * 2);
 
         runner.run();
+        assertVerificationOutcome(runner, Outcome.SUCCESSFUL, ".* Found 3 objects.  Of those, 3 match the filter.");
 
         runner.assertTransferCount(ListSFTP.REL_SUCCESS, 3);
 
@@ -231,10 +236,22 @@ public class TestListSFTP {
 
         runner.run();
 
+        assertVerificationOutcome(runner, Outcome.SUCCESSFUL, ".* Found 3 objects.  Of those, 1 matches the filter.");
         runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
 
         final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(ListSFTP.REL_SUCCESS).get(0);
         //the only file between the limits
         retrievedFile.assertAttributeEquals("filename", "file.txt");
+    }
+
+    private void assertVerificationOutcome(final TestRunner runner, final Outcome expectedOutcome, final String expectedExplanationRegex) {
+        final List<ConfigVerificationResult> results = ((VerifiableProcessor) runner.getProcessor())
+                .verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
+
+        assertEquals(1, results.size());
+        final ConfigVerificationResult result = results.get(0);
+        assertEquals(expectedOutcome, result.getOutcome());
+        assertTrue(String.format("Expected verification result to match pattern [%s].  Actual explanation was: %s", expectedExplanationRegex, result.getExplanation()),
+                result.getExplanation().matches(expectedExplanationRegex));
     }
 }

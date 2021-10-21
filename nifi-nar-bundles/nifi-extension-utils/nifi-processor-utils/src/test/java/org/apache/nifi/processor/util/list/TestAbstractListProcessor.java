@@ -17,7 +17,10 @@
 
 package org.apache.nifi.processor.util.list;
 
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
@@ -30,6 +33,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -43,6 +47,7 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.glassfish.jersey.internal.guava.Predicates;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -55,6 +60,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -62,11 +68,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestAbstractListProcessor {
 
@@ -224,9 +232,12 @@ public class TestAbstractListProcessor {
         proc.addEntity("one","firstFile",1585344381476L);
         proc.addEntity("two","secondFile",1585344381475L);
 
+        assertVerificationOutcome(Outcome.SUCCESSFUL, ".* Found 2 objects.  Of those, 2 match the filter.");
+
         runner.run();
         assertEquals(2, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
         assertEquals(2, proc.entities.size());
+        assertVerificationOutcome(Outcome.SUCCESSFUL, ".* Found 2 objects.  Of those, 2 match the filter.");
 
         final MockStateManager stateManager = runner.getStateManager();
         final Map<String, String> expectedState = new HashMap<>();
@@ -252,14 +263,16 @@ public class TestAbstractListProcessor {
 
         // Clear any listed entities after choose No Tracking Strategy
         proc.entities.clear();
+        assertVerificationOutcome(Outcome.SUCCESSFUL, ".* Found no objects.");
 
         // Add new entity
         proc.addEntity("one","firstFile",1585344381476L);
-        proc.listByNoTracking(context, session);
+        proc.listByTrackingTimestamps(context, session);
 
         // Test if state cleared or not
         runner.getStateManager().assertStateNotEquals(expectedState, Scope.CLUSTER);
         assertEquals(1, proc.entities.size());
+        assertVerificationOutcome(Outcome.SUCCESSFUL, ".* Found 1 object.  Of that, 1 matches the filter.");
     }
 
     @Test
@@ -285,14 +298,22 @@ public class TestAbstractListProcessor {
         proc.addEntity("one", "one", 1, 1);
         proc.currentTimestamp.set(1L);
         runner.clearTransferState();
+        // Prior to running the processor, we should expect 3 objects during verification
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
+                "Found 1 object.  Of that, 1 matches the filter.");
         runner.run();
         assertEquals(1, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
         runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(0)
             .assertAttributeEquals(CoreAttributes.FILENAME.key(), "one");
+        // The object is now tracked, so it's no longer considered new
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
+                "Found 1 object.  Of that, 1 matches the filter.");
 
         // Should not list any entity.
         proc.currentTimestamp.set(2L);
         runner.clearTransferState();
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
+                "Found 1 object.  Of that, 1 matches the filter.");
         runner.run();
         assertEquals(0, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
 
@@ -301,6 +322,8 @@ public class TestAbstractListProcessor {
         proc.addEntity("five", "five", 5, 5);
         proc.addEntity("six", "six", 6, 6);
         runner.clearTransferState();
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
+                "Found 3 objects.  Of those, 3 match the filter.");
         runner.run();
         assertEquals(2, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
         runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(0)
@@ -316,6 +339,8 @@ public class TestAbstractListProcessor {
         proc.addEntity("three", "three", 3, 3);
         proc.addEntity("four", "four", 4, 4);
         runner.clearTransferState();
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
+                "Found 6 objects.  Of those, 6 match the filter.");
         runner.run();
         assertEquals(2, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
         runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(0)
@@ -329,6 +354,8 @@ public class TestAbstractListProcessor {
         proc.addEntity("five", "five", 7, 5);
         proc.addEntity("six", "six", 6, 16);
         runner.clearTransferState();
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
+                "Found 6 objects.  Of those, 6 match the filter.");
         runner.run();
         assertEquals(2, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
         runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(0)
@@ -344,7 +371,12 @@ public class TestAbstractListProcessor {
         runner.setProperty(ConcreteListProcessor.RESET_STATE, "1");
         runner.setProperty(ListedEntityTracker.INITIAL_LISTING_TARGET, "window");
         runner.clearTransferState();
+
+        // Prior to running the processor, we should expect 3 objects during verification
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
+                "Found 6 objects.  Of those, 6 match the filter.");
         runner.run();
+
         assertEquals(3, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
         runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(0)
                 .assertAttributeEquals(CoreAttributes.FILENAME.key(), "four");
@@ -353,16 +385,44 @@ public class TestAbstractListProcessor {
         runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(2)
                 .assertAttributeEquals(CoreAttributes.FILENAME.key(), "five");
 
-
         // Reset state again.
         proc.currentTimestamp.set(20L);
         // ConcreteListProcessor can reset state with any property.
         runner.setProperty(ListedEntityTracker.INITIAL_LISTING_TARGET, "all");
         runner.setProperty(ConcreteListProcessor.RESET_STATE, "2");
         runner.clearTransferState();
+
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
+                "Found 6 objects.  Of those, 6 match the filter.");
+
         runner.run();
         // All entities should be picked, one to six.
         assertEquals(6, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
+        // Now all are tracked, so none are new
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
+                "Found 6 objects.  Of those, 6 match the filter.");
+
+        // Reset state again.
+        proc.currentTimestamp.set(25L);
+        runner.setProperty(ListedEntityTracker.INITIAL_LISTING_TARGET, "window");
+        runner.setProperty(ListedEntityTracker.TRACKING_TIME_WINDOW, "20ms");
+        runner.setProperty(ConcreteListProcessor.LISTING_FILTER, "f[a-z]+"); // Match only four and five
+        runner.setProperty(ConcreteListProcessor.RESET_STATE, "3");
+        runner.clearTransferState();
+
+        // Time window is now 5ms - 25ms, so only 5 and 6 fall in the window, so only 1 of the 2 filtered entities are considered 'new'
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
+                "Found 6 objects.  Of those, 2 match the filter.");
+    }
+
+    private void assertVerificationOutcome(final Outcome expectedOutcome, final String expectedExplanationRegex) {
+        final List<ConfigVerificationResult> results = proc.verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
+
+        assertEquals(1, results.size());
+        final ConfigVerificationResult result = results.get(0);
+        assertEquals(expectedOutcome, result.getOutcome());
+        assertTrue(String.format("Expected verification result to match pattern [%s].  Actual explanation was: %s", expectedExplanationRegex, result.getExplanation()),
+                result.getExplanation().matches(expectedExplanationRegex));
     }
 
     static class DistributedCache extends AbstractControllerService implements DistributedMapCacheClient {
@@ -434,6 +494,12 @@ public class TestAbstractListProcessor {
                 .name("reset-state")
                 .addValidator(Validator.VALID)
                 .build();
+        private static final PropertyDescriptor LISTING_FILTER = new PropertyDescriptor.Builder()
+                .name("listing-filter")
+                .displayName("Listing Filter")
+                .description("Filters listed entities by name.")
+                .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+                .build();
 
         final AtomicReference<Long> currentTimestamp = new AtomicReference<>();
 
@@ -453,6 +519,7 @@ public class TestAbstractListProcessor {
             properties.add(ListedEntityTracker.TRACKING_TIME_WINDOW);
             properties.add(ListedEntityTracker.INITIAL_LISTING_TARGET);
             properties.add(RESET_STATE);
+            properties.add(LISTING_FILTER);
             return properties;
         }
 
@@ -514,8 +581,17 @@ public class TestAbstractListProcessor {
         }
 
         @Override
-        protected List<ListableEntity> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
-            return getEntityList();
+        protected List<ListableEntity> performListing(final ProcessContext context, final Long minTimestamp, ListingMode listingMode) throws IOException {
+            final PropertyValue listingFilter = context.getProperty(LISTING_FILTER);
+            Predicate<ListableEntity> filter = listingFilter.isSet()
+                    ? entity -> entity.getName().matches(listingFilter.getValue())
+                    : Predicates.alwaysTrue();
+            return getEntityList().stream().filter(filter).collect(Collectors.toList());
+        }
+
+        @Override
+        protected Integer countUnfilteredListing(final ProcessContext context) throws IOException {
+            return entities.size();
         }
 
         List<ListableEntity> getEntityList() {
@@ -525,6 +601,11 @@ public class TestAbstractListProcessor {
         @Override
         protected boolean isListingResetNecessary(PropertyDescriptor property) {
             return RESET_STATE.equals(property);
+        }
+
+        @Override
+        protected String getListingContainerName(final ProcessContext context) {
+            return persistenceFilename;
         }
 
         @Override

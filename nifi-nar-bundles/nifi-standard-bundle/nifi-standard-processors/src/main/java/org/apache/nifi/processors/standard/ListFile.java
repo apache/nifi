@@ -338,7 +338,6 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        fileFilterRef.set(createFileFilter(context));
         includeFileAttributes = context.getProperty(INCLUDE_FILE_ATTRIBUTES).asBoolean();
 
         final long maxDiskOperationMillis = context.getProperty(MAX_DISK_OPERATION_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
@@ -351,6 +350,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         } else {
             performanceTracker = new UntrackedPerformanceTracker(getLogger(), maxDiskOperationMillis);
         }
+        fileFilterRef.set(createFileFilter(context, performanceTracker, true));
 
         final long millisToKeepStats = TimeUnit.MINUTES.toMillis(15);
         final MonitorActiveTasks monitorTask = new MonitorActiveTasks(performanceTracker, getLogger(), maxDiskOperationMillis, maxListingMillis, millisToKeepStats);
@@ -502,12 +502,31 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     }
 
     @Override
-    protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
+    protected Integer countUnfilteredListing(final ProcessContext context) throws IOException {
+        return performListing(context, 0L, ListingMode.CONFIGURATION_VERIFICATION, false).size();
+    }
+    @Override
+    protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode)
+            throws IOException {
+        return performListing(context, minTimestamp, listingMode, true);
+    }
+
+    private List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode, final boolean applyFilters)
+            throws IOException {
         final Path basePath = new File(getPath(context)).toPath();
         final Boolean recurse = context.getProperty(RECURSE).asBoolean();
         final Map<Path, BasicFileAttributes> lastModifiedMap = new HashMap<>();
 
-        final BiPredicate<Path, BasicFileAttributes> fileFilter = fileFilterRef.get();
+        final BiPredicate<Path, BasicFileAttributes> fileFilter;
+        final PerformanceTracker performanceTracker;
+        if (listingMode == ListingMode.EXECUTION) {
+            fileFilter = fileFilterRef.get();
+            performanceTracker = this.performanceTracker;
+        } else {
+            final long maxDiskOperationMillis = context.getProperty(MAX_DISK_OPERATION_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+            performanceTracker = new UntrackedPerformanceTracker(getLogger(), maxDiskOperationMillis);
+            fileFilter = createFileFilter(context, performanceTracker, applyFilters);
+        }
         int maxDepth = recurse ? Integer.MAX_VALUE : 1;
 
         final BiPredicate<Path, BasicFileAttributes> matcher = new BiPredicate<Path, BasicFileAttributes>() {
@@ -515,7 +534,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
             @Override
             public boolean test(final Path path, final BasicFileAttributes attributes) {
-                if (!isScheduled()) {
+                if (!isScheduled() && listingMode == ListingMode.EXECUTION) {
                     throw new ProcessorStoppedException();
                 }
 
@@ -536,10 +555,11 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 final TimedOperationKey operationKey = performanceTracker.beginOperation(DiskOperation.FILTER, relativePath, filename);
 
                 try {
-                    if (!isDirectory && (minTimestamp == null || attributes.lastModifiedTime().toMillis() >= minTimestamp)
-                        && fileFilter.test(path, attributes)) {
-                        // We store the attributes for each Path we are returning in order to avoid to
-                        // retrieve them again later when creating the FileInfo
+                    final boolean matchesFilters = (minTimestamp == null || attributes.lastModifiedTime().toMillis() >= minTimestamp)
+                            && fileFilter.test(path, attributes);
+                    if (!isDirectory && (!applyFilters || matchesFilters)) {
+                        // We store the attributes for each Path we are returning in order to avoid
+                        // retrieving them again later when creating the FileInfo
                         lastModifiedMap.put(path, attributes);
 
                         return true;
@@ -562,17 +582,17 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
             Files.walkFileTree(basePath, Collections.singleton(FileVisitOption.FOLLOW_LINKS), maxDepth, new FileVisitor<Path>() {
                 @Override
-                public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attributes) throws IOException {
+                public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attributes) {
                     if (Files.isReadable(dir)) {
                         return FileVisitResult.CONTINUE;
                     } else {
-                        getLogger().debug("The following directory is not readable: {}", new Object[] {dir.toString()});
+                        getLogger().debug("The following directory is not readable: {}", new Object[]{dir.toString()});
                         return FileVisitResult.SKIP_SUBTREE;
                     }
                 }
 
                 @Override
-                public FileVisitResult visitFile(final Path path, final BasicFileAttributes attributes) throws IOException {
+                public FileVisitResult visitFile(final Path path, final BasicFileAttributes attributes) {
                     if (matcher.test(path, attributes)) {
                         final File file = path.toFile();
                         final BasicFileAttributes fileAttributes = lastModifiedMap.get(path);
@@ -591,20 +611,20 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 }
 
                 @Override
-                public FileVisitResult visitFileFailed(final Path path, final IOException e) throws IOException {
+                public FileVisitResult visitFileFailed(final Path path, final IOException e) {
                     if (e instanceof AccessDeniedException) {
-                        getLogger().debug("The following file is not readable: {}", new Object[] {path.toString()});
+                        getLogger().debug("The following file is not readable: {}", new Object[]{path.toString()});
                         return FileVisitResult.SKIP_SUBTREE;
                     } else {
-                        getLogger().error("Error during visiting file {}: {}", new Object[] {path.toString(), e.getMessage()}, e);
+                        getLogger().error("Error during visiting file {}: {}", new Object[]{path.toString(), e.getMessage()}, e);
                         return FileVisitResult.TERMINATE;
                     }
                 }
 
                 @Override
-                public FileVisitResult postVisitDirectory(final Path dir, final IOException e) throws IOException {
+                public FileVisitResult postVisitDirectory(final Path dir, final IOException e) {
                     if (e != null) {
-                        getLogger().error("Error during visiting directory {}: {}", new Object[] {dir.toString(), e.getMessage()}, e);
+                        getLogger().error("Error during visiting directory {}: {}", new Object[]{dir.toString(), e.getMessage()}, e);
                     }
 
                     return FileVisitResult.CONTINUE;
@@ -619,8 +639,15 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             getLogger().info("Processor was stopped so will not complete listing of Files");
             return Collections.emptyList();
         } finally {
-            performanceTracker.completeActiveDirectory();
+            if (performanceTracker != null) {
+                performanceTracker.completeActiveDirectory();
+            }
         }
+    }
+
+    @Override
+    protected String getListingContainerName(final ProcessContext context) {
+        return String.format("%s Directory [%s]", context.getProperty(DIRECTORY_LOCATION).getValue(), getPath(context));
     }
 
     @Override
@@ -636,7 +663,8 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 || IGNORE_HIDDEN_FILES.equals(property);
     }
 
-    private BiPredicate<Path, BasicFileAttributes> createFileFilter(final ProcessContext context) {
+    private BiPredicate<Path, BasicFileAttributes> createFileFilter(final ProcessContext context, final PerformanceTracker performanceTracker,
+                                                                    final boolean applyFilters) {
         final long minSize = context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue();
         final Double maxSize = context.getProperty(MAX_SIZE).asDataSize(DataUnit.B);
         final long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
@@ -652,6 +680,10 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         final Path basePath = Paths.get(indir);
 
         return (path, attributes) -> {
+            if (!applyFilters) {
+                return true;
+            }
+
             if (minSize > attributes.size()) {
                 return false;
             }

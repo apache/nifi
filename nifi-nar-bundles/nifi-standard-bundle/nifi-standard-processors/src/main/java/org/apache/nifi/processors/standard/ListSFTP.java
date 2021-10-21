@@ -146,11 +146,17 @@ public class ListSFTP extends ListFileTransfer {
     }
 
     @Override
-    protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
-        final List<FileInfo> listing = super.performListing(context, minTimestamp);
+    protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode,
+                                            final boolean applyFilters) throws IOException {
+        final List<FileInfo> listing = super.performListing(context, minTimestamp, listingMode, applyFilters);
 
+        if (!applyFilters) {
+            return listing;
+        }
+
+        final Predicate<FileInfo> filePredicate = listingMode == ListingMode.EXECUTION ? this.fileFilter : createFileFilter(context);
         return listing.stream()
-                .filter(fileFilter)
+                .filter(filePredicate)
                 .collect(Collectors.toList());
     }
 
