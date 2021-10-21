@@ -17,6 +17,7 @@
 package org.apache.nifi.processor.util.list;
 
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.FlowFile;
@@ -30,7 +31,9 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestWatcher;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -225,6 +228,10 @@ public class ITAbstractListProcessor {
         runner.run();
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 1);
         runner.clearTransferState();
+
+        final List<ConfigVerificationResult> results = proc.verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
+        assertEquals(1, results.size());
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, results.get(0).getOutcome());
     }
 
     private void setTargetSystemTimestampPrecision(TimeUnit targetPrecision) {
