@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +65,7 @@ class RELPFrameDecoderTest {
         final List<RELPFrame> frames = getFrames(5);
         ByteBufOutputStream eventBytes = new ByteBufOutputStream(Unpooled.buffer());
         sendFrames(frames, eventBytes);
-        EmbeddedChannel channel = new EmbeddedChannel(new RELPFrameDecoder(logger, Charset.defaultCharset()));
+        EmbeddedChannel channel = new EmbeddedChannel(new RELPFrameDecoder(logger, StandardCharsets.UTF_8));
 
         assert(channel.writeInbound(eventBytes.buffer()));
         assertEquals(5, channel.inboundMessages().size());
@@ -78,7 +77,7 @@ class RELPFrameDecoderTest {
     }
 
     private void sendFrames(final List<RELPFrame> frames, final OutputStream outputStream) throws IOException {
-        RELPEncoder encoder = new RELPEncoder(Charset.defaultCharset());
+        RELPEncoder encoder = new RELPEncoder(StandardCharsets.UTF_8);
         for (final RELPFrame frame : frames) {
             final byte[] encodedFrame = encoder.encode(frame);
             outputStream.write(encodedFrame);
