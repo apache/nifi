@@ -48,10 +48,10 @@ public class RELPMessageChannelHandler extends SimpleChannelInboundHandler<RELPM
     protected void channelRead0(ChannelHandlerContext ctx, RELPMessage msg) {
         LOGGER.debug("RELP Message Received Length [{}] Remote Address [{}] ", msg.getMessage().length, msg.getSender());
         if (events.offer(msg)) {
-            LOGGER.debug("Added RELP message to event queue");
+            LOGGER.debug("Event Queued: RELP Message Sender [{}] Transaction Number [{}]", msg.getSender(), msg.getTxnr());
             ctx.writeAndFlush(Unpooled.wrappedBuffer(new RELPChannelResponse(encoder, RELPResponse.ok(msg.getTxnr())).toByteArray()));
         } else {
-            LOGGER.debug("Failed to add RELP message to event queue because queue was full");
+            LOGGER.debug("Event Queue Full: Failed RELP Message Sender [{}] Transaction Number [{}]", msg.getSender(), msg.getTxnr());
             ctx.writeAndFlush(Unpooled.wrappedBuffer(new RELPChannelResponse(encoder, RELPResponse.serverFullError(msg.getTxnr())).toByteArray()));
         }
     }
