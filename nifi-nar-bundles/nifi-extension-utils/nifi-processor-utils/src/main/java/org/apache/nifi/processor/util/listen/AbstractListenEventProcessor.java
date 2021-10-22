@@ -175,13 +175,13 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         charset = Charset.forName(context.getProperty(CHARSET).getValue());
         port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         events = new LinkedBlockingQueue<>(context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger());
-        final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
-        final InetAddress nicIPAddress = NetworkUtils.getInterfaceAddress(nicIPAddressStr);
+        final String interfaceName = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
+        final InetAddress interfaceAddress = NetworkUtils.getInterfaceAddress(interfaceName);
 
         final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         // create the dispatcher and call open() to bind to the given port
         dispatcher = createDispatcher(context, events);
-        dispatcher.open(nicIPAddress, port, maxChannelBufferSize);
+        dispatcher.open(interfaceAddress, port, maxChannelBufferSize);
 
         // start a thread to run the dispatcher
         final Thread readerThread = new Thread(dispatcher);

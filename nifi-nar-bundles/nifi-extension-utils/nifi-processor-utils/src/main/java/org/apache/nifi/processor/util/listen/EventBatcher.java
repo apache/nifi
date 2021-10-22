@@ -107,6 +107,13 @@ public abstract class EventBatcher<E extends ByteArrayMessage> {
         return batches;
     }
 
+    /**
+     * The implementation should generate the indexing key for the event, to allow batching together related events.
+     * Typically the batch key will be the sender IP + port to allow batching events from the same sender into a single
+     * flow file.
+     * @param event Use information from the event to generate a batching key
+     * @return The key to batch like-kind events together eg. sender ID/socket
+     */
     protected abstract String getBatchKey(E event);
 
     /**

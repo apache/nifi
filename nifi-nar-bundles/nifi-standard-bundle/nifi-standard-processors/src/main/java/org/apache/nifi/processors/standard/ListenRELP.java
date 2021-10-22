@@ -155,6 +155,7 @@ public class ListenRELP extends AbstractProcessor {
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(ListenerProperties.NETWORK_INTF_NAME);
         descriptors.add(ListenerProperties.PORT);
         descriptors.add(ListenerProperties.RECV_BUFFER_SIZE);
         descriptors.add(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE);
@@ -163,9 +164,8 @@ public class ListenRELP extends AbstractProcessor {
         descriptors.add(ListenerProperties.MAX_CONNECTIONS);
         descriptors.add(ListenerProperties.MAX_BATCH_SIZE);
         descriptors.add(ListenerProperties.MESSAGE_DELIMITER);
-        descriptors.add(ListenerProperties.NETWORK_INTF_NAME);
-        descriptors.add(CLIENT_AUTH);
         descriptors.add(SSL_CONTEXT_SERVICE);
+        descriptors.add(CLIENT_AUTH);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();

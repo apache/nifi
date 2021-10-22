@@ -19,12 +19,11 @@ package org.apache.nifi.remote.io.socket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.net.Socket;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class NetworkUtils {
@@ -94,20 +93,19 @@ public class NetworkUtils {
         return (result != null && result);
     }
 
-    public static InetAddress getInterfaceAddress(final String interfaceIPAddress) throws SocketException {
-        InetAddress nicIPAddress = null;
-        if (interfaceIPAddress != null && !interfaceIPAddress.isEmpty()) {
-            NetworkInterface netIF = NetworkInterface.getByName(interfaceIPAddress);
-            nicIPAddress = netIF.getInetAddresses().nextElement();
+    /**
+     * Get Interface Address using interface name eg. en0, eth0
+     *
+     * @param interfaceName Network Interface Name
+     * @return Interface Address or null when matching network interface name not found
+     * @throws SocketException Thrown when failing to get interface addresses
+     */
+    public static InetAddress getInterfaceAddress(final String interfaceName) throws SocketException {
+        InetAddress interfaceAddress = null;
+        if (interfaceName != null && !interfaceName.isEmpty()) {
+            NetworkInterface networkInterface = NetworkInterface.getByName(interfaceName);
+            interfaceAddress = networkInterface.getInetAddresses().nextElement();
         }
-        return nicIPAddress;
-    }
-
-    public static InetAddress getDefaultInterfaceAddress() {
-        try {
-            return InetAddress.getByName("127.0.0.1");
-        } catch (UnknownHostException e) {
-            return null;
-        }
+        return interfaceAddress;
     }
 }
