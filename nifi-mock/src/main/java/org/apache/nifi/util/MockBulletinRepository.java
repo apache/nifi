@@ -55,6 +55,11 @@ public class MockBulletinRepository implements BulletinRepository {
     }
 
     @Override
+    public List<Bulletin> findBulletinsForSource(final String sourceId, final String groupId) {
+        return null;
+    }
+
+    @Override
     public List<Bulletin> findBulletinsForGroupBySource(String groupId) {
         // TODO: Implement
         return null;

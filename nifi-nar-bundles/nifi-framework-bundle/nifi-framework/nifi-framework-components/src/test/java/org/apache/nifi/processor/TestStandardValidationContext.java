@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processor;
 
+import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -67,7 +68,7 @@ public class TestStandardValidationContext {
         // Property A's dependency is always satisfied b/c no dependency
         assertTrue(context.isDependencySatisfied(descriptorA, propertyLookup));
 
-        properties.put(descriptorA, new PropertyConfiguration("xyz", new StandardParameterTokenList("xyz", Collections.emptyList()), Collections.emptyList()));
+        properties.put(descriptorA, new PropertyConfiguration("xyz", new StandardParameterTokenList("xyz", Collections.emptyList()), Collections.emptyList(), VariableImpact.NEVER_IMPACTED));
         context = new StandardValidationContext(csProvider, properties, null, "1234", "12345", VariableRegistry.EMPTY_REGISTRY, null, false);
 
         // Should not be satisfied because A = "xyz".

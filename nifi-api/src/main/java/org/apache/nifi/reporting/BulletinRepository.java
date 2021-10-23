@@ -62,6 +62,17 @@ public interface BulletinRepository {
     List<Bulletin> findBulletinsForSource(String sourceId);
 
     /**
+     * Finds all bulletins for the specified source component that resides in the given group. While the
+     * {@link #findBulletinsForSource(String)} method may be used, this method is preferred when the ID of the group
+     * is known, as this is far more efficient.
+     *
+     * @param sourceId the id of the source component
+     * @param groupId the id of the process group
+     * @return bulletins for the given source
+     */
+    List<Bulletin> findBulletinsForSource(String sourceId, String groupId);
+
+    /**
      * Finds all bulletins for the specified group.
      *
      * @param groupId id of the group

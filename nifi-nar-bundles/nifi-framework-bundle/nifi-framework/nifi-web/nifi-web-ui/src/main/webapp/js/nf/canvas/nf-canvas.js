@@ -152,7 +152,10 @@
         return $.ajax({
             type: 'GET',
             url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(processGroupId),
-            dataType: 'json'
+            dataType: 'json',
+            data: {
+                uiOnly: true
+            }
         }).done(function (flowResponse) {
             // get the controller and its contents
             var processGroupFlow = flowResponse.processGroupFlow;

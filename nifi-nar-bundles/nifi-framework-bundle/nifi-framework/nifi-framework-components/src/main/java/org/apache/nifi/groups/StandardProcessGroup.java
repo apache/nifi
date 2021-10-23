@@ -22,8 +22,6 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
-import org.apache.nifi.attribute.expression.language.Query;
-import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -71,6 +69,22 @@ import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.flow.BatchSize;
+import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.ComponentType;
+import org.apache.nifi.flow.ConnectableComponent;
+import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedFunnel;
+import org.apache.nifi.flow.VersionedLabel;
+import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
+import org.apache.nifi.flow.VersionedRemoteGroupPort;
+import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
@@ -89,32 +103,16 @@ import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.flow.BatchSize;
-import org.apache.nifi.flow.Bundle;
-import org.apache.nifi.flow.ComponentType;
-import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.flow.VersionedComponent;
-import org.apache.nifi.flow.VersionedConnection;
-import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.registry.flow.VersionedFlow;
-import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
-import org.apache.nifi.flow.VersionedFunnel;
-import org.apache.nifi.flow.VersionedLabel;
 import org.apache.nifi.registry.flow.VersionedParameter;
 import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.flow.VersionedPort;
-import org.apache.nifi.flow.VersionedProcessGroup;
-import org.apache.nifi.flow.VersionedProcessor;
-import org.apache.nifi.flow.VersionedPropertyDescriptor;
-import org.apache.nifi.flow.VersionedRemoteGroupPort;
-import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.EvolvingDifferenceDescriptor;
@@ -3316,11 +3314,9 @@ public final class StandardProcessGroup implements ProcessGroup {
                     continue;
                 }
 
-                for (final VariableImpact impact : getVariableImpact(processor)) {
-                    for (final String variableName : updatedVariableNames) {
-                        if (impact.isImpacted(variableName)) {
-                            throw new IllegalStateException("Cannot update variable '" + variableName + "' because it is referenced by " + processor + ", which is currently running");
-                        }
+                for (final String variableName : updatedVariableNames) {
+                    if (isComponentImpactedByVariable(processor, variableName)) {
+                        throw new IllegalStateException("Cannot update variable '" + variableName + "' because it is referenced by " + processor + ", which is currently running");
                     }
                 }
             }
@@ -3331,11 +3327,9 @@ public final class StandardProcessGroup implements ProcessGroup {
                     continue;
                 }
 
-                for (final VariableImpact impact : getVariableImpact(service)) {
-                    for (final String variableName : updatedVariableNames) {
-                        if (impact.isImpacted(variableName)) {
-                            throw new IllegalStateException("Cannot update variable '" + variableName + "' because it is referenced by " + service + ", which is currently running");
-                        }
+                for (final String variableName : updatedVariableNames) {
+                    if (isComponentImpactedByVariable(service, variableName)) {
+                        throw new IllegalStateException("Cannot update variable '" + variableName + "' because it is referenced by " + service + ", which is currently running");
                     }
                 }
             }
@@ -3408,10 +3402,8 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         // Determine any Processors that references the variable
         for (final ProcessorNode processor : getProcessors()) {
-            for (final VariableImpact impact : getVariableImpact(processor)) {
-                if (impact.isImpacted(variableName)) {
-                    affected.add(processor);
-                }
+            if (isComponentImpactedByVariable(processor, variableName)) {
+                affected.add(processor);
             }
         }
 
@@ -3419,13 +3411,11 @@ public final class StandardProcessGroup implements ProcessGroup {
         // then that means that any other component that references that service is also affected, so recursively
         // find any references to that service and add it.
         for (final ControllerServiceNode service : getControllerServices(false)) {
-            for (final VariableImpact impact : getVariableImpact(service)) {
-                if (impact.isImpacted(variableName)) {
-                    affected.add(service);
+            if (isComponentImpactedByVariable(service, variableName)) {
+                affected.add(service);
 
-                    final ControllerServiceReference reference = service.getReferences();
-                    affected.addAll(reference.findRecursiveReferences(ComponentNode.class));
-                }
+                final ControllerServiceReference reference = service.getReferences();
+                affected.addAll(reference.findRecursiveReferences(ComponentNode.class));
             }
         }
 
@@ -3461,14 +3451,16 @@ public final class StandardProcessGroup implements ProcessGroup {
         return updatedVariableNames;
     }
 
-    private List<VariableImpact> getVariableImpact(final ComponentNode component) {
-        return component.getEffectivePropertyValues().keySet().stream()
-            .map(descriptor -> {
-                final String configuredVal = component.getEffectivePropertyValue(descriptor);
-                return configuredVal == null ? descriptor.getDefaultValue() : configuredVal;
-            })
-            .map(propVal -> Query.prepare(propVal).getVariableImpact())
-            .collect(Collectors.toList());
+    private boolean isComponentImpactedByVariable(final ComponentNode component, final String variableName) {
+        final List<PropertyDescriptor> propertyDescriptors = component.getPropertyDescriptors();
+        for (final PropertyDescriptor descriptor : propertyDescriptors) {
+            final PropertyConfiguration propertyConfiguration = component.getProperty(descriptor);
+            if (propertyConfiguration.getVariableImpact().isImpacted(variableName)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override

@@ -229,7 +229,7 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
     @Override
     public final List<PropertyDescriptor> getPropertyDescriptors() {
         final List<PropertyDescriptor> supported = getSupportedPropertyDescriptors();
-        return supported == null ? Collections.emptyList() : new ArrayList<>(supported);
+        return supported == null ? Collections.emptyList() : Collections.unmodifiableList(supported);
     }
 
     @Override

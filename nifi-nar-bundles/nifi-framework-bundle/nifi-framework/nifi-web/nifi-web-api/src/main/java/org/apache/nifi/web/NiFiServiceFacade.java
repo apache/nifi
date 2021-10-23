@@ -1009,9 +1009,10 @@ public interface NiFiServiceFacade {
      * Returns the flow.
      *
      * @param groupId group
+     * @param uiOnly whether or not the entity should be populated only with UI-related fields
      * @return the flow
      */
-    ProcessGroupFlowEntity getProcessGroupFlow(String groupId);
+    ProcessGroupFlowEntity getProcessGroupFlow(String groupId, boolean uiOnly);
 
     // ----------------------------------------
     // ProcessGroup methods

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterTokenList;
@@ -27,17 +28,23 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class PropertyConfiguration {
-    public static PropertyConfiguration EMPTY = new PropertyConfiguration(null, new StandardParameterTokenList(null, Collections.emptyList()), Collections.emptyList());
+    public static PropertyConfiguration EMPTY = new PropertyConfiguration(null, new StandardParameterTokenList(null, Collections.emptyList()), Collections.emptyList(), VariableImpact.NEVER_IMPACTED);
 
     private final String rawValue;
     private final ParameterTokenList parameterTokenList;
     private final List<ParameterReference> parameterReferences;
+    private final VariableImpact variableImpact;
     private final AtomicReference<ComputedEffectiveValue> effectiveValue = new AtomicReference<>();
 
-    public PropertyConfiguration(final String rawValue, final ParameterTokenList tokenList, final List<ParameterReference> parameterReferences) {
+    public PropertyConfiguration(final String rawValue, final ParameterTokenList tokenList, final List<ParameterReference> parameterReferences, final VariableImpact variableImpact) {
         this.rawValue = rawValue;
         this.parameterTokenList = tokenList;
         this.parameterReferences = parameterReferences;
+        this.variableImpact = variableImpact;
+    }
+
+    public VariableImpact getVariableImpact() {
+        return variableImpact;
     }
 
     public String getRawValue() {
