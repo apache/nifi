@@ -18,7 +18,9 @@
 package org.apache.nifi.controller.state.manager;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -232,7 +234,8 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             propertyMap.put(descriptor, new StandardPropertyValue(resourceContext, descriptor.getDefaultValue(),null, parameterLookup, variableRegistry));
 
             final ParameterTokenList references = parser.parseTokens(descriptor.getDefaultValue());
-            final PropertyConfiguration configuration = new PropertyConfiguration(descriptor.getDefaultValue(), references, references.toReferenceList());
+            final VariableImpact variableImpact = Query.prepare(descriptor.getDefaultValue()).getVariableImpact();
+            final PropertyConfiguration configuration = new PropertyConfiguration(descriptor.getDefaultValue(), references, references.toReferenceList(), variableImpact);
 
             propertyStringMap.put(descriptor, configuration);
         }
@@ -242,7 +245,8 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             final PropertyDescriptor descriptor = provider.getPropertyDescriptor(entry.getKey());
 
             final ParameterTokenList references = parser.parseTokens(entry.getValue());
-            final PropertyConfiguration configuration = new PropertyConfiguration(entry.getValue(), references, references.toReferenceList());
+            final VariableImpact variableImpact = Query.prepare(entry.getValue()).getVariableImpact();
+            final PropertyConfiguration configuration = new PropertyConfiguration(entry.getValue(), references, references.toReferenceList(), variableImpact);
 
             propertyStringMap.put(descriptor, configuration);
             final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);

@@ -346,7 +346,6 @@ public class FlowResource extends ApplicationResource {
      *
      * @param groupId The id of the process group.
      * @return A processGroupEntity.
-     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -357,7 +356,9 @@ public class FlowResource extends ApplicationResource {
             response = ProcessGroupFlowEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow")
-            }
+            },
+            notes = "If the uiOnly query parameter is provided with a value of true, the returned entity may only contain fields that are necessary for rendering the NiFi User Interface. As such, " +
+                "the selected fields may change at any time, even during incremental releases, without warning. As a result, this parameter should not be provided by any client other than the UI."
     )
     @ApiResponses(
             value = {
@@ -373,7 +374,8 @@ public class FlowResource extends ApplicationResource {
                     value = "The process group id.",
                     required = false
             )
-            @PathParam("id") String groupId) throws InterruptedException {
+            @PathParam("id") final String groupId,
+            @QueryParam("uiOnly") @DefaultValue("false") final boolean uiOnly) {
 
         authorizeFlow();
 
@@ -382,7 +384,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get this process group flow
-        final ProcessGroupFlowEntity entity = serviceFacade.getProcessGroupFlow(groupId);
+        final ProcessGroupFlowEntity entity = serviceFacade.getProcessGroupFlow(groupId, uiOnly);
         populateRemainingFlowContent(entity.getProcessGroupFlow());
         return generateOkResponse(entity).build();
     }

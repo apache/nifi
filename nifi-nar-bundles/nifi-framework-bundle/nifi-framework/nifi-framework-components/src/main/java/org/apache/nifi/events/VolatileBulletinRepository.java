@@ -24,6 +24,7 @@ import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.Filter;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -32,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 public class VolatileBulletinRepository implements BulletinRepository {
 
@@ -70,14 +72,31 @@ public class VolatileBulletinRepository implements BulletinRepository {
 
     @Override
     public List<Bulletin> findBulletins(final BulletinQuery bulletinQuery) {
-        final Filter<Bulletin> filter = new Filter<Bulletin>() {
+        final Filter<Bulletin> filter = createFilter(bulletinQuery);
+
+        final Set<Bulletin> selected = new TreeSet<>();
+        int max = bulletinQuery.getLimit() == null ? Integer.MAX_VALUE : bulletinQuery.getLimit();
+
+        for (final ConcurrentMap<String, RingBuffer<Bulletin>> componentMap : bulletinStoreMap.values()) {
+            for (final RingBuffer<Bulletin> ringBuffer : componentMap.values()) {
+                final List<Bulletin> bulletinsForComponent = ringBuffer.getSelectedElements(filter, max);
+                selected.addAll(bulletinsForComponent);
+                max -= bulletinsForComponent.size();
+                if (max <= 0) {
+                    break;
+                }
+            }
+        }
+
+        return new ArrayList<>(selected);
+    }
+
+    private Filter<Bulletin> createFilter(final BulletinQuery bulletinQuery) {
+        final long fiveMinutesAgo = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5);
+
+        return new Filter<Bulletin>() {
             @Override
             public boolean select(final Bulletin bulletin) {
-                final long fiveMinutesAgo = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5);
-                if (bulletin.getTimestamp().getTime() < fiveMinutesAgo) {
-                    return false;
-                }
-
                 // only include bulletins after the specified id
                 if (bulletinQuery.getAfter() != null && bulletin.getId() <= bulletinQuery.getAfter()) {
                     return false;
@@ -107,6 +126,10 @@ public class VolatileBulletinRepository implements BulletinRepository {
                     }
                 }
 
+                if (bulletin.getTimestamp().getTime() < fiveMinutesAgo) {
+                    return false;
+                }
+
                 // if a source id was specified see if it should be excluded
                 if (bulletinQuery.getSourceIdPattern() != null) {
                     // exclude if this bulletin doesn't have a source id or if it doesn't match
@@ -126,27 +149,40 @@ public class VolatileBulletinRepository implements BulletinRepository {
                 return true;
             }
         };
-
-        final Set<Bulletin> selected = new TreeSet<>();
-        int max = bulletinQuery.getLimit() == null ? Integer.MAX_VALUE : bulletinQuery.getLimit();
-
-        for (final ConcurrentMap<String, RingBuffer<Bulletin>> componentMap : bulletinStoreMap.values()) {
-            for (final RingBuffer<Bulletin> ringBuffer : componentMap.values()) {
-                final List<Bulletin> bulletinsForComponent = ringBuffer.getSelectedElements(filter, max);
-                selected.addAll(bulletinsForComponent);
-                max -= bulletinsForComponent.size();
-                if (max <= 0) {
-                    break;
-                }
-            }
-        }
-
-        return new ArrayList<>(selected);
     }
 
     @Override
-    public List<Bulletin> findBulletinsForSource(String sourceId) {
-        return findBulletins(new BulletinQuery.Builder().sourceIdMatches(sourceId).limit(COMPONENT_BUFFER_SIZE).build());
+    public List<Bulletin> findBulletinsForSource(final String sourceId, final String groupId) {
+        final BulletinQuery bulletinQuery = new BulletinQuery.Builder().sourceIdMatches(Pattern.quote(sourceId)).groupIdMatches(Pattern.quote(groupId)).limit(COMPONENT_BUFFER_SIZE).build();
+        final ConcurrentMap<String, RingBuffer<Bulletin>> componentMap = bulletinStoreMap.get(groupId);
+        if (componentMap == null) {
+            return Collections.emptyList();
+        }
+
+        return findBulletinsForSource(sourceId, bulletinQuery, Collections.singleton(componentMap));
+    }
+
+    @Override
+    public List<Bulletin> findBulletinsForSource(final String sourceId) {
+        final BulletinQuery bulletinQuery = new BulletinQuery.Builder().sourceIdMatches(Pattern.quote(sourceId)).limit(COMPONENT_BUFFER_SIZE).build();
+        return findBulletinsForSource(sourceId, bulletinQuery, this.bulletinStoreMap.values());
+    }
+
+    private List<Bulletin> findBulletinsForSource(final String sourceId, final BulletinQuery bulletinQuery, final Collection<ConcurrentMap<String, RingBuffer<Bulletin>>> bulletinStoreMaps) {
+        final Filter<Bulletin> filter = createFilter(bulletinQuery);
+
+        final int max = bulletinQuery.getLimit() == null ? Integer.MAX_VALUE : bulletinQuery.getLimit();
+        for (final ConcurrentMap<String, RingBuffer<Bulletin>> componentMap : bulletinStoreMaps) {
+            final RingBuffer<Bulletin> ringBuffer = componentMap.get(sourceId);
+            if (ringBuffer == null) {
+                continue;
+            }
+
+            final List<Bulletin> bulletinsForComponent = ringBuffer.getSelectedElements(filter, max);
+            return bulletinsForComponent;
+        }
+
+        return Collections.emptyList();
     }
 
     @Override
