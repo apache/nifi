@@ -20,10 +20,11 @@ package org.apache.nifi.util;
 import java.lang.management.LockInfo;
 import java.lang.management.MonitorInfo;
 import java.lang.management.ThreadInfo;
+import java.util.Objects;
 
 public class ThreadUtils {
 
-    public static String createStackTrace(final Thread thread, final ThreadInfo threadInfo, final long[] deadlockedThreadIds, final long[] monitorDeadlockThreadIds, final long activeMillis) {
+    public static String createStackTrace(final ThreadInfo threadInfo, final long[] deadlockedThreadIds, final long[] monitorDeadlockThreadIds) {
         final StringBuilder sb = new StringBuilder();
         sb.append("\"").append(threadInfo.getThreadName()).append("\" Id=");
         sb.append(threadInfo.getThreadId()).append(" ");
@@ -69,7 +70,7 @@ public class ThreadUtils {
 
             final MonitorInfo[] monitors = threadInfo.getLockedMonitors();
             for (final MonitorInfo monitor : monitors) {
-                if (monitor.getLockedStackFrame().equals(element)) {
+                if (Objects.equals(monitor.getLockedStackFrame(), element)) {
                     sb.append("\n\t- waiting on ").append(monitor);
                 }
             }
