@@ -183,6 +183,16 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .defaultValue(ClientAuth.REQUIRED.name())
         .dependsOn(SSL_CONTEXT_SERVICE)
         .build();
+    public static final PropertyDescriptor SOCKET_KEEP_ALIVE = new PropertyDescriptor.Builder()
+            .name("socket-keep-alive")
+            .displayName("Socket Keep Alive")
+            .description("Whether or not to have TCP socket keep alive turned on. Timing details depend on operating system properties.")
+            .required(true)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+            .defaultValue(Boolean.FALSE.toString())
+            .dependsOn(PROTOCOL, TCP_VALUE)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -211,6 +221,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         descriptors.add(PROTOCOL);
         descriptors.add(PORT);
         descriptors.add(NETWORK_INTF_NAME);
+        descriptors.add(SOCKET_KEEP_ALIVE);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(CLIENT_AUTH);
         descriptors.add(RECV_BUFFER_SIZE);
@@ -289,6 +300,9 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         final int maxConnections = context.getProperty(MAX_CONNECTIONS).asLong().intValue();
         factory.setWorkerThreads(maxConnections);
         factory.setSocketReceiveBuffer(maxSocketBufferSize);
+
+        final Boolean socketKeepAlive = context.getProperty(SOCKET_KEEP_ALIVE).asBoolean();
+        factory.setSocketKeepAlive(socketKeepAlive);
 
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
