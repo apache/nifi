@@ -121,7 +121,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             .description("Comma-separated list of paths to files and/or directories which contain modules containing custom transformations (that are not included on NiFi's classpath).")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -209,7 +209,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             final ClassLoader customClassLoader;
 
             try {
-                if (modulePath != null) {
+                if (modulePath != null && !validationContext.isExpressionLanguagePresent(modulePath)) {
                     customClassLoader = ClassLoaderUtils.getCustomClassLoader(modulePath, this.getClass().getClassLoader(), getJarFilenameFilter());
                 } else {
                     customClassLoader =  this.getClass().getClassLoader();
@@ -342,7 +342,7 @@ public class JoltTransformJSON extends AbstractProcessor {
                 .build();
 
         try {
-            if (context.getProperty(MODULES).isSet()) {
+            if (context.getProperty(MODULES).isSet() && !context.getProperty(MODULES).isExpressionLanguagePresent()) {
                 customClassLoader = ClassLoaderUtils.getCustomClassLoader(context.getProperty(MODULES).getValue(), this.getClass().getClassLoader(), getJarFilenameFilter());
             } else {
                 customClassLoader = this.getClass().getClassLoader();

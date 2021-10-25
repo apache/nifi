@@ -161,7 +161,7 @@ public class JoltTransformRecord extends AbstractProcessor {
             .displayName("Custom Module Directory")
             .description("Comma-separated list of paths to files and/or directories which contain modules containing custom transformations (that are not included on NiFi's classpath).")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .dynamicallyModifiesClasspath(true)
             .build();
@@ -479,7 +479,6 @@ public class JoltTransformRecord extends AbstractProcessor {
         }
 
         if (CUSTOMR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())) {
-            getLogger().error("Custom tranform", context.getProperty(CUSTOM_CLASS).evaluateAttributeExpressions(flowFile));
             return TransformFactory.getCustomTransform(Thread.currentThread().getContextClassLoader(), context.getProperty(CUSTOM_CLASS).evaluateAttributeExpressions(flowFile).getValue(), specJson);
         } else {
             return TransformFactory.getTransform(Thread.currentThread().getContextClassLoader(), context.getProperty(JOLT_TRANSFORM).getValue(), specJson);
