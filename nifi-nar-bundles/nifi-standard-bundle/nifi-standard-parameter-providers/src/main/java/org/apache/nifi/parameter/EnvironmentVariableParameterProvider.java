@@ -18,20 +18,23 @@ package org.apache.nifi.parameter;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Tags({"environment", "variable"})
 @CapabilityDescription("Fetches parameters from environment variables")
-public class EnvironmentVariableParameterProvider extends AbstractParameterProvider {
+public class EnvironmentVariableParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
     private final Map<String, String> environmentVariables = System.getenv();
 
     public static final PropertyDescriptor INCLUDE_REGEX = new PropertyDescriptor.Builder()
@@ -83,5 +86,32 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
                     return new Parameter(parameterDescriptor, entry.getValue(), null, true);
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger) {
+        final Pattern includePattern = Pattern.compile(context.getProperty(INCLUDE_REGEX).getValue());
+        final Pattern excludePattern = context.getProperty(EXCLUDE_REGEX).isSet()
+                ? Pattern.compile(context.getProperty(EXCLUDE_REGEX).getValue())
+                : null;
+
+        final Set<String> includedVariables = environmentVariables.keySet().stream()
+                .filter(key -> includePattern.matcher(key).matches())
+                .collect(Collectors.toSet());
+
+        final String verificationMessage;
+        if (excludePattern == null) {
+            verificationMessage = String.format("Included %s environment variables matching the filter.", includedVariables.size());
+        } else {
+            final int finalCount = Long.valueOf(includedVariables.stream()
+                    .filter(key -> !excludePattern.matcher(key).matches())
+                    .count()).intValue();
+            verificationMessage = String.format("Included %s environment variables matching the filter, and excluded %s of these, resulting in a total of %s parameters.", includedVariables.size(),
+                    (includedVariables.size() - finalCount), finalCount);
+        }
+        return Collections.singletonList(new ConfigVerificationResult.Builder()
+                .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                .verificationStepName("Fetch Environment Variables")
+                .explanation(verificationMessage).build());
     }
 }

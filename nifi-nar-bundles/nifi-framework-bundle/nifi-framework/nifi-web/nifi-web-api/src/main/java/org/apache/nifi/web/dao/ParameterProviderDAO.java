@@ -25,6 +25,7 @@ import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface ParameterProviderDAO extends ParameterProviderLookup {

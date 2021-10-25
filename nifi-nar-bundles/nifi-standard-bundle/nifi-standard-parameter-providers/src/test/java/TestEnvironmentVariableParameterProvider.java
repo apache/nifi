@@ -15,10 +15,12 @@
  * limitations under the License.
  */
 
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.parameter.EnvironmentVariableParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.VerifiableParameterProvider;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
@@ -57,18 +59,28 @@ public class TestEnvironmentVariableParameterProvider {
         }
         final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);
 
+        // Verify parameter fetching
         final List<Parameter> parameters = parameterProvider.fetchParameters(mockConfigurationContext);
-
         assertEquals(filteredVariables.size(), parameters.size());
+
+        // Verify config verification
+        final List<ConfigVerificationResult> results = ((VerifiableParameterProvider) parameterProvider).verify(mockConfigurationContext, initContext.getLogger());
+
+        assertEquals(1, results.size());
     }
 
     @Test
-    public void testSensitiveParameterProvider() throws InitializationException, IOException {
+    public void testParameterProviderWithoutExclude() throws InitializationException, IOException {
         runProviderTest("P.*", null);
     }
 
     @Test
-    public void testNonSensitiveParameterProvider() throws InitializationException, IOException {
+    public void testParameterProviderWithExclude() throws InitializationException, IOException {
         runProviderTest(".*", "P.*");
+    }
+
+    @Test
+    public void testParameterProviderWithOverlappingExclude() throws InitializationException, IOException {
+        runProviderTest("[A-Z_]+", "[J-N][\\w]+");
     }
 }

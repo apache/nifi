@@ -83,7 +83,6 @@ import org.apache.nifi.cluster.coordination.http.endpoints.UserGroupsEndpointMer
 import org.apache.nifi.cluster.coordination.http.endpoints.UsersEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.VariableRegistryEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.VerifyConfigEndpointMerger;
-import org.apache.nifi.cluster.coordination.http.endpoints.VerifyControllerServiceConfigEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.stream.io.NullOutputStream;
