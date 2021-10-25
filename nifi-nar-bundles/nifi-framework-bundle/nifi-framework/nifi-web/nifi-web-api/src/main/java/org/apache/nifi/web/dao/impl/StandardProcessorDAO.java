@@ -125,6 +125,11 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             // configure the processor
             configureProcessor(processor, processorDTO);
 
+            // Notify the processor node that the configuration (properties, e.g.) has been restored
+            final StandardProcessContext processContext = new StandardProcessContext(processor, flowController.getControllerServiceProvider(), flowController.getEncryptor(),
+                    flowController.getStateManagerProvider().getStateManager(processor.getProcessor().getIdentifier()), () -> false, flowController);
+            processor.onConfigurationRestored(processContext);
+
             return processor;
         } catch (IllegalStateException | ComponentLifeCycleException ise) {
             throw new NiFiCoreException(ise.getMessage(), ise);

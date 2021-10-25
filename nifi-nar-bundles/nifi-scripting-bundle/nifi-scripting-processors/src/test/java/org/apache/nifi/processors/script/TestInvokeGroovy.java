@@ -18,7 +18,9 @@ package org.apache.nifi.processors.script;
 
 import org.apache.commons.codec.binary.Hex;
 
+import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -140,14 +142,14 @@ public class TestInvokeGroovy extends BaseScriptTest {
      */
     @Test
     public void testInvokeScriptCausesException() {
-        final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
+        final TestRunner runner = TestRunners.newTestRunner(new OverrideInvokeScriptedProcessor());
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "groovy/testInvokeScriptCausesException.groovy")
         );
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
-        assertThrows(AssertionError.class, () -> runner.run());
+        assertThrows(AssertionError.class, runner::run);
     }
 
     /**
@@ -198,7 +200,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
 
         runner.assertAllFlowFilesTransferred("success", 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship("success");
-        assertTrue(result.size() == 1);
+        assertEquals(1, result.size());
         final String expectedOutput = new String(Hex.encodeHex(MessageDigestUtils.getDigest("testbla bla".getBytes())));
         final MockFlowFile outputFlowFile = result.get(0);
         outputFlowFile.assertContentEquals(expectedOutput);
@@ -237,5 +239,23 @@ public class TestInvokeGroovy extends BaseScriptTest {
         assertEquals(1, result.size());
         MockFlowFile ff = result.get(0);
         ff.assertContentEquals("48\n47\n14\n");
+    }
+
+    private static class OverrideInvokeScriptedProcessor extends InvokeScriptedProcessor {
+
+        private int numTimesModifiedCalled = 0;
+
+        @OnConfigurationRestored
+        @Override
+        public void onConfigurationRestored(ProcessContext context) {
+            super.onConfigurationRestored(context);
+            assertEquals(this.getSupportedPropertyDescriptors().size(), numTimesModifiedCalled);
+        }
+
+        @Override
+        public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+            super.onPropertyModified(descriptor, oldValue, newValue);
+            numTimesModifiedCalled++;
+        }
     }
 }
