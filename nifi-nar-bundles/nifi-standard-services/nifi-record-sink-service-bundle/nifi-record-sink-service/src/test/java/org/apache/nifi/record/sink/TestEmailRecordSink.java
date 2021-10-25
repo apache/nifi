@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.record.sink;
 
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
@@ -31,8 +33,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.mail.Message;
-import javax.mail.MessagingException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
