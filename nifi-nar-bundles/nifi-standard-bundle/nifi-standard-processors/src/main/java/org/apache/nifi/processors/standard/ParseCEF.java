@@ -144,6 +144,19 @@ public class ParseCEF extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .required(true)
             .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
+    public static final PropertyDescriptor VALIDATE_DATA = new PropertyDescriptor.Builder()
+            .name("VALIDATE_DATA")
+            .displayName("Validate the CEF event")
+            .description("If set to true, the event will be validated against the CEF standard (revision 23). If the event is invalid, the "
+                    + "FlowFile will be routed to the failure relationship. If this property is set to false, the event will be processed "
+                    + "without validating the data.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .required(true)
+            .defaultValue("true")
+            .allowableValues("true", "false")
             .build();
 
     public static final String UTC = "UTC";
@@ -187,6 +200,7 @@ public class ParseCEF extends AbstractProcessor {
         properties.add(FIELDS_DESTINATION);
         properties.add(APPEND_RAW_MESSAGE_TO_JSON);
         properties.add(INCLUDE_CUSTOM_EXTENSIONS);
+        properties.add(VALIDATE_DATA);
         properties.add(TIME_REPRESENTATION);
         properties.add(DATETIME_REPRESENTATION);
         return properties;
@@ -247,7 +261,8 @@ public class ParseCEF extends AbstractProcessor {
             // parcefoneLocale defaults to en_US, so this should not fail. But we force failure in case the custom
             // validator failed to identify an invalid Locale
             final Locale parcefoneLocale = Locale.forLanguageTag(context.getProperty(DATETIME_REPRESENTATION).getValue());
-            event = parser.parse(buffer, true, parcefoneLocale);
+            final boolean validateData = context.getProperty(VALIDATE_DATA).asBoolean();
+            event = parser.parse(buffer, validateData, parcefoneLocale);
 
         } catch (Exception e) {
             // This should never trigger but adding in here as a fencing mechanism to
