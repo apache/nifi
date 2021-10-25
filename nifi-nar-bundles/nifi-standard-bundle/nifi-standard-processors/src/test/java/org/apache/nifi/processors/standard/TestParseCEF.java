@@ -342,5 +342,34 @@ public class TestParseCEF {
         Assert.assertEquals(200, extension.get("http_response").asInt());
     }
 
+    @Test
+    public void testDataValidation() throws Exception {
+        String invalidEvent = sample1 + " proto=ICMP"; // according to the standard, proto can be either tcp or udp.
+
+        final TestRunner runner = TestRunners.newTestRunner(new ParseCEF());
+        runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_CONTENT);
+        runner.setProperty(ParseCEF.TIME_REPRESENTATION, ParseCEF.UTC);
+        runner.enqueue(invalidEvent.getBytes());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ParseCEF.REL_FAILURE, 1);
+
+        runner.clearTransferState();
+        runner.setProperty(ParseCEF.VALIDATE_DATA, "false");
+        runner.enqueue(invalidEvent.getBytes());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 1);
+
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
+
+        byte [] rawJson = mff.toByteArray();
+
+        JsonNode results = new ObjectMapper().readTree(rawJson);
+
+        JsonNode extension = results.get("extension");
+        Assert.assertEquals("ICMP", extension.get("proto").asText());
+    }
+
 }
 
