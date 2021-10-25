@@ -306,7 +306,7 @@ public class ListenRELP extends AbstractProcessor {
         }
     }
 
-    private NettyEventServerFactory getNettyEventServerFactory(InetAddress hostname, int port, Charset charset, BlockingQueue events) {
+    private NettyEventServerFactory getNettyEventServerFactory(final InetAddress hostname, final int port, final Charset charset, final BlockingQueue events) {
         return new RELPMessageServerFactory(getLogger(), hostname, port, charset, events);
     }
 
