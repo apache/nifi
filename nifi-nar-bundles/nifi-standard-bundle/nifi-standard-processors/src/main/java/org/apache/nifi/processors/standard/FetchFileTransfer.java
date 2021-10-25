@@ -261,18 +261,22 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                 flowFile = transfer.getRemoteFile(filename, flowFile, session);
 
             } catch (final FileNotFoundException e) {
-                closeConnection = false;
                 getLogger().log(levelFileNotFound, "Failed to fetch content for {} from filename {} on remote host {} because the file could not be found on the remote system; routing to {}",
-                        new Object[]{flowFile, filename, host, REL_NOT_FOUND.getName()});
+                        flowFile, filename, host, REL_NOT_FOUND.getName());
                 session.transfer(session.penalize(flowFile), REL_NOT_FOUND);
                 session.getProvenanceReporter().route(flowFile, REL_NOT_FOUND);
+                if (transfer != null) {
+                    cleanupTransfer(transfer, closeConnection, transferQueue, host, port);
+                }
                 return;
             } catch (final PermissionDeniedException e) {
-                closeConnection = false;
                 getLogger().error("Failed to fetch content for {} from filename {} on remote host {} due to insufficient permissions; routing to {}",
-                        new Object[]{flowFile, filename, host, REL_PERMISSION_DENIED.getName()});
+                        flowFile, filename, host, REL_PERMISSION_DENIED.getName());
                 session.transfer(session.penalize(flowFile), REL_PERMISSION_DENIED);
                 session.getProvenanceReporter().route(flowFile, REL_PERMISSION_DENIED);
+                if (transfer != null) {
+                    cleanupTransfer(transfer, closeConnection, transferQueue, host, port);
+                }
                 return;
             } catch (final ProcessException | IOException e) {
                 closeConnection = true;
@@ -314,9 +318,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             session.commitAsync(() -> {
                 performCompletionStrategy(transfer, context, flowFileReceived, filename, host, port);
                 cleanupTask.run();
-            }, t -> {
-                cleanupTask.run();
-            });
+            }, t -> cleanupTask.run());
         } catch (final Throwable t) {
             getLogger().error("Failed to fetch file", t);
             if (transfer != null) {
