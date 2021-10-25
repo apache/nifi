@@ -58,6 +58,8 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
 
     private Integer socketReceiveBuffer;
 
+    private Boolean socketKeepAlive;
+
     private SSLContext sslContext;
 
     private ClientAuth clientAuth = ClientAuth.NONE;
@@ -79,6 +81,15 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
      */
     public void setHandlerSupplier(final Supplier<List<ChannelHandler>> handlerSupplier) {
         this.handlerSupplier = Objects.requireNonNull(handlerSupplier);
+    }
+
+    /**
+     * Set Socket Keep Alive for TCP Sockets
+     *
+     * @param socketKeepAlive Keep Alive can be null to use default setting
+     */
+    public void setSocketKeepAlive(final Boolean socketKeepAlive) {
+        this.socketKeepAlive = socketKeepAlive;
     }
 
     /**
@@ -134,16 +145,19 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     @Override
     public EventServer getEventServer() {
         final AbstractBootstrap<?, ?> bootstrap = getBootstrap();
-        setBufferSize(bootstrap);
+        setChannelOptions(bootstrap);
         final EventLoopGroup group = getEventLoopGroup();
         bootstrap.group(group);
         return getBoundEventServer(bootstrap, group);
     }
 
-    private void setBufferSize(AbstractBootstrap<?, ?> bootstrap) {
+    private void setChannelOptions(final AbstractBootstrap<?, ?> bootstrap) {
         if (socketReceiveBuffer != null) {
             bootstrap.option(ChannelOption.SO_RCVBUF, socketReceiveBuffer);
             bootstrap.option(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(socketReceiveBuffer));
+        }
+        if (socketKeepAlive != null) {
+            bootstrap.option(ChannelOption.SO_KEEPALIVE, socketKeepAlive);
         }
     }
 

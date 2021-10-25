@@ -98,6 +98,7 @@ public class TestListenSyslog {
         final TransportProtocol protocol = TransportProtocol.TCP;
         runner.setProperty(ListenSyslog.PROTOCOL, protocol.toString());
         runner.setProperty(ListenSyslog.PORT, Integer.toString(port));
+        runner.setProperty(ListenSyslog.SOCKET_KEEP_ALIVE, Boolean.FALSE.toString());
 
         assertSendSuccess(protocol, port);
     }
