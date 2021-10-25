@@ -108,25 +108,19 @@ public class ListenRELP extends AbstractProcessor {
     protected List<PropertyDescriptor> descriptors;
     protected Set<Relationship> relationships;
     protected volatile int port;
-    protected volatile Charset charset;
     protected volatile BlockingQueue<RELPMessage> events;
     protected volatile BlockingQueue<RELPMessage> errorEvents;
-    protected volatile InetAddress hostname;
-    protected EventServer eventServer;
+    protected volatile EventServer eventServer;
     protected volatile byte[] messageDemarcatorBytes;
-    protected volatile SSLContext sslContext;
-    protected volatile ClientAuth clientAuth;
-    protected volatile int maxConnections;
-    protected volatile int bufferSize;
     protected volatile EventBatcher eventBatcher;
 
     @OnScheduled
     public void onScheduled(ProcessContext context) throws IOException {
-        maxConnections = context.getProperty(ListenerProperties.MAX_CONNECTIONS).asInteger();
-        bufferSize = context.getProperty(ListenerProperties.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        int maxConnections = context.getProperty(ListenerProperties.MAX_CONNECTIONS).asInteger();
+        int bufferSize = context.getProperty(ListenerProperties.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final String networkInterface = context.getProperty(ListenerProperties.NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
-        hostname = NetworkUtils.getInterfaceAddress(networkInterface);
-        charset = Charset.forName(context.getProperty(ListenerProperties.CHARSET).getValue());
+        InetAddress hostname = NetworkUtils.getInterfaceAddress(networkInterface);
+        Charset charset = Charset.forName(context.getProperty(ListenerProperties.CHARSET).getValue());
         port = context.getProperty(ListenerProperties.PORT).evaluateAttributeExpressions().asInteger();
         events = new LinkedBlockingQueue<>(context.getProperty(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE).asInteger());
         errorEvents = new LinkedBlockingQueue<>();
@@ -134,21 +128,23 @@ public class ListenRELP extends AbstractProcessor {
 
         final String msgDemarcator = getMessageDemarcator(context);
         messageDemarcatorBytes = msgDemarcator.getBytes(charset);
+        final NettyEventServerFactory eventFactory = getNettyEventServerFactory(hostname, port, charset, events);
+        eventFactory.setSocketReceiveBuffer(bufferSize);
+        eventFactory.setWorkerThreads(maxConnections);
+        configureFactoryForSsl(context, eventFactory);
 
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslContextService != null) {
-            final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-            sslContext = sslContextService.createContext();
-            clientAuth = ClientAuth.valueOf(clientAuthValue);
+        try {
+            eventServer = eventFactory.getEventServer();
+        } catch (EventException e) {
+            getLogger().error("Failed to bind to [{}:{}].", hostname.getHostAddress(), port);
         }
-
-        initializeRelpServer();
     }
 
     @OnStopped
     public void stopped() {
         if (eventServer != null) {
             eventServer.shutdown();
+            eventServer = null;
         }
     }
 
@@ -188,19 +184,6 @@ public class ListenRELP extends AbstractProcessor {
         return results;
     }
 
-    private void initializeRelpServer() {
-        final NettyEventServerFactory eventFactory = getNettyEventServerFactory();
-        eventFactory.setSocketReceiveBuffer(bufferSize);
-        if (sslContext != null) {
-            eventFactory.setSslContext(sslContext);
-        }
-        try {
-            eventServer = eventFactory.getEventServer();
-        } catch (EventException e) {
-            getLogger().error("Failed to bind to [{}:{}].", hostname.getHostAddress(), port);
-        }
-    }
-
     @Override
     public final Set<Relationship> getRelationships() {
         return this.relationships;
@@ -209,6 +192,20 @@ public class ListenRELP extends AbstractProcessor {
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
+    }
+
+    private void configureFactoryForSsl(final ProcessContext context, final NettyEventServerFactory eventFactory) {
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        if (sslContextService != null) {
+            final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
+            SSLContext sslContext = sslContextService.createContext();
+            if (sslContext != null) {
+                eventFactory.setSslContext(sslContext);
+                eventFactory.setClientAuth(ClientAuth.valueOf(clientAuthValue));
+            }
+        } else {
+            eventFactory.setSslContext(null);
+        }
     }
 
     protected Map<String, String> getAttributes(FlowFileEventBatch batch) {
@@ -309,7 +306,7 @@ public class ListenRELP extends AbstractProcessor {
         }
     }
 
-    private NettyEventServerFactory getNettyEventServerFactory() {
+    private NettyEventServerFactory getNettyEventServerFactory(InetAddress hostname, int port, Charset charset, BlockingQueue events) {
         return new RELPMessageServerFactory(getLogger(), hostname, port, charset, events);
     }
 
