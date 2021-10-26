@@ -19,9 +19,10 @@
 
 var AppRun =  function($rootScope,$state,$http){
 
+    // Get the Request Token for CSRF mitigation and send on all requests
     if (nf.AuthorizationStorage.hasToken()) {
-        var token = nf.AuthorizationStorage.getToken();
-        $http.defaults.headers.common.Authorization = 'Bearer ' + token;
+        var token = nf.AuthorizationStorage.getRequestToken();
+        $http.defaults.headers.common['Request-Token'] = token;
     }
 
     $rootScope.$on('$stateChangeError', function(event, toState, toParams, fromState, fromParams, error){
