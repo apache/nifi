@@ -16,29 +16,15 @@
  */
 package org.apache.nifi.security.util.crypto
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 import java.nio.charset.StandardCharsets
-import java.security.Security
 
-class ScryptSecureHasherTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(ScryptSecureHasherTest)
+import static org.junit.jupiter.api.Assertions.assertThrows
 
-    @BeforeAll
-    static void setupOnce() throws Exception {
-        Security.addProvider(new BouncyCastleProvider())
-
-        logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
-        }
-    }
+class ScryptSecureHasherTest {
 
     @Test
     void testShouldBeDeterministicWithStaticSalt() {
@@ -167,27 +153,10 @@ class ScryptSecureHasherTest extends GroovyTestCase {
         ScryptSecureHasher secureHasher = new ScryptSecureHasher(n, r, p, dkLength, 16)
         final byte[] STATIC_SALT = "bad_sal".bytes
 
-        // Act
-        shouldFail(IllegalArgumentException) {
-            new ScryptSecureHasher(n, r, p, dkLength, 7)
-        }
-
-        def arbitrarySaltRawMsg = shouldFail {
-            secureHasher.hashRaw(inputBytes, STATIC_SALT)
-        }
-
-        def arbitrarySaltHexMsg = shouldFail {
-            secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
-        }
-
-        def arbitrarySaltB64Msg = shouldFail {
-            secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
-        }
-
-        def results = [arbitrarySaltRawMsg, arbitrarySaltHexMsg, arbitrarySaltB64Msg]
-
-        // Assert
-        assert results.every { it =~ /The salt length \(7 bytes\) is invalid/ }
+        assertThrows(IllegalArgumentException.class, { -> new ScryptSecureHasher(n, r, p, dkLength, 7) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashRaw(inputBytes, STATIC_SALT) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8)) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8)) })
     }
 
     @Test
