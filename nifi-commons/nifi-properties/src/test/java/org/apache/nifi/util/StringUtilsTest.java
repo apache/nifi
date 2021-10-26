@@ -122,4 +122,20 @@ public class StringUtilsTest {
     // Assert
     assertEquals(titleCased, expected);
   }
+
+
+  @Test
+  public void testShouldEscapeString() {
+    String input = "key=(value,value1,value2)";
+    String expected = "key=(value\\,value1\\,value2)";
+
+    String escapeString = StringUtils.escapeString(input,StringUtils.ESCAPE_CHAR,StringUtils.COMMA);
+
+    assertEquals(expected, escapeString);
+  }
+
+  @Test
+  public void testShouldEscapeNullString() {
+    assertNull(StringUtils.escapeString(null,StringUtils.ESCAPE_CHAR,StringUtils.COMMA));
+  }
 }

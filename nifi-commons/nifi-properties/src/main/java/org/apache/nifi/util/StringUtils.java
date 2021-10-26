@@ -515,8 +515,15 @@ public class StringUtils {
                 .collect(Collectors.joining(" "));
     }
 
+    /**
+     * Escape {@code str} by replacing occurrences of {@code charToEscape} with {@code escapeChar+charToEscape}
+     * @param str the input string
+     * @param escapeChar the character used for escaping
+     * @param charToEscape the character that needs to be escaped
+     * @return the escaped string
+     */
     public static String escapeString(String str, char escapeChar, char charToEscape) {
-        if (str == null) {
+        if (str == null || str.isEmpty()) {
             return null;
         }
         StringBuilder result = new StringBuilder();
