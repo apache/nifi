@@ -33,6 +33,8 @@ import org.junit.Before;
 import java.io.ByteArrayInputStream;
 import java.util.UUID;
 
+import static org.apache.nifi.processors.azure.AzureServiceEndpoints.DEFAULT_ADLS_ENDPOINT_SUFFIX;
+
 public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorageIT {
 
     private static final String FILESYSTEM_NAME_PREFIX = "nifi-test-filesystem";
@@ -41,6 +43,11 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
 
     protected String fileSystemName;
     protected DataLakeFileSystemClient fileSystemClient;
+
+    @Override
+    protected String getDefaultEndpointSuffix() {
+        return DEFAULT_ADLS_ENDPOINT_SUFFIX;
+    }
 
     @Override
     protected void setUpCredentials() throws Exception {

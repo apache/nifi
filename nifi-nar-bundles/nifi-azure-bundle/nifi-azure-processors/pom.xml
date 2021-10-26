@@ -24,6 +24,7 @@
         <azure-eventhubs-eph.version>3.3.0</azure-eventhubs-eph.version>
         <azure-keyvault.version>1.2.4</azure-keyvault.version>
         <azure-storage-file-datalake.version>12.7.1</azure-storage-file-datalake.version>
+        <azure-storage-blob.version>12.14.1</azure-storage-blob.version>
     </properties>
     <dependencies>
         <dependency>
@@ -135,6 +136,17 @@
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-file-datalake</artifactId>
             <version>${azure-storage-file-datalake.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.azure</groupId>
+                    <artifactId>azure-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob</artifactId>
+            <version>${azure-storage-blob.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.azure</groupId>
