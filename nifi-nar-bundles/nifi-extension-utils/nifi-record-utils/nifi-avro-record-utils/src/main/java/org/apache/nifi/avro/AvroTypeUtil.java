@@ -619,6 +619,19 @@ public class AvroTypeUtil {
             rec.put(fieldName, converted);
         }
 
+        // see if the Avro schema has any fields that aren't in the RecordSchema, and if those fields have a default
+        // value then we want to populate it in the GenericRecord being produced
+        for (final Field field : avroSchema.getFields()) {
+            if (field.defaultVal() == null) {
+                continue;
+            }
+
+            final Optional<RecordField> recordField = recordSchema.getField(field.name());
+            if (!recordField.isPresent() && rec.get(field.name()) == null) {
+                rec.put(field.name(), field.defaultVal());
+            }
+        }
+
         return rec;
     }
 
