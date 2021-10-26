@@ -187,7 +187,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
             .name("socket-keep-alive")
             .displayName("Socket Keep Alive")
             .description("Whether or not to have TCP socket keep alive turned on. Timing details depend on operating system properties.")
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
             .defaultValue(Boolean.FALSE.toString())
