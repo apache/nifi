@@ -303,17 +303,24 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
 
     protected void initializeRegionAndEndpoint(final ProcessContext context, final AmazonWebServiceClient client) {
+        this.region = getRegionAndInitializeEndpoint(context, client);
+    }
+
+    protected Region getRegionAndInitializeEndpoint(final ProcessContext context, final AmazonWebServiceClient client) {
+        final Region region;
         // if the processor supports REGION, get the configured region.
         if (getSupportedPropertyDescriptors().contains(REGION)) {
-            final String region = context.getProperty(REGION).getValue();
-            if (region != null) {
-                this.region = Region.getRegion(Regions.fromName(region));
+            final String regionValue = context.getProperty(REGION).getValue();
+            if (regionValue != null) {
+                region = Region.getRegion(Regions.fromName(regionValue));
                 if (client != null) {
-                    client.setRegion(this.region);
+                    client.setRegion(region);
                 }
             } else {
-                this.region = null;
+                region = null;
             }
+        } else {
+            region = null;
         }
 
         // if the endpoint override has been configured, set the endpoint.
@@ -328,8 +335,8 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
                     // handling vpce endpoints
                     // falling back to the configured region if the parse fails
                     // e.g. in case of https://vpce-***-***.sqs.{region}.vpce.amazonaws.com
-                    String region = parseRegionForVPCE(urlstr, this.region.getName());
-                    client.setEndpoint(urlstr, this.client.getServiceName(), region);
+                    String regionValue = parseRegionForVPCE(urlstr, region.getName());
+                    client.setEndpoint(urlstr, this.client.getServiceName(), regionValue);
                 } else {
                     // handling non-vpce custom endpoints where the AWS library can parse the region out
                     // e.g. https://sqs.{region}.***.***.***.gov
@@ -337,6 +344,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
                 }
             }
         }
+        return region;
     }
 
     /*
