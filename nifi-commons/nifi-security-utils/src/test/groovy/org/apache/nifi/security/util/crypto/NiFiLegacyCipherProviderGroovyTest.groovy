@@ -32,9 +32,6 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.PBEParameterSpec
 import java.security.Security
 
-import static org.junit.Assert.fail
-import static org.junit.jupiter.api.Assumptions.assumeTrue
-
 class NiFiLegacyCipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(NiFiLegacyCipherProviderGroovyTest.class)
 
@@ -66,7 +63,7 @@ class NiFiLegacyCipherProviderGroovyTest {
             return cipher
         } catch (Exception e) {
             logger.error("Error generating legacy cipher", e)
-            fail(e.getMessage())
+            throw new RuntimeException(e)
         }
 
         return null

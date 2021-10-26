@@ -16,29 +16,15 @@
  */
 package org.apache.nifi.security.util.crypto
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 import java.nio.charset.StandardCharsets
-import java.security.Security
 
-class PBKDF2SecureHasherTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(PBKDF2SecureHasherTest)
+import static org.junit.jupiter.api.Assertions.assertThrows
 
-    @BeforeAll
-    static void setupOnce() throws Exception {
-        Security.addProvider(new BouncyCastleProvider())
-
-        logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
-        }
-    }
+class PBKDF2SecureHasherTest {
 
     @Test
     void testShouldBeDeterministicWithStaticSalt() {
@@ -164,27 +150,10 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
         PBKDF2SecureHasher secureHasher = new PBKDF2SecureHasher(prf, cost, saltLength, dkLength)
         byte[] STATIC_SALT = "bad_sal".bytes
 
-        // Act
-        def initializeMsg = shouldFail(IllegalArgumentException) {
-            PBKDF2SecureHasher invalidSaltLengthHasher = new PBKDF2SecureHasher(prf, cost, 7, dkLength)
-        }
-
-        def arbitrarySaltRawMsg = shouldFail {
-            byte[] arbitrarySaltRaw = secureHasher.hashRaw(inputBytes, STATIC_SALT)
-        }
-
-        def arbitrarySaltHexMsg = shouldFail {
-            byte[] arbitrarySaltHex = secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
-        }
-
-        def arbitrarySaltBase64Msg = shouldFail {
-            byte[] arbitrarySaltBase64 = secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
-        }
-
-        def results = [arbitrarySaltRawMsg, arbitrarySaltHexMsg, arbitrarySaltBase64Msg]
-
-        // Assert
-        assert results.every { it =~ /The salt length \(7 bytes\) is invalid/ }
+        assertThrows(IllegalArgumentException.class, { -> new PBKDF2SecureHasher(prf, cost, 7, dkLength) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashRaw(inputBytes, STATIC_SALT) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8)) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8)) })
     }
 
     @Test

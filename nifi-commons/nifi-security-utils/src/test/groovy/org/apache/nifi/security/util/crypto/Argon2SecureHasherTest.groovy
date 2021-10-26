@@ -19,7 +19,6 @@ package org.apache.nifi.security.util.crypto
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
@@ -28,7 +27,9 @@ import org.slf4j.LoggerFactory
 import java.nio.charset.StandardCharsets
 import java.security.Security
 
-class Argon2SecureHasherTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertThrows
+
+class Argon2SecureHasherTest {
     private static final Logger logger = LoggerFactory.getLogger(Argon2SecureHasherTest.class)
 
     @BeforeAll
@@ -38,10 +39,6 @@ class Argon2SecureHasherTest extends GroovyTestCase {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    private static byte[] decodeHex(String hex) {
-        Hex.decode(hex?.replaceAll("[^0-9a-fA-F]", ""))
     }
 
     @Test
@@ -179,27 +176,12 @@ class Argon2SecureHasherTest extends GroovyTestCase {
         final byte[] STATIC_SALT = "bad_sal".bytes
 
         // Act
-        def initializeMsg = shouldFail(IllegalArgumentException) {
-            Argon2SecureHasher invalidSaltLengthHasher = new Argon2SecureHasher(hashLength, memory, parallelism, iterations, 7)
-        }
-        logger.expected(initializeMsg)
+        assertThrows(IllegalArgumentException.class, { ->
+            new Argon2SecureHasher(hashLength, memory, parallelism, iterations, 7) })
 
-        def arbitrarySaltRawMsg = shouldFail {
-            byte[] arbitrarySaltRaw = secureHasher.hashRaw(inputBytes, STATIC_SALT)
-        }
-
-        def arbitrarySaltHexMsg = shouldFail {
-            byte[] arbitrarySaltHex = secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
-        }
-
-        def arbitrarySaltBase64Msg = shouldFail {
-            byte[] arbitraySaltBase64 = secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
-        }
-
-        def results = [arbitrarySaltRawMsg, arbitrarySaltHexMsg, arbitrarySaltBase64Msg]
-
-        // Assert
-        assert results.every { it =~ /The salt length \(7 bytes\) is invalid/ }
+        assertThrows(RuntimeException.class, { -> secureHasher.hashRaw(inputBytes, STATIC_SALT) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8)) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8)) })
     }
 
     @Test
