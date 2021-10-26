@@ -212,6 +212,7 @@
     <xs:simpleType name="FlowFileConcurrencyType">
         <xs:restriction base="xs:string">
             <xs:enumeration value="SINGLE_FLOWFILE_PER_NODE" />
+            <xs:enumeration value="SINGLE_BATCH_PER_NODE" />
             <xs:enumeration value="UNBOUNDED" />
         </xs:restriction>
     </xs:simpleType>
