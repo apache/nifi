@@ -74,35 +74,11 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor SERVICE_PRINCIPAL_TENANT_ID = new PropertyDescriptor.Builder()
-            .name("service-principal-tenant-id")
-            .displayName("Service Principal Tenant ID")
-            .description("Tenant ID of the Azure Active Directory hosting the Service Principal. The property is required when Service Principal authentication is used.")
-            .sensitive(true)
-            .required(false)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
+    public static final PropertyDescriptor SERVICE_PRINCIPAL_TENANT_ID = AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID;
 
-    public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_ID = new PropertyDescriptor.Builder()
-            .name("service-principal-client-id")
-            .displayName("Service Principal Client ID")
-            .description("Client ID (or Application ID) of the Client/Application having the Service Principal. The property is required when Service Principal authentication is used.")
-            .sensitive(true)
-            .required(false)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
+    public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_ID = AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID;
 
-    public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_SECRET = new PropertyDescriptor.Builder()
-            .name("service-principal-client-secret")
-            .displayName("Service Principal Client Secret")
-            .description("Password of the Client/Application. The property is required when Service Principal authentication is used.")
-            .sensitive(true)
-            .required(false)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
+    public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_SECRET = AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET;
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             ACCOUNT_NAME,
