@@ -19,7 +19,6 @@ package org.apache.nifi.security.util.crypto
 import at.favre.lib.crypto.bcrypt.Radix64Encoder
 import org.bouncycastle.util.encoders.Hex
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
@@ -27,7 +26,9 @@ import org.slf4j.LoggerFactory
 
 import java.nio.charset.StandardCharsets
 
-class BcryptSecureHasherTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertThrows
+
+class BcryptSecureHasherTest {
     private static final Logger logger = LoggerFactory.getLogger(BcryptSecureHasher)
 
     @BeforeAll
@@ -160,28 +161,11 @@ class BcryptSecureHasherTest extends GroovyTestCase {
         BcryptSecureHasher secureHasher = new BcryptSecureHasher(cost, 16)
         final byte[] STATIC_SALT = "bad_sal".bytes
 
-        // Act
-        def initializationMsg = shouldFail(IllegalArgumentException) {
-            BcryptSecureHasher invalidSaltLengthHasher = new BcryptSecureHasher(cost, 7)
-        }
-        logger.expected(initializationMsg)
+        assertThrows(IllegalArgumentException.class, { -> new BcryptSecureHasher(cost, 7) })
 
-        def arbitrarySaltRawMsg = shouldFail {
-            byte[] arbitrarySaltHash = secureHasher.hashRaw(inputBytes, STATIC_SALT)
-        }
-
-        def arbitrarySaltHexMsg = shouldFail {
-            byte[] arbitrarySaltHashHex = secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
-        }
-
-        def arbitrarySaltBase64Msg = shouldFail {
-            byte[] arbitrarySaltBase64 = secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
-        }
-
-        def results = [arbitrarySaltRawMsg, arbitrarySaltHexMsg, arbitrarySaltBase64Msg]
-
-        // Assert
-        assert results.every { it =~ /The salt length \(7 bytes\) is invalid/ }
+        assertThrows(RuntimeException.class, { -> secureHasher.hashRaw(inputBytes, STATIC_SALT) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8)) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8)) })
     }
 
     @Test
