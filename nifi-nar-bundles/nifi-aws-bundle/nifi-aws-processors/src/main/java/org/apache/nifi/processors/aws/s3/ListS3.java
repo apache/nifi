@@ -53,6 +53,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -342,41 +343,23 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             return;
         }
 
+        final AmazonS3 client = getClient();
+
+        S3BucketLister bucketLister = getS3BucketLister(context, client);
+
         final long startNanos = System.nanoTime();
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final long listingTimestamp = System.currentTimeMillis();
-        final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
+
+        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
 
         final ListingSnapshot currentListing = listing.get();
         final long currentTimestamp = currentListing.getTimestamp();
         final Set<String> currentKeys = currentListing.getKeys();
-
-        final AmazonS3 client = getClient();
         int listCount = 0;
         int totalListCount = 0;
         long latestListedTimestampInThisCycle = currentTimestamp;
-        String delimiter = context.getProperty(DELIMITER).getValue();
-        String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
-
-        boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
-        int listType = context.getProperty(LIST_TYPE).asInteger();
-        S3BucketLister bucketLister = useVersions
-                ? new S3VersionBucketLister(client)
-                : listType == 2
-                    ? new S3ObjectBucketListerVersion2(client)
-                    : new S3ObjectBucketLister(client);
-
-        bucketLister.setBucketName(bucket);
-        bucketLister.setRequesterPays(requesterPays);
-
-        if (delimiter != null && !delimiter.isEmpty()) {
-            bucketLister.setDelimiter(delimiter);
-        }
-        if (prefix != null && !prefix.isEmpty()) {
-            bucketLister.setPrefix(prefix);
-        }
 
         VersionListing versionListing;
         final Set<String> listedKeys = new HashSet<>();
@@ -486,6 +469,33 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
     }
 
+    private S3BucketLister getS3BucketLister(final ProcessContext context, final AmazonS3 client) {
+        final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
+        final boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
+
+        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+        final String delimiter = context.getProperty(DELIMITER).getValue();
+        final String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
+
+        final int listType = context.getProperty(LIST_TYPE).asInteger();
+
+        final S3BucketLister bucketLister = useVersions
+                ? new S3VersionBucketLister(client)
+                : listType == 2
+                ? new S3ObjectBucketListerVersion2(client)
+                : new S3ObjectBucketLister(client);
+
+        bucketLister.setBucketName(bucket);
+        bucketLister.setRequesterPays(requesterPays);
+
+        if (delimiter != null && !delimiter.isEmpty()) {
+            bucketLister.setDelimiter(delimiter);
+        }
+        if (prefix != null && !prefix.isEmpty()) {
+            bucketLister.setPrefix(prefix);
+        }
+        return bucketLister;
+    }
 
     private interface S3BucketLister {
         void setBucketName(String bucketName);
@@ -891,11 +901,15 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
     @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog logger, final Map<String, String> attributes) {
-        final AmazonS3Client client = createClient(context, getCredentials(context), createConfiguration(context));
-        initializeRegionAndEndpoint(context, client);
+        final ControllerService service = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService();
+        final AmazonS3Client client = service != null ? createClient(context, getCredentialsProvider(context), createConfiguration(context))
+            : createClient(context, getCredentials(context), createConfiguration(context));
+
+        getRegionAndInitializeEndpoint(context, client);
 
         final List<ConfigVerificationResult> results = new ArrayList<>();
         final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+        final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
         if (bucketName == null || bucketName.trim().isEmpty()) {
             results.add(new ConfigVerificationResult.Builder()
@@ -907,17 +921,35 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             return results;
         }
 
-        final String prefix = context.getProperty(PREFIX).getValue();
+        final S3BucketLister bucketLister = getS3BucketLister(context, client);
+        final long listingTimestamp = System.currentTimeMillis();
 
         // Attempt to perform a listing of objects in the S3 bucket
         try {
-            final ObjectListing listing = client.listObjects(bucketName, prefix);
-            final int count = listing.getObjectSummaries().size();
+            int listCount = 0;
+            int totalListCount = 0;
+            VersionListing versionListing;
+            do {
+                versionListing = bucketLister.listVersions();
+                for (final S3VersionSummary versionSummary : versionListing.getVersionSummaries()) {
+                    long lastModified = versionSummary.getLastModified().getTime();
+                    if (lastModified > (listingTimestamp - minAgeMilliseconds)) {
+                        continue;
+                    }
+
+                    listCount++;
+                }
+                bucketLister.setNextMarker();
+
+                totalListCount += listCount;
+
+                listCount = 0;
+            } while (bucketLister.isTruncated());
 
             results.add(new ConfigVerificationResult.Builder()
                 .verificationStepName("Perform Listing")
                 .outcome(Outcome.SUCCESSFUL)
-                .explanation("Successfully listed contents of bucket '" + bucketName + "', finding " + count + " objects" + (prefix == null ? "" : " with a prefix of '" + prefix + "'"))
+                .explanation("Successfully listed contents of bucket '" + bucketName + "', finding " + totalListCount + " objects matching the filter")
                 .build());
 
             logger.info("Successfully verified configuration");
