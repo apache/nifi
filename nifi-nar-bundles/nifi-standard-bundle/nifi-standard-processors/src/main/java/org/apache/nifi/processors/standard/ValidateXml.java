@@ -21,6 +21,8 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -71,8 +73,11 @@ import java.util.concurrent.atomic.AtomicReference;
             + "the attribute will contain the error message resulting from the validation failure.")
 })
 @CapabilityDescription("Validates XML contained in a FlowFile. By default, the XML is contained in the FlowFile content. If the 'XML Source Attribute' property is set, the XML to be validated "
-        + "is contained in the specified attribute. Full schema validation is performed if the processor is configured with the XSD schema details. Otherwise, the only validation performed is "
+        + "is contained in the specified attribute. It is not recommended to use attributes to hold large XML documents; doing so could adversely affect system performance. "
+        + "Full schema validation is performed if the processor is configured with the XSD schema details. Otherwise, the only validation performed is "
         + "to ensure the XML syntax is correct and well-formed, e.g. all opening tags are properly closed.")
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "While this processor supports processing XML within attributes, it is strongly discouraged to hold large amounts of data in attributes. "
+        + "In general, attribute values should be as small as possible and hold no more than a couple hundred characters.")
 public class ValidateXml extends AbstractProcessor {
 
     public static final String ERROR_ATTRIBUTE_KEY = "validatexml.invalid.error";
