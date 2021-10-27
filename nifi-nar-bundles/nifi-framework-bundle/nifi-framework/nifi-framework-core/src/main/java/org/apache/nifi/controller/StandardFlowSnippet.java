@@ -42,6 +42,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.PublicPort;
@@ -151,8 +152,8 @@ public class StandardFlowSnippet implements FlowSnippet {
         }
     }
 
-    public void instantiate(final FlowManager flowManager, final ProcessGroup group) throws ProcessorInstantiationException {
-        instantiate(flowManager, group, true);
+    public void instantiate(final FlowManager flowManager, final FlowController flowController, final ProcessGroup group) throws ProcessorInstantiationException {
+        instantiate(flowManager, flowController, group, true);
     }
 
 
@@ -221,7 +222,7 @@ public class StandardFlowSnippet implements FlowSnippet {
     }
 
 
-    public void instantiate(final FlowManager flowManager, final ProcessGroup group, final boolean topLevel) {
+    public void instantiate(final FlowManager flowManager, final FlowController flowController, final ProcessGroup group, final boolean topLevel) {
         //
         // Instantiate Controller Services
         //
@@ -406,6 +407,11 @@ public class StandardFlowSnippet implements FlowSnippet {
                     procNode.setProperties(config.getProperties());
                 }
 
+                // Notify the processor node that the configuration (properties, e.g.) has been restored
+                final StandardProcessContext processContext = new StandardProcessContext(procNode, flowController.getControllerServiceProvider(), flowController.getEncryptor(),
+                        flowController.getStateManagerProvider().getStateManager(procNode.getProcessor().getIdentifier()), () -> false, flowController);
+                procNode.onConfigurationRestored(processContext);
+
                 group.addProcessor(procNode);
             } finally {
                 procNode.resumeValidationTrigger();
@@ -526,7 +532,7 @@ public class StandardFlowSnippet implements FlowSnippet {
             childTemplateDTO.setControllerServices(contents.getControllerServices());
 
             final StandardFlowSnippet childSnippet = new StandardFlowSnippet(childTemplateDTO, extensionManager);
-            childSnippet.instantiate(flowManager, childGroup, false);
+            childSnippet.instantiate(flowManager, flowController, childGroup, false);
 
             if (groupDTO.getVersionControlInformation() != null) {
                 final VersionControlInformation vci = StandardVersionControlInformation.Builder

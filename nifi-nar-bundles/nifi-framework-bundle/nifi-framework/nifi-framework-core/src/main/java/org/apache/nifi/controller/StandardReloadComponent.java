@@ -97,6 +97,11 @@ public class StandardReloadComponent implements ReloadComponent {
         // need to refresh the properties in case we are changing from ghost component to real component
         existingNode.refreshProperties();
 
+        // Notify the processor node that the configuration (properties, e.g.) has been restored
+        final StandardProcessContext processContext = new StandardProcessContext(existingNode, flowController.getControllerServiceProvider(), flowController.getEncryptor(),
+                flowController.getStateManagerProvider().getStateManager(existingNode.getProcessor().getIdentifier()), () -> false, flowController);
+        existingNode.onConfigurationRestored(processContext);
+
         logger.debug("Triggering async validation of {} due to processor reload", existingNode);
         flowController.getValidationTrigger().trigger(existingNode);
     }

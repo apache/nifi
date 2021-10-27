@@ -67,7 +67,6 @@ public class TestInvokeJython extends BaseScriptTest {
     @Test
     public void testInvalidThenFixed() {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/jython/test_invalid.py");
 

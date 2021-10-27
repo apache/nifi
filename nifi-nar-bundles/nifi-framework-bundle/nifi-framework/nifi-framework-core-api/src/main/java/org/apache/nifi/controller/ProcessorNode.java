@@ -290,4 +290,11 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      * @return the desired state for this Processor
      */
     public abstract ScheduledState getDesiredState();
+
+    /**
+     * This method will be called once the processor's configuration has been restored (on startup, reload, e.g.)
+     *
+     * @param context The ProcessContext associated with the Processor configuration
+     */
+    public abstract void onConfigurationRestored(ProcessContext context);
 }

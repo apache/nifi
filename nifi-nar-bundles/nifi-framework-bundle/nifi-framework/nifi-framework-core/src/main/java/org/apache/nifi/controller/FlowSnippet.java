@@ -38,10 +38,11 @@ public interface FlowSnippet {
      * Instantiates this snippet, adding it to the given Process Group
      *
      * @param flowManager the FlowManager
+     * @param flowController the FlowController
      * @param group the group to add the snippet to
      * @throws ProcessorInstantiationException if unable to instantiate any of the Processors within the snippet
      * @throws org.apache.nifi.controller.exception.ControllerServiceInstantiationException if unable to instantiate any of the Controller Services within the snippet
      */
-    void instantiate(FlowManager flowManager, ProcessGroup group) throws ProcessorInstantiationException;
+    void instantiate(FlowManager flowManager, FlowController flowController, ProcessGroup group) throws ProcessorInstantiationException;
 }
 

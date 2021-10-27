@@ -80,6 +80,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -330,17 +331,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
                         }
                     }
                 }
-            } else {
-                final ParameterContext parameterContext = getParameterContext();
-                if (parameterContext != null) {
-                    for (final ParameterReference reference : referenceList) {
-                        final Optional<Parameter> parameter = parameterContext.getParameter(reference.getParameterName());
-                        if (parameter.isPresent() && parameter.get().getDescriptor().isSensitive()) {
-                            throw new IllegalArgumentException("The property '" + descriptor.getDisplayName() + "' cannot reference Parameter '" + parameter.get().getDescriptor().getName()
-                                + "' because Sensitive Parameters may only be referenced by Sensitive Properties.");
-                        }
-                    }
-                }
             }
 
             if (descriptor.getControllerServiceDefinition() != null) {
@@ -550,15 +540,15 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     @Override
     public Map<PropertyDescriptor, String> getRawPropertyValues() {
-        return getPropertyValues(PropertyConfiguration::getRawValue);
+        return getPropertyValues((descriptor, config) -> config.getRawValue());
     }
 
     @Override
     public Map<PropertyDescriptor, String> getEffectivePropertyValues() {
-        return getPropertyValues(config -> config.getEffectiveValue(getParameterContext()));
+        return getPropertyValues((descriptor, config) -> getConfigValue(config, isResolveParameter(descriptor, config)));
     }
 
-    private Map<PropertyDescriptor, String> getPropertyValues(final Function<PropertyConfiguration, String> valueFunction) {
+    private Map<PropertyDescriptor, String> getPropertyValues(final BiFunction<PropertyDescriptor, PropertyConfiguration, String> valueFunction) {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getIdentifier())) {
             final List<PropertyDescriptor> supported = getComponent().getPropertyDescriptors();
 
@@ -569,7 +559,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 }
             }
 
-            properties.forEach((descriptor, config) -> props.put(descriptor, valueFunction.apply(config)));
+            properties.forEach((descriptor, config) -> props.put(descriptor, valueFunction.apply(descriptor, config)));
             return props;
         }
     }
@@ -777,10 +767,22 @@ public abstract class AbstractComponentNode implements ComponentNode {
             for (final String paramName : referencedParameters) {
                 if (!validationContext.isParameterDefined(paramName)) {
                     results.add(new ValidationResult.Builder()
-                        .subject(propertyDescriptor.getDisplayName())
-                        .valid(false)
-                        .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a Parameter with that name")
-                        .build());
+                            .subject(propertyDescriptor.getDisplayName())
+                            .valid(false)
+                            .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a Parameter with that name")
+                            .build());
+                }
+                final Optional<Parameter> parameterRef = parameterContext.getParameter(paramName);
+                if (parameterRef.isPresent()) {
+                    final ParameterDescriptor parameterDescriptor = parameterRef.get().getDescriptor();
+                    if (parameterDescriptor.isSensitive() != propertyDescriptor.isSensitive()) {
+                        results.add(new ValidationResult.Builder()
+                                .subject(propertyDescriptor.getDisplayName())
+                                .valid(false)
+                                .explanation("The property '" + propertyDescriptor.getDisplayName() + "' cannot reference Parameter '" + parameterDescriptor.getName()
+                                        + "' because the Sensitivity of the parameter does not match the Sensitivity of the property.")
+                                .build());
+                    }
                 }
             }
         }
@@ -1241,6 +1243,40 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     protected void setAdditionalResourcesFingerprint(String additionalResourcesFingerprint) {
         this.additionalResourcesFingerprint = additionalResourcesFingerprint;
+    }
+
+    // Determine whether the property value should be evaluated in terms of the parameter context or not.
+    // If the sensitivity of the property does not match the sensitivity of the parameter, the literal value will be returned
+    //
+    // Examples when SensitiveParam value = 'abc' and MY_PROP is non-sensitive:
+    // SensitiveProp            --> 'abc'
+    // NonSensitiveProp         --> '#{SensitiveParam}'
+    // context.getProperty(MY_PROP).getValue(); '#{SensitiveParam}'
+    private boolean isResolveParameter(final PropertyDescriptor descriptor, final PropertyConfiguration config) {
+        boolean okToResolve = true;
+
+        final ParameterContext context = getParameterContext();
+        if (context == null) {
+            return false;
+        }
+        for (final ParameterReference reference : config.getParameterReferences()) {
+            final String parameterName = reference.getParameterName();
+            final Optional<Parameter> optionalParameter = context.getParameter(parameterName);
+            if (optionalParameter.isPresent()) {
+                final boolean paramIsSensitive = optionalParameter.get().getDescriptor().isSensitive();
+                if (paramIsSensitive != descriptor.isSensitive()) {
+                    okToResolve = false;
+                    break;
+                }
+            }
+        }
+        return okToResolve;
+    }
+
+    // Evaluates the parameter value if it is ok to do so, otherwise return the raw "${param}" literal.
+    // This is done to prevent evaluation of a sensitive parameter when setting a non-sensitive property.
+    private String getConfigValue(final PropertyConfiguration config, final boolean okToResolve) {
+        return okToResolve ? config.getEffectiveValue(getParameterContext()) : config.getRawValue();
     }
 
     protected abstract ParameterContext getParameterContext();

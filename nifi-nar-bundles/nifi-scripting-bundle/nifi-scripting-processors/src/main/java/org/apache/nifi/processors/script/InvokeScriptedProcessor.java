@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -73,6 +74,7 @@ import java.util.concurrent.atomic.AtomicReference;
         + "Relationships or PropertyDescriptors defined by the scripted processor will be added to the configuration dialog. The scripted processor can "
         + "implement public void setLogger(ComponentLog logger) to get access to the parent logger, as well as public void onScheduled(ProcessContext context) and "
         + "public void onStopped(ProcessContext context) methods to be invoked when the parent InvokeScriptedProcessor is scheduled or stopped, respectively.  "
+        + "NOTE: The script will be loaded when the processor is populated with property values, see the Restrictions section for more security implications.  "
         + "Experimental: Impact of sustained usage not yet verified.")
 @DynamicProperty(name = "A script engine property to update", value = "The value to set it to",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
@@ -212,6 +214,12 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         invokeScriptedProcessorMethod("onScheduled", context);
     }
 
+    @OnConfigurationRestored
+    public void onConfigurationRestored(final ProcessContext context) {
+        scriptingComponentHelper.setupVariables(context);
+        setup();
+    }
+
     public void setup() {
         if (scriptNeedsReload.get() || processor.get() == null) {
             if (ScriptingComponentHelper.isFile(scriptingComponentHelper.getScriptPath())) {
@@ -242,8 +250,24 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 || ScriptingComponentUtils.SCRIPT_BODY.equals(descriptor)
                 || ScriptingComponentUtils.MODULES.equals(descriptor)
                 || scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
+
+            // Update the ScriptingComponentHelper's value(s)
+            if (ScriptingComponentUtils.SCRIPT_FILE.equals(descriptor)) {
+                scriptingComponentHelper.setScriptPath(newValue);
+            } else if (ScriptingComponentUtils.SCRIPT_BODY.equals(descriptor)) {
+                scriptingComponentHelper.setScriptBody(newValue);
+            } else if (ScriptingComponentUtils.MODULES.equals(descriptor)) {
+                scriptingComponentHelper.setScriptBody(newValue);
+            } else if (scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
+                scriptingComponentHelper.setScriptEngineName(newValue);
+            }
+
             scriptNeedsReload.set(true);
             scriptRunner = null; //reset engine. This happens only when a processor is stopped, so there won't be any performance impact in run-time.
+            if (isConfigurationRestored()) {
+                // Once the configuration has been restored, each call to onPropertyModified() is due to a change made after the processor was loaded, so reload the script
+                setup();
+            }
         } else if (instance != null) {
             // If the script provides a Processor, call its onPropertyModified() method
             try {

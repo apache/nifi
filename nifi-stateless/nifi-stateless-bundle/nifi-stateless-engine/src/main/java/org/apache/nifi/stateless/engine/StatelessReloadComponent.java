@@ -102,6 +102,11 @@ public class StatelessReloadComponent implements ReloadComponent {
         // need to refresh the properties in case we are changing from ghost component to real component
         existingNode.refreshProperties();
 
+        // Notify the processor node that the configuration (properties, e.g.) has been restored
+        final StandardProcessContext processContext = new StandardProcessContext(existingNode, statelessEngine.getControllerServiceProvider(),
+                statelessEngine.getPropertyEncryptor(), statelessEngine.getStateManagerProvider().getStateManager(id), () -> false, new StatelessNodeTypeProvider());
+        existingNode.onConfigurationRestored(processContext);
+
         logger.debug("Successfully reloaded {}", existingNode);
     }
 

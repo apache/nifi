@@ -271,7 +271,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         final FlowSnippet snippet = new StandardFlowSnippet(dto, flowController.getExtensionManager());
         snippet.validate(group);
-        snippet.instantiate(this, group);
+        snippet.instantiate(this, flowController, group);
 
         group.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
     }
@@ -342,12 +342,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 }
                 throw new ComponentLifeCycleException("Failed to invoke @OnAdded methods of " + procNode.getProcessor(), e);
             }
-
-            if (flowController.isInitialized()) {
-                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, procNode.getProcessor());
-                }
-            }
         }
 
         return procNode;
@@ -393,7 +387,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, taskNode.getReportingTask());
 
                 if (flowController.isInitialized()) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getReportingTask());
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getReportingTask(), taskNode.getConfigurationContext());
                 }
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + taskNode.getReportingTask(), e);
@@ -497,7 +491,9 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
             if (flowController.isInitialized()) {
                 try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
+                    final ConfigurationContext configurationContext =
+                            new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, flowController.getVariableRegistry());
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service, configurationContext);
                 }
             }
 
