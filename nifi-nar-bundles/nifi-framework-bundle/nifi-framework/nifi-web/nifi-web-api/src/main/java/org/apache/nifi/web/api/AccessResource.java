@@ -106,7 +106,7 @@ public class AccessResource extends ApplicationResource {
     private BearerTokenResolver bearerTokenResolver;
     private KnoxService knoxService;
     private KerberosService kerberosService;
-    protected LogoutRequestManager logoutRequestManager;
+    private LogoutRequestManager logoutRequestManager;
 
     /**
      * Retrieves the access configuration for this NiFi.
@@ -348,8 +348,7 @@ public class AccessResource extends ApplicationResource {
                 final String expirationFromProperties = properties.getKerberosAuthenticationExpiration();
                 long expiration = Math.round(FormatUtils.getPreciseTimeDuration(expirationFromProperties, TimeUnit.MILLISECONDS));
                 final String rawIdentity = authentication.getName();
-                String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
-                expiration = validateTokenExpiration(expiration, mappedIdentity);
+                final String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
 
                 final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, "KerberosService");
                 final String token = bearerTokenProvider.getBearerToken(loginAuthenticationToken);
@@ -416,8 +415,8 @@ public class AccessResource extends ApplicationResource {
             // attempt to authenticate
             final AuthenticationResponse authenticationResponse = loginIdentityProvider.authenticate(new LoginCredentials(username, password));
             final String rawIdentity = authenticationResponse.getIdentity();
-            String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
-            long expiration = validateTokenExpiration(authenticationResponse.getExpiration(), mappedIdentity);
+            final String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
+            final long expiration = authenticationResponse.getExpiration();
 
             // create the authentication token
             loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, authenticationResponse.getIssuer());
@@ -506,7 +505,7 @@ public class AccessResource extends ApplicationResource {
         httpServletResponse.sendRedirect(getNiFiLogoutCompleteUri());
     }
 
-    LogoutRequest completeLogoutRequest(final HttpServletResponse httpServletResponse) {
+    private LogoutRequest completeLogoutRequest(final HttpServletResponse httpServletResponse) {
         LogoutRequest logoutRequest = null;
 
         final Optional<String> cookieValue = getLogoutRequestIdentifier();
@@ -522,24 +521,7 @@ public class AccessResource extends ApplicationResource {
         return logoutRequest;
     }
 
-    long validateTokenExpiration(long proposedTokenExpiration, String identity) {
-        final long maxExpiration = TimeUnit.MILLISECONDS.convert(12, TimeUnit.HOURS);
-        final long minExpiration = TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES);
-
-        if (proposedTokenExpiration > maxExpiration) {
-            logger.warn(String.format("Max token expiration exceeded. Setting expiration to %s from %s for %s", maxExpiration,
-                    proposedTokenExpiration, identity));
-            proposedTokenExpiration = maxExpiration;
-        } else if (proposedTokenExpiration < minExpiration) {
-            logger.warn(String.format("Min token expiration not met. Setting expiration to %s from %s for %s", minExpiration,
-                    proposedTokenExpiration, identity));
-            proposedTokenExpiration = minExpiration;
-        }
-
-        return proposedTokenExpiration;
-    }
-
-    String getNiFiLogoutCompleteUri() {
+    private String getNiFiLogoutCompleteUri() {
         return getNiFiUri() + "logout-complete";
     }
 
@@ -548,7 +530,7 @@ public class AccessResource extends ApplicationResource {
      *
      * @param httpServletResponse HTTP Servlet Response
      */
-    protected void removeLogoutRequestCookie(final HttpServletResponse httpServletResponse) {
+    private void removeLogoutRequestCookie(final HttpServletResponse httpServletResponse) {
         applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER);
     }
 
@@ -557,7 +539,7 @@ public class AccessResource extends ApplicationResource {
      *
      * @return Optional Logout Request Identifier
      */
-    protected Optional<String> getLogoutRequestIdentifier() {
+    private Optional<String> getLogoutRequestIdentifier() {
         return applicationCookieService.getCookieValue(httpServletRequest, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER);
     }
 

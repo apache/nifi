@@ -74,7 +74,7 @@ import java.util.regex.Pattern;
         value = OIDCEndpoints.OIDC_ACCESS_ROOT,
         description = "Endpoints for obtaining an access token or checking access status."
 )
-public class OIDCAccessResource extends AccessResource {
+public class OIDCAccessResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(OIDCAccessResource.class);
     private static final String OIDC_ID_TOKEN_AUTHN_ERROR = "Unable to exchange authorization for ID token: ";
@@ -115,7 +115,7 @@ public class OIDCAccessResource extends AccessResource {
     public void oidcRequest(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
-            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, AUTHENTICATION_NOT_ENABLED_MSG);
+            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, AccessResource.AUTHENTICATION_NOT_ENABLED_MSG);
             return;
         }
 
@@ -199,7 +199,7 @@ public class OIDCAccessResource extends AccessResource {
     public Response oidcExchange(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
-            throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
+            throw new AuthenticationNotSupportedException(AccessResource.AUTHENTICATION_NOT_ENABLED_MSG);
         }
 
         // ensure oidc is enabled
@@ -238,7 +238,7 @@ public class OIDCAccessResource extends AccessResource {
     )
     public void oidcLogout(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         if (!httpServletRequest.isSecure()) {
-            throw new IllegalStateException(AUTHENTICATION_NOT_ENABLED_MSG);
+            throw new IllegalStateException(AccessResource.AUTHENTICATION_NOT_ENABLED_MSG);
         }
 
         if (!oidcService.isOidcEnabled()) {
@@ -468,7 +468,7 @@ public class OIDCAccessResource extends AccessResource {
 
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
-            forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle, AUTHENTICATION_NOT_ENABLED_MSG);
+            forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle, AccessResource.AUTHENTICATION_NOT_ENABLED_MSG);
             return null;
         }
 

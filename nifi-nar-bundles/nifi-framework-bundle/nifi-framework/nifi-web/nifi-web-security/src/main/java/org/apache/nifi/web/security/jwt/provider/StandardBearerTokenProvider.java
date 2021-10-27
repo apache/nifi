@@ -32,6 +32,8 @@ import org.slf4j.LoggerFactory;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
@@ -43,6 +45,10 @@ public class StandardBearerTokenProvider implements BearerTokenProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(StandardBearerTokenProvider.class);
 
     private static final String URL_ENCODED_CHARACTER_SET = StandardCharsets.UTF_8.name();
+
+    private static final Duration MAXIMUM_EXPIRATION = Duration.ofHours(12);
+
+    private static final Duration MINIMUM_EXPIRATION = Duration.ofMinutes(1);
 
     private final JwsSignerProvider jwsSignerProvider;
 
@@ -64,7 +70,7 @@ public class StandardBearerTokenProvider implements BearerTokenProvider {
 
         final String issuer = getUrlEncoded(loginAuthenticationToken.getIssuer());
         final Date now = new Date();
-        final Date expirationTime = new Date(loginAuthenticationToken.getExpiration());
+        final Date expirationTime = getExpirationTime(loginAuthenticationToken);
         final JWTClaimsSet claims = new JWTClaimsSet.Builder()
                 .jwtID(UUID.randomUUID().toString())
                 .subject(subject)
@@ -76,6 +82,24 @@ public class StandardBearerTokenProvider implements BearerTokenProvider {
                 .claim(SupportedClaim.PREFERRED_USERNAME.getClaim(), username)
                 .build();
         return getSignedBearerToken(claims);
+    }
+
+    private Date getExpirationTime(final LoginAuthenticationToken loginAuthenticationToken) {
+        Instant expiration = Instant.ofEpochMilli(loginAuthenticationToken.getExpiration());
+
+        final Instant maximumExpiration = Instant.now().plus(MAXIMUM_EXPIRATION);
+        final Instant minimumExpiration = Instant.now().plus(MINIMUM_EXPIRATION);
+
+        final String identity = loginAuthenticationToken.getName();
+        if (expiration.isAfter(maximumExpiration)) {
+            LOGGER.warn("Identity [{}] Token Expiration [{}] greater than maximum [{}]", identity, expiration, MAXIMUM_EXPIRATION);
+            expiration = maximumExpiration;
+        } else if (expiration.isBefore(minimumExpiration)) {
+            LOGGER.warn("Identity [{}] Token Expiration [{}] less than minimum [{}]", identity, expiration, MINIMUM_EXPIRATION);
+            expiration = minimumExpiration;
+        }
+
+        return Date.from(expiration);
     }
 
     private String getSignedBearerToken(final JWTClaimsSet claims) {

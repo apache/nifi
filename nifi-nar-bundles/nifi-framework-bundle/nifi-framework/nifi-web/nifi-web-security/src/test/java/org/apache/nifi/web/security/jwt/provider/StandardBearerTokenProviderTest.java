@@ -27,34 +27,41 @@ import com.nimbusds.jwt.SignedJWT;
 import org.apache.nifi.web.security.jwt.jws.JwsSignerContainer;
 import org.apache.nifi.web.security.jwt.jws.JwsSignerProvider;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.text.ParseException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Date;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class StandardBearerTokenProviderTest {
     private static final String USERNAME = "USERNAME";
 
     private static final String IDENTITY = "IDENTITY";
 
-    private static final long EXPIRATION = 60;
+    private static final Duration EXPIRATION = Duration.ofHours(1);
+
+    private static final Duration MAXIMUM_DURATION_EXCEEDED = Duration.parse("PT12H5M");
+
+    private static final Duration MINIMUM_DURATION_EXCEEDED = Duration.parse("PT30S");
 
     private static final String ISSUER = "ISSUER";
 
@@ -73,7 +80,7 @@ public class StandardBearerTokenProviderTest {
 
     private JWSSigner jwsSigner;
 
-    @Before
+    @BeforeEach
     public void setProvider() throws NoSuchAlgorithmException {
         provider = new StandardBearerTokenProvider(jwsSignerProvider);
 
@@ -86,24 +93,76 @@ public class StandardBearerTokenProviderTest {
 
     @Test
     public void testGetBearerToken() throws ParseException, JOSEException {
-        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, EXPIRATION, ISSUER);
-        final String keyIdentifier = UUID.randomUUID().toString();
-        final JwsSignerContainer jwsSignerContainer = new JwsSignerContainer(keyIdentifier, JWS_ALGORITHM, jwsSigner);
-        when(jwsSignerProvider.getJwsSignerContainer(isA(Instant.class))).thenReturn(jwsSignerContainer);
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, EXPIRATION.toMillis(), ISSUER);
+        setSignerProvider();
 
         final String bearerToken = provider.getBearerToken(loginAuthenticationToken);
 
-        final SignedJWT signedJwt = SignedJWT.parse(bearerToken);
-        assertTrue("Verification Failed", signedJwt.verify(jwsVerifier));
-
+        final SignedJWT signedJwt = assertTokenVerified(bearerToken);
         final JWTClaimsSet claims = signedJwt.getJWTClaimsSet();
-        assertNotNull("Issue Time not found", claims.getIssueTime());
-        assertNotNull("Not Before Time Time not found", claims.getNotBeforeTime());
-        assertNotNull("Expiration Time Time not found", claims.getExpirationTime());
+        assertNotNull(claims.getIssueTime(), "Issue Time not found");
+        assertNotNull(claims.getNotBeforeTime(), "Not Before Time not found");
+
+        final Date claimExpirationTime = claims.getExpirationTime();
+        assertNotNull(claimExpirationTime, "Expiration Time not found");
+
+        final Date loginExpirationTime = new Date(loginAuthenticationToken.getExpiration());
+        assertEquals(loginExpirationTime.toString(), claimExpirationTime.toString(), "Expiration Time not matched");
+
         assertEquals(ISSUER, claims.getIssuer());
         assertEquals(Collections.singletonList(ISSUER), claims.getAudience());
         assertEquals(IDENTITY, claims.getSubject());
         assertEquals(USERNAME, claims.getClaim(SupportedClaim.PREFERRED_USERNAME.getClaim()));
         assertNotNull("JSON Web Token Identifier not found", claims.getJWTID());
+    }
+
+    @Test
+    public void testGetBearerTokenExpirationMaximum() throws ParseException, JOSEException {
+        final long expiration = MAXIMUM_DURATION_EXCEEDED.toMillis();
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, expiration, ISSUER);
+        setSignerProvider();
+
+        final String bearerToken = provider.getBearerToken(loginAuthenticationToken);
+
+        final SignedJWT signedJwt = assertTokenVerified(bearerToken);
+        final JWTClaimsSet claims = signedJwt.getJWTClaimsSet();
+        final Date claimExpirationTime = claims.getExpirationTime();
+        assertNotNull(claimExpirationTime, "Expiration Time not found");
+
+        final Date loginExpirationTime = new Date(loginAuthenticationToken.getExpiration());
+        assertNotSame(loginExpirationTime.toString(), claimExpirationTime.toString(), "Expiration Time matched");
+
+        assertTrue(claimExpirationTime.toInstant().isBefore(loginExpirationTime.toInstant()), "Claim Expiration after Login Expiration");
+    }
+
+    @Test
+    public void testGetBearerTokenExpirationMinimum() throws ParseException, JOSEException {
+        final long expiration = MINIMUM_DURATION_EXCEEDED.toMillis();
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, expiration, ISSUER);
+        setSignerProvider();
+
+        final String bearerToken = provider.getBearerToken(loginAuthenticationToken);
+
+        final SignedJWT signedJwt = assertTokenVerified(bearerToken);
+        final JWTClaimsSet claims = signedJwt.getJWTClaimsSet();
+        final Date claimExpirationTime = claims.getExpirationTime();
+        assertNotNull(claimExpirationTime, "Expiration Time not found");
+
+        final Date loginExpirationTime = new Date(loginAuthenticationToken.getExpiration());
+        assertNotSame(loginExpirationTime.toString(), claimExpirationTime.toString(), "Expiration Time matched");
+
+        assertTrue(claimExpirationTime.toInstant().isAfter(loginExpirationTime.toInstant()), "Claim Expiration before Login Expiration");
+    }
+
+    private void setSignerProvider() {
+        final String keyIdentifier = UUID.randomUUID().toString();
+        final JwsSignerContainer jwsSignerContainer = new JwsSignerContainer(keyIdentifier, JWS_ALGORITHM, jwsSigner);
+        when(jwsSignerProvider.getJwsSignerContainer(isA(Instant.class))).thenReturn(jwsSignerContainer);
+    }
+
+    private SignedJWT assertTokenVerified(final String bearerToken) throws ParseException, JOSEException {
+        final SignedJWT signedJwt = SignedJWT.parse(bearerToken);
+        assertTrue(signedJwt.verify(jwsVerifier), "Verification Failed");
+        return signedJwt;
     }
 }

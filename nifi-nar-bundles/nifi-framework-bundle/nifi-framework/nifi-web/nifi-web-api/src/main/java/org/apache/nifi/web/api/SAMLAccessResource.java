@@ -27,6 +27,7 @@ import org.apache.nifi.idp.IdpType;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.logout.LogoutRequest;
+import org.apache.nifi.web.security.logout.LogoutRequestManager;
 import org.apache.nifi.web.security.saml.SAMLCredentialStore;
 import org.apache.nifi.web.security.saml.SAMLEndpoints;
 import org.apache.nifi.web.security.saml.SAMLService;
@@ -61,7 +62,7 @@ import java.util.stream.Collectors;
         value = SAMLEndpoints.SAML_ACCESS_ROOT,
         description = "Endpoints for authenticating, obtaining an access token or logging out of a configured SAML authentication provider."
 )
-public class SAMLAccessResource extends AccessResource {
+public class SAMLAccessResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(SAMLAccessResource.class);
     private static final String SAML_METADATA_MEDIA_TYPE = "application/samlmetadata+xml";
@@ -73,6 +74,7 @@ public class SAMLAccessResource extends AccessResource {
     private SAMLStateManager samlStateManager;
     private SAMLCredentialStore samlCredentialStore;
     private IdpUserGroupService idpUserGroupService;
+    private LogoutRequestManager logoutRequestManager;
 
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -85,7 +87,7 @@ public class SAMLAccessResource extends AccessResource {
     public Response samlMetadata(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
-            throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
+            throw new AuthenticationNotSupportedException(AccessResource.AUTHENTICATION_NOT_ENABLED_MSG);
         }
 
         // ensure saml is enabled
@@ -212,7 +214,7 @@ public class SAMLAccessResource extends AccessResource {
         // create the login token
         final String rawIdentity = samlService.getUserIdentity(samlCredential);
         final String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
-        final long expiration = validateTokenExpiration(samlService.getAuthExpiration(), mappedIdentity);
+        final long expiration = samlService.getAuthExpiration();
         final String issuer = samlCredential.getRemoteEntityID();
 
         final LoginAuthenticationToken loginToken = new LoginAuthenticationToken(mappedIdentity, mappedIdentity, expiration, issuer);
@@ -255,7 +257,7 @@ public class SAMLAccessResource extends AccessResource {
 
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
-            throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
+            throw new AuthenticationNotSupportedException(AccessResource.AUTHENTICATION_NOT_ENABLED_MSG);
         }
 
         // ensure saml is enabled
@@ -446,19 +448,21 @@ public class SAMLAccessResource extends AccessResource {
         assert(isSamlEnabled(httpServletRequest, httpServletResponse, !LOGGING_IN));
 
         // complete the logout request if one exists
-        final LogoutRequest completedLogoutRequest = completeLogoutRequest(httpServletResponse);
+        final Optional<String> cookieValue = getLogoutRequestIdentifier();
+        if (cookieValue.isPresent()) {
+            final String logoutRequestIdentifier = cookieValue.get();
+            final LogoutRequest logoutRequest = logoutRequestManager.complete(logoutRequestIdentifier);
 
-        // if a logout request was completed, then delete the stored SAMLCredential for that user
-        if (completedLogoutRequest != null) {
-            final String userIdentity = completedLogoutRequest.getMappedUserIdentity();
+            final String mappedUserIdentity = logoutRequest.getMappedUserIdentity();
+            samlCredentialStore.delete(mappedUserIdentity);
+            idpUserGroupService.deleteUserGroups(mappedUserIdentity);
 
-            logger.info("Removing cached SAML information for " + userIdentity);
-            samlCredentialStore.delete(userIdentity);
-
-            logger.info("Removing cached SAML Groups for " + userIdentity);
-            idpUserGroupService.deleteUserGroups(userIdentity);
+            logger.info("Logout Request [{}] Identity [{}] SAML Local Logout Completed", logoutRequestIdentifier, mappedUserIdentity);
+        } else {
+            logger.warn("Logout Request Cookie [{}] not found", ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER.getCookieName());
         }
 
+        removeLogoutRequestCookie(httpServletResponse);
         // redirect to logout landing page
         httpServletResponse.sendRedirect(getNiFiLogoutCompleteUri());
     }
@@ -488,7 +492,7 @@ public class SAMLAccessResource extends AccessResource {
 
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
-            forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle, AUTHENTICATION_NOT_ENABLED_MSG);
+            forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle, AccessResource.AUTHENTICATION_NOT_ENABLED_MSG);
             return false;
         }
 
@@ -506,6 +510,18 @@ public class SAMLAccessResource extends AccessResource {
 
     private Optional<String> getSamlRequestIdentifier() {
         return applicationCookieService.getCookieValue(httpServletRequest, ApplicationCookieName.SAML_REQUEST_IDENTIFIER);
+    }
+
+    private void removeLogoutRequestCookie(final HttpServletResponse httpServletResponse) {
+        applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER);
+    }
+
+    private Optional<String> getLogoutRequestIdentifier() {
+        return applicationCookieService.getCookieValue(httpServletRequest, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER);
+    }
+
+    private String getNiFiLogoutCompleteUri() {
+        return getNiFiUri() + "logout-complete";
     }
 
     public void setSamlService(SAMLService samlService) {
@@ -530,5 +546,9 @@ public class SAMLAccessResource extends AccessResource {
 
     protected NiFiProperties getProperties() {
         return properties;
+    }
+
+    public void setLogoutRequestManager(LogoutRequestManager logoutRequestManager) {
+        this.logoutRequestManager = logoutRequestManager;
     }
 }
