@@ -39,6 +39,7 @@ import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -49,10 +50,15 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import static java.net.HttpURLConnection.HTTP_OK;
 import static java.net.HttpURLConnection.HTTP_MOVED_TEMP;
@@ -106,6 +112,8 @@ public class InvokeHTTPTest {
     private static final String TEXT_PLAIN = "text/plain";
 
     private static final String FLOW_FILE_CONTENT = String.class.getName();
+
+    private static final String FLOW_FILE_INITIAL_FILENAME = Double.class.getName();
 
     private static final int TAKE_REQUEST_COMPLETED_TIMEOUT = 1;
 
@@ -716,6 +724,45 @@ public class InvokeHTTPTest {
     public void testRunPutHttp200Success() throws InterruptedException {
         runner.setProperty(InvokeHTTP.PROP_METHOD, PUT_METHOD);
         assertRequestMethodSuccess(PUT_METHOD);
+    }
+
+    @ParameterizedTest(name = "{index} => When {0} http://baseUrl/{1}, filename of the response FlowFile should be {2}")
+    @MethodSource
+    public void testResponseFlowFileFilenameExtractedFromRemoteUrl(String httpMethod, String inputUrl, String expectedFileName) throws MalformedURLException {
+        URL baseUrl = new URL(getMockWebServerUrl());
+        URL targetUrl = new URL(baseUrl, inputUrl);
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, httpMethod);
+        runner.setProperty(InvokeHTTP.PROP_URL, targetUrl.toString());
+        runner.setProperty(InvokeHTTP.UPDATE_FILENAME, Boolean.TRUE.toString());
+
+        Map<String, String> ffAttributes = new HashMap<>();
+        ffAttributes.put(CoreAttributes.FILENAME.key(), FLOW_FILE_INITIAL_FILENAME);
+        runner.enqueue(FLOW_FILE_CONTENT, ffAttributes);
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_OK));
+
+        runner.run();
+
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).iterator().next();
+        flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), expectedFileName);
+    }
+
+    private static Stream<Arguments> testResponseFlowFileFilenameExtractedFromRemoteUrl() {
+        return Stream.of(
+            Arguments.of(GET_METHOD, "", "localhost"),
+            Arguments.of(GET_METHOD, "file", "file"),
+            Arguments.of(GET_METHOD, "file/", "file"),
+            Arguments.of(GET_METHOD, "file.txt", "file.txt"),
+            Arguments.of(GET_METHOD, "file.txt/", "file.txt"),
+            Arguments.of(GET_METHOD, "file.txt/?qp=v", "file.txt"),
+            Arguments.of(POST_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(PUT_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(PATCH_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(DELETE_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(HEAD_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(OPTIONS_METHOD, "", FLOW_FILE_INITIAL_FILENAME)
+        );
     }
 
     private void setUrlProperty() {
