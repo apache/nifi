@@ -35,6 +35,11 @@
     SiteToSiteReportingRecordSink (for sending via the Site-to-Site protocol) or DatabaseRecordSink (for sending the
     query result rows to an relational database).
 </p>
+<p>
+    The reporting task can uniquely handle items from the bulletin and provenance repositories. This means that an item will only be processed once when the query is set to unique.
+    The query can be set to unique by defining a time window with special sql placeholders ($bulletinStartTime, $bulletinEndTime, $provenanceStartTime, $provenanceEndTime)
+    that the reporting task will evaluate runtime. See the SQL Query Examples section.
+</p>
 <br/>
 <h2>Table Definitions</h2>
 <p>
@@ -220,6 +225,14 @@
 <p>
     <b>Example:</b> Get the unique bulletin categories associated with errors:<br/>
 <pre>SELECT DISTINCT(bulletinCategory) FROM BULLETINS WHERE bulletinLevel = "ERROR"</pre>
+</p>
+<p>
+    <b>Example:</b> Select all fields from the <code>BULLETINS</code> table with time window:<br/>
+<pre>SELECT * from BULLETINS WHERE bulletinTimestamp > $bulletinStartTime AND bulletinTimestamp <= $bulletinEndTime</pre>
+</p>
+<p>
+    <b>Example:</b> Select all fields from the <code>PROVENANCE</code> table with time window:<br/>
+<pre>SELECT * from PROVENANCE where timestampMillis > $provenanceStartTime and timestampMillis <= $provenanceEndTime</pre>
 </p>
 <br/>
 </body>

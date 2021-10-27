@@ -20,18 +20,14 @@ import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.Tuple;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-public class MockPropertyContextActionHandler extends AbstractConfigurableComponent implements PropertyContextActionHandler{
-
-    private List<Map<String, Object>> rows = new ArrayList<>();
-    private List<Tuple<String,Action>> defaultActions = new ArrayList<>();
-    private List<PropertyContext> propertyContexts = new ArrayList<>();
+public class MockPropertyContextActionHandler extends AbstractConfigurableComponent implements PropertyContextActionHandler {
+    private final List<Map<String, Object>> rows = new ArrayList<>();
+    private final List<PropertyContext> propertyContexts = new ArrayList<>();
 
 
     @Override
@@ -43,7 +39,6 @@ public class MockPropertyContextActionHandler extends AbstractConfigurableCompon
     @Override
     public void execute(Action action, Map<String, Object> facts) {
         rows.add(facts);
-        defaultActions.add( new Tuple<>(action.getType(),action));
     }
 
 
@@ -56,15 +51,6 @@ public class MockPropertyContextActionHandler extends AbstractConfigurableCompon
         return rows;
     }
 
-    public List<Tuple<String, Action>> getDefaultActions() {
-        return defaultActions;
-    }
-
-    public List<Tuple<String,Action>> getDefaultActionsByType(final String type){
-        return defaultActions.stream().filter(stringActionTuple -> stringActionTuple
-                .getKey().equalsIgnoreCase(type)).collect(Collectors.toList());
-    }
-
     public List<PropertyContext> getPropertyContexts() {
         return propertyContexts;
     }
@@ -72,5 +58,10 @@ public class MockPropertyContextActionHandler extends AbstractConfigurableCompon
     @Override
     public String getIdentifier() {
         return "MockPropertyContextActionHandler";
+    }
+
+    public void reset() {
+        rows.clear();
+        propertyContexts.clear();
     }
 }

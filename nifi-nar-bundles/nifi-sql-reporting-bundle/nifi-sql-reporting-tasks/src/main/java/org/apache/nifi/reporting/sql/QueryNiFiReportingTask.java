@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.reporting.sql;
 
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.reporting.AbstractReportingTask;
@@ -29,7 +31,6 @@ import org.apache.nifi.reporting.sql.util.QueryMetricsUtil;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,6 +39,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.reporting.sql.util.TrackedQueryTime.BULLETIN_END_TIME;
+import static org.apache.nifi.reporting.sql.util.TrackedQueryTime.BULLETIN_START_TIME;
+import static org.apache.nifi.reporting.sql.util.TrackedQueryTime.PROVENANCE_END_TIME;
+import static org.apache.nifi.reporting.sql.util.TrackedQueryTime.PROVENANCE_START_TIME;
 import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION;
 import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE;
 
@@ -46,7 +51,8 @@ import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFA
         + "BULLETINS, PROCESS_GROUP_STATUS, JVM_METRICS, CONNECTION_STATUS_PREDICTIONS, or PROVENANCE tables, and can use any functions or capabilities provided by Apache Calcite. Note that the "
         + "CONNECTION_STATUS_PREDICTIONS table is not available for querying if analytics are not enabled (see the nifi.analytics.predict.enabled property in nifi.properties). Attempting a "
         + "query on the table when the capability is disabled will cause an error.")
-public class QueryNiFiReportingTask extends AbstractReportingTask {
+@Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last execution time so that on restart the task knows where it left off.")
+public class QueryNiFiReportingTask extends AbstractReportingTask implements QueryTimeAware {
 
     private List<PropertyDescriptor> properties;
 
@@ -71,7 +77,7 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
     }
 
     @OnScheduled
-    public void setup(final ConfigurationContext context) throws IOException {
+    public void setup(final ConfigurationContext context) {
         recordSinkService = context.getProperty(QueryMetricsUtil.RECORD_SINK).asControllerService(RecordSinkService.class);
         recordSinkService.reset();
         final Integer defaultPrecision = context.getProperty(VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger();
@@ -82,13 +88,16 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
     @Override
     public void onTrigger(ReportingContext context) {
         final StopWatch stopWatch = new StopWatch(true);
+        String sql = context.getProperty(QueryMetricsUtil.QUERY).getValue();
         try {
-            final String sql = context.getProperty(QueryMetricsUtil.QUERY).evaluateAttributeExpressions().getValue();
+            sql = processStartAndEndTimes(context, sql, BULLETIN_START_TIME, BULLETIN_END_TIME);
+            sql = processStartAndEndTimes(context, sql, PROVENANCE_START_TIME, PROVENANCE_END_TIME);
+
+            getLogger().debug("Executing query: {}", sql);
             final QueryResult queryResult = metricsQueryService.query(context, sql);
             final ResultSetRecordSet recordSet;
 
             try {
-                getLogger().debug("Executing query: {}", new Object[]{sql});
                 recordSet = metricsQueryService.getResultSetRecordSet(queryResult);
             } catch (final Exception e) {
                 getLogger().error("Error creating record set from query results due to {}", new Object[]{e.getMessage()}, e);
@@ -110,10 +119,10 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
                 metricsQueryService.closeQuietly(queryResult);
             }
             final long elapsedMillis = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
-            getLogger().debug("Successfully queried and sent in {} millis", new Object[]{elapsedMillis});
+            getLogger().debug("Successfully queried and sent in {} millis", elapsedMillis);
         } catch (Exception e) {
             getLogger().error("Error processing the query due to {}", new Object[]{e.getMessage()}, e);
         }
     }
-
 }
+
