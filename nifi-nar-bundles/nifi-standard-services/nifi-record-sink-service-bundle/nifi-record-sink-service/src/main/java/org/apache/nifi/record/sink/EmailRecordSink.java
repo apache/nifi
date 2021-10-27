@@ -55,6 +55,51 @@ import java.util.Properties;
 
 public class EmailRecordSink extends AbstractControllerService implements RecordSinkService {
 
+    public static final PropertyDescriptor FROM = new PropertyDescriptor.Builder()
+            .name("from")
+            .displayName("From")
+            .description("Specifies the Email address to use as the sender. "
+                    + "Comma separated sequence of addresses following RFC822 syntax.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor TO = new PropertyDescriptor.Builder()
+            .name("to")
+            .displayName("To")
+            .description("The recipients to include in the To-Line of the email. "
+                    + "Comma separated sequence of addresses following RFC822 syntax.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor CC = new PropertyDescriptor.Builder()
+            .name("cc")
+            .displayName("CC")
+            .description("The recipients to include in the CC-Line of the email. "
+                    + "Comma separated sequence of addresses following RFC822 syntax.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor BCC = new PropertyDescriptor.Builder()
+            .name("bcc")
+            .displayName("BCC")
+            .description("The recipients to include in the BCC-Line of the email. "
+                    + "Comma separated sequence of addresses following RFC822 syntax.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor SUBJECT = new PropertyDescriptor.Builder()
+            .name("subject")
+            .displayName("Subject")
+            .description("The email subject")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("Message from NiFi")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
     public static final PropertyDescriptor SMTP_HOSTNAME = new PropertyDescriptor.Builder()
             .name("smtp-hostname")
             .displayName("SMTP Hostname")
@@ -86,7 +131,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .description("Username for the SMTP account")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
+            .required(false)
             .dependsOn(SMTP_AUTH, "true")
             .build();
     public static final PropertyDescriptor SMTP_PASSWORD = new PropertyDescriptor.Builder()
@@ -95,7 +140,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .description("Password for the SMTP account")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
+            .required(false)
             .sensitive(true)
             .dependsOn(SMTP_AUTH, "true")
             .build();
@@ -135,47 +180,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("text/plain")
             .build();
-    public static final PropertyDescriptor FROM = new PropertyDescriptor.Builder()
-            .name("from")
-            .displayName("From")
-            .description("Specifies the Email address to use as the sender")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor TO = new PropertyDescriptor.Builder()
-            .name("to")
-            .displayName("To")
-            .description("The recipients to include in the To-Line of the email")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor CC = new PropertyDescriptor.Builder()
-            .name("cc")
-            .displayName("CC")
-            .description("The recipients to include in the CC-Line of the email")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor BCC = new PropertyDescriptor.Builder()
-            .name("bcc")
-            .displayName("BCC")
-            .description("The recipients to include in the BCC-Line of the email")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor SUBJECT = new PropertyDescriptor.Builder()
-            .name("subject")
-            .displayName("Subject")
-            .description("The email subject")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .defaultValue("Message from NiFi")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+
 
     private volatile RecordSetWriterFactory writerFactory;
 
@@ -198,7 +203,11 @@ public class EmailRecordSink extends AbstractControllerService implements Record
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return Collections.unmodifiableList(Arrays.asList(
-                RecordSinkService.RECORD_WRITER_FACTORY,
+                TO,
+                FROM,
+                CC,
+                BCC,
+                SUBJECT,
                 SMTP_HOSTNAME,
                 SMTP_PORT,
                 SMTP_USERNAME,
@@ -208,11 +217,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
                 SMTP_SSL,
                 HEADER_XMAILER,
                 CONTENT_TYPE,
-                FROM,
-                TO,
-                CC,
-                BCC,
-                SUBJECT
+                RecordSinkService.RECORD_WRITER_FACTORY
         ));
     }
 
