@@ -756,6 +756,7 @@ public class InvokeHTTPTest {
             Arguments.of(GET_METHOD, "file.txt", "file.txt"),
             Arguments.of(GET_METHOD, "file.txt/", "file.txt"),
             Arguments.of(GET_METHOD, "file.txt/?qp=v", "file.txt"),
+            Arguments.of(GET_METHOD, "f%69%6Cle.txt", "f%69%6Cle.txt"),
             Arguments.of(POST_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
             Arguments.of(PUT_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
             Arguments.of(PATCH_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
