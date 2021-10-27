@@ -19,8 +19,7 @@ package org.apache.nifi.web.security.token;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.time.Instant;
 
 /**
  * This is an Authentication Token for logging in. Once a user is authenticated, they can be issued an ID token.
@@ -57,8 +56,7 @@ public class LoginAuthenticationToken extends AbstractAuthenticationToken {
         this.identity = identity;
         this.username = username;
         this.issuer = issuer;
-        Calendar now = Calendar.getInstance();
-        this.expiration = now.getTimeInMillis() + expiration;
+        this.expiration = Instant.now().plusMillis(expiration).toEpochMilli();
     }
 
     @Override
@@ -98,20 +96,15 @@ public class LoginAuthenticationToken extends AbstractAuthenticationToken {
 
     @Override
     public String toString() {
-        Calendar expirationTime = Calendar.getInstance();
-        expirationTime.setTimeInMillis(getExpiration());
-        long remainingTime = expirationTime.getTimeInMillis() - Calendar.getInstance().getTimeInMillis();
-
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss.SSS");
-        dateFormat.setTimeZone(expirationTime.getTimeZone());
-        String expirationTimeString = dateFormat.format(expirationTime.getTime());
+        final Instant expirationTime = Instant.ofEpochMilli(expiration);
+        long remainingTime = expirationTime.toEpochMilli() - Instant.now().toEpochMilli();
 
         return new StringBuilder("LoginAuthenticationToken for ")
                 .append(getName())
                 .append(" issued by ")
                 .append(getIssuer())
                 .append(" expiring at ")
-                .append(expirationTimeString)
+                .append(expirationTime)
                 .append(" [")
                 .append(getExpiration())
                 .append(" ms, ")
