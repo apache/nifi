@@ -559,7 +559,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 }
             }
 
-            properties.forEach((descriptor, config) -> props.put(descriptor, valueFunction.apply(descriptor, config)));
+            properties.forEach((descriptor, config) -> props.put(getPropertyDescriptor(descriptor.getName()), valueFunction.apply(descriptor, config)));
             return props;
         }
     }
