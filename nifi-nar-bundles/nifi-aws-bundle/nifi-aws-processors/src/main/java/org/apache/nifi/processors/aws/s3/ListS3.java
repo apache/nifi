@@ -129,15 +129,15 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     public static final AllowableValue BY_TIMESTAMPS = new AllowableValue("timestamps", "Tracking Timestamps",
         "This strategy tracks the latest timestamp of listed entity to determine new/updated entities." +
             " Since it only tracks few timestamps, it can manage listing state efficiently." +
-            " However, any newly added, or updated entity having timestamp older than the tracked latest timestamp can not be picked by this strategy." +
+            " This strategy will not pick up any newly added or modified entity if their timestamps are older than the tracked latest timestamp." +
             " Also may miss files when multiple subdirectories are being written at the same time while listing is running.");
 
     public static final AllowableValue BY_ENTITIES = new AllowableValue("entities", "Tracking Entities",
         "This strategy tracks information of all the listed entities within the latest 'Entity Tracking Time Window' to determine new/updated entities." +
             " This strategy can pick entities having old timestamp that can be missed with 'Tracing Timestamps'." +
             " Works even when multiple subdirectories are being written at the same time while listing is running." +
-            " However additional DistributedMapCache controller service is required and more JVM heap memory is used." +
-            " See the description of 'Entity Tracking Time Window' property for further details on how it works.");
+            " However an additional DistributedMapCache controller service is required and more JVM heap memory is used." +
+            " For more information on how the 'Entity Tracking Time Window' property works, see the description.");
 
     public static final PropertyDescriptor LISTING_STRATEGY = new Builder()
         .name("listing-strategy")
@@ -509,7 +509,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 totalListCount += listCount;
 
                 if (listCount >= batchSize && writer.isCheckpoint()) {
-                    getLogger().info("Successfully listed {} new files from S3; routing to success", new Object[] {listCount});
+                    getLogger().info("Successfully listed {} new files from S3; routing to success", listCount);
                     session.commitAsync();
                 }
 
