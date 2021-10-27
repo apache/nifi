@@ -33,10 +33,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -53,6 +49,10 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static java.net.HttpURLConnection.HTTP_OK;
 import static java.net.HttpURLConnection.HTTP_MOVED_TEMP;
@@ -66,11 +66,11 @@ import static org.apache.nifi.processors.standard.InvokeHTTP.PATCH_METHOD;
 import static org.apache.nifi.processors.standard.InvokeHTTP.DELETE_METHOD;
 import static org.apache.nifi.processors.standard.InvokeHTTP.HEAD_METHOD;
 import static org.apache.nifi.processors.standard.InvokeHTTP.OPTIONS_METHOD;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -119,7 +119,7 @@ public class InvokeHTTPTest {
 
     private TestRunner runner;
 
-    @BeforeClass
+    @BeforeAll
     public static void setStores() {
         generatedTlsConfiguration = new TemporaryKeyStoreBuilder().build();
         truststoreTlsConfiguration = new StandardTlsConfiguration(
@@ -132,7 +132,7 @@ public class InvokeHTTPTest {
         );
     }
 
-    @Before
+    @BeforeEach
     public void setRunner() {
         mockWebServer = new MockWebServer();
         runner = TestRunners.newTestRunner(new InvokeHTTP());
@@ -140,7 +140,7 @@ public class InvokeHTTPTest {
         runner.setProperty(InvokeHTTP.PROP_MAX_IDLE_CONNECTIONS, Integer.toString(0));
     }
 
-    @After
+    @AfterEach
     public void shutdownServer() throws IOException {
         mockWebServer.shutdown();
     }
@@ -411,13 +411,13 @@ public class InvokeHTTPTest {
 
         final RecordedRequest request = takeRequestCompleted();
         final String dateHeader = request.getHeader(DATE_HEADER);
-        assertNotNull("Request Date not found", dateHeader);
+        assertNotNull(dateHeader, "Request Date not found");
 
         final Pattern rfcDatePattern = Pattern.compile("^.+? \\d{4} \\d{2}:\\d{2}:\\d{2} GMT$");
-        assertTrue("Request Date RFC 2616 not matched", rfcDatePattern.matcher(dateHeader).matches());
+        assertTrue(rfcDatePattern.matcher(dateHeader).matches(), "Request Date RFC 2616 not matched");
 
         final ZonedDateTime zonedDateTime = ZonedDateTime.parse(dateHeader, DateTimeFormatter.RFC_1123_DATE_TIME);
-        assertNotNull("Request Date Parsing Failed", zonedDateTime);
+        assertNotNull(zonedDateTime, "Request Date Parsing Failed");
     }
 
     @Test
@@ -450,8 +450,8 @@ public class InvokeHTTPTest {
         runner.run();
 
         final RecordedRequest secondRequest = takeRequestCompleted();
-        assertNull("Accept Header found", secondRequest.getHeader(ACCEPT_HEADER));
-        assertNull("Default-Content-Type Header found", secondRequest.getHeader(defaultContentTypeHeader));
+        assertNull(secondRequest.getHeader(ACCEPT_HEADER), "Accept Header found");
+        assertNull(secondRequest.getHeader(defaultContentTypeHeader), "Default-Content-Type Header found");
     }
 
     @Test
@@ -499,10 +499,10 @@ public class InvokeHTTPTest {
 
         final RecordedRequest request = takeRequestCompleted();
         final String authorization = request.getHeader(AUTHORIZATION_HEADER);
-        assertNotNull("Authorization Header not found", authorization);
+        assertNotNull(authorization, "Authorization Header not found");
 
         final Pattern basicAuthPattern = Pattern.compile("^Basic [^\\s]+$");
-        assertTrue("Basic Authentication not matched", basicAuthPattern.matcher(authorization).matches());
+        assertTrue(basicAuthPattern.matcher(authorization).matches(), "Basic Authentication not matched");
     }
 
     @Test
@@ -522,13 +522,13 @@ public class InvokeHTTPTest {
         assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
 
         final RecordedRequest request = takeRequestCompleted();
-        assertNull("Authorization Header not found", request.getHeader(AUTHORIZATION_HEADER));
+        assertNull(request.getHeader(AUTHORIZATION_HEADER), "Authorization Header found");
 
         final RecordedRequest authenticatedRequest = takeRequestCompleted();
         final String authorization = authenticatedRequest.getHeader(AUTHORIZATION_HEADER);
-        assertNotNull("Authorization Header not found", authorization);
-        assertTrue("Digest Realm not found", authorization.contains(realm));
-        assertTrue("Digest Nonce not found", authorization.contains(nonce));
+        assertNotNull(authorization, "Authorization Header not found");
+        assertTrue(authorization.contains(realm), "Digest Realm not found");
+        assertTrue(authorization.contains(nonce), "Digest Nonce not found");
     }
 
     @Test
@@ -675,7 +675,7 @@ public class InvokeHTTPTest {
 
         final RecordedRequest request = takeRequestCompleted();
         final String contentLength = request.getHeader(CONTENT_LENGTH_HEADER);
-        assertNull("Content-Length Request Header found", contentLength);
+        assertNull(contentLength, "Content-Length Request Header found");
 
         final String transferEncoding = request.getHeader(TRANSFER_ENCODING_HEADER);
         assertEquals("chunked", transferEncoding);
@@ -703,13 +703,13 @@ public class InvokeHTTPTest {
 
         final RecordedRequest request = takeRequestCompleted();
         final String contentType = request.getHeader(CONTENT_TYPE_HEADER);
-        assertNotNull("Content Type not found", contentType);
+        assertNotNull(contentType, "Content Type not found");
 
         final Pattern multipartPattern = Pattern.compile("^multipart/form-data.+$");
-        assertTrue("Content Type not matched", multipartPattern.matcher(contentType).matches());
+        assertTrue(multipartPattern.matcher(contentType).matches(), "Content Type not matched");
 
         final String body = request.getBody().readUtf8();
-        assertTrue("Form Data Parameter not found", body.contains(formDataParameter));
+        assertTrue(body.contains(formDataParameter), "Form Data Parameter not found");
     }
 
     @Test
@@ -735,7 +735,7 @@ public class InvokeHTTPTest {
 
     private RecordedRequest takeRequestCompleted() throws InterruptedException {
         final RecordedRequest request = mockWebServer.takeRequest(TAKE_REQUEST_COMPLETED_TIMEOUT, TimeUnit.SECONDS);
-        assertNotNull("Request not found", request);
+        assertNotNull(request, "Request not found");
         return request;
     }
 
@@ -764,7 +764,7 @@ public class InvokeHTTPTest {
     private void assertRelationshipStatusCodeEquals(final Relationship relationship, final int statusCode) {
         final List<MockFlowFile> responseFlowFiles = runner.getFlowFilesForRelationship(relationship);
         final String message = String.format("FlowFiles not found for Relationship [%s]", relationship);
-        assertFalse(message, responseFlowFiles.isEmpty());
+        assertFalse(responseFlowFiles.isEmpty(), message);
         final MockFlowFile responseFlowFile = responseFlowFiles.iterator().next();
         assertStatusCodeEquals(responseFlowFile, statusCode);
     }
@@ -782,7 +782,7 @@ public class InvokeHTTPTest {
         final Optional<LogMessage> errorMessage = errorMessages.stream().findFirst();
         if (errorMessage.isPresent()) {
             final String message = String.format("Error Message Logged: %s", errorMessage.get().getMsg());
-            assertFalse(message, errorMessages.isEmpty());
+            assertFalse(errorMessages.isEmpty(), message);
         }
 
         runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
