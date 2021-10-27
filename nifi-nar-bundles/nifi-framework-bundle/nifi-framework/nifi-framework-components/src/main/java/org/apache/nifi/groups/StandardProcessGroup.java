@@ -4989,6 +4989,10 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         destination.addProcessor(procNode);
         updateProcessor(procNode, proposed);
+        // Notify the processor node that the configuration (properties, e.g.) has been restored
+        final StandardProcessContext processContext = new StandardProcessContext(procNode, controllerServiceProvider, encryptor,
+                stateManagerProvider.getStateManager(procNode.getProcessor().getIdentifier()), () -> false, nodeTypeProvider);
+        procNode.onConfigurationRestored(processContext);
 
         return procNode;
     }

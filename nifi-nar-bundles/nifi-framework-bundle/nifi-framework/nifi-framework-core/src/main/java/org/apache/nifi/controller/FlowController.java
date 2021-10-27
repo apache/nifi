@@ -113,6 +113,7 @@ import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.serialization.ScheduledStateLookup;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.state.server.ZooKeeperStateServer;
@@ -152,6 +153,7 @@ import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.provenance.ComponentIdentifierLookup;
 import org.apache.nifi.provenance.IdentifierLookup;
 import org.apache.nifi.provenance.ProvenanceAuthorizableFactory;
@@ -985,7 +987,9 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         for (final ProcessorNode procNode : flowManager.getRootGroup().findAllProcessors()) {
             final Processor processor = procNode.getProcessor();
             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, processor.getClass(), processor.getIdentifier())) {
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor);
+                final StandardProcessContext processContext = new StandardProcessContext(procNode, controllerServiceProvider, encryptor,
+                        getStateManagerProvider().getStateManager(processor.getIdentifier()), () -> false, this);
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor, processContext);
             }
         }
 
@@ -993,7 +997,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final ControllerService service = serviceNode.getControllerServiceImplementation();
 
             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
+                final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, variableRegistry);
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service, configurationContext);
             }
         }
 
@@ -1001,7 +1006,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final ReportingTask task = taskNode.getReportingTask();
 
             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, task.getClass(), task.getIdentifier())) {
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, task);
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, task, taskNode.getConfigurationContext());
             }
         }
     }

@@ -135,8 +135,6 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         triggerSerially = null != processor.getClass().getAnnotation(TriggerSerially.class);
-
-        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor);
     }
 
     @Override
@@ -195,6 +193,10 @@ public class StandardProcessorTestRunner implements TestRunner {
 
         context.assertValid();
         context.enableExpressionValidation();
+
+        // Call onConfigurationRestored here, right before the test run, as all properties should have been set byt this point.
+        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor, this.context);
+
         try {
             if (initialize) {
                 try {
