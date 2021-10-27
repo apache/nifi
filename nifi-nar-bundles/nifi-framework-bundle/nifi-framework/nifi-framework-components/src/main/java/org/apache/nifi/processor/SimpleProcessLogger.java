@@ -19,6 +19,7 @@ package org.apache.nifi.processor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.logging.LogMessage;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.slf4j.Logger;
@@ -114,6 +115,14 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
+    public void warn(LogMessage logMessage) {
+        if (isWarnEnabled()) {
+            log(LogLevel.WARN, logMessage);
+            logRepository.addLogMessage(logMessage);
+        }
+    }
+
+    @Override
     public void trace(String msg, Throwable t) {
         if (!isTraceEnabled()) {
             return;
@@ -160,6 +169,14 @@ public class SimpleProcessLogger implements ComponentLog {
 
         logger.trace(msg, os);
         logRepository.addLogMessage(LogLevel.TRACE, msg, os, t);
+    }
+
+    @Override
+    public void trace(LogMessage logMessage) {
+        if (isTraceEnabled()) {
+            log(LogLevel.TRACE, logMessage);
+            logRepository.addLogMessage(logMessage);
+        }
     }
 
     @Override
@@ -243,6 +260,14 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
+    public void info(LogMessage logMessage) {
+        if (isInfoEnabled()) {
+            log(LogLevel.INFO, logMessage);
+            logRepository.addLogMessage(logMessage);
+        }
+    }
+
+    @Override
     public String getName() {
         return logger.getName();
     }
@@ -298,6 +323,14 @@ public class SimpleProcessLogger implements ComponentLog {
 
         logger.error(msg, os);
         logRepository.addLogMessage(LogLevel.ERROR, msg, os, t);
+    }
+
+    @Override
+    public void error(LogMessage logMessage) {
+        if (isErrorEnabled()) {
+            log(LogLevel.ERROR, logMessage);
+            logRepository.addLogMessage(logMessage);
+        }
     }
 
     private Object[] addProcessorAndThrowable(final Object[] os, final Throwable t) {
@@ -368,6 +401,14 @@ public class SimpleProcessLogger implements ComponentLog {
 
         logger.debug(msg, os);
         logRepository.addLogMessage(LogLevel.DEBUG, msg, os);
+    }
+
+    @Override
+    public void debug(LogMessage logMessage) {
+        if (isDebugEnabled()) {
+            log(LogLevel.DEBUG, logMessage);
+            logRepository.addLogMessage(logMessage);
+        }
     }
 
     @Override
@@ -454,6 +495,28 @@ public class SimpleProcessLogger implements ComponentLog {
                 break;
             case WARN:
                 warn(msg, os, t);
+                break;
+        }
+    }
+
+    @Override
+    public void log(LogMessage message) {
+        switch (message.getLogLevel()) {
+            case DEBUG:
+                debug(message);
+                break;
+            case ERROR:
+            case FATAL:
+                error(message);
+                break;
+            case INFO:
+                info(message);
+                break;
+            case TRACE:
+                trace(message);
+                break;
+            case WARN:
+                warn(message);
                 break;
         }
     }
