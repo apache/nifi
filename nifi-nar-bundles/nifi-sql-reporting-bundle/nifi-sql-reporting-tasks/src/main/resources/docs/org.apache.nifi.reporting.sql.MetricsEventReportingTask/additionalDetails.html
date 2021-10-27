@@ -29,6 +29,35 @@
     A distinct ActionHandler can be used to service all events or an ActionHandlerLookup can be used for dynamic handler lookup. NOTE: Optimally action handler should be associated with the expected action types
     returned from the rules engine.
 </p>
+<p>
+    The reporting task can uniquely handle items from the bulletin and provenance repositories. This means that an item will only be processed once when the query is set to unique.
+    The query can be set to unique by defining a time window with special sql placeholders ($bulletinStartTime, $bulletinEndTime, $provenanceStartTime, $provenanceEndTime)
+    that the reporting task will evaluate runtime. See the SQL Query Examples section.
+</p>
+<br/><br/>
+<h2>SQL Query Examples</h2>
+<p>
+    <b>Example:</b> Select all fields from the <code>CONNECTION_STATUS</code> table:<br/>
+<pre>SELECT * FROM CONNECTION_STATUS</pre>
+</p>
+<br/>
+<p>
+    <b>Example:</b> Select connection IDs where time-to-backpressure (based on queue count) is less than 5 minutes:<br/>
+<pre>SELECT connectionId FROM CONNECTION_STATUS_PREDICTIONS WHERE predictedTimeToCountBackpressureMillis < 300000</pre>
+</p>
+<br/>
+<p>
+    <b>Example:</b> Get the unique bulletin categories associated with errors:<br/>
+<pre>SELECT DISTINCT(bulletinCategory) FROM BULLETINS WHERE bulletinLevel = "ERROR"</pre>
+</p>
+<p>
+    <b>Example:</b> Select all fields from the <code>BULLETINS</code> table with time window:<br/>
+<pre>SELECT * from BULLETINS WHERE bulletinTimestamp > $bulletinStartTime AND bulletinTimestamp <= $bulletinEndTime</pre>
+</p>
+<p>
+    <b>Example:</b> Select all fields from the <code>PROVENANCE</code> table with time window:<br/>
+<pre>SELECT * from PROVENANCE where timestampMillis > $provenanceStartTime and timestampMillis <= $provenanceEndTime</pre>
+</p>
 <br/>
 </body>
 </html>

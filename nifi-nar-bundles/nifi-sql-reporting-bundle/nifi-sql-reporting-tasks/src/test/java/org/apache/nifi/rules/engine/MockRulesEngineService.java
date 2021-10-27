@@ -18,14 +18,14 @@ package org.apache.nifi.rules.engine;
 
 import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.rules.Action;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 public class MockRulesEngineService extends AbstractConfigurableComponent implements RulesEngineService {
-    private List<Action> actions;
+    private final List<Action> actions;
 
     public MockRulesEngineService(List<Action> actions) {
         this.actions = actions;
@@ -33,11 +33,29 @@ public class MockRulesEngineService extends AbstractConfigurableComponent implem
 
     @Override
     public List<Action> fireRules(Map<String, Object> facts) {
+        // check if it's the unique bulletin query
+        if (facts.containsKey("bulletinCategory")) {
+            final String bulletinCategory = (String) facts.get("bulletinCategory");
+            if (bulletinCategory.equals("processor")) {
+                return Collections.singletonList(actions.get(0));
+            } else if (bulletinCategory.equals("controller service")) {
+                return Collections.singletonList(actions.get(1));
+            }
+        }
+        // check if it's the unique provenance query
+        if (facts.containsKey("componentId")) {
+            final String bulletinCategory = (String) facts.get("componentId");
+            if (bulletinCategory.equals("1")) {
+                return Collections.singletonList(actions.get(0));
+            } else if (bulletinCategory.equals("2")) {
+                return Collections.singletonList(actions.get(1));
+            }
+        }
         return actions;
     }
 
     @Override
-    public void initialize(ControllerServiceInitializationContext context) throws InitializationException {
+    public void initialize(ControllerServiceInitializationContext context) {
     }
 
     @Override

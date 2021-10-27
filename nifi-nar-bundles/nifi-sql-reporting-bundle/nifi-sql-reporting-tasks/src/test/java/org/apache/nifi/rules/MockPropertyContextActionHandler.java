@@ -73,4 +73,10 @@ public class MockPropertyContextActionHandler extends AbstractConfigurableCompon
     public String getIdentifier() {
         return "MockPropertyContextActionHandler";
     }
+
+    public void reset() {
+        rows.clear();
+        defaultActions.clear();
+        propertyContexts.clear();
+    }
 }
