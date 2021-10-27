@@ -21,8 +21,9 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 
 public class TerminationAwareLogger implements ComponentLog {
+
+    private static final String TERMINATED_TASK_PREFIX = "[Terminated Process] - ";
     private final ComponentLog logger;
-    private final String TERMINATED_TASK_PREFIX = "[Terminated Process] - ";
     private volatile boolean terminated = false;
 
     public TerminationAwareLogger(final ComponentLog logger) {
@@ -40,6 +41,7 @@ public class TerminationAwareLogger implements ComponentLog {
     private String getMessage(String originalMessage, LogLevel logLevel) {
         return TERMINATED_TASK_PREFIX + logLevel.name() + " - " + originalMessage;
     }
+
 
     @Override
     public void warn(String msg, Throwable t) {

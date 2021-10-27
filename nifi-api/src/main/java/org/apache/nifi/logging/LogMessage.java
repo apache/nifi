@@ -25,22 +25,65 @@ import java.util.Locale;
 
 public class LogMessage {
 
-    private final String message;
-    private final LogLevel level;
-    private final Throwable throwable;
     private final long time;
+    private final String message;
+    private final LogLevel logLevel;
+    private final Throwable throwable;
+    private final String flowFileUuid;
+    private final Object[] objects;
 
     public static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
     public static final String TO_STRING_FORMAT = "%1$s %2$s - %3$s";
 
-    public LogMessage(final long millisSinceEpoch, final LogLevel level, final String message, final Throwable throwable) {
-        this.level = level;
-        this.throwable = throwable;
-        this.message = message;
-        this.time = millisSinceEpoch;
+    public static class Builder {
+
+        private final long time;
+        private final LogLevel logLevel;
+        private String message;
+        private Throwable throwable;
+        private String flowFileUuid;
+        private Object[] objects;
+
+        public Builder(final long time, final LogLevel logLevel) {
+            this.time = time;
+            this.logLevel = logLevel;
+        }
+
+        public Builder message(String message) {
+            this.message = message;
+            return this;
+        }
+
+        public Builder throwable(Throwable throwable) {
+            this.throwable = throwable;
+            return this;
+        }
+
+        public Builder flowFileUuid(String flowFileUuid) {
+            this.flowFileUuid = flowFileUuid;
+            return this;
+        }
+
+        public Builder objects(Object[] objects) {
+            this.objects = objects;
+            return this;
+        }
+
+        public LogMessage createLogMessage() {
+            return new LogMessage(time, logLevel, message, throwable, flowFileUuid, objects);
+        }
     }
 
-    public long getMillisSinceEpoch() {
+    private LogMessage(final long time, final LogLevel logLevel, final String message, final Throwable throwable, final String flowFileUuid, final Object[] objects) {
+        this.logLevel = logLevel;
+        this.throwable = throwable;
+        this.message = message;
+        this.time = time;
+        this.flowFileUuid = flowFileUuid;
+        this.objects = objects;
+    }
+
+    public long getTime() {
         return time;
     }
 
@@ -48,12 +91,20 @@ public class LogMessage {
         return message;
     }
 
-    public LogLevel getLevel() {
-        return level;
+    public LogLevel getLogLevel() {
+        return logLevel;
     }
 
     public Throwable getThrowable() {
         return throwable;
+    }
+
+    public String getFlowFileUuid() {
+        return flowFileUuid;
+    }
+
+    public Object[] getObjects() {
+        return objects;
     }
 
     @Override
@@ -61,12 +112,12 @@ public class LogMessage {
         final DateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT, Locale.US);
         final String formattedTime = dateFormat.format(new Date(time));
 
-        String formattedMsg = String.format(TO_STRING_FORMAT, formattedTime, level.toString(), message);
+        String formattedMsg = String.format(TO_STRING_FORMAT, formattedTime, logLevel.toString(), message);
         if (throwable != null) {
             final StringWriter sw = new StringWriter();
             final PrintWriter pw = new PrintWriter(sw);
             throwable.printStackTrace(pw);
-            formattedMsg += "\n" + sw.toString();
+            formattedMsg += System.lineSeparator() + sw;
         }
 
         return formattedMsg;

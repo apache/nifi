@@ -164,7 +164,8 @@ public class BulletinTable extends AbstractTable implements QueryableTable, Tran
                 "bulletinSourceId",
                 "bulletinSourceName",
                 "bulletinSourceType",
-                "bulletinTimestamp"
+                "bulletinTimestamp",
+                "bulletinFlowFileUuid"
         );
         final List<RelDataType> types = Arrays.asList(
                 typeFactory.createJavaType(long.class),
@@ -179,7 +180,8 @@ public class BulletinTable extends AbstractTable implements QueryableTable, Tran
                 typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(long.class)
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(String.class)
         );
 
         relDataType = typeFactory.createStructType(Pair.zip(names, types));

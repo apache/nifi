@@ -18,6 +18,7 @@ package org.apache.nifi.rules.handlers;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.logging.LogMessage;
 
 public class MockComponentLog implements ComponentLog {
 
@@ -56,6 +57,11 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
+    public void warn(LogMessage logMessage) {
+        warnMessage = logMessage.getMessage();
+    }
+
+    @Override
     public void trace(String msg, Throwable t) {
         trace(msg);
     }
@@ -73,6 +79,11 @@ public class MockComponentLog implements ComponentLog {
     @Override
     public void trace(String msg, Object[] os, Throwable t) {
         trace(convertMessage(msg,os));
+    }
+
+    @Override
+    public void trace(LogMessage logMessage) {
+        traceMessage = logMessage.getMessage();
     }
 
     @Override
@@ -121,6 +132,11 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
+    public void info(LogMessage message) {
+        infoMessage = message.getMessage();
+    }
+
+    @Override
     public String getName() {
         return null;
     }
@@ -146,6 +162,11 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
+    public void error(LogMessage message) {
+        errorMessage = message.getMessage();
+    }
+
+    @Override
     public void debug(String msg, Throwable t) {
         debug(msg);
     }
@@ -166,6 +187,11 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
+    public void debug(LogMessage message) {
+        debugMessage = message.getMessage();
+    }
+
+    @Override
     public void log(LogLevel level, String msg, Throwable t) {
 
     }
@@ -173,33 +199,6 @@ public class MockComponentLog implements ComponentLog {
     @Override
     public void log(LogLevel level, String msg, Object[] os) {
 
-    }
-
-    @Override
-    public void log(LogLevel level, String msg) {
-        switch (level) {
-            case WARN:
-                warn(msg);
-                break;
-            case DEBUG:
-                debug(msg);
-                break;
-            case INFO:
-                info(msg);
-                break;
-            case ERROR:
-                error(msg);
-                break;
-            case TRACE:
-                trace(msg);
-                break;
-            case FATAL:
-                error(msg);
-                break;
-            case NONE:
-                info(msg);
-                break;
-        }
     }
 
     @Override

@@ -17,27 +17,6 @@
 
 package org.apache.nifi.reporting;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.OptionalLong;
-import java.util.TimeZone;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonBuilderFactory;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-
 import org.apache.avro.Schema;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
@@ -52,6 +31,26 @@ import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonBuilderFactory;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.OptionalLong;
+import java.util.TimeZone;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Tags({"bulletin", "site", "site to site"})
 @CapabilityDescription("Publishes Bulletin events using the Site To Site protocol. Note: only up to 5 bulletins are stored per component and up to "
@@ -89,24 +88,24 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         final String nodeId = context.getClusterNodeIdentifier();
         if (nodeId == null && isClustered) {
             getLogger().debug("This instance of NiFi is configured for clustering, but the Cluster Node Identifier is not yet available. "
-                + "Will wait for Node Identifier to be established.");
+                    + "Will wait for Node Identifier to be established.");
             return;
         }
 
         final BulletinQuery bulletinQuery = new BulletinQuery.Builder().after(lastSentBulletinId).build();
         final List<Bulletin> bulletins = context.getBulletinRepository().findBulletins(bulletinQuery);
 
-        if(bulletins == null || bulletins.isEmpty()) {
+        if (bulletins == null || bulletins.isEmpty()) {
             getLogger().debug("No events to send because no events are stored in the repository.");
             return;
         }
 
-        final OptionalLong opMaxId = bulletins.stream().mapToLong(t -> t.getId()).max();
-        final Long currMaxId = opMaxId.isPresent() ? opMaxId.getAsLong() : -1;
+        final OptionalLong opMaxId = bulletins.stream().mapToLong(Bulletin::getId).max();
+        final long currMaxId = opMaxId.isPresent() ? opMaxId.getAsLong() : -1;
 
-        if(currMaxId < lastSentBulletinId){
+        if (currMaxId < lastSentBulletinId) {
             getLogger().warn("Current bulletin max id is {} which is less than what was stored in state as the last queried event, which was {}. "
-                    + "This means the bulletins repository restarted its ids. Restarting querying from the beginning.", new Object[]{currMaxId, lastSentBulletinId});
+                    + "This means the bulletins repository restarted its ids. Restarting querying from the beginning.", currMaxId, lastSentBulletinId);
             lastSentBulletinId = -1;
         }
 
@@ -130,8 +129,8 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         // Create a JSON array of all the events in the current batch
         final JsonArrayBuilder arrayBuilder = factory.createArrayBuilder();
         for (final Bulletin bulletin : bulletins) {
-            if(bulletin.getId() > lastSentBulletinId) {
-                arrayBuilder.add(serialize(factory, builder, bulletin, df, platform, nodeId, allowNullValues));
+            if (bulletin.getId() > lastSentBulletinId) {
+                arrayBuilder.add(serialize(builder, bulletin, df, platform, nodeId, allowNullValues));
             }
         }
         final JsonArray jsonArray = arrayBuilder.build();
@@ -162,7 +161,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
 
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             getLogger().info("Successfully sent {} Bulletins to destination in {} ms; Transaction ID = {}; First Event ID = {}",
-                    new Object[]{bulletins.size(), transferMillis, transactionId, bulletins.get(0).getId()});
+                    bulletins.size(), transferMillis, transactionId, bulletins.get(0).getId());
         } catch (final Exception e) {
             if (transaction != null) {
                 transaction.error();
@@ -177,8 +176,8 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         lastSentBulletinId = currMaxId;
     }
 
-    private JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final Bulletin bulletin, final DateFormat df,
-            final String platform, final String nodeIdentifier, Boolean allowNullValues) {
+    private JsonObject serialize(final JsonObjectBuilder builder, final Bulletin bulletin, final DateFormat df,
+                                 final String platform, final String nodeIdentifier, Boolean allowNullValues) {
 
         addField(builder, "objectId", UUID.randomUUID().toString(), allowNullValues);
         addField(builder, "platform", platform, allowNullValues);
@@ -195,6 +194,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         addField(builder, "bulletinSourceName", bulletin.getSourceName(), allowNullValues);
         addField(builder, "bulletinSourceType", bulletin.getSourceType() == null ? null : bulletin.getSourceType().name(), allowNullValues);
         addField(builder, "bulletinTimestamp", df.format(bulletin.getTimestamp()), allowNullValues);
+        addField(builder, "bulletinFlowFileUuid", bulletin.getFlowFileUuid(), allowNullValues);
 
         return builder.build();
     }

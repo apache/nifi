@@ -105,7 +105,8 @@ public class BulletinEnumerator implements Enumerator<Object> {
                 bulletin.getSourceId(),
                 bulletin.getSourceName(),
                 bulletin.getSourceType() == null ? null : bulletin.getSourceType().name(),
-                bulletin.getTimestamp() == null ? null : bulletin.getTimestamp().getTime()
+                bulletin.getTimestamp() == null ? null : bulletin.getTimestamp().getTime(),
+                bulletin.getFlowFileUuid()
         };
 
         // If we want no fields just return null
