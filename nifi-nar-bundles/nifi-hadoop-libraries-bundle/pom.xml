@@ -29,10 +29,9 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <!-- Explicitly force Netty to 3.7.1 due to CVE-2014-0193 -->
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
-                <version>3.7.1.Final</version>
+                <version>${netty.3.version}</version>
             </dependency>
             <!-- Override commons-io:2.5 from hadoop libraries -->
             <dependency>

@@ -26,7 +26,7 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-handler</artifactId>
-            <version>4.1.63.Final</version>
+            <version>${netty.4.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

@@ -40,10 +40,9 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <!-- Explicitly force Netty to 3.7.1 due to CVE-2014-0193 -->
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
-                <version>3.7.1.Final</version>
+                <version>${netty.3.version}</version>
             </dependency>
             <!-- Override snapshot versions of javax.el -->
             <dependency>
@@ -110,6 +109,22 @@
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
                 <version>3.4.14</version>
+            </dependency>
+            <!-- Override Netty 4 -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-buffer</artifactId>
+                <version>${netty.4.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-common</artifactId>
+                <version>${netty.4.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-all</artifactId>
+                <version>${netty.4.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

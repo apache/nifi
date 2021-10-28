@@ -48,6 +48,11 @@
                 <artifactId>zookeeper</artifactId>
                 <version>3.4.14</version>
             </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty</artifactId>
+                <version>${netty.3.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>
