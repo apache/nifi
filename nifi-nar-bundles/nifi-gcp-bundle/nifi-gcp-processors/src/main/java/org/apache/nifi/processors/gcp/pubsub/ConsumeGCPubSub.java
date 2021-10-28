@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.gcp.pubsub;
 
 import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.api.pathtemplate.ValidationException;
 import com.google.cloud.pubsub.v1.stub.GrpcSubscriberStub;
 import com.google.cloud.pubsub.v1.stub.SubscriberStub;
 import com.google.cloud.pubsub.v1.stub.SubscriberStubSettings;
@@ -34,9 +35,12 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -45,6 +49,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -99,7 +104,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
 
         pullRequest = PullRequest.newBuilder()
                 .setMaxMessages(batchSize)
-                .setSubscription(getSubscriptionName(context))
+                .setSubscription(getSubscriptionName(context, null))
                 .build();
 
         try {
@@ -108,6 +113,44 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
             storedException.set(e);
             getLogger().error("Failed to create Google Cloud Subscriber due to {}", new Object[]{e});
         }
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+
+        ConfigVerificationResult parseSubscriptionName;
+        try {
+            getSubscriptionName(context, attributes);
+            parseSubscriptionName = new ConfigVerificationResult.Builder()
+                    .verificationStepName("Parse Subscription Name")
+                    .outcome(Outcome.SUCCESSFUL)
+                    .explanation("Successfully parsed Subscription Name")
+                    .build();
+        } catch (final ValidationException e) {
+            verificationLogger.error("Failed to parse Subscription Name", e);
+            parseSubscriptionName = new ConfigVerificationResult.Builder()
+                    .verificationStepName("Parse Subscription Name")
+                    .outcome(Outcome.FAILED)
+                    .explanation(String.format("Failed to parse Subscription Name: " + e.getMessage()))
+                    .build();
+        }
+        ConfigVerificationResult createSubscriberResult;
+        try {
+            getSubscriber(context);
+            createSubscriberResult = new ConfigVerificationResult.Builder()
+                    .verificationStepName("Create Subscriber")
+                    .outcome(Outcome.SUCCESSFUL)
+                    .explanation("Successfully created Subscriber")
+                    .build();
+        } catch (final IOException e) {
+            verificationLogger.error("Failed to create Subscriber", e);
+            createSubscriberResult = new ConfigVerificationResult.Builder()
+                    .verificationStepName("Create Subscriber")
+                    .outcome(Outcome.FAILED)
+                    .explanation(String.format("Failed to create Subscriber: " + e.getMessage()))
+                    .build();
+        }
+        return Arrays.asList(parseSubscriptionName, createSubscriberResult);
     }
 
     @OnStopped
@@ -145,7 +188,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
 
         final PullResponse pullResponse = subscriber.pullCallable().call(pullRequest);
         final List<String> ackIds = new ArrayList<>();
-        final String subscriptionName = getSubscriptionName(context);
+        final String subscriptionName = getSubscriptionName(context, null);
 
         for (ReceivedMessage message : pullResponse.getReceivedMessagesList()) {
             if (message.hasMessage()) {
@@ -184,9 +227,9 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
         subscriber.acknowledgeCallable().call(acknowledgeRequest);
     }
 
-    private String getSubscriptionName(final ProcessContext context) {
-        final String subscriptionName = context.getProperty(SUBSCRIPTION).evaluateAttributeExpressions().getValue();
-        final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
+    private String getSubscriptionName(final ProcessContext context, final Map<String, String> additionalAttributes) {
+        final String subscriptionName = context.getProperty(SUBSCRIPTION).evaluateAttributeExpressions(additionalAttributes).getValue();
+        final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions(additionalAttributes).getValue();
 
         if (subscriptionName.contains("/")) {
             return ProjectSubscriptionName.parse(subscriptionName).toString();

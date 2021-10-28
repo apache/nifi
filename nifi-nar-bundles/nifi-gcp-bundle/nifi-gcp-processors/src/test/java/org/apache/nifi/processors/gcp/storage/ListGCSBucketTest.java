@@ -24,9 +24,11 @@ import com.google.cloud.storage.Storage;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
@@ -36,6 +38,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -113,6 +116,11 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         return new ListGCSBucket() {
             @Override
             protected Storage getCloudService() {
+                return storage;
+            }
+
+            @Override
+            protected Storage getCloudService(final ProcessContext context) {
                 return storage;
             }
         };
@@ -241,6 +249,19 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         return blob;
     }
 
+    private void verifyConfigVerification(final TestRunner runner, final ListGCSBucket processor, final int expectedCount) {
+        final List<ConfigVerificationResult> verificationResults = processor.verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
+        assertEquals(2, verificationResults.size());
+        final ConfigVerificationResult cloudServiceResult = verificationResults.get(0);
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, cloudServiceResult.getOutcome());
+
+        final ConfigVerificationResult listingResult = verificationResults.get(1);
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, listingResult.getOutcome());
+
+        assertTrue(String.format("Expected %s blobs to be counted, but explanation was: %s", expectedCount, listingResult.getExplanation()),
+                listingResult.getExplanation().matches(String.format(".*finding %s blobs.*", expectedCount)));
+    }
+
     @Test
     public void testSuccessfulList() throws Exception {
         reset(storage, mockBlobPage);
@@ -263,6 +284,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS);
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 2);
+        verifyConfigVerification(runner, processor, 2);
 
         final List<MockFlowFile> successes = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
 
@@ -303,6 +325,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS);
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 1);
+        verifyConfigVerification(runner, processor, 1);
 
         assertEquals("blob-key-1", runner.getStateManager().getState(Scope.CLUSTER).get(ListGCSBucket.CURRENT_KEY_PREFIX+"0"));
         assertEquals("2", runner.getStateManager().getState(Scope.CLUSTER).get(ListGCSBucket.CURRENT_TIMESTAMP));
@@ -328,6 +351,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         runner.run();
 
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 0);
+        verifyConfigVerification(runner, processor, 0);
 
         assertEquals("No state should be persisted on an empty return", -1L, runner.getStateManager().getState(Scope.CLUSTER).getVersion());
     }
@@ -358,6 +382,9 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS);
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 1);
+
+        // Both blobs are counted, because verification does not account for entity tracking
+        verifyConfigVerification(runner, processor, 2);
 
         final List<MockFlowFile> successes = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
 
@@ -402,6 +429,9 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS);
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 1);
+
+        // Both blobs are counted, because verification does not account for entity tracking
+        verifyConfigVerification(runner, processor, 2);
 
         final List<MockFlowFile> successes = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
 
@@ -448,6 +478,9 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS);
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 2);
+
+        // All blobs are counted, because verification does not account for entity tracking
+        verifyConfigVerification(runner, processor, 3);
 
         final List<MockFlowFile> successes = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
 
@@ -498,6 +531,9 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS);
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 2);
+
+        // All blobs are counted, because verification does not account for entity tracking
+        verifyConfigVerification(runner, processor, 3);
 
         final List<MockFlowFile> successes = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
 

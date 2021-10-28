@@ -28,9 +28,9 @@ import com.google.pubsub.v1.ProjectTopicName;
 import com.google.pubsub.v1.PubsubMessage;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -38,9 +38,12 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -134,6 +137,28 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
             getLogger().error("Failed to create Google Cloud PubSub Publisher due to {}", new Object[]{e});
             storedException.set(e);
         }
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+
+        ConfigVerificationResult result;
+        try {
+            getPublisherBuilder(context).build();
+            result = new ConfigVerificationResult.Builder()
+                    .verificationStepName("Create Publisher")
+                    .outcome(Outcome.SUCCESSFUL)
+                    .explanation("Successfully created Publisher")
+                    .build();
+        } catch (final IOException e) {
+            verificationLogger.error("Failed to create Publisher", e);
+            result = new ConfigVerificationResult.Builder()
+                    .verificationStepName("Create Publisher")
+                    .outcome(Outcome.FAILED)
+                    .explanation(String.format("Failed to create Publisher: " + e.getMessage()))
+                    .build();
+        }
+        return Collections.singletonList(result);
     }
 
     @Override

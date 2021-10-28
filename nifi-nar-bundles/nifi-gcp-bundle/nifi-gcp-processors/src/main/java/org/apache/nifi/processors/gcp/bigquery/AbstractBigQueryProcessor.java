@@ -23,14 +23,18 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
@@ -46,7 +50,7 @@ import com.google.common.collect.ImmutableList;
 /**
  * Base class for creating processors that connect to GCP BiqQuery service
  */
-public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<BigQuery, BigQueryOptions> {
+public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<BigQuery, BigQueryOptions> implements VerifiableProcessor  {
 
     static final int BUFFER_SIZE = 65536;
 
@@ -120,6 +124,11 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
                 .setRetrySettings(RetrySettings.newBuilder().setMaxAttempts(retryCount).build())
                 .setTransportOptions(getTransportOptions(context))
                 .build();
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+        return verifyCloudService(context, verificationLogger, attributes);
     }
 
     @Override

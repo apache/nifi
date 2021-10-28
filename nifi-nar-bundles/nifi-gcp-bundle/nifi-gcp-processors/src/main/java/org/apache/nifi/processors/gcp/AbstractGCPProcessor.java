@@ -22,18 +22,22 @@ import com.google.cloud.ServiceOptions;
 import com.google.cloud.TransportOptions;
 import com.google.cloud.http.HttpTransportOptions;
 import com.google.common.collect.ImmutableList;
-
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
 import java.net.Proxy;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Abstract base class for gcp processors.
@@ -122,17 +126,46 @@ public abstract class AbstractGCPProcessor<
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return ImmutableList.of(
-            PROJECT_ID,
-            GCP_CREDENTIALS_PROVIDER_SERVICE,
-            RETRY_COUNT,
-            PROXY_HOST,
-            PROXY_PORT,
-            HTTP_PROXY_USERNAME,
-            HTTP_PROXY_PASSWORD,
-            ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS)
+                PROJECT_ID,
+                GCP_CREDENTIALS_PROVIDER_SERVICE,
+                RETRY_COUNT,
+                PROXY_HOST,
+                PROXY_PORT,
+                HTTP_PROXY_USERNAME,
+                HTTP_PROXY_PASSWORD,
+                ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS)
         );
     }
 
+    /**
+     * Verifies the cloud service configuration.  This is in a separate method rather than implementing VerifiableProcessor due to type erasure.
+     * @param context The process context
+     * @param verificationLogger Logger for verification
+     * @param attributes Additional attributes
+     * @return The verification results
+     */
+    protected List<ConfigVerificationResult> verifyCloudService(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+
+        ConfigVerificationResult result = null;
+        try {
+            final CloudService cloudService = getCloudService(context);
+            if (cloudService != null) {
+                result = new ConfigVerificationResult.Builder()
+                        .verificationStepName("Configure Cloud Service")
+                        .outcome(Outcome.SUCCESSFUL)
+                        .explanation(String.format("Successfully configured Cloud Service [%s]", cloudService.getClass().getSimpleName()))
+                        .build();
+            }
+        } catch (final Exception e) {
+            verificationLogger.error("Failed to configure Cloud Service", e);
+            result = new ConfigVerificationResult.Builder()
+                    .verificationStepName("Configure Cloud Service")
+                    .outcome(Outcome.FAILED)
+                    .explanation(String.format("Failed to configure Cloud Service [%s]: %s", cloudService.getClass().getSimpleName(), e.getMessage()))
+                    .build();
+        }
+        return result == null ? Collections.emptyList() : Collections.singletonList(result);
+    }
 
     /**
      * Retrieve credentials from the {@link GCPCredentialsService} attached to this processor.
@@ -147,13 +180,22 @@ public abstract class AbstractGCPProcessor<
     }
 
     /**
+     * Returns the cloud client service constructed based on the context.
+     * @param context the process context
+     * @return The constructed cloud client service
+     */
+    protected CloudService getCloudService(final ProcessContext context) {
+        final CloudServiceOptions options = getServiceOptions(context, getGoogleCredentials(context));
+        return options != null ? options.getService() : null;
+    }
+
+    /**
      * Assigns the cloud service client on scheduling.
      * @param context the process context provided on scheduling the processor.
      */
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
-        final CloudServiceOptions options = getServiceOptions(context, getGoogleCredentials(context));
-        this.cloudService = options != null ? options.getService() : null;
+    public void onScheduled(final ProcessContext context) {
+        this.cloudService = getCloudService(context);
     }
 
     /**
