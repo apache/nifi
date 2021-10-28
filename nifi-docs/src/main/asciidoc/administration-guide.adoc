@@ -4083,6 +4083,37 @@ To configure custom properties for use with NiFi’s Expression Language:
 
 Custom properties can also be configured in the NiFi UI.  See the <<user-guide.adoc#Variables_Window,Variables Window>> section in the User Guide for more information.
 
+[[nar_provider_properties]]
+=== NAR Provider Properties
+
+These properties allow configuring one or more NAR providers. A NAR provider retrieves NARs from an external source and copies them to the directory specified by `nifi.nar.library.autoload.directory`.
+
+Each NAR provider property follows the format `nifi.nar.library.provider.<identifier>.<property-name>` and each provider must have at least one property named `implementation`.
+
+==== HDFS NAR Provider ====
+
+The HDFS NAR provider retrieves NARs using the Hadoop FileSystem API. This can be used with a traditional HDFS instance or with cloud storage, such as `s3a` or `abfs`. In order to use cloud storage, the Hadoop Libraries NAR must be re-built with the cloud storage profiles enabled.
+
+|====
+|*Property*|*Description*
+|`nifi.nar.library.provider.hdfs.implementation`| The fully qualified class name of the implementation class which is `org.apache.nifi.nar.hadoop.HDFSNarProvider`.
+|`nifi.nar.library.provider.hdfs.resources`| The comma separated list of configuration resources, such as `core-site.xml`.
+|`nifi.nar.library.provider.hdfs.storage.location`| The optional storage location, such as `hdfs://hdfs-location`. If not specified, the `defaultFs` from `core-site.xml` will be used.
+|`nifi.nar.library.provider.hdfs.source.directory`| The directory within the storage location where NARs are located.
+|`nifi.nar.library.provider.hdfs.kerberos.principal`| An optional Kerberos principal for authentication. If specified, one of keytab or password must also be specified.
+|`nifi.nar.library.provider.hdfs.kerberos.keytab`| An optional Kerberos keytab for authentication.
+|`nifi.nar.library.provider.hdfs.kerberos.password`| An optional Kerberos password for authentication.
+|====
+
+==== NiFi Registry NAR Provider ====
+
+The NiFi Registry NAR provider retrieves NARs from a NiFi Registry instance. In a secure installation, this provider will retrieve NARs from all buckets that the NiFi server is authorized to read from.
+
+|====
+|*Property*|*Description*
+|`nifi.nar.library.provider.nifi-registry.implementation`| The fully qualified class name of the implementation class which is `org.apache.nifi.registry.extension.NiFiRegistryNarProvider`.
+|`nifi.nar.library.provider.nifi-registry.url`| The URL of the NiFi Registry instance, such as `http://localhost:18080`. If the URL begins with `https`, then the NiFi keystore and truststore will be used to make the TLS connection.
+|====
 
 [[upgrading_nifi]]
 == Upgrading NiFi
