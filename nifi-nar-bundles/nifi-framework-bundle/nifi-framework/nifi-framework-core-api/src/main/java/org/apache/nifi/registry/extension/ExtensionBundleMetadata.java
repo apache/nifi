@@ -14,24 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.nar;
-
-import javax.net.ssl.SSLContext;
-import java.util.Map;
+package org.apache.nifi.registry.extension;
 
 /**
- * Contains necessary information for extensions of NAR auto loader functionality.
+ * The metadata for an extension bundle that exists in an extension registry.
  */
-public interface NarProviderInitializationContext {
+public interface ExtensionBundleMetadata {
 
     /**
-     * @return Returns with the available properties.
+     * @return the identifier of the extension registry that the bundle belongs to
      */
-    Map<String, String> getProperties();
+    String getRegistryIdentifier();
 
     /**
-     * @return Returns an SSLContext created from NiFi's keystore/truststore
+     * @return the group id of the bundle
      */
-    SSLContext getNiFiSSLContext();
+    String getGroup();
+
+    /**
+     * @return the artifact id of the bundle
+     */
+    String getArtifact();
+
+    /**
+     * @return the version of the bundle
+     */
+    String getVersion();
 
 }
