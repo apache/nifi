@@ -18,6 +18,8 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.event.transport.EventSender;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
 import org.apache.nifi.processor.util.listen.ListenerProperties;
@@ -157,7 +159,7 @@ public class TestListenTCP {
         }
     }
 
-    protected void run(final List<String> messages, final int flowFiles, final SSLContext sslContext)
+    private void run(final List<String> messages, final int flowFiles, final SSLContext sslContext)
             throws Exception {
 
         final int port = NetworkUtils.availablePort();
@@ -180,6 +182,8 @@ public class TestListenTCP {
 
     private void sendMessages(final int port, final byte[] messages, final SSLContext sslContext) throws Exception {
         final ByteArrayNettyEventSenderFactory eventSenderFactory = new ByteArrayNettyEventSenderFactory(runner.getLogger(), LOCALHOST, port, TransportProtocol.TCP);
+        eventSenderFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        eventSenderFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         if (sslContext != null) {
             eventSenderFactory.setSslContext(sslContext);
         }
