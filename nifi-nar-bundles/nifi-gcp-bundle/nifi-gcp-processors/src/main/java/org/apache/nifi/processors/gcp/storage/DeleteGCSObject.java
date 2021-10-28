@@ -32,6 +32,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -84,6 +85,11 @@ public class DeleteGCSObject extends AbstractGCSProcessor {
                 .add(KEY)
                 .add(GENERATION)
                 .build();
+    }
+
+    @Override
+    protected List<String> getRequiredPermissions() {
+        return Collections.singletonList("storage.objects.delete");
     }
 
     @Override

@@ -17,10 +17,13 @@
 package org.apache.nifi.processors.gcp.pubsub;
 
 import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.api.gax.rpc.ApiException;
+import com.google.api.pathtemplate.ValidationException;
 import com.google.cloud.pubsub.v1.stub.GrpcSubscriberStub;
 import com.google.cloud.pubsub.v1.stub.SubscriberStub;
 import com.google.cloud.pubsub.v1.stub.SubscriberStubSettings;
 import com.google.common.collect.ImmutableList;
+import com.google.iam.v1.TestIamPermissionsRequest;
 import com.google.pubsub.v1.AcknowledgeRequest;
 import com.google.pubsub.v1.ProjectSubscriptionName;
 import com.google.pubsub.v1.PullRequest;
@@ -34,9 +37,12 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -79,6 +85,8 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.SERIALIZED_
 })
 public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
 
+    private static final List<String> REQUIRED_PERMISSIONS = Collections.singletonList("pubsub.subscriptions.consume");
+
     public static final PropertyDescriptor SUBSCRIPTION = new PropertyDescriptor.Builder()
             .name("gcp-pubsub-subscription")
             .displayName("Subscription")
@@ -99,7 +107,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
 
         pullRequest = PullRequest.newBuilder()
                 .setMaxMessages(batchSize)
-                .setSubscription(getSubscriptionName(context))
+                .setSubscription(getSubscriptionName(context, null))
                 .build();
 
         try {
@@ -108,6 +116,70 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
             storedException.set(e);
             getLogger().error("Failed to create Google Cloud Subscriber due to {}", new Object[]{e});
         }
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+        String subscriptionName = null;
+        try {
+            subscriptionName = getSubscriptionName(context, attributes);
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Parse Subscription Name")
+                    .outcome(Outcome.SUCCESSFUL)
+                    .explanation("Successfully parsed Subscription Name")
+                    .build());
+        } catch (final ValidationException e) {
+            verificationLogger.error("Failed to parse Subscription Name", e);
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Parse Subscription Name")
+                    .outcome(Outcome.FAILED)
+                    .explanation(String.format("Failed to parse Subscription Name: " + e.getMessage()))
+                    .build());
+        }
+        SubscriberStub subscriber = null;
+        try {
+            subscriber = getSubscriber(context);
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Create Subscriber")
+                    .outcome(Outcome.SUCCESSFUL)
+                    .explanation("Successfully created Subscriber")
+                    .build());
+        } catch (final IOException e) {
+            verificationLogger.error("Failed to create Subscriber", e);
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Create Subscriber")
+                    .outcome(Outcome.FAILED)
+                    .explanation(String.format("Failed to create Subscriber: " + e.getMessage()))
+                    .build());
+        }
+
+        if (subscriber != null && subscriptionName != null) {
+            try {
+                final TestIamPermissionsRequest request = TestIamPermissionsRequest.newBuilder().addAllPermissions(REQUIRED_PERMISSIONS).setResource(subscriptionName).build();
+                if (subscriber.testIamPermissionsCallable().call(request).getPermissionsCount() >= REQUIRED_PERMISSIONS.size()) {
+                    results.add(new ConfigVerificationResult.Builder()
+                            .verificationStepName("Test IAM Permissions")
+                            .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                            .explanation(String.format("Verified Subscription [%s] exists and the configured user has the correct permissions.", subscriptionName))
+                            .build());
+                } else {
+                    results.add(new ConfigVerificationResult.Builder()
+                            .verificationStepName("Test IAM Permissions")
+                            .outcome(ConfigVerificationResult.Outcome.FAILED)
+                            .explanation(String.format("The configured user does not have the correct permissions on Subscription [%s].", subscriptionName))
+                            .build());
+                }
+            } catch (final ApiException e) {
+                verificationLogger.error("The configured user appears to have the correct permissions, but the following error was encountered", e);
+                results.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName("Test IAM Permissions")
+                        .outcome(ConfigVerificationResult.Outcome.FAILED)
+                        .explanation(String.format("The configured user appears to have the correct permissions, but the following error was encountered: " + e.getMessage()))
+                        .build());
+            }
+        }
+        return results;
     }
 
     @OnStopped
@@ -145,7 +217,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
 
         final PullResponse pullResponse = subscriber.pullCallable().call(pullRequest);
         final List<String> ackIds = new ArrayList<>();
-        final String subscriptionName = getSubscriptionName(context);
+        final String subscriptionName = getSubscriptionName(context, null);
 
         for (ReceivedMessage message : pullResponse.getReceivedMessagesList()) {
             if (message.hasMessage()) {
@@ -184,9 +256,9 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
         subscriber.acknowledgeCallable().call(acknowledgeRequest);
     }
 
-    private String getSubscriptionName(final ProcessContext context) {
-        final String subscriptionName = context.getProperty(SUBSCRIPTION).evaluateAttributeExpressions().getValue();
-        final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
+    private String getSubscriptionName(final ProcessContext context, final Map<String, String> additionalAttributes) {
+        final String subscriptionName = context.getProperty(SUBSCRIPTION).evaluateAttributeExpressions(additionalAttributes).getValue();
+        final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions(additionalAttributes).getValue();
 
         if (subscriptionName.contains("/")) {
             return ProjectSubscriptionName.parse(subscriptionName).toString();
