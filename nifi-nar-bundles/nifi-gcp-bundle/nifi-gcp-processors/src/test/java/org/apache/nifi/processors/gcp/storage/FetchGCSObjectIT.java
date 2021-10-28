@@ -17,13 +17,16 @@
 package org.apache.nifi.processors.gcp.storage;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -66,7 +69,8 @@ public class FetchGCSObjectIT extends AbstractGCSIT {
         putTestFileEncrypted(KEY, CONTENT);
         assertTrue(fileExists(KEY));
 
-        final TestRunner runner = buildNewRunner(new FetchGCSObject());
+        final FetchGCSObject processor = new FetchGCSObject();
+        final TestRunner runner = buildNewRunner(processor);
         runner.setProperty(FetchGCSObject.BUCKET, BUCKET);
         runner.setProperty(FetchGCSObject.ENCRYPTION_KEY, ENCRYPTION_KEY);
 
@@ -76,6 +80,13 @@ public class FetchGCSObjectIT extends AbstractGCSIT {
 
         runner.assertValid();
         runner.run();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("filename", KEY);
+        final List<ConfigVerificationResult> results = processor.verify(runner.getProcessContext(), runner.getLogger(), attributes);
+        assertEquals(2, results.size());
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, results.get(1).getOutcome());
+        assertTrue(results.get(1).getExplanation().matches("Successfully fetched \\[delete-me\\] from Bucket \\[gcloud-test-bucket-temp-.*\\], totaling 3 bytes"));
 
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS);

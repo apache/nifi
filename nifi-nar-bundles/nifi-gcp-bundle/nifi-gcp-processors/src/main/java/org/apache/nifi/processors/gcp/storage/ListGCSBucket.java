@@ -33,6 +33,8 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -266,6 +268,41 @@ public class ListGCSBucket extends AbstractGCSProcessor {
     }
 
     @Override
+    protected List<String> getRequiredPermissions() {
+        return Collections.singletonList("storage.objects.list");
+    }
+
+    @Override
+    protected String getBucketName(final ProcessContext context, final Map<String, String> attributes) {
+        return context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+        final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, verificationLogger, attributes));
+        final String bucketName = getBucketName(context, attributes);
+
+        try {
+            final VerifyListingAction listingAction = new VerifyListingAction(context);
+            listBucket(context, listingAction);
+            final int blobCount = listingAction.getBlobWriter().getCount();
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("List GCS Bucket")
+                    .outcome(Outcome.SUCCESSFUL)
+                    .explanation(String.format("Successfully listed Bucket [%s], finding %s blobs matching the filter", bucketName, blobCount))
+                    .build());
+        } catch (final Exception e) {
+            verificationLogger.error("Failed to list GCS Bucket", e);
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("List GCS Bucket")
+                    .outcome(Outcome.FAILED)
+                    .explanation(String.format("Failed to list Bucket [%s]: %s", bucketName, e.getMessage()))
+                    .build());
+        }
+        return results;
+    }
+
+    @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         try {
             restoreState(session);
@@ -277,6 +314,22 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
         final long startNanos = System.nanoTime();
 
+        final ListingAction listingAction = new TriggerListingAction(context, session);
+        try {
+            listBucket(context, listingAction);
+        } catch (final Exception e) {
+            getLogger().error("Failed to list contents of GCS Bucket due to {}", new Object[] {e}, e);
+            listingAction.getBlobWriter().finishListingExceptionally(e);
+            session.rollback();
+            context.yield();
+            return;
+        }
+
+        final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+        getLogger().info("Successfully listed GCS bucket {} in {} millis", new Object[]{ context.getProperty(BUCKET).evaluateAttributeExpressions().getValue(), listMillis });
+    }
+
+    private void listBucket(final ProcessContext context, final ListingAction listingAction) throws IOException, SchemaNotFoundException {
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
         final String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
         final boolean useGenerations = context.getProperty(USE_GENERATIONS).asBoolean();
@@ -289,78 +342,50 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             listOptions.add(Storage.BlobListOption.versions(true));
         }
 
-        final Storage storage = getCloudService();
+        final Storage storage = listingAction.getCloudService();
 
         long maxTimestamp = 0L;
         final Set<String> keysMatchingTimestamp = new HashSet<>();
 
-        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final BlobWriter writer = listingAction.getBlobWriter();
 
-        final BlobWriter writer;
-        if (writerFactory == null) {
-            writer = new AttributeBlobWriter(session);
-        } else {
-            writer = new RecordBlobWriter(session, writerFactory, getLogger());
-        }
+        writer.beginListing();
 
-        try {
-            writer.beginListing();
+        Page<Blob> blobPage = storage.list(bucket, listOptions.toArray(new Storage.BlobListOption[0]));
+        int listCount = 0;
 
-            Page<Blob> blobPage = storage.list(bucket, listOptions.toArray(new Storage.BlobListOption[0]));
-            int listCount = 0;
-
-            do {
-                for (final Blob blob : blobPage.getValues()) {
-                    long lastModified = blob.getUpdateTime();
-                    if (lastModified < currentTimestamp || lastModified == currentTimestamp && currentKeys.contains(blob.getName())) {
-                        continue;
-                    }
-
-                    writer.addToListing(blob);
-
-                    // Update state
-                    if (lastModified > maxTimestamp) {
-                        maxTimestamp = lastModified;
-                        keysMatchingTimestamp.clear();
-                    }
-                    if (lastModified == maxTimestamp) {
-                        keysMatchingTimestamp.add(blob.getName());
-                    }
-
-                    listCount++;
+        do {
+            for (final Blob blob : blobPage.getValues()) {
+                long lastModified = blob.getUpdateTime();
+                if (listingAction.skipBlob(blob)) {
+                    continue;
                 }
 
-                if (writer.isCheckpoint()) {
-                    commit(session, listCount);
-                    listCount = 0;
+                writer.addToListing(blob);
+
+                // Update state
+                if (lastModified > maxTimestamp) {
+                    maxTimestamp = lastModified;
+                    keysMatchingTimestamp.clear();
+                }
+                if (lastModified == maxTimestamp) {
+                    keysMatchingTimestamp.add(blob.getName());
                 }
 
-                blobPage = blobPage.getNextPage();
-            } while (blobPage != null);
-
-            writer.finishListing();
-
-            if (maxTimestamp == 0) {
-                getLogger().debug("No new objects in GCS bucket {} to list. Yielding.", bucket);
-                context.yield();
-            } else {
-                commit(session, listCount);
-
-                currentTimestamp = maxTimestamp;
-                currentKeys.clear();
-                currentKeys.addAll(keysMatchingTimestamp);
-                persistState(session, currentTimestamp, currentKeys);
+                listCount++;
             }
-        } catch (final Exception e) {
-            getLogger().error("Failed to list contents of GCS Bucket due to {}", new Object[] {e}, e);
-            writer.finishListingExceptionally(e);
-            session.rollback();
-            context.yield();
-            return;
-        }
 
-        final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        getLogger().info("Successfully listed GCS bucket {} in {} millis", new Object[]{bucket, listMillis});
+            if (writer.isCheckpoint()) {
+                listingAction.commit(listCount);
+                listCount = 0;
+            }
+
+            blobPage = blobPage.getNextPage();
+        } while (blobPage != null);
+
+        writer.finishListing();
+
+        listingAction.finishListing(listCount, maxTimestamp, keysMatchingTimestamp);
     }
 
     private void commit(final ProcessSession session, final int listCount) {
@@ -370,6 +395,107 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         }
     }
 
+    private interface ListingAction<T extends BlobWriter> {
+        boolean skipBlob(final Blob blob);
+
+        T getBlobWriter();
+
+        Storage getCloudService();
+
+        void finishListing(int listCount, long maxTimestamp, Set<String> keysMatchingTimestamp);
+
+        void commit(int listCount);
+    }
+
+    private class TriggerListingAction implements ListingAction<BlobWriter> {
+        final ProcessContext context;
+        final ProcessSession session;
+        final BlobWriter blobWriter;
+
+        private TriggerListingAction(final ProcessContext context, final ProcessSession session) {
+            this.context = context;
+            this.session = session;
+
+            final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+            if (writerFactory == null) {
+                blobWriter = new AttributeBlobWriter(session);
+            } else {
+                blobWriter = new RecordBlobWriter(session, writerFactory, getLogger());
+            }
+        }
+
+        @Override
+        public boolean skipBlob(final Blob blob) {
+            final long lastModified = blob.getUpdateTime();
+            return lastModified < currentTimestamp || lastModified == currentTimestamp && currentKeys.contains(blob.getName());
+        }
+
+        @Override
+        public void commit(final int listCount) {
+            ListGCSBucket.this.commit(session, listCount);
+        }
+
+        @Override
+        public BlobWriter getBlobWriter() {
+            return blobWriter;
+        }
+
+        @Override
+        public Storage getCloudService() {
+            return ListGCSBucket.this.getCloudService();
+        }
+
+        @Override
+        public void finishListing(final int listCount, final long maxTimestamp, final Set<String> keysMatchingTimestamp) {
+            if (maxTimestamp == 0) {
+                getLogger().debug("No new objects in GCS bucket {} to list. Yielding.", context.getProperty(BUCKET).evaluateAttributeExpressions().getValue());
+                context.yield();
+            } else {
+                commit(listCount);
+
+                currentTimestamp = maxTimestamp;
+                currentKeys.clear();
+                currentKeys.addAll(keysMatchingTimestamp);
+                persistState(session, currentTimestamp, currentKeys);
+            }
+        }
+    }
+
+    private class VerifyListingAction implements ListingAction<CountingBlobWriter> {
+        final ProcessContext context;
+        final CountingBlobWriter blobWriter;
+
+        private VerifyListingAction(final ProcessContext context) {
+            this.context = context;
+            blobWriter = new CountingBlobWriter();
+        }
+
+        @Override
+        public boolean skipBlob(final Blob blob) {
+            return false;
+        }
+
+        @Override
+        public void commit(final int listCount) {
+
+        }
+
+        @Override
+        public CountingBlobWriter getBlobWriter() {
+            return blobWriter;
+        }
+
+        @Override
+        public Storage getCloudService() {
+            // Use the verification context
+            return ListGCSBucket.this.getCloudService(context);
+        }
+
+        @Override
+        public void finishListing(final int listCount, final long maxTimestamp, final Set<String> keysMatchingTimestamp) {
+
+        }
+    }
 
     private interface BlobWriter {
         void beginListing() throws IOException, SchemaNotFoundException;
@@ -547,8 +673,6 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         }
     }
 
-
-
     /**
      * Writes Blobs by creating a new FlowFile for each blob and writing information as FlowFile attributes
      */
@@ -584,6 +708,39 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         @Override
         public boolean isCheckpoint() {
             return true;
+        }
+    }
+
+    /**
+     * Simply counts the blobs.
+     */
+    private static class CountingBlobWriter implements BlobWriter {
+        private int count = 0;
+
+        @Override
+        public void beginListing() {
+        }
+
+        @Override
+        public void addToListing(final Blob blob) {
+            count++;
+        }
+
+        @Override
+        public void finishListing() {
+        }
+
+        @Override
+        public void finishListingExceptionally(final Exception cause) {
+        }
+
+        @Override
+        public boolean isCheckpoint() {
+            return false;
+        }
+
+        public int getCount() {
+            return count;
         }
     }
 }
