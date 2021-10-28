@@ -445,6 +445,202 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
     }
 
     @Test
+    void testUpdateMany() throws Exception {
+        // GIVEN
+        TestRunner initRunner = init();
+
+        // Init Mongo data
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("team", RecordFieldType.STRING);
+        recordReader.addSchemaField("color", RecordFieldType.STRING);
+
+        List<Object[]> init = Arrays.asList(
+            new Object[]{"Joe", "A", "green"},
+            new Object[]{"Jane", "A", "green"},
+            new Object[]{"Jeff", "B", "blue"},
+            new Object[]{"Janet", "B", "blue"}
+        );
+
+        init.forEach(recordReader::addRecord);
+
+        initRunner.enqueue("");
+        initRunner.run();
+
+        // Update Mongo data
+        setup();
+        TestRunner updateRunner = init();
+
+        updateRunner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "team");
+        updateRunner.setProperty(PutMongoRecord.UPDATE_MODE, PutMongoRecord.UPDATE_MANY.getValue());
+
+        recordReader.addSchemaField("team", RecordFieldType.STRING);
+        recordReader.addSchemaField("color", RecordFieldType.STRING);
+
+        List<List<Object[]>> inputs = Arrays.asList(
+            Arrays.asList(
+                new Object[]{"A", "yellow"},
+                new Object[]{"B", "red"}
+            )
+        );
+
+        Set<Map<String, Object>> expected = new HashSet<>(Arrays.asList(
+            new HashMap<String, Object>() {{
+                put("name", "Joe");
+                put("team", "A");
+                put("color", "yellow");
+            }},
+            new HashMap<String, Object>() {{
+                put("name", "Jane");
+                put("team", "A");
+                put("color", "yellow");
+            }},
+            new HashMap<String, Object>() {{
+                put("name", "Jeff");
+                put("team", "B");
+                put("color", "red");
+            }},
+            new HashMap<String, Object>() {{
+                put("name", "Janet");
+                put("team", "B");
+                put("color", "red");
+            }}
+        ));
+
+        // WHEN
+        // THEN
+        testUpsertSuccess(updateRunner, inputs, expected);
+    }
+
+    @Test
+    void testUpdateModeFFAttributeSetToMany() throws Exception {
+        // GIVEN
+        TestRunner initRunner = init();
+
+        // Init Mongo data
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("team", RecordFieldType.STRING);
+        recordReader.addSchemaField("color", RecordFieldType.STRING);
+
+        List<Object[]> init = Arrays.asList(
+            new Object[]{"Joe", "A", "green"},
+            new Object[]{"Jane", "A", "green"},
+            new Object[]{"Jeff", "B", "blue"},
+            new Object[]{"Janet", "B", "blue"}
+        );
+
+        init.forEach(recordReader::addRecord);
+
+        initRunner.enqueue("");
+        initRunner.run();
+
+        // Update Mongo data
+        setup();
+        TestRunner updateRunner = init();
+
+        updateRunner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "team");
+        updateRunner.setProperty(PutMongoRecord.UPDATE_MODE, PutMongoRecord.UPDATE_FF_ATTRIBUTE.getValue());
+
+        recordReader.addSchemaField("team", RecordFieldType.STRING);
+        recordReader.addSchemaField("color", RecordFieldType.STRING);
+
+        List<List<Object[]>> inputs = Arrays.asList(
+            Arrays.asList(
+                new Object[]{"A", "yellow"},
+                new Object[]{"B", "red"}
+            )
+        );
+
+        Set<Map<String, Object>> expected = new HashSet<>(Arrays.asList(
+            new HashMap<String, Object>() {{
+                put("name", "Joe");
+                put("team", "A");
+                put("color", "yellow");
+            }},
+            new HashMap<String, Object>() {{
+                put("name", "Jane");
+                put("team", "A");
+                put("color", "yellow");
+            }},
+            new HashMap<String, Object>() {{
+                put("name", "Jeff");
+                put("team", "B");
+                put("color", "red");
+            }},
+            new HashMap<String, Object>() {{
+                put("name", "Janet");
+                put("team", "B");
+                put("color", "red");
+            }}
+        ));
+
+        // WHEN
+        inputs.forEach(input -> {
+            input.forEach(recordReader::addRecord);
+
+            MockFlowFile flowFile = new MockFlowFile(1);
+            flowFile.putAttributes(new HashMap<String, String>(){{
+                put("mongo.update.mode", "many");
+            }});
+            updateRunner.enqueue(flowFile);
+            updateRunner.run();
+        });
+
+        // THEN
+        assertEquals(0, updateRunner.getQueueSize().getObjectCount());
+
+        updateRunner.assertAllFlowFilesTransferred(PutMongoRecord.REL_SUCCESS, inputs.size());
+
+        Set<Map<String, Object>> actual = new HashSet<>();
+        for (Document document : collection.find()) {
+            actual.add(document.entrySet().stream()
+                .filter(key__value -> !key__value.getKey().equals("_id"))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        }
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void testThrowExceptionWhenUpdateModeFFAttributeSetToInvalid() throws Exception {
+        TestRunner runner = init();
+
+        runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "team");
+        runner.setProperty(PutMongoRecord.UPDATE_MODE, PutMongoRecord.UPDATE_FF_ATTRIBUTE.getValue());
+
+        recordReader.addSchemaField("team", RecordFieldType.STRING);
+        recordReader.addSchemaField("color", RecordFieldType.STRING);
+
+        List<List<Object[]>> inputs = Arrays.asList(
+            Arrays.asList(
+                new Object[]{"A", "yellow"},
+                new Object[]{"B", "red"}
+            )
+        );
+
+        String expectedErrorMessage = "Unrecognized 'mongo.update.mode' value 'invalid'";
+
+        // WHEN
+        AssertionError error = assertThrows(
+            AssertionError.class,
+            () -> inputs.forEach(input -> {
+                input.forEach(recordReader::addRecord);
+
+                MockFlowFile flowFile = new MockFlowFile(1);
+                flowFile.putAttributes(new HashMap<String, String>() {{
+                    put("mongo.update.mode", "invalid");
+                }});
+                runner.enqueue(flowFile);
+                runner.run();
+            })
+        );
+
+        // THEN
+        assertEquals(expectedErrorMessage, error.getCause().getMessage());
+
+        assertEquals(inputs.size(), runner.getQueueSize().getObjectCount());
+    }
+
+    @Test
     void testUpsertThrowsExceptionWhenKeyFieldReferencesNonEmbeddedDocument() throws Exception {
         // GIVEN
         TestRunner runner = init();

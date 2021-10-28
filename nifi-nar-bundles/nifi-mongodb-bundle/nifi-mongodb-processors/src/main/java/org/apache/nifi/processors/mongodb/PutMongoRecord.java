@@ -22,13 +22,16 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.InsertOneModel;
+import com.mongodb.client.model.UpdateManyModel;
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.WriteModel;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -67,11 +70,21 @@ import java.util.stream.Collectors;
         "a configured MongoDB collection. This processor does not support updates, deletes or upserts. The number of documents to insert at a time is controlled " +
         "by the \"Insert Batch Size\" configuration property. This value should be set to a reasonable size to ensure " +
         "that MongoDB is not overloaded with too many inserts at once.")
+@ReadsAttribute(
+    attribute = "mongodb.update.mode",
+    description = "Configurable parameter for controlling update mode on a per-flowfile basis." +
+        " Acceptable values are 'one' and 'many' and controls whether a single incoming record should update a single or multiple Mongo documents."
+)
 public class PutMongoRecord extends AbstractMongoProcessor {
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("All FlowFiles that are written to MongoDB are routed to this relationship").build();
     static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("All FlowFiles that cannot be written to MongoDB are routed to this relationship").build();
+
+    static final AllowableValue UPDATE_ONE = new AllowableValue("one", "Update One", "Updates only the first document that matches the query.");
+    static final AllowableValue UPDATE_MANY = new AllowableValue("many", "Update Many", "Updates every document that matches the query.");
+    static final AllowableValue UPDATE_FF_ATTRIBUTE = new AllowableValue("flowfile-attribute", "Use 'mongodb.update.mode' flowfile attribute.",
+        "Use the value of the 'mongodb.update.mode' attribute of the incoming flowfile. Acceptable values are 'one' and 'many'.");
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
             .name("record-reader")
@@ -119,6 +132,15 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             .addValidator(StandardValidators.createListValidator(true, false, StandardValidators.NON_EMPTY_VALIDATOR))
             .build();
 
+    static final PropertyDescriptor UPDATE_MODE = new PropertyDescriptor.Builder()
+        .name("update-mode")
+        .displayName("Update Mode")
+        .dependsOn(UPDATE_KEY_FIELDS)
+        .description("Choose between updating a single document or multiple documents per incoming record.")
+        .allowableValues(UPDATE_ONE, UPDATE_MANY, UPDATE_FF_ATTRIBUTE)
+        .defaultValue(UPDATE_ONE.getValue())
+        .build();
+
     private final static Set<Relationship> relationships;
     private final static List<PropertyDescriptor> propertyDescriptors;
 
@@ -131,6 +153,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         _propertyDescriptors.add(ORDERED);
         _propertyDescriptors.add(BYPASS_VALIDATION);
         _propertyDescriptors.add(UPDATE_KEY_FIELDS);
+        _propertyDescriptors.add(UPDATE_MODE);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         final Set<Relationship> _relationships = new HashSet<>();
@@ -205,11 +228,22 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                 if (context.getProperty(UPDATE_KEY_FIELDS).isSet()) {
                     Bson[] filters = buildFilters(updateKeyFieldPathToFieldChain, readyToUpsert);
 
-                    writeModel = new UpdateOneModel<>(
-                        Filters.and(filters),
-                        new Document("$set", readyToUpsert),
-                        new UpdateOptions().upsert(true)
-                    );
+                    if (updateModeIs(UPDATE_ONE.getValue(), context, flowFile)) {
+                        writeModel = new UpdateOneModel<>(
+                            Filters.and(filters),
+                            new Document("$set", readyToUpsert),
+                            new UpdateOptions().upsert(true)
+                        );
+                    } else if (updateModeIs(UPDATE_MANY.getValue(), context, flowFile)) {
+                        writeModel = new UpdateManyModel<>(
+                            Filters.and(filters),
+                            new Document("$set", readyToUpsert),
+                            new UpdateOptions().upsert(true)
+                        );
+                    } else {
+                        String flowfileUpdateMode = flowFile.getAttribute("mongo.update.mode");
+                        throw new ProcessException("Unrecognized 'mongo.update.mode' value '" + flowfileUpdateMode + "'");
+                    }
                 } else {
                     writeModel = new InsertOneModel<>(readyToUpsert);
                 }
@@ -300,5 +334,18 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             .toArray(new Bson[0]);
 
         return filters;
+    }
+
+    private boolean updateModeIs(String updateValueToMatch, ProcessContext context, FlowFile flowFile) {
+        String updateMode = context.getProperty(UPDATE_MODE).getValue();
+
+        boolean updateMadeMatches = updateMode.equals(updateValueToMatch)
+            ||
+            (
+                updateMode.equals(UPDATE_FF_ATTRIBUTE.getValue())
+                    && updateValueToMatch.equalsIgnoreCase(flowFile.getAttribute("mongo.update.mode"))
+            );
+
+        return updateMadeMatches;
     }
 }
