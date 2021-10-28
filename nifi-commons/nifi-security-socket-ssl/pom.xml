@@ -40,7 +40,7 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-handler</artifactId>
-            <version>4.1.65.Final</version>
+            <version>${netty.4.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

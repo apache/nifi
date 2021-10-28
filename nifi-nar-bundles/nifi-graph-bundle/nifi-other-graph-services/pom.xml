@@ -118,6 +118,12 @@
             <artifactId>gremlin-driver</artifactId>
             <version>${gremlin.version}</version>
         </dependency>
+        <!-- Override Netty 4 -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>${netty.4.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
