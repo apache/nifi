@@ -87,7 +87,7 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
 
                 // aggregate the property descriptors
                 if (nodeProcessor.getConfig().getDescriptors() != null) {
-                    nodeProcessor.getConfig().getDescriptors().values().stream().forEach(propertyDescriptor -> {
+                    nodeProcessor.getConfig().getDescriptors().values().forEach(propertyDescriptor -> {
                         propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeId, propertyDescriptor);
                     });
                 }
