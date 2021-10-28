@@ -86,10 +86,9 @@
                 <version>1.15.0-SNAPSHOT</version>
             </dependency>
             <dependency>
-                <!-- Explicitly force Netty to 3.7.1 due to CVE-2014-0193 -->
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
-                <version>3.7.1.Final</version>
+                <version>${netty.3.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
