@@ -14,24 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.nar;
-
-import javax.net.ssl.SSLContext;
-import java.util.Map;
+package org.apache.nifi.registry.extension;
 
 /**
- * Contains necessary information for extensions of NAR auto loader functionality.
+ * Indicates a non-I/O related error from an extension registry.
  */
-public interface NarProviderInitializationContext {
+public class ExtensionRegistryException extends Exception {
 
-    /**
-     * @return Returns with the available properties.
-     */
-    Map<String, String> getProperties();
+    public ExtensionRegistryException(String message) {
+        super(message);
+    }
 
-    /**
-     * @return Returns an SSLContext created from NiFi's keystore/truststore
-     */
-    SSLContext getNiFiSSLContext();
+    public ExtensionRegistryException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
 }

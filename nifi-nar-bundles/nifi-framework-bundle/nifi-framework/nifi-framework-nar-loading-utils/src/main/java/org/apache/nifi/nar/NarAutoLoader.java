@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -57,7 +58,7 @@ public class NarAutoLoader {
         this.extensionManager = Objects.requireNonNull(extensionManager);
     }
 
-    public synchronized void start() throws IllegalAccessException, InstantiationException, ClassNotFoundException, IOException {
+    public synchronized void start() throws IllegalAccessException, InstantiationException, ClassNotFoundException, IOException, TlsException {
         if (started) {
             return;
         }
