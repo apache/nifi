@@ -29,9 +29,6 @@ The following binary components are provided under the Apache Software License v
         groovy-sql
         groovy-swing
         groovy-templates
-        groovy-test
-        groovy-test-junit5
-        groovy-testng
         groovy-xml
     The following NOTICE information applies:
       Groovy Language
