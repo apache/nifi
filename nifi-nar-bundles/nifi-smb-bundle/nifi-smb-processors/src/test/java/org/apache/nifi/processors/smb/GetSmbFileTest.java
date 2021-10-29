@@ -37,7 +37,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -60,7 +59,6 @@ public class GetSmbFileTest {
     private Connection connection;
     private Session session;
     private DiskShare diskShare;
-    private ByteArrayOutputStream baOutputStream;
 
     private final static String HOSTNAME = "host";
     private final static String SHARE = "share";
@@ -74,8 +72,6 @@ public class GetSmbFileTest {
         connection = mock(Connection.class);
         session = mock(Session.class);
         diskShare = mock(DiskShare.class);
-
-        baOutputStream = new ByteArrayOutputStream();
 
         when(smbClient.connect(any(String.class))).thenReturn(connection);
         when(connection.authenticate(any(AuthenticationContext.class))).thenReturn(session);
