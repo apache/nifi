@@ -121,7 +121,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             .description("Comma-separated list of paths to files and/or directories which contain modules containing custom transformations (that are not included on NiFi's classpath).")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -251,7 +251,6 @@ public class JoltTransformJSON extends AbstractProcessor {
                     }
                 }
             } catch (final Exception e) {
-//                getLogger().info("Processor is not valid - " + e.toString());
                 getLogger().error("processor is not valid: ", e);
                 String message = "Specification not valid for the selected transformation." ;
                 results.add(new ValidationResult.Builder().valid(false)
@@ -342,8 +341,8 @@ public class JoltTransformJSON extends AbstractProcessor {
                 .build();
 
         try {
-            if (context.getProperty(MODULES).isSet() && !context.getProperty(MODULES).isExpressionLanguagePresent()) {
-                customClassLoader = ClassLoaderUtils.getCustomClassLoader(context.getProperty(MODULES).getValue(), this.getClass().getClassLoader(), getJarFilenameFilter());
+            if (context.getProperty(MODULES).isSet()) {
+                customClassLoader = ClassLoaderUtils.getCustomClassLoader(context.getProperty(MODULES).evaluateAttributeExpressions().getValue(), this.getClass().getClassLoader(), getJarFilenameFilter());
             } else {
                 customClassLoader = this.getClass().getClassLoader();
             }

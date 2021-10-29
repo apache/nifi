@@ -235,7 +235,7 @@ public class JoltTransformRecord extends AbstractProcessor {
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         final String transform = validationContext.getProperty(JOLT_TRANSFORM).getValue();
-        final String customTransform = validationContext.getProperty(CUSTOM_CLASS).getValue();
+        final String customTransform = validationContext.getProperty(CUSTOM_CLASS).evaluateAttributeExpressions().getValue();
 
         if (!validationContext.getProperty(JOLT_SPEC).isSet() || StringUtils.isEmpty(validationContext.getProperty(JOLT_SPEC).getValue())) {
             if (!SORTR.getValue().equals(transform)) {
@@ -253,14 +253,6 @@ public class JoltTransformRecord extends AbstractProcessor {
                     if (!StringUtils.isEmpty(invalidExpressionMsg)) {
                         results.add(new ValidationResult.Builder().valid(false)
                                 .subject(JOLT_SPEC.getDisplayName())
-                                .explanation("Invalid Expression Language: " + invalidExpressionMsg)
-                                .build());
-                    }
-                } else if (validationContext.isExpressionLanguagePresent(customTransform)) {
-                    final String invalidExpressionMsg = validationContext.newExpressionLanguageCompiler().validateExpression(customTransform, true);
-                    if (!StringUtils.isEmpty(invalidExpressionMsg)) {
-                        results.add(new ValidationResult.Builder().valid(false)
-                                .subject(CUSTOM_CLASS.getDisplayName())
                                 .explanation("Invalid Expression Language: " + invalidExpressionMsg)
                                 .build());
                     }
@@ -282,7 +274,7 @@ public class JoltTransformRecord extends AbstractProcessor {
                     }
                 }
             } catch (final Exception e) {
-                getLogger().info("Processor is not valid - " + e.toString());
+                getLogger().info("Processor is not valid - ", e);
                 String message = "Specification not valid for the selected transformation.";
                 results.add(new ValidationResult.Builder().valid(false)
                         .explanation(message)

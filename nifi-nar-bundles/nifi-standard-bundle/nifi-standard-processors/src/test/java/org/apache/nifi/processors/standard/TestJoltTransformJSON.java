@@ -372,12 +372,11 @@ public class TestJoltTransformJSON {
         Map<String, String> customSpecs = new HashMap<>();
         customSpecs.put("JOLT_SPEC", spec);
         customSpecs.put("CUSTOM_JOLT_CLASS", customJoltTransform);
-        customSpecs.put("CUSTOM_JAR", customJarPath);
-
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, "${JOLT_SPEC}");
         runner.setProperty(JoltTransformJSON.CUSTOM_CLASS,"${CUSTOM_JOLT_CLASS}");
         runner.setProperty(JoltTransformJSON.MODULES, "${CUSTOM_JAR}");
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM,JoltTransformJSON.CUSTOMR);
+        runner.setVariable("CUSTOM_JAR", customJarPath);
         runner.enqueue(JSON_INPUT, customSpecs);
         runner.run();
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
