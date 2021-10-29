@@ -143,7 +143,7 @@ public class TestEmailRecordSink {
         final RuntimeException runtimeException = assertThrows(RuntimeException.class,
                 () -> recordSink.sendData(recordSet, Collections.emptyMap(), false)
         );
-        assertEquals("Failed to send E-mail Notification", runtimeException.getMessage());
+        assertEquals("Send Failed using SMTP Host [localhost] Port [25]", runtimeException.getMessage());
         assertEquals(exceptionMessage, runtimeException.getCause().getMessage());
     }
 }

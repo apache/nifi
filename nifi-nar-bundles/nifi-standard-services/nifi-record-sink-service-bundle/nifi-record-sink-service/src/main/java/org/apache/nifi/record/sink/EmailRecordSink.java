@@ -25,6 +25,8 @@ import jakarta.mail.Transport;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -40,6 +42,7 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -53,13 +56,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+@Tags({"email", "smtp", "record", "sink", "send", "write"})
+@CapabilityDescription("Provides a RecordSinkService that can be used to send records in email using the specified writer for formatting.")
 public class EmailRecordSink extends AbstractControllerService implements RecordSinkService {
+
+    private static final String RFC822 = "Comma separated sequence of addresses following RFC822 syntax.";
 
     public static final PropertyDescriptor FROM = new PropertyDescriptor.Builder()
             .name("from")
             .displayName("From")
-            .description("Specifies the Email address to use as the sender. "
-                    + "Comma separated sequence of addresses following RFC822 syntax.")
+            .description("Specifies the Email address to use as the sender. " + RFC822)
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -67,8 +73,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
     public static final PropertyDescriptor TO = new PropertyDescriptor.Builder()
             .name("to")
             .displayName("To")
-            .description("The recipients to include in the To-Line of the email. "
-                    + "Comma separated sequence of addresses following RFC822 syntax.")
+            .description("The recipients to include in the To-Line of the email. " + RFC822)
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -76,8 +81,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
     public static final PropertyDescriptor CC = new PropertyDescriptor.Builder()
             .name("cc")
             .displayName("CC")
-            .description("The recipients to include in the CC-Line of the email. "
-                    + "Comma separated sequence of addresses following RFC822 syntax.")
+            .description("The recipients to include in the CC-Line of the email. " + RFC822)
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -85,8 +89,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
     public static final PropertyDescriptor BCC = new PropertyDescriptor.Builder()
             .name("bcc")
             .displayName("BCC")
-            .description("The recipients to include in the BCC-Line of the email. "
-                    + "Comma separated sequence of addresses following RFC822 syntax.")
+            .description("The recipients to include in the BCC-Line of the email. " + RFC822)
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -147,7 +150,8 @@ public class EmailRecordSink extends AbstractControllerService implements Record
     public static final PropertyDescriptor SMTP_STARTTLS = new PropertyDescriptor.Builder()
             .name("smtp-starttls")
             .displayName("SMTP STARTTLS")
-            .description("Flag indicating whether TLS should be enabled")
+            .description("Flag indicating whether STARTTLS should be enabled. "
+                    + "If the server does not support STARTTLS, the connection continues without the use of TLS")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -171,16 +175,6 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("NiFi")
             .build();
-    public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
-            .name("content-type")
-            .displayName("Content Type")
-            .description("Mime Type used to interpret the contents of the email, such as text/plain or text/html")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue("text/plain")
-            .build();
-
 
     private volatile RecordSetWriterFactory writerFactory;
 
@@ -192,6 +186,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
     static {
         propertyToContext.put("mail.smtp.host", SMTP_HOSTNAME);
         propertyToContext.put("mail.smtp.port", SMTP_PORT);
+        propertyToContext.put("mail.smtps.port", SMTP_PORT);
         propertyToContext.put("mail.smtp.socketFactory.port", SMTP_PORT);
         propertyToContext.put("mail.smtp.ssl.enable", SMTP_SSL);
         propertyToContext.put("mail.smtp.auth", SMTP_AUTH);
@@ -203,20 +198,19 @@ public class EmailRecordSink extends AbstractControllerService implements Record
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return Collections.unmodifiableList(Arrays.asList(
-                TO,
                 FROM,
+                TO,
                 CC,
                 BCC,
                 SUBJECT,
                 SMTP_HOSTNAME,
                 SMTP_PORT,
+                SMTP_AUTH,
                 SMTP_USERNAME,
                 SMTP_PASSWORD,
-                SMTP_AUTH,
                 SMTP_STARTTLS,
                 SMTP_SSL,
                 HEADER_XMAILER,
-                CONTENT_TYPE,
                 RecordSinkService.RECORD_WRITER_FACTORY
         ));
     }
@@ -249,25 +243,25 @@ public class EmailRecordSink extends AbstractControllerService implements Record
         try {
             message.setFrom(InternetAddress.parse(context.getProperty(FROM).evaluateAttributeExpressions().getValue())[0]);
 
-            final InternetAddress[] toAddresses = toInetAddresses(context, TO);
+            final InternetAddress[] toAddresses = toInternetAddresses(context, TO);
             message.setRecipients(Message.RecipientType.TO, toAddresses);
 
-            final InternetAddress[] ccAddresses = toInetAddresses(context, CC);
+            final InternetAddress[] ccAddresses = toInternetAddresses(context, CC);
             message.setRecipients(Message.RecipientType.CC, ccAddresses);
 
-            final InternetAddress[] bccAddresses = toInetAddresses(context, BCC);
+            final InternetAddress[] bccAddresses = toInternetAddresses(context, BCC);
             message.setRecipients(Message.RecipientType.BCC, bccAddresses);
 
             message.setHeader("X-Mailer", context.getProperty(HEADER_XMAILER).evaluateAttributeExpressions().getValue());
             message.setSubject(context.getProperty(SUBJECT).evaluateAttributeExpressions().getValue());
 
-            final String contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions().getValue();
-            message.setContent(messageText, contentType);
+            message.setContent(messageText, "text/plain");
             message.setSentDate(new Date());
 
             send(message);
         } catch (final ProcessException | MessagingException e) {
-            throw new RuntimeException("Failed to send E-mail Notification", e);
+            final String errorMessage = String.format("Send Failed using SMTP Host [%s] Port [%s]", properties.get("mail.smtp.host"), properties.get("mail.smtp.port"));
+            throw new RuntimeException(errorMessage, e);
         }
     }
 
@@ -287,7 +281,9 @@ public class EmailRecordSink extends AbstractControllerService implements Record
                 sendMessage(getConfigurationContext(), out.toString());
             }
         } catch (SchemaNotFoundException e) {
-            throw new IOException(e);
+            final String errorMessage = String.format("RecordSetWriter could not be created because the schema was not found. The schema name for the RecordSet to write is %s",
+                    recordSet.getSchema().getSchemaName());
+            throw new ProcessException(errorMessage, e);
         }
         return writeResult;
     }
@@ -322,7 +318,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             String propValue = context.getProperty(entry.getValue()).evaluateAttributeExpressions().getValue();
 
             // Nullable values are not allowed, so filter out
-            if (null != propValue) {
+            if (StringUtils.isNotBlank(propValue)) {
                 properties.setProperty(property, propValue);
             }
         }
@@ -338,10 +334,6 @@ public class EmailRecordSink extends AbstractControllerService implements Record
      */
     private Session createMailSession(final Properties properties) {
         final boolean auth = Boolean.parseBoolean(properties.getProperty("mail.smtp.auth"));
-
-        /*
-         * Conditionally create a password authenticator if the 'auth' parameter is set.
-         */
         return auth ? Session.getInstance(properties, new Authenticator() {
             @Override
             public PasswordAuthentication getPasswordAuthentication() {
@@ -358,7 +350,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
      * @return an InternetAddress[] parsed from the supplied property
      * @throws AddressException if the property cannot be parsed to a valid InternetAddress[]
      */
-    private InternetAddress[] toInetAddresses(final ConfigurationContext context, PropertyDescriptor propertyDescriptor) throws AddressException {
+    private InternetAddress[] toInternetAddresses(final ConfigurationContext context, PropertyDescriptor propertyDescriptor) throws AddressException {
         InternetAddress[] parse;
         final String value = context.getProperty(propertyDescriptor).evaluateAttributeExpressions().getValue();
         if (value == null || value.isEmpty()) {
