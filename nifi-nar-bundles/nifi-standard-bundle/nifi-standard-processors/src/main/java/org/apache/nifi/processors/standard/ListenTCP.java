@@ -96,26 +96,23 @@ public class ListenTCP extends AbstractProcessor {
             .defaultValue(ClientAuth.REQUIRED.name())
             .build();
 
+    // Deprecated
     public static final PropertyDescriptor MAX_RECV_THREAD_POOL_SIZE = new PropertyDescriptor.Builder()
             .name("max-receiving-threads")
             .displayName("Max Number of Receiving Message Handler Threads")
             .description(
-                    "The maximum number of threads might be available for handling receiving messages ready all the time. " +
-                    "Cannot be bigger than the \"Max Number of TCP Connections\". " +
-                    "If not set, the value of \"Max Number of TCP Connections\" will be used.")
+                    "This property is deprecated and no longer used.")
             .addValidator(StandardValidators.createLongValidator(1, 65535, true))
             .required(false)
             .build();
 
+    // Deprecated
     protected static final PropertyDescriptor POOL_RECV_BUFFERS = new PropertyDescriptor.Builder()
             .name("pool-receive-buffers")
             .displayName("Pool Receive Buffers")
             .description(
-                    "When turned on, the processor uses pre-populated pool of buffers when receiving messages. " +
-                    "This is prepared during initialisation of the processor. " +
-                    "With high value of Max Number of TCP Connections and Receive Buffer Size this strategy might allocate significant amount of memory! " +
-                    "When turned off, the byte buffers will be created on demand and be destroyed after use.")
-            .required(true)
+                    "This property is deprecated and no longer used.")
+            .required(false)
             .defaultValue("True")
             .allowableValues("True", "False")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -126,15 +123,11 @@ public class ListenTCP extends AbstractProcessor {
             .description("Messages received successfully will be sent out this relationship.")
             .build();
 
-    protected static final String RECEIVED_COUNTER = "Messages Received";
-
     protected List<PropertyDescriptor> descriptors;
     protected Set<Relationship> relationships;
     protected volatile int port;
-    protected volatile Charset charset;
     protected volatile BlockingQueue<ByteArrayMessage> events;
     protected volatile BlockingQueue<ByteArrayMessage> errorEvents;
-    protected volatile InetAddress hostname;
     protected volatile EventServer eventServer;
     protected volatile byte[] messageDemarcatorBytes;
     protected volatile EventBatcher eventBatcher;
@@ -145,12 +138,15 @@ public class ListenTCP extends AbstractProcessor {
         descriptors.add(ListenerProperties.PORT);
         descriptors.add(ListenerProperties.RECV_BUFFER_SIZE);
         descriptors.add(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE);
+        // Deprecated
         descriptors.add(ListenerProperties.MAX_SOCKET_BUFFER_SIZE);
         descriptors.add(ListenerProperties.CHARSET);
         descriptors.add(ListenerProperties.MAX_CONNECTIONS);
         descriptors.add(ListenerProperties.MAX_BATCH_SIZE);
         descriptors.add(ListenerProperties.MESSAGE_DELIMITER);
+        // Deprecated
         descriptors.add(MAX_RECV_THREAD_POOL_SIZE);
+        // Deprecated
         descriptors.add(POOL_RECV_BUFFERS);
         descriptors.add(ListenerProperties.NETWORK_INTF_NAME);
         descriptors.add(CLIENT_AUTH);
@@ -181,10 +177,8 @@ public class ListenTCP extends AbstractProcessor {
             final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
             ClientAuth clientAuth = ClientAuth.valueOf(clientAuthValue);
             SSLContext sslContext = sslContextService.createContext();
-            if (sslContext != null) {
-                eventFactory.setSslContext(sslContext);
-                eventFactory.setClientAuth(clientAuth);
-            }
+            eventFactory.setSslContext(sslContext);
+            eventFactory.setClientAuth(clientAuth);
         }
 
         eventFactory.setSocketReceiveBuffer(bufferSize);
@@ -222,12 +216,9 @@ public class ListenTCP extends AbstractProcessor {
             session.transfer(flowFile, REL_SUCCESS);
             session.adjustCounter("FlowFiles Transferred to Success", 1L, false);
 
-            // the sender and command will be the same for all events based on the batch key
             final String transitUri = getTransitUri(entry.getValue());
             session.getProvenanceReporter().receive(flowFile, transitUri);
-
         }
-        session.commitAsync();
     }
 
     @OnStopped
@@ -249,20 +240,6 @@ public class ListenTCP extends AbstractProcessor {
             results.add(new ValidationResult.Builder()
                     .explanation("Client Auth must be provided when using TLS/SSL")
                     .valid(false).subject("Client Auth").build());
-        }
-
-        final int maxConnections = validationContext.getProperty(ListenerProperties.MAX_CONNECTIONS).asInteger();
-
-        if (validationContext.getProperty(MAX_RECV_THREAD_POOL_SIZE).isSet()) {
-            final int maxPoolSize = validationContext.getProperty(MAX_RECV_THREAD_POOL_SIZE).asInteger();
-
-            if (maxPoolSize > maxConnections) {
-                results.add(new ValidationResult.Builder()
-                        .explanation("\"" + MAX_RECV_THREAD_POOL_SIZE.getDisplayName() + "\" cannot be bigger than \"" + ListenerProperties.MAX_CONNECTIONS.getDisplayName() + "\"")
-                        .valid(false)
-                        .subject(MAX_RECV_THREAD_POOL_SIZE.getDisplayName())
-                        .build());
-            }
         }
 
         return results;
@@ -303,7 +280,7 @@ public class ListenTCP extends AbstractProcessor {
     }
 
     private EventBatcher getEventBatcher() {
-        if(eventBatcher != null) {
+        if (eventBatcher != null) {
             return eventBatcher;
         } else {
             eventBatcher = new EventBatcher<ByteArrayMessage>(getLogger(), events, errorEvents) {
