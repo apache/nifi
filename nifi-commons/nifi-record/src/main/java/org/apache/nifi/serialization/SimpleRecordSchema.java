@@ -24,6 +24,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -168,12 +169,20 @@ public class SimpleRecordSchema implements RecordSchema {
         }
 
         final RecordSchema other = (RecordSchema) obj;
-        if (getSchemaNamespace().isPresent() && getSchemaNamespace().equals(other.getSchemaNamespace())
-                && getSchemaName().isPresent() && getSchemaName().equals(other.getSchemaName())) {
-            return true;
+        final boolean thisIsRecursive = isRecursive();
+        final boolean otherIsRecursive = other.isRecursive();
+        if (thisIsRecursive ^ otherIsRecursive) { // only one is recursive
+            return false;
+        } else if (thisIsRecursive && otherIsRecursive) { // both are recursive
+            if (getSchemaNamespace().isPresent() && getSchemaNamespace().equals(other.getSchemaNamespace())
+                    && getSchemaName().isPresent() && getSchemaName().equals(other.getSchemaName())) {
+                return true;
+            } else {
+                return fields.equals(other.getFields());
+            }
+        } else { // neither is recursive
+            return fields.equals(other.getFields());
         }
-
-        return fields.equals(other.getFields());
     }
 
     @Override
@@ -288,5 +297,15 @@ public class SimpleRecordSchema implements RecordSchema {
                 dataType.removePath(path.tail());
             }
         }
+    }
+
+    @Override
+    public boolean isRecursive() {
+        for (RecordField field : getFields()) {
+            if (field.getDataType().isRecursive(Arrays.asList(this))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

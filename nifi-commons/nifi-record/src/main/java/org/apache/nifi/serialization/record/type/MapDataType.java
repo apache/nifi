@@ -20,7 +20,9 @@ package org.apache.nifi.serialization.record.type;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.util.List;
 import java.util.Objects;
 
 public class MapDataType extends DataType {
@@ -80,5 +82,10 @@ public class MapDataType extends DataType {
     @Override
     public String toString() {
         return "MAP<" + valueType + ">";
+    }
+
+    @Override
+    public boolean isRecursive(List<RecordSchema> schemas) {
+        return getValueType().isRecursive(schemas);
     }
 }

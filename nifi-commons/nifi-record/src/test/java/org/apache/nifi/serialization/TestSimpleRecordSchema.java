@@ -17,19 +17,19 @@
 
 package org.apache.nifi.serialization;
 
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class TestSimpleRecordSchema {
@@ -93,21 +93,142 @@ public class TestSimpleRecordSchema {
     }
 
     @Test
-    public void testFieldsArentCheckedInEqualsIfNameAndNamespaceMatch() {
-        final RecordField testField = new RecordField("test", RecordFieldType.STRING.getDataType());
+    public void testEqualsSimpleSchema() {
+        // GIVEN
+        final String nameOfField1 = "field1";
+        final String nameOfField2 = "field2";
+        final DataType typeOfField1 = RecordFieldType.INT.getDataType();
+        final DataType typeOfField2 = RecordFieldType.STRING.getDataType();
+        final String schemaName = "schemaName";
+        final String namespace = "namespace";
 
-        final SimpleRecordSchema schema1 = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
-        schema1.setSchemaName("name");
-        schema1.setSchemaNamespace("namespace");
-        schema1.setFields(Collections.singletonList(testField));
+        final SimpleRecordSchema schema1 = createSchemaWithTwoFields(nameOfField1, nameOfField2, typeOfField1, typeOfField2, schemaName, namespace);
+        final SimpleRecordSchema schema2 = createSchemaWithTwoFields(nameOfField1, nameOfField2, typeOfField1, typeOfField2, schemaName, namespace);
 
-        SimpleRecordSchema schema2 = Mockito.spy(new SimpleRecordSchema(SchemaIdentifier.EMPTY));
-        schema2.setSchemaName("name");
-        schema2.setSchemaNamespace("namespace");
-        schema2.setFields(Collections.singletonList(testField));
+        // WHEN, THEN
+        assertTrue(schema1.equals(schema2));
+    }
+
+    @Test
+    public void testEqualsSimpleSchemaEvenIfSchemaNameAndNameSpaceAreDifferent() {
+        // GIVEN
+        final String nameOfField1 = "field1";
+        final String nameOfField2 = "field2";
+        final DataType typeOfField1 = RecordFieldType.INT.getDataType();
+        final DataType typeOfField2 = RecordFieldType.STRING.getDataType();
+        final String schemaName1 = "schemaName1";
+        final String schemaName2 = "schemaName2";
+        final String namespace1 = "namespace1";
+        final String namespace2 = "namespace2";
+
+        final SimpleRecordSchema schema1 = createSchemaWithTwoFields(nameOfField1, nameOfField2, typeOfField1, typeOfField2, schemaName1, namespace1);
+        final SimpleRecordSchema schema2 = createSchemaWithTwoFields(nameOfField1, nameOfField2, typeOfField1, typeOfField2, schemaName2, namespace2);
+
+        // WHEN, THEN
+        assertTrue(schema1.equals(schema2));
+    }
+
+    @Test
+    public void testNotEqualsSimpleSchemaDifferentTypes() {
+        // GIVEN
+        final String nameOfField1 = "field1";
+        final String nameOfField2 = "field2";
+        final DataType typeOfField1 = RecordFieldType.INT.getDataType();
+        final DataType typeOfField2 = RecordFieldType.STRING.getDataType();
+        final String schemaName = "schemaName";
+        final String namespace = "namespace";
+
+        final SimpleRecordSchema schema1 = createSchemaWithTwoFields(nameOfField1, nameOfField2, typeOfField1, typeOfField1, schemaName, namespace);
+        final SimpleRecordSchema schema2 = createSchemaWithTwoFields(nameOfField1, nameOfField2, typeOfField1, typeOfField2, schemaName, namespace);
+
+        // WHEN, THEN
+        assertFalse(schema1.equals(schema2));
+    }
+
+    @Test
+    public void testNotEqualsSimpleSchemaDifferentFieldNames() {
+        // GIVEN
+        final String nameOfField1 = "field1";
+        final String nameOfField2 = "field2";
+        final String nameOfField3 = "field3";
+        final DataType typeOfField1 = RecordFieldType.INT.getDataType();
+        final DataType typeOfField2 = RecordFieldType.STRING.getDataType();
+        final String schemaName = "schemaName";
+        final String namespace = "namespace";
+
+        final SimpleRecordSchema schema1 = createSchemaWithTwoFields(nameOfField1, nameOfField2, typeOfField1, typeOfField2, schemaName, namespace);
+        final SimpleRecordSchema schema2 = createSchemaWithTwoFields(nameOfField1, nameOfField3, typeOfField1, typeOfField2, schemaName, namespace);
+
+        // WHEN, THEN
+        assertFalse(schema1.equals(schema2));
+    }
+
+    @Test
+    public void testEqualsRecursiveSchema() {
+        final String field1 = "field1";
+        final String field2 = "field2";
+        final String schemaName = "schemaName";
+        final String namespace = "namespace";
+
+        final SimpleRecordSchema schema1 = createRecursiveSchema(field1, field2, schemaName, namespace);
+        final SimpleRecordSchema schema2 = createRecursiveSchema(field1, field2, schemaName, namespace);
 
         assertTrue(schema1.equals(schema2));
-        Mockito.verify(schema2, Mockito.never()).getFields();
+        assertTrue(schema2.equals(schema1));
+    }
+
+    @Test(expected = StackOverflowError.class)
+    public void testNotEqualsRecursiveSchemaIfSchemaNameIsDifferent() {
+        final String field1 = "field1";
+        final String field2 = "field2";
+        final String schemaName1 = "schemaName1";
+        final String schemaName2 = "schemaName2";
+        final String namespace = "namespace";
+
+        final SimpleRecordSchema schema1 = createRecursiveSchema(field1, field2, schemaName1, namespace);
+        final SimpleRecordSchema schema2 = createRecursiveSchema(field1, field2, schemaName2, namespace);
+
+        assertFalse(schema1.equals(schema2)); // Causes StackOverflowError
+    }
+
+    @Test(expected = StackOverflowError.class)
+    public void testNotEqualsRecursiveSchemaIfNamespaceIsDifferent() {
+        final String field1 = "field1";
+        final String field2 = "field2";
+        final String schemaName = "schemaName1";
+        final String namespace1 = "namespace1";
+        final String namespace2 = "namespace2";
+
+        final SimpleRecordSchema schema1 = createRecursiveSchema(field1, field2, schemaName, namespace1);
+        final SimpleRecordSchema schema2 = createRecursiveSchema(field1, field2, schemaName, namespace2);
+
+        assertFalse(schema1.equals(schema2));
+        assertFalse(schema2.equals(schema1));
+    }
+
+    private SimpleRecordSchema createSchemaWithTwoFields(String nameOfField1, String nameOfField2,
+                                                         DataType typeOfField1, DataType typeOfField2,
+                                                         String schemaName, String schemaNamespace) {
+        final SimpleRecordSchema schema = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField(nameOfField1, typeOfField1));
+        fields.add(new RecordField(nameOfField2, typeOfField2));
+        schema.setFields(fields);
+        schema.setSchemaName(schemaName);
+        schema.setSchemaNamespace(schemaNamespace);
+        return schema;
+    }
+
+    private SimpleRecordSchema createRecursiveSchema(String nameOfSimpleField, String nameOfRecursiveField,
+                                                     String schemaName, String schemaNamespace) {
+        final SimpleRecordSchema schema = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField(nameOfSimpleField, RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField(nameOfRecursiveField, RecordFieldType.RECORD.getRecordDataType(schema)));
+        schema.setFields(fields);
+        schema.setSchemaName(schemaName);
+        schema.setSchemaNamespace(schemaNamespace);
+        return schema;
     }
 
     private Set<String> set(final String... values) {

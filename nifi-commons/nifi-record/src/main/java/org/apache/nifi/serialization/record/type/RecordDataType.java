@@ -18,10 +18,13 @@
 package org.apache.nifi.serialization.record.type;
 
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -88,5 +91,26 @@ public class RecordDataType extends DataType {
     @Override
     public String toString() {
         return RecordFieldType.RECORD.toString();
+    }
+
+    @Override
+    public boolean isRecursive(List<RecordSchema> schemas) {
+        if (schemas.size() == 0) {
+            return false;
+        }
+        if (getChildSchema() != null) {
+            if (getChildSchema().sameAsAny(schemas)) {
+                return true;
+            } else {
+                List<RecordSchema> schemasWithChildSchema = new ArrayList<>(schemas);
+                schemasWithChildSchema.add(getChildSchema());
+                for (RecordField childSchemaField : getChildSchema().getFields()) {
+                    if (childSchemaField.getDataType().isRecursive(schemasWithChildSchema)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }

@@ -124,4 +124,9 @@ public class KeySchema implements RecordSchema {
     public void removePath(RecordFieldRemovalPath path) {
         throw new NotImplementedException("Path removal from Accumulo KeySchema is not implemented.");
     }
+
+    @Override
+    public boolean isRecursive() {
+        throw new NotImplementedException("Determining if an Accumulo KeySchema is recursive is not implemented.");
+    }
 }

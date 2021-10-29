@@ -96,4 +96,25 @@ public interface RecordSchema {
      * @param path the sequence of field names to be removed from the schema
      */
     void removePath(RecordFieldRemovalPath path);
+
+    /**
+     * @return true if the schema contains itself, false if it does not
+     */
+    boolean isRecursive();
+
+    /**
+     * Uses object reference comparison to determine if the supplied list of schemas contains
+     * the object it is called on.
+     *
+     * @param schemas the list of schemas
+     * @return true if the list of schemas contains the exact object the method is called on, false otherwise
+     */
+    default boolean sameAsAny(List<RecordSchema> schemas) {
+        for (RecordSchema element : schemas) {
+            if (this == element) { // reference equality check used on purpose
+                return true;
+            }
+        }
+        return false;
+    }
 }

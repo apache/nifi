@@ -20,7 +20,9 @@ package org.apache.nifi.serialization.record.type;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.util.List;
 import java.util.Objects;
 
 public class ArrayDataType extends DataType {
@@ -80,5 +82,10 @@ public class ArrayDataType extends DataType {
     @Override
     public String toString() {
         return "ARRAY[" + elementType + "]";
+    }
+
+    @Override
+    public boolean isRecursive(List<RecordSchema> schemas) {
+        return getElementType().isRecursive(schemas);
     }
 }

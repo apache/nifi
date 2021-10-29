@@ -17,6 +17,7 @@
 
 package org.apache.nifi.serialization.record;
 
+import java.util.List;
 import java.util.Objects;
 
 public class DataType {
@@ -68,5 +69,9 @@ public class DataType {
         } else {
             return getFieldType().toString() + ":" + getFormat();
         }
+    }
+
+    public boolean isRecursive(List<RecordSchema> schemas) {
+        return false;
     }
 }
