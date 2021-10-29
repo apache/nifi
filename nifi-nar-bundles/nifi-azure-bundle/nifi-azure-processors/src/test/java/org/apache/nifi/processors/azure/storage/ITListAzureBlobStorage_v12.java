@@ -21,15 +21,15 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ITListAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
@@ -142,12 +142,12 @@ public class ITListAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
         for (MockFlowFile flowFile : flowFiles) {
             String blobName = flowFile.getAttribute("azure.blobname");
-            assertTrue("Blob should not be listed: " + blobName, expectedBlobNames.remove(blobName));
+            assertTrue(expectedBlobNames.remove(blobName), "Blob should not be listed: " + blobName);
 
             assertFlowFile(flowFile, blobName);
         }
 
-        assertTrue("Blobs should be listed: " + expectedBlobNames, expectedBlobNames.isEmpty());
+        assertTrue(expectedBlobNames.isEmpty(), "Blobs should be listed: " + expectedBlobNames);
     }
 
     private void assertFlowFile(MockFlowFile flowFile, String blobName) throws Exception {

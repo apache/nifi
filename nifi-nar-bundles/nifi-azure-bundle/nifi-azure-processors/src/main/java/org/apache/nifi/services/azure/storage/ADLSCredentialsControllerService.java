@@ -28,6 +28,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.util.ArrayList;
@@ -60,7 +61,7 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
             .description("Storage accounts in public Azure always use a common FQDN suffix. " +
                     "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
             .required(true)
-            .defaultValue("dfs.core.windows.net")
+            .defaultValue(AzureServiceEndpoints.DEFAULT_ADLS_ENDPOINT_SUFFIX)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 

@@ -20,12 +20,12 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
+import static org.apache.nifi.processors.azure.AzureServiceEndpoints.DEFAULT_BLOB_ENDPOINT_SUFFIX;
 import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12.ACCOUNT_NAME;
 import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12.CREDENTIALS_TYPE;
-import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12.DEFAULT_ENDPOINT_SUFFIX;
 import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12.ENDPOINT_SUFFIX;
 import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12.SERVICE_PRINCIPAL_CLIENT_ID;
 import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12.SERVICE_PRINCIPAL_CLIENT_SECRET;
@@ -34,9 +34,8 @@ import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsType
 import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsType.MANAGED_IDENTITY;
 import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsType.SAS_TOKEN;
 import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsType.SERVICE_PRINCIPAL;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestAzureStorageCredentialsControllerService_v12 {
 
@@ -53,7 +52,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     private TestRunner runner;
     private AzureStorageCredentialsControllerService_v12 credentialsService;
 
-    @Before
+    @BeforeEach
     public void setUp() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         credentialsService = new AzureStorageCredentialsControllerService_v12();
@@ -162,7 +161,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
         AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails();
 
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
-        assertNotNull(DEFAULT_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
+        assertEquals(DEFAULT_BLOB_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
         assertEquals(ACCOUNT_KEY, actual.getCredentialsType());
         assertEquals(ACCOUNT_KEY_VALUE, actual.getAccountKey());
         assertNull(actual.getSasToken());
@@ -182,7 +181,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
         AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails();
 
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
-        assertNotNull(DEFAULT_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
+        assertEquals(DEFAULT_BLOB_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
         assertEquals(SAS_TOKEN, actual.getCredentialsType());
         assertNull(actual.getAccountKey());
         assertEquals(SAS_TOKEN_VALUE, actual.getSasToken());
@@ -201,7 +200,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
         AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails();
 
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
-        assertNotNull(DEFAULT_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
+        assertEquals(DEFAULT_BLOB_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
         assertEquals(MANAGED_IDENTITY, actual.getCredentialsType());
         assertNull(actual.getAccountKey());
         assertNull(actual.getSasToken());
@@ -223,7 +222,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
         AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails();
 
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
-        assertNotNull(DEFAULT_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
+        assertEquals(DEFAULT_BLOB_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
         assertEquals(SERVICE_PRINCIPAL, actual.getCredentialsType());
         assertNull(actual.getAccountKey());
         assertNull(actual.getSasToken());

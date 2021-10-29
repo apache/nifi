@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.azure;
 
 import com.azure.core.credential.AzureSasCredential;
+import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobClient;
@@ -35,6 +36,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
+import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -67,7 +69,7 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
             .name("blob-name")
             .displayName("Blob Name")
             .description("The full name of the blob")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
@@ -114,12 +116,12 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
         BlobServiceClientBuilder clientBuilder = new BlobServiceClientBuilder();
         clientBuilder.endpoint(String.format("https://%s.%s", credentialsDetails.getAccountName(), credentialsDetails.getEndpointSuffix()));
 
-        configureCredential(clientBuilder, credentialsDetails);
+        configureCredential(clientBuilder, credentialsService, credentialsDetails);
 
         return clientBuilder.buildClient();
     }
 
-    private static void configureCredential(BlobServiceClientBuilder clientBuilder, AzureStorageCredentialsDetails_v12 credentialsDetails) {
+    private static void configureCredential(BlobServiceClientBuilder clientBuilder, AzureStorageCredentialsService_v12 credentialsService, AzureStorageCredentialsDetails_v12 credentialsDetails) {
         switch (credentialsDetails.getCredentialsType()) {
             case ACCOUNT_KEY:
                 clientBuilder.credential(new StorageSharedKeyCredential(credentialsDetails.getAccountName(), credentialsDetails.getAccountKey()));
@@ -136,6 +138,10 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
                         .clientId(credentialsDetails.getClientId())
                         .clientSecret(credentialsDetails.getClientSecret())
                         .build());
+                break;
+            case ACCESS_TOKEN:
+                TokenCredential credential = tokenRequestContext -> Mono.just(credentialsService.getCredentialsDetails().getAccessToken());
+                clientBuilder.credential(credential);
                 break;
             default:
                 throw new IllegalArgumentException("Unhandled credentials type: " + credentialsDetails.getCredentialsType());

@@ -18,14 +18,13 @@ package org.apache.nifi.services.azure.storage;
 
 import org.apache.nifi.components.AllowableValue;
 
-import java.util.Arrays;
-
 public enum AzureStorageCredentialsType {
 
     ACCOUNT_KEY("Account Key", "The primary or secondary Account Key of the storage account that provides full access to the resources in the account"),
     SAS_TOKEN("SAS Token", "SAS (Shared Access Signature) Token generated for accessing resources in the storage account"),
     MANAGED_IDENTITY("Managed Identity", "Azure Virtual Machine Managed Identity (it can only be used when NiFi is running on Azure)"),
-    SERVICE_PRINCIPAL("Service Principal", "Azure Active Directory Service Principal with Client Id / Client Secret of a registered application");
+    SERVICE_PRINCIPAL("Service Principal", "Azure Active Directory Service Principal with Client Id / Client Secret of a registered application"),
+    ACCESS_TOKEN("Access Token", "Access Token provided by custom controller service implementations");
 
     private final String label;
     private final String description;
@@ -39,9 +38,4 @@ public enum AzureStorageCredentialsType {
         return new AllowableValue(name(), label, description);
     }
 
-    public static AllowableValue[] getAllowableValues() {
-        return Arrays.stream(values())
-                .map(AzureStorageCredentialsType::getAllowableValue)
-                .toArray(AllowableValue[]::new);
-    }
 }

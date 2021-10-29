@@ -24,8 +24,8 @@ import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.Map;
@@ -33,8 +33,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
@@ -43,7 +43,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         return PutAzureBlobStorage_v12.class;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         runner.setProperty(PutAzureBlobStorage_v12.BLOB_NAME, BLOB_NAME);
     }

@@ -27,6 +27,8 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.UUID;
 
+import static org.apache.nifi.processors.azure.AzureServiceEndpoints.DEFAULT_BLOB_ENDPOINT_SUFFIX;
+
 public abstract class AbstractAzureBlobStorageIT extends AbstractAzureStorageIT {
 
     protected static final String TEST_CONTAINER_NAME_PREFIX = "nifi-test-container";
@@ -35,6 +37,11 @@ public abstract class AbstractAzureBlobStorageIT extends AbstractAzureStorageIT 
     protected static final String TEST_FILE_CONTENT = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 
     protected CloudBlobContainer container;
+
+    @Override
+    protected String getDefaultEndpointSuffix() {
+        return DEFAULT_BLOB_ENDPOINT_SUFFIX;
+    }
 
     @Before
     public void setUpAzureBlobStorageIT() throws Exception {

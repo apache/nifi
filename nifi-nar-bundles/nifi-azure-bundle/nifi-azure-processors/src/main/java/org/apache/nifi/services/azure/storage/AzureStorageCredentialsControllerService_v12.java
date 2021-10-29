@@ -23,6 +23,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.util.Arrays;
@@ -38,8 +39,6 @@ import java.util.List;
 @CapabilityDescription("Provides credentials for Azure Blob processors using Azure Blob Storage client library v12.")
 public class AzureStorageCredentialsControllerService_v12 extends AbstractControllerService implements AzureStorageCredentialsService_v12 {
 
-    public static final String DEFAULT_ENDPOINT_SUFFIX = "blob.core.windows.net";
-
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.ACCOUNT_NAME)
             .description(AzureStorageUtils.ACCOUNT_NAME_BASE_DESCRIPTION)
@@ -53,7 +52,7 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
             .description("Storage accounts in public Azure always use a common FQDN suffix. " +
                     "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
             .required(true)
-            .defaultValue(DEFAULT_ENDPOINT_SUFFIX)
+            .defaultValue(AzureServiceEndpoints.DEFAULT_BLOB_ENDPOINT_SUFFIX)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
@@ -62,8 +61,11 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
             .displayName("Credentials Type")
             .description("Credentials type to be used for authenticating to Azure")
             .required(true)
-            .allowableValues(AzureStorageCredentialsType.getAllowableValues())
-            .defaultValue(AzureStorageCredentialsType.ACCOUNT_KEY.name())
+            .allowableValues(AzureStorageCredentialsType.ACCOUNT_KEY.getAllowableValue(),
+                    AzureStorageCredentialsType.SAS_TOKEN.getAllowableValue(),
+                    AzureStorageCredentialsType.MANAGED_IDENTITY.getAllowableValue(),
+                    AzureStorageCredentialsType.SERVICE_PRINCIPAL.getAllowableValue())
+            .defaultValue(AzureStorageCredentialsType.SAS_TOKEN.name())
             .build();
 
     public static final PropertyDescriptor ACCOUNT_KEY = new PropertyDescriptor.Builder()

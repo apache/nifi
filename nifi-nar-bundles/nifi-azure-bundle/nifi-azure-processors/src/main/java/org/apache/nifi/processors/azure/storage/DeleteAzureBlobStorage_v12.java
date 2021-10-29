@@ -104,7 +104,7 @@ public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
             long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().invokeRemoteProcess(flowFile, blobClient.getBlobUrl(), String.format("%s (%d ms)", provenanceMesage, transferMillis));
-        } catch ( Exception e) {
+        } catch (Exception e) {
             getLogger().error("Failed to delete the specified blob ({}) from Azure Blob Storage. Routing to failure", blobName, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);

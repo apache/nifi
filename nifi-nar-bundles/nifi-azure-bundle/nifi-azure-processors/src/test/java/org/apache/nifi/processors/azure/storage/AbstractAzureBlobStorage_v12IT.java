@@ -23,18 +23,22 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobType;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
+import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.BlobAttributes;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
+import org.apache.nifi.services.azure.storage.AzureStorageCredentialsType;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import static org.apache.nifi.processors.azure.AzureServiceEndpoints.DEFAULT_BLOB_ENDPOINT_SUFFIX;
 
 public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorageIT {
 
@@ -53,18 +57,27 @@ public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorag
     private String containerName;
 
     @Override
+    protected String getDefaultEndpointSuffix() {
+        return DEFAULT_BLOB_ENDPOINT_SUFFIX;
+    }
+
+    @Override
     protected void setUpCredentials() throws Exception {
         String serviceId = "credentials-service";
         AzureStorageCredentialsService_v12 service = new AzureStorageCredentialsControllerService_v12();
         runner.addControllerService(serviceId, service);
         runner.setProperty(service, AzureStorageCredentialsControllerService_v12.ACCOUNT_NAME, getAccountName());
+        if (getEndpointSuffix() != null) {
+            runner.setProperty(service, AzureStorageCredentialsControllerService_v12.ENDPOINT_SUFFIX, getEndpointSuffix());
+        }
+        runner.setProperty(service, AzureStorageCredentialsControllerService_v12.CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCOUNT_KEY.getAllowableValue());
         runner.setProperty(service, AzureStorageCredentialsControllerService_v12.ACCOUNT_KEY, getAccountKey());
         runner.enableControllerService(service);
 
         runner.setProperty(AbstractAzureBlobProcessor_v12.STORAGE_CREDENTIALS_SERVICE, serviceId);
     }
 
-    @Before
+    @BeforeEach
     public void setUpAzureBlobStorage_v12IT() {
         containerName = generateContainerName();
 
@@ -74,7 +87,7 @@ public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorag
         containerClient = storageClient.createBlobContainer(containerName);
     }
 
-    @After
+    @AfterEach
     public void tearDownAzureBlobStorage_v12IT() {
         containerClient.delete();
     }
@@ -97,7 +110,7 @@ public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorag
 
     private BlobServiceClient createStorageClient() {
         return new BlobServiceClientBuilder()
-                .endpoint("https://" + getAccountName() + ".blob.core.windows.net")
+                .endpoint(AzureServiceEndpoints.getAzureBlobStorageEndpoint(getAccountName(), getEndpointSuffix()))
                 .credential(new StorageSharedKeyCredential(getAccountName(), getAccountKey()))
                 .buildClient();
     }

@@ -27,6 +27,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -57,17 +58,25 @@ public abstract class AbstractAzureStorageIT {
         }
     }
 
-    protected static String getAccountName() {
+    protected String getAccountName() {
         return CONFIG.getProperty("accountName");
     }
 
-    protected static String getAccountKey() {
+    protected String getAccountKey() {
         return CONFIG.getProperty("accountKey");
     }
+
+    protected String getEndpointSuffix() {
+        String endpointSuffix = CONFIG.getProperty("endpointSuffix");
+        return endpointSuffix != null ? endpointSuffix : getDefaultEndpointSuffix();
+    }
+
+    protected abstract String getDefaultEndpointSuffix();
 
     protected TestRunner runner;
 
     @Before
+    @BeforeEach
     public void setUpAzureStorageIT() throws Exception {
         runner = TestRunners.newTestRunner(getProcessorClass());
 
