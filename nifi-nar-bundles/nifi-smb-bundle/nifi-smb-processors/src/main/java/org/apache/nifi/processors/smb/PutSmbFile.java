@@ -51,6 +51,7 @@ import java.net.URI;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.share.DiskEntry;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.msfscc.FileAttributes;
@@ -148,6 +149,12 @@ public class PutSmbFile extends AbstractProcessor {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("100")
             .build();
+    public static final PropertyDescriptor RENAME_SUFFIX = new PropertyDescriptor.Builder()
+            .name("Temporary Suffix")
+            .description("A temporary suffix which will be apended to the filename while it's transfering. After the transfer is complete, the suffix will be removed.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Files that have been successfully written to the output network path are transferred to this relationship")
@@ -178,6 +185,7 @@ public class PutSmbFile extends AbstractProcessor {
         descriptors.add(SHARE_ACCESS);
         descriptors.add(CONFLICT_RESOLUTION);
         descriptors.add(BATCH_SIZE);
+        descriptors.add(RENAME_SUFFIX);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
@@ -236,6 +244,29 @@ public class PutSmbFile extends AbstractProcessor {
         this.smbClient = smbClient;
     }
 
+    private void createMissingDirectoriesRecursevly(ComponentLog logger, DiskShare share, String pathToCreate) {
+        List<String> paths = new ArrayList<>();
+
+        java.io.File file = new java.io.File(pathToCreate);
+        paths.add(file.getPath());
+
+        while (file.getParent() != null) {
+            String parent = file.getParent();
+            paths.add(parent);
+            file = new java.io.File(parent);
+        }
+
+        Collections.reverse(paths);
+        for (String path : paths) {
+            if (!share.folderExists(path)) {
+                logger.debug("Creating folder {}", new Object[]{path});
+                share.mkdir(path);
+            } else {
+                logger.debug("Folder already exists {}. Moving on", new Object[]{path});
+            }
+        }
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
@@ -268,33 +299,40 @@ public class PutSmbFile extends AbstractProcessor {
             DiskShare share = (DiskShare) smbSession.connectShare(shareName)) {
 
             for (FlowFile flowFile : flowFiles) {
-                String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
-                final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
-                final long sendStart = System.nanoTime();
-                String fullPath;
+                final long processingStartTime = System.nanoTime();
 
-                if (directory == null) {
-                    directory = "";
-                    fullPath = filename;
+                final String destinationDirectory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
+                final String destinationFilename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+
+                String destinationFullPath;
+
+                // build destination path for the flowfile
+                if (destinationDirectory == null || destinationDirectory.trim().isEmpty()) {
+                    destinationFullPath = destinationFilename;
                 } else {
-                    fullPath = directory + "\\" + filename;
-
-                    // missing directory handling
-                    if (context.getProperty(CREATE_DIRS).asBoolean() && !share.folderExists(directory)) {
-                        logger.debug("Creating folder {}", new Object[]{directory});
-                        share.mkdir(directory);
-                    }
+                    destinationFullPath = new java.io.File(destinationDirectory, destinationFilename).getPath();
                 }
 
-                final URI uri = new URI("smb", hostname, "/" + fullPath.replace('\\', '/'), null);
+                // handle missing directory
+                final String destinationFileParentDirectory = new java.io.File(destinationFullPath).getParent();
+                final Boolean createMissingDirectories = context.getProperty(CREATE_DIRS).asBoolean();
+                if (!createMissingDirectories && !share.folderExists(destinationFileParentDirectory)) {
+                    flowFile = session.penalize(flowFile);
+                    logger.warn(
+                        "Penalizing {} and routing to failure as configured because the destination directory ({}) doesn't exist",
+                        new Object[]{ flowFile, destinationFileParentDirectory });
+                    session.transfer(flowFile, REL_FAILURE);
+                    continue;
+                } else if (!share.folderExists(destinationFileParentDirectory)) {
+                    createMissingDirectoriesRecursevly(logger, share, destinationFileParentDirectory);
+                }
 
-                // replace strategy handling
-                SMB2CreateDisposition createDisposition = SMB2CreateDisposition.FILE_OVERWRITE_IF;
+                // handle conflict resolution
                 final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
-                if (!conflictResolution.equals(REPLACE_RESOLUTION) && share.fileExists(fullPath)) {
+                if (share.fileExists(destinationFullPath)) {
                     if (conflictResolution.equals(IGNORE_RESOLUTION)) {
                         session.transfer(flowFile, REL_SUCCESS);
-                        logger.info("Transferring {} to success because file with same name already exists", new Object[]{flowFile});
+                        logger.info("Transferring {} to success as configured because file with same name already exists", new Object[]{flowFile});
                         continue;
                     } else if (conflictResolution.equals(FAIL_RESOLUTION)) {
                         flowFile = session.penalize(flowFile);
@@ -304,27 +342,61 @@ public class PutSmbFile extends AbstractProcessor {
                     }
                 }
 
+                // handle temporary suffix
+                final String renameSuffixValue = context.getProperty(RENAME_SUFFIX).getValue();
+                final Boolean renameSuffix = renameSuffixValue != null && !renameSuffixValue.trim().isEmpty();
+                String finalDestinationFullPath = destinationFullPath;
+                if (renameSuffix) {
+                    finalDestinationFullPath += renameSuffixValue;
+                }
 
-                try (File f = share.openFile(
-                        fullPath,
+                // handle the transfer
+                try (
+                    File shareDestinationFile = share.openFile(
+                        finalDestinationFullPath,
                         EnumSet.of(AccessMask.GENERIC_WRITE),
                         EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
                         sharedAccess,
-                        createDisposition,
+                        SMB2CreateDisposition.FILE_OVERWRITE_IF,
                         EnumSet.of(SMB2CreateOptions.FILE_WRITE_THROUGH));
-                    OutputStream os = f.getOutputStream()) {
-
-                    session.exportTo(flowFile, os);
-
-                    final long sendNanos = System.nanoTime() - sendStart;
-                    final long sendMillis = TimeUnit.MILLISECONDS.convert(sendNanos, TimeUnit.NANOSECONDS);
-                    session.getProvenanceReporter().send(flowFile, uri.toString(), sendMillis);
-                    session.transfer(flowFile, REL_SUCCESS);
+                    OutputStream shareDestinationFileOutputStream = shareDestinationFile.getOutputStream()) {
+                    session.exportTo(flowFile, shareDestinationFileOutputStream);
                 } catch (Exception e) {
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
-                    logger.error("Penalizing {} and routing to 'failure' because of error {}", new Object[]{flowFile, e});
+                    logger.error("Cannot transfer the file. Penalizing {} and routing to 'failure' because of error {}", new Object[]{flowFile, e});
+                    continue;
                 }
+
+                // handle the rename
+                if (renameSuffix) {
+                    try(DiskEntry fileDiskEntry = share.open(
+                        finalDestinationFullPath,
+                        EnumSet.of(AccessMask.DELETE, AccessMask.GENERIC_WRITE),
+                        EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
+                        sharedAccess,
+                        SMB2CreateDisposition.FILE_OPEN,
+                        EnumSet.of(SMB2CreateOptions.FILE_WRITE_THROUGH))) {
+
+                        // normalize path slashes for the network share
+                        destinationFullPath = destinationFullPath.replace("/", "\\");
+
+                        // rename the file on the share and replace it in case it exists
+                        fileDiskEntry.rename(destinationFullPath, true);
+                    } catch (Exception e) {
+                        flowFile = session.penalize(flowFile);
+                        session.transfer(flowFile, REL_FAILURE);
+                        logger.error("Cannot rename the file. Penalizing {} and routing to 'failure' because of error {}", new Object[]{flowFile, e});
+                        continue;
+                    }
+                }
+
+                // handle the success
+                final URI provenanceUri = new URI("smb", hostname, "/" + destinationFullPath.replace('\\', '/'), null);
+                final long processingTimeInNano = System.nanoTime() - processingStartTime;
+                final long processingTimeInMilli = TimeUnit.MILLISECONDS.convert(processingTimeInNano, TimeUnit.NANOSECONDS);
+                session.getProvenanceReporter().send(flowFile, provenanceUri.toString(), processingTimeInMilli);
+                session.transfer(flowFile, REL_SUCCESS);
             }
         } catch (Exception e) {
             session.transfer(flowFiles, REL_FAILURE);
