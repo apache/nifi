@@ -389,7 +389,7 @@ NfRegistryService.prototype = {
             var label = '';
             switch (sortByColumn.label) {
                 case 'Updated':
-                    label = (sortByColumn.sortOrder === 'ASC') ? 'Oldest (update)' : 'Newest (update)';
+                    label = (sortByColumn.sortOrder === 'ASC') ? 'Last Updated (oldest)' : 'Last Updated (newest)';
                     break;
                 case 'Name':
                     label = (sortByColumn.sortOrder === 'ASC') ? 'Name (a - z)' : 'Name (z - a)';
@@ -414,7 +414,7 @@ NfRegistryService.prototype = {
         var label = '';
         switch (col.label) {
             case 'Updated':
-                label = (col.sortOrder !== 'ASC') ? 'Oldest (update)' : 'Newest (update)';
+                label = (col.sortOrder !== 'ASC') ? 'Last Updated (oldest)' : 'Last Updated (newest)';
                 break;
             case 'Name':
                 label = (col.sortOrder !== 'ASC') ? 'Name (a - z)' : 'Name (z - a)';
