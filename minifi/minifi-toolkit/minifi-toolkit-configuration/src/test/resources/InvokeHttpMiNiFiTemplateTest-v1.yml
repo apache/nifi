@@ -99,7 +99,7 @@ Processors:
     '200': ${invokehttp.status.code:equals(200)}
     Routing Strategy: Route to Property name
 - name: Search Google
-  class: org.apache.nifi.processors.standard.InvokeHTTP
+  class: org.apache.nifi.processors.standard.http.InvokeHTTP
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
   scheduling period: 0 sec

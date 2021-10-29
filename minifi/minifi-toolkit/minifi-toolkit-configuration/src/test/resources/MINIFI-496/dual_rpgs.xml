@@ -1028,7 +1028,7 @@ limitations under the License.
             </relationships>
             <state>STOPPED</state>
             <style/>
-            <type>org.apache.nifi.processors.standard.InvokeHTTP</type>
+            <type>org.apache.nifi.processors.standard.http.InvokeHTTP</type>
         </processors>
         <processors>
             <id>99d947c2-75ae-339f-0000-000000000000</id>
