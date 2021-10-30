@@ -39,12 +39,14 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset) {
+    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause,
+            Long limit, Long offset) {
         return getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, null);
     }
 
     @Override
-    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset, String columnForPartitioning) {
+    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause,
+            Long limit, Long offset, String columnForPartitioning) {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name cannot be null or empty");
         }
@@ -101,101 +103,92 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
 
     @Override
     public boolean supportsUpsert() {
-    	return true;
+        return true;
     }
 
     @Override
-    public String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) throws IllegalArgumentException {
+    public String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames)
+            throws IllegalArgumentException {
         if (StringUtils.isEmpty(table)) {
-        	throw new IllegalArgumentException("Table name cannot be null or blank");
+            throw new IllegalArgumentException("Table name cannot be null or blank");
         }
         if (columnNames == null || columnNames.isEmpty()) {
-        	throw new IllegalArgumentException("Column names cannot be null or empty");
+            throw new IllegalArgumentException("Column names cannot be null or empty");
         }
         if (uniqueKeyColumnNames == null || uniqueKeyColumnNames.isEmpty()) {
-        	throw new IllegalArgumentException("Key column names cannot be null or empty");
+            throw new IllegalArgumentException("Key column names cannot be null or empty");
         }
 
-    	String newValuesAlias = "n";
+        String newValuesAlias = "n";
 
-        String columns = columnNames.stream()
-                .collect(Collectors.joining(", ? "));
+        String columns = columnNames.stream().collect(Collectors.joining(", ? "));
 
         columns = "? " + columns;
 
         List<String> columnsAssignment = getColumnsAssignment(columnNames, newValuesAlias, table);
 
-        List<String> conflictColumnsClause = getConflictColumnsClause(uniqueKeyColumnNames, columnsAssignment, table, newValuesAlias);
+        List<String> conflictColumnsClause = getConflictColumnsClause(uniqueKeyColumnNames, columnsAssignment, table,
+                newValuesAlias);
         String conflictClause = "(" + conflictColumnsClause.stream().collect(Collectors.joining(" AND ")) + ")";
 
         String insertStatement = columnNames.stream().collect(Collectors.joining(", "));
-        String insertValues = newValuesAlias + "." + columnNames.stream().collect(Collectors.joining(", " + newValuesAlias + "."));
+        String insertValues = newValuesAlias + "."
+                + columnNames.stream().collect(Collectors.joining(", " + newValuesAlias + "."));
 
         columnsAssignment.removeAll(conflictColumnsClause);
         String updateStatement = columnsAssignment.stream().collect(Collectors.joining(", "));
 
-    	StringBuilder statementStringBuilder = new StringBuilder("MERGE INTO ")
-    			.append(table)
-    			.append(" USING (SELECT ")
-    			.append(columns)
-    			.append(" FROM DUAL) ")
-    			.append(newValuesAlias)
-    			.append(" ON ")
-    			.append(conflictClause)
-    			.append(" WHEN NOT MATCHED THEN INSERT (")
-    			.append(insertStatement)
-    			.append(") VALUES (")
-    			.append(insertValues)
-    			.append(")")
-    			.append(" WHEN MATCHED THEN UPDATE SET ")
-    			.append(updateStatement);
+        StringBuilder statementStringBuilder = new StringBuilder("MERGE INTO ").append(table).append(" USING (SELECT ")
+                .append(columns).append(" FROM DUAL) ").append(newValuesAlias).append(" ON ").append(conflictClause)
+                .append(" WHEN NOT MATCHED THEN INSERT (").append(insertStatement).append(") VALUES (")
+                .append(insertValues).append(")").append(" WHEN MATCHED THEN UPDATE SET ").append(updateStatement);
 
         return statementStringBuilder.toString();
     }
 
-    private List<String> getConflictColumnsClause(Collection<String> uniqueKeyColumnNames, List<String> conflictColumns, String table, String newTableAlias) {
-		List<String> conflictColumnsClause = conflictColumns.stream()
-				.filter(column -> uniqueKeyColumnNames.stream().anyMatch(
-						uniqueKey -> column.equalsIgnoreCase(getColumnAssignment(table, uniqueKey, newTableAlias))))
-				.collect(Collectors.toList());
+    private List<String> getConflictColumnsClause(Collection<String> uniqueKeyColumnNames, List<String> conflictColumns,
+            String table, String newTableAlias) {
+        List<String> conflictColumnsClause = conflictColumns.stream()
+                .filter(column -> uniqueKeyColumnNames.stream().anyMatch(
+                        uniqueKey -> column.equalsIgnoreCase(getColumnAssignment(table, uniqueKey, newTableAlias))))
+                .collect(Collectors.toList());
 
-		if (conflictColumnsClause.isEmpty()) {
+        if (conflictColumnsClause.isEmpty()) {
 
-			// Try it with normalized columns
-			conflictColumnsClause = conflictColumns.stream()
-					.filter((column -> uniqueKeyColumnNames.stream()
-							.anyMatch(uniqueKey -> normalizeColumnName(column).equalsIgnoreCase(
-									normalizeColumnName(getColumnAssignment(table, uniqueKey, newTableAlias))))))
-					.collect(Collectors.toList());
-		}
+            // Try it with normalized columns
+            conflictColumnsClause = conflictColumns.stream()
+                    .filter((column -> uniqueKeyColumnNames.stream()
+                            .anyMatch(uniqueKey -> normalizeColumnName(column).equalsIgnoreCase(
+                                    normalizeColumnName(getColumnAssignment(table, uniqueKey, newTableAlias))))))
+                    .collect(Collectors.toList());
+        }
 
-		return conflictColumnsClause;
+        return conflictColumnsClause;
 
-	}
+    }
 
     private String normalizeColumnName(final String colName) {
         return colName == null ? null : colName.toUpperCase().replace("_", "");
     }
 
-	private List<String> getColumnsAssignment(Collection<String> columnsNames, String newTableAlias, String table) {
-		List<String> conflictClause = new ArrayList<>();
+    private List<String> getColumnsAssignment(Collection<String> columnsNames, String newTableAlias, String table) {
+        List<String> conflictClause = new ArrayList<>();
 
-		for (String columnName : columnsNames) {
+        for (String columnName : columnsNames) {
 
-			StringBuilder statementStringBuilder = new StringBuilder();
+            StringBuilder statementStringBuilder = new StringBuilder();
 
-			statementStringBuilder
-				.append(getColumnAssignment(table, columnName, newTableAlias));
+            statementStringBuilder.append(getColumnAssignment(table, columnName, newTableAlias));
 
-			conflictClause.add(statementStringBuilder.toString());
+            conflictClause.add(statementStringBuilder.toString());
 
-		}
+        }
 
-		return conflictClause;
-	}
+        return conflictClause;
+    }
 
-	private String getColumnAssignment(String table, String columnName, String newTableAlias) {
-		return table + "." + columnName + " = " + newTableAlias + "." + columnName;
-	}
+    private String getColumnAssignment(String table, String columnName, String newTableAlias) {
+        return table + "." + columnName + " = " + newTableAlias + "." + columnName;
+    }
 
 }
