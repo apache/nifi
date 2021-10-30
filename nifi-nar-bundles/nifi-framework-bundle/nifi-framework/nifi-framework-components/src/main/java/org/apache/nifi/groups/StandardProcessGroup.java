@@ -3452,7 +3452,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private boolean isComponentImpactedByVariable(final ComponentNode component, final String variableName) {
-        final List<PropertyDescriptor> propertyDescriptors = component.getPropertyDescriptors();
+        final Set<PropertyDescriptor> propertyDescriptors = component.getRawPropertyValues().keySet();
         for (final PropertyDescriptor descriptor : propertyDescriptors) {
             final PropertyConfiguration propertyConfiguration = component.getProperty(descriptor);
             if (propertyConfiguration.getVariableImpact().isImpacted(variableName)) {
