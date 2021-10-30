@@ -24,9 +24,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 
-/**
- * A database adapter that generates Oracle Compatible SQL.
- */
 public class Oracle12DatabaseAdapter implements DatabaseAdapter {
     @Override
     public String getName() {
