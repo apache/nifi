@@ -276,8 +276,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        this.client = createClient(context, getCredentials(context), createConfiguration(context));
-        initializeRegionAndEndpoint(context, this.client);
+        setClientAndRegion(context);
     }
 
     /*
@@ -301,10 +300,6 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
      * Default to requiring the "standard" onTrigger with a single ProcessSession
      */
     public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
-
-    protected void initializeRegionAndEndpoint(final ProcessContext context, final AmazonWebServiceClient client) {
-        this.region = getRegionAndInitializeEndpoint(context, client);
-    }
 
     protected Region getRegionAndInitializeEndpoint(final ProcessContext context, final AmazonWebServiceClient client) {
         final Region region;
@@ -336,7 +331,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
                     // falling back to the configured region if the parse fails
                     // e.g. in case of https://vpce-***-***.sqs.{region}.vpce.amazonaws.com
                     String regionValue = parseRegionForVPCE(urlstr, region.getName());
-                    client.setEndpoint(urlstr, this.client.getServiceName(), regionValue);
+                    client.setEndpoint(urlstr, client.getServiceName(), regionValue);
                 } else {
                     // handling non-vpce custom endpoints where the AWS library can parse the region out
                     // e.g. https://sqs.{region}.***.***.***.gov
@@ -414,6 +409,51 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     public void onShutdown() {
         if ( getClient() != null ) {
             getClient().shutdown();
+        }
+    }
+
+    protected void setClientAndRegion(final ProcessContext context) {
+        final AWSConfiguration awsConfiguration = getConfiguration(context);
+        this.client = awsConfiguration.getClient();
+        this.region = awsConfiguration.getRegion();
+    }
+
+    /**
+     * Creates an AWS service client from the context.
+     * @param context The process context
+     * @return The created client
+     */
+    protected ClientType createClient(final ProcessContext context) {
+        return createClient(context, getCredentials(context), createConfiguration(context));
+    }
+
+    /**
+     * Parses and configures the client and region from the context.
+     * @param context The process context
+     * @return The parsed configuration
+     */
+    protected AWSConfiguration getConfiguration(final ProcessContext context) {
+        final ClientType client = createClient(context);
+        final Region region = getRegionAndInitializeEndpoint(context, client);
+
+        return new AWSConfiguration(client, region);
+    }
+
+    public class AWSConfiguration {
+        final ClientType client;
+        final Region region;
+
+        public AWSConfiguration(final ClientType client, final Region region) {
+            this.client = client;
+            this.region = region;
+        }
+
+        public ClientType getClient() {
+            return client;
+        }
+
+        public Region getRegion() {
+            return region;
         }
     }
 }

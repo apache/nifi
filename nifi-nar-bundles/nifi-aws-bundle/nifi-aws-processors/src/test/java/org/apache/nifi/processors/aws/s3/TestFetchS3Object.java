@@ -22,9 +22,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.processors.aws.AbstractAWSProcessor;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -45,6 +48,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 public class TestFetchS3Object {
@@ -56,11 +62,16 @@ public class TestFetchS3Object {
 
     @Before
     public void setUp() {
-        mockS3Client = Mockito.mock(AmazonS3Client.class);
+        mockS3Client = mock(AmazonS3Client.class);
         mockFetchS3Object = new FetchS3Object() {
             protected AmazonS3Client getClient() {
                 actualS3Client = client;
                 return mockS3Client;
+            }
+
+            @Override
+            protected AbstractAWSProcessor<AmazonS3Client>.AWSConfiguration getConfiguration(ProcessContext context) {
+                return new AWSConfiguration(mockS3Client, null);
             }
         };
         runner = TestRunners.newTestRunner(mockFetchS3Object);
@@ -90,11 +101,20 @@ public class TestFetchS3Object {
         userMetadata.put("userKey2", "userValue2");
         metadata.setUserMetadata(userMetadata);
         metadata.setSSEAlgorithm("testAlgorithm");
-        Mockito.when(metadata.getETag()).thenReturn("test-etag");
+        when(metadata.getETag()).thenReturn("test-etag");
         s3ObjectResponse.setObjectMetadata(metadata);
-        Mockito.when(mockS3Client.getObject(Mockito.any())).thenReturn(s3ObjectResponse);
+        when(mockS3Client.getObject(Mockito.any())).thenReturn(s3ObjectResponse);
+
+        final long mockSize = 20L;
+        final ObjectMetadata objectMetadata = mock(ObjectMetadata.class);
+        when(objectMetadata.getContentLength()).thenReturn(mockSize);
+        when(mockS3Client.getObjectMetadata(any())).thenReturn(objectMetadata);
 
         runner.run(1);
+
+        final List<ConfigVerificationResult> results = mockFetchS3Object.verify(runner.getProcessContext(), runner.getLogger(), attrs);
+        assertEquals(2, results.size());
+        results.forEach(result -> assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, result.getOutcome()));
 
         ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).getObject(captureRequest.capture());
@@ -148,9 +168,9 @@ public class TestFetchS3Object {
         userMetadata.put("userKey2", "userValue2");
         metadata.setUserMetadata(userMetadata);
         metadata.setSSEAlgorithm("testAlgorithm");
-        Mockito.when(metadata.getETag()).thenReturn("test-etag");
+        when(metadata.getETag()).thenReturn("test-etag");
         s3ObjectResponse.setObjectMetadata(metadata);
-        Mockito.when(mockS3Client.getObject(Mockito.any())).thenReturn(s3ObjectResponse);
+        when(mockS3Client.getObject(Mockito.any())).thenReturn(s3ObjectResponse);
 
         runner.run(1);
 
@@ -196,9 +216,9 @@ public class TestFetchS3Object {
         s3ObjectResponse.setObjectContent(new StringInputStream("Some Content"));
         ObjectMetadata metadata = Mockito.spy(ObjectMetadata.class);
         metadata.setContentDisposition("key/path/to/file.txt");
-        Mockito.when(metadata.getVersionId()).thenReturn("response-version");
+        when(metadata.getVersionId()).thenReturn("response-version");
         s3ObjectResponse.setObjectMetadata(metadata);
-        Mockito.when(mockS3Client.getObject(Mockito.any())).thenReturn(s3ObjectResponse);
+        when(mockS3Client.getObject(Mockito.any())).thenReturn(s3ObjectResponse);
 
         runner.run(1);
 
@@ -242,7 +262,7 @@ public class TestFetchS3Object {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
-        Mockito.when(mockS3Client.getObject(Mockito.any())).thenReturn(null);
+        when(mockS3Client.getObject(Mockito.any())).thenReturn(null);
 
         runner.run(1);
 
