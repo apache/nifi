@@ -26,6 +26,8 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -41,6 +43,7 @@ import org.apache.nifi.processors.aws.wag.client.GenericApiGatewayResponse;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -69,6 +72,8 @@ import java.util.concurrent.TimeUnit;
         + "with a key matching the Dynamic Property Key and a value created by evaluating the Attribute Expression Language set in the value "
         + "of the Dynamic Property.")
 public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
+
+    private static final Set<String> IDEMPOTENT_METHODS = new HashSet<>(Arrays.asList("GET", "HEAD", "OPTIONS"));
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays
             .asList(
@@ -151,8 +156,8 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        ComponentLog logger = getLogger();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final ComponentLog logger = getLogger();
         FlowFile requestFlowFile = session.get();
 
         // Checking to see if the property to put the body of the response in an attribute was set
@@ -179,41 +184,20 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
 
             final GenericApiGatewayClient client = getClient();
 
-            final GenericApiGatewayRequest request = configureRequest(context, session,
-                                                                      resourceName,
-                                                                      requestFlowFile);
-
-            logRequest(logger, client.getEndpoint(), request);
             final long startNanos = System.nanoTime();
-            GenericApiGatewayResponse response = null;
-            GenericApiGatewayException exception = null;
-            try {
-                response = client.execute(request);
-                logResponse(logger, response);
-            } catch (GenericApiGatewayException gag) {
-                // ERROR response codes may come back as exceptions, 404 for example
-                exception = gag;
-            }
+            final Map<String, String> attributes = requestFlowFile == null ? Collections.emptyMap() : requestFlowFile.getAttributes();
+            final GatewayResponse gatewayResponse = invokeGateway(client, context, session, requestFlowFile, attributes, logger);
 
-            final int statusCode;
-            if (exception != null) {
-                statusCode = exception.getStatusCode();
-            } else {
-                statusCode = response.getHttpResponse().getStatusCode();
-            }
+            final GenericApiGatewayResponse response = gatewayResponse.response;
+            final GenericApiGatewayException exception = gatewayResponse.exception;
+            final int statusCode = gatewayResponse.statusCode;
 
-            if (statusCode == 0) {
-                throw new IllegalStateException(
-                    "Status code unknown, connection hasn't been attempted.");
-            }
             final String endpoint = context.getProperty(PROP_AWS_GATEWAY_API_ENDPOINT).getValue();
-            boolean outputRegardless = context.getProperty(PROP_OUTPUT_RESPONSE_REGARDLESS)
+            final boolean outputRegardless = context.getProperty(PROP_OUTPUT_RESPONSE_REGARDLESS)
                                               .asBoolean();
 
-            boolean outputBodyToResponseContent = (isSuccess(statusCode) && !putToAttribute
-                || outputRegardless);
-            boolean outputBodyToRequestAttribute =
-                (!isSuccess(statusCode) || putToAttribute) && requestFlowFile != null;
+            boolean outputBodyToResponseContent = (isSuccess(statusCode) && !putToAttribute || outputRegardless);
+            boolean outputBodyToRequestAttribute = (!isSuccess(statusCode) || putToAttribute) && requestFlowFile != null;
             boolean bodyExists = response != null && response.getBody() != null;
 
             final String statusExplanation;
@@ -246,9 +230,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                     if (context.getProperty(PROP_ADD_HEADERS_TO_REQUEST).asBoolean()) {
                         // write the response headers as attributes
                         // this will overwrite any existing flowfile attributes
-                        requestFlowFile = session.putAllAttributes(requestFlowFile,
-                                                                   convertAttributesFromHeaders(
-                                                                       response));
+                        requestFlowFile = session.putAllAttributes(requestFlowFile, convertAttributesFromHeaders(response));
                     }
                 } else {
                     responseFlowFile = session.create();
@@ -282,8 +264,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                                     responseFlowFile);
 
                     // emit provenance event
-                    final long millis = TimeUnit.NANOSECONDS
-                        .toMillis(System.nanoTime() - startNanos);
+                    final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                     if (requestFlowFile != null) {
                         session.getProvenanceReporter().fetch(responseFlowFile, endpoint, millis);
                     } else {
@@ -317,7 +298,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                 if (attributeKey == null) {
                     attributeKey = RESPONSE_BODY;
                 }
-                byte[] outputBuffer;
+                final byte[] outputBuffer;
                 int size = 0;
                 outputBuffer = new byte[maxAttributeSize];
                 if (bodyExists) {
@@ -340,17 +321,13 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                 requestFlowFile = session.putAllAttributes(requestFlowFile, statusAttributes);
 
                 final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                session.getProvenanceReporter().modifyAttributes(requestFlowFile,
-                                                                 "The " + attributeKey
-                                                                     + " has been added. The value of which is the body of a http call to "
-                                                                     + endpoint + resourceName
-                                                                     + ". It took " + millis
-                                                                     + "millis,");
+                session.getProvenanceReporter().modifyAttributes(requestFlowFile, String
+                        .format("The %s has been added. The value of which is the body of a http call to %s%s. It took %s millis,", attributeKey, endpoint, resourceName, millis));
             }
 
             route(requestFlowFile, responseFlowFile, session, context, statusCode,
                   getRelationships());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // penalize or yield
             if (requestFlowFile != null) {
                 logger.error("Routing to {} due to exception: {}",
@@ -364,8 +341,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                 session.transfer(requestFlowFile,
                                  getRelationshipForName(REL_FAILURE_NAME, getRelationships()));
             } else {
-                logger.error(
-                    "Yielding processor due to exception encountered as a source processor: {}", e);
+                logger.error("Yielding processor due to exception encountered as a source processor: {}", e);
                 context.yield();
             }
 
@@ -378,6 +354,94 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                 logger.error("Could not cleanup response flowfile due to exception: {}",
                              new Object[]{e1}, e1);
             }
+        }
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+        final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, verificationLogger, attributes));
+
+        final String method = context.getProperty(PROP_METHOD).getValue();
+
+        if (!IDEMPOTENT_METHODS.contains(method)) {
+            return results;
+        }
+
+        final String endpoint = context.getProperty(PROP_AWS_GATEWAY_API_ENDPOINT).getValue();
+        final String resource = context.getProperty(PROP_RESOURCE_NAME).getValue();
+        try {
+            final GenericApiGatewayClient client = getConfiguration(context).getClient();
+
+            final GatewayResponse gatewayResponse = invokeGateway(client, context, null, null, attributes, verificationLogger);
+
+            final String explanation;
+            if (gatewayResponse.exception != null) {
+                final String statusExplanation = EnglishReasonPhraseCatalog.INSTANCE.getReason(gatewayResponse.statusCode, null);
+                explanation = String.format("Successfully invoked AWS Gateway API [%s %s/%s] with blank request body, receiving error response [%s] with status code [%s]",
+                        method, endpoint, resource, statusExplanation, gatewayResponse.statusCode);
+            } else {
+                final String statusExplanation = gatewayResponse.response.getHttpResponse().getStatusText();
+                explanation = String.format("Successfully invoked AWS Gateway API [%s %s%/s] with blank request body, receiving success response [%s] with status code [%s]",
+                        method, endpoint, resource, statusExplanation, gatewayResponse.statusCode);
+            }
+            results.add(new ConfigVerificationResult.Builder()
+                    .outcome(Outcome.SUCCESSFUL)
+                    .verificationStepName("Invoke AWS Gateway API")
+                    .explanation(explanation)
+                    .build());
+
+        } catch (final Exception e) {
+            verificationLogger.error("Failed to invoke AWS Gateway API " + endpoint, e);
+            results.add(new ConfigVerificationResult.Builder()
+                    .outcome(Outcome.FAILED)
+                    .verificationStepName("Invoke AWS Gateway API")
+                    .explanation(String.format("Failed to invoke AWS Gateway API [%s %s/%s]: %s", method, endpoint, resource, e.getMessage()))
+                    .build());
+        }
+
+        return results;
+    }
+
+    private GatewayResponse invokeGateway(final GenericApiGatewayClient client, final ProcessContext context, final ProcessSession session,
+                                          final FlowFile requestFlowFile, final Map<String, String> attributes, final ComponentLog logger) {
+        final String resourceName = context.getProperty(PROP_RESOURCE_NAME).getValue();
+
+        final GenericApiGatewayRequest request = configureRequest(context, session, resourceName, requestFlowFile, attributes);
+
+        logRequest(logger, client.getEndpoint(), request);
+        GenericApiGatewayResponse response = null;
+        GenericApiGatewayException exception = null;
+        try {
+            response = client.execute(request);
+            logResponse(logger, response);
+        } catch (final GenericApiGatewayException gag) {
+            // ERROR response codes may come back as exceptions, 404 for example
+            exception = gag;
+        }
+
+        final int statusCode;
+        if (exception != null) {
+            statusCode = exception.getStatusCode();
+        } else {
+            statusCode = response.getHttpResponse().getStatusCode();
+        }
+
+        if (statusCode == 0) {
+            throw new IllegalStateException(
+                    "Status code unknown, connection hasn't been attempted.");
+        }
+        return new GatewayResponse(response, exception, statusCode);
+    }
+
+    private class GatewayResponse {
+        private final GenericApiGatewayResponse response;
+        private final GenericApiGatewayException exception;
+        private final int statusCode;
+
+        private GatewayResponse(final GenericApiGatewayResponse response, final GenericApiGatewayException exception, final int statusCode) {
+            this.response = response;
+            this.exception = exception;
+            this.statusCode = statusCode;
         }
     }
 }

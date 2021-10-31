@@ -199,15 +199,15 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
         return client;
     }
 
-    protected Object getValue(ProcessContext context, PropertyDescriptor type, PropertyDescriptor value, FlowFile flowFile) {
+    protected Object getValue(final ProcessContext context, final PropertyDescriptor type, final PropertyDescriptor value, final Map<String, String> attributes) {
         if ( context.getProperty(type).getValue().equals(ALLOWABLE_VALUE_STRING.getValue())) {
-            return context.getProperty(value).evaluateAttributeExpressions(flowFile).getValue();
+            return context.getProperty(value).evaluateAttributeExpressions(attributes).getValue();
         } else {
-            return new BigDecimal(context.getProperty(value).evaluateAttributeExpressions(flowFile).getValue());
+            return new BigDecimal(context.getProperty(value).evaluateAttributeExpressions(attributes).getValue());
         }
     }
 
-    protected Object getAttributeValue(ProcessContext context, PropertyDescriptor propertyType, AttributeValue value) {
+    protected Object getAttributeValue(final ProcessContext context, final PropertyDescriptor propertyType, final AttributeValue value) {
         if ( context.getProperty(propertyType).getValue().equals(ALLOWABLE_VALUE_STRING.getValue())) {
             if ( value == null ) return null;
             else return value.getS();
@@ -217,9 +217,14 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
         }
     }
 
+    protected DynamoDB getDynamoDB(final AmazonDynamoDBClient client) {
+        return new DynamoDB(client);
+    }
+
     protected synchronized DynamoDB getDynamoDB() {
-        if ( dynamoDB == null )
-            dynamoDB = new DynamoDB(client);
+        if (dynamoDB == null) {
+            dynamoDB = getDynamoDB(client);
+        }
         return dynamoDB;
     }
 
@@ -297,28 +302,33 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
         keysToFlowFileMap.remove(itemKeys);
     }
 
-    protected boolean isRangeKeyValueConsistent(String rangeKeyName, Object rangeKeyValue, ProcessSession session,
-            FlowFile flowFile) {
-        boolean isRangeNameBlank = StringUtils.isBlank(rangeKeyName);
-        boolean isRangeValueNull = rangeKeyValue == null;
-        boolean isConsistent = true;
-        if ( ! isRangeNameBlank && (isRangeValueNull || StringUtils.isBlank(rangeKeyValue.toString()))) {
-            isConsistent = false;
-        }
-        if ( isRangeNameBlank &&  ( ! isRangeValueNull && ! StringUtils.isBlank(rangeKeyValue.toString()))) {
-            isConsistent = false;
-        }
-
-        if ( ! isConsistent ) {
-            getLogger().error("Range key name '" + rangeKeyName + "' was not consistent with range value "
-                + rangeKeyValue + "'" + flowFile);
+    protected boolean isRangeKeyValueConsistent(final String rangeKeyName, final Object rangeKeyValue, final ProcessSession session, FlowFile flowFile) {
+        try {
+            validateRangeKeyValue(rangeKeyName, rangeKeyValue);
+        } catch (final IllegalArgumentException e) {
+            getLogger().error(e.getMessage() + ": " + flowFile, e);
             flowFile = session.putAttribute(flowFile, DYNAMODB_RANGE_KEY_VALUE_ERROR, "range key '" + rangeKeyName
                  + "'/value '" + rangeKeyValue + "' inconsistency error");
             session.transfer(flowFile, REL_FAILURE);
+            return false;
         }
 
-        return isConsistent;
+        return true;
+    }
 
+    protected void validateRangeKeyValue(final String rangeKeyName, final Object rangeKeyValue) {
+        boolean isRangeNameBlank = StringUtils.isBlank(rangeKeyName);
+        boolean isRangeValueNull = rangeKeyValue == null;
+        boolean isConsistent = true;
+        if (!isRangeNameBlank && (isRangeValueNull || StringUtils.isBlank(rangeKeyValue.toString()))) {
+            isConsistent = false;
+        }
+        if (isRangeNameBlank &&  (!isRangeValueNull && !StringUtils.isBlank(rangeKeyValue.toString()))) {
+            isConsistent = false;
+        }
+        if (!isConsistent) {
+            throw new IllegalArgumentException(String.format("Range key name '%s' was not consistent with range value '%s'", rangeKeyName, rangeKeyValue));
+        }
     }
 
     protected boolean isHashKeyValueConsistent(String hashKeyName, Object hashKeyValue, ProcessSession session,
@@ -326,16 +336,23 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
 
         boolean isConsistent = true;
 
-        if ( hashKeyValue == null || StringUtils.isBlank(hashKeyValue.toString())) {
-            getLogger().error("Hash key value '" + hashKeyValue + "' is required for flow file " + flowFile);
-                 flowFile = session.putAttribute(flowFile, DYNAMODB_HASH_KEY_VALUE_ERROR, "hash key " + hashKeyName
-                     + "/value '" + hashKeyValue + "' inconsistency error");
+        try {
+            validateHashKeyValue(hashKeyValue);
+        } catch (final IllegalArgumentException e) {
+            getLogger().error(e.getMessage() + ": " + flowFile, e);
+            flowFile = session.putAttribute(flowFile, DYNAMODB_HASH_KEY_VALUE_ERROR, "hash key " + hashKeyName + "/value '" + hashKeyValue + "' inconsistency error");
             session.transfer(flowFile, REL_FAILURE);
             isConsistent = false;
         }
 
         return isConsistent;
 
+    }
+
+    protected void validateHashKeyValue(final Object hashKeyValue) {
+        if (hashKeyValue == null || StringUtils.isBlank(hashKeyValue.toString())) {
+            throw new IllegalArgumentException(String.format("Hash key value is required.  Provided value was '%s'", hashKeyValue));
+        }
     }
 
     @OnStopped

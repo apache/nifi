@@ -118,8 +118,8 @@ public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
         TableWriteItems tableWriteItems = new TableWriteItems(table);
 
         for (FlowFile flowFile : flowFiles) {
-            final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile);
-            final Object rangeKeyValue = getValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, flowFile);
+            final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile.getAttributes());
+            final Object rangeKeyValue = getValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, flowFile.getAttributes());
 
             if (!isHashKeyValueConsistent(hashKeyName, hashKeyValue, session, flowFile)) {
                 continue;

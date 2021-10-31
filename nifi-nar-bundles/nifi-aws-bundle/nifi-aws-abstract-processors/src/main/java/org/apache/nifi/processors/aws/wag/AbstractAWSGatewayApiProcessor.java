@@ -97,7 +97,7 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     public AbstractAWSGatewayApiProcessor() {
     }
 
-    public AbstractAWSGatewayApiProcessor(AmazonHttpClient client) {
+    public AbstractAWSGatewayApiProcessor(final AmazonHttpClient client) {
         providedClient = client;
     }
 
@@ -280,8 +280,7 @@ public abstract class AbstractAWSGatewayApiProcessor extends
             .build();
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(
-        String propertyDescriptorName) {
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .required(false)
                 .name(propertyDescriptorName)
@@ -318,14 +317,13 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(
-        final ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(3);
         results.addAll(super.customValidate(validationContext));
         final boolean querySet = validationContext.getProperty(PROP_QUERY_PARAMS).isSet();
 
         if (querySet) {
-            String input = validationContext.getProperty(PROP_QUERY_PARAMS).getValue();
+            final String input = validationContext.getProperty(PROP_QUERY_PARAMS).getValue();
             // if we have expressions, we don't do further validation
             if (!(validationContext.isExpressionLanguageSupported(PROP_QUERY_PARAMS.getName())
                 && validationContext.isExpressionLanguagePresent(input))) {
@@ -350,15 +348,15 @@ public abstract class AbstractAWSGatewayApiProcessor extends
                 }
             }
         }
-        String method = trimToEmpty(validationContext.getProperty(PROP_METHOD).getValue())
+        final String method = trimToEmpty(validationContext.getProperty(PROP_METHOD).getValue())
             .toUpperCase();
 
         // if there are expressions do not validate
         if (!(validationContext.isExpressionLanguageSupported(PROP_METHOD.getName())
                 && validationContext.isExpressionLanguagePresent(method))) {
             try {
-                HttpMethodName methodName = HttpMethodName.fromValue(method);
-            } catch (IllegalArgumentException e) {
+                HttpMethodName.fromValue(method);
+            } catch (final IllegalArgumentException e) {
                 results.add(new ValidationResult.Builder().subject(PROP_METHOD.getName()).input(method)
                         .explanation("Unsupported METHOD")
                         .valid(false).build());
@@ -369,9 +367,9 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     }
 
     @Override
-    protected GenericApiGatewayClient createClient(ProcessContext context,
-                                                   AWSCredentialsProvider awsCredentialsProvider,
-                                                   ClientConfiguration clientConfiguration) {
+    protected GenericApiGatewayClient createClient(final ProcessContext context,
+                                                   final AWSCredentialsProvider awsCredentialsProvider,
+                                                   final ClientConfiguration clientConfiguration) {
 
         GenericApiGatewayClientBuilder builder = new GenericApiGatewayClientBuilder()
             .withCredentials(awsCredentialsProvider).withClientConfiguration(clientConfiguration)
@@ -392,33 +390,34 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     protected GenericApiGatewayClient createClient(final ProcessContext context,
                                                    final AWSCredentials credentials,
                                                    final ClientConfiguration clientConfiguration) {
-        return createClient(context, new AWSStaticCredentialsProvider(credentials),
-                            clientConfiguration);
-    }
-
-    protected GenericApiGatewayRequest configureRequest(final ProcessContext context,
-                                                        final ProcessSession session,
-                                                        final String resourcePath,
-                                                        final FlowFile requestFlowFile) {
-        String method = trimToEmpty(
-                context.getProperty(PROP_METHOD).evaluateAttributeExpressions(requestFlowFile)
-                        .getValue()).toUpperCase();
-        HttpMethodName methodName = HttpMethodName.fromValue(method);
-        return configureRequest(context, session, resourcePath,requestFlowFile, methodName);
+        return createClient(context, new AWSStaticCredentialsProvider(credentials), clientConfiguration);
     }
 
     protected GenericApiGatewayRequest configureRequest(final ProcessContext context,
                                                         final ProcessSession session,
                                                         final String resourcePath,
                                                         final FlowFile requestFlowFile,
-                                                        final HttpMethodName methodName) {
+                                                        final Map<String, String> attributes) {
+        final String method = trimToEmpty(
+                context.getProperty(PROP_METHOD).evaluateAttributeExpressions(requestFlowFile)
+                        .getValue()).toUpperCase();
+        final HttpMethodName methodName = HttpMethodName.fromValue(method);
+        return configureRequest(context, session, resourcePath,requestFlowFile, methodName, attributes);
+    }
+
+    protected GenericApiGatewayRequest configureRequest(final ProcessContext context,
+                                                        final ProcessSession session,
+                                                        final String resourcePath,
+                                                        final FlowFile requestFlowFile,
+                                                        final HttpMethodName methodName,
+                                                        final Map<String, String> attributes) {
 
         GenericApiGatewayRequestBuilder builder = new GenericApiGatewayRequestBuilder()
             .withResourcePath(resourcePath);
         final Map<String, List<String>> parameters = getParameters(context);
         builder = builder.withParameters(parameters);
 
-        InputStream requestBody = null;
+        InputStream requestBody;
         switch (methodName) {
             case GET:
                 builder = builder.withHttpMethod(HttpMethodName.GET);
@@ -447,7 +446,7 @@ public abstract class AbstractAWSGatewayApiProcessor extends
                 break;
         }
 
-        builder = setHeaderProperties(context, builder, methodName, requestFlowFile);
+        builder = setHeaderProperties(context, builder, methodName, attributes);
         return builder.build();
     }
 
@@ -456,7 +455,7 @@ public abstract class AbstractAWSGatewayApiProcessor extends
                                                final FlowFile requestFlowFile) {
 
         if (context.getProperty(PROP_SEND_BODY).asBoolean() && requestFlowFile != null) {
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             session.exportTo(requestFlowFile, outputStream);
             return new ByteArrayInputStream(outputStream.toByteArray());
 
@@ -467,24 +466,22 @@ public abstract class AbstractAWSGatewayApiProcessor extends
 
     protected GenericApiGatewayRequestBuilder setHeaderProperties(final ProcessContext context,
                                                                   GenericApiGatewayRequestBuilder requestBuilder,
-                                                                  HttpMethodName methodName,
-                                                                  final FlowFile requestFlowFile) {
+                                                                  final HttpMethodName methodName,
+                                                                  final Map<String, String> requestAttributes) {
 
-        Map<String, String> headers = new HashMap<>();
-        for (String headerKey : dynamicPropertyNames) {
-            String headerValue = context.getProperty(headerKey)
-                                        .evaluateAttributeExpressions(requestFlowFile).getValue();
+        final Map<String, String> headers = new HashMap<>();
+        for (final String headerKey : dynamicPropertyNames) {
+            final String headerValue = context.getProperty(headerKey).evaluateAttributeExpressions(requestAttributes).getValue();
             headers.put(headerKey, headerValue);
         }
 
         // iterate through the flowfile attributes, adding any attribute that
         // matches the attributes-to-send pattern. if the pattern is not set
         // (it's an optional property), ignore that attribute entirely
-        if (regexAttributesToSend != null && requestFlowFile != null) {
-            Map<String, String> attributes = requestFlowFile.getAttributes();
-            Matcher m = regexAttributesToSend.matcher("");
-            for (Map.Entry<String, String> entry : attributes.entrySet()) {
-                String headerKey = trimToEmpty(entry.getKey());
+        if (regexAttributesToSend != null) {
+            final Matcher m = regexAttributesToSend.matcher("");
+            for (final Map.Entry<String, String> entry : requestAttributes.entrySet()) {
+                final String headerKey = trimToEmpty(entry.getKey());
 
                 // don't include any of the ignored attributes
                 if (IGNORED_ATTRIBUTES.contains(headerKey)) {
@@ -502,8 +499,8 @@ public abstract class AbstractAWSGatewayApiProcessor extends
         }
 
         String contentType = context.getProperty(PROP_CONTENT_TYPE)
-                                    .evaluateAttributeExpressions(requestFlowFile).getValue();
-        boolean sendBody = context.getProperty(PROP_SEND_BODY).asBoolean();
+                                    .evaluateAttributeExpressions(requestAttributes).getValue();
+        final boolean sendBody = context.getProperty(PROP_SEND_BODY).asBoolean();
         contentType = StringUtils.isBlank(contentType) ? DEFAULT_CONTENT_TYPE : contentType;
         if (methodName == HttpMethodName.PUT || methodName == HttpMethodName.POST
             || methodName == HttpMethodName.PATCH) {
@@ -527,23 +524,23 @@ public abstract class AbstractAWSGatewayApiProcessor extends
      * @param context ProcessContext
      * @return Map of names and values
      */
-    protected Map<String, List<String>> getParameters(ProcessContext context) {
+    protected Map<String, List<String>> getParameters(final ProcessContext context) {
 
         if (!context.getProperty(PROP_QUERY_PARAMS).isSet()) {
             return new HashMap<>();
         }
         final String queryString = context.getProperty(PROP_QUERY_PARAMS)
                                           .evaluateAttributeExpressions().getValue();
-        List<NameValuePair> params = URLEncodedUtils
+        final List<NameValuePair> params = URLEncodedUtils
             .parse(queryString, Charsets.toCharset("UTF-8"));
 
         if (params.isEmpty()) {
             return new HashMap<>();
         }
 
-        Map<String, List<String>> map = new HashMap<>();
+        final Map<String, List<String>> map = new HashMap<>();
 
-        for (NameValuePair nvp : params) {
+        for (final NameValuePair nvp : params) {
             if (!map.containsKey(nvp.getName())) {
                 map.put(nvp.getName(), new ArrayList<>());
             }
@@ -555,19 +552,17 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     /**
      * Returns a Map of flowfile attributes from the response http headers. Multivalue headers are naively converted to comma separated strings.
      */
-    protected Map<String, String> convertAttributesFromHeaders(
-        GenericApiGatewayResponse responseHttp) {
+    protected Map<String, String> convertAttributesFromHeaders(final GenericApiGatewayResponse responseHttp) {
         // create a new hashmap to store the values from the connection
-        Map<String, String> map = new HashMap<>();
+        final  Map<String, String> map = new HashMap<>();
         responseHttp.getHttpResponse().getHeaders().entrySet().forEach((entry) -> {
 
-            String key = entry.getKey();
-            String value = entry.getValue();
+            final String key = entry.getKey();
+            final String value = entry.getValue();
 
             if (key == null) {
                 return;
             }
-
             // we ignore any headers with no actual values (rare)
             if (StringUtils.isBlank(value)) {
                 return;
@@ -590,8 +585,8 @@ public abstract class AbstractAWSGatewayApiProcessor extends
         throw new IllegalStateException("Unknown relationship " + name);
     }
 
-    protected void route(FlowFile request, FlowFile response, ProcessSession session,
-                         ProcessContext context, int statusCode, Set<Relationship> relationships) {
+    protected void route(FlowFile request, final FlowFile response, final ProcessSession session,
+                         final ProcessContext context, final int statusCode, final Set<Relationship> relationships) {
         // check if we should yield the processor
         if (!isSuccess(statusCode) && request == null) {
             context.yield();
@@ -609,12 +604,10 @@ public abstract class AbstractAWSGatewayApiProcessor extends
         if (isSuccess(statusCode)) {
             // we have two flowfiles to transfer
             if (request != null) {
-                session
-                    .transfer(request, getRelationshipForName(REL_SUCCESS_REQ_NAME, relationships));
+                session.transfer(request, getRelationshipForName(REL_SUCCESS_REQ_NAME, relationships));
             }
             if (response != null && !responseSent) {
-                session
-                    .transfer(response, getRelationshipForName(REL_RESPONSE_NAME, relationships));
+                session.transfer(response, getRelationshipForName(REL_RESPONSE_NAME, relationships));
             }
 
             // 5xx -> RETRY
@@ -636,20 +629,20 @@ public abstract class AbstractAWSGatewayApiProcessor extends
 
     }
 
-    protected boolean isSuccess(int statusCode) {
+    protected boolean isSuccess(final int statusCode) {
         return statusCode / 100 == 2;
     }
 
-    protected void logRequest(ComponentLog logger, URI endpoint, GenericApiGatewayRequest request) {
+    protected void logRequest(final ComponentLog logger, final URI endpoint, final GenericApiGatewayRequest request) {
         try {
             logger.debug("\nRequest to remote service:\n\t{}\t{}\t\n{}",
                 new Object[]{endpoint.toURL().toExternalForm(), request.getHttpMethod(), getLogString(request.getHeaders())});
-        } catch (MalformedURLException e) {
+        } catch (final MalformedURLException e) {
             logger.debug(e.getMessage());
         }
     }
 
-    protected void logResponse(ComponentLog logger, GenericApiGatewayResponse response) {
+    protected void logResponse(final ComponentLog logger, final GenericApiGatewayResponse response) {
         try {
             logger.debug("\nResponse from remote service:\n\t{}\n{}",
                     new Object[]{response.getHttpResponse().getHttpRequest().getURI().toURL().toExternalForm(), getLogString(response.getHttpResponse().getHeaders())});
@@ -658,9 +651,9 @@ public abstract class AbstractAWSGatewayApiProcessor extends
         }
     }
 
-    protected String getLogString(Map<String, String> map) {
-        StringBuilder sb = new StringBuilder();
-        if(map != null && map.size() > 0) {
+    protected String getLogString(final Map<String, String> map) {
+        final StringBuilder sb = new StringBuilder();
+        if (map != null && map.size() > 0) {
             for (Map.Entry<String, String> entry : map.entrySet()) {
                 String value = entry.getValue();
                 sb.append("\t");

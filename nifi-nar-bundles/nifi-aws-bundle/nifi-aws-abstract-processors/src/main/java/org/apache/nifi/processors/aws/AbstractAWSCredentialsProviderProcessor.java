@@ -15,16 +15,23 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.aws;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 
 import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.VerifiableProcessor;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Base class for aws processors that uses AWSCredentialsProvider interface for creating aws clients.
@@ -34,7 +41,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
  * @see <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
  */
 public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends AmazonWebServiceClient>
-    extends AbstractAWSProcessor<ClientType>  {
+    extends AbstractAWSProcessor<ClientType> implements VerifiableProcessor {
 
     /**
      * AWS credentials provider service
@@ -49,36 +56,49 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
             .build();
 
     /**
-     * This method checks if {#link {@link #AWS_CREDENTIALS_PROVIDER_SERVICE} is available and if it
-     * is, uses the credentials provider, otherwise it invokes the {@link AbstractAWSProcessor#onScheduled(ProcessContext)}
-     * which uses static AWSCredentials for the aws processors
+     * Attempts to create the client using the controller service first before falling back to the standard configuration.
+     * @param context The process context
+     * @return The created client
      */
-    @OnScheduled
-    public void onScheduled(ProcessContext context) {
-        ControllerService service = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService();
+    protected ClientType createClient(final ProcessContext context) {
+        final ControllerService service = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService();
         if (service != null) {
             getLogger().debug("Using aws credentials provider service for creating client");
-            onScheduledUsingControllerService(context);
+            return createClient(context, getCredentialsProvider(context), createConfiguration(context));
         } else {
             getLogger().debug("Using aws credentials for creating client");
-            super.onScheduled(context);
+            return super.createClient(context);
         }
     }
-
-    /**
-     * Create aws client using credentials provider
-     * @param context the process context
-     */
-    protected void onScheduledUsingControllerService(ProcessContext context) {
-        this.client = createClient(context, getCredentialsProvider(context), createConfiguration(context));
-        super.initializeRegionAndEndpoint(context, this.client);
-     }
 
     @OnShutdown
     public void onShutDown() {
         if ( this.client != null ) {
            this.client.shutdown();
         }
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+
+        try {
+            getConfiguration(context);
+            results.add(new ConfigVerificationResult.Builder()
+                    .outcome(Outcome.SUCCESSFUL)
+                    .verificationStepName("Create Client and Configure Region")
+                    .explanation("Successfully created AWS Client and configured Region")
+                    .build());
+        } catch (final Exception e) {
+            verificationLogger.error("Failed to create AWS Client", e);
+            results.add(new ConfigVerificationResult.Builder()
+                    .outcome(Outcome.FAILED)
+                    .verificationStepName("Create Client and Configure Region")
+                    .explanation("Failed to crete AWS Client or configure Region: " + e.getMessage())
+                    .build());
+        }
+
+        return results;
     }
 
     /**

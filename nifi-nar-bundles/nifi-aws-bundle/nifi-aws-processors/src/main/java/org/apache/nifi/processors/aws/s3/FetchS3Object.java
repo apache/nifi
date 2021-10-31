@@ -16,16 +16,12 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.SSEAlgorithm;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -37,23 +33,30 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3Object;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @SupportsBatching
 @SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class})
@@ -149,6 +152,36 @@ public class FetchS3Object extends AbstractS3Processor {
     }
 
     @Override
+    public List<ConfigVerificationResult> verify(ProcessContext context, ComponentLog verificationLogger, Map<String, String> attributes) {
+        final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, verificationLogger, attributes));
+
+        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
+        final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
+
+        final AmazonS3 client = getConfiguration(context).getClient();
+        final GetObjectMetadataRequest request = createGetObjectMetadataRequest(context, attributes);
+
+        try {
+            final ObjectMetadata objectMetadata = client.getObjectMetadata(request);
+            final long byteCount = objectMetadata.getContentLength();
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("HEAD S3 Object")
+                    .outcome(Outcome.SUCCESSFUL)
+                    .explanation(String.format("Successfully performed HEAD on [%s] (%s bytes) from Bucket [%s]", key, byteCount, bucket))
+                    .build());
+        } catch (final Exception e) {
+            getLogger().error(String.format("Failed to fetch [%s] from Bucket [%s]", key, bucket), e);
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("HEAD S3 Object")
+                    .outcome(Outcome.FAILED)
+                    .explanation(String.format("Failed to perform HEAD on [%s] from Bucket [%s]: %s", key, bucket, e.getMessage()))
+                    .build());
+        }
+
+        return results;
+    }
+
+    @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
@@ -156,48 +189,18 @@ public class FetchS3Object extends AbstractS3Processor {
         }
 
         final long startNanos = System.nanoTime();
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
-        final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
-        final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
-        final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
-        final long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : 0L);
-        final Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : null);
-
-        final AmazonS3 client = getClient();
-        final GetObjectRequest request;
-        if (versionId == null) {
-            request = new GetObjectRequest(bucket, key);
-        } else {
-            request = new GetObjectRequest(bucket, key, versionId);
-        }
-        request.setRequesterPays(requesterPays);
-
-        // tl;dr don't setRange(0) on GetObjectRequest because it results in
-        // InvalidRange errors on zero byte objects.
-        //
-        // Amazon S3 sets byte ranges using HTTP Range headers as described in
-        // https://datatracker.ietf.org/doc/html/rfc2616#section-14.35 and
-        // https://datatracker.ietf.org/doc/html/rfc7233#section-2.1. There
-        // isn't a satisfiable byte range specification for zero length objects
-        // so 416 (Request range not satisfiable) is returned.
-        //
-        // Since the effect of the byte range 0- is equivalent to not sending a
-        // byte range and works for both zero and non-zero length objects,
-        // the single argument setRange() only needs to be called when the
-        // first byte position is greater than zero.
-        if (rangeLength != null) {
-            request.setRange(rangeStart, rangeStart + rangeLength - 1);
-        } else if (rangeStart > 0) {
-            request.setRange(rangeStart);
-        }
 
         final Map<String, String> attributes = new HashMap<>();
 
-        AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
+        final AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
         if (encryptionService != null) {
-            encryptionService.configureGetObjectRequest(request, new ObjectMetadata());
             attributes.put("s3.encryptionStrategy", encryptionService.getStrategyName());
         }
+        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
+        final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
+
+        final AmazonS3 client = getClient();
+        final GetObjectRequest request = createGetObjectRequest(context, flowFile.getAttributes());
 
         try (final S3Object s3Object = client.getObject(request)) {
             if (s3Object == null) {
@@ -270,6 +273,64 @@ public class FetchS3Object extends AbstractS3Processor {
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully retrieved S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
         session.getProvenanceReporter().fetch(flowFile, "http://" + bucket + ".amazonaws.com/" + key, transferMillis);
+    }
+
+    private GetObjectMetadataRequest createGetObjectMetadataRequest(final ProcessContext context, final Map<String, String> attributes) {
+        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
+        final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
+        final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(attributes).getValue();
+        final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
+
+        final GetObjectMetadataRequest request;
+        if (versionId == null) {
+            request = new GetObjectMetadataRequest(bucket, key);
+        } else {
+            request = new GetObjectMetadataRequest(bucket, key, versionId);
+        }
+        request.setRequesterPays(requesterPays);
+        return request;
+    }
+
+    private GetObjectRequest createGetObjectRequest(final ProcessContext context, final Map<String, String> attributes) {
+        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
+        final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
+        final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(attributes).getValue();
+        final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
+        final long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(attributes).asDataSize(DataUnit.B).longValue() : 0L);
+        final Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(attributes).asDataSize(DataUnit.B).longValue() : null);
+
+        final GetObjectRequest request;
+        if (versionId == null) {
+            request = new GetObjectRequest(bucket, key);
+        } else {
+            request = new GetObjectRequest(bucket, key, versionId);
+        }
+        request.setRequesterPays(requesterPays);
+
+        // tl;dr don't setRange(0) on GetObjectRequest because it results in
+        // InvalidRange errors on zero byte objects.
+        //
+        // Amazon S3 sets byte ranges using HTTP Range headers as described in
+        // https://datatracker.ietf.org/doc/html/rfc2616#section-14.35 and
+        // https://datatracker.ietf.org/doc/html/rfc7233#section-2.1. There
+        // isn't a satisfiable byte range specification for zero length objects
+        // so 416 (Request range not satisfiable) is returned.
+        //
+        // Since the effect of the byte range 0- is equivalent to not sending a
+        // byte range and works for both zero and non-zero length objects,
+        // the single argument setRange() only needs to be called when the
+        // first byte position is greater than zero.
+        if (rangeLength != null) {
+            request.setRange(rangeStart, rangeStart + rangeLength - 1);
+        } else if (rangeStart > 0) {
+            request.setRange(rangeStart);
+        }
+
+        final AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
+        if (encryptionService != null) {
+            encryptionService.configureGetObjectRequest(request, new ObjectMetadata());
+        }
+        return request;
     }
 
     protected void setFilePathAttributes(Map<String, String> attributes, String filePathName) {
