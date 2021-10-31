@@ -60,7 +60,6 @@
         "font-awesome": "4.7.0",
         "hammerjs": "2.0.8",
         "jquery": "3.5.1",
-        "material-design-icons": "3.0.1",
         "moment": "2.22.1",
         "npm-force-resolutions": "0.0.3",
         "querystring": "0.2.0",
