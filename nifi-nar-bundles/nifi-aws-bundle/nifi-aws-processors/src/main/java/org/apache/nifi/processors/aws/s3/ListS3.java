@@ -53,7 +53,6 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -901,14 +900,10 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
     @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog logger, final Map<String, String> attributes) {
-        final ControllerService service = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService();
-        final AmazonS3Client client = service != null ? createClient(context, getCredentialsProvider(context), createConfiguration(context))
-            : createClient(context, getCredentials(context), createConfiguration(context));
+        final AmazonS3Client client = getConfiguration(context).getClient();
 
-        getRegionAndInitializeEndpoint(context, client);
-
-        final List<ConfigVerificationResult> results = new ArrayList<>();
-        final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+        final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, logger, attributes));
+        final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
         if (bucketName == null || bucketName.trim().isEmpty()) {

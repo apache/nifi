@@ -399,19 +399,21 @@ public abstract class AbstractAWSGatewayApiProcessor extends
     protected GenericApiGatewayRequest configureRequest(final ProcessContext context,
                                                         final ProcessSession session,
                                                         final String resourcePath,
-                                                        final FlowFile requestFlowFile) {
+                                                        final FlowFile requestFlowFile,
+                                                        final Map<String, String> attributes) {
         String method = trimToEmpty(
                 context.getProperty(PROP_METHOD).evaluateAttributeExpressions(requestFlowFile)
                         .getValue()).toUpperCase();
         HttpMethodName methodName = HttpMethodName.fromValue(method);
-        return configureRequest(context, session, resourcePath,requestFlowFile, methodName);
+        return configureRequest(context, session, resourcePath,requestFlowFile, methodName, attributes);
     }
 
     protected GenericApiGatewayRequest configureRequest(final ProcessContext context,
                                                         final ProcessSession session,
                                                         final String resourcePath,
                                                         final FlowFile requestFlowFile,
-                                                        final HttpMethodName methodName) {
+                                                        final HttpMethodName methodName,
+                                                        final Map<String, String> attributes) {
 
         GenericApiGatewayRequestBuilder builder = new GenericApiGatewayRequestBuilder()
             .withResourcePath(resourcePath);
@@ -447,7 +449,7 @@ public abstract class AbstractAWSGatewayApiProcessor extends
                 break;
         }
 
-        builder = setHeaderProperties(context, builder, methodName, requestFlowFile);
+        builder = setHeaderProperties(context, builder, methodName, attributes);
         return builder.build();
     }
 
@@ -467,23 +469,22 @@ public abstract class AbstractAWSGatewayApiProcessor extends
 
     protected GenericApiGatewayRequestBuilder setHeaderProperties(final ProcessContext context,
                                                                   GenericApiGatewayRequestBuilder requestBuilder,
-                                                                  HttpMethodName methodName,
-                                                                  final FlowFile requestFlowFile) {
+                                                                  final HttpMethodName methodName,
+                                                                  final Map<String, String> requestAttributes) {
 
-        Map<String, String> headers = new HashMap<>();
-        for (String headerKey : dynamicPropertyNames) {
+        final Map<String, String> headers = new HashMap<>();
+        for (final String headerKey : dynamicPropertyNames) {
             String headerValue = context.getProperty(headerKey)
-                                        .evaluateAttributeExpressions(requestFlowFile).getValue();
+                                        .evaluateAttributeExpressions(requestAttributes).getValue();
             headers.put(headerKey, headerValue);
         }
 
         // iterate through the flowfile attributes, adding any attribute that
         // matches the attributes-to-send pattern. if the pattern is not set
         // (it's an optional property), ignore that attribute entirely
-        if (regexAttributesToSend != null && requestFlowFile != null) {
-            Map<String, String> attributes = requestFlowFile.getAttributes();
+        if (regexAttributesToSend != null) {
             Matcher m = regexAttributesToSend.matcher("");
-            for (Map.Entry<String, String> entry : attributes.entrySet()) {
+            for (Map.Entry<String, String> entry : requestAttributes.entrySet()) {
                 String headerKey = trimToEmpty(entry.getKey());
 
                 // don't include any of the ignored attributes
@@ -502,7 +503,7 @@ public abstract class AbstractAWSGatewayApiProcessor extends
         }
 
         String contentType = context.getProperty(PROP_CONTENT_TYPE)
-                                    .evaluateAttributeExpressions(requestFlowFile).getValue();
+                                    .evaluateAttributeExpressions(requestAttributes).getValue();
         boolean sendBody = context.getProperty(PROP_SEND_BODY).asBoolean();
         contentType = StringUtils.isBlank(contentType) ? DEFAULT_CONTENT_TYPE : contentType;
         if (methodName == HttpMethodName.PUT || methodName == HttpMethodName.POST

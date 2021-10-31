@@ -22,9 +22,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.processors.aws.AbstractAWSProcessor;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -62,6 +65,11 @@ public class TestFetchS3Object {
                 actualS3Client = client;
                 return mockS3Client;
             }
+
+            @Override
+            protected AbstractAWSProcessor<AmazonS3Client>.AWSConfiguration getConfiguration(ProcessContext context) {
+                return new AWSConfiguration(mockS3Client, null);
+            }
         };
         runner = TestRunners.newTestRunner(mockFetchS3Object);
     }
@@ -96,8 +104,12 @@ public class TestFetchS3Object {
 
         runner.run(1);
 
+        final List<ConfigVerificationResult> results = mockFetchS3Object.verify(runner.getProcessContext(), runner.getLogger(), attrs);
+        assertEquals(2, results.size());
+        results.forEach(result -> assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, result.getOutcome()));
+
         ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
-        Mockito.verify(mockS3Client, Mockito.times(1)).getObject(captureRequest.capture());
+        Mockito.verify(mockS3Client, Mockito.times(2)).getObject(captureRequest.capture()); // Once for trigger, once for verify
         GetObjectRequest request = captureRequest.getValue();
         assertEquals("request-bucket", request.getBucketName());
         assertEquals("request-key", request.getKey());
