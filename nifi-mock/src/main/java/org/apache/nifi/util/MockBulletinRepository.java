@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.util;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MockBulletinRepository implements BulletinRepository {
