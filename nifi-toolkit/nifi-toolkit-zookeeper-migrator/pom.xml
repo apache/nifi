@@ -23,7 +23,9 @@
         <artifactId>nifi-toolkit</artifactId>
         <version>1.16.0-SNAPSHOT</version>
     </parent>
-
+    <properties>
+        <curator.version>5.2.0</curator.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>commons-cli</groupId>
@@ -78,13 +80,13 @@
         <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-test</artifactId>
-            <version>4.2.0</version>
+            <version>${curator.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-client</artifactId>
-            <version>4.2.0</version>
+            <version>${curator.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

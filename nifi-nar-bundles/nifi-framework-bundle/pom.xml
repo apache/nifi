@@ -23,8 +23,10 @@
     <packaging>pom</packaging>
     <description>NiFi: Framework Bundle</description>
     <properties>
+        <curator.version>5.2.0</curator.version>
         <spring.version>5.3.11</spring.version>
         <spring.security.version>5.5.2</spring.security.version>
+        <zookeeper.version>3.5.9</zookeeper.version>
     </properties>
     <modules>
         <module>nifi-framework</module>
@@ -595,7 +597,7 @@
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-test</artifactId>
-                <version>4.2.0</version>
+                <version>${curator.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -612,12 +614,12 @@
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
-                <version>3.5.6</version>
+                <version>${zookeeper.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-framework</artifactId>
-                <version>4.2.0</version>
+                <version>${curator.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.apache.zookeeper</groupId>
@@ -628,7 +630,7 @@
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-recipes</artifactId>
-                <version>4.2.0</version>
+                <version>${curator.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.apache.zookeeper</groupId>
