@@ -264,6 +264,7 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
         try {
             if (publisher != null) {
                 publisher.stopAsync().awaitTerminated();
+                publisher = null;
             }
         } catch (final Exception e) {
             getLogger().warn("Failed to gracefully shutdown the Google Cloud PubSub Lite Publisher", e);

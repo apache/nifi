@@ -162,6 +162,7 @@ public class ConsumeGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
         try {
             if (subscriber != null) {
                 subscriber.stopAsync().awaitTerminated();
+                subscriber = null;
             }
         } catch (final Exception e) {
             getLogger().warn("Failed to gracefully shutdown the Google Cloud PubSub Lite Subscriber", e);
