@@ -81,6 +81,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -490,13 +491,17 @@ public class InvokeHTTP extends AbstractProcessor {
             .allowableValues("True", "False")
             .build();
 
-    public static final PropertyDescriptor UPDATE_FILENAME = new PropertyDescriptor.Builder()
-            .name("update-filename")
-            .description("If true and HTTP method is GET, the FlowFile's filename will be extracted from the remote URL.")
-            .displayName("Update Filename")
+    public static final PropertyDescriptor FLOW_FILE_NAMING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("flow-file-naming-strategy")
+            .description("Determines the strategy used for setting the filename attribute of the FlowFile.")
+            .displayName("FlowFile naming strategy")
             .required(true)
-            .defaultValue("false")
-            .allowableValues("true", "false")
+            .defaultValue(FilenameStrategy.RANDOM.name())
+            .allowableValues(
+                    Arrays.stream(FilenameStrategy.values()).map(strategy ->
+                            new AllowableValue(strategy.name(), strategy.name(), strategy.getDescription())
+                    ).toArray(AllowableValue[]::new)
+            )
             .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
@@ -514,7 +519,7 @@ public class InvokeHTTP extends AbstractProcessor {
             PROP_DATE_HEADER,
             PROP_FOLLOW_REDIRECTS,
             DISABLE_HTTP2_PROTOCOL,
-            UPDATE_FILENAME,
+            FLOW_FILE_NAMING_STRATEGY,
             PROP_ATTRIBUTES_TO_SEND,
             PROP_USERAGENT,
             PROP_BASIC_AUTH_USERNAME,
@@ -928,9 +933,11 @@ public class InvokeHTTP extends AbstractProcessor {
                         responseFlowFile = session.putAllAttributes(responseFlowFile, convertAttributesFromHeaders(responseHttp));
 
                         // update FlowFile's filename attribute with an extracted value from the remote URL
-                        if (context.getProperty(UPDATE_FILENAME).asBoolean() && GET_METHOD.equals(httpRequest.method())) {
+                        if (FilenameStrategy.URL_PATH.equals(getFilenameStrategy(context)) && GET_METHOD.equals(httpRequest.method())) {
                             String fileName = getFileNameFromUrl(url);
-                            responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.FILENAME.key(), fileName);
+                            if (fileName != null) {
+                                responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.FILENAME.key(), fileName);
+                            }
                         }
 
                         // transfer the message body to the payload
@@ -1292,13 +1299,16 @@ public class InvokeHTTP extends AbstractProcessor {
         return Files.createTempDirectory(InvokeHTTP.class.getSimpleName()).toFile();
     }
 
+    private FilenameStrategy getFilenameStrategy(final ProcessContext context) {
+        final String strategy = context.getProperty(FLOW_FILE_NAMING_STRATEGY).getValue();
+        return FilenameStrategy.valueOf(strategy);
+    }
+
     private String getFileNameFromUrl(URL url) {
-        String fileName;
+        String fileName = null;
         String path = StringUtils.removeEnd(url.getPath(), "/");
 
-        if (StringUtils.isEmpty(path)) {
-            fileName = url.getHost();
-        } else {
+        if (!StringUtils.isEmpty(path)) {
             fileName = path.substring(path.lastIndexOf('/') + 1);
         }
 

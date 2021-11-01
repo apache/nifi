@@ -734,7 +734,7 @@ public class InvokeHTTPTest {
 
         runner.setProperty(InvokeHTTP.PROP_METHOD, httpMethod);
         runner.setProperty(InvokeHTTP.PROP_URL, targetUrl.toString());
-        runner.setProperty(InvokeHTTP.UPDATE_FILENAME, Boolean.TRUE.toString());
+        runner.setProperty(InvokeHTTP.FLOW_FILE_NAMING_STRATEGY, FilenameStrategy.URL_PATH.name());
 
         Map<String, String> ffAttributes = new HashMap<>();
         ffAttributes.put(CoreAttributes.FILENAME.key(), FLOW_FILE_INITIAL_FILENAME);
@@ -750,19 +750,26 @@ public class InvokeHTTPTest {
 
     private static Stream<Arguments> testResponseFlowFileFilenameExtractedFromRemoteUrl() {
         return Stream.of(
-            Arguments.of(GET_METHOD, "", "localhost"),
             Arguments.of(GET_METHOD, "file", "file"),
             Arguments.of(GET_METHOD, "file/", "file"),
             Arguments.of(GET_METHOD, "file.txt", "file.txt"),
             Arguments.of(GET_METHOD, "file.txt/", "file.txt"),
             Arguments.of(GET_METHOD, "file.txt/?qp=v", "file.txt"),
             Arguments.of(GET_METHOD, "f%69%6Cle.txt", "f%69%6Cle.txt"),
+            Arguments.of(GET_METHOD, "path/to/file.txt", "file.txt"),
+            Arguments.of(GET_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(POST_METHOD, "has/path", FLOW_FILE_INITIAL_FILENAME),
             Arguments.of(POST_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(PUT_METHOD, "has/path", FLOW_FILE_INITIAL_FILENAME),
             Arguments.of(PUT_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
             Arguments.of(PATCH_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(PATCH_METHOD, "has/path", FLOW_FILE_INITIAL_FILENAME),
             Arguments.of(DELETE_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(DELETE_METHOD, "has/path", FLOW_FILE_INITIAL_FILENAME),
             Arguments.of(HEAD_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
-            Arguments.of(OPTIONS_METHOD, "", FLOW_FILE_INITIAL_FILENAME)
+            Arguments.of(HEAD_METHOD, "has/path", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(OPTIONS_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(OPTIONS_METHOD, "has/path", FLOW_FILE_INITIAL_FILENAME)
         );
     }
 
