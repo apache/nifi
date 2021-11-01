@@ -77,7 +77,8 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.ORDERING_KE
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"google", "google-cloud", "gcp", "message", "pubsub", "consume", "lite"})
 @CapabilityDescription("Consumes message from the configured Google Cloud PubSub Lite subscription. In its current state, this processor "
-        + "will work only if using the GCP Credentials Controller Service with 'Use Application Default Credentials' or 'Use Compute Engine Credentials'.")
+        + "will only work if running on a Google Cloud Compute Engine instance and if using the GCP Credentials Controller Service with "
+        + "'Use Application Default Credentials' or 'Use Compute Engine Credentials'.")
 @WritesAttributes({
         @WritesAttribute(attribute = MESSAGE_ID_ATTRIBUTE, description = MESSAGE_ID_DESCRIPTION),
         @WritesAttribute(attribute = ORDERING_KEY_ATTRIBUTE, description = ORDERING_KEY_DESCRIPTION),
@@ -264,19 +265,22 @@ public class ConsumeGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
     }
 
     @Override
-    public List<ConfigVerificationResult> verify(ProcessContext context, ComponentLog verificationLogger, Map<String, String> attributes) {
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
         final List<ConfigVerificationResult> verificationResults = new ArrayList<>();
         try {
-            if (subscriber == null) {
-                subscriber = getSubscriber(context);
-            }
+            getSubscriber(context);
+            verificationResults.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Create the Subscriber")
+                    .outcome(Outcome.SUCCESSFUL)
+                    .explanation("Successfully created the Google Cloud PubSub Lite Subscriber")
+                    .build());
         } catch (final Exception e) {
-            getLogger().error("Failed to create Google Cloud PubSub Lite Subscriber", e);
+            verificationLogger.error("Failed to create Google Cloud PubSub Lite Subscriber", e);
 
             verificationResults.add(new ConfigVerificationResult.Builder()
-                    .verificationStepName("Creation of the Subscriber")
+                    .verificationStepName("Create the Subscriber")
                     .outcome(Outcome.FAILED)
-                    .explanation("Failed to create Google Cloud PubSub Lite Subscriber: " + e)
+                    .explanation("Failed to create Google Cloud PubSub Lite Subscriber: " + e.getLocalizedMessage())
                     .build());
         }
         return verificationResults;

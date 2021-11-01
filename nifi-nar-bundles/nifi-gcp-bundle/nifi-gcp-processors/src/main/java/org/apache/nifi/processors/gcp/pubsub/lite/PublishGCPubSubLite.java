@@ -82,7 +82,8 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_
 @Tags({"google", "google-cloud", "gcp", "message", "pubsub", "publish", "lite"})
 @CapabilityDescription("Publishes the content of the incoming flowfile to the configured Google Cloud PubSub Lite topic. The processor supports dynamic properties." +
         " If any dynamic properties are present, they will be sent along with the message in the form of 'attributes'. In its current state, this processor will " +
-        "work only if using the GCP Credentials Controller Service with 'Use Application Default Credentials' or 'Use Compute Engine Credentials'.")
+        "only work if running on a Google Cloud Compute Engine instance and if using the GCP Credentials Controller Service with 'Use Application Default " +
+        "Credentials' or 'Use Compute Engine Credentials'.")
 @DynamicProperty(name = "Attribute name", value = "Value to be set to the attribute",
         description = "Attributes to be set for the outgoing Google Cloud PubSub Lite message", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @WritesAttributes({
@@ -306,19 +307,22 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
     }
 
     @Override
-    public List<ConfigVerificationResult> verify(ProcessContext context, ComponentLog verificationLogger, Map<String, String> attributes) {
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
         final List<ConfigVerificationResult> verificationResults = new ArrayList<>();
         try {
-            if (publisher == null) {
-                publisher = getPublisher(context);
-            }
+            getPublisher(context);
+            verificationResults.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Create the Publisher")
+                    .outcome(Outcome.SUCCESSFUL)
+                    .explanation("Successfully created the Google Cloud PubSub Lite Publisher")
+                    .build());
         } catch (final Exception e) {
-            getLogger().error("Failed to create Google Cloud PubSub Lite Publisher", e);
+            verificationLogger.error("Failed to create Google Cloud PubSub Lite Publisher", e);
 
             verificationResults.add(new ConfigVerificationResult.Builder()
-                    .verificationStepName("Creation of the Publisher")
+                    .verificationStepName("Create the Publisher")
                     .outcome(Outcome.FAILED)
-                    .explanation("Failed to create Google Cloud PubSub Lite Publisher: " + e)
+                    .explanation("Failed to create Google Cloud PubSub Lite Publisher: " + e.getLocalizedMessage())
                     .build());
         }
         return verificationResults;
