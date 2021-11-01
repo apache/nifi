@@ -104,7 +104,7 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
             .build();
 
     public static final PropertyDescriptor ORDERING_KEY = new PropertyDescriptor
-            .Builder().name("gcp-ordering_key")
+            .Builder().name("gcp-ordering-key")
             .displayName("Ordering Key")
             .description("Messages with the same ordering key will always get published to the same partition. When this property is not "
                     + "set, messages can get published to different partitions if more than one partition exists for the topic.")
@@ -225,21 +225,15 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
                 final ByteString flowFileContent = ByteString.copyFrom(baos.toByteArray());
                 final String orderingKey = context.getProperty(ORDERING_KEY).evaluateAttributeExpressions(flowFile).getValue();
 
-                PubsubMessage message= null;
+                final PubsubMessage.Builder message = PubsubMessage.newBuilder().setData(flowFileContent)
+                        .setPublishTime(Timestamp.newBuilder().build())
+                        .putAllAttributes(getDynamicAttributesMap(context, flowFile));
+
                 if (orderingKey != null) {
-                    message = PubsubMessage.newBuilder().setData(flowFileContent)
-                            .setOrderingKey(orderingKey)
-                            .setPublishTime(Timestamp.newBuilder().build())
-                            .putAllAttributes(getDynamicAttributesMap(context, flowFile))
-                            .build();
-                } else {
-                    message = PubsubMessage.newBuilder().setData(flowFileContent)
-                            .setPublishTime(Timestamp.newBuilder().build())
-                            .putAllAttributes(getDynamicAttributesMap(context, flowFile))
-                            .build();
+                    message.setOrderingKey(orderingKey);
                 }
 
-                final ApiFuture<String> messageIdFuture = publisher.publish(message);
+                final ApiFuture<String> messageIdFuture = publisher.publish(message.build());
                 futures.add(messageIdFuture);
 
                 flowFile = session.putAttribute(flowFile, TOPIC_NAME_ATTRIBUTE, topicName);
