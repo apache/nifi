@@ -1805,7 +1805,7 @@ Two encryption providers are currently configurable in the `bootstrap-hashicorp-
 |===
 |Provider|Provider Identifier|Description
 |HashiCorp Vault Transit provider|`hashicorp/vault/kv/{vault.transit.path}`|Uses HashiCorp Vault's Transit Secrets Engine to decrypt sensitive properties.
-|HashiCorp Vault Key/Value provider|`hashicorp/vault/kv/{vault.transit.path}`|Retrieves sensitive values from Secrets stored in a HashiCorp Vault Key/Value (unversioned) Secrets Engine.
+|HashiCorp Vault Key/Value provider|`hashicorp/vault/kv/{vault.kv.path}`|Retrieves sensitive values from Secrets stored in a HashiCorp Vault Key/Value (unversioned) Secrets Engine.
 |===
 
 Note that all HashiCorp Vault encryption providers require a running Vault instance in order to decrypt these values at NiFi's startup.
