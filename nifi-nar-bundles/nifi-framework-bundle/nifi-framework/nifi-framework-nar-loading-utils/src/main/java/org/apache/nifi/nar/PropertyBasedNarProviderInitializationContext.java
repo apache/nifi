@@ -73,7 +73,7 @@ public class PropertyBasedNarProviderInitializationContext implements NarProvide
     }
 
     private SSLContext createSSLContext(final NiFiProperties properties) throws TlsException {
-        TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+        final TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
         return SslContextFactory.createSslContext(tlsConfiguration);
     }
 }

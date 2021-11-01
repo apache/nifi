@@ -69,7 +69,7 @@ public class NiFiRegistryExtensionRegistry extends AbstractExtensionRegistry<NiF
     }
 
     @Override
-    public void setURL(String url) {
+    public void setURL(final String url) {
         super.setURL(url);
         invalidateClient();
     }

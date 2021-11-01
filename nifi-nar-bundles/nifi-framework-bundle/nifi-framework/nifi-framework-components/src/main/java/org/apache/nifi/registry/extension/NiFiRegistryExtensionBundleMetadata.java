@@ -25,7 +25,7 @@ import org.apache.commons.lang3.Validate;
 public class NiFiRegistryExtensionBundleMetadata extends AbstractExtensionBundleMetadata {
 
     private static final String SEPARATOR = "::";
-    private static final String LOCATION = "%s" + SEPARATOR + "%s" + SEPARATOR + "%s" + SEPARATOR + "%s.nar";
+    private static final String LOCATION_FORMAT = String.join(SEPARATOR, "%s", "%s", "%s", "%s.nar");
 
     private final String bundleIdentifier;
 
@@ -40,10 +40,10 @@ public class NiFiRegistryExtensionBundleMetadata extends AbstractExtensionBundle
 
     /**
      * @return a location string that will be returned from a NarProvider and passed back to the fetch method,
-     *          also servers as the filename used by the NarProvider
+     *          also serves as the filename used by the NarProvider
      */
     public String toLocationString() {
-        return String.format(LOCATION, getGroup(), getArtifact(), getVersion(), getBundleIdentifier());
+        return String.format(LOCATION_FORMAT, getGroup(), getArtifact(), getVersion(), getBundleIdentifier());
     }
 
     /**
