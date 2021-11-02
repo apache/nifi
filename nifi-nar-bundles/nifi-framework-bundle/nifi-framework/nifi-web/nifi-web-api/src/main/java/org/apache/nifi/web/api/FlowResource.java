@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api;
 
+import io.prometheus.client.Collector;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.exporter.common.TextFormat;
 import io.swagger.annotations.Api;
@@ -140,6 +141,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -441,6 +443,26 @@ public class FlowResource extends ApplicationResource {
 
             return generateOkResponse(response)
                     .type(MediaType.TEXT_PLAIN_TYPE)
+                    .build();
+        } else if ("json".equalsIgnoreCase(producer)) {
+            final Collection<CollectorRegistry> allRegistries = serviceFacade.generateFlowMetrics();
+            final Map<String, List<Collector.MetricFamilySamples.Sample>> response = new HashMap<>();
+
+
+            for (CollectorRegistry collectorRegistry : allRegistries) {
+                Enumeration<Collector.MetricFamilySamples> e = collectorRegistry.metricFamilySamples();
+                while (e.hasMoreElements()) {
+                    Collector.MetricFamilySamples metricFamilySamples = e.nextElement();
+                    for (Collector.MetricFamilySamples.Sample sample: metricFamilySamples.samples) {
+                        if (sample.name.contains("_jvm_") || sample.labelValues.contains("RootProcessGroup")) {
+                            response.computeIfAbsent("beans", v -> new ArrayList<>()).add(sample);
+                        }
+                    }
+                }
+            }
+
+            return generateOkResponse(response)
+                    .type(MediaType.APPLICATION_JSON_TYPE)
                     .build();
         } else {
             throw new ResourceNotFoundException("The specified producer is missing or invalid.");
