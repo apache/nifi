@@ -91,6 +91,7 @@ public class GeohashRecord extends AbstractProcessor {
             .allowableValues(ProcessingMode.values())
             .defaultValue(ProcessingMode.Encode.name())
             .build();
+
     public static final PropertyDescriptor ROUTING_STRATEGY = new PropertyDescriptor.Builder()
             .name("routing-strategy")
             .displayName("Routing Strategy")
@@ -174,10 +175,12 @@ public class GeohashRecord extends AbstractProcessor {
             .name("success")
             .description("Records that are successfully encoded or decoded will be routed to success")
             .build();
+
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("Records that cannot be encoded or decoded will be routed to failure")
             .build();
+
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
             .description("With the Split_Enriched_Unenriched strategy, the original input flowfile will be sent to this relationship regardless of whether it was enriched or not.")
