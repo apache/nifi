@@ -102,8 +102,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .build();
 
     static final PropertyDescriptor UNESCAPE_COMMA = new PropertyDescriptor.Builder()
-            .name("unescape.comma")
-            .displayName("Unescape Comma")
+            .name("Unescape Comma")
             .description("When there is a comma in the header itself, with the help of this parameter, the header's own commas are not used in the splitting process.")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("False")

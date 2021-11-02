@@ -34,7 +34,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -71,6 +70,8 @@ import java.util.stream.Collectors;
 })
 public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     private static final String ATTRIBUTES_PREFIX = "amqp$";
+    public static final char ESCAPE_CHAR = '\\';
+    public static final char COMMA = ',';
 
     public static final PropertyDescriptor QUEUE = new PropertyDescriptor.Builder()
         .name("Queue")
@@ -211,17 +212,25 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         return attributes;
     }
 
+    private void addAttribute(final Map<String, String> attributes, final String attributeName, final Object value) {
+        if (value == null) {
+            return;
+        }
+
+        attributes.put(attributeName, value.toString());
+    }
+
     private String buildHeaders(Map<String, Object> headers, boolean escapeComma, boolean removeCurlyBraces) {
         if (headers == null) {
             return null;
         }
         if (escapeComma && removeCurlyBraces) {
             return headers.keySet().stream()
-                    .map(key -> key + "=" + StringUtils.escapeString(headers.get(key).toString(), StringUtils.ESCAPE_CHAR, StringUtils.COMMA))
+                    .map(key -> key + "=" + escapeString(headers.get(key).toString()))
                     .collect(Collectors.joining(", "));
         } else if (escapeComma) {
             return headers.keySet().stream()
-                    .map(key -> key + "=" + StringUtils.escapeString(headers.get(key).toString(), StringUtils.ESCAPE_CHAR, StringUtils.COMMA))
+                    .map(key -> key + "=" + escapeString(headers.get(key).toString()))
                     .collect(Collectors.joining(", ", "{", "}"));
         } else if (removeCurlyBraces) {
             String headerString = headers.toString();
@@ -231,12 +240,26 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         return headers.toString();
     }
 
-    private void addAttribute(final Map<String, String> attributes, final String attributeName, final Object value) {
-        if (value == null) {
-            return;
-        }
 
-        attributes.put(attributeName, value.toString());
+    /**
+     * Escape {@code str} by replacing occurrences of {@code \\} with {@code \\,}
+     * @param str the input string
+     * @return the escaped string
+     */
+    private String escapeString(String str) {
+        if (str == null || str.isEmpty()) {
+            return null;
+        }
+        StringBuilder result = new StringBuilder();
+        for (int i=0; i<str.length(); i++) {
+            char curChar = str.charAt(i);
+            if (curChar == ESCAPE_CHAR || curChar == COMMA) {
+                // special char
+                result.append(ESCAPE_CHAR);
+            }
+            result.append(curChar);
+        }
+        return result.toString();
     }
 
     @Override
