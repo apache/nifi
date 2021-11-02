@@ -74,6 +74,11 @@ public class TestSelectHive3QL {
     private static final Logger LOGGER;
     private final static String MAX_ROWS_KEY = "maxRows";
     private final int NUM_OF_ROWS = 100;
+    private static final int ID = 1;
+    private static final String NAME = "Joe Smith";
+    private static final String BIRTH_DATE = "1956-11-22";
+    private static final String BIG_NUMBER = "12345678.12";
+    private static final String CREATED_ON = "1962-09-23 03:23:34.234";
 
 
     static {
@@ -706,11 +711,6 @@ public class TestSelectHive3QL {
                 .name("BIG_NUMBER").type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault()
                 .name("CREATED_ON").type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault()
                 .endRecord();
-        final int expectedId = 1;
-        final String expectedName = "Joe Smith";
-        final String expectedBirthDate = "1956-11-22";
-        final String expectedBigNumber = "12345678.12";
-        final String expectedCreatedOn = "1962-09-23 03:23:34.234";
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -725,7 +725,8 @@ public class TestSelectHive3QL {
         }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), birth_date date, big_number decimal(10,2),created_on timestamp)");
-        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, birth_date, big_number, created_on) VALUES (1, 'Joe Smith', '1956-11-22', 12345678.12, '1962-09-23 03:23:34.234')");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, birth_date, big_number, created_on) VALUES (" +
+                ID + ", '" + NAME + "', '" + BIRTH_DATE + "', " + BIG_NUMBER + ", '" + CREATED_ON + "')");
 
         runner.setIncomingConnection(false);
         runner.setProperty(SelectHive3QL.HIVEQL_SELECT_QUERY, "SELECT * FROM TEST_QUERY_DB_TABLE");
@@ -739,11 +740,11 @@ public class TestSelectHive3QL {
         final GenericRecord record = getFirstRecordFromStream(in);
 
         assertEquals(expectedSchema, record.getSchema());
-        assertEquals(expectedId, record.get("ID"));
-        assertEquals(expectedName, record.get("NAME").toString());
-        assertEquals(expectedBirthDate, record.get("BIRTH_DATE").toString());
-        assertEquals(expectedBigNumber, record.get("BIG_NUMBER").toString());
-        assertEquals(expectedCreatedOn, record.get("CREATED_ON").toString());
+        assertEquals(ID, record.get("ID"));
+        assertEquals(NAME, record.get("NAME").toString());
+        assertEquals(BIRTH_DATE, record.get("BIRTH_DATE").toString());
+        assertEquals(BIG_NUMBER, record.get("BIG_NUMBER").toString());
+        assertEquals(CREATED_ON, record.get("CREATED_ON").toString());
 
         runner.clearTransferState();
     }
@@ -760,12 +761,11 @@ public class TestSelectHive3QL {
                 .name("CREATED_ON").type().unionOf().nullBuilder().endNull().and()
                 .type(LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG))).endUnion().noDefault()
                 .endRecord();
-        final int expectedId = 1;
-        final String expectedName = "Joe Smith";
-        final int expectedBirthDate = (int) LocalDate.parse("1956-11-22").toEpochDay();
-        final BigDecimal decimal = new BigDecimal("12345678.12").setScale(2, BigDecimal.ROUND_HALF_EVEN);
+
+        final int expectedBirthDate = (int) LocalDate.parse(BIRTH_DATE).toEpochDay();
+        final BigDecimal decimal = new BigDecimal(BIG_NUMBER).setScale(2, BigDecimal.ROUND_HALF_EVEN);
         final ByteBuffer expectedBigNumber = ByteBuffer.wrap(decimal.unscaledValue().toByteArray());
-        final Timestamp timestamp = Timestamp.valueOf("1962-09-23 03:23:34.234");
+        final Timestamp timestamp = Timestamp.valueOf(CREATED_ON);
         final long expectedCreatedOn = timestamp.getTime();
 
         // load test data to database
@@ -781,7 +781,8 @@ public class TestSelectHive3QL {
         }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), birth_date date, big_number decimal(10,2),created_on timestamp)");
-        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, birth_date, big_number, created_on) VALUES (1, 'Joe Smith', '1956-11-22', 12345678.12, '1962-09-23 03:23:34.234')");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, birth_date, big_number, created_on) VALUES (" +
+                ID + ", '" + NAME + "', '" + BIRTH_DATE + "', " + BIG_NUMBER + ", '" + CREATED_ON + "')");
 
         runner.setIncomingConnection(false);
         runner.setProperty(SelectHive3QL.HIVEQL_SELECT_QUERY, "SELECT * FROM TEST_QUERY_DB_TABLE");
@@ -796,8 +797,8 @@ public class TestSelectHive3QL {
         final GenericRecord record = getFirstRecordFromStream(in);
 
         assertEquals(expectedSchema, record.getSchema());
-        assertEquals(expectedId, record.get("ID"));
-        assertEquals(expectedName, record.get("NAME").toString());
+        assertEquals(ID, record.get("ID"));
+        assertEquals(NAME, record.get("NAME").toString());
         assertEquals(expectedBirthDate, record.get("BIRTH_DATE"));
         assertEquals(expectedBigNumber, record.get("BIG_NUMBER"));
         assertEquals(expectedCreatedOn, record.get("CREATED_ON"));

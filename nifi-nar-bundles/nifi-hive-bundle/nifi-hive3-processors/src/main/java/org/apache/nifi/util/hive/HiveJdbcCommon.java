@@ -92,6 +92,8 @@ public class HiveJdbcCommon {
 
     private static final Schema TIMESTAMP_MILLIS_SCHEMA = LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
     private static final Schema DATE_SCHEMA = LogicalTypes.date().addToSchema(Schema.create(Schema.Type.INT));
+    private static final int DEFAULT_PRECISION = 10;
+    private static final int DEFAULT_SCALE = 0;
 
     public static final PropertyDescriptor NORMALIZE_NAMES_FOR_AVRO = new PropertyDescriptor.Builder()
             .name("hive-normalize-avro")
@@ -156,8 +158,8 @@ public class HiveJdbcCommon {
 
                     } else if (value instanceof BigDecimal) {
                         if (useLogicalTypes) {
-                            final int precision = meta.getPrecision(i) > 1 ? meta.getPrecision(i) : 10;
-                            final int scale = meta.getScale(i) > 0 ? meta.getScale(i) : 0;
+                            final int precision = getPrecision(meta.getPrecision(i));
+                            final int scale = getScale(meta.getScale(i));
                             rec.put(i - 1, AvroTypeUtil.convertToAvroObject(value, LogicalTypes.decimal(precision, scale).addToSchema(Schema.create(Schema.Type.BYTES))));
                         } else {
                             rec.put(i - 1, value.toString());
@@ -317,8 +319,8 @@ public class HiveJdbcCommon {
                 case DECIMAL:
                 case NUMERIC:
                     if (useLogicalTypes) {
-                        final int precision = meta.getPrecision(i) > 1 ? meta.getPrecision(i) : 10;
-                        final int scale = meta.getScale(i) > 0 ? meta.getScale(i) : 0;
+                        final int precision = getPrecision(meta.getPrecision(i));
+                        final int scale = getScale(meta.getScale(i));
                         builder.name(columnName).type().unionOf().nullBuilder().endNull().and()
                                 .type(LogicalTypes.decimal(precision, scale).addToSchema(Schema.create(Schema.Type.BYTES))).endUnion().noDefault();
                     } else {
@@ -496,5 +498,15 @@ public class HiveJdbcCommon {
             }
         }
         return hiveConfig;
+    }
+
+    //If data in result set contains invalid precision value use Hive default precision.
+    private static int getPrecision(int precision) {
+        return precision > 1 ? precision : DEFAULT_PRECISION;
+    }
+
+    //If data in result set contains invalid scale value use Hive default scale.
+    private static int getScale(int scale) {
+        return scale > 0 ? scale : DEFAULT_SCALE;
     }
 }
