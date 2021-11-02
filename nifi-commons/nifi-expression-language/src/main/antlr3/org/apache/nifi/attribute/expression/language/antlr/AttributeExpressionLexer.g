@@ -186,6 +186,8 @@ REPEAT : 'repeat';
 UUID3 : 'UUID3';
 UUID5 : 'UUID5';
 HASH : 'hash';
+GEOHASH_DECODE_LATITUDE : 'geohashDecodeLatitude';
+GEOHASH_DECODE_LONGITUDE : 'geohashDecodeLongitude';
 
 // 2 arg functions
 SUBSTRING	: 'substring';
@@ -199,8 +201,12 @@ JSON_PATH_PUT : 'jsonPathPut';
 PAD_LEFT : 'padLeft';
 PAD_RIGHT : 'padRight';
 
+//3 arg functions
+GEOHASH_LONG_ENCODE : 'geohashLongEncode';
+
 // 4 arg functions
 GET_DELIMITED_FIELD	: 'getDelimitedField';
+GEOHASH_STRING_ENCODE : 'geohashStringEncode';
 
 // unlimited arg functions
 IN : 'in';

@@ -53,6 +53,10 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Equals
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FindEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FormatEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FromRadixEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.GeohashDecodeLatitudeEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.GeohashDecodeLongitudeEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.GeohashLongEncodeEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.GeohashStringEncodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GetDelimitedFieldEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GetStateVariableEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanEvaluator;
@@ -174,6 +178,10 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FIND;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FORMAT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FROM_RADIX;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GEOHASH_DECODE_LATITUDE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GEOHASH_DECODE_LONGITUDE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GEOHASH_LONG_ENCODE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GEOHASH_STRING_ENCODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GET_DELIMITED_FIELD;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GET_STATE_VALUE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN;
@@ -689,6 +697,26 @@ public class ExpressionCompiler {
                 return addToken(new HashEvaluator(toStringEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0), "first argument to hash")), "hash");
             }
+            case GEOHASH_DECODE_LATITUDE: {
+                final int numArgs = argEvaluators.size();
+                if (numArgs == 0) {
+                    return addToken(new GeohashDecodeLatitudeEvaluator(toStringEvaluator(subjectEvaluator), null), "geohashDecodeLatitude");
+                }else if (numArgs == 1){
+                    return addToken(new GeohashDecodeLatitudeEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0))), "geohashDecodeLatitude");
+                }else {
+                    throw new AttributeExpressionLanguageParsingException("geohashDecodeLatitude() function can take either 0 or 1 arguments but cannot take " + numArgs + " arguments");
+                }
+            }
+            case GEOHASH_DECODE_LONGITUDE: {
+                final int numArgs = argEvaluators.size();
+                if (numArgs == 0) {
+                    return addToken(new GeohashDecodeLongitudeEvaluator(toStringEvaluator(subjectEvaluator), null), "geohashDecodeLongitude");
+                }else if (numArgs == 1){
+                    return addToken(new GeohashDecodeLongitudeEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0))), "geohashDecodeLongitude");
+                }else {
+                    throw new AttributeExpressionLanguageParsingException("geohashDecodeLatitude() function can take either 0 or 1 arguments but cannot take " + numArgs + " arguments");
+                }
+            }
             case PAD_LEFT: {
                 if (argEvaluators.size() == 1) {
                     return addToken(new PadLeftEvaluator(toStringEvaluator(subjectEvaluator),
@@ -1202,6 +1230,26 @@ public class ExpressionCompiler {
                 final GetStateVariableEvaluator eval = new GetStateVariableEvaluator(stringEvaluator);
                 evaluators.add(eval);
                 return eval;
+            }
+            case GEOHASH_LONG_ENCODE: {
+                return addToken(new GeohashLongEncodeEvaluator(toNumberEvaluator(buildEvaluator(tree.getChild(0))),
+                        toNumberEvaluator(buildEvaluator(tree.getChild(1))),
+                        toWholeNumberEvaluator(buildEvaluator(tree.getChild(2)))), "geohashLongEncode");
+            }
+            case GEOHASH_STRING_ENCODE: {
+                if (tree.getChildCount() == 3) {
+                    return addToken(new GeohashStringEncodeEvaluator(toNumberEvaluator(buildEvaluator(tree.getChild(0))),
+                            toNumberEvaluator(buildEvaluator(tree.getChild(1))),
+                            toWholeNumberEvaluator(buildEvaluator(tree.getChild(2))),
+                            null), "geohashStringEncode");
+                }else if(tree.getChildCount() == 4) {
+                    return addToken(new GeohashStringEncodeEvaluator(toNumberEvaluator(buildEvaluator(tree.getChild(0))),
+                            toNumberEvaluator(buildEvaluator(tree.getChild(1))),
+                            toWholeNumberEvaluator(buildEvaluator(tree.getChild(2))),
+                            toStringEvaluator(buildEvaluator(tree.getChild(3)))), "geohashStringEncode");
+                }else {
+                    throw new AttributeExpressionLanguageParsingException("Call to geohashStringEncode() must take 3 or 4 parameters");
+                }
             }
             default:
                 throw new AttributeExpressionLanguageParsingException("Unexpected token: " + tree.toString());

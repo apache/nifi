@@ -96,7 +96,8 @@ multiArgBool : (IN) LPAREN! anyArg (COMMA! anyArg)* RPAREN!;
 // functions that return Numbers (whole or decimal)
 zeroArgNum	: (LENGTH | TO_NUMBER | TO_DECIMAL | COUNT) LPAREN! RPAREN!;
 oneArgNum	: ((INDEX_OF | LAST_INDEX_OF) LPAREN! anyArg RPAREN!) |
-			  ((MOD | PLUS | MINUS | MULTIPLY | DIVIDE) LPAREN! anyArg RPAREN!);
+			  ((MOD | PLUS | MINUS | MULTIPLY | DIVIDE) LPAREN! anyArg RPAREN!) |
+			  ((GEOHASH_DECODE_LATITUDE | GEOHASH_DECODE_LONGITUDE) LPAREN! anyArg RPAREN!);
 oneOrTwoArgNum : MATH LPAREN! anyArg (COMMA! anyArg)? RPAREN!;
 zeroOrOneOrTwoArgNum : TO_DATE LPAREN! anyArg? (COMMA! anyArg)? RPAREN!;
 
@@ -136,7 +137,9 @@ booleanLiteral : TRUE | FALSE;
 zeroArgStandaloneFunction : (IP | UUID | NOW | NEXT_INT | HOSTNAME | THREAD | RANDOM) LPAREN! RPAREN!;
 oneArgStandaloneFunction : ((TO_LITERAL | MATH | GET_STATE_VALUE)^ LPAREN! anyArg RPAREN!) |
                            (HOSTNAME^ LPAREN! booleanLiteral RPAREN!);
-standaloneFunction : zeroArgStandaloneFunction | oneArgStandaloneFunction;
+threeArgStandaloneFunction : GEOHASH_LONG_ENCODE^ LPAREN! anyArg COMMA! anyArg COMMA! anyArg RPAREN!;
+threeOrFourArgStandaloneFunction : GEOHASH_STRING_ENCODE^ LPAREN! anyArg COMMA! anyArg COMMA! anyArg (COMMA! anyArg)? RPAREN!;
+standaloneFunction : zeroArgStandaloneFunction | oneArgStandaloneFunction | threeArgStandaloneFunction | threeOrFourArgStandaloneFunction;
 
 attributeRefOrFunctionCall	: (attributeRef | standaloneFunction | parameterReference);
 

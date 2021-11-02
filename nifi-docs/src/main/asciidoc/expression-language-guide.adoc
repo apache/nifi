@@ -1500,6 +1500,95 @@ An empty argument or an argument value with an invalid UUID results in an except
 
 
 
+[.function]
+=== geohashStringEncode
+
+*Description*: [.description]#This function encodes latitude and longitude coordinates to a geohash string of the given level.#
+
+*Subject Type*: [.subjectless]#No subject#
+
+*Arguments*:
+
+	- [.argName]#_latitude_# : [.argDesc]#The latitude coordinate to encode.#
+
+	- [.argName]#_longitude_# : [.argDesc]#The longitude coordinate to encode.#
+
+	- [.argName]#_level_# : [.argDesc]#The integer value to specify the desired precision. This level value should be
+between 1 and 12, indicating the number of characters in a standard BASE_32 geohash string.#
+
+	- [.argName]#_format_# : [.argDesc]#Optional argument that specifies the geohash string format. Supports one of
+[BASE_32_STRING, BINARY_STRING]. If not specified, defaults to the standard geohash ​​format BASE_32_STRING.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If we have an attribute named "lat" with a value of "41.702", an attribute named "lon" with
+a value of "0.083", and we want to encode the coordinates of this point to the standard geohash format with
+the highest precision, we can use the Expression `${geohashStringEncode(${lat}, ${lon}, 12)}`, which will return "sp2j1zs7y01r".
+
+
+
+[.function]
+=== geohashLongEncode
+
+*Description*: [.description]#This function encodes latitude and longitude coordinates to a 64-bit integer geohash of the given level.#
+
+*Subject Type*: [.subjectless]#No subject#
+
+*Arguments*:
+
+	- [.argName]#_latitude_# : [.argDesc]#The latitude coordinate to encode.#
+
+	- [.argName]#_longitude_# : [.argDesc]#The longitude coordinate to encode.#
+
+	- [.argName]#_level_# : [.argDesc]#The integer value to specify the desired precision. This level value should be
+between 1 and 12, indicating the number of characters in a standard BASE_32 geohash string.#
+
+*Return Type*: [.returnType]#Number#
+
+*Examples*: If we have an attribute named "lat" with a value of "41.702", an attribute named "lon" with
+a value of "0.083", and we want to encode the coordinates of this point to a 64-bit geohash integer of level 12,
+we can use the Expression `${geohashLongEncode(${lat}, ${lon}, 12)}`, which will return -4231957587308838032L.
+
+
+
+[.function]
+=== geohashDecodeLatitude
+
+*Description*: [.description]#Returns the latitude coordinates of the center of a given geohash cell.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_format_# : [.argDesc]#The format of the given geohash to decode. Supports one of
+[BASE_32_STRING, BINARY_STRING, LONG].#
+
+*Return Type*: [.returnType]#Number#
+
+*Examples*: If we have a geohash binary string attribute named "geohash" with a value of "110001010100010",
+then the Expression `${geohash:geohashDecodeLatitude('BINARY_STRING')}` will return 41.484375.
+
+
+
+[.function]
+=== geohashDecodeLongitude
+
+*Description*: [.description]#Returns the longitude coordinates of the center of a given geohash cell.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_format_# : [.argDesc]#The format of the given geohash to decode. Supports one of
+[BASE_32_STRING, BINARY_STRING, LONG].#
+
+*Return Type*: [.returnType]#Number#
+
+*Examples*: If we have a standard geohash string attribute named "geohash" with a value of "sp2j1zs7y01r",
+then the Expression `${geohash:geohashDecodeLongitude('BASE_32_STRING')}` will return 0.08300011977553368.
+
+
+
 [[searching]]
 == Searching
 

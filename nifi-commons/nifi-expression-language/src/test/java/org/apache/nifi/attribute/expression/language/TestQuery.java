@@ -2202,6 +2202,48 @@ public class TestQuery {
         verifyEquals("${myattr0:UUID5(${UUID()}):length()}", attributes, 36L);
     }
 
+    @Test
+    public void testGeohashLongEncode(){
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("lat", "41.702");
+        attrs.put("lon", "0.083");
+
+        verifyEquals("${geohashLongEncode(${lat}, ${lon}, 12)}", attrs, -4231957587308838032L);
+    }
+    @Test
+    public void testGeohashStringEncode(){
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("lat", "41.702");
+        attrs.put("lon", "0.083");
+
+        verifyEquals("${geohashStringEncode(${lat}, ${lon}, 3)}", attrs, "sp2");
+        verifyEquals("${geohashStringEncode(${lat}, ${lon}, 12, 'BASE_32_STRING')}", attrs, "sp2j1zs7y01r");
+        verifyEquals("${geohashStringEncode(${lat}, ${lon}, 3, 'BINARY_STRING')}", attrs, "110001010100010");
+    }
+    @Test
+    public void testGeohashDecodeLatitude(){
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("geohash_base_32_string", "sp2j1");
+        attributes.put("geohash_binary_string", "110001010100010");
+        attributes.put("geohash_long", "-4231957587308838032");
+
+        verifyEquals("${geohash_base_32_string:geohashDecodeLatitude('BASE_32_STRING')}", attributes, 41.68212890625);
+        verifyEquals("${geohash_binary_string:geohashDecodeLatitude('BINARY_STRING')}", attributes, 41.484375);
+        verifyEquals("${geohash_long:geohashDecodeLatitude('LONG')}", attributes, 41.701999905053526);
+
+    }
+    @Test
+    public void testGeohashDecodeLongitude(){
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("geohash_base_32_string", "sp2j1");
+        attributes.put("geohash_binary_string", "110001010100010");
+        attributes.put("geohash_long", "-4231957587308838032");
+
+        verifyEquals("${geohash_base_32_string:geohashDecodeLongitude('BASE_32_STRING')}", attributes, 0.06591796875);
+        verifyEquals("${geohash_binary_string:geohashDecodeLongitude('BINARY_STRING')}", attributes, 0.703125);
+        verifyEquals("${geohash_long:geohashDecodeLongitude('LONG')}", attributes, 0.0829999940469861);
+    }
+
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
         verifyEquals(expression,attributes, null, ParameterLookup.EMPTY, expectedResult);
     }
