@@ -32,7 +32,12 @@ import org.apache.nifi.authorization.resource.ResourceFactory
 import org.apache.nifi.authorization.user.NiFiUser
 import org.apache.nifi.authorization.user.NiFiUserDetails
 import org.apache.nifi.authorization.user.StandardNiFiUser
+import org.apache.nifi.components.state.StateManagerProvider
 import org.apache.nifi.connectable.Connection
+import org.apache.nifi.controller.NodeTypeProvider
+import org.apache.nifi.controller.ProcessScheduler
+import org.apache.nifi.controller.ReloadComponent
+import org.apache.nifi.controller.flow.FlowManager
 import org.apache.nifi.controller.flow.StandardFlowManager
 import org.apache.nifi.controller.repository.FlowFileEvent
 import org.apache.nifi.controller.repository.FlowFileEventRepository
@@ -42,20 +47,31 @@ import org.apache.nifi.controller.status.ProcessGroupStatus
 import org.apache.nifi.controller.status.RunStatus
 import org.apache.nifi.diagnostics.StorageUsage
 import org.apache.nifi.diagnostics.SystemDiagnostics
+import org.apache.nifi.encrypt.PropertyEncryptor
+import org.apache.nifi.groups.ProcessGroup
+import org.apache.nifi.groups.StandardProcessGroup
+import org.apache.nifi.nar.ExtensionManager
+import org.apache.nifi.registry.flow.FlowRegistryClient
+import org.apache.nifi.registry.variable.MutableVariableRegistry
 import org.apache.nifi.reporting.Bulletin
 import org.apache.nifi.reporting.BulletinRepository
 import org.apache.nifi.util.MockBulletinRepository
+import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.web.api.dto.AccessPolicyDTO
 import org.apache.nifi.web.api.dto.BulletinDTO
 import org.apache.nifi.web.api.dto.DtoFactory
 import org.apache.nifi.web.api.dto.EntityFactory
+import org.apache.nifi.web.api.dto.PermissionsDTO
 import org.apache.nifi.web.api.dto.RevisionDTO
 import org.apache.nifi.web.api.dto.UserDTO
 import org.apache.nifi.web.api.dto.UserGroupDTO
+import org.apache.nifi.web.api.dto.status.StatusHistoryDTO
 import org.apache.nifi.web.api.entity.BulletinEntity
+import org.apache.nifi.web.api.entity.StatusHistoryEntity
 import org.apache.nifi.web.api.entity.UserEntity
 import org.apache.nifi.web.controller.ControllerFacade
 import org.apache.nifi.web.dao.AccessPolicyDAO
+import org.apache.nifi.web.dao.ProcessGroupDAO
 import org.apache.nifi.web.dao.UserDAO
 import org.apache.nifi.web.dao.UserGroupDAO
 import org.apache.nifi.web.revision.DeleteRevisionTask
@@ -1007,6 +1023,24 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         controllerFacade.getFlowFileEventRepository() >> flowFileEventRepository
         FlowFileEvent aggregateEvent = Mock()
         flowFileEventRepository.reportAggregateEvent() >> aggregateEvent
+
+        ProcessGroupDAO processGroupDAO = Mock()
+        serviceFacade.setProcessGroupDAO(processGroupDAO)
+        ProcessGroup processGroup = Mock()
+        processGroupDAO.getProcessGroup(rootGroupStatus.getId()) >> processGroup
+        DtoFactory dtoFactory = new DtoFactory()
+        serviceFacade.setDtoFactory(dtoFactory)
+        PermissionsDTO permissions = Mock()
+        dtoFactory.createPermissionsDto(processGroup) >> permissions
+        StatusHistoryEntity statusHistoryEntity = new StatusHistoryEntity()
+        StatusHistoryDTO statusHistory = new StatusHistoryDTO()
+        statusHistory.setAggregateSnapshots(Collections.EMPTY_LIST)
+        statusHistoryEntity.setStatusHistory(statusHistory)
+        controllerFacade.getProcessGroupStatusHistory("1234") >> statusHistory
+        EntityFactory entityFactory = new EntityFactory()
+        serviceFacade.setEntityFactory(entityFactory)
+        entityFactory.createStatusHistoryEntity(statusHistoryEntity, permissions) >> statusHistoryEntity
+        serviceFacade.getProcessGroupStatusHistory("1234") >> statusHistory
 
         // setting up connections (empty list for testing)
         Set<Connection> connections = new HashSet()
