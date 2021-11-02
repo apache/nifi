@@ -153,6 +153,12 @@ public class NiFiMetricsRegistry extends AbstractMetricsRegistry {
                         "source_id", "source_name", "destination_id", "destination_name")
                 .register(registry));
 
+        nameToGaugeMap.put("TOTAL_TASK_DURATION",  Gauge.build()
+                .name("nifi_total_task_duration")
+                .help("The total number of thread-milliseconds that the component has used to complete its tasks in the past 5 minutes")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
+                .register(registry));
+
         // Processor metrics
         nameToGaugeMap.put("PROCESSOR_COUNTERS",  Gauge.build()
                 .name("nifi_processor_counters")
