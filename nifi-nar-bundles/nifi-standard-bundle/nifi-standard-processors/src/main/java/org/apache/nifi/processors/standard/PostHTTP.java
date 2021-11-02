@@ -110,7 +110,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.http.InvokeHTTP;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.ssl.SSLContextService;

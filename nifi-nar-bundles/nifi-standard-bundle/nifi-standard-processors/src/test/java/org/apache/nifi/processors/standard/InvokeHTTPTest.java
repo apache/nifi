@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.http;
+package org.apache.nifi.processors.standard;
 
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -22,6 +22,7 @@ import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processors.standard.http.FilenameStrategy;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
@@ -65,13 +66,13 @@ import static java.net.HttpURLConnection.HTTP_MOVED_TEMP;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
-import static org.apache.nifi.processors.standard.http.InvokeHTTP.GET_METHOD;
-import static org.apache.nifi.processors.standard.http.InvokeHTTP.POST_METHOD;
-import static org.apache.nifi.processors.standard.http.InvokeHTTP.PUT_METHOD;
-import static org.apache.nifi.processors.standard.http.InvokeHTTP.PATCH_METHOD;
-import static org.apache.nifi.processors.standard.http.InvokeHTTP.DELETE_METHOD;
-import static org.apache.nifi.processors.standard.http.InvokeHTTP.HEAD_METHOD;
-import static org.apache.nifi.processors.standard.http.InvokeHTTP.OPTIONS_METHOD;
+import static org.apache.nifi.processors.standard.InvokeHTTP.GET_METHOD;
+import static org.apache.nifi.processors.standard.InvokeHTTP.POST_METHOD;
+import static org.apache.nifi.processors.standard.InvokeHTTP.PUT_METHOD;
+import static org.apache.nifi.processors.standard.InvokeHTTP.PATCH_METHOD;
+import static org.apache.nifi.processors.standard.InvokeHTTP.DELETE_METHOD;
+import static org.apache.nifi.processors.standard.InvokeHTTP.HEAD_METHOD;
+import static org.apache.nifi.processors.standard.InvokeHTTP.OPTIONS_METHOD;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

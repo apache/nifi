@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.http;
+package org.apache.nifi.processors.standard;
 
 import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
 import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
@@ -97,6 +97,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.http.FilenameStrategy;
 import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.proxy.ProxyConfiguration;
