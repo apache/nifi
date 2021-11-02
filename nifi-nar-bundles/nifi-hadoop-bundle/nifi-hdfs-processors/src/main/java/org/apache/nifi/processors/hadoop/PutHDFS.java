@@ -21,6 +21,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Throwables;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CreateFlag;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.AclEntryScope;
@@ -280,7 +281,6 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 FlowFile putFlowFile = flowFile;
                 try {
                     final Path dirPath = getNormalizedPath(context, DIRECTORY, putFlowFile);
-                    checkAclStatus(getAclStatus(dirPath));
                     final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
                     final long blockSize = getBlockSize(context, session, putFlowFile, dirPath);
                     final int bufferSize = getBufferSize(context, session, putFlowFile);
@@ -298,13 +298,21 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     // Create destination directory if it does not exist
                     boolean targetDirCreated = false;
                     try {
-                        if (!hdfs.getFileStatus(dirPath).isDirectory()) {
+                        final FileStatus fileStatus = hdfs.getFileStatus(dirPath);
+                        if (!fileStatus.isDirectory()) {
                             throw new IOException(dirPath.toString() + " already exists and is not a directory");
+                        }
+                        if (fileStatus.hasAcl()) {
+                            checkAclStatus(getAclStatus(dirPath));
                         }
                     } catch (FileNotFoundException fe) {
                         targetDirCreated = hdfs.mkdirs(dirPath);
                         if (!targetDirCreated) {
                             throw new IOException(dirPath.toString() + " could not be created");
+                        }
+                        final FileStatus fileStatus = hdfs.getFileStatus(dirPath);
+                        if (fileStatus.hasAcl()) {
+                            checkAclStatus(getAclStatus(dirPath));
                         }
                         changeOwner(context, hdfs, dirPath, flowFile);
                     }
@@ -463,7 +471,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 return aclCache.get(dirPath, fn -> {
                     try {
                         return hdfs.getAclStatus(dirPath);
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         throw new UncheckedIOException(String.format("Unable to query ACL for directory [%s]", dirPath), e);
                     }
                 });
