@@ -49,6 +49,8 @@ public class PrometheusMetricsUtil {
     private static final CollectorRegistry BULLETIN_REGISTRY = new CollectorRegistry();
 
     protected static final String DEFAULT_LABEL_STRING = "";
+    private static final double MAXIMUM_BACKPRESSURE = 1.0;
+    private static final double UNDEFINED_BACKPRESSURE = -1.0;
 
     // Common properties/values
     public static final AllowableValue CLIENT_NONE = new AllowableValue("No Authentication", "No Authentication",
@@ -174,6 +176,7 @@ public class PrometheusMetricsUtil {
                         instanceId, procComponentType, procComponentName, procComponentId, parentId);
 
             }
+
             for (ConnectionStatus connectionStatus : status.getConnectionStatus()) {
                 final String connComponentId = StringUtils.isEmpty(connectionStatus.getId()) ? DEFAULT_LABEL_STRING : connectionStatus.getId();
                 final String connComponentName = StringUtils.isEmpty(connectionStatus.getName()) ? DEFAULT_LABEL_STRING : connectionStatus.getName();
@@ -212,6 +215,7 @@ public class PrometheusMetricsUtil {
                 nifiMetricsRegistry.setDataPoint(isBackpressureEnabled ? 1 : 0, "IS_BACKPRESSURE_ENABLED",
                         instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
             }
+
             for (PortStatus portStatus : status.getInputPortStatus()) {
                 final String portComponentId = StringUtils.isEmpty(portStatus.getId()) ? DEFAULT_LABEL_STRING : portStatus.getId();
                 final String portComponentName = StringUtils.isEmpty(portStatus.getName()) ? DEFAULT_LABEL_STRING : portStatus.getId();
@@ -312,9 +316,10 @@ public class PrometheusMetricsUtil {
         return jvmMetricsRegistry.getRegistry();
     }
 
-    public static CollectorRegistry createConnectionStatusAnalyticsMetrics(ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry, StatusAnalytics statusAnalytics,
-                                                                           String instId, String connComponentType, String connName,
-                                                                           String connId, String pgId, String srcId, String srcName, String destId, String destName) {
+    public static CollectorRegistry createConnectionStatusAnalyticsMetrics(final ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry, final StatusAnalytics statusAnalytics,
+                                                                           final String instId, final String connComponentType, final String connName, final String connId,
+                                                                           final String pgId, final String srcId, final String srcName, final String destId, final String destName) {
+
         if(statusAnalytics != null) {
             final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
             final String connComponentId = StringUtils.isEmpty(connId) ? DEFAULT_LABEL_STRING : connId;
@@ -361,5 +366,150 @@ public class PrometheusMetricsUtil {
         final String level = StringUtils.isEmpty(lvl) ? DEFAULT_LABEL_STRING : lvl;
         bulletinMetricsRegistry.setDataPoint(1, "BULLETIN", instanceId, componentType, componentId, parentId, nodeAddress, category, sourceName, sourceId, level);
         return bulletinMetricsRegistry.getRegistry();
+    }
+
+    public static void aggregatePercentUsed(final ProcessGroupStatus status, final Map<String, Double> aggregatedMetrics) {
+        status.getProcessGroupStatus().forEach((childGroupStatus) -> aggregatePercentUsed(childGroupStatus, aggregatedMetrics));
+
+        for (ConnectionStatus connectionStatus : status.getConnectionStatus()) {
+            final double percentUsedBytes = getUtilization(connectionStatus.getQueuedBytes(), connectionStatus.getBackPressureBytesThreshold());
+            final double percentUsedCount = getUtilization(connectionStatus.getQueuedCount(), connectionStatus.getBackPressureObjectThreshold());
+
+            determineMaxValueForPercentUsed(aggregatedMetrics,
+                    "nifi_percent_used_bytes",
+                    percentUsedBytes);
+
+            determineMaxValueForPercentUsed(aggregatedMetrics,
+                    "nifi_percent_used_count",
+                    percentUsedCount);
+
+            setBackpressure(aggregatedMetrics, percentUsedBytes, "bytesAtBackpressure");
+            setBackpressure(aggregatedMetrics, percentUsedCount, "countAtBackpressure");
+        }
+    }
+
+    public static void aggregateConnectionPredictionMetrics(final Map<String, Double> aggregatedMetrics, final Map<String, Long> predictions) {
+        determineMinValueForPredictions(aggregatedMetrics,
+                "nifi_time_to_bytes_backpressure_prediction",
+                predictions.get("timeToBytesBackpressureMillis"),
+                "bytesAtBackpressure");
+
+        determineMinValueForPredictions(aggregatedMetrics,
+                "nifi_time_to_count_backpressure_prediction",
+                predictions.get("timeToCountBackpressureMillis"),
+                "countAtBackpressure");
+    }
+
+    private static void setBackpressure(final Map<String, Double> aggregatedMetrics, final double percentUsed, final String atBackpressureKey) {
+        if (percentUsed >= 100) {
+            aggregatedMetrics.put(atBackpressureKey, MAXIMUM_BACKPRESSURE);
+        } else if (!aggregatedMetrics.containsKey(atBackpressureKey)) {
+            aggregatedMetrics.put(atBackpressureKey, 0.0);
+        }
+    }
+
+    private static void determineMinValueForPredictions(final Map<String, Double> aggregatedMetrics, final String metricFamilySamplesName,
+                                                        final double metricSampleValue, final String atBackpressureKey) {
+        final Double currentValue = aggregatedMetrics.get(metricFamilySamplesName);
+        if (aggregatedMetrics.get(atBackpressureKey) != null && aggregatedMetrics.get(atBackpressureKey) == MAXIMUM_BACKPRESSURE) {
+            aggregatedMetrics.put(metricFamilySamplesName, 0.0);
+        } else if (currentValue == null) {
+            aggregatedMetrics.put(metricFamilySamplesName, metricSampleValue);
+        } else if (metricSampleValue > -1) {
+            if (currentValue == -1) {
+                aggregatedMetrics.put(metricFamilySamplesName, metricSampleValue);
+            } else {
+                aggregatedMetrics.put(metricFamilySamplesName, Math.min(metricSampleValue, currentValue));
+            }
+        }
+    }
+
+    private static void determineMaxValueForPercentUsed(final Map<String, Double> aggregatedMetrics, final String metricFamilySamplesName, final double metricSampleValue) {
+
+        Double currentValue = aggregatedMetrics.get(metricFamilySamplesName);
+        if (currentValue == null) {
+            currentValue = 0.0;
+        }
+        aggregatedMetrics.put(metricFamilySamplesName, Math.max(metricSampleValue, currentValue));
+    }
+
+    public static CollectorRegistry createAggregatedConnectionStatusAnalyticsMetrics(final ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry,
+                                                                                     final Map<String, Double> aggregatedMetrics,
+                                                                                     final String instId, final String compType, final String compName, final String compId) {
+
+        final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
+        final String componentType = StringUtils.isEmpty(compType) ? DEFAULT_LABEL_STRING : compType;
+        final String componentName = StringUtils.isEmpty(compName) ? DEFAULT_LABEL_STRING : compName;
+        final String componentId = StringUtils.isEmpty(compId) ? DEFAULT_LABEL_STRING : compId;
+        final Double bytesValue = aggregatedMetrics.get("nifi_time_to_bytes_backpressure_prediction");
+        final Double countsValue = aggregatedMetrics.get("nifi_time_to_count_backpressure_prediction");
+        final double bytesBackpressure = bytesValue == null ? UNDEFINED_BACKPRESSURE : bytesValue;
+        final double countsBackpressure = countsValue == null ? UNDEFINED_BACKPRESSURE : countsValue;
+
+        connectionAnalyticsMetricsRegistry.setDataPoint(bytesBackpressure,
+                "TIME_TO_BYTES_BACKPRESSURE_PREDICTION",
+                instanceId,
+                componentType,
+                componentName,
+                componentId,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING);
+
+        connectionAnalyticsMetricsRegistry.setDataPoint(countsBackpressure,
+                "TIME_TO_COUNT_BACKPRESSURE_PREDICTION",
+                instanceId,
+                componentType,
+                componentName,
+                componentId,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING);
+
+        return connectionAnalyticsMetricsRegistry.getRegistry();
+    }
+
+    public static CollectorRegistry createAggregatedNifiMetrics(final NiFiMetricsRegistry niFiMetricsRegistry,
+                                                                final Map<String, Double> aggregatedMetrics,
+                                                                final String instId, final String compType, final String compName, final String compId) {
+
+        final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
+        final String componentType = StringUtils.isEmpty(compType) ? DEFAULT_LABEL_STRING : compType;
+        final String componentName = StringUtils.isEmpty(compName) ? DEFAULT_LABEL_STRING : compName;
+        final String componentId = StringUtils.isEmpty(compId) ? DEFAULT_LABEL_STRING : compId;
+        final Double bytesValue = aggregatedMetrics.get("nifi_percent_used_bytes");
+        final Double countsValue = aggregatedMetrics.get("nifi_percent_used_count");
+        final double percentBytes = bytesValue == null ? 0.0 : bytesValue;
+        final double percentCount = countsValue == null ? 0.0 : countsValue;
+
+        niFiMetricsRegistry.setDataPoint(percentBytes,
+                "PERCENT_USED_BYTES",
+                instanceId,
+                componentType,
+                componentName,
+                componentId,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING);
+
+        niFiMetricsRegistry.setDataPoint(percentCount,
+                "PERCENT_USED_COUNT",
+                instanceId,
+                componentType,
+                componentName,
+                componentId,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING,
+                DEFAULT_LABEL_STRING);
+
+        return niFiMetricsRegistry.getRegistry();
     }
 }
