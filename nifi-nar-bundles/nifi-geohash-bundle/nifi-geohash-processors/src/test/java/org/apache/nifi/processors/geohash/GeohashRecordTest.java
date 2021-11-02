@@ -76,7 +76,7 @@ public class GeohashRecordTest {
         runner.setProperty(GeohashRecord.LATITUDE_RECORD_PATH, "/latitude");
         runner.setProperty(GeohashRecord.LONGITUDE_RECORD_PATH, "/longitude");
         runner.setProperty(GeohashRecord.GEOHASH_RECORD_PATH, "/geohash");
-        runner.setProperty(GeohashRecord.GEOHASH_FORMAT, GeohashRecord.GeohashFormat.Base32.toString());
+        runner.setProperty(GeohashRecord.GEOHASH_FORMAT, GeohashRecord.GeohashFormat.BASE_32.toString());
         runner.setProperty(GeohashRecord.GEOHASH_LEVEL, "12");
     }
 
@@ -93,8 +93,8 @@ public class GeohashRecordTest {
 
     @Test
     public void testEncodeSendToSuccessDefault() throws Exception {
-        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.Encode.toString());
-        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.Skip_Unenriched.toString());
+        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
+        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.SKIP_UNENRICHED.toString());
         runner.assertValid();
 
         commonTest("/record_encode.json", 0, 1, 0);
@@ -115,17 +115,17 @@ public class GeohashRecordTest {
 
     @Test
     public void testEncodeSendToFailureDefault() {
-        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.Encode.toString());
-        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.Skip_Unenriched.toString());
+        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
+        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.SKIP_UNENRICHED.toString());
         runner.assertValid();
 
         commonTest("/record_decode.json", 1, 0, 0);
     }
 
     @Test
-    public void testSplitEnrichedUnenriched() {
-        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.Encode.toString());
-        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.Split_Enriched_Unenriched.toString());
+    public void testSplit() {
+        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
+        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.SPLIT.toString());
         runner.assertValid();
 
         commonTest("/record_encode.json", 1, 1, 1);
@@ -133,8 +133,8 @@ public class GeohashRecordTest {
 
     @Test
     public void testRequireAllEnrichedSendToFailure() {
-        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.Encode.toString());
-        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.Require_All_Enriched.toString());
+        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
+        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.REQUIRE_ALL_ENRICHED.toString());
         runner.assertValid();
 
         commonTest("/record_encode.json", 1, 0, 0);
@@ -142,8 +142,8 @@ public class GeohashRecordTest {
 
     @Test
     public void testRequireAllEnrichedSendToSuccess() {
-        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.Decode.toString());
-        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.Require_All_Enriched.toString());
+        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.DECODE.toString());
+        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.REQUIRE_ALL_ENRICHED.toString());
         runner.assertValid();
 
         commonTest("/record_decode.json", 0, 1, 0);
