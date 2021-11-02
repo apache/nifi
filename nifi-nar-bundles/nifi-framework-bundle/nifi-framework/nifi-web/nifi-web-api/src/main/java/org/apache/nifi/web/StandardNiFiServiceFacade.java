@@ -94,6 +94,8 @@ import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.controller.status.analytics.StatusAnalytics;
+import org.apache.nifi.controller.status.history.ProcessGroupStatusDescriptor;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -253,6 +255,7 @@ import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
+import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
@@ -5628,14 +5631,29 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesReceived(), "TOTAL_BYTES_RECEIVED",
                 instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
 
+        //Add total task duration for root to the NiFi metrics registry
+        final StatusHistoryEntity rootGPStatusHistory = getProcessGroupStatusHistory(rootPGId);
+        final List<StatusSnapshotDTO> aggregatedStatusHistory = rootGPStatusHistory.getStatusHistory().getAggregateSnapshots();
+        final long taskDuration = aggregatedStatusHistory.isEmpty() ? 0L :
+                aggregatedStatusHistory.get(aggregatedStatusHistory.size() - 1).getStatusMetrics()
+                .get(ProcessGroupStatusDescriptor.TASK_MILLIS.getField());
+        nifiMetricsRegistry.setDataPoint(taskDuration, "TOTAL_TASK_DURATION",
+                instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
+
         PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), instanceId);
+
+        final Map<String, Double> aggregatedMetrics = new HashMap<>();
+        PrometheusMetricsUtil.aggregatePercentUsed(rootPGStatus, aggregatedMetrics);
+        PrometheusMetricsUtil.createAggregatedNifiMetrics(nifiMetricsRegistry, aggregatedMetrics, instanceId,"RootProcessGroup", rootPGName, rootPGId);
 
         // Get Connection Status Analytics (predictions, e.g.)
         Set<Connection> connections = controllerFacade.getFlowManager().findAllConnections();
         for (Connection c : connections) {
             // If a ResourceNotFoundException is thrown, analytics hasn't been enabled
             try {
-                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry, controllerFacade.getConnectionStatusAnalytics(c.getIdentifier()),
+                final StatusAnalytics statusAnalytics = controllerFacade.getConnectionStatusAnalytics(c.getIdentifier());
+                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry,
+                        statusAnalytics,
                         instanceId,
                         "Connection",
                         c.getName(),
@@ -5646,10 +5664,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         c.getDestination().getName(),
                         c.getDestination().getIdentifier()
                 );
+                PrometheusMetricsUtil.aggregateConnectionPredictionMetrics(aggregatedMetrics, statusAnalytics.getPredictions());
             } catch (ResourceNotFoundException rnfe) {
                 break;
             }
         }
+        PrometheusMetricsUtil.createAggregatedConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry, aggregatedMetrics, instanceId, "RootProcessGroup", rootPGName, rootPGId);
 
         // Create a query to get all bulletins
         final BulletinQueryDTO query = new BulletinQueryDTO();
