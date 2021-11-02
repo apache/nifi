@@ -730,7 +730,7 @@ public class PutHDFSTest {
         }
 
         private FileStatus newDir(Path p) {
-            return new FileStatus(1L, true, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms((short) 0755), "owner", "group", p);
+            return new FileStatus(1L, true, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms((short) 0755), "owner", "group", (Path)null, p, true, false, false);
         }
 
         @Override
