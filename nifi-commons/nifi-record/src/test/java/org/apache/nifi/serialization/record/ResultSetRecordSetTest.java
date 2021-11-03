@@ -87,7 +87,7 @@ public class ResultSetRecordSetTest {
             new TestColumn(3, COLUMN_NAME_ROWID, Types.ROWID, RecordFieldType.LONG.getDataType()),
             new TestColumn(4, COLUMN_NAME_BIT, Types.BIT, RecordFieldType.BOOLEAN.getDataType()),
             new TestColumn(5, COLUMN_NAME_BOOLEAN, Types.BOOLEAN, RecordFieldType.BOOLEAN.getDataType()),
-            new TestColumn(6, COLUMN_NAME_CHAR, Types.CHAR, RecordFieldType.CHAR.getDataType()),
+            new TestColumn(6, COLUMN_NAME_CHAR, Types.CHAR, RecordFieldType.STRING.getDataType()),
             new TestColumn(7, COLUMN_NAME_DATE, Types.DATE, RecordFieldType.DATE.getDataType()),
             new TestColumn(8, COLUMN_NAME_INTEGER, Types.INTEGER, RecordFieldType.INT.getDataType()),
             new TestColumn(9, COLUMN_NAME_DOUBLE, Types.DOUBLE, RecordFieldType.DOUBLE.getDataType()),
