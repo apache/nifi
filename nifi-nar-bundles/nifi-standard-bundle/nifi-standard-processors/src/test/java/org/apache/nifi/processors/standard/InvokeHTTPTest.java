@@ -781,6 +781,7 @@ public class InvokeHTTPTest {
         flowFile.assertAttributeExists(InvokeHTTP.STATUS_MESSAGE);
         flowFile.assertAttributeExists(InvokeHTTP.TRANSACTION_ID);
         flowFile.assertAttributeExists(InvokeHTTP.REQUEST_URL);
+        flowFile.assertAttributeExists(InvokeHTTP.REQUEST_DURATION);
         flowFile.assertAttributeExists(InvokeHTTP.RESPONSE_URL);
     }
 
