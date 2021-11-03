@@ -851,6 +851,20 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         if (latestListedEntryTimestampThisCycleMillis != null) {
             final boolean processedNewFiles = entitiesListed > 0;
 
+            if (processedNewFiles) {
+                // If there have been files created, update the last timestamp we processed.
+                // Retrieving lastKey instead of using latestListedEntryTimestampThisCycleMillis is intentional here,
+                // because latestListedEntryTimestampThisCycleMillis might be removed if it's not old enough.
+                if (!orderedEntries.lastKey().equals(lastProcessedLatestEntryTimestampMillis)) {
+                    // If the latest timestamp at this cycle becomes different than the previous one, we need to clear identifiers.
+                    // If it didn't change, we need to add identifiers.
+                    latestIdentifiersProcessed.clear();
+                }
+                // Capture latestIdentifierProcessed.
+                latestIdentifiersProcessed.addAll(orderedEntries.lastEntry().getValue().stream().map(T::getIdentifier).collect(Collectors.toList()));
+                lastProcessedLatestEntryTimestampMillis = orderedEntries.lastKey();
+            }
+
             if (!latestListedEntryTimestampThisCycleMillis.equals(lastListedLatestEntryTimestampMillis) || processedNewFiles) {
                 // We have performed a listing and pushed any FlowFiles out that may have been generated
                 // Now, we need to persist state about the Last Modified timestamp of the newest file
@@ -870,17 +884,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             }
 
             if (processedNewFiles) {
-                // If there have been files created, update the last timestamp we processed.
-                // Retrieving lastKey instead of using latestListedEntryTimestampThisCycleMillis is intentional here,
-                // because latestListedEntryTimestampThisCycleMillis might be removed if it's not old enough.
-                if (!orderedEntries.lastKey().equals(lastProcessedLatestEntryTimestampMillis)) {
-                    // If the latest timestamp at this cycle becomes different than the previous one, we need to clear identifiers.
-                    // If it didn't change, we need to add identifiers.
-                    latestIdentifiersProcessed.clear();
-                }
-                // Capture latestIdentifierProcessed.
-                latestIdentifiersProcessed.addAll(orderedEntries.lastEntry().getValue().stream().map(T::getIdentifier).collect(Collectors.toList()));
-                lastProcessedLatestEntryTimestampMillis = orderedEntries.lastKey();
                 getLogger().info("Successfully created listing with {} new objects", new Object[]{entitiesListed});
                 session.commitAsync();
             }
