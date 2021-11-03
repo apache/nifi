@@ -455,7 +455,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             case Types.BOOLEAN:
                 return RecordFieldType.BOOLEAN;
             case Types.CHAR:
-                return RecordFieldType.CHAR;
+                return RecordFieldType.STRING;
             case Types.DATE:
                 return getRecordFieldType(RecordFieldType.DATE, useLogicalTypes);
             case Types.NUMERIC:
