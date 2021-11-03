@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.15.0</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-vault-utils</artifactId>
     <properties>
@@ -60,7 +60,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.15.0</version>
+            <version>1.16.0-SNAPSHOT</version>
         </dependency>
         <!-- Runtime dependency to enable TLS client configuration -->
         <dependency>
@@ -72,13 +72,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils-api</artifactId>
-            <version>1.15.0</version>
+            <version>1.16.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
-            <version>1.15.0</version>
+            <version>1.16.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
