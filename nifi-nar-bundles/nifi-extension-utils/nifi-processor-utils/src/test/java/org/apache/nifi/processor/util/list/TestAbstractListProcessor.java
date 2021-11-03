@@ -24,6 +24,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
@@ -114,6 +115,46 @@ public class TestAbstractListProcessor {
 
     @Rule
     public final TemporaryFolder testFolder = new TemporaryFolder();
+
+    @Test
+    public void testStateMigratedWhenPrimaryNodeSwitch() throws IOException {
+        // add a few entities
+        for (int i=0; i < 5; i++) {
+            proc.addEntity(String.valueOf(i), String.valueOf(i), 88888L);
+        }
+
+        // Add an entity with a later timestamp
+        proc.addEntity("10", "10", 99999999L);
+
+        // Run the processor. All 6 should be listed.
+        runner.run();
+        runner.assertAllFlowFilesTransferred(AbstractListProcessor.REL_SUCCESS, 6);
+
+        // Now, we want to mimic Primary Node changing. To do so, we'll capture the Cluster State from the State Manager,
+        // create a new Processor, and set the state to be the same, and update the processor in order to produce the same listing.
+        final ConcreteListProcessor secondProc = new ConcreteListProcessor();
+        // Add same listing to the new processor
+        for (int i=0; i < 5; i++) {
+            secondProc.addEntity(String.valueOf(i), String.valueOf(i), 88888L);
+        }
+        secondProc.addEntity("10", "10", 99999999L);
+
+        // Create new runner for the second processor and update its state to match that of the last TestRunner.
+        final StateMap stateMap = runner.getStateManager().getState(Scope.CLUSTER);
+        runner = TestRunners.newTestRunner(secondProc);
+        runner.getStateManager().setState(stateMap.toMap(), Scope.CLUSTER);
+
+        // Run several times, ensuring that nothing is emitted.
+        for (int i=0; i < 10; i++) {
+            runner.run();
+            runner.assertAllFlowFilesTransferred(AbstractListProcessor.REL_SUCCESS, 0);
+        }
+
+        // Add one more entry and ensure that it's emitted.
+        secondProc.addEntity("new", "new", 999999990L);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(AbstractListProcessor.REL_SUCCESS, 1);
+    }
 
     @Test
     public void testStateMigratedFromCacheService() throws InitializationException {
