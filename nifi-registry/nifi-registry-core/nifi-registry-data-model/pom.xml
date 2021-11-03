@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry-core</artifactId>
-        <version>1.15.0</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
     
     <artifactId>nifi-registry-data-model</artifactId>
@@ -36,12 +36,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.15.0</version>
+            <version>1.16.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-revision-entity-model</artifactId>
-            <version>1.15.0</version>
+            <version>1.16.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
