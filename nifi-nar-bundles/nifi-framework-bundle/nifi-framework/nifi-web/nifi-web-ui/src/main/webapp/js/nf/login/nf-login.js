@@ -118,11 +118,18 @@
                 // update according to the access status
                 if (accessStatus.status === 'ACTIVE') {
                     // reload as appropriate - no need to schedule token refresh as the page is reloading
-                    if (top !== window) {
-                        parent.window.location = '../nifi/';
-                    } else {
-                        window.location = '../nifi/';
+                    var targetWindow = top !== window ? parent : window;
+                    var url = '../nifi/';
+                    var next = new URLSearchParams(window.location.search).get("next");
+                    try {
+                        var nextUrl = new URL(next);
+                        if (nextUrl.origin === targetWindow.origin) {
+                            url = nextUrl.href;
+                        }
+                    } catch(ex) {
+                        // Do nothing, the given url may be invalid
                     }
+                    targetWindow.location = url;
                 } else {
                     $('#login-message-title').text('Unable to log in');
                     $('#login-message').text(accessStatus.message);

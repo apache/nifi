@@ -119,6 +119,11 @@ public class SAMLAccessResource extends ApplicationResource {
         // ensure saml service provider is initialized
         initializeSamlServiceProvider();
 
+        final String next = httpServletRequest.getParameter(QUERY_NAME_OF_REDIRECT_URI_AFTER_LOGIN);
+        if (next != null) {
+            addRedirectUriAfterLoginCookie(next, httpServletResponse);
+        }
+
         final String samlRequestIdentifier = UUID.randomUUID().toString();
 
         // generate a cookie to associate this login sequence
@@ -240,7 +245,9 @@ public class SAMLAccessResource extends ApplicationResource {
         idpUserGroupService.replaceUserGroups(mappedIdentity, IdpType.SAML, mappedGroups);
 
         // redirect to the name page
-        httpServletResponse.sendRedirect(getNiFiUri());
+        final String redirectUri = getRedirectUriAfterLogin();
+        removeRedirectUriAfterLoginCookie(httpServletResponse);
+        httpServletResponse.sendRedirect(redirectUri);
     }
 
     @POST

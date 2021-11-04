@@ -28,7 +28,9 @@ public enum ApplicationCookieName {
 
     OIDC_REQUEST_IDENTIFIER("nifi-oidc-request-identifier"),
 
-    SAML_REQUEST_IDENTIFIER("nifi-saml-request-identifier");
+    SAML_REQUEST_IDENTIFIER("nifi-saml-request-identifier"),
+
+    REDIRECT_URI_AFTER_LOGIN("nifi-redirect-uri-after-login");
 
     private final String cookieName;
 

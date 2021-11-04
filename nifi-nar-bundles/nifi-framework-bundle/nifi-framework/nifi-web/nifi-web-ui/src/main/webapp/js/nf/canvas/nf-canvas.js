@@ -935,7 +935,7 @@
                                         nfAuthorizationStorage.setToken(expiration);
                                     }
                                 }).fail(function () {
-                                    window.location = '../nifi/login';
+                                    window.location = '../nifi/login?next=' + encodeURIComponent(window.location.href);
                                 });
                             }
                         } else {
@@ -947,7 +947,7 @@
                         // there is no anonymous access and we don't know this user - open the login page which handles login/registration/etc
                         if (xhr.status === 401) {
                             nfAuthorizationStorage.removeToken();
-                            window.location = '../nifi/login';
+                            window.location = '../nifi/login?next=' + encodeURIComponent(window.location.href);
                         } else {
                             deferred.reject(xhr, status, error);
                         }

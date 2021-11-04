@@ -77,6 +77,7 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import java.net.URI;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -114,6 +115,8 @@ public abstract class ApplicationResource {
     static final String LOGOUT_ERROR_TITLE = "Unable to continue logout sequence";
 
     protected static final String NON_GUARANTEED_ENDPOINT = "Note: This endpoint is subject to change as NiFi and it's REST API evolve.";
+
+    protected static final String QUERY_NAME_OF_REDIRECT_URI_AFTER_LOGIN = "next";
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicationResource.class);
 
@@ -1271,5 +1274,30 @@ public abstract class ApplicationResource {
         // Note: if the URL does not end with a / then Jetty will end up doing a redirect which can cause
         // a problem when being behind a proxy b/c Jetty's redirect doesn't consider proxy headers
         return baseUrl + "/nifi/";
+    }
+
+    protected void addRedirectUriAfterLoginCookie(final String uri, final HttpServletResponse response) {
+        applicationCookieService.addCookie(getCookieResourceUri(), response, ApplicationCookieName.REDIRECT_URI_AFTER_LOGIN, uri);
+    }
+
+    protected void removeRedirectUriAfterLoginCookie(final HttpServletResponse response) {
+        applicationCookieService.removeCookie(getCookieResourceUri(), response, ApplicationCookieName.REDIRECT_URI_AFTER_LOGIN);
+    }
+
+    protected String getRedirectUriAfterLogin() {
+        String redirectUri = getNiFiUri();
+        final Optional<String> cookieUri = applicationCookieService.getCookieValue(httpServletRequest, ApplicationCookieName.REDIRECT_URI_AFTER_LOGIN);
+        if (cookieUri.isPresent()) {
+            final String uri = cookieUri.get();
+            try {
+                new URL(uri).toURI(); // Test if `uri` is a valid url
+                if (uri.startsWith(redirectUri)) {
+                    redirectUri = uri;
+                }
+            } catch (Exception e) {
+                // Do nothing, the given uri may be invalid
+            }
+        }
+        return redirectUri;
     }
 }

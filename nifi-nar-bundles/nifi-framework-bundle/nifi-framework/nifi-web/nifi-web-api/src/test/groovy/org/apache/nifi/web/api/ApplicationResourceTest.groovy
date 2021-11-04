@@ -17,11 +17,13 @@
 package org.apache.nifi.web.api
 
 import org.apache.nifi.util.NiFiProperties
+import org.apache.nifi.web.api.cookie.ApplicationCookieName
 import org.glassfish.jersey.uri.internal.JerseyUriBuilder
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
+import javax.servlet.http.Cookie
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.core.UriBuilderException
 import javax.ws.rs.core.UriInfo
@@ -52,10 +54,10 @@ class ApplicationResourceTest extends GroovyTestCase {
     }
 
     private ApplicationResource buildApplicationResource() {
-        buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER, FORWARDED_CONTEXT_HTTP_HEADER, PROXY_CONTEXT_PATH_HTTP_HEADER])
+        buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER, FORWARDED_CONTEXT_HTTP_HEADER, PROXY_CONTEXT_PATH_HTTP_HEADER], [])
     }
 
-    private ApplicationResource buildApplicationResource(List proxyHeaders) {
+    private ApplicationResource buildApplicationResource(List proxyHeaders, List<Cookie> cookies) {
         ApplicationResource resource = new MockApplicationResource()
         String headerValue = ""
         HttpServletRequest mockRequest = [getHeader: { String k ->
@@ -77,10 +79,12 @@ class ApplicationResourceTest extends GroovyTestCase {
             "https"
         }, getServerPort: { ->
             443
+        }, getCookies: { ->
+            cookies as Cookie[]
         }] as HttpServletRequest
 
         UriInfo mockUriInfo = [getBaseUriBuilder: { ->
-            new JerseyUriBuilder().uri(new URI('https://nifi.apache.org/'))
+            new JerseyUriBuilder().uri(new URI('https://nifi.apache.org'))
         }] as UriInfo
 
         resource.setHttpServletRequest(mockRequest)
@@ -123,7 +127,7 @@ class ApplicationResourceTest extends GroovyTestCase {
 
     @Test
     void testGenerateUriShouldBlockForwardedContextHeaderIfNotInAllowList() throws Exception {
-        ApplicationResource resource = buildApplicationResource([FORWARDED_CONTEXT_HTTP_HEADER])
+        ApplicationResource resource = buildApplicationResource([FORWARDED_CONTEXT_HTTP_HEADER], [])
 
         shouldFail(UriBuilderException) {
             resource.generateResourceUri('actualResource')
@@ -132,7 +136,7 @@ class ApplicationResourceTest extends GroovyTestCase {
 
     @Test
     void testGenerateUriShouldBlockForwardedPrefixHeaderIfNotInAllowList() throws Exception {
-        ApplicationResource resource = buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER])
+        ApplicationResource resource = buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER], [])
 
         shouldFail(UriBuilderException) {
             resource.generateResourceUri('actualResource')
@@ -141,7 +145,7 @@ class ApplicationResourceTest extends GroovyTestCase {
 
     @Test
     void testGenerateUriShouldAllowForwardedContextHeaderIfInAllowList() throws Exception {
-        ApplicationResource resource = buildApplicationResource([FORWARDED_CONTEXT_HTTP_HEADER])
+        ApplicationResource resource = buildApplicationResource([FORWARDED_CONTEXT_HTTP_HEADER], [])
         NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): ALLOWED_PATH] as Properties)
         resource.properties = niFiProperties
 
@@ -151,7 +155,7 @@ class ApplicationResourceTest extends GroovyTestCase {
 
     @Test
     void testGenerateUriShouldAllowForwardedPrefixHeaderIfInAllowList() throws Exception {
-        ApplicationResource resource = buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER])
+        ApplicationResource resource = buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER], [])
         NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): ALLOWED_PATH] as Properties)
         resource.properties = niFiProperties
 
@@ -161,7 +165,7 @@ class ApplicationResourceTest extends GroovyTestCase {
 
     @Test
     void testGenerateUriShouldAllowForwardedContextHeaderIfElementInMultipleAllowList() throws Exception {
-        ApplicationResource resource = buildApplicationResource([FORWARDED_CONTEXT_HTTP_HEADER])
+        ApplicationResource resource = buildApplicationResource([FORWARDED_CONTEXT_HTTP_HEADER], [])
         String multipleAllowedPaths = [ALLOWED_PATH, "another/path", "a/third/path"].join(",")
         NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleAllowedPaths] as Properties)
         resource.properties = niFiProperties
@@ -172,12 +176,44 @@ class ApplicationResourceTest extends GroovyTestCase {
 
     @Test
     void testGenerateUriShouldAllowForwardedPrefixHeaderIfElementInMultipleAllowList() throws Exception {
-        ApplicationResource resource = buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER])
+        ApplicationResource resource = buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER], [])
         String multipleAllowedPaths = [ALLOWED_PATH, "another/path", "a/third/path"].join(",")
         NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleAllowedPaths] as Properties)
         resource.properties = niFiProperties
 
         String generatedUri = resource.generateResourceUri('actualResource')
         assert generatedUri == "https://nifi.apache.org:8081${ALLOWED_PATH}/actualResource"
+    }
+
+    @Test
+    void testGetValidRedirectUriAfterLogin() throws Exception {
+        String redirectUri = "https://nifi.apache.org:8081/nifi/?processGroupId=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx&componentIds="
+        Cookie cookie = new Cookie(ApplicationCookieName.REDIRECT_URI_AFTER_LOGIN.getCookieName(), redirectUri)
+        ApplicationResource resource = buildApplicationResource([], [cookie])
+
+        String actualUri = resource.getRedirectUriAfterLogin()
+        assert actualUri == redirectUri
+    }
+
+    @Test
+    void testGetExternalRedirectUriAfterLogin() throws Exception {
+        String redirectUri = "https://external.example.com/"
+        Cookie cookie = new Cookie(ApplicationCookieName.REDIRECT_URI_AFTER_LOGIN.getCookieName(), redirectUri)
+        ApplicationResource resource = buildApplicationResource([], [cookie])
+
+        String expectedUri = resource.getNiFiUri()
+        String actualUri = resource.getRedirectUriAfterLogin()
+        assert actualUri == expectedUri
+    }
+
+    @Test
+    void testGetMalformedRedirectUriAfterLogin() throws Exception {
+        String redirectUri = "A malformed uri"
+        Cookie cookie = new Cookie(ApplicationCookieName.REDIRECT_URI_AFTER_LOGIN.getCookieName(), redirectUri)
+        ApplicationResource resource = buildApplicationResource([], [cookie])
+
+        String expectedUri = resource.getNiFiUri()
+        String actualUri = resource.getRedirectUriAfterLogin()
+        assert actualUri == expectedUri
     }
 }

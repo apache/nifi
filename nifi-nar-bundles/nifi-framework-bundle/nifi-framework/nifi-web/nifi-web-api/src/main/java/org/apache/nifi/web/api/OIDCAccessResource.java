@@ -125,6 +125,11 @@ public class OIDCAccessResource extends ApplicationResource {
             return;
         }
 
+        final String next = httpServletRequest.getParameter(QUERY_NAME_OF_REDIRECT_URI_AFTER_LOGIN);
+        if (next != null) {
+            addRedirectUriAfterLoginCookie(next, httpServletResponse);
+        }
+
         // generate the authorization uri
         URI authorizationURI = oidcRequestAuthorizationCode(httpServletResponse, getOidcCallback());
 
@@ -175,7 +180,9 @@ public class OIDCAccessResource extends ApplicationResource {
             }
 
             // redirect to the name page
-            httpServletResponse.sendRedirect(getNiFiUri());
+            final String redirectUri = getRedirectUriAfterLogin();
+            removeRedirectUriAfterLoginCookie(httpServletResponse);
+            httpServletResponse.sendRedirect(redirectUri);
         } else {
             // remove the oidc request cookie
             removeOidcRequestCookie(httpServletResponse);

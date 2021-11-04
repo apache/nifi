@@ -158,6 +158,11 @@ public class AccessResource extends ApplicationResource {
             return;
         }
 
+        final String next = httpServletRequest.getParameter(QUERY_NAME_OF_REDIRECT_URI_AFTER_LOGIN);
+        if (next != null) {
+            addRedirectUriAfterLoginCookie(next, httpServletResponse);
+        }
+
         // build the originalUri, and direct back to the ui
         final String originalUri = generateResourceUri("access", "knox", "callback");
 
@@ -191,7 +196,9 @@ public class AccessResource extends ApplicationResource {
             return;
         }
 
-        httpServletResponse.sendRedirect(getNiFiUri());
+        final String redirectUri = getRedirectUriAfterLogin();
+        removeRedirectUriAfterLoginCookie(httpServletResponse);
+        httpServletResponse.sendRedirect(redirectUri);
     }
 
     @GET
