@@ -96,6 +96,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -152,7 +153,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     private SchedulingStrategy schedulingStrategy; // guarded by synchronized keyword
     private ExecutionNode executionNode;
-    private final Map<Thread, ActiveTask> activeThreads = new HashMap<>(48);
+    private final Map<Thread, ActiveTask> activeThreads = new ConcurrentHashMap<>(48);
     private final int hashCode;
     private volatile boolean hasActiveThreads = false;
 
