@@ -18,7 +18,6 @@ package org.apache.nifi.provenance
 
 import org.apache.nifi.events.EventReporter
 import org.apache.nifi.flowfile.FlowFile
-import org.apache.nifi.provenance.serialization.RecordReaders
 import org.apache.nifi.reporting.Severity
 import org.apache.nifi.security.kms.StaticKeyProvider
 import org.apache.nifi.util.NiFiProperties
@@ -205,7 +204,8 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
         NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, [
                 (NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS): StaticKeyProvider.class.name,
                 (NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY): KEY_HEX,
-                (NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_ID): KEY_ID
+                (NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_ID): KEY_ID,
+                (NiFiProperties.PROVENANCE_REPO_DIRECTORY_PREFIX + "test"): File.createTempDir(getClass().simpleName).toString()
         ])
 
         repo = new EncryptedWriteAheadProvenanceRepository(properties)
