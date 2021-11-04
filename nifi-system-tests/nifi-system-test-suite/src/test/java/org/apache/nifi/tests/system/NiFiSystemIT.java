@@ -273,7 +273,7 @@ public abstract class NiFiSystemIT {
 
         waitForQueueCountToMatch(connectionId, size -> size > 0, "greater than 0");
 
-        logger.info("Waiting for Queue on Connection {} is not empty", connectionId);
+        logger.info("Queue on Connection {} is not empty", connectionId);
     }
 
     protected void waitForQueueCount(final String connectionId, final int queueSize) throws InterruptedException {
