@@ -29,6 +29,8 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -37,6 +39,7 @@ import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.serialization.record.Record;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -70,7 +73,7 @@ public class RemoveRecordField extends AbstractRecordProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(FIELD_TO_REMOVE_1);
         return properties;
     }
@@ -89,11 +92,20 @@ public class RemoveRecordField extends AbstractRecordProcessor {
                 .build();
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        List<ValidationResult> results = new ArrayList<>(1);
+
+        validatePathIsNotRootOnly(context, results);
+
+        return results;
+    }
+
     @OnScheduled
     public void collectRecordPaths(final ProcessContext context) {
-        final List<String> recordPaths = new ArrayList<>(context.getProperties().size() - 2);
-        for (final PropertyDescriptor property : context.getProperties().keySet()) {
-            if (property.getName().equals(FIELD_TO_REMOVE_1.getName()) || property.isDynamic()) {
+        List<String> recordPaths = new ArrayList<>(context.getProperties().size() - 2);
+        for (PropertyDescriptor property : context.getProperties().keySet()) {
+            if (isPropertyThatShouldContainRecordPath(property)) {
                 String path = context.getProperty(property).evaluateAttributeExpressions().getValue();
                 recordPaths.add(path);
             }
@@ -110,5 +122,25 @@ public class RemoveRecordField extends AbstractRecordProcessor {
             record = recordFieldRemover.getRecord();
         }
         return record;
+    }
+
+    private void validatePathIsNotRootOnly(ValidationContext context, Collection<ValidationResult> validationResults) {
+        for (PropertyDescriptor property : context.getProperties().keySet()) {
+            if (isPropertyThatShouldContainRecordPath(property)) {
+                String path = context.getProperty(property).evaluateAttributeExpressions().getValue();
+                if ("/".equals(path)) {
+                    String explanation = "the root record cannot be removed.";
+                    validationResults.add(createValidationResult(property.getDisplayName(), explanation));
+                }
+            }
+        }
+    }
+
+    private ValidationResult createValidationResult(String subject, String explanation) {
+        return new ValidationResult.Builder().subject(subject).valid(false).explanation(explanation).build();
+    }
+
+    private boolean isPropertyThatShouldContainRecordPath(PropertyDescriptor property) {
+        return property.getName().equals(FIELD_TO_REMOVE_1.getName()) || property.isDynamic();
     }
 }

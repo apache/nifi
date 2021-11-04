@@ -73,12 +73,12 @@ public class RecordFieldRemover {
         List<RecordFieldRemovalPath> paths = new ArrayList<>(selectedFields.size());
         for (FieldValue field : selectedFields) {
             RecordFieldRemovalPath path = new RecordFieldRemovalPath();
-            path.add(field.getField().getFieldName());
+            addToPathIfNotRoot(field, path);
 
             Optional<FieldValue> parentOptional = field.getParent();
             while (parentOptional.isPresent()) {
                 FieldValue parent = parentOptional.get();
-                path.add(parent.getField().getFieldName());
+                addToPathIfNotRoot(parent, path);
                 parentOptional = parent.getParent();
             }
 
@@ -91,6 +91,12 @@ public class RecordFieldRemover {
         for (RecordFieldRemovalPath path : paths) {
             RecordSchema schema = record.getSchema();
             schema.removePath(path);
+        }
+    }
+
+    private void addToPathIfNotRoot(FieldValue field, RecordFieldRemovalPath path) {
+        if (field.getParent().isPresent()) {
+            path.add(field.getField().getFieldName());
         }
     }
 

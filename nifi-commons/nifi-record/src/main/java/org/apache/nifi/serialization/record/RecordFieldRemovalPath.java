@@ -32,9 +32,7 @@ public class RecordFieldRemovalPath {
     }
 
     public void add(String fieldName) {
-        if (!fieldName.equals("root")) {
-            path.add(fieldName);
-        }
+        path.add(fieldName);
     }
 
     public int length() {
