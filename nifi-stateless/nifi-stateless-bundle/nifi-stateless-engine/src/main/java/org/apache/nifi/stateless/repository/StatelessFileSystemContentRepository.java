@@ -360,6 +360,21 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
         }
 
         @Override
+        public void write(final byte[] b, final int off, final int len) throws IOException {
+            out.write(b, off, len);
+        }
+
+        @Override
+        public void write(final byte[] b) throws IOException {
+            out.write(b);
+        }
+
+        @Override
+        public void write(final int b) throws IOException {
+            out.write(b);
+        }
+
+        @Override
         public synchronized void close() throws IOException {
             if (closed) {
                 return;
