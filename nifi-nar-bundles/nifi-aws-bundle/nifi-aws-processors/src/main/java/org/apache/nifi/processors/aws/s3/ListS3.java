@@ -440,23 +440,23 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             return;
         }
 
+        final AmazonS3 client = getClient();
+
+        S3BucketLister bucketLister = getS3BucketLister(context, client);
+
         final long startNanos = System.nanoTime();
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final long listingTimestamp = System.currentTimeMillis();
+
+        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
 
         final ListingSnapshot currentListing = listing.get();
         final long currentTimestamp = currentListing.getTimestamp();
         final Set<String> currentKeys = currentListing.getKeys();
-
-        final AmazonS3 client = getClient();
         int listCount = 0;
         int totalListCount = 0;
         long latestListedTimestampInThisCycle = currentTimestamp;
-
-        String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
-        S3BucketLister bucketLister = getS3BucketLister(context, client, bucket);
 
         final Set<String> listedKeys = new HashSet<>();
         getLogger().trace("Start listing, listingTimestamp={}, currentTimestamp={}, currentKeys={}", new Object[]{listingTimestamp, currentTimestamp, currentKeys});
@@ -549,8 +549,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
     private void listByTrackingEntities(ProcessContext context, ProcessSession session) {
         listedEntityTracker.trackEntities(context, session, justElectedPrimaryNode, Scope.CLUSTER, minTimestampToList -> {
-            String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
-            S3BucketLister bucketLister = getS3BucketLister(context, getClient(), bucket);
+            S3BucketLister bucketLister = getS3BucketLister(context, getClient());
 
             List<ListableEntityWrapper<S3VersionSummary>> listedEntities = bucketLister.listVersions().getVersionSummaries()
                 .stream()
@@ -664,14 +663,17 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         return objectMetadata;
     }
 
-    private S3BucketLister getS3BucketLister(ProcessContext context, AmazonS3 client, String bucket) {
-        String delimiter = context.getProperty(DELIMITER).getValue();
-        boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
-        String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
+    private S3BucketLister getS3BucketLister(ProcessContext context, AmazonS3 client) {
+        final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
+        final boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
 
-        boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
-        int listType = context.getProperty(LIST_TYPE).asInteger();
-        S3BucketLister bucketLister = useVersions
+        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+        final String delimiter = context.getProperty(DELIMITER).getValue();
+        final String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
+
+        final int listType = context.getProperty(LIST_TYPE).asInteger();
+
+        final S3BucketLister bucketLister = useVersions
             ? new S3VersionBucketLister(client)
             : listType == 2
             ? new S3ObjectBucketListerVersion2(client)
