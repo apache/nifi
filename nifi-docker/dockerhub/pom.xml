@@ -34,7 +34,7 @@
                     <plugin>
                         <groupId>com.spotify</groupId>
                         <artifactId>dockerfile-maven-plugin</artifactId>
-                        <version>1.3.5</version>
+                        <version>1.4.13</version>
                         <executions>
                             <execution>
                                 <id>default</id>
@@ -48,7 +48,7 @@
                                         <MAINTAINER>${docker.maintainer}</MAINTAINER>
                                         <UID>1000</UID>
                                         <GID>1000</GID>
-                                        <NIFI_VERSION>1.7.0</NIFI_VERSION>
+                                        <NIFI_VERSION>1.15.0</NIFI_VERSION>
                                     </buildArgs>
                                     <repository>apache/nifi</repository>
                                     <!-- Right now we can only test against the latest released NiFi version to check our Dockerfile -->
@@ -57,7 +57,6 @@
                             </execution>
                         </executions>
                     </plugin>
-                    <!-- Disabled integration test pending release of Single User Authentication
                     <plugin>
                         <artifactId>exec-maven-plugin</artifactId>
                         <groupId>org.codehaus.mojo</groupId>
@@ -71,14 +70,13 @@
                                 <configuration>
                                     <arguments>
                                         <argument>${project.version}-dockerhub</argument>
-                                        <argument>1.14.0</argument>
+                                        <argument>1.15.0</argument>
                                     </arguments>
                                     <executable>${project.basedir}/../dockermaven/integration-test.sh</executable>
                                 </configuration>
                             </execution>
                         </executions>
                     </plugin>
-                    -->
                 </plugins>
             </build>
         </profile>
