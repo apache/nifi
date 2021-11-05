@@ -77,6 +77,14 @@ The minimum to run a NiFi instance is as follows:
 
 This will provide a running instance, exposing the instance UI to the host system on at port 8443,
 viewable at `https://localhost:8443/nifi`.
+It will generate credentials, which could be found in the docker logs after the startup phase (about a minute):
+
+    docker logs nifi | grep Generated
+
+the credentials will then be displayed such as
+
+    Generated Username [5ae5ed8e-b695-4589-bfb0-aee8989a08b3]
+    Generated Password [YJZD3kP8SFzF+SbRmHlcTBifiZTvS6bb]
 
 Environment variables can be used to set the NiFi communication ports and hostname using the Docker '-e' switch as follows:
 
@@ -86,7 +94,7 @@ Environment variables can be used to set the NiFi communication ports and hostna
       -e NIFI_WEB_HTTPS_PORT='9443' \
       apache/nifi:latest
 
-Single User Authentication credentials can be specified using environment variables as follows:
+The esiest way to run NiFi is probably with specifying Single User Authentication credentials using environment variables as follows:
 
     docker run --name nifi \
       -p 8443:8443 \
@@ -95,6 +103,7 @@ Single User Authentication credentials can be specified using environment variab
       -e SINGLE_USER_CREDENTIALS_PASSWORD=ctsBtRBKHRAx69EqUghvvgEvjnaLjFEB \
       apache/nifi:latest
 
+Please note that the password must be 12 chars minimmum, or a new one will be generated (see above to find it in the logs)
 See `secure.sh` and `start.sh` scripts for supported environment variables.
 
 ### Standalone Instance secured with HTTPS and Mutual TLS Authentication
