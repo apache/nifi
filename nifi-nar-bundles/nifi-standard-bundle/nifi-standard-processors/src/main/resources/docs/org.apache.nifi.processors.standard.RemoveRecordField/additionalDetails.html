@@ -29,7 +29,7 @@ limitations under the License.
     NiFi record. The fields that should be removed from the record are
     identified by a RecordPath expression. To learn about RecordPath,
     please read the
-    <a class="document-link record-path-guide" href="html/record-path-guide.html" target="component-usage">RecordPath Guide</a>.
+    <a class="document-link record-path-guide" href="../../../../../html/record-path-guide.html" target="component-usage">RecordPath Guide</a>.
 </p>
 <p>
     Below are some examples that are intended to explain how to use the
@@ -438,7 +438,7 @@ limitations under the License.
 }</pre>
 <p>The <i>zip</i> field is removed from all elements of the array, and the
     schema is modified, the <i>zip</i> field is removed from the array's
-    element type.</i></p>
+    element type.</p>
 
 <p>The examples shown in Case 1, Case 2, Case 3 and Case 4 apply to both
     kinds of collections: arrays and maps. The schema of an array or a
@@ -457,7 +457,26 @@ limitations under the License.
     removal to all elements of the array regardless of the number of
     elements.</p>
 
-<ul><li>Case 5: array within an array</li></ul>
+<ul><li>Case 5: removing multiple elements from an array</li></ul>
+<p>Fields to remove:</p>
+<pre>/addresses[0]
+/addresses[0]</pre>
+
+<p>In this example we want to remove the first two elements of the array.
+To do that we need to specify two separate path expressions, each pointing
+to one array element. Each removal is executed on the result of the previous
+removal, and removals are executed in the order in which the properties
+containing record paths are specified on the Processor.
+First, "/addresses[0]" is removed,
+that is the address with zip code 1111 in the example. After this removal,
+the addresses array has a new first element, which is the second element of
+the original array (the address with zip code 1121).
+To remove this element, we need to issue "/addresses[0]"
+again. Trying to remove "/addresses[0,1]", or filtering array elements
+with predicates when the target of the removal is multiple different array
+elements may produce unexpected results.</p>
+
+<ul><li>Case 6: array within an array</li></ul>
 <p>Let's suppose we have a complex input record that has an array within
     an array.</p>
 

@@ -41,6 +41,8 @@ import org.apache.nifi.serialization.record.Record;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 @EventDriven
@@ -50,8 +52,9 @@ import java.util.List;
 @Tags({"update", "record", "generic", "schema", "json", "csv", "avro", "freeform", "text", "remove", "delete"})
 @CapabilityDescription("Modifies the contents of a FlowFile that contains Record-oriented data (i.e., data that can be read via a RecordReader and written by a RecordWriter) "
         + "by removing selected fields. "
-        + "This Processor requires that at least one user-defined Property be added. The value of the Property should indicate a RecordPath that determines the field that should "
-        + "be removed.")
+        + "The value of the \"Field To Remove 1\" property should indicate a RecordPath that determines the field that should "
+        + "be removed. Further properties can be added to the processor (with arbitrary names) the values of which should indicate further RecordPaths "
+        + "that should be removed from the data. The processor executes the removal in the order in which these properties are added to the processor.")
 @WritesAttributes({
         @WritesAttribute(attribute = "record.index", description = "This attribute provides the current row index and is only available inside the literal value expression."),
         @WritesAttribute(attribute = "record.error.message", description = "This attribute provides on failure the error message encountered by the Reader or Writer.")
@@ -118,22 +121,21 @@ public class RemoveRecordField extends AbstractRecordProcessor {
     protected Record process(Record record, FlowFile flowFile, ProcessContext context, long count) {
         for (String recordPath : recordPaths) {
             RecordFieldRemover recordFieldRemover = new RecordFieldRemover(record);
-            recordFieldRemover.remove(recordPath);
-            record = recordFieldRemover.getRecord();
+            record = recordFieldRemover.remove(recordPath);
         }
         return record;
     }
 
     private void validatePathIsNotRootOnly(ValidationContext context, Collection<ValidationResult> validationResults) {
-        for (PropertyDescriptor property : context.getProperties().keySet()) {
-            if (isPropertyThatShouldContainRecordPath(property)) {
-                String path = context.getProperty(property).evaluateAttributeExpressions().getValue();
-                if ("/".equals(path)) {
-                    String explanation = "the root record cannot be removed.";
-                    validationResults.add(createValidationResult(property.getDisplayName(), explanation));
-                }
-            }
-        }
+        context.getProperties().keySet().stream()
+                .filter(property -> isPropertyThatShouldContainRecordPath(property))
+                .forEach(property -> {
+                    String path = context.getProperty(property).evaluateAttributeExpressions().getValue();
+                    if ("/".equals(path)) {
+                        String explanation = "the root record cannot be removed.";
+                        validationResults.add(createValidationResult(property.getDisplayName(), explanation));
+                    }
+                });
     }
 
     private ValidationResult createValidationResult(String subject, String explanation) {

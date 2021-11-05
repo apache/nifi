@@ -33,7 +33,7 @@ public class RecordFieldRemover {
         this.record = record;
     }
 
-    public void remove(String path) {
+    public Record remove(String path) {
         RecordPath recordPath = new RecordPath(path);
         RecordPathResult recordPathResult = org.apache.nifi.record.path.RecordPath.compile(recordPath.toString()).evaluate(record);
         List<FieldValue> selectedFields = recordPathResult.getSelectedFields().collect(Collectors.toList());
@@ -47,9 +47,7 @@ public class RecordFieldRemover {
         if (recordPath.pathRemovalRequiresSchemaModification()) {
             modifySchema(selectedFields);
         }
-    }
 
-    public Record getRecord() {
         record.regenerateSchema();
         return record;
     }
