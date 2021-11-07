@@ -20,6 +20,8 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -67,6 +69,10 @@ import java.util.Optional;
 @Tags({"geo", "geohash", "record"})
 @CapabilityDescription("A record-based processor that encodes and decodes Geohashes from and to latitude/longitude coordinates.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@WritesAttributes({
+        @WritesAttribute(attribute = "mime.type", description = "The MIME type indicated by the record writer"),
+        @WritesAttribute(attribute = "record.count", description = "The number of records in the resulting flow file")
+})
 public class GeohashRecord extends AbstractProcessor {
 
     public enum ProcessingMode {
@@ -74,7 +80,7 @@ public class GeohashRecord extends AbstractProcessor {
     }
 
     public enum GeohashFormat {
-        BASE_32, BINARY_STRING, LONG
+        BASE32, BINARY, LONG
     }
 
     public enum RoutingStrategy {
@@ -96,10 +102,10 @@ public class GeohashRecord extends AbstractProcessor {
             .name("routing-strategy")
             .displayName("Routing Strategy")
             .description("Specifies how to route records after encoding or decoding has been performed. "
-                    + "Skip_Unenriched will route a flowfile to success if any of its records is enriched, otherwise it will be sent to failure. "
-                    + "Split_Enriched_Unenriched will separate the records that have been enriched from those have not and send them to success, while unenriched records will be sent to failure; "
+                    + "SKIP_UNENRICHED will route a flowfile to success if any of its records is enriched; otherwise, it will be sent to failure. "
+                    + "SPLIT will separate the records that have been enriched from those that have not and send them to success, while unenriched records will be sent to failure; "
                     + "and the original flowfile will be sent to the original relationship. "
-                    + "Require_All_Enriched will route a flowfile to success only if all of its records are enriched, otherwise it will be sent to failure")
+                    + "REQUIRE_ALL_ENRICHED will route a flowfile to success only if all of its records are enriched; otherwise, it will be sent to failure")
             .required(true)
             .allowableValues(RoutingStrategy.values())
             .defaultValue(RoutingStrategy.SKIP_UNENRICHED.name())
@@ -124,8 +130,8 @@ public class GeohashRecord extends AbstractProcessor {
     public static final PropertyDescriptor LATITUDE_RECORD_PATH = new PropertyDescriptor.Builder()
             .name("latitude-record-path")
             .displayName("Latitude Record Path")
-            .description("In the encode mode, this property specifies the record path to retrieve the latitude value; "
-                    + "in the decode mode, this property specifies the record path to put the latitude value")
+            .description("In the ENCODE mode, this property specifies the record path to retrieve the latitude value; "
+                    + "in the DECODE mode, this property specifies the record path to put the latitude value")
             .required(true)
             .addValidator(new RecordPathValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -134,8 +140,18 @@ public class GeohashRecord extends AbstractProcessor {
     public static final PropertyDescriptor LONGITUDE_RECORD_PATH = new PropertyDescriptor.Builder()
             .name("longitude-record-path")
             .displayName("Longitude Record Path")
-            .description("In the encode mode, this property specifies the record path to retrieve the longitude value; "
-                    + "in the decode mode, this property specifies the record path to put the longitude value")
+            .description("In the ENCODE mode, this property specifies the record path to retrieve the longitude value; "
+                    + "in the DECODE mode, this property specifies the record path to put the longitude value")
+            .required(true)
+            .addValidator(new RecordPathValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor GEOHASH_RECORD_PATH = new PropertyDescriptor.Builder()
+            .name("geohash-record-path")
+            .displayName("Geohash Record Path")
+            .description("In the ENCODE mode, this property specifies the record path to put the geohash value; "
+                    + "in the DECODE mode, this property specifies the record path to retrieve the geohash value")
             .required(true)
             .addValidator(new RecordPathValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -144,11 +160,11 @@ public class GeohashRecord extends AbstractProcessor {
     public static final PropertyDescriptor GEOHASH_FORMAT = new PropertyDescriptor.Builder()
             .name("geohash-format")
             .displayName("Geohash Format")
-            .description("In the encode mode, this property specifies the desired format for encoding geohash; "
-                    + "in the decode mode, this property specifies the format of geohash provided")
+            .description("In the ENCODE mode, this property specifies the desired format for encoding geohash; "
+                    + "in the DECODE mode, this property specifies the format of geohash provided")
             .required(true)
             .allowableValues(GeohashFormat.values())
-            .defaultValue(GeohashFormat.BASE_32.name())
+            .defaultValue(GeohashFormat.BASE32.name())
             .build();
 
     public static final PropertyDescriptor GEOHASH_LEVEL = new PropertyDescriptor.Builder()
@@ -159,16 +175,6 @@ public class GeohashRecord extends AbstractProcessor {
             .addValidator(StandardValidators.createLongValidator(1, 12, true))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .dependsOn(MODE, ProcessingMode.ENCODE.name())
-            .build();
-
-    public static final PropertyDescriptor GEOHASH_RECORD_PATH = new PropertyDescriptor.Builder()
-            .name("geohash-record-path")
-            .displayName("Geohash Record Path")
-            .description("In the encode mode, this property specifies the record path to put the geohash value; "
-                    + "in the decode mode, this property specifies the record path to retrieve the geohash value")
-            .required(true)
-            .addValidator(new RecordPathValidator())
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -183,7 +189,7 @@ public class GeohashRecord extends AbstractProcessor {
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
-            .description("With the Split_Enriched_Unenriched strategy, the original input flowfile will be sent to this relationship regardless of whether it was enriched or not.")
+            .description("With the SPLIT strategy, the original input flowfile will be sent to this relationship regardless of whether it was enriched or not.")
             .build();
 
     private static final List<PropertyDescriptor> RECORD_PATH_PROPERTIES = Collections.unmodifiableList(Arrays.asList(
@@ -238,17 +244,18 @@ public class GeohashRecord extends AbstractProcessor {
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         final boolean encode = context.getProperty(MODE).getValue().equalsIgnoreCase(ProcessingMode.ENCODE.toString());
         final RoutingStrategy routingStrategy = RoutingStrategy.valueOf(context.getProperty(ROUTING_STRATEGY).getValue());
-        final String format = context.getProperty(GEOHASH_FORMAT).getValue();
+        final GeohashFormat format = GeohashFormat.valueOf(context.getProperty(GEOHASH_FORMAT).getValue());
 
         FlowFile output = session.create(input);
         FlowFile notFound = routingStrategy == RoutingStrategy.SPLIT ? session.create(input) : null;
 
-        try (InputStream is = session.read(input);
-             RecordReader reader = readerFactory.createRecordReader(input, is, getLogger());
-             OutputStream os = session.write(output);
-             RecordSetWriter writer = writerFactory.createWriter(getLogger(), writerFactory.getSchema(input.getAttributes(), reader.getSchema()), os, output);
-             OutputStream osNotFound = routingStrategy == RoutingStrategy.SPLIT ? session.write(notFound) : null;
-             RecordSetWriter notFoundWriter = routingStrategy == RoutingStrategy.SPLIT ? writerFactory.createWriter(getLogger(), reader.getSchema(), osNotFound, notFound) : null) {
+        try (final InputStream is = session.read(input);
+             final RecordReader reader = readerFactory.createRecordReader(input, is, getLogger());
+             final OutputStream os = session.write(output);
+             final OutputStream osNotFound = routingStrategy == RoutingStrategy.SPLIT ? session.write(notFound) : null) {
+
+            final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writerFactory.getSchema(input.getAttributes(), reader.getSchema()), os, output);
+            final RecordSetWriter notFoundWriter = routingStrategy == RoutingStrategy.SPLIT ? writerFactory.createWriter(getLogger(), reader.getSchema(), osNotFound, notFound) : null;
 
             Map<PropertyDescriptor, RecordPath> paths = new HashMap<>();
             for (PropertyDescriptor descriptor : RECORD_PATH_PROPERTIES) {
@@ -259,8 +266,8 @@ public class GeohashRecord extends AbstractProcessor {
 
             Record record;
 
-            //The overall relationship used by the Require_All_Enriched and Skip_Unenriched routing strategies to transfer Flowfiles.
-            //For the Split_Enriched_Unenriched strategy, the transfer of Flowfiles does not rely on this overall relationship. Instead, each individual record will be sent to success or failure.
+            //The overall relationship used by the REQUIRE_ALL_ENRICHED and SKIP_UNENRICHED routing strategies to transfer Flowfiles.
+            //For the SPLIT strategy, the transfer of Flowfiles does not rely on this overall relationship. Instead, each individual record will be sent to success or failure.
             Relationship targetRelationship = routingStrategy == RoutingStrategy.REQUIRE_ALL_ENRICHED ? REL_SUCCESS : REL_FAILURE;
 
             writer.beginRecordSet();
@@ -272,7 +279,7 @@ public class GeohashRecord extends AbstractProcessor {
             int foundCount = 0;
             int notFoundCount = 0;
 
-            int level = context.getProperty(GEOHASH_LEVEL).asInteger();
+            int level = context.getProperty(GEOHASH_LEVEL).evaluateAttributeExpressions(input).asInteger();
             final String rawLatitudePath = context.getProperty(LATITUDE_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
             RecordPath latitudePath = cache.getCompiled(rawLatitudePath);
             final String rawLongitudePath = context.getProperty(LONGITUDE_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
@@ -294,13 +301,13 @@ public class GeohashRecord extends AbstractProcessor {
                 }
 
                 if (routingStrategy == RoutingStrategy.REQUIRE_ALL_ENRICHED) {
-                    if (!updated) { //If the routing strategy is Require_All_Enriched and there exists a record that is not updated, the entire flowfile should be route to REL_FAILURE
+                    if (!updated) { //If the routing strategy is REQUIRE_ALL_ENRICHED and there exists a record that is not updated, the entire flowfile should be route to REL_FAILURE
                         targetRelationship = REL_FAILURE;
                     }
                 } else {
                     if (updated) {
-                        //If the routing strategy is Skip_Unenriched and there exists a record that is updated, the entire flowfile should be route to REL_SUCCESS
-                        //If the routing strategy is Split_Enriched_Unenriched and there exists a record that is updated, this record should be route to REL_SUCCESS
+                        //If the routing strategy is SKIP_UNENRICHED and there exists a record that is updated, the entire flowfile should be route to REL_SUCCESS
+                        //If the routing strategy is SPLIT and there exists a record that is updated, this record should be route to REL_SUCCESS
                         targetRelationship = REL_SUCCESS;
                     }
                 }
@@ -308,7 +315,7 @@ public class GeohashRecord extends AbstractProcessor {
                 if (routingStrategy != RoutingStrategy.SPLIT || updated) {
                     writer.write(record);
                     foundCount++;
-                } else { //if the routing strategy is Split_Enriched_Unenriched and the record is not updated
+                } else { //if the routing strategy is SPLIT and the record is not updated
                     notFoundWriter.write(record);
                     notFoundCount++;
                 }
@@ -322,13 +329,6 @@ public class GeohashRecord extends AbstractProcessor {
             if (notFoundWriter != null) {
                 notFoundWriterResult = notFoundWriter.finishRecordSet();
                 notFoundWriter.close();
-            }
-
-            is.close();
-            os.close();
-
-            if (osNotFound != null) {
-                osNotFound.close();
             }
 
             output = session.putAllAttributes(output, buildAttributes(foundCount, writer.getMimeType(), writeResult));
@@ -352,7 +352,7 @@ public class GeohashRecord extends AbstractProcessor {
     }
 
 
-    private Object getEncodedGeohash(RecordPath latitudePath, RecordPath longitudePath, Record record, String format, int level) {
+    private Object getEncodedGeohash(RecordPath latitudePath, RecordPath longitudePath, Record record, GeohashFormat format, int level) {
         RecordPathResult latitudeResult = latitudePath.evaluate(record);
         RecordPathResult longitudeResult = longitudePath.evaluate(record);
         Optional<FieldValue> latitudeField = latitudeResult.getSelectedFields().findFirst();
@@ -375,8 +375,8 @@ public class GeohashRecord extends AbstractProcessor {
         double realLongValue = Double.parseDouble(longitudeVal.toString());
         GeoHash gh = GeoHash.withCharacterPrecision(realLatValue, realLongValue, level);
 
-        switch (GeohashFormat.valueOf(format)) {
-            case BINARY_STRING:
+        switch (format) {
+            case BINARY:
                 return gh.toBinaryString();
             case LONG:
                 return gh.longValue();
@@ -385,7 +385,7 @@ public class GeohashRecord extends AbstractProcessor {
         }
     }
 
-    private WGS84Point getDecodedPointFromGeohash(RecordPath geohashPath, Record record, String format) {
+    private WGS84Point getDecodedPointFromGeohash(RecordPath geohashPath, Record record, GeohashFormat format) {
         RecordPathResult geohashResult = geohashPath.evaluate(record);
         Optional<FieldValue> geohashField = geohashResult.getSelectedFields().findFirst();
 
@@ -402,8 +402,8 @@ public class GeohashRecord extends AbstractProcessor {
         String geohashString = geohashVal.toString();
         GeoHash decodedHash;
 
-        switch (GeohashFormat.valueOf(format)) {
-            case BINARY_STRING:
+        switch (format) {
+            case BINARY:
                 decodedHash = GeoHash.fromBinaryString(geohashString);
                 break;
             case LONG:
