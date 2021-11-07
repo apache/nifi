@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-graph-bundle</artifactId>
-        <version>1.15.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-graph-test-clients</artifactId>
@@ -86,7 +86,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
+            <version>1.16.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -96,7 +96,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-graph-client-service-api</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
+            <version>1.16.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
 
