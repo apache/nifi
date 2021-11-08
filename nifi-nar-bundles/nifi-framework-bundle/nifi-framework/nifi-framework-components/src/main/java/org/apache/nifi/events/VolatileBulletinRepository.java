@@ -179,6 +179,7 @@ public class VolatileBulletinRepository implements BulletinRepository {
             }
 
             final List<Bulletin> bulletinsForComponent = ringBuffer.getSelectedElements(filter, max);
+            Collections.sort(bulletinsForComponent);
             return bulletinsForComponent;
         }
 
