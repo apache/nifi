@@ -154,6 +154,7 @@ public class JoltTransformRecord extends AbstractProcessor {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(JOLT_SPEC, CUSTOMR)
             .build();
 
     static final PropertyDescriptor MODULES = new PropertyDescriptor.Builder()
@@ -161,9 +162,10 @@ public class JoltTransformRecord extends AbstractProcessor {
             .displayName("Custom Module Directory")
             .description("Comma-separated list of paths to files and/or directories which contain modules containing custom transformations (that are not included on NiFi's classpath).")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .dynamicallyModifiesClasspath(true)
+            .dependsOn(JOLT_SPEC, CUSTOMR)
             .build();
 
     static final PropertyDescriptor TRANSFORM_CACHE_SIZE = new PropertyDescriptor.Builder()
@@ -235,8 +237,7 @@ public class JoltTransformRecord extends AbstractProcessor {
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         final String transform = validationContext.getProperty(JOLT_TRANSFORM).getValue();
-        final String customTransform = validationContext.getProperty(CUSTOM_CLASS).evaluateAttributeExpressions().getValue();
-
+        final String customTransform = validationContext.getProperty(CUSTOM_CLASS).getValue();
         if (!validationContext.getProperty(JOLT_SPEC).isSet() || StringUtils.isEmpty(validationContext.getProperty(JOLT_SPEC).getValue())) {
             if (!SORTR.getValue().equals(transform)) {
                 final String message = "A specification is required for this transformation";
@@ -266,6 +267,14 @@ public class JoltTransformRecord extends AbstractProcessor {
                             results.add(new ValidationResult.Builder().valid(false)
                                     .explanation(customMessage)
                                     .build());
+                        } else if (validationContext.isExpressionLanguagePresent(customTransform)) {
+                            final String invalidExpressionMsg = validationContext.newExpressionLanguageCompiler().validateExpression(customTransform, true);
+                            if (!StringUtils.isEmpty(invalidExpressionMsg)) {
+                                results.add(new ValidationResult.Builder().valid(false)
+                                        .subject(CUSTOM_CLASS.getDisplayName())
+                                        .explanation("Invalid Expression Language: " + invalidExpressionMsg)
+                                        .build());
+                            }
                         } else {
                             TransformFactory.getCustomTransform(Thread.currentThread().getContextClassLoader(), customTransform, specJson);
                         }
