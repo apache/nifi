@@ -502,7 +502,50 @@ public class AffectedComponentSet {
         controllerServices.stream().filter(service -> serviceProvider.getControllerServiceNode(service.getIdentifier()) != null).forEach(existing::addControllerServiceWithoutReferences);
 
         return existing;
+    }
 
+
+    /**
+     * Returns a new AffectedComponentSet that represents only those components that currently can be started. When a set of dataflow updates have occurred, it is very possible
+     * that one or more components referred to by the AffectedComponentSet can no longer be started (for example, there was a dataflow update that disabled a Processor that previously was running).
+     *
+     * @return an AffectedComponentSet that represents all components within this AffectedComponentSet that currently exist within the NiFi instance. The components contained by the returned
+     * AffectedComponentSetwill always be a subset or equal to the set of components contained by this.
+     */
+    public AffectedComponentSet toStartableSet() {
+        final AffectedComponentSet startable = new AffectedComponentSet(flowController);
+        inputPorts.stream().filter(this::isStartable).forEach(startable::addInputPort);
+        outputPorts.stream().filter(this::isStartable).forEach(startable::addOutputPort);
+        remoteInputPorts.stream().filter(this::isStartable).forEach(startable::addRemoteInputPort);
+        remoteOutputPorts.stream().filter(this::isStartable).forEach(startable::addRemoteOutputPort);
+        processors.stream().filter(this::isStartable).forEach(startable::addProcessor);
+        reportingTasks.stream().filter(this::isStartable).forEach(startable::addReportingTask);
+        controllerServices.stream().filter(this::isStartable).forEach(startable::addControllerServiceWithoutReferences);
+
+        return startable;
+    }
+
+    private boolean isStartable(final ComponentNode componentNode) {
+        if (componentNode == null) {
+            return false;
+        }
+
+        if (componentNode instanceof ProcessorNode) {
+            return ((ProcessorNode) componentNode).getScheduledState() != ScheduledState.DISABLED;
+        }
+        if (componentNode instanceof ReportingTaskNode) {
+            return ((ReportingTaskNode) componentNode).getScheduledState() != ScheduledState.DISABLED;
+        }
+
+        return true;
+    }
+
+    private boolean isStartable(final Port port) {
+        if (port == null) {
+            return false;
+        }
+
+        return port.getScheduledState() != ScheduledState.DISABLED;
     }
 
     public void stop() {

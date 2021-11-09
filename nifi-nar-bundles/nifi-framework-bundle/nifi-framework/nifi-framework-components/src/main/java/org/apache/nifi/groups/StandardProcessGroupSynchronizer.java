@@ -159,6 +159,9 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
             if (FlowDifferenceFilters.isPropertyMissingFromGhostComponent(diff, context.getFlowManager())) {
                 continue;
             }
+            if (FlowDifferenceFilters.isScheduledStateNew(diff)) {
+                continue;
+            }
 
             // If this update adds a new Controller Service, then we need to check if the service already exists at a higher level
             // and if so compare our VersionedControllerService to the existing service.

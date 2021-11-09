@@ -186,7 +186,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         } finally {
             // We have to call toExistingSet() here because some of the components that existed in the active set may no longer exist,
             // so attempting to start them will fail.
-            activeSet.toExistingSet().start();
+            activeSet.toExistingSet().toStartableSet().start();
         }
 
         final long millis = System.currentTimeMillis() - start;
