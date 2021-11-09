@@ -77,7 +77,9 @@ The minimum to run a NiFi instance is as follows:
 
 This will provide a running instance, exposing the instance UI to the host system on at port 8443,
 viewable at `https://localhost:8443/nifi`.
-It will generate credentials, which could be found in the docker logs after the startup phase (about a minute):
+The default configuration generates a random username and password on startup. NiFi writes the generated credentials to the application log.
+
+The following command can be used to find the generated credentials on operating systems with grep installed:
 
     docker logs nifi | grep Generated
 
