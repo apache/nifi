@@ -22,6 +22,8 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
 import org.apache.nifi.util.file.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,6 +40,8 @@ import java.util.Properties;
 import static org.junit.Assert.assertTrue;
 
 public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory {
+    private static final Logger logger = LoggerFactory.getLogger(SpawnedStandaloneNiFiInstanceFactory.class);
+
     private final InstanceConfiguration instanceConfig;
 
     public SpawnedStandaloneNiFiInstanceFactory(final InstanceConfiguration instanceConfig) {
@@ -88,7 +92,7 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
                 throw new IllegalStateException("NiFi has already been started");
             }
 
-            System.out.println("Starting instance " + instanceDirectory.getName());
+            logger.info("Starting NiFi [{}]", instanceDirectory.getName());
 
             try {
                 this.runNiFi = new RunNiFi(bootstrapConfigFile);
@@ -108,7 +112,7 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
         }
 
         public void createEnvironment() throws IOException {
-            System.out.println("Creating environment for instance " + instanceDirectory.getName());
+            logger.info("Creating environment for NiFi [{}]", instanceDirectory.getName());
 
             cleanup();
 
@@ -193,7 +197,7 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             while (true) {
                 try {
                     client.getFlowClient().getRootGroupId();
-                    System.out.println("Completed startup of instance " + instanceDirectory.getName());
+                    logger.info("Startup Completed NiFi [{}]", instanceDirectory.getName());
                     return;
                 } catch (final Exception e) {
                     try {
@@ -212,11 +216,11 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
                 return;
             }
 
-            System.out.println("Stopping instance " + instanceDirectory.getName());
+            logger.info("Shutdown Started NiFi [{}]", instanceDirectory.getName());
 
             try {
                 runNiFi.stop();
-                System.out.println("Completed shutdown of instance " + instanceDirectory.getName());
+                logger.info("Shutdown Completed NiFi [{}]", instanceDirectory.getName());
             } catch (IOException e) {
                 throw new RuntimeException("Failed to stop NiFi", e);
             } finally {
