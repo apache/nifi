@@ -85,8 +85,8 @@ The following command can be used to find the generated credentials on operating
 
 the credentials will then be displayed such as
 
-    Generated Username [5ae5ed8e-b695-4589-bfb0-aee8989a08b3]
-    Generated Password [YJZD3kP8SFzF+SbRmHlcTBifiZTvS6bb]
+    Generated Username [USERNAME]
+    Generated Password [PASSWORD]
 
 Environment variables can be used to set the NiFi communication ports and hostname using the Docker '-e' switch as follows:
 
