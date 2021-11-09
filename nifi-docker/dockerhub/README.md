@@ -83,7 +83,7 @@ The following command can be used to find the generated credentials on operating
 
     docker logs nifi | grep Generated
 
-the credentials will then be displayed such as
+NiFi logs the generated credentials as follows:
 
     Generated Username [USERNAME]
     Generated Password [PASSWORD]
