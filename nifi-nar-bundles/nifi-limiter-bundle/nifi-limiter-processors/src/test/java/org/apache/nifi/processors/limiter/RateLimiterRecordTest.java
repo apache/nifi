@@ -50,7 +50,7 @@ public class RateLimiterRecordTest {
         runner.addControllerService("writer", writer);
         runner.addControllerService("registry", registry);
 
-        try (InputStream is = getClass().getResourceAsStream("/avro/record_schema.avsc")) {
+        try (InputStream is = getClass().getResourceAsStream("/avro/record_limiter_schema.avsc")) {
             String raw = IOUtils.toString(is, "UTF-8");
             RecordSchema parsed = AvroTypeUtil.createSchema(new Schema.Parser().parse(raw));
             ((MockSchemaRegistry) registry).addSchema("record", parsed);

@@ -137,7 +137,8 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
-                        <exclude>src/test/resources/avro/record_schema.avsc</exclude>
+                        <exclude>src/test/resources/avro/record_limiter_schema.avsc</exclude>
+                        <exclude>src/test/resources/avro/record_multi-limiter_schema.avsc</exclude>
                         <exclude>src/test/resources/json/record_with_key.json</exclude>
                         <exclude>src/test/resources/json/record_with_nokey.json</exclude>
                         <exclude>src/test/resources/json/record_with_same_key.json</exclude>
