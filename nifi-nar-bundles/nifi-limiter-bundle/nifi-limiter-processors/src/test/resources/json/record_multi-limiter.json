@@ -1,0 +1,42 @@
+[
+    {
+        "name": "John",
+        "age": 22,
+        "bucket": {
+            "refill_token": 100,
+            "refill_period": "10 sec",
+            "bandwidth": 2
+        }
+    },
+    {
+        "name": "John",
+        "age": 22,
+        "bucket": {
+            "refill_token": 100,
+            "refill_period": "10 sec",
+            "bandwidth": 2
+        }
+    },
+    {
+        "name": "Bob",
+        "age": 22,
+        "bucket": {
+            "refill_token": 100,
+            "refill_period": "10 sec",
+            "bandwidth": 1
+        }
+    },
+    {
+        "name": "Bob",
+        "age": 22,
+        "bucket": {
+            "refill_token": 100,
+            "refill_period": "10 sec",
+            "bandwidth": 1
+        }
+    },
+    {
+        "name": "Eve",
+        "age": 22
+    }
+]

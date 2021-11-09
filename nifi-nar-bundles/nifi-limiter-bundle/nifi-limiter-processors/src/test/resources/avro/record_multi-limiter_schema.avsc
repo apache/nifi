@@ -1,0 +1,35 @@
+{
+	"type": "record",
+	"name": "TestRecord",
+	"fields": [
+		{
+			"name": "name",
+			"type": "string"
+		},
+		{
+			"name": "age",
+			"type": "int"
+		},
+		{
+			"name": "bucket",
+			"type": {
+				"name": "bucket",
+				"type": "record",
+				"fields": [
+					{
+						"name": "refill_token",
+						"type": "int"
+					},
+					{
+						"name": "refill_period",
+						"type": "string"
+					},
+					{
+						"name": "bandwidth",
+						"type": "int"
+					}
+				]
+			}
+		}
+	]
+}

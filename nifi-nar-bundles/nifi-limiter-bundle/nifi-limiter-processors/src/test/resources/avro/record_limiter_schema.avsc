@@ -1,0 +1,26 @@
+{
+	"type": "record",
+	"name": "TestRecord",
+	"fields": [{
+			"name": "name",
+			"type": "string"
+		},
+		{
+			"name": "age",
+			"type": "int"
+		}, 
+		{
+      		"name": "host",
+      		"type": {
+      		  "name": "host",
+      		  "type": "record",
+      		  "fields": [
+      		    {
+      		      "name": "id",
+      		      "type": "string"
+      		    }
+      		  ]
+      		}
+    	}
+	]
+}
