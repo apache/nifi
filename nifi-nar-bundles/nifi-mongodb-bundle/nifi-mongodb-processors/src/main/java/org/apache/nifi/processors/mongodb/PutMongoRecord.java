@@ -60,14 +60,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @EventDriven
 @Tags({"mongodb", "insert", "record", "put"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("This processor is a record-aware processor for inserting data into MongoDB. It uses a configured record reader and " +
         "schema to read an incoming record set from the body of a flowfile and then inserts batches of those records into " +
-        "a configured MongoDB collection. This processor does not support updates, deletes or upserts. The number of documents to insert at a time is controlled " +
+        "a configured MongoDB collection. This processor does not support deletes. The number of documents to insert at a time is controlled " +
         "by the \"Insert Batch Size\" configuration property. This value should be set to a reasonable size to ensure " +
         "that MongoDB is not overloaded with too many inserts at once.")
 @ReadsAttribute(
@@ -126,7 +125,8 @@ public class PutMongoRecord extends AbstractMongoProcessor {
     static final PropertyDescriptor UPDATE_KEY_FIELDS = new PropertyDescriptor.Builder()
             .name("update-key-fields")
             .displayName("Update Key Fields")
-            .description("Comma separated list of fields that uniquely identifies a document. If this property is set NiFi will attempt an upsert operation on all documents." +
+            .description("Comma separated list of fields based on which to identify documents that need to be updated. " +
+                "If this property is set NiFi will attempt an upsert operation on all documents. " +
                 "If this property is not set all documents will be inserted.")
             .required(false)
             .addValidator(StandardValidators.createListValidator(true, false, StandardValidators.NON_EMPTY_VALIDATOR))
@@ -228,13 +228,13 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                 if (context.getProperty(UPDATE_KEY_FIELDS).isSet()) {
                     Bson[] filters = buildFilters(updateKeyFieldPathToFieldChain, readyToUpsert);
 
-                    if (updateModeIs(UPDATE_ONE.getValue(), context, flowFile)) {
+                    if (updateModeMatches(UPDATE_ONE.getValue(), context, flowFile)) {
                         writeModel = new UpdateOneModel<>(
                             Filters.and(filters),
                             new Document("$set", readyToUpsert),
                             new UpdateOptions().upsert(true)
                         );
-                    } else if (updateModeIs(UPDATE_MANY.getValue(), context, flowFile)) {
+                    } else if (updateModeMatches(UPDATE_MANY.getValue(), context, flowFile)) {
                         writeModel = new UpdateManyModel<>(
                             Filters.and(filters),
                             new Document("$set", readyToUpsert),
@@ -258,7 +258,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             if (writeModels.size() > 0) {
                 collection.bulkWrite(writeModels, bulkWriteOptions);
             }
-        } catch (SchemaNotFoundException | IOException | MalformedRecordException | MongoException e) {
+        } catch (ProcessException | SchemaNotFoundException | IOException | MalformedRecordException | MongoException e) {
             getLogger().error("PutMongoRecord failed with error:", e);
             session.transfer(flowFile, REL_FAILURE);
             error = true;
@@ -330,22 +330,21 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                 Bson filter = Filters.eq(fieldPath, value);
                 return filter;
             })
-            .collect(Collectors.toList())
-            .toArray(new Bson[0]);
+            .toArray(Bson[]::new);
 
         return filters;
     }
 
-    private boolean updateModeIs(String updateValueToMatch, ProcessContext context, FlowFile flowFile) {
+    private boolean updateModeMatches(String updateValueToMatch, ProcessContext context, FlowFile flowFile) {
         String updateMode = context.getProperty(UPDATE_MODE).getValue();
 
-        boolean updateMadeMatches = updateMode.equals(updateValueToMatch)
+        boolean updateModeMatches = updateMode.equals(updateValueToMatch)
             ||
             (
                 updateMode.equals(UPDATE_FF_ATTRIBUTE.getValue())
                     && updateValueToMatch.equalsIgnoreCase(flowFile.getAttribute("mongo.update.mode"))
             );
 
-        return updateMadeMatches;
+        return updateModeMatches;
     }
 }
