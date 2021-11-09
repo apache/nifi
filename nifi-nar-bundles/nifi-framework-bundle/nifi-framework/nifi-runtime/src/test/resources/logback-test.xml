@@ -15,12 +15,7 @@
 -->
 
 <configuration>
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%-4r [%t] %-5p %c - %m%n</pattern>
-        </encoder>
-    </appender>
-    <appender name="TEST" class="org.apache.nifi.TestAppender">
+    <appender name="TEST" class="org.apache.nifi.ListAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%-4r [%t] %-5p %c - %m%n</pattern>
         </encoder>
@@ -28,7 +23,6 @@
 
     <logger name="org.apache.nifi.processor" level="DEBUG"/>
     <root level="DEBUG">
-        <appender-ref ref="CONSOLE"/>
         <appender-ref ref="TEST"/>
     </root>
 </configuration>
