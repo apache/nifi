@@ -103,7 +103,7 @@ The esiest way to run NiFi is probably with specifying Single User Authenticatio
       -e SINGLE_USER_CREDENTIALS_PASSWORD=ctsBtRBKHRAx69EqUghvvgEvjnaLjFEB \
       apache/nifi:latest
 
-Please note that the password must be 12 chars minimmum, or a new one will be generated (see above to find it in the logs)
+Please note that the password must be 12 characters minimum, otherwise NiFi will generate a random username and password.
 See `secure.sh` and `start.sh` scripts for supported environment variables.
 
 ### Standalone Instance secured with HTTPS and Mutual TLS Authentication
