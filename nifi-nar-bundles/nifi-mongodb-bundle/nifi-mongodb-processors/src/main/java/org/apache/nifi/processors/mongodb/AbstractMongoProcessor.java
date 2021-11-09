@@ -65,6 +65,9 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     static final String WRITE_CONCERN_JOURNALED = "JOURNALED";
     static final String WRITE_CONCERN_REPLICA_ACKNOWLEDGED = "REPLICA_ACKNOWLEDGED";
     static final String WRITE_CONCERN_MAJORITY = "MAJORITY";
+    static final String WRITE_CONCERN_W1 = "W1";
+    static final String WRITE_CONCERN_W2 = "W2";
+    static final String WRITE_CONCERN_W3 = "W3";
 
     protected static final String JSON_TYPE_EXTENDED = "Extended";
     protected static final String JSON_TYPE_STANDARD   = "Standard";
@@ -145,7 +148,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             .description("The write concern to use")
             .required(true)
             .allowableValues(WRITE_CONCERN_ACKNOWLEDGED, WRITE_CONCERN_UNACKNOWLEDGED, WRITE_CONCERN_FSYNCED, WRITE_CONCERN_JOURNALED,
-                    WRITE_CONCERN_REPLICA_ACKNOWLEDGED, WRITE_CONCERN_MAJORITY)
+                    WRITE_CONCERN_REPLICA_ACKNOWLEDGED, WRITE_CONCERN_MAJORITY, WRITE_CONCERN_W1, WRITE_CONCERN_W2, WRITE_CONCERN_W3)
             .defaultValue(WRITE_CONCERN_ACKNOWLEDGED)
             .build();
 
@@ -264,7 +267,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     protected Builder getClientOptions(final SSLContext sslContext) {
         MongoClientOptions.Builder builder = MongoClientOptions.builder();
         builder.sslEnabled(true);
-        builder.socketFactory(sslContext.getSocketFactory());
+        builder.sslContext(sslContext);
         return builder;
     }
 
@@ -310,16 +313,27 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
                 writeConcern = WriteConcern.UNACKNOWLEDGED;
                 break;
             case WRITE_CONCERN_FSYNCED:
-                writeConcern = WriteConcern.FSYNCED;
+                writeConcern = WriteConcern.JOURNALED;
+                getLogger().warn("Using deprecated write concern FSYNCED");
                 break;
             case WRITE_CONCERN_JOURNALED:
                 writeConcern = WriteConcern.JOURNALED;
                 break;
             case WRITE_CONCERN_REPLICA_ACKNOWLEDGED:
-                writeConcern = WriteConcern.REPLICA_ACKNOWLEDGED;
+                writeConcern = WriteConcern.W2;
+                getLogger().warn("Using deprecated write concern REPLICA_ACKNOWLEDGED");
                 break;
             case WRITE_CONCERN_MAJORITY:
                 writeConcern = WriteConcern.MAJORITY;
+                break;
+            case WRITE_CONCERN_W1:
+                writeConcern = WriteConcern.W1;
+                break;
+            case WRITE_CONCERN_W2:
+                writeConcern = WriteConcern.W2;
+                break;
+            case WRITE_CONCERN_W3:
+                writeConcern = WriteConcern.W3;
                 break;
             default:
                 writeConcern = WriteConcern.ACKNOWLEDGED;

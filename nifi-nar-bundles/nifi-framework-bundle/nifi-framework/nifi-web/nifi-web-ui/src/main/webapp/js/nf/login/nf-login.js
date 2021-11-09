@@ -102,7 +102,10 @@
                 'password': $('#password').val()
             }
         }).done(function (jwt) {
-            nfAuthorizationStorage.setToken(jwt);
+            var sessionExpiration = nfCommon.getSessionExpiration(jwt);
+            if (sessionExpiration) {
+                nfAuthorizationStorage.setToken(sessionExpiration);
+            }
 
             // check to see if they actually have access now
             $.ajax({
@@ -116,9 +119,9 @@
                 if (accessStatus.status === 'ACTIVE') {
                     // reload as appropriate - no need to schedule token refresh as the page is reloading
                     if (top !== window) {
-                        parent.window.location = '/nifi';
+                        parent.window.location = '../nifi/';
                     } else {
-                        window.location = '/nifi';
+                        window.location = '../nifi/';
                     }
                 } else {
                     $('#login-message-title').text('Unable to log in');

@@ -15,7 +15,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.15.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
 
     <properties>
@@ -23,7 +23,7 @@
     </properties>
 
     <artifactId>nifi-accumulo-bundle</artifactId>
-    <version>1.15.0-SNAPSHOT</version>
+    <version>1.16.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -40,7 +40,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-accumulo-processors</artifactId>
-                <version>1.15.0-SNAPSHOT</version>
+                <version>1.16.0-SNAPSHOT</version>
             </dependency>
             <!-- Override commons-io:2.6 from accumulo-core -->
             <dependency>
@@ -63,6 +63,14 @@
                     <exclusion>
                         <groupId>com.github.spotbugs</groupId>
                         <artifactId>spotbugs-annotations</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>

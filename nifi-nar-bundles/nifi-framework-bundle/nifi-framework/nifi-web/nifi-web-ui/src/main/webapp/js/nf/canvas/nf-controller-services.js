@@ -94,7 +94,7 @@
     };
 
     var gridOptions = {
-        forceFitColumns: true,
+        autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
         enableTextSelectionOnCells: true,
         enableCellNavigation: true,
         enableColumnReorder: false,
@@ -595,7 +595,7 @@
 
                 // add the documented type
                 controllerServiceTypesData.addItem({
-                    id: id++,
+                    id: id++ + '',
                     label: nfCommon.substringAfterLast(documentedType.type, '.'),
                     type: documentedType.type,
                     bundle: documentedType.bundle,

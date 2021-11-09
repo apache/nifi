@@ -350,6 +350,7 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
         private final StandardContentClaim scc;
         private final SynchronizedByteCountingOutputStream out;
         private final long initialOffset;
+        private boolean closed = false;
 
         public ContentOutputStream(final SynchronizedByteCountingOutputStream out, final StandardContentClaim scc) {
             super(out);
@@ -359,7 +360,27 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
         }
 
         @Override
+        public void write(final byte[] b, final int off, final int len) throws IOException {
+            out.write(b, off, len);
+        }
+
+        @Override
+        public void write(final byte[] b) throws IOException {
+            out.write(b);
+        }
+
+        @Override
+        public void write(final int b) throws IOException {
+            out.write(b);
+        }
+
+        @Override
         public synchronized void close() throws IOException {
+            if (closed) {
+                return;
+            }
+
+            closed = true;
             super.flush();
             scc.setLength(out.getBytesWritten() - initialOffset);
             writableClaimQueue.offer(scc.getResourceClaim());

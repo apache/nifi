@@ -17,6 +17,12 @@
 
 package org.apache.nifi.security.util;
 
+import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -32,13 +38,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.UUID;
 
-import org.apache.commons.lang3.StringUtils;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -50,7 +49,8 @@ public class KeyStoreUtilsTest {
     private static final char[] STORE_PASSWORD = UUID.randomUUID().toString().toCharArray();
     private static final String ALIAS = "alias";
     private static final String KEY_ALGORITHM = "RSA";
-    private static final String SUBJECT_DN = "CN=localhost";
+    private static final String HOSTNAME = "localhost";
+    private static final String SUBJECT_DN = String.format("CN=%s", HOSTNAME);
     private static final String SECRET_KEY_ALGORITHM = "AES";
     private static final String KEY_PROTECTION_ALGORITHM = "PBEWithHmacSHA256AndAES_256";
     private static final String HYPHEN_SEPARATOR = "-";
@@ -59,7 +59,7 @@ public class KeyStoreUtilsTest {
     private static X509Certificate certificate;
     private static SecretKey secretKey;
 
-    @BeforeClass
+    @BeforeAll
     public static void generateKeysAndCertificates() throws NoSuchAlgorithmException, CertificateException {
         keyPair = KeyPairGenerator.getInstance(KEY_ALGORITHM).generateKeyPair();
         certificate = CertificateUtils.generateSelfSignedX509Certificate(keyPair, SUBJECT_DN, SIGNING_ALGORITHM, DURATION_DAYS);
@@ -69,7 +69,25 @@ public class KeyStoreUtilsTest {
 
     @Test
     public void testCreateTlsConfigAndNewKeystoreTruststore() throws GeneralSecurityException, IOException {
-        final TlsConfiguration configuration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+        final File keyStoreFile = File.createTempFile(KeyStoreUtilsTest.class.getSimpleName(), ".keystore.p12");
+        keyStoreFile.deleteOnExit();
+        final File trustStoreFile = File.createTempFile(KeyStoreUtilsTest.class.getSimpleName(), ".truststore.p12");
+        trustStoreFile.deleteOnExit();
+
+        final String password = UUID.randomUUID().toString();
+        final String keyStoreType = KeystoreType.PKCS12.getType();
+
+        final TlsConfiguration requested = new StandardTlsConfiguration(
+                keyStoreFile.getAbsolutePath(),
+                password,
+                password,
+                keyStoreType,
+                trustStoreFile.getAbsolutePath(),
+                password,
+                keyStoreType,
+                TlsConfiguration.TLS_PROTOCOL
+        );
+        final TlsConfiguration configuration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(requested, 1, new String[] { HOSTNAME });
         final File keystoreFile = new File(configuration.getKeystorePath());
         assertTrue("Keystore File not found", keystoreFile.exists());
         keystoreFile.deleteOnExit();

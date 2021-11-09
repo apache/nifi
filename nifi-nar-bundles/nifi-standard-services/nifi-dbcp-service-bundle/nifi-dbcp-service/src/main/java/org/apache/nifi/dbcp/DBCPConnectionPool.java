@@ -37,6 +37,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -265,6 +266,14 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
             .required(false)
             .build();
 
+    public static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
+            .name("kerberos-user-service")
+            .displayName("Kerberos User Service")
+            .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
+            .identifiesControllerService(KerberosUserService.class)
+            .required(false)
+            .build();
+
     public static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
             .name("kerberos-principal")
             .displayName("Kerberos Principal")
@@ -291,6 +300,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         props.add(DATABASE_URL);
         props.add(DB_DRIVERNAME);
         props.add(DB_DRIVER_LOCATION);
+        props.add(KERBEROS_USER_SERVICE);
         props.add(KERBEROS_CREDENTIALS_SERVICE);
         props.add(KERBEROS_PRINCIPAL);
         props.add(KERBEROS_PASSWORD);
@@ -359,12 +369,29 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         }
 
         final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
 
         if (kerberosCredentialsService != null && (kerberosPrincipalProvided || kerberosPasswordProvided)) {
             results.add(new ValidationResult.Builder()
                     .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
                     .valid(false)
                     .explanation("kerberos principal/password and kerberos credential service cannot be configured at the same time")
+                    .build());
+        }
+
+        if (kerberosUserService != null && (kerberosPrincipalProvided || kerberosPasswordProvided)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(KERBEROS_USER_SERVICE.getDisplayName())
+                    .valid(false)
+                    .explanation("kerberos principal/password and kerberos user service cannot be configured at the same time")
+                    .build());
+        }
+
+        if (kerberosUserService != null && kerberosCredentialsService != null) {
+            results.add(new ValidationResult.Builder()
+                    .subject(KERBEROS_USER_SERVICE.getDisplayName())
+                    .valid(false)
+                    .explanation("kerberos user service and kerberos credential service cannot be configured at the same time")
                     .build());
         }
 
@@ -402,10 +429,13 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         final Long minEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
         final Long softMinEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
         final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
         final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
         final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
 
-        if (kerberosCredentialsService != null) {
+        if (kerberosUserService != null) {
+            kerberosUser = kerberosUserService.createKerberosUser();
+        } else if (kerberosCredentialsService != null) {
             kerberosUser = new KerberosKeytabUser(kerberosCredentialsService.getPrincipal(), kerberosCredentialsService.getKeytab());
         } else if (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
             kerberosUser = new KerberosPasswordUser(kerberosPrincipal, kerberosPassword);
@@ -497,7 +527,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
      * no exception while closing open connections
      */
     @OnDisabled
-    public void shutdown() throws SQLException, LoginException {
+    public void shutdown() throws SQLException {
         try {
             if (kerberosUser != null) {
                 kerberosUser.logout();

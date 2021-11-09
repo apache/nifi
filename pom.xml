@@ -18,7 +18,7 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>1.15.0-SNAPSHOT</version>
+    <version>1.16.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -78,7 +78,7 @@
         <connection>scm:git:git://git.apache.org/nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/nifi.git</developerConnection>
         <url>https://git-wip-us.apache.org/repos/asf?p=nifi.git</url>
-        <tag>HEAD</tag>
+        <tag>nifi-1.15.0-RC3</tag>
     </scm>
     <issueManagement>
         <system>JIRA</system>
@@ -93,11 +93,11 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <okhttp.version>4.9.1</okhttp.version>
+        <okhttp.version>4.9.2</okhttp.version>
         <org.bouncycastle.version>1.69</org.bouncycastle.version>
-        <org.slf4j.version>1.7.31</org.slf4j.version>
+        <org.slf4j.version>1.7.32</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
-        <jetty.version>9.4.43.v20210629</jetty.version>
+        <jetty.version>9.4.44.v20210927</jetty.version>
         <jackson.version>2.12.3</jackson.version>
         <jaxb.runtime.version>2.3.5</jaxb.runtime.version>
         <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
@@ -110,6 +110,10 @@
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.6</aspectj.version>
         <jersey.version>2.33</jersey.version>
+        <logback.version>1.2.6</logback.version>
+        <mockito.version>3.11.2</mockito.version>
+        <netty.3.version>3.10.6.Final</netty.3.version>
+        <netty.4.version>4.1.69.Final</netty.4.version>
     </properties>
 
     <repositories>
@@ -215,7 +219,7 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.2.3</version>
+                <version>${logback.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -285,12 +289,12 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>2.28.2</version>
+                <version>${mockito.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-junit-jupiter</artifactId>
-                <version>2.28.2</version>
+                <version>${mockito.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>
@@ -444,6 +448,21 @@
                 <version>${jetty.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.eclipse.jetty.websocket</groupId>
+                <artifactId>websocket-api</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.websocket</groupId>
+                <artifactId>websocket-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.websocket</groupId>
+                <artifactId>websocket-server</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>apache-jsp</artifactId>
                 <version>${jetty.version}</version>
@@ -547,7 +566,7 @@
                             <exclude>**/*ITSpec.class</exclude>
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory"/>
+                        <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory" />
                         <argLine combine.children="append">-Xmx1g
                             -Djava.net.preferIPv4Stack=true
                             -Duser.language=${user.language}
@@ -754,6 +773,8 @@
                                         <exclude>c3p0:c3p0:*:*:compile</exclude>
                                         <!-- Versions of JSR305 before 3.0.1 are not allowed https://github.com/findbugsproject/findbugs/issues/128 -->
                                         <exclude>com.google.code.findbugs:jsr305:*:*:compile</exclude>
+                                        <!-- Log4J excluded in favor of log4j-over-slf4j and logback -->
+                                        <exclude>log4j:log4j:*</exclude>
                                     </excludes>
                                     <includes>
                                         <!-- Versions of JSR305 after 3.0.1 are allowed https://github.com/findbugsproject/findbugs/issues/128 -->
@@ -1109,7 +1130,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>6.1.5</version>
+                        <version>6.3.1</version>
                         <executions>
                             <execution>
                                 <inherited>false</inherited>
@@ -1118,6 +1139,8 @@
                                 </goals>
                                 <configuration>
                                     <suppressionFiles>nifi-dependency-check-maven/suppressions.xml</suppressionFiles>
+                                    <!-- Skip System Scope to avoid dependency resolution errors with jdk.tools on Java 8 -->
+                                    <skipSystemScope>true</skipSystemScope>
                                 </configuration>
                             </execution>
                         </executions>

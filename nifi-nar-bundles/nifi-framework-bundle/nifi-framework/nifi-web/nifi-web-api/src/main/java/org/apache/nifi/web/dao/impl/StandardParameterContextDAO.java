@@ -20,11 +20,8 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -32,8 +29,6 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
-import org.apache.nifi.parameter.ParameterReference;
-import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
@@ -73,7 +68,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         if (inheritedParameterContexts != null) {
             resolveInheritedParameterContexts(parameterContextDto);
             // This will throw an exception if one is not found
-            inheritedParameterContexts.stream().forEach(entity -> flowManager.getParameterContextManager()
+            inheritedParameterContexts.forEach(entity -> flowManager.getParameterContextManager()
                     .getParameterContext(entity.getComponent().getId()));
         }
         authorizeReferences(parameterContextDto);
@@ -136,7 +131,8 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         }
     }
 
-    private Map<String, Parameter> getParameters(final ParameterContextDTO parameterContextDto, final ParameterContext context) {
+    @Override
+    public Map<String, Parameter> getParameters(final ParameterContextDTO parameterContextDto, final ParameterContext context) {
         final Set<ParameterEntity> parameterEntities = parameterContextDto.getParameters();
         if (parameterEntities == null) {
             return Collections.emptyMap();
@@ -145,6 +141,11 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         final Map<String, Parameter> parameterMap = new HashMap<>();
         for (final ParameterEntity parameterEntity : parameterEntities) {
             final ParameterDTO parameterDto = parameterEntity.getParameter();
+
+            // Inherited parameters are only included for referencing components, but we should not save them as direct parameters
+            if (parameterDto.getInherited() != null && parameterDto.getInherited()) {
+                continue;
+            }
 
             if (parameterDto.getName() == null) {
                 throw new IllegalArgumentException("Cannot specify a Parameter without a name");
@@ -226,7 +227,8 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         return context;
     }
 
-    private List<ParameterContext> getInheritedParameterContexts(final ParameterContextDTO parameterContextDto) {
+    @Override
+    public List<ParameterContext> getInheritedParameterContexts(final ParameterContextDTO parameterContextDto) {
         resolveInheritedParameterContexts(parameterContextDto);
 
         final List<ParameterContext> inheritedParameterContexts = new ArrayList<>();
@@ -243,76 +245,10 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         verifyInheritedParameterContextRefs(parameterContextDto);
 
         final ParameterContext currentContext = getParameterContext(parameterContextDto.getId());
-        for (final ParameterEntity parameterEntity : parameterContextDto.getParameters()) {
-            final ParameterDTO parameterDto = parameterEntity.getParameter();
-            final String parameterName = parameterDto.getName();
-            final ParameterReferenceManager referenceManager = currentContext.getParameterReferenceManager();
 
-            for (final ProcessorNode processor : referenceManager.getProcessorsReferencing(currentContext, parameterName)) {
-                verifyParameterUpdate(parameterDto, processor, currentContext.getName(), verifyComponentStates, processor.isRunning(), "Processor that is running");
-            }
-
-            final Set<ControllerServiceNode> referencingServices = referenceManager.getControllerServicesReferencing(currentContext, parameterName);
-            for (final ControllerServiceNode serviceNode : referencingServices) {
-                final ControllerServiceState serviceState = serviceNode.getState();
-                final boolean serviceActive = serviceState != ControllerServiceState.DISABLED;
-
-                verifyParameterUpdate(parameterDto, serviceNode, currentContext.getName(), verifyComponentStates, serviceActive,
-                    "Controller Service [id=" + serviceNode.getIdentifier() + "] with a state of " + serviceState + " (state expected to be DISABLED)");
-            }
-        }
-    }
-
-    private void verifyParameterUpdate(final ParameterDTO parameterDto, final ComponentNode component, final String contextName,
-                                            final boolean verifyComponentStates, final boolean active, final String activeExplanation) {
-
-        final String parameterName = parameterDto.getName();
-        final Boolean parameterSensitive = parameterDto.getSensitive();
-        final boolean parameterDeletion = parameterDto.getDescription() == null && parameterDto.getSensitive() == null && parameterDto.getValue() == null;
-
-        // For any parameter that is added or modified, we need to ensure that the new configuration will not result in a Sensitive Parameter being referenced by a non-Sensitive Property
-        // or a Non-Sensitive Parameter being referenced by a Sensitive Property.
-        // Additionally, if 'verifyComponentStates' or parameter is being deleted, we must ensure that any component that references a value that is to be updated
-        // is stopped (if a processor) or disabled (if a controller service).
-        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : component.getProperties().entrySet()) {
-            final PropertyConfiguration configuration = entry.getValue();
-            if (configuration == null) {
-                continue;
-            }
-
-            for (final ParameterReference reference : configuration.getParameterReferences()) {
-                final String referencedParameterName = reference.getParameterName();
-                if (referencedParameterName.equals(parameterName)) {
-                    if (entry.getKey().isSensitive() && !parameterDeletion && !Boolean.TRUE.equals(parameterSensitive)) {
-                        throw new IllegalStateException("Cannot update Parameter Context " + contextName + " because the update would add a Non-Sensitive Parameter " +
-                            "named '" + parameterName + "' but this Parameter already is referenced by a Sensitive Property.");
-                    }
-
-                    if (!entry.getKey().isSensitive() && !parameterDeletion && Boolean.TRUE.equals(parameterSensitive)) {
-                        throw new IllegalStateException("Cannot update Parameter Context " + contextName + " because the update would add a Sensitive Parameter named " +
-                            "'" + parameterName + "' but this Parameter already is referenced by a Non-Sensitive Property.");
-                    }
-
-                    if (active && (verifyComponentStates || parameterDeletion)) {
-                        if (parameterDeletion) {
-                            // First check if the actual parameter context is now missing the parameter: it may not be,
-                            // if the parameter is inherited from another context
-                            final ProcessGroup processGroup = flowManager.getGroup(component.getProcessGroupIdentifier());
-                            final ParameterContext parameterContext = processGroup.getParameterContext();
-                            final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
-                                    .name(parameterName).build();
-                            if (!parameterContext.hasEffectiveValueIfRemoved(parameterDescriptor)) {
-                                throw new IllegalStateException("Cannot update Parameter Context " + contextName + " because the " + parameterName + " Parameter is being referenced by a " +
-                                        activeExplanation + ".");
-                            }
-                        } else {
-                            throw new IllegalStateException("Cannot update Parameter Context " + contextName + " because it has Parameters that are being referenced by a " +
-                                    activeExplanation + ".");
-                        }
-                    }
-                }
-            }
-        }
+        final List<ParameterContext> inheritedParameterContexts = getInheritedParameterContexts(parameterContextDto);
+        final Map<String, Parameter> parameters = parameterContextDto.getParameters() == null ? Collections.emptyMap() : getParameters(parameterContextDto, currentContext);
+        currentContext.verifyCanUpdateParameterContext(parameters, inheritedParameterContexts);
     }
 
     /**

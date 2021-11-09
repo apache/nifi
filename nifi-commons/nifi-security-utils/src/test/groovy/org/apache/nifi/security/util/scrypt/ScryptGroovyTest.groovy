@@ -19,14 +19,10 @@ package org.apache.nifi.security.util.scrypt
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.crypto.scrypt.Scrypt
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -34,8 +30,8 @@ import java.security.SecureRandom
 import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 
-@RunWith(JUnit4.class)
 class ScryptGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(ScryptGroovyTest.class)
 
@@ -50,22 +46,13 @@ class ScryptGroovyTest {
     private static final int DK_LEN = 128
     private static final long TWO_GIGABYTES = 2048L * 1024 * 1024
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
-
     }
 
     @Test
@@ -150,8 +137,7 @@ class ScryptGroovyTest {
         long totalMemory = Runtime.getRuntime().totalMemory()
         logger.info("Required memory: ${TWO_GIGABYTES} bytes")
         logger.info("Max heap memory: ${totalMemory} bytes")
-        Assume.assumeTrue("Test is being skipped due to JVM heap size. Please run with -Xmx3072m to set sufficient heap size",
-                totalMemory >= TWO_GIGABYTES)
+        assumeTrue(totalMemory >= TWO_GIGABYTES, "Test is being skipped due to JVM heap size. Please run with -Xmx3072m to set sufficient heap size")
 
         // These values are taken from Colin Percival's scrypt paper: https://www.tarsnap.com/scrypt/scrypt.pdf
         final byte[] HASH = Hex.decodeHex("2101cb9b6a511aaeaddbbe09cf70f881" +
@@ -180,7 +166,7 @@ class ScryptGroovyTest {
         assert calculatedHash == HASH
     }
 
-    @Ignore("This test was just to exercise the heap and debug OOME issues")
+    @EnabledIfSystemProperty(named = "nifi.test.unstable", matches = "true")
     @Test
     void testShouldCauseOutOfMemoryError() {
         SecureRandom secureRandom = new SecureRandom()

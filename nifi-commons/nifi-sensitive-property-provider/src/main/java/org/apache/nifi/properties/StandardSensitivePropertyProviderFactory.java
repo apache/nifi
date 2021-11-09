@@ -16,11 +16,22 @@
  */
 package org.apache.nifi.properties;
 
+import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
+import com.azure.security.keyvault.secrets.SecretClient;
+import com.google.cloud.kms.v1.KeyManagementServiceClient;
 import org.apache.nifi.properties.BootstrapProperties.BootstrapPropertyKey;
+import org.apache.nifi.properties.configuration.AwsKmsClientProvider;
+import org.apache.nifi.properties.configuration.AwsSecretsManagerClientProvider;
+import org.apache.nifi.properties.configuration.AzureCryptographyClientProvider;
+import org.apache.nifi.properties.configuration.AzureSecretClientProvider;
+import org.apache.nifi.properties.configuration.ClientProvider;
+import org.apache.nifi.properties.configuration.GoogleKeyManagementServiceClientProvider;
 import org.apache.nifi.util.NiFiBootstrapUtils;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.kms.KmsClient;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -29,6 +40,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -106,7 +118,7 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
             try {
                 return NiFiBootstrapUtils.loadBootstrapProperties();
             } catch (final IOException e) {
-                logger.debug("Could not load bootstrap.conf from disk, so using empty bootstrap.conf", e);
+                logger.debug("Bootstrap Properties loading failed", e);
                 return BootstrapProperties.EMPTY;
             }
         });
@@ -121,11 +133,40 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
             case AES_GCM:
                 return providerMap.computeIfAbsent(protectionScheme, s -> new AESSensitivePropertyProvider(keyHex));
             case AWS_KMS:
-                return providerMap.computeIfAbsent(protectionScheme, s -> new AWSKMSSensitivePropertyProvider(getBootstrapProperties()));
+                return providerMap.computeIfAbsent(protectionScheme, s -> {
+                    final AwsKmsClientProvider clientProvider = new AwsKmsClientProvider();
+                    final Properties clientProperties = getClientProperties(clientProvider);
+                    final Optional<KmsClient> kmsClient = clientProvider.getClient(clientProperties);
+                    return new AwsKmsSensitivePropertyProvider(kmsClient.orElse(null), clientProperties);
+                });
+            case AWS_SECRETSMANAGER:
+                return providerMap.computeIfAbsent(protectionScheme, s -> {
+                    final AwsSecretsManagerClientProvider clientProvider = new AwsSecretsManagerClientProvider();
+                    final Properties clientProperties = getClientProperties(clientProvider);
+                    final Optional<SecretsManagerClient> secretsManagerClient = clientProvider.getClient(clientProperties);
+                    return new AwsSecretsManagerSensitivePropertyProvider(secretsManagerClient.orElse(null));
+                });
             case AZURE_KEYVAULT_KEY:
-                return providerMap.computeIfAbsent(protectionScheme, s -> new AzureKeyVaultKeySensitivePropertyProvider(getBootstrapProperties()));
+                return providerMap.computeIfAbsent(protectionScheme, s -> {
+                    final AzureCryptographyClientProvider clientProvider = new AzureCryptographyClientProvider();
+                    final Properties clientProperties = getClientProperties(clientProvider);
+                    final Optional<CryptographyClient> cryptographyClient = clientProvider.getClient(clientProperties);
+                    return new AzureKeyVaultKeySensitivePropertyProvider(cryptographyClient.orElse(null), clientProperties);
+                });
+            case AZURE_KEYVAULT_SECRET:
+                return providerMap.computeIfAbsent(protectionScheme, s -> {
+                    final AzureSecretClientProvider clientProvider = new AzureSecretClientProvider();
+                    final Properties clientProperties = getClientProperties(clientProvider);
+                    final Optional<SecretClient> secretClient = clientProvider.getClient(clientProperties);
+                    return new AzureKeyVaultSecretSensitivePropertyProvider(secretClient.orElse(null));
+                });
             case GCP_KMS:
-                return providerMap.computeIfAbsent(protectionScheme, s -> new GCPKMSSensitivePropertyProvider(getBootstrapProperties()));
+                return providerMap.computeIfAbsent(protectionScheme, s -> {
+                    final GoogleKeyManagementServiceClientProvider clientProvider = new GoogleKeyManagementServiceClientProvider();
+                    final Properties clientProperties = getClientProperties(clientProvider);
+                    final Optional<KeyManagementServiceClient> keyManagementServiceClient = clientProvider.getClient(clientProperties);
+                    return new GcpKmsSensitivePropertyProvider(keyManagementServiceClient.orElse(null), clientProperties);
+                });
             case HASHICORP_VAULT_TRANSIT:
                 return providerMap.computeIfAbsent(protectionScheme, s -> new HashiCorpVaultTransitSensitivePropertyProvider(getBootstrapProperties()));
             case HASHICORP_VAULT_KV:
@@ -156,4 +197,8 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
         return ProtectedPropertyContext.contextFor(propertyName, contextName);
     }
 
+    private <T> Properties getClientProperties(final ClientProvider<T> clientProvider) {
+        final Optional<Properties> clientProperties = clientProvider.getClientProperties(getBootstrapProperties());
+        return clientProperties.orElse(null);
+    }
 }

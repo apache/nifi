@@ -25,8 +25,10 @@ import java.util.Objects;
  */
 public enum PropertyProtectionScheme {
     AES_GCM("aes/gcm/(128|192|256)", "aes/gcm/%s", "AES Sensitive Property Provider", true),
+    AWS_SECRETSMANAGER("aws/secretsmanager", "aws/secretsmanager", "AWS Secrets Manager Sensitive Property Provider", false),
     AWS_KMS("aws/kms", "aws/kms", "AWS KMS Sensitive Property Provider", false),
     AZURE_KEYVAULT_KEY("azure/keyvault/key", "azure/keyvault/key", "Azure Key Vault Key Sensitive Property Provider", false),
+    AZURE_KEYVAULT_SECRET("azure/keyvault/secret", "azure/keyvault/secret", "Azure Key Vault Secret Sensitive Property Provider", false),
     GCP_KMS("gcp/kms", "gcp/kms", "GCP Cloud KMS Sensitive Property Provider", false),
     HASHICORP_VAULT_KV("hashicorp/vault/kv/[a-zA-Z0-9_-]+", "hashicorp/vault/kv/%s", "HashiCorp Vault Key/Value Engine Sensitive Property Provider", false),
     HASHICORP_VAULT_TRANSIT("hashicorp/vault/transit/[a-zA-Z0-9_-]+", "hashicorp/vault/transit/%s", "HashiCorp Vault Transit Engine Sensitive Property Provider", false);

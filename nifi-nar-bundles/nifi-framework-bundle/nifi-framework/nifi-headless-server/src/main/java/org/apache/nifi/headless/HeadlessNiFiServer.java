@@ -34,6 +34,8 @@ import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.diagnostics.DiagnosticsDump;
 import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
@@ -51,6 +53,7 @@ import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.services.FlowService;
+import org.apache.nifi.spring.StatusHistoryRepositoryFactoryBean;
 import org.apache.nifi.util.FlowParser;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -64,6 +67,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
+ *
  */
 public class HeadlessNiFiServer implements NiFiServer {
 
@@ -128,6 +132,11 @@ public class HeadlessNiFiServer implements NiFiServer {
             StandardFlowRegistryClient flowRegistryClient = new StandardFlowRegistryClient();
             flowRegistryClient.setProperties(props);
 
+            final StatusHistoryRepositoryFactoryBean statusHistoryRepositoryFactoryBean = new StatusHistoryRepositoryFactoryBean();
+            statusHistoryRepositoryFactoryBean.setNifiProperties(props);
+            statusHistoryRepositoryFactoryBean.setExtensionManager(extensionManager);
+            StatusHistoryRepository statusHistoryRepository = statusHistoryRepositoryFactoryBean.getObject();
+
             flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
                     props,
@@ -137,7 +146,8 @@ public class HeadlessNiFiServer implements NiFiServer {
                     bulletinRepository,
                     variableRegistry,
                     flowRegistryClient,
-                    extensionManager);
+                    extensionManager,
+                    statusHistoryRepository);
 
             flowService = StandardFlowService.createStandaloneInstance(
                     flowController,
@@ -196,6 +206,11 @@ public class HeadlessNiFiServer implements NiFiServer {
 
     @Override
     public DecommissionTask getDecommissionTask() {
+        return null;
+    }
+
+    @Override
+    public StatusHistoryDumpFactory getStatusHistoryDumpFactory() {
         return null;
     }
 

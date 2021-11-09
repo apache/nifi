@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.15.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
@@ -58,10 +58,6 @@
         <nifi.flowfile.repository.directory>./flowfile_repository</nifi.flowfile.repository.directory>
         <nifi.flowfile.repository.checkpoint.interval>20 secs</nifi.flowfile.repository.checkpoint.interval>
         <nifi.flowfile.repository.always.sync>false</nifi.flowfile.repository.always.sync>
-        <nifi.flowfile.repository.encryption.key.provider.implementation />
-        <nifi.flowfile.repository.encryption.key.provider.location />
-        <nifi.flowfile.repository.encryption.key.id />
-        <nifi.flowfile.repository.encryption.key />
         <nifi.flowfile.repository.retain.orphaned.flowfiles>true</nifi.flowfile.repository.retain.orphaned.flowfiles>
         <nifi.swap.manager.implementation>org.apache.nifi.controller.FileSystemSwapManager</nifi.swap.manager.implementation>
         <nifi.queue.swap.threshold>20000</nifi.queue.swap.threshold>
@@ -73,10 +69,6 @@
         <nifi.content.repository.archive.max.usage.percentage>50%</nifi.content.repository.archive.max.usage.percentage>
         <nifi.content.repository.archive.enabled>true</nifi.content.repository.archive.enabled>
         <nifi.content.repository.always.sync>false</nifi.content.repository.always.sync>
-        <nifi.content.repository.encryption.key.provider.implementation />
-        <nifi.content.repository.encryption.key.provider.location />
-        <nifi.content.repository.encryption.key.id />
-        <nifi.content.repository.encryption.key />
         <nifi.content.viewer.url>../nifi-content-viewer/</nifi.content.viewer.url>
 
         <nifi.restore.directory />
@@ -89,7 +81,6 @@
 
         <nifi.sensitive.props.key.protected />
         <nifi.sensitive.props.algorithm>NIFI_PBKDF2_AES_GCM_256</nifi.sensitive.props.algorithm>
-        <nifi.sensitive.props.provider>BC</nifi.sensitive.props.provider>
         <nifi.sensitive.props.additional.keys />
 
         <nifi.h2.url.append>;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE</nifi.h2.url.append>
@@ -99,10 +90,6 @@
 
         <!-- persistent provenance repository properties -->
         <nifi.provenance.repository.implementation>org.apache.nifi.provenance.WriteAheadProvenanceRepository</nifi.provenance.repository.implementation>
-        <nifi.provenance.repository.encryption.key.provider.implementation />
-        <nifi.provenance.repository.encryption.key.provider.location />
-        <nifi.provenance.repository.encryption.key.id />
-        <nifi.provenance.repository.encryption.key />
         <nifi.provenance.repository.directory.default>./provenance_repository</nifi.provenance.repository.directory.default>
         <nifi.provenance.repository.max.storage.time>30 days</nifi.provenance.repository.max.storage.time>
         <nifi.provenance.repository.max.storage.size>10 GB</nifi.provenance.repository.max.storage.size>

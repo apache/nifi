@@ -20,6 +20,10 @@ package org.apache.nifi.web.security.http;
  * Enumeration of HTTP Headers for Security
  */
 public enum SecurityHeader {
+    /** Custom Request Token Header for CSRF mitigation */
+    REQUEST_TOKEN("Request-Token"),
+
+    /** Authorization Header described in RFC 7235 Section 4.2 */
     AUTHORIZATION("Authorization");
 
     private String header;

@@ -57,6 +57,7 @@
         <property name="flowRegistryClient" ref="flowRegistryClient" />
         <property name="extensionManager" ref="extensionManager" />
         <property name="revisionManager" ref="revisionManager" />
+        <property name="statusHistoryRepository" ref="statusHistoryRepository" />
     </bean>
 
     <!-- flow service -->
@@ -76,5 +77,14 @@
 
     <bean id="eventReporter" class="org.apache.nifi.events.StandardEventReporter">
         <constructor-arg ref="bulletinRepository" />
+    </bean>
+
+    <bean id="statusHistoryRepository" class="org.apache.nifi.spring.StatusHistoryRepositoryFactoryBean">
+        <property name="nifiProperties" ref="nifiProperties"/>
+        <property name="extensionManager" ref="extensionManager" />
+    </bean>
+
+    <bean id="statusHistoryDumpFactory" class="org.apache.nifi.controller.status.history.JsonNodeStatusHistoryDumpFactory">
+        <property name="statusHistoryRepository" ref="statusHistoryRepository" />
     </bean>
 </beans>

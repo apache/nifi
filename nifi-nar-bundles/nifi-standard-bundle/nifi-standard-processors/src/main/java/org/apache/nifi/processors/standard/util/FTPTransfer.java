@@ -190,14 +190,14 @@ public class FTPTransfer implements FileTransfer {
     }
 
     @Override
-    public List<FileInfo> getListing() throws IOException {
+    public List<FileInfo> getListing(final boolean applyFilters) throws IOException {
         final String path = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
         final int depth = 0;
         final int maxResults = ctx.getProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE).asInteger();
-        return getListing(path, depth, maxResults);
+        return getListing(path, depth, maxResults, applyFilters);
     }
 
-    private List<FileInfo> getListing(final String path, final int depth, final int maxResults) throws IOException {
+    private List<FileInfo> getListing(final String path, final int depth, final int maxResults, final boolean applyFilters) throws IOException {
         final List<FileInfo> listing = new ArrayList<>();
         if (maxResults < 1) {
             return listing;
@@ -266,7 +266,7 @@ public class FTPTransfer implements FileTransfer {
             // OR if is a link and we're supposed to follow symlink
             if ((recurse && file.isDirectory()) || (symlink && file.isSymbolicLink())) {
                 try {
-                    listing.addAll(getListing(newFullForwardPath, depth + 1, maxResults - count));
+                    listing.addAll(getListing(newFullForwardPath, depth + 1, maxResults - count, applyFilters));
                 } catch (final IOException e) {
                     logger.error("Unable to get listing from " + newFullForwardPath + "; skipping", e);
                 }
@@ -274,8 +274,8 @@ public class FTPTransfer implements FileTransfer {
 
             // if is not a directory and is not a link and it matches
             // FILE_FILTER_REGEX - then let's add it
-            if (!file.isDirectory() && !file.isSymbolicLink() && pathFilterMatches) {
-                if (pattern == null || pattern.matcher(filename).matches()) {
+            if (!file.isDirectory() && !file.isSymbolicLink() && (pathFilterMatches || !applyFilters)) {
+                if (pattern == null || !applyFilters || pattern.matcher(filename).matches()) {
                     listing.add(newFileInfo(file, path));
                     count++;
                 }

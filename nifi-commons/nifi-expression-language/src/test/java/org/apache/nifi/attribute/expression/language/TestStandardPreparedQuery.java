@@ -19,8 +19,8 @@ package org.apache.nifi.attribute.expression.language;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,7 +55,7 @@ public class TestStandardPreparedQuery {
     }
 
     @Test
-    @Ignore("Intended for manual performance testing; should not be run in an automated environment")
+    @Disabled("Intended for manual performance testing; should not be run in an automated environment")
     public void test10MIterations() {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("xx", "world");
@@ -70,7 +70,7 @@ public class TestStandardPreparedQuery {
     }
 
     @Test
-    @Ignore("Takes too long")
+    @Disabled("Takes too long")
     public void test10MIterationsWithQuery() {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("xx", "world");

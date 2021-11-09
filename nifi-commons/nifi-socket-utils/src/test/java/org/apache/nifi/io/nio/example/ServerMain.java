@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.io.nio.example;
 
+import org.apache.nifi.io.nio.BufferPool;
+import org.apache.nifi.io.nio.ChannelListener;
+import org.apache.nifi.io.nio.consumer.StreamConsumer;
+import org.apache.nifi.io.nio.consumer.StreamConsumerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.HashSet;
@@ -26,14 +33,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.nifi.io.nio.BufferPool;
-import org.apache.nifi.io.nio.ChannelListener;
-import org.apache.nifi.io.nio.consumer.StreamConsumer;
-import org.apache.nifi.io.nio.consumer.StreamConsumerFactory;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *

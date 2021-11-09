@@ -66,6 +66,10 @@
             </div>
             <div id="controller-service-properties-tab-content" class="configuration-tab">
                 <div id="controller-service-properties"></div>
+                <div id="controller-service-properties-verification-results" class="verification-results">
+                    <div class="verification-results-header">Verification Results</div>
+                    <div id="controller-service-properties-verification-results-listing" class="verification-results-listing"></div>
+                </div>
             </div>
             <div id="controller-service-comments-tab-content" class="configuration-tab">
                 <textarea cols="30" rows="4" id="controller-service-comments" name="controller-service-comments" class="controller-service-editable setting-input"></textarea>

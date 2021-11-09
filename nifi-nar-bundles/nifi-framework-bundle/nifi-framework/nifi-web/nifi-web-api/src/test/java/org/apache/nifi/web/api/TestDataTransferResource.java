@@ -147,6 +147,7 @@ public class TestDataTransferResource {
         final URI locationUri = new URI(locationUriStr);
         doReturn(uriBuilder).when(uriInfo).getBaseUriBuilder();
         doReturn(uriBuilder).when(uriBuilder).path(any(String.class));
+        doReturn(uriBuilder).when(uriBuilder).segment(any(String.class));
         doReturn(locationUri).when(uriBuilder).build();
         return uriInfo;
     }
@@ -167,6 +168,10 @@ public class TestDataTransferResource {
         uriInfoField.set(resource, uriInfo);
 
         final HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getServerPort()).thenReturn(8080);
+        when(request.getScheme()).thenReturn("http");
+        when(request.getHeader(eq("Host"))).thenReturn("localhost");
+
         final Field httpServletRequestField = resource.getClass().getSuperclass().getSuperclass()
                 .getDeclaredField("httpServletRequest");
         httpServletRequestField.setAccessible(true);
@@ -300,7 +305,7 @@ public class TestDataTransferResource {
     }
 
     @Test
-    public void testCommitInputPortTransaction() throws Exception {
+    public void testCommitInputPortTransaction() {
         final HttpServletRequest req = createCommonHttpServletRequest();
 
         final DataTransferResource resource = getDataTransferResource();
@@ -322,7 +327,7 @@ public class TestDataTransferResource {
     }
 
     @Test
-    public void testTransferFlowFiles() throws Exception {
+    public void testTransferFlowFiles() {
         final HttpServletRequest req = createCommonHttpServletRequest();
 
         final DataTransferResource resource = getDataTransferResource();
@@ -345,7 +350,7 @@ public class TestDataTransferResource {
     }
 
     @Test
-    public void testCommitOutputPortTransaction() throws Exception {
+    public void testCommitOutputPortTransaction() {
         final HttpServletRequest req = createCommonHttpServletRequest();
 
         final DataTransferResource resource = getDataTransferResource();

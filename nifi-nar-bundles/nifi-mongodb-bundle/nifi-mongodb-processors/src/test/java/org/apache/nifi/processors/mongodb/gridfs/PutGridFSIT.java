@@ -106,7 +106,7 @@ public class PutGridFSIT extends GridFSITTestBase {
         String bucketName = String.format("%s.files", BUCKET);
         MongoCollection files = client.getDatabase(DB).getCollection(bucketName);
         Document query = Document.parse(String.format("{\"filename\": \"%s\"}", fileName));
-        long count = files.count(query);
+        long count = files.countDocuments(query);
         Assertions.assertTrue(count == 10, "Wrong count");
     }
 

@@ -19,7 +19,7 @@ package org.apache.nifi.encrypt;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
 
@@ -34,7 +34,6 @@ public class PropertyEncryptorFactoryTest {
     public void testGetPropertyEncryptorUnsupportedEncryptionMethod() {
         final Properties properties = new Properties();
         properties.setProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, EncryptionMethod.PGP.getAlgorithm());
-        properties.setProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER, EncryptionMethod.PGP.getProvider());
         properties.setProperty(NiFiProperties.SENSITIVE_PROPS_KEY, String.class.getName());
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
 
@@ -45,7 +44,6 @@ public class PropertyEncryptorFactoryTest {
     public void testGetPropertyEncryptorPropertiesBlankPassword() {
         final Properties properties = new Properties();
         properties.setProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, ENCRYPTION_METHOD.getAlgorithm());
-        properties.setProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER, ENCRYPTION_METHOD.getProvider());
         properties.setProperty(NiFiProperties.SENSITIVE_PROPS_KEY, StringUtils.EMPTY);
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
 
@@ -56,7 +54,6 @@ public class PropertyEncryptorFactoryTest {
     public void testGetPropertyEncryptorPropertiesKeyedCipherPropertyEncryptor() {
         final Properties properties = new Properties();
         properties.setProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, PropertyEncryptionMethod.NIFI_ARGON2_AES_GCM_256.toString());
-        properties.setProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER, ENCRYPTION_METHOD.getProvider());
         properties.setProperty(NiFiProperties.SENSITIVE_PROPS_KEY, String.class.getName());
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
 

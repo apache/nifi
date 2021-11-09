@@ -307,22 +307,26 @@ public class TestQueryNiFiReportingTask {
         reportingTask = initTask(properties);
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final String flowFileUuid = "testFlowFileUuid";
         assertEquals(3, rows.size());
         // Validate the first row
         Map<String, Object> row = rows.get(0);
-        assertEquals(13, row.size());
+        assertEquals(14, row.size());
         assertNotNull(row.get("bulletinId"));
         assertEquals("controller", row.get("bulletinCategory"));
         assertEquals("WARN", row.get("bulletinLevel"));
+        assertEquals(flowFileUuid, row.get("bulletinFlowFileUuid"));
         // Validate the second row
         row = rows.get(1);
         assertEquals("processor", row.get("bulletinCategory"));
         assertEquals("INFO", row.get("bulletinLevel"));
+        assertEquals(flowFileUuid, row.get("bulletinFlowFileUuid"));
         // Validate the third row
         row = rows.get(2);
         assertEquals("controller service", row.get("bulletinCategory"));
         assertEquals("ERROR", row.get("bulletinLevel"));
+        assertEquals(flowFileUuid, row.get("bulletinFlowFileUuid"));
     }
 
     private MockQueryNiFiReportingTask initTask(Map<PropertyDescriptor, String> customProperties) throws InitializationException, IOException {
@@ -409,9 +413,9 @@ public class TestQueryNiFiReportingTask {
         Mockito.when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
 
         MockBulletinRepository bulletinRepository = new MockQueryBulletinRepository();
-        bulletinRepository.addBulletin(BulletinFactory.createBulletin("controller", "WARN", "test bulletin 2"));
-        bulletinRepository.addBulletin(BulletinFactory.createBulletin("processor", "INFO", "test bulletin 1"));
-        bulletinRepository.addBulletin(BulletinFactory.createBulletin("controller service", "ERROR", "test bulletin 2"));
+        bulletinRepository.addBulletin(BulletinFactory.createBulletin("controller", "WARN", "test bulletin 2", "testFlowFileUuid"));
+        bulletinRepository.addBulletin(BulletinFactory.createBulletin("processor", "INFO", "test bulletin 1", "testFlowFileUuid"));
+        bulletinRepository.addBulletin(BulletinFactory.createBulletin("controller service", "ERROR", "test bulletin 2", "testFlowFileUuid"));
         Mockito.when(context.getBulletinRepository()).thenReturn(bulletinRepository);
 
         return reportingTask;

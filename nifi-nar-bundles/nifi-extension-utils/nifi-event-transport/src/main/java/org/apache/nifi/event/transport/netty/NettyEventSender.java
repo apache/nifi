@@ -23,8 +23,12 @@ import io.netty.channel.pool.ChannelPool;
 import io.netty.util.concurrent.Future;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventSender;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 
 import java.net.SocketAddress;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Netty Event Sender with Channel Pool
@@ -38,7 +42,11 @@ class NettyEventSender<T> implements EventSender<T> {
 
     private final SocketAddress remoteAddress;
 
-    private boolean singleEventPerConnection;
+    private final boolean singleEventPerConnection;
+
+    private final Duration shutdownQuietPeriod;
+
+    private final Duration shutdownTimeout;
 
     /**
      * Netty Channel Event Sender with Event Loop Group and Channel Pool
@@ -49,10 +57,27 @@ class NettyEventSender<T> implements EventSender<T> {
      * @param singleEventPerConnection If true, send a single event per connection, and then close it.
      */
     NettyEventSender(final EventLoopGroup group, final ChannelPool channelPool, final SocketAddress remoteAddress, final boolean singleEventPerConnection) {
+        this(group, channelPool, remoteAddress, singleEventPerConnection, ShutdownQuietPeriod.DEFAULT.getDuration(), ShutdownTimeout.DEFAULT.getDuration());
+    }
+
+    /**
+     * Netty Channel Event Sender with Event Loop Group, Channel Pool, and Shutdown Configuration
+     *
+     * @param group Event Loop Group
+     * @param channelPool Channel Pool
+     * @param remoteAddress Remote Address
+     * @param singleEventPerConnection If true, send a single event per connection, and then close it.
+     * @param shutdownQuietPeriod server shutdown quiet period
+     * @param shutdownTimeout server shutdown timeout
+     */
+    NettyEventSender(final EventLoopGroup group, final ChannelPool channelPool, final SocketAddress remoteAddress, final boolean singleEventPerConnection,
+                     final Duration shutdownQuietPeriod, final Duration shutdownTimeout) {
         this.group = group;
         this.channelPool = channelPool;
         this.remoteAddress = remoteAddress;
         this.singleEventPerConnection = singleEventPerConnection;
+        this.shutdownQuietPeriod = shutdownQuietPeriod;
+        this.shutdownTimeout = shutdownTimeout;
     }
 
     /**
@@ -84,7 +109,7 @@ class NettyEventSender<T> implements EventSender<T> {
         try {
             channelPool.close();
         } finally {
-            group.shutdownGracefully().syncUninterruptibly();
+            group.shutdownGracefully(shutdownQuietPeriod.toMillis(), shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS).syncUninterruptibly();
         }
     }
 

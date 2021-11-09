@@ -19,13 +19,17 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-ranger-bundle</artifactId>
-        <version>1.15.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-ranger-resources</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.ranger</groupId>
             <artifactId>credentialbuilder</artifactId>
@@ -34,6 +38,14 @@
                 <exclusion>
                     <groupId>commons-configuration</groupId>
                     <artifactId>commons-configuration</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

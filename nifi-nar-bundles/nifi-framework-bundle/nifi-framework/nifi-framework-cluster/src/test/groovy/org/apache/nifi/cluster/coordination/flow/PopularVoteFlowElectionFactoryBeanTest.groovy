@@ -53,7 +53,6 @@ class PopularVoteFlowElectionFactoryBeanTest extends GroovyTestCase {
     NiFiProperties mockProperties(Map<String, String> defaults = [:]) {
         def mockProps = new NiFiProperties(new Properties([
                 (NiFiProperties.SENSITIVE_PROPS_ALGORITHM):DEFAULT_ENCRYPTION_METHOD.algorithm,
-                (NiFiProperties.SENSITIVE_PROPS_PROVIDER):DEFAULT_ENCRYPTION_METHOD.provider,
         ] + defaults))
 
         mockProps

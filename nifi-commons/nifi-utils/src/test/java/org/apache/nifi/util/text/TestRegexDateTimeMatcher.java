@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.util.text;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestRegexDateTimeMatcher {
 
@@ -63,7 +63,7 @@ public class TestRegexDateTimeMatcher {
             final RegexDateTimeMatcher matcher = new RegexDateTimeMatcher.Compiler().compile(entry.getValue());
             final boolean matches = matcher.matches(entry.getKey());
 
-            assertTrue("Pattern <" + entry.getValue() + "> did not match <" + entry.getKey() + ">", matches);
+            assertTrue(matches, "Pattern <" + entry.getValue() + "> did not match <" + entry.getKey() + ">");
         }
     }
 }

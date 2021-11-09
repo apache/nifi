@@ -46,6 +46,7 @@ import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.EventReporter;
@@ -84,6 +85,7 @@ public class Node {
     private final List<ReportedEvent> reportedEvents = Collections.synchronizedList(new ArrayList<ReportedEvent>());
     private final RevisionManager revisionManager;
     private final FlowElection flowElection;
+    private final StatusHistoryRepository statusHistoryRepository;
 
     private NodeClusterCoordinator clusterCoordinator;
     private NodeProtocolSender protocolSender;
@@ -98,11 +100,13 @@ public class Node {
     private ScheduledExecutorService executor = new FlowEngine(8, "Node tasks", true);
 
 
-    public Node(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager, final FlowElection flowElection) {
-        this(createNodeId(), properties, extensionManager, flowElection);
+    public Node(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager, final FlowElection flowElection,
+                final StatusHistoryRepository statusHistoryRepository) {
+        this(createNodeId(), properties, extensionManager, flowElection, statusHistoryRepository);
     }
 
-    public Node(final NodeIdentifier nodeId, final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager, final FlowElection flowElection) {
+    public Node(final NodeIdentifier nodeId, final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager,
+                final FlowElection flowElection, final StatusHistoryRepository statusHistoryRepository) {
         this.nodeId = nodeId;
         this.nodeProperties = new NiFiProperties() {
             @Override
@@ -137,6 +141,7 @@ public class Node {
 
         electionManager = new CuratorLeaderElectionManager(4, nodeProperties);
         this.flowElection = flowElection;
+        this.statusHistoryRepository = statusHistoryRepository;
     }
 
 
@@ -156,7 +161,7 @@ public class Node {
         flowController = FlowController.createClusteredInstance(Mockito.mock(FlowFileEventRepository.class), nodeProperties,
             null, null, PropertyEncryptorFactory.getPropertyEncryptor(nodeProperties), protocolSender, Mockito.mock(BulletinRepository.class), clusterCoordinator,
             heartbeatMonitor, electionManager, VariableRegistry.EMPTY_REGISTRY, Mockito.mock(FlowRegistryClient.class), extensionManager,
-            revisionManager);
+            revisionManager, statusHistoryRepository);
 
         try {
             flowController.initializeFlow();

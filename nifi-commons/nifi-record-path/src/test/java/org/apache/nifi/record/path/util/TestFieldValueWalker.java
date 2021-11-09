@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.record.path.util;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.nifi.record.path.FieldValue;
+import org.apache.nifi.record.path.RecordPath;
+import org.apache.nifi.serialization.record.Record;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.nifi.record.path.FieldValue;
-import org.apache.nifi.record.path.RecordPath;
-import org.apache.nifi.serialization.record.Record;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class TestFieldValueWalker extends AbstractWalkerTest {
 

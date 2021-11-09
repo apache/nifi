@@ -18,13 +18,10 @@ package org.apache.nifi.properties
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -35,7 +32,8 @@ import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
 import java.security.Security
 
-@RunWith(JUnit4.class)
+import static org.junit.Assume.assumeTrue
+
 class AESSensitivePropertyProviderTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(AESSensitivePropertyProviderTest.class)
 
@@ -52,7 +50,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     private static final Base64.Encoder encoder = Base64.encoder
     private static final Base64.Decoder decoder = Base64.decoder
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -61,12 +59,12 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         }
     }
 
-    @Before
+    @BeforeEach
     void setUp() throws Exception {
 
     }
 
-    @After
+    @AfterEach
     void tearDown() throws Exception {
 
     }
@@ -475,7 +473,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     @Test
     void testShouldDecryptPaddedValue() {
         // Arrange
-        Assume.assumeTrue("JCE unlimited strength crypto policy must be installed for this test", Cipher.getMaxAllowedKeyLength("AES") > 128)
+        assumeTrue("JCE unlimited strength crypto policy must be installed for this test", Cipher.getMaxAllowedKeyLength("AES") > 128)
 
         final String EXPECTED_VALUE = getKeyOfSize(256) // "thisIsABadKeyPassword"
         String cipherText = "aYDkDKys1ENr3gp+||sTBPpMlIvHcOLTGZlfWct8r9RY8BuDlDkoaYmGJ/9m9af9tZIVzcnDwvYQAaIKxRGF7vI2yrY7Xd6x9GTDnWGiGiRXlaP458BBMMgfzH2O8"

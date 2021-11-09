@@ -37,6 +37,7 @@ public abstract class Bulletin implements Comparable<Bulletin> {
     private String sourceId;
     private String sourceName;
     private ComponentType sourceType;
+    private String flowFileUuid;
 
     protected Bulletin(final long id) {
         this.timestamp = new Date();
@@ -129,6 +130,14 @@ public abstract class Bulletin implements Comparable<Bulletin> {
 
     public void setSourceType(ComponentType sourceType) {
         this.sourceType = sourceType;
+    }
+
+    public String getFlowFileUuid() {
+        return flowFileUuid;
+    }
+
+    public void setFlowFileUuid(String flowFileUuid) {
+        this.flowFileUuid = flowFileUuid;
     }
 
     @Override

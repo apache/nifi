@@ -16,21 +16,14 @@
  */
 package org.apache.nifi.processors.grpc;
 
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import io.grpc.stub.StreamObserver;
-import io.netty.handler.ssl.ClientAuth;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -392,121 +385,6 @@ public class TestInvokeGRPC {
         response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, Integer.toString(port));
         response.assertAttributeEquals(InvokeGRPC.EXCEPTION_CLASS, "io.grpc.StatusRuntimeException");
 
-    }
-
-    @Test
-    public void testSecureTwoWaySsl() throws Exception {
-        final Map<String, String> sslProperties = getKeystoreProperties();
-        sslProperties.putAll(getTruststoreProperties());
-        final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class, sslProperties);
-
-        try {
-            final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            useSSLContextService(runner, sslProperties);
-            final int port = server.start(0);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
-            runner.setProperty(InvokeGRPC.PROP_USE_SECURE, "true");
-
-            final MockFlowFile mockFlowFile = new MockFlowFile(SUCCESS);
-            runner.enqueue(mockFlowFile);
-            runner.run();
-            runner.assertTransferCount(InvokeGRPC.REL_RESPONSE, 1);
-            runner.assertTransferCount(InvokeGRPC.REL_SUCCESS_REQ, 1);
-            runner.assertTransferCount(InvokeGRPC.REL_RETRY, 0);
-            runner.assertTransferCount(InvokeGRPC.REL_NO_RETRY, 0);
-            runner.assertTransferCount(InvokeGRPC.REL_FAILURE, 0);
-
-            final List<MockFlowFile> responseFiles = runner.getFlowFilesForRelationship(InvokeGRPC.REL_RESPONSE);
-            assertThat(responseFiles.size(), equalTo(1));
-            final MockFlowFile response = responseFiles.get(0);
-            response.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.SUCCESS));
-            response.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "success");
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
-
-            final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(InvokeGRPC.REL_SUCCESS_REQ);
-            assertThat(successFiles.size(), equalTo(1));
-            final MockFlowFile successFile = successFiles.get(0);
-            successFile.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.SUCCESS));
-            successFile.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "success");
-            successFile.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            successFile.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
-        } finally {
-            server.stop();
-        }
-    }
-
-    @Test
-    public void testSecureOneWaySsl() throws Exception {
-        final Map<String, String> sslProperties = getKeystoreProperties();
-        sslProperties.put(TestGRPCServer.NEED_CLIENT_AUTH, ClientAuth.NONE.name());
-        final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class, sslProperties);
-
-        try {
-            final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            useSSLContextService(runner, getTruststoreProperties());
-            final int port = server.start(0);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
-            runner.setProperty(InvokeGRPC.PROP_USE_SECURE, "true");
-
-            final MockFlowFile mockFlowFile = new MockFlowFile(SUCCESS);
-            runner.enqueue(mockFlowFile);
-            runner.run();
-            runner.assertTransferCount(InvokeGRPC.REL_RESPONSE, 1);
-            runner.assertTransferCount(InvokeGRPC.REL_SUCCESS_REQ, 1);
-            runner.assertTransferCount(InvokeGRPC.REL_RETRY, 0);
-            runner.assertTransferCount(InvokeGRPC.REL_NO_RETRY, 0);
-            runner.assertTransferCount(InvokeGRPC.REL_FAILURE, 0);
-
-            final List<MockFlowFile> responseFiles = runner.getFlowFilesForRelationship(InvokeGRPC.REL_RESPONSE);
-            assertThat(responseFiles.size(), equalTo(1));
-            final MockFlowFile response = responseFiles.get(0);
-            response.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.SUCCESS));
-            response.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "success");
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
-
-            final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(InvokeGRPC.REL_SUCCESS_REQ);
-            assertThat(successFiles.size(), equalTo(1));
-            final MockFlowFile successFile = successFiles.get(0);
-            successFile.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.SUCCESS));
-            successFile.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "success");
-            successFile.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            successFile.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
-        } finally {
-            server.stop();
-        }
-    }
-
-    private static Map<String, String> getTruststoreProperties() {
-        final Map<String, String> props = new HashMap<>();
-        props.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.jks");
-        props.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "passwordpassword");
-        props.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
-        return props;
-    }
-
-    private static Map<String, String> getKeystoreProperties() {
-        final Map<String, String> properties = new HashMap<>();
-        properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/keystore.jks");
-        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
-        properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        return properties;
-    }
-
-    private void useSSLContextService(final TestRunner controller, final Map<String, String> sslProperties) {
-        final SSLContextService service = new StandardSSLContextService();
-        try {
-            controller.addControllerService("ssl-service", service, sslProperties);
-            controller.enableControllerService(service);
-        } catch (InitializationException ex) {
-            ex.printStackTrace();
-            Assert.fail("Could not create SSL Context Service");
-        }
-
-        controller.setProperty(InvokeGRPC.PROP_SSL_CONTEXT_SERVICE, "ssl-service");
     }
 
     /**

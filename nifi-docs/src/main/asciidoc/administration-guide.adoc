@@ -1795,8 +1795,9 @@ If no administrator action is taken, the configuration values remain unencrypted
 
 For more information, see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
 
-In addition to the default AES encryption provider, other providers can be configured in their respective `bootstrap-*.conf` files. Following is a list of additional encryption providers and their configuration:
+Configuring each Sensitive Property Provider requires including the appropriate file reference property in `bootstrap.conf`. The default `bootstrap.conf` includes commented file reference properties for available providers.
 
+[[hashicorp-vault-providers]]
 === HashiCorp Vault providers
 Two encryption providers are currently configurable in the `bootstrap-hashicorp-vault.conf` file:
 
@@ -1804,7 +1805,7 @@ Two encryption providers are currently configurable in the `bootstrap-hashicorp-
 |===
 |Provider|Provider Identifier|Description
 |HashiCorp Vault Transit provider|`hashicorp/vault/kv/{vault.transit.path}`|Uses HashiCorp Vault's Transit Secrets Engine to decrypt sensitive properties.
-|HashiCorp Vault Key/Value provider|`hashicorp/vault/kv/{vault.transit.path}`|Retrieves sensitive values from Secrets stored in a HashiCorp Vault Key/Value (unversioned) Secrets Engine.
+|HashiCorp Vault Key/Value provider|`hashicorp/vault/kv/{vault.kv.path}`|Retrieves sensitive values from Secrets stored in a HashiCorp Vault Key/Value (unversioned) Secrets Engine.
 |===
 
 Note that all HashiCorp Vault encryption providers require a running Vault instance in order to decrypt these values at NiFi's startup.
@@ -1838,6 +1839,7 @@ Following are the configuration properties available inside the `bootstrap-hashi
 |`vault.ssl.trust-store-password`|Truststore password.  Required if the Vault server is TLS-enabled|_none_
 |===
 
+[[aws-kms-provider]]
 === AWS KMS provider
 This provider uses https://aws.amazon.com/kms/[AWS Key Management Service] for decryption. AWS KMS configuration properties can be stored in the `bootstrap-aws.conf` file, as referenced in `bootstrap.conf`. If the configuration properties are not specified in `bootstrap-aws.conf`, then the provider will attempt to use the AWS default credentials provider, which checks standard environment variables and system properties.
 
@@ -1858,8 +1860,35 @@ This provider uses https://aws.amazon.com/kms/[AWS Key Management Service] for d
 |`aws.secret.access.key`|The secret access key used to access AWS KMS.|_none_
 |===
 
-=== Azure Key Vault Key provider
-This protection scheme uses keys managed by https://docs.microsoft.com/en-us/azure/key-vault/keys/about-keys[Azure Key Vault Keys] for encryption and decryption. Azure Key Vault configuration properties can be stored in the `bootstrap-azure.conf` file, as referenced in the `bootstrap.conf` of NiFi or NiFi Registry. The provider will use the Azure default credentials provider chain as described in the https://docs.microsoft.com/en-us/java/api/overview/azure/security-keyvault-keys-readme?view=azure-java-stable[Azure Key Vault Key client library for Java] documentation.
+[[aws-secrets-manager-provider]]
+=== AWS Secrets Manager provider
+This provider uses https://aws.amazon.com/secrets-manager/[AWS Secrets Manager Service] to store and retrieve AWS Secrets. AWS Secrets Manager configuration properties can be stored in the `bootstrap-aws.conf` file, as referenced in `bootstrap.conf`. If the configuration properties are not specified in `bootstrap-aws.conf`, then the provider will attempt to use the AWS default credentials provider, which checks standard environment variables and system properties.
+
+==== Optional properties
+===== All of the following must be configured, or will be ignored entirely.
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`aws.region`|The AWS region used to configure the AWS Secrets Manager Client.|_none_
+|`aws.access.key.id`|The access key ID credential used to access AWS Secrets Manager.|_none_
+|`aws.secret.access.key`|The secret access key used to access AWS Secrets Manager.|_none_
+|===
+
+[[azure-key-vault-key-provider]]
+=== Azure Key Vault Key Provider
+This protection scheme uses keys managed by
+https://docs.microsoft.com/en-us/azure/key-vault/keys/about-keys[Azure Key Vault Keys] for encryption and decryption.
+
+Azure Key Vault configuration properties can be stored in the `bootstrap-azure.conf` file, as referenced in the
+`bootstrap.conf` of NiFi or NiFi Registry.
+The provider will use the
+https://docs.microsoft.com/en-us/java/api/com.azure.identity.defaultazurecredential[DefaultAzureCredential]
+for authentication.
+The https://docs.microsoft.com/en-us/java/api/overview/azure/identity-readme#key-concepts[Azure Identity] client library
+describes the process for credentials resolution, which leverages environment variables, system properties, and falls
+back to
+https://docs.microsoft.com/en-us/java/api/overview/azure/identity-readme#managed-identity-support[Managed Identity]
+authentication.
 
 ==== Required properties
 [options="header,footer"]
@@ -1867,6 +1896,39 @@ This protection scheme uses keys managed by https://docs.microsoft.com/en-us/azu
 |Property Name|Description|Default
 |`azure.keyvault.key.id`|The identifier of the key that the Azure Key Vault client uses for encryption and decryption.|_none_
 |`azure.keyvault.encryption.algorithm`|The encryption algorithm that the Azure Key Vault client uses for encryption and decryption.|_none_
+|===
+
+[[azure-key-vault-secret-provider]]
+=== Azure Key Vault Secret Provider
+This protection scheme uses secrets managed by
+https://docs.microsoft.com/en-us/azure/key-vault/secrets/about-secrets[Azure Key Vault Secrets] for storing and
+retrieving protected properties.
+
+Azure Key Vault configuration properties can be stored in the `bootstrap-azure.conf` file, as referenced in the
+`bootstrap.conf` of NiFi or NiFi Registry.
+The provider will use the
+https://docs.microsoft.com/en-us/java/api/com.azure.identity.defaultazurecredential[DefaultAzureCredential]
+for authentication.
+The https://docs.microsoft.com/en-us/java/api/overview/azure/identity-readme#key-concepts[Azure Identity] client library
+describes the process for credentials resolution, which leverages environment variables, system properties, and falls
+back to
+https://docs.microsoft.com/en-us/java/api/overview/azure/identity-readme#managed-identity-support[Managed Identity]
+authentication.
+
+Names of secrets stored in Azure Key Vault support alphanumeric and dash characters, but do not support characters such as `/` or `.`.
+For this reason, NiFi replaces these characters with `-` when storing and retrieving secrets. The following table provides an example property name mapping:
+
+[options="header,footer"]
+|===
+|Property Context|Property Name|Secret Name
+|`default`|`nifi.security.keystorePasswd`|`default-nifi-security-keystorePasswd`
+|===
+
+==== Required properties
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`azure.keyvault.uri`|URI for the Azure Key Vault service such as `https://{value-name}.vault.azure.net/` |_none_
 |===
 
 === Google Cloud KMS provider
@@ -2969,7 +3031,8 @@ only considered if `nifi.security.user.login.identity.provider` is configured wi
 |`nifi.templates.directory`*|This is the location of the directory where flow templates are saved (for backward compatibility only).  Templates are stored in the _flow.xml.gz_ starting with NiFi 1.0. The template directory can be used to (bulk) import templates into the _flow.xml.gz_ automatically on NiFi startup.  The default value is `./conf/templates`.
 |`nifi.ui.banner.text`|This is banner text that may be configured to display at the top of the User Interface. It is blank by default.
 |`nifi.ui.autorefresh.interval`|The interval at which the User Interface auto-refreshes. The default value is `30 secs`.
-|`nifi.nar.library.directory`|The location of the nar library. The default value is `./lib` and probably should be left as is. +
+|`nifi.nar.library.directory`|The location of the nar library. The default value is `./lib` and probably should be left as is. 
+|`nifi.restore.directory`|The location that certain providers (e.g. UserGroupProviders) will look for previous configurations to restore from. There is no default value. 
  +
 *NOTE*: Additional library directories can be specified by using the `nifi.nar.library.directory.` prefix with unique suffixes and separate paths as values. +
  +
@@ -3010,6 +3073,39 @@ The H2 Settings section defines the settings for the H2 database, which keeps tr
 |`nifi.h2.url.append`|This property specifies additional arguments to add to the connection string for the H2 database. The default value should be used and should not be changed. It is: `;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE`.
 |====
 
+[[repository-encryption-properties]]
+=== Repository Encryption
+
+Repository encryption provides a layer of security for information persisted to the filesystem during processing.
+Enabling encryption and configuring a Key Provider using these properties applies to all repositories.
+
+|====
+|*Property*|*Description*
+|`nifi.repository.encryption.protocol.version`|The encryption protocol version applied to all repository implementations. Absence of this property value disables repository encryption. Configuring a supported protocol enables encryption for all repositories. Supported protocol versions include: `1`.
+|`nifi.repository.encryption.key.id`|The key identifier that repository implementations will use for new encryption operations. The key identifier must match the `alias` value for a Key Entry when using the `KEYSTORE` provider.
+|`nifi.repository.encryption.key.provider`|The Key Provider implementation that repository implementations will use for retrieving keys necessary for encryption and decryption. Supported providers include: `KEYSTORE`.
+|`nifi.repository.encryption.key.provider.keystore.location`|Path to the KeyStore resource required for the `KEYSTORE` provider to read available keys. The KeyStore must contain one or more Secret Key entries. File paths must end with a known extension. Supported KeyStore types include: `PKCS12` and `BCFKS`. Supported extensions include: `.p12` and `.bcfks`
+|`nifi.repository.encryption.key.provider.keystore.password`|Password for the configured KeyStore resource required for the `KEYSTORE` provider to decrypt available keys. The configured KeyStore must use the same password for both the KeyStore and individual Key Entries.
+|====
+
+Configuring repository encryption properties overrides the following repository implementation class properties, as well
+as associated Key Provider properties:
+
+* `nifi.content.repository.implementation`
+* `nifi.flowfile.repository.wal.implementation`
+* `nifi.provenance.repository.implementation`
+* `nifi.swap.manager.implementation`
+
+The following provides an example set of configuration properties using a PKCS12 KeyStore as the Key Provider:
+
+....
+nifi.repository.encryption.protocol.version=1
+nifi.repository.encryption.key.id=primary-key
+nifi.repository.encryption.key.provider=KEYSTORE
+nifi.repository.encryption.key.provider.keystore.location=conf/repository.p12
+nifi.repository.encryption.key.provider.keystore.password=2fRKmwDyMYmT7P5L
+....
+
 === FlowFile Repository
 
 The FlowFile repository keeps track of the attributes and current state of each FlowFile in the system. By default,
@@ -3046,6 +3142,8 @@ implementation.
 [[encrypted-write-ahead-flowfile-repository-properties]]
 === Encrypted Write Ahead FlowFile Repository Properties
 
+WARNING: The following properties are deprecated in favor of <<repository-encryption-properties>> properties.
+
 All of the properties defined above (see <<write-ahead-flowfile-repository,Write Ahead FlowFile Repository>>) still apply. Only encryption-specific properties are listed here. See <<user-guide.adoc#encrypted-flowfile,Encrypted FlowFile Repository in the User Guide>> for more information.
 
 NOTE: Unlike the encrypted content and provenance repositories, the repository implementation does not change here, only the _underlying write-ahead log implementation_. This allows for cleaner separation and more flexibility in implementation selection. The property that should be changed to enable encryption is `nifi.flowfile.repository.wal.implementation`.
@@ -3059,17 +3157,6 @@ NOTE: Unlike the encrypted content and provenance repositories, the repository i
 |`nifi.flowfile.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
 |`nifi.flowfile.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.flowfile.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
 |====
-
-The simplest configuration is below:
-
-....
-nifi.flowfile.repository.implementation=org.apache.nifi.controller.repository.WriteAheadFlowFileRepository
-nifi.flowfile.repository.wal.implementation=org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog
-nifi.flowfile.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
-nifi.flowfile.repository.encryption.key.provider.location=
-nifi.flowfile.repository.encryption.key.id=Key1
-nifi.flowfile.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
-....
 
 === Volatile FlowFile Repository
 
@@ -3210,6 +3297,7 @@ FlowFile Repository, if also on that disk, could become corrupt. To avoid this s
 |*Property*|*Description*
 |`nifi.content.repository.implementation`|The Content Repository implementation. The default value is `org.apache.nifi.controller.repository.FileSystemRepository` and should only be changed with caution. To store flowfile content in memory instead of on disk (at the risk of data loss in the event of power/machine failure), set this property to `org.apache.nifi.controller.repository.VolatileContentRepository`.
 |`nifi.content.claim.max.appendable.size`|The maximum size for a content claim. The default value is `1 MB`.
+|`nifi.content.claim.max.flow.files`| The max amount of claims to keep open for writing. The default value is `100`
 |`nifi.content.repository.directory.default`*|The location of the Content Repository. The default value is `./content_repository`. +
 +
 *NOTE*: Multiple content repositories can be specified by using the `nifi.content.repository.directory.` prefix with unique suffixes and separate paths as values. +
@@ -3223,13 +3311,25 @@ Providing three total locations, including  `nifi.content.repository.directory.d
 |`nifi.content.repository.archive.max.retention.period`|If archiving is enabled (see `nifi.content.repository.archive.enabled` below), then
 this property specifies the maximum amount of time to keep the archived data. The default value is `12 hours`.
 |`nifi.content.repository.archive.max.usage.percentage`|If archiving is enabled (see `nifi.content.repository.archive.enabled` below), then this property must have a value that indicates the content repository disk usage percentage at which archived data begins to be removed. If the archive is empty and content repository disk usage is above this percentage, then archiving is temporarily disabled. Archiving will resume when disk usage is below this percentage. The default value is `50%`.
+|`nifi.content.repository.archive.backpressure.percentage`| This property is used to control the content repository disk usage percentage at which backpressure is applied to the processes writing to the content repository. Once this percentage is reached, the content repository will refuse any additional writes. Writes will be refused until the archive delete process has brought the content repository disk usage percentage below `nifi.content.repository.archive.max.usage.percentage`. +
+ +
+The value must be a valid percentage e.g. `60%` +
+ +
+For example, if `nifi.content.repository.archive.max.usage.percentage` is `50%` and `nifi.content.repository.archive.backpressure.percentage` is `60%`, then if the content repository reaches 60% utilisation of storage capacity, all further writes are blocked until utilisation is brought back down to 50%.  +
+ +
+When not set, the default value is derived as 2% greater than `nifi.content.repository.archive.max.usage.percentage`. +
+ +
+For example, if `nifi.content.repository.archive.max.usage.percentage` is `50%` and `nifi.content.repository.archive.backpressure.percentage` is not set, the effective value of `nifi.content.repository.archive.backpressure.percentage` will be `52%`.
 |`nifi.content.repository.archive.enabled`|To enable content archiving, set this to `true` and specify a value for the `nifi.content.repository.archive.max.usage.percentage` property above. Content archiving enables the provenance UI to view or replay content that is no longer in a dataflow queue. By default, archiving is enabled.
 |`nifi.content.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
 |`nifi.content.viewer.url`|The URL for a web-based content viewer if one is available. It is blank by default.
+|`nifi.content.repository.archive.cleanup.frequency`| The frequency with which to schedule the content archive clean up task. The default value is `1 Second`. A value lower than `1 Second` is not allowed.
 |====
 
 [[encrypted-file-system-content-repository-properties]]
 === Encrypted File System Content Repository Properties
+
+WARNING: The following properties are deprecated in favor of <<repository-encryption-properties>> properties.
 
 All of the properties defined above (see <<file-system-content-repository-properties,File System Content Repository Properties>>) still apply. Only encryption-specific properties are listed here. See <<user-guide.adoc#encrypted-content,Encrypted Content Repository in the User Guide>> for more information.
 
@@ -3242,16 +3342,6 @@ All of the properties defined above (see <<file-system-content-repository-proper
 |`nifi.content.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
 |`nifi.content.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.content.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
 |====
-
-The simplest configuration is below:
-
-....
-nifi.content.repository.implementation=org.apache.nifi.controller.repository.crypto.EncryptedFileSystemRepository
-nifi.content.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
-nifi.content.repository.encryption.key.provider.location=
-nifi.content.repository.encryption.key.id=Key1
-nifi.content.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
-....
 
 === Volatile Content Repository Properties
 
@@ -3290,6 +3380,7 @@ The `EncryptedWriteAheadProvenanceRepository` builds upon the `WriteAheadProvena
 *NOTE:* The `WriteAheadProvenanceRepository` will make use of the Provenance data stored by the `PersistentProvenanceRepository`. However, the
 `PersistentProvenanceRepository` may not be able to read the data written by the `WriteAheadProvenanceRepository`. Therefore, once the Provenance Repository is changed to use
 the `WriteAheadProvenanceRepository`, it cannot be changed back to the `PersistentProvenanceRepository` without deleting the data in the Provenance Repository.
+|`nifi.provenance.repository.rollover.events`| The maximum number of events that should be written to a single event file before the file is rolled over. The default value is `Integer.MAX_VALUE`
 |====
 
 
@@ -3358,6 +3449,8 @@ will be destroyed as well.
 [[encrypted-write-ahead-provenance-repository-properties]]
 === Encrypted Write Ahead Provenance Repository Properties
 
+WARNING: The following properties are deprecated in favor of <<repository-encryption-properties>> properties.
+
 All of the properties defined above (see <<write-ahead-provenance-repository-properties,Write Ahead Repository Properties>>) still apply. Only encryption-specific properties are listed here. See <<user-guide.adoc#encrypted-provenance,Encrypted Provenance Repository in the User Guide>> for more information.
 
 |====
@@ -3369,17 +3462,6 @@ All of the properties defined above (see <<write-ahead-provenance-repository-pro
 |`nifi.provenance.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
 |`nifi.provenance.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.provenance.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
 |====
-
-The simplest configuration is below:
-
-....
-nifi.provenance.repository.implementation=org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository
-nifi.provenance.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
-nifi.provenance.repository.encryption.key.provider.location=
-nifi.provenance.repository.encryption.key.id=Key1
-nifi.provenance.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
-....
-
 
 === Persistent Provenance Repository Properties
 
@@ -3760,7 +3842,8 @@ Providing three total network interfaces, including  `nifi.web.http.network.inte
 |`nifi.web.https.port.forwarding`|Same as `nifi.web.http.port.forwarding`, but with HTTPS for secure communication. It is blank by default.
 |`nifi.web.https.ciphersuites.include`|Cipher suites used to initialize the SSLContext of the Jetty HTTPS port.  If unspecified, the runtime SSLContext defaults are used.
 |`nifi.web.https.ciphersuites.exclude`|Cipher suites that may not be used by an SSL client to establish a connection to Jetty.  If unspecified, the runtime SSLContext defaults are used.
-
+|`nifi.web.max.access.token.requests.per.second`| Maximum amount of requests per second the token endpoints will accept before filtering requests. The default value is `25`
+|`nifi.web.should.send.server.version`| Whether the Server header should be included in HTTP responses. The default value is `true` +
 
 In Chrome, the SSL cipher negotiated with Jetty may be examined in the 'Developer Tools' plugin, in the 'Security' tab.
 In Firefox, the SSL cipher negotiated with Jetty may be examined in the 'Secure Connection' widget found to the left of the URL in the browser address bar.
@@ -3801,7 +3884,6 @@ These properties pertain to various security features in NiFi. Many of these pro
 |*Property*|*Description*
 |`nifi.sensitive.props.key`|This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
 |`nifi.sensitive.props.algorithm`|The algorithm used to encrypt sensitive properties. The default value is `NIFI_PBKDF2_AES_GCM_256`.
-|`nifi.sensitive.props.provider`|The sensitive property provider. The default value is `BC`.
 |`nifi.sensitive.props.additional.keys`|The comma separated list of properties in _nifi.properties_ to encrypt in addition to the default sensitive properties (see <<encrypt-config_tool>>).
 |`nifi.security.autoreload.enabled`|Specifies whether the SSL context factory should be automatically reloaded if updates to the keystore and truststore are detected. By default, it is set to `false`.
 |`nifi.security.autoreload.interval`|Specifies the interval at which the keystore and truststore are checked for updates. Only applies if `nifi.security.autoreload.enabled` is set to `true`. The default value is `10 secs`.
@@ -4001,6 +4083,37 @@ To configure custom properties for use with NiFi’s Expression Language:
 
 Custom properties can also be configured in the NiFi UI.  See the <<user-guide.adoc#Variables_Window,Variables Window>> section in the User Guide for more information.
 
+[[nar_provider_properties]]
+=== NAR Provider Properties
+
+These properties allow configuring one or more NAR providers. A NAR provider retrieves NARs from an external source and copies them to the directory specified by `nifi.nar.library.autoload.directory`.
+
+Each NAR provider property follows the format `nifi.nar.library.provider.<identifier>.<property-name>` and each provider must have at least one property named `implementation`.
+
+==== HDFS NAR Provider ====
+
+The HDFS NAR provider retrieves NARs using the Hadoop FileSystem API. This can be used with a traditional HDFS instance or with cloud storage, such as `s3a` or `abfs`. In order to use cloud storage, the Hadoop Libraries NAR must be re-built with the cloud storage profiles enabled.
+
+|====
+|*Property*|*Description*
+|`nifi.nar.library.provider.hdfs.implementation`| The fully qualified class name of the implementation class which is `org.apache.nifi.nar.hadoop.HDFSNarProvider`.
+|`nifi.nar.library.provider.hdfs.resources`| The comma separated list of configuration resources, such as `core-site.xml`.
+|`nifi.nar.library.provider.hdfs.storage.location`| The optional storage location, such as `hdfs://hdfs-location`. If not specified, the `defaultFs` from `core-site.xml` will be used.
+|`nifi.nar.library.provider.hdfs.source.directory`| The directory within the storage location where NARs are located.
+|`nifi.nar.library.provider.hdfs.kerberos.principal`| An optional Kerberos principal for authentication. If specified, one of keytab or password must also be specified.
+|`nifi.nar.library.provider.hdfs.kerberos.keytab`| An optional Kerberos keytab for authentication.
+|`nifi.nar.library.provider.hdfs.kerberos.password`| An optional Kerberos password for authentication.
+|====
+
+==== NiFi Registry NAR Provider ====
+
+The NiFi Registry NAR provider retrieves NARs from a NiFi Registry instance. In a secure installation, this provider will retrieve NARs from all buckets that the NiFi server is authorized to read from.
+
+|====
+|*Property*|*Description*
+|`nifi.nar.library.provider.nifi-registry.implementation`| The fully qualified class name of the implementation class which is `org.apache.nifi.registry.extension.NiFiRegistryNarProvider`.
+|`nifi.nar.library.provider.nifi-registry.url`| The URL of the NiFi Registry instance, such as `http://localhost:18080`. If the URL begins with `https`, then the NiFi keystore and truststore will be used to make the TLS connection.
+|====
 
 [[upgrading_nifi]]
 == Upgrading NiFi

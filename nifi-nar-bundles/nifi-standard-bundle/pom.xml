@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.15.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-bundle</artifactId>
     <packaging>pom</packaging>
@@ -41,29 +41,29 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-processors</artifactId>
-                <version>1.15.0-SNAPSHOT</version>
+                <version>1.16.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
-                <version>1.15.0-SNAPSHOT</version>
+                <version>1.16.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-reporting-tasks</artifactId>
-                <version>1.15.0-SNAPSHOT</version>
+                <version>1.16.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-content-viewer</artifactId>
                 <type>war</type>
-                <version>1.15.0-SNAPSHOT</version>
+                <version>1.16.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-jolt-transform-json-ui</artifactId>
                 <type>war</type>
-                <version>1.15.0-SNAPSHOT</version>
+                <version>1.16.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>com.bazaarvoice.jolt</groupId>
@@ -188,7 +188,7 @@
             <dependency>
                 <groupId>com.hierynomus</groupId>
                 <artifactId>sshj</artifactId>
-                <version>0.31.0</version>
+                <version>0.32.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
@@ -274,7 +274,7 @@
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp</artifactId>
-                <version>4.9.1</version>
+                <version>${okhttp.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.rburgst</groupId>
@@ -315,8 +315,8 @@
             </dependency>
             <dependency>
                 <groupId>com.fluenda</groupId>
-                <artifactId>ParCEFone</artifactId>
-                <version>1.2.8</version>
+                <artifactId>parcefone</artifactId>
+                <version>2.0.0</version>
             </dependency>
             <dependency>
                 <groupId>com.github.wnameless.json</groupId>
@@ -365,6 +365,12 @@
                 <groupId>org.apache.calcite</groupId>
                 <artifactId>calcite-core</artifactId>
                 <version>1.27.0</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.avro</groupId>

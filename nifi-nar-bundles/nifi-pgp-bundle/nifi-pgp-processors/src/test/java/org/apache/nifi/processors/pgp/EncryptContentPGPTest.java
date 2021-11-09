@@ -17,9 +17,12 @@
 package org.apache.nifi.processors.pgp;
 
 import org.apache.nifi.pgp.service.api.PGPPublicKeyService;
+import org.apache.nifi.pgp.util.PGPOperationUtils;
 import org.apache.nifi.processors.pgp.attributes.CompressionAlgorithm;
+import org.apache.nifi.processors.pgp.attributes.DecryptionStrategy;
 import org.apache.nifi.processors.pgp.attributes.FileEncoding;
 import org.apache.nifi.processors.pgp.attributes.SymmetricKeyAlgorithm;
+import org.apache.nifi.processors.pgp.io.KeyIdentifierConverter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.MockFlowFile;
@@ -59,10 +62,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
@@ -73,6 +78,8 @@ public class EncryptContentPGPTest {
     private static final String PASSPHRASE = UUID.randomUUID().toString();
 
     private static final String DATA = String.class.getName();
+
+    private static final byte[] DATA_BINARY = DATA.getBytes(StandardCharsets.UTF_8);
 
     private static final SymmetricKeyAlgorithm DEFAULT_SYMMETRIC_KEY_ALGORITHM = SymmetricKeyAlgorithm.valueOf(EncryptContentPGP.SYMMETRIC_KEY_ALGORITHM.getDefaultValue());
 
@@ -180,19 +187,34 @@ public class EncryptContentPGPTest {
     public void testSuccessPublicKeyEncryptionRsaPublicKey() throws IOException, InitializationException, PGPException {
         final PGPPublicKey publicKey = rsaSecretKey.getPublicKey();
         setPublicKeyService(publicKey);
-        final String publicKeyIdSearch = Long.toHexString(publicKey.getKeyID()).toUpperCase();
+        final String publicKeyIdSearch = KeyIdentifierConverter.format(publicKey.getKeyID());
         when(publicKeyService.findPublicKey(eq(publicKeyIdSearch))).thenReturn(Optional.of(publicKey));
 
         runner.enqueue(DATA);
         runner.run();
-        assertSuccess(rsaPrivateKey);
+        assertSuccess(rsaPrivateKey, DecryptionStrategy.DECRYPTED, DATA_BINARY);
+    }
+
+    @Test
+    public void testSuccessPublicKeyEncryptionRsaPublicKeySignedDataPackaged() throws IOException, InitializationException, PGPException {
+        final PGPPublicKey publicKey = rsaSecretKey.getPublicKey();
+        setPublicKeyService(publicKey);
+        final String publicKeyIdSearch = KeyIdentifierConverter.format(publicKey.getKeyID());
+        when(publicKeyService.findPublicKey(eq(publicKeyIdSearch))).thenReturn(Optional.of(publicKey));
+
+        final byte[] contents = DATA.getBytes(StandardCharsets.UTF_8);
+        final byte[] signedData = PGPOperationUtils.getOnePassSignedLiteralData(contents, rsaPrivateKey);
+
+        runner.enqueue(signedData);
+        runner.run();
+        assertSuccess(rsaPrivateKey, DecryptionStrategy.PACKAGED, signedData);
     }
 
     @Test
     public void testSuccessPasswordBasedAndPublicKeyEncryptionRsaPublicKey() throws IOException, InitializationException, PGPException {
         final PGPPublicKey publicKey = rsaSecretKey.getPublicKey();
         setPublicKeyService(publicKey);
-        final String publicKeyIdSearch = Long.toHexString(publicKey.getKeyID()).toUpperCase();
+        final String publicKeyIdSearch = KeyIdentifierConverter.format(publicKey.getKeyID());
         when(publicKeyService.findPublicKey(eq(publicKeyIdSearch))).thenReturn(Optional.of(publicKey));
 
         runner.setProperty(EncryptContentPGP.PASSPHRASE, PASSPHRASE);
@@ -200,19 +222,19 @@ public class EncryptContentPGPTest {
         runner.enqueue(DATA);
         runner.run();
 
-        assertSuccess(rsaPrivateKey);
+        assertSuccess(rsaPrivateKey, DecryptionStrategy.DECRYPTED, DATA_BINARY);
         assertSuccess(DEFAULT_SYMMETRIC_KEY_ALGORITHM, PASSPHRASE.toCharArray());
     }
 
     @Test
     public void testSuccessPublicKeyEncryptionElGamalPublicKey() throws IOException, InitializationException, PGPException {
         setPublicKeyService(elGamalPublicKey);
-        final String publicKeyIdSearch = Long.toHexString(elGamalPublicKey.getKeyID()).toUpperCase();
+        final String publicKeyIdSearch = KeyIdentifierConverter.format(elGamalPublicKey.getKeyID());
         when(publicKeyService.findPublicKey(eq(publicKeyIdSearch))).thenReturn(Optional.of(elGamalPublicKey));
 
         runner.enqueue(DATA);
         runner.run();
-        assertSuccess(elGamalPrivateKey);
+        assertSuccess(elGamalPrivateKey, DecryptionStrategy.DECRYPTED, DATA_BINARY);
     }
 
     @Test
@@ -220,7 +242,7 @@ public class EncryptContentPGPTest {
         final PGPPublicKey publicKey = rsaSecretKey.getPublicKey();
         setPublicKeyService(publicKey);
 
-        final String publicKeyIdNotFound = Long.toHexString(Long.MAX_VALUE).toUpperCase();
+        final String publicKeyIdNotFound = KeyIdentifierConverter.format(Long.MAX_VALUE);
         runner.setProperty(EncryptContentPGP.PUBLIC_KEY_SEARCH, publicKeyIdNotFound);
 
         runner.enqueue(DATA);
@@ -234,12 +256,11 @@ public class EncryptContentPGPTest {
         runner.enableControllerService(publicKeyService);
 
         runner.setProperty(EncryptContentPGP.PUBLIC_KEY_SERVICE, SERVICE_ID);
-        final long publicKeyId = publicKey.getKeyID();
-        final String publicKeyIdLong = Long.toHexString(publicKeyId).toUpperCase();
-        runner.setProperty(EncryptContentPGP.PUBLIC_KEY_SEARCH, publicKeyIdLong);
+        final String publicKeyId = KeyIdentifierConverter.format(publicKey.getKeyID());
+        runner.setProperty(EncryptContentPGP.PUBLIC_KEY_SEARCH, publicKeyId);
     }
 
-    private void assertSuccess(final PGPPrivateKey privateKey) throws IOException, PGPException {
+    private void assertSuccess(final PGPPrivateKey privateKey, final DecryptionStrategy decryptionStrategy, final byte[] expected) throws IOException, PGPException {
         runner.assertAllFlowFilesTransferred(EncryptContentPGP.SUCCESS);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(EncryptContentPGP.SUCCESS).iterator().next();
         assertAttributesFound(DEFAULT_SYMMETRIC_KEY_ALGORITHM, flowFile);
@@ -251,8 +272,8 @@ public class EncryptContentPGPTest {
         assertTrue(encryptedData.isPresent(), "Public Key Encrypted Data not found");
 
         final PGPPublicKeyEncryptedData publicKeyEncryptedData = (PGPPublicKeyEncryptedData) encryptedData.get();
-        final String decryptedData = getDecryptedData(publicKeyEncryptedData, privateKey);
-        assertEquals(DATA, decryptedData);
+        final byte[] decryptedData = getDecryptedData(publicKeyEncryptedData, privateKey, decryptionStrategy);
+        assertArrayEquals(expected, decryptedData);
     }
 
     private void assertSuccess(final SymmetricKeyAlgorithm symmetricKeyAlgorithm, final char[] passphrase) throws IOException, PGPException {
@@ -267,8 +288,8 @@ public class EncryptContentPGPTest {
         assertTrue(encryptedData.isPresent(), "Password Based Encrypted Data not found");
 
         final PGPPBEEncryptedData passwordBasedEncryptedData = (PGPPBEEncryptedData) encryptedData.get();
-        final String decryptedData = getDecryptedData(passwordBasedEncryptedData, passphrase);
-        assertEquals(DATA, decryptedData);
+        final byte[] decryptedData = getDecryptedData(passwordBasedEncryptedData, passphrase);
+        assertArrayEquals(DATA_BINARY, decryptedData);
     }
 
     private void assertAttributesFound(final SymmetricKeyAlgorithm symmetricKeyAlgorithm, final MockFlowFile flowFile) {
@@ -295,24 +316,30 @@ public class EncryptContentPGPTest {
         return (PGPEncryptedDataList) firstObject;
     }
 
-    private String getDecryptedData(final PGPPBEEncryptedData passwordBasedEncryptedData, final char[] passphrase) throws PGPException, IOException {
+    private byte[] getDecryptedData(final PGPPBEEncryptedData passwordBasedEncryptedData, final char[] passphrase) throws PGPException, IOException {
         final PBEDataDecryptorFactory decryptorFactory = new BcPBEDataDecryptorFactory(passphrase, new BcPGPDigestCalculatorProvider());
         final InputStream decryptedDataStream = passwordBasedEncryptedData.getDataStream(decryptorFactory);
-        return getDecryptedData(decryptedDataStream);
+        return getDecryptedData(decryptedDataStream, DecryptionStrategy.DECRYPTED);
     }
 
-    private String getDecryptedData(final PGPPublicKeyEncryptedData publicKeyEncryptedData, final PGPPrivateKey privateKey) throws PGPException, IOException {
+    private byte[] getDecryptedData(final PGPPublicKeyEncryptedData publicKeyEncryptedData,
+                                    final PGPPrivateKey privateKey,
+                                    final DecryptionStrategy decryptionStrategy) throws PGPException, IOException {
         final PublicKeyDataDecryptorFactory decryptorFactory = new BcPublicKeyDataDecryptorFactory(privateKey);
         final InputStream decryptedDataStream = publicKeyEncryptedData.getDataStream(decryptorFactory);
-        return getDecryptedData(decryptedDataStream);
+        return getDecryptedData(decryptedDataStream, decryptionStrategy);
     }
 
-    private String getDecryptedData(final InputStream decryptedDataStream) throws PGPException, IOException {
+    private byte[] getDecryptedData(final InputStream decryptedDataStream, final DecryptionStrategy decryptionStrategy) throws PGPException, IOException {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        final PGPObjectFactory objectFactory = new JcaPGPObjectFactory(decryptedDataStream);
-        final PGPLiteralData literalData = getLiteralData(objectFactory);
-        StreamUtils.copy(literalData.getDataStream(), outputStream);
-        return outputStream.toString();
+        if (DecryptionStrategy.PACKAGED == decryptionStrategy) {
+            StreamUtils.copy(decryptedDataStream, outputStream);
+        } else {
+            final PGPObjectFactory objectFactory = new JcaPGPObjectFactory(decryptedDataStream);
+            final PGPLiteralData literalData = getLiteralData(objectFactory);
+            StreamUtils.copy(literalData.getDataStream(), outputStream);
+        }
+        return outputStream.toByteArray();
     }
 
     private PGPLiteralData getLiteralData(final PGPObjectFactory objectFactory) throws PGPException {

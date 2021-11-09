@@ -16,8 +16,13 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
 
+import javax.net.ssl.SSLContext;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,10 +37,12 @@ public class PropertyBasedNarProviderInitializationContext implements NarProvide
     static final String BASIC_PREFIX = "nifi.nar.library.provider.";
 
     private final Map<String, String> properties;
+    private final SSLContext sslContext;
     private final String name;
 
-    public PropertyBasedNarProviderInitializationContext(final NiFiProperties properties, final String name) {
+    public PropertyBasedNarProviderInitializationContext(final NiFiProperties properties, final String name) throws TlsException {
         this.properties = extractProperties(properties, name);
+        this.sslContext = createSSLContext(properties);
         this.name = name;
     }
 
@@ -44,7 +51,12 @@ public class PropertyBasedNarProviderInitializationContext implements NarProvide
         return properties;
     }
 
-    public Map<String, String> extractProperties(final NiFiProperties properties, final String name) {
+    @Override
+    public SSLContext getNiFiSSLContext() {
+        return sslContext;
+    }
+
+    private Map<String, String> extractProperties(final NiFiProperties properties, final String name) {
         final String prefix = BASIC_PREFIX + name + ".";
         final Map<String, String> candidates = properties.getPropertiesWithPrefix(prefix);
         final Map<String, String> result = new HashMap<>();
@@ -58,5 +70,10 @@ public class PropertyBasedNarProviderInitializationContext implements NarProvide
         }
 
         return result;
+    }
+
+    private SSLContext createSSLContext(final NiFiProperties properties) throws TlsException {
+        final TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+        return SslContextFactory.createSslContext(tlsConfiguration);
     }
 }

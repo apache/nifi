@@ -18,12 +18,11 @@ package org.apache.nifi.ssl;
 
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -32,10 +31,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
 
 import static org.junit.Assert.assertEquals;
 
@@ -54,14 +49,8 @@ public class StandardRestrictedSSLContextServiceTest {
     private TestRunner runner;
 
     @BeforeClass
-    public static void setConfiguration() throws IOException, GeneralSecurityException {
-        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
-    }
-
-    @AfterClass
-    public static void deleteConfiguration() throws IOException {
-        Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
-        Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
+    public static void setConfiguration() {
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
     }
 
     @Before

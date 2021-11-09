@@ -19,15 +19,15 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.15.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-atlas-bundle</artifactId>
     <packaging>pom</packaging>
 
     <properties>
-        <atlas.version>2.1.0</atlas.version>
-        <spring.version>5.3.9</spring.version>
+        <atlas.version>2.2.0</atlas.version>
+        <spring.version>5.3.11</spring.version>
     </properties>
 
     <modules>
@@ -40,7 +40,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-atlas-reporting-task</artifactId>
-                <version>1.15.0-SNAPSHOT</version>
+                <version>1.16.0-SNAPSHOT</version>
             </dependency>
 
             <dependency>
@@ -84,6 +84,17 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
                 <version>1.21</version>
+            </dependency>
+            <!-- Override Netty 4 -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-handler</artifactId>
+                <version>${netty.4.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-transport-native-epoll</artifactId>
+                <version>${netty.4.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

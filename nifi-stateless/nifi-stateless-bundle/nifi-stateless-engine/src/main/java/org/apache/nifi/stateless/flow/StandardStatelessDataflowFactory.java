@@ -30,8 +30,9 @@ import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
 import org.apache.nifi.controller.scheduling.StatelessProcessScheduler;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
+import org.apache.nifi.encrypt.PropertyEncryptionMethod;
 import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.encrypt.PropertyEncryptorFactory;
+import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.extensions.ExtensionClient;
@@ -51,7 +52,6 @@ import org.apache.nifi.registry.flow.InMemoryFlowRegistry;
 import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
 import org.apache.nifi.stateless.config.SslConfigurationUtil;
@@ -73,7 +73,6 @@ import org.apache.nifi.stateless.repository.StatelessFileSystemContentRepository
 import org.apache.nifi.stateless.repository.StatelessFlowFileRepository;
 import org.apache.nifi.stateless.repository.StatelessProvenanceRepository;
 import org.apache.nifi.stateless.repository.StatelessRepositoryContextFactory;
-import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,14 +82,11 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class StandardStatelessDataflowFactory implements StatelessDataflowFactory<VersionedFlowSnapshot> {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessDataflowFactory.class);
-    private static final EncryptionMethod ENCRYPTION_METHOD = EncryptionMethod.MD5_256AES;
 
     @Override
     public StatelessDataflow createDataflow(final StatelessEngineConfiguration engineConfiguration, final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition)
@@ -108,8 +104,9 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
         try {
             final BulletinRepository bulletinRepository = new VolatileBulletinRepository();
             final File workingDir = engineConfiguration.getWorkingDirectory();
-            if (!workingDir.exists() && !workingDir.mkdirs()) {
-                throw new IOException("Working Directory " + workingDir + " does not exist and could not be created");
+            final File narExpansionDirectory = new File(workingDir, "nar");
+            if (!narExpansionDirectory.exists() && !narExpansionDirectory.mkdirs()) {
+                throw new IOException("Working Directory " + narExpansionDirectory + " does not exist and could not be created");
             }
 
             final InMemoryFlowRegistry flowRegistry = new InMemoryFlowRegistry();
@@ -118,9 +115,9 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             flowRegistryClient.addFlowRegistry(flowRegistry);
 
             final NarClassLoaders narClassLoaders = new NarClassLoaders();
-            final File extensionsWorkingDir = new File(workingDir, "extensions");
+            final File extensionsWorkingDir = new File(narExpansionDirectory, "extensions");
             final ClassLoader systemClassLoader = createSystemClassLoader(engineConfiguration.getNarDirectory());
-            final ExtensionDiscoveringManager extensionManager = ExtensionDiscovery.discover(extensionsWorkingDir, systemClassLoader, narClassLoaders);
+            final ExtensionDiscoveringManager extensionManager = ExtensionDiscovery.discover(extensionsWorkingDir, systemClassLoader, narClassLoaders, engineConfiguration.isLogExtensionDiscovery());
 
             flowFileEventRepo = new RingBufferEventRepository(5);
 
@@ -145,8 +142,9 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                 extensionClients.add(extensionClient);
             }
 
-            final ExtensionRepository extensionRepository = new FileSystemExtensionRepository(extensionManager, engineConfiguration.getExtensionsDirectory(), engineConfiguration.getWorkingDirectory(),
-                narClassLoaders, extensionClients);
+            final ExtensionRepository extensionRepository = new FileSystemExtensionRepository(extensionManager, engineConfiguration.getExtensionsDirectory(),
+                engineConfiguration.getReadOnlyExtensionsDirectories(), engineConfiguration.getWorkingDirectory(), narClassLoaders, extensionClients);
+            extensionRepository.initialize();
 
             final VariableRegistry variableRegistry = VariableRegistry.EMPTY_REGISTRY;
             final PropertyEncryptor lazyInitializedEncryptor = new PropertyEncryptor() {
@@ -167,7 +165,9 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                         return created;
                     }
 
-                    created = getPropertyEncryptor(engineConfiguration.getSensitivePropsKey());
+                    created = new PropertyEncryptorBuilder(engineConfiguration.getSensitivePropsKey())
+                            .setAlgorithm(PropertyEncryptionMethod.NIFI_PBKDF2_AES_GCM_256.toString())
+                            .build();
                     return created;
                 }
             };
@@ -176,8 +176,10 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
             final File krb5File = engineConfiguration.getKrb5File();
             final KerberosConfig kerberosConfig = new KerberosConfig(null, null, krb5File);
-            logger.info("Setting java.security.krb5.conf to {}", krb5File.getAbsolutePath());
-            System.setProperty("java.security.krb5.conf", krb5File.getAbsolutePath());
+            if (krb5File != null) {
+                logger.info("Setting java.security.krb5.conf to {}", krb5File.getAbsolutePath());
+                System.setProperty("java.security.krb5.conf", krb5File.getAbsolutePath());
+            }
 
             final StatelessEngine<VersionedFlowSnapshot> statelessEngine = new StandardStatelessEngine.Builder()
                 .bulletinRepository(bulletinRepository)
@@ -194,7 +196,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                 .counterRepository(counterRepo)
                 .build();
 
-            final StatelessFlowManager flowManager = new StatelessFlowManager(flowFileEventRepo, parameterContextManager, statelessEngine, () -> true, sslContext);
+            final StatelessFlowManager flowManager = new StatelessFlowManager(flowFileEventRepo, parameterContextManager, statelessEngine, () -> true, sslContext, bulletinRepository);
             final ControllerServiceProvider controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, flowManager, extensionManager);
 
             final ProcessContextFactory rawProcessContextFactory = new StatelessProcessContextFactory(controllerServiceProvider, lazyInitializedEncryptor, stateManagerProvider);
@@ -341,14 +343,5 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
         }
 
         return Integer.parseInt(javaVersion.substring(0, dotIndex));
-    }
-
-    private PropertyEncryptor getPropertyEncryptor(final String sensitivePropertiesKey) {
-        final Map<String, String> properties = new HashMap<>();
-        properties.put(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, ENCRYPTION_METHOD.getAlgorithm());
-        properties.put(NiFiProperties.SENSITIVE_PROPS_PROVIDER, ENCRYPTION_METHOD.getProvider());
-        properties.put(NiFiProperties.SENSITIVE_PROPS_KEY, sensitivePropertiesKey);
-        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
-        return PropertyEncryptorFactory.getPropertyEncryptor(niFiProperties);
     }
 }

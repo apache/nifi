@@ -90,7 +90,7 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
                 // aggregate the property descriptors
                 final Map<String, PropertyDescriptorDTO> descriptors = nodeControllerService.getDescriptors();
                 if (descriptors != null) {
-                    descriptors.values().stream().forEach(propertyDescriptor -> {
+                    descriptors.values().forEach(propertyDescriptor -> {
                         propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeId, propertyDescriptor);
                     });
                 }

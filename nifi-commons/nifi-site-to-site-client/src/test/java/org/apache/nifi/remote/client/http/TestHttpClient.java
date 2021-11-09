@@ -16,39 +16,7 @@
  */
 package org.apache.nifi.remote.client.http;
 
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_HEADER_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.PROTOCOL_VERSION;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.SERVER_SIDE_TRANSACTION_TTL;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeFalse;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.ServerSocket;
-import java.net.SocketTimeoutException;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.Transaction;
@@ -65,6 +33,7 @@ import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.StandardDataPacket;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ControllerDTO;
@@ -86,17 +55,53 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.littleshoot.proxy.HttpProxyServer;
 import org.littleshoot.proxy.ProxyAuthenticator;
 import org.littleshoot.proxy.impl.DefaultHttpProxyServer;
 import org.littleshoot.proxy.impl.ThreadPoolConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.ServerSocket;
+import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_HEADER_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.PROTOCOL_VERSION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.SERVER_SIDE_TRANSACTION_TTL;
+import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestHttpClient {
 
@@ -115,6 +120,8 @@ public class TestHttpClient {
     private static Set<PeerDTO> peers;
     private static Set<PeerDTO> peersSecure;
     private static String serverChecksum;
+
+    private static TlsConfiguration tlsConfiguration;
 
     public static class SiteInfoServlet extends HttpServlet {
 
@@ -135,11 +142,11 @@ public class TestHttpClient {
             controller.setInstanceId("remote-instance-id");
             controller.setName("Remote NiFi Flow");
 
-            assertNotNull("Test case should set <inputPorts> depending on the test scenario.", inputPorts);
+            assertNotNull(inputPorts, "Test case should set <inputPorts> depending on the test scenario.");
             controller.setInputPorts(inputPorts);
             controller.setInputPortCount(inputPorts.size());
 
-            assertNotNull("Test case should set <outputPorts> depending on the test scenario.", outputPorts);
+            assertNotNull(outputPorts, "Test case should set <outputPorts> depending on the test scenario.");
             controller.setOutputPorts(outputPorts);
             controller.setOutputPortCount(outputPorts.size());
 
@@ -167,10 +174,10 @@ public class TestHttpClient {
             final PeersEntity peersEntity = new PeersEntity();
 
             if (req.getLocalPort() == httpConnector.getLocalPort()) {
-                assertNotNull("Test case should set <peers> depending on the test scenario.", peers);
+                assertNotNull(peers, "Test case should set <peers> depending on the test scenario.");
                 peersEntity.setPeers(peers);
             } else {
-                assertNotNull("Test case should set <peersSecure> depending on the test scenario.", peersSecure);
+                assertNotNull(peersSecure, "Test case should set <peersSecure> depending on the test scenario.");
                 peersEntity.setPeers(peersSecure);
             }
 
@@ -181,7 +188,7 @@ public class TestHttpClient {
     public static class PortTransactionsServlet extends HttpServlet {
 
         @Override
-        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
             final int reqProtocolVersion = getReqProtocolVersion(req);
 
@@ -201,7 +208,7 @@ public class TestHttpClient {
     public static class PortTransactionsAccessDeniedServlet extends HttpServlet {
 
         @Override
-        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
             respondWithText(resp, "Unable to perform the desired action" +
                     " due to insufficient permissions. Contact the system administrator.", 403);
@@ -213,7 +220,7 @@ public class TestHttpClient {
     public static class InputPortTransactionServlet extends HttpServlet {
 
         @Override
-        protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             final int reqProtocolVersion = getReqProtocolVersion(req);
 
             final TransactionResultEntity entity = new TransactionResultEntity();
@@ -226,7 +233,7 @@ public class TestHttpClient {
         }
 
         @Override
-        protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
             final int reqProtocolVersion = getReqProtocolVersion(req);
 
@@ -244,7 +251,7 @@ public class TestHttpClient {
     public static class OutputPortTransactionServlet extends HttpServlet {
 
         @Override
-        protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             final int reqProtocolVersion = getReqProtocolVersion(req);
 
             final TransactionResultEntity entity = new TransactionResultEntity();
@@ -257,7 +264,7 @@ public class TestHttpClient {
         }
 
         @Override
-        protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
             final int reqProtocolVersion = getReqProtocolVersion(req);
 
@@ -332,7 +339,7 @@ public class TestHttpClient {
     public static class FlowFilesTimeoutAfterDataExchangeServlet extends HttpServlet {
 
         @Override
-        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
             final int reqProtocolVersion = getReqProtocolVersion(req);
 
@@ -398,7 +405,7 @@ public class TestHttpClient {
 
     private static int getReqProtocolVersion(HttpServletRequest req) {
         final String reqProtocolVersionStr = req.getHeader(PROTOCOL_VERSION);
-        assertTrue(!isEmpty(reqProtocolVersionStr));
+        assertFalse(isEmpty(reqProtocolVersionStr));
         return Integer.parseInt(reqProtocolVersionStr);
     }
 
@@ -427,7 +434,7 @@ public class TestHttpClient {
         out.flush();
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws Exception {
         // Create embedded Jetty server
         // Use less threads to mitigate Gateway Timeout (504) with proxy test
@@ -454,11 +461,12 @@ public class TestHttpClient {
         wrongPathContextHandler.insertHandler(wrongPathServletHandler);
 
         final SslContextFactory sslContextFactory = new SslContextFactory.Server();
-        sslContextFactory.setKeyStorePath("src/test/resources/certs/keystore.jks");
-        sslContextFactory.setKeyStorePassword("passwordpassword");
-        sslContextFactory.setKeyStoreType("JKS");
+
+        setTlsConfiguration();
+        sslContextFactory.setKeyStorePath(tlsConfiguration.getKeystorePath());
+        sslContextFactory.setKeyStorePassword(tlsConfiguration.getKeystorePassword());
+        sslContextFactory.setKeyStoreType(tlsConfiguration.getKeystoreType().getType());
         sslContextFactory.setProtocol(TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        sslContextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1");
 
         httpConnector = new ServerConnector(server);
 
@@ -554,7 +562,7 @@ public class TestHttpClient {
                 .start();
     }
 
-    @AfterClass
+    @AfterAll
     public static void teardown() throws Exception {
         logger.info("Stopping servers.");
         try {
@@ -595,12 +603,8 @@ public class TestHttpClient {
 
     }
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
-
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "TRACE");
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote.protocol.http.HttpClientTransaction", "DEBUG");
-
         testCaseFinished = new CountDownLatch(1);
 
         final PeerDTO peer = new PeerDTO();
@@ -677,7 +681,7 @@ public class TestHttpClient {
 
     }
 
-    @After
+    @AfterEach
     public void after() throws Exception {
         testCaseFinished.countDown();
     }
@@ -693,13 +697,12 @@ public class TestHttpClient {
         return new SiteToSiteClient.Builder().transportProtocol(SiteToSiteTransportProtocol.HTTP)
                 .url("https://localhost:" + sslConnector.getLocalPort() + "/nifi")
                 .timeout(3, TimeUnit.MINUTES)
-                .keystoreFilename("src/test/resources/certs/keystore.jks")
-                .keystorePass("passwordpassword")
-                .keystoreType(KeystoreType.JKS)
-                .truststoreFilename("src/test/resources/certs/truststore.jks")
-                .truststorePass("passwordpassword")
-                .truststoreType(KeystoreType.JKS)
-                ;
+                .keystoreFilename(tlsConfiguration.getKeystorePath())
+                .keystorePass(tlsConfiguration.getKeystorePassword())
+                .keystoreType(KeystoreType.valueOf(tlsConfiguration.getKeystoreType().getType()))
+                .truststoreFilename(tlsConfiguration.getTruststorePath())
+                .truststorePass(tlsConfiguration.getTruststorePassword())
+                .truststoreType(KeystoreType.valueOf(tlsConfiguration.getTruststoreType().getType()));
     }
 
     private static void consumeDataPacket(DataPacket packet) throws IOException {
@@ -774,13 +777,8 @@ public class TestHttpClient {
                 .portName("input-unknown")
                 .build()
         ) {
-            try {
-                client.createTransaction(TransferDirection.SEND);
-                fail();
-            } catch (IOException e) {
-                logger.info("Exception message: {}", e.getMessage());
-                assertTrue(e.getMessage().contains("Failed to determine the identifier of port"));
-            }
+            IOException e = assertThrows(IOException.class, () -> client.createTransaction(TransferDirection.SEND));
+            assertTrue(e.getMessage().contains("Failed to determine the identifier of port"));
         }
     }
 
@@ -858,7 +856,7 @@ public class TestHttpClient {
                         .build()
         ) {
             final Transaction transaction = client.createTransaction(TransferDirection.SEND);
-            assertNull("createTransaction should fail at peer selection and return null.", transaction);
+            assertNull(transaction, "createTransaction should fail at peer selection and return null.");
         }
 
     }
@@ -885,13 +883,8 @@ public class TestHttpClient {
                         .portName("input-access-denied")
                         .build()
         ) {
-            try {
-                client.createTransaction(TransferDirection.SEND);
-                fail("Handshake exception should be thrown.");
-            } catch (HandshakeException e) {
-            }
+           assertThrows(HandshakeException.class, () -> client.createTransaction(TransferDirection.SEND));
         }
-
     }
 
     @Test
@@ -1112,13 +1105,8 @@ public class TestHttpClient {
 
     }
 
-    private void completeShouldFail(Transaction transaction) throws IOException {
-        try {
-            transaction.complete();
-            fail("Complete operation should fail since transaction has already failed.");
-        } catch (IllegalStateException e) {
-            logger.info("An exception was thrown as expected.", e);
-        }
+    private void completeShouldFail(Transaction transaction) {
+        assertThrows(IllegalStateException.class, () -> transaction.complete());
     }
 
     private void confirmShouldFail(Transaction transaction) throws IOException {
@@ -1131,8 +1119,8 @@ public class TestHttpClient {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     public void testSendTimeout() throws Exception {
-        assumeFalse(isWindowsEnvironment());//skip on windows
         try (
             SiteToSiteClient client = getDefaultBuilder()
                 .timeout(1, TimeUnit.SECONDS)
@@ -1151,26 +1139,17 @@ public class TestHttpClient {
             serverChecksum = "1345413116";
 
             transaction.send(packet);
-            try {
-                transaction.confirm();
-                fail();
-            } catch (IOException e) {
-                logger.info("An exception was thrown as expected.", e);
-                assertTrue(e.getMessage().contains("TimeoutException"));
-            }
+            IOException e = assertThrows(IOException.class, () -> transaction.confirm());
+            assertTrue(e.getMessage().contains("TimeoutException"));
 
             completeShouldFail(transaction);
         }
 
     }
 
-    private boolean isWindowsEnvironment() {
-        return System.getProperty("os.name").toLowerCase().startsWith("windows");
-    }
-
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     public void testSendTimeoutAfterDataExchange() throws Exception {
-        assumeFalse(isWindowsEnvironment());//skip on windows
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote.protocol.http.HttpClientTransaction", "INFO");
 
         try (
@@ -1197,17 +1176,11 @@ public class TestHttpClient {
                     }
                 }
 
-            try {
-                confirmShouldFail(transaction);
-                fail("Should be timeout.");
-            } catch (IOException e) {
-                logger.info("Exception message: {}", e.getMessage());
-                assertTrue(e.getMessage().contains("TimeoutException"));
-            }
+            IOException e = assertThrows(IOException.class, () -> confirmShouldFail(transaction));
+            assertTrue(e.getMessage().contains("TimeoutException"));
 
             completeShouldFail(transaction);
         }
-
     }
 
     @Test
@@ -1218,13 +1191,8 @@ public class TestHttpClient {
                 .portName("output-unknown")
                 .build()
         ) {
-            try {
-                client.createTransaction(TransferDirection.RECEIVE);
-                fail();
-            } catch (IOException e) {
-                logger.info("Exception message: {}", e.getMessage());
-                assertTrue(e.getMessage().contains("Failed to determine the identifier of port"));
-            }
+            IOException e = assertThrows(IOException.class, () -> client.createTransaction(TransferDirection.RECEIVE));
+            assertTrue(e.getMessage().contains("Failed to determine the identifier of port"));
         }
     }
 
@@ -1361,13 +1329,8 @@ public class TestHttpClient {
                         .portName("output-timeout")
                         .build()
         ) {
-            try {
-                client.createTransaction(TransferDirection.RECEIVE);
-                fail();
-            } catch (IOException e) {
-                logger.info("An exception was thrown as expected.", e);
-                assertTrue(e instanceof SocketTimeoutException);
-            }
+            IOException e = assertThrows(IOException.class, () -> client.createTransaction(TransferDirection.RECEIVE));
+            assertTrue(e instanceof SocketTimeoutException);
         }
     }
 
@@ -1387,17 +1350,15 @@ public class TestHttpClient {
             assertNotNull(packet);
             consumeDataPacket(packet);
 
-            try {
-                transaction.receive();
-                fail();
-            } catch (IOException e) {
-                logger.info("An exception was thrown as expected.", e);
-                assertTrue(e.getCause() instanceof SocketTimeoutException);
-            }
+            IOException e = assertThrows(IOException.class, () -> transaction.receive());
+            assertTrue(e.getCause() instanceof SocketTimeoutException);
 
             confirmShouldFail(transaction);
             completeShouldFail(transaction);
         }
     }
 
+    private static void setTlsConfiguration() {
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
+    }
 }

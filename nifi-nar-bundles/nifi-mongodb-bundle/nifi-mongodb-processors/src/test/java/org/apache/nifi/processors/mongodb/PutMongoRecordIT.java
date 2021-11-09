@@ -147,7 +147,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         runner.assertAllFlowFilesTransferred(PutMongoRecord.REL_SUCCESS, 1);
 
         // verify 1 doc inserted into the collection
-        assertEquals(5, collection.count());
+        assertEquals(5, collection.countDocuments());
         //assertEquals(doc, collection.find().first());
 
 
@@ -168,7 +168,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         runner.enqueue("");
         runner.run();
         runner.assertAllFlowFilesTransferred(PutMongoRecord.REL_SUCCESS, 1);
-        assertEquals(5, collection.count());
+        assertEquals(5, collection.countDocuments());
     }
 
     @Test
@@ -213,7 +213,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
 
         // verify 1 doc inserted into the collection
-        assertEquals(4, collection.count());
+        assertEquals(4, collection.countDocuments());
         //assertEquals(doc, collection.find().first());
     }
 

@@ -61,6 +61,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -84,6 +85,12 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     private static final String DENY_LFS_EXPLANATION = String.format("LFS Access Denied according to Environment Variable [%s]", DENY_LFS_ACCESS);
 
     private static final Pattern LOCAL_FILE_SYSTEM_URI = Pattern.compile("^file:.*");
+
+    private static final String NORMALIZE_ERROR_WITH_PROPERTY = "The filesystem component of the URI configured in the '{}' property ({}) does not match " +
+            "the filesystem URI from the Hadoop configuration file ({}) and will be ignored.";
+
+    private static final String NORMALIZE_ERROR_WITHOUT_PROPERTY = "The filesystem component of the URI configured ({}) does not match the filesystem URI from " +
+            "the Hadoop configuration file ({}) and will be ignored.";
 
     // properties
     public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
@@ -152,6 +159,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
 
     public static final String ABSOLUTE_HDFS_PATH_ATTRIBUTE = "absolute.hdfs.path";
+
+    protected static final String TARGET_HDFS_DIR_CREATED_ATTRIBUTE = "target.dir.created";
 
     private static final Object RESOURCES_LOCK = new Object();
     private static final HdfsResources EMPTY_HDFS_RESOURCES = new HdfsResources(null, null, null, null);
@@ -672,39 +681,33 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     protected Path getNormalizedPath(final String rawPath) {
-        final Path path = new Path(rawPath);
-        final URI uri = path.toUri();
-
-        final URI fileSystemUri = getFileSystem().getUri();
-
-        if (uri.getScheme() != null) {
-            if (!uri.getScheme().equals(fileSystemUri.getScheme()) || !uri.getAuthority().equals(fileSystemUri.getAuthority())) {
-                getLogger().warn("The filesystem component of the URI configured ({}) does not match the filesystem URI from the Hadoop configuration file ({}) " +
-                        "and will be ignored.", uri, fileSystemUri);
-            }
-
-            return new Path(uri.getPath());
-        } else {
-            return path;
-        }
+       return getNormalizedPath(rawPath, Optional.empty());
     }
 
     protected Path getNormalizedPath(final ProcessContext context, final PropertyDescriptor property, final FlowFile flowFile) {
         final String propertyValue = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
-        final Path path = new Path(propertyValue);
-        final URI uri = path.toUri();
+        return getNormalizedPath(propertyValue, Optional.of(property.getDisplayName()));
+    }
 
+    private Path getNormalizedPath(final String rawPath, final Optional<String> propertyName) {
+        final URI uri = new Path(rawPath).toUri();
         final URI fileSystemUri = getFileSystem().getUri();
+        final String path;
 
         if (uri.getScheme() != null) {
             if (!uri.getScheme().equals(fileSystemUri.getScheme()) || !uri.getAuthority().equals(fileSystemUri.getAuthority())) {
-                getLogger().warn("The filesystem component of the URI configured in the '{}' property ({}) does not match the filesystem URI from the Hadoop configuration file ({}) " +
-                        "and will be ignored.", property.getDisplayName(), uri, fileSystemUri);
+                if (propertyName.isPresent()) {
+                    getLogger().warn(NORMALIZE_ERROR_WITH_PROPERTY, propertyName, uri, fileSystemUri);
+                } else {
+                    getLogger().warn(NORMALIZE_ERROR_WITHOUT_PROPERTY, uri, fileSystemUri);
+                }
             }
 
-            return new Path(uri.getPath());
+            path = uri.getPath();
         } else {
-            return path;
+            path = rawPath;
         }
+
+        return new Path(path.replaceAll("/+", "/"));
     }
 }

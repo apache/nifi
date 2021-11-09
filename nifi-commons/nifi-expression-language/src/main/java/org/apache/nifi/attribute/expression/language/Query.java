@@ -19,7 +19,6 @@ package org.apache.nifi.attribute.expression.language;
 import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.attribute.expression.language.compile.ExpressionCompiler;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.AttributeEvaluator;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
@@ -50,7 +49,6 @@ public class Query {
     private final Tree tree;
     private final Evaluator<?> evaluator;
     private final AtomicBoolean evaluated = new AtomicBoolean(false);
-    private final EvaluatorState context = new EvaluatorState();
 
     private Query(final String query, final Tree tree, final Evaluator<?> evaluator) {
         this.query = query;

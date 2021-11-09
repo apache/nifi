@@ -16,9 +16,17 @@
  */
 package org.apache.nifi.hl7.query;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import ca.uhn.hl7v2.DefaultHapiContext;
+import ca.uhn.hl7v2.HL7Exception;
+import ca.uhn.hl7v2.HapiContext;
+import ca.uhn.hl7v2.model.Message;
+import ca.uhn.hl7v2.parser.PipeParser;
+import ca.uhn.hl7v2.validation.impl.ValidationContextFactory;
+import org.apache.nifi.hl7.hapi.HapiMessage;
+import org.apache.nifi.hl7.model.HL7Field;
+import org.apache.nifi.hl7.model.HL7Message;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,18 +34,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.hl7.hapi.HapiMessage;
-import org.apache.nifi.hl7.model.HL7Field;
-import org.apache.nifi.hl7.model.HL7Message;
-import org.junit.Before;
-import org.junit.Test;
-
-import ca.uhn.hl7v2.DefaultHapiContext;
-import ca.uhn.hl7v2.HL7Exception;
-import ca.uhn.hl7v2.HapiContext;
-import ca.uhn.hl7v2.model.Message;
-import ca.uhn.hl7v2.parser.PipeParser;
-import ca.uhn.hl7v2.validation.impl.ValidationContextFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings("resource")
 public class TestHL7Query {
@@ -60,7 +59,7 @@ public class TestHL7Query {
 
     private HL7Message hypoglycemia;
 
-    @Before
+    @BeforeEach
     public void init() throws IOException, HL7Exception {
         this.hyperglycemia = createMessage(HYPERGLYCEMIA);
         this.hypoglycemia = createMessage(HYPOGLYCEMIA);
