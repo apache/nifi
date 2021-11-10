@@ -57,7 +57,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class PutMongoRecordIT extends MongoWriteTestBase {
 
@@ -414,7 +413,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
     }
 
     @Test
-    void testUpsertThrowsExceptionWhenKeyFieldDoesNotExist() throws Exception {
+    void testRouteToFailureWhenKeyFieldDoesNotExist() throws Exception {
         // GIVEN
         TestRunner runner = init();
 
@@ -437,11 +436,9 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             )
         );
 
-        String expectedErrorMessage = "field 'non_existent_field' (from field expression 'non_existent_field') has no value";
-
         // WHEN
         // THEN
-        testUpsertFailure(runner, inputs, expectedErrorMessage);
+        testUpsertFailure(runner, inputs);
     }
 
     @Test
@@ -579,7 +576,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
             MockFlowFile flowFile = new MockFlowFile(1);
             flowFile.putAttributes(new HashMap<String, String>(){{
-                put("mongo.update.mode", "many");
+                put(PutMongoRecord.MONGODB_UPDATE_MODE, "many");
             }});
             updateRunner.enqueue(flowFile);
             updateRunner.run();
@@ -601,7 +598,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
     }
 
     @Test
-    void testThrowExceptionWhenUpdateModeFFAttributeSetToInvalid() throws Exception {
+    void testRouteToFailureWhenUpdateModeFFAttributeSetToInvalid() throws Exception {
         TestRunner runner = init();
 
         runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "team");
@@ -617,31 +614,13 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             )
         );
 
-        String expectedErrorMessage = "Unrecognized 'mongo.update.mode' value 'invalid'";
-
         // WHEN
-        AssertionError error = assertThrows(
-            AssertionError.class,
-            () -> inputs.forEach(input -> {
-                input.forEach(recordReader::addRecord);
-
-                MockFlowFile flowFile = new MockFlowFile(1);
-                flowFile.putAttributes(new HashMap<String, String>() {{
-                    put("mongo.update.mode", "invalid");
-                }});
-                runner.enqueue(flowFile);
-                runner.run();
-            })
-        );
-
         // THEN
-        assertEquals(expectedErrorMessage, error.getCause().getMessage());
-
-        assertEquals(inputs.size(), runner.getQueueSize().getObjectCount());
+        testUpsertFailure(runner, inputs);
     }
 
     @Test
-    void testUpsertThrowsExceptionWhenKeyFieldReferencesNonEmbeddedDocument() throws Exception {
+    void testRouteToFailureWhenKeyFieldReferencesNonEmbeddedDocument() throws Exception {
         // GIVEN
         TestRunner runner = init();
 
@@ -664,11 +643,9 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             )
         );
 
-        String expectedErrorMessage = "field 'id' (from field expression 'id.is_not_an_embedded_document') is not an embedded document";
-
         // WHEN
         // THEN
-        testUpsertFailure(runner, inputs, expectedErrorMessage);
+        testUpsertFailure(runner, inputs);
     }
 
     private void testUpsertSuccess(TestRunner runner, List<List<Object[]>> inputs, Set<Map<String, Object>> expected) {
@@ -697,18 +674,30 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         assertEquals(expected, actual);
     }
 
-    private void testUpsertFailure(TestRunner runner, List<List<Object[]>> inputs, String expectedErrorMessage) {
+    private void testUpsertFailure(TestRunner runner, List<List<Object[]>> inputs) {
         // GIVEN
+        Set<Object> expected = Collections.emptySet();
 
         // WHEN
-        AssertionError error = assertThrows(
-            AssertionError.class,
-            () -> testUpsertSuccess(runner, inputs, null)
-        );
+        inputs.forEach(input -> {
+            input.forEach(recordReader::addRecord);
+
+            runner.enqueue("");
+            runner.run();
+        });
 
         // THEN
-        assertEquals(expectedErrorMessage, error.getCause().getMessage());
+        assertEquals(0, runner.getQueueSize().getObjectCount());
 
-        assertEquals(inputs.size(), runner.getQueueSize().getObjectCount());
+        runner.assertAllFlowFilesTransferred(PutMongoRecord.REL_FAILURE, inputs.size());
+
+        Set<Map<String, Object>> actual = new HashSet<>();
+        for (Document document : collection.find()) {
+            actual.add(document.entrySet().stream()
+                .filter(key__value -> !key__value.getKey().equals("_id"))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        }
+
+        assertEquals(expected, actual);
     }
 }

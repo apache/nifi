@@ -70,11 +70,13 @@ import java.util.Set;
         "by the \"Batch Size\" configuration property. This value should be set to a reasonable size to ensure " +
         "that MongoDB is not overloaded with too many operations at once.")
 @ReadsAttribute(
-    attribute = "mongodb.update.mode",
+    attribute = PutMongoRecord.MONGODB_UPDATE_MODE,
     description = "Configurable parameter for controlling update mode on a per-flowfile basis." +
         " Acceptable values are 'one' and 'many' and controls whether a single incoming record should update a single or multiple Mongo documents."
 )
 public class PutMongoRecord extends AbstractMongoProcessor {
+    static final String MONGODB_UPDATE_MODE = "mongodb.update.mode";
+
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("All FlowFiles that are written to MongoDB are routed to this relationship").build();
     static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
@@ -82,8 +84,8 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
     static final AllowableValue UPDATE_ONE = new AllowableValue("one", "Update One", "Updates only the first document that matches the query.");
     static final AllowableValue UPDATE_MANY = new AllowableValue("many", "Update Many", "Updates every document that matches the query.");
-    static final AllowableValue UPDATE_FF_ATTRIBUTE = new AllowableValue("flowfile-attribute", "Use 'mongodb.update.mode' flowfile attribute.",
-        "Use the value of the 'mongodb.update.mode' attribute of the incoming flowfile. Acceptable values are 'one' and 'many'.");
+    static final AllowableValue UPDATE_FF_ATTRIBUTE = new AllowableValue("flowfile-attribute", "Use '" + MONGODB_UPDATE_MODE + "' flowfile attribute.",
+        "Use the value of the '" + MONGODB_UPDATE_MODE + "' attribute of the incoming flowfile. Acceptable values are 'one' and 'many'.");
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
             .name("record-reader")
@@ -241,8 +243,8 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                             new UpdateOptions().upsert(true)
                         );
                     } else {
-                        String flowfileUpdateMode = flowFile.getAttribute("mongo.update.mode");
-                        throw new ProcessException("Unrecognized 'mongo.update.mode' value '" + flowfileUpdateMode + "'");
+                        String flowfileUpdateMode = flowFile.getAttribute(MONGODB_UPDATE_MODE);
+                        throw new ProcessException("Unrecognized '" + MONGODB_UPDATE_MODE + "' value '" + flowfileUpdateMode + "'");
                     }
                 } else {
                     writeModel = new InsertOneModel<>(readyToUpsert);
@@ -342,7 +344,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             ||
             (
                 updateMode.equals(UPDATE_FF_ATTRIBUTE.getValue())
-                    && updateModeToMatch.equalsIgnoreCase(flowFile.getAttribute("mongo.update.mode"))
+                    && updateModeToMatch.equalsIgnoreCase(flowFile.getAttribute(MONGODB_UPDATE_MODE))
             );
 
         return updateModeMatches;
