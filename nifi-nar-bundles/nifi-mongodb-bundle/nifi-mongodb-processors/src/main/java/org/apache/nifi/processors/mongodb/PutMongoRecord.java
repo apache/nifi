@@ -62,13 +62,13 @@ import java.util.Map;
 import java.util.Set;
 
 @EventDriven
-@Tags({"mongodb", "insert", "record", "put"})
+@Tags({"mongodb", "insert", "update", "upsert", "record", "put"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("This processor is a record-aware processor for inserting data into MongoDB. It uses a configured record reader and " +
-        "schema to read an incoming record set from the body of a flowfile and then inserts batches of those records into " +
-        "a configured MongoDB collection. This processor does not support deletes. The number of documents to insert at a time is controlled " +
-        "by the \"Insert Batch Size\" configuration property. This value should be set to a reasonable size to ensure " +
-        "that MongoDB is not overloaded with too many inserts at once.")
+@CapabilityDescription("This processor is a record-aware processor for inserting/upserting data into MongoDB. It uses a configured record reader and " +
+        "schema to read an incoming record set from the body of a flowfile and then inserts/upserts batches of those records into " +
+        "a configured MongoDB collection. This processor does not support deletes. The number of documents to insert/upsert at a time is controlled " +
+        "by the \"Batch Size\" configuration property. This value should be set to a reasonable size to ensure " +
+        "that MongoDB is not overloaded with too many operations at once.")
 @ReadsAttribute(
     attribute = "mongodb.update.mode",
     description = "Configurable parameter for controlling update mode on a per-flowfile basis." +
@@ -115,7 +115,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
     static final PropertyDescriptor BYPASS_VALIDATION = new PropertyDescriptor.Builder()
             .name("bypass-validation")
             .displayName("Bypass Validation")
-            .description("Bypass schema validation during insert/update")
+            .description("Bypass schema validation during insert/upsert")
             .allowableValues("True", "False")
             .defaultValue("True")
             .required(true)
@@ -335,14 +335,14 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         return filters;
     }
 
-    private boolean updateModeMatches(String updateValueToMatch, ProcessContext context, FlowFile flowFile) {
+    private boolean updateModeMatches(String updateModeToMatch, ProcessContext context, FlowFile flowFile) {
         String updateMode = context.getProperty(UPDATE_MODE).getValue();
 
-        boolean updateModeMatches = updateMode.equals(updateValueToMatch)
+        boolean updateModeMatches = updateMode.equals(updateModeToMatch)
             ||
             (
                 updateMode.equals(UPDATE_FF_ATTRIBUTE.getValue())
-                    && updateValueToMatch.equalsIgnoreCase(flowFile.getAttribute("mongo.update.mode"))
+                    && updateModeToMatch.equalsIgnoreCase(flowFile.getAttribute("mongo.update.mode"))
             );
 
         return updateModeMatches;
