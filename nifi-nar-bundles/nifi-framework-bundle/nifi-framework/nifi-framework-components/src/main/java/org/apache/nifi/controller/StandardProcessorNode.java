@@ -1515,18 +1515,18 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
     }
 
-    private synchronized void activateThread() {
+    private void activateThread() {
         final Thread thread = Thread.currentThread();
         final Long timestamp = System.currentTimeMillis();
         activeThreads.put(thread, new ActiveTask(timestamp));
     }
 
-    private synchronized void deactivateThread() {
+    private void deactivateThread() {
         activeThreads.remove(Thread.currentThread());
     }
 
     @Override
-    public synchronized List<ActiveThreadInfo> getActiveThreads(final ThreadDetails threadDetails) {
+    public List<ActiveThreadInfo> getActiveThreads(final ThreadDetails threadDetails) {
         final long now = System.currentTimeMillis();
 
         final Map<Long, ThreadInfo> threadInfoMap = Stream.of(threadDetails.getThreadInfos())
@@ -1550,7 +1550,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public synchronized int getTerminatedThreadCount() {
+    public int getTerminatedThreadCount() {
         int count = 0;
         for (final ActiveTask task : activeThreads.values()) {
             if (task.isTerminated()) {

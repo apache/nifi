@@ -525,13 +525,13 @@ public class NiFiClientUtil {
         while (true) {
             final List<ControllerServiceEntity> nonDisabledServices = getControllerServicesNotInState(groupId, desiredState, serviceIdsOfInterest);
             if (nonDisabledServices.isEmpty()) {
-                System.out.println(String.format("All Controller Services in Process Group %s now have desired state of %s", groupId, desiredState));
+                logger.info("Process Group [{}] Controller Services have desired state [{}]", groupId, desiredState);
                 return;
             }
 
             final ControllerServiceEntity entity = nonDisabledServices.get(0);
-            System.out.println(String.format("Controller Service with ID %s and type %s has a State of %s while waiting for state of %s; will wait 500 millis and check again", entity.getId(),
-                entity.getComponent().getType(), entity.getComponent().getState(), desiredState));
+            logger.info("Controller Service ID [{}] Type [{}] State [{}] waiting for State [{}]: sleeping for 500 ms before retrying", entity.getId(),
+                    entity.getComponent().getType(), entity.getComponent().getState(), desiredState);
 
             try {
                 Thread.sleep(500L);
