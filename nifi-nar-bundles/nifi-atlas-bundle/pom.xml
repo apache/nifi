@@ -26,7 +26,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <atlas.version>2.2.0</atlas.version>
+        <atlas.version>2.1.0.7.2.13.0-176</atlas.version>
     </properties>
 
     <modules>

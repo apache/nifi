@@ -66,4 +66,9 @@ public class NiFiAtlasHook extends AtlasHook implements LineageContext {
     List<HookNotification> getMessages() {
         return messages;
     }
+
+    @Override
+    public String getMessageSource() {
+        return "nifi";
+    }
 }
