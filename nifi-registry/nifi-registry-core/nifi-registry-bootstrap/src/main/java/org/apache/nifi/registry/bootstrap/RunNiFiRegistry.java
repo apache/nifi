@@ -17,7 +17,7 @@
 package org.apache.nifi.registry.bootstrap;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.registry.bootstrap.util.OSUtils;
+import org.apache.nifi.bootstrap.util.OSUtils;
 import org.apache.nifi.registry.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1024,7 +1024,7 @@ public class RunNiFiRegistry {
             final Properties pidProperties = new Properties();
             pidProperties.setProperty(PID_KEY, String.valueOf(nifiRegistryPid));
             savePidProperties(pidProperties, cmdLogger);
-            cmdLogger.info("Launched Apache NiFi Registry with Process ID " + pid);
+            cmdLogger.info("Launched Apache NiFi Registry with Process ID {}", pid);
         }
 
         shutdownHook = new ShutdownHook(process, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
