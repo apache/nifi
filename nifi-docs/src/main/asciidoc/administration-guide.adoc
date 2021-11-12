@@ -1782,7 +1782,12 @@ Each Key Derivation Function uses the following default parameters:
 ** Block Size Factor (r): 8
 ** Parallelization Factor (p): 1
 
-All options require a password (`nifi.sensitive.props.key` value) of *at least 12 characters*. This means the "default" value (if left empty, a hard-coded default is used) will not be sufficient.
+All options require a password (`nifi.sensitive.props.key` value) of *at least 12 characters*.
+
+In new standalone installations of 1.14.0 or later, NiFi generates a random value when `nifi.sensitive.props.key` is
+empty. NiFi writes the generated value to `nifi.properties` and logs a warning.
+
+Clustered installations of NiFi require the same value to be configured on all nodes.
 
 [[encrypt-config_tool]]
 == Encrypted Passwords in Configuration Files
