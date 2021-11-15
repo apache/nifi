@@ -16,10 +16,16 @@
  */
 package org.apache.nifi.registry.bundle.extract.nar.docs;
 
+import org.apache.nifi.registry.extension.component.manifest.Cardinality;
+import org.apache.nifi.registry.extension.component.manifest.Dependency;
+import org.apache.nifi.registry.extension.component.manifest.DependentValues;
 import org.apache.nifi.registry.extension.component.manifest.Extension;
 import org.apache.nifi.registry.extension.component.manifest.ExtensionManifest;
 import org.apache.nifi.registry.extension.component.manifest.ExtensionType;
+import org.apache.nifi.registry.extension.component.manifest.Property;
 import org.apache.nifi.registry.extension.component.manifest.ProvidedServiceAPI;
+import org.apache.nifi.registry.extension.component.manifest.ResourceDefinition;
+import org.apache.nifi.registry.extension.component.manifest.ResourceType;
 import org.apache.nifi.registry.extension.component.manifest.Restriction;
 import org.junit.Before;
 import org.junit.Test;
@@ -162,6 +168,83 @@ public class TestJacksonExtensionManifestParser {
         final List<Extension> extensionDetails = extensionManifest.getExtensions();
         assertEquals(1, extensionDetails.size());
 
+    }
+
+    @Test
+    public void testDocsWithDependentProperties() throws IOException {
+        final ExtensionManifest extensionManifest = parse("src/test/resources/descriptors/extension-manifest-kafka-2-6-nar.xml");
+        assertNotNull(extensionManifest);
+        assertEquals("1.16.0-SNAPSHOT", extensionManifest.getSystemApiVersion());
+
+        final List<Extension> extensionDetails = extensionManifest.getExtensions();
+
+        final Extension consumeKafkaExtension = extensionDetails.stream()
+                .filter(e -> e.getName().equals("org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_6"))
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(consumeKafkaExtension);
+        assertEquals(ExtensionType.PROCESSOR, consumeKafkaExtension.getType());
+
+        final List<Property> properties = consumeKafkaExtension.getProperties();
+        assertNotNull(properties);
+
+        final Property maxUncommittedOffsetWaitProperty = properties.stream()
+                .filter(p -> p.getName().equals("max-uncommit-offset-wait"))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(maxUncommittedOffsetWaitProperty);
+
+        final List<Dependency> dependencies = maxUncommittedOffsetWaitProperty.getDependencies();
+        assertNotNull(dependencies);
+        assertEquals(1, dependencies.size());
+
+        final Dependency dependency = dependencies.get(0);
+        assertEquals("Commit Offsets", dependency.getPropertyName());
+        assertEquals("Commit Offsets", dependency.getPropertyDisplayName());
+
+        final DependentValues dependentValues = dependency.getDependentValues();
+        assertNotNull(dependentValues);
+
+        final List<String> dependentValuesList = dependentValues.getValues();
+        assertNotNull(dependentValuesList);
+        assertEquals(1, dependentValuesList.size());
+        assertEquals("true", dependentValuesList.get(0));
+    }
+
+    @Test
+    public void testDocsWithResourceDefinitions() throws IOException {
+        final ExtensionManifest extensionManifest = parse("src/test/resources/descriptors/extension-manifest-kafka-2-6-nar.xml");
+        assertNotNull(extensionManifest);
+        assertEquals("1.16.0-SNAPSHOT", extensionManifest.getSystemApiVersion());
+
+        final List<Extension> extensionDetails = extensionManifest.getExtensions();
+
+        final Extension consumeKafkaExtension = extensionDetails.stream()
+                .filter(e -> e.getName().equals("org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_6"))
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(consumeKafkaExtension);
+        assertEquals(ExtensionType.PROCESSOR, consumeKafkaExtension.getType());
+
+        final List<Property> properties = consumeKafkaExtension.getProperties();
+        assertNotNull(properties);
+
+        final Property keytabProperty = properties.stream()
+                .filter(p -> p.getName().equals("sasl.kerberos.keytab"))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(keytabProperty);
+
+        final ResourceDefinition resourceDefinition = keytabProperty.getResourceDefinition();
+        assertNotNull(resourceDefinition);
+        assertEquals(Cardinality.SINGLE, resourceDefinition.getCardinality());
+
+        final List<ResourceType> resourceTypes = resourceDefinition.getResourceTypes();
+        assertNotNull(resourceTypes);
+        assertEquals(1, resourceTypes.size());
+        assertEquals(ResourceType.FILE, resourceTypes.get(0));
     }
 
     private ExtensionManifest parse(final String file) throws IOException {
