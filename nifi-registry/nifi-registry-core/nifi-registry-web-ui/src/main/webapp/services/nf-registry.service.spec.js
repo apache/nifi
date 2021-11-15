@@ -68,7 +68,7 @@ describe('NfRegistry Service isolated unit tests', function () {
         expect(label).toBe('Name (a - z)');
     });
 
-    it('should get the `LastUpdated (newest)` sort by label', function () {
+    it('should get the `Last Updated (newest)` sort by label', function () {
         //Setup the nfRegistryService state for this test
         nfRegistryService.dropletColumns[0].active = false;
         nfRegistryService.dropletColumns[1].active = true;
@@ -77,7 +77,7 @@ describe('NfRegistry Service isolated unit tests', function () {
         const label = nfRegistryService.getSortByLabel();
 
         //assertions
-        expect(label).toBe('LastUpdated (newest)');
+        expect(label).toBe('Last Updated (newest)');
     });
 
     it('should get the `Last Updated (oldest)` sort by label', function () {
