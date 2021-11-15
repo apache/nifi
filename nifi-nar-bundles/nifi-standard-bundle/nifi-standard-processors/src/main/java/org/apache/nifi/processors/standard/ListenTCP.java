@@ -135,6 +135,7 @@ public class ListenTCP extends AbstractProcessor {
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(ListenerProperties.NETWORK_INTF_NAME);
         descriptors.add(ListenerProperties.PORT);
         descriptors.add(ListenerProperties.RECV_BUFFER_SIZE);
         descriptors.add(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE);
@@ -148,9 +149,8 @@ public class ListenTCP extends AbstractProcessor {
         descriptors.add(MAX_RECV_THREAD_POOL_SIZE);
         // Deprecated
         descriptors.add(POOL_RECV_BUFFERS);
-        descriptors.add(ListenerProperties.NETWORK_INTF_NAME);
-        descriptors.add(CLIENT_AUTH);
         descriptors.add(SSL_CONTEXT_SERVICE);
+        descriptors.add(CLIENT_AUTH);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -163,14 +163,14 @@ public class ListenTCP extends AbstractProcessor {
         int maxConnections = context.getProperty(ListenerProperties.MAX_CONNECTIONS).asInteger();
         int bufferSize = context.getProperty(ListenerProperties.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final String networkInterface = context.getProperty(ListenerProperties.NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
-        InetAddress hostname = NetworkUtils.getInterfaceAddress(networkInterface);
+        InetAddress interfaceAddress = NetworkUtils.getInterfaceAddress(networkInterface);
         Charset charset = Charset.forName(context.getProperty(ListenerProperties.CHARSET).getValue());
         port = context.getProperty(ListenerProperties.PORT).evaluateAttributeExpressions().asInteger();
         events = new LinkedBlockingQueue<>(context.getProperty(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE).asInteger());
         errorEvents = new LinkedBlockingQueue<>();
         final String msgDemarcator = getMessageDemarcator(context);
         messageDemarcatorBytes = msgDemarcator.getBytes(charset);
-        final NettyEventServerFactory eventFactory = new ByteArrayMessageNettyEventServerFactory(getLogger(), hostname, port, TransportProtocol.TCP, messageDemarcatorBytes, bufferSize, events);
+        final NettyEventServerFactory eventFactory = new ByteArrayMessageNettyEventServerFactory(getLogger(), interfaceAddress, port, TransportProtocol.TCP, messageDemarcatorBytes, bufferSize, events);
 
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
@@ -187,7 +187,7 @@ public class ListenTCP extends AbstractProcessor {
         try {
             eventServer = eventFactory.getEventServer();
         } catch (EventException e) {
-            getLogger().error("Failed to bind to [{}:{}].", hostname.getHostAddress(), port);
+            getLogger().error("Failed to start server on [{}:{}]", interfaceAddress.getHostAddress(), port, e);
         }
     }
 
