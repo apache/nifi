@@ -1514,10 +1514,10 @@ An empty argument or an argument value with an invalid UUID results in an except
 	- [.argName]#_longitude_# : [.argDesc]#The longitude coordinate to encode.#
 
 	- [.argName]#_level_# : [.argDesc]#The integer value to specify the desired precision. This level value should be
-between 1 and 12, indicating the number of characters in a standard BASE_32 geohash string.#
+between 1 and 12, indicating the number of characters in a standard BASE32 geohash string.#
 
 	- [.argName]#_format_# : [.argDesc]#Optional argument that specifies the geohash string format. Supports one of
-[BASE_32_STRING, BINARY_STRING]. If not specified, defaults to the standard geohash ​​format BASE_32_STRING.#
+[BASE32, BINARY]. If not specified, defaults to the standard geohash ​​format BASE32.#
 
 *Return Type*: [.returnType]#String#
 
@@ -1541,7 +1541,7 @@ the highest precision, we can use the Expression `${geohashStringEncode(${lat}, 
 	- [.argName]#_longitude_# : [.argDesc]#The longitude coordinate to encode.#
 
 	- [.argName]#_level_# : [.argDesc]#The integer value to specify the desired precision. This level value should be
-between 1 and 12, indicating the number of characters in a standard BASE_32 geohash string.#
+between 1 and 12, indicating the number of characters in a standard BASE32 geohash string.#
 
 *Return Type*: [.returnType]#Number#
 
@@ -1561,12 +1561,12 @@ we can use the Expression `${geohashLongEncode(${lat}, ${lon}, 12)}`, which will
 *Arguments*:
 
 - [.argName]#_format_# : [.argDesc]#The format of the given geohash to decode. Supports one of
-[BASE_32_STRING, BINARY_STRING, LONG].#
+[BASE32, BINARY, LONG].#
 
 *Return Type*: [.returnType]#Number#
 
 *Examples*: If we have a geohash binary string attribute named "geohash" with a value of "110001010100010",
-then the Expression `${geohash:geohashDecodeLatitude('BINARY_STRING')}` will return 41.484375.
+then the Expression `${geohash:geohashDecodeLatitude('BINARY')}` will return 41.484375.
 
 
 
@@ -1580,12 +1580,12 @@ then the Expression `${geohash:geohashDecodeLatitude('BINARY_STRING')}` will ret
 *Arguments*:
 
 - [.argName]#_format_# : [.argDesc]#The format of the given geohash to decode. Supports one of
-[BASE_32_STRING, BINARY_STRING, LONG].#
+[BASE32, BINARY, LONG].#
 
 *Return Type*: [.returnType]#Number#
 
 *Examples*: If we have a standard geohash string attribute named "geohash" with a value of "sp2j1zs7y01r",
-then the Expression `${geohash:geohashDecodeLongitude('BASE_32_STRING')}` will return 0.08300011977553368.
+then the Expression `${geohash:geohashDecodeLongitude('BASE32')}` will return 0.08300011977553368.
 
 
 

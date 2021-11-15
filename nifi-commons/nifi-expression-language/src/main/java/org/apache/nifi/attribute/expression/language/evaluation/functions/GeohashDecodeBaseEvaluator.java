@@ -29,7 +29,7 @@ import ch.hsr.geohash.WGS84Point;
 public abstract class GeohashDecodeBaseEvaluator extends NumberEvaluator {
 
     public enum GeohashFormat {
-        BASE_32_STRING, BINARY_STRING, LONG
+        BASE32, BINARY, LONG
     }
     public enum GeoCoord {
         LATITUDE, LONGITUDE
@@ -42,19 +42,19 @@ public abstract class GeohashDecodeBaseEvaluator extends NumberEvaluator {
         this.format = format;
     }
 
-    public QueryResult<Number> geohashDecodeEvaluate(final EvaluationContext evaluationContext, final GeoCoord geoCoord) {
+    protected QueryResult<Number> geohashDecodeEvaluate(final EvaluationContext evaluationContext, final GeoCoord geoCoord) {
         //Optional argument. If not specified, defaults to BASE_32_STRING.
         final GeohashFormat geohashFormatValue;
         if(format != null) {
             geohashFormatValue = GeohashFormat.valueOf(format.evaluate(evaluationContext).getValue());
         }else {
-            geohashFormatValue = GeohashFormat.BASE_32_STRING;
+            geohashFormatValue = GeohashFormat.BASE32;
 
         }
 
         final Long geohashLongValue = geohashFormatValue == GeohashFormat.LONG ? Long.valueOf(subject.evaluate(evaluationContext).getValue()) : null;
-        final String geohashStringValue = (geohashFormatValue == GeohashFormat.BASE_32_STRING
-                || geohashFormatValue == GeohashFormat.BINARY_STRING) ? subject.evaluate(evaluationContext).getValue() : null;
+        final String geohashStringValue = (geohashFormatValue == GeohashFormat.BASE32
+                || geohashFormatValue == GeohashFormat.BINARY) ? subject.evaluate(evaluationContext).getValue() : null;
 
         if (geohashLongValue == null && geohashStringValue == null) {
             return new NumberQueryResult(null);
@@ -67,7 +67,7 @@ public abstract class GeohashDecodeBaseEvaluator extends NumberEvaluator {
                     String binaryString = Long.toBinaryString(geohashLongValue);
                     boundingBoxCenter = GeoHash.fromBinaryString(binaryString).getBoundingBoxCenter();
                     break;
-                case BINARY_STRING:
+                case BINARY:
                     boundingBoxCenter = GeoHash.fromBinaryString(geohashStringValue).getBoundingBoxCenter();
                     break;
                 default:

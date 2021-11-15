@@ -29,7 +29,7 @@ import ch.hsr.geohash.GeoHash;
 public class GeohashStringEncodeEvaluator extends StringEvaluator {
 
     public enum GeohashStringFormat {
-        BASE_32_STRING, BINARY_STRING
+        BASE32, BINARY
     }
 
     private final Evaluator<Number> latitude;
@@ -66,13 +66,13 @@ public class GeohashStringEncodeEvaluator extends StringEvaluator {
         if(format != null) {
             geohashStringFormatValue = GeohashStringFormat.valueOf(format.evaluate(evaluationContext).getValue());
         }else {
-            geohashStringFormatValue = GeohashStringFormat.BASE_32_STRING;
+            geohashStringFormatValue = GeohashStringFormat.BASE32;
         }
 
         try {
             GeoHash gh = GeoHash.withCharacterPrecision(latitudeValue.doubleValue(), longitudeValue.doubleValue(), levelValue.intValue());
             switch (geohashStringFormatValue) {
-                case BINARY_STRING:
+                case BINARY:
                     return new StringQueryResult(gh.toBinaryString());
                 default:
                     return new StringQueryResult(gh.toBase32());
