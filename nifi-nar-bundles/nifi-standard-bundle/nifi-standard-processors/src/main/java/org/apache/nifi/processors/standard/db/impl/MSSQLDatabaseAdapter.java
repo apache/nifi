@@ -17,7 +17,12 @@
 package org.apache.nifi.processors.standard.db.impl;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.processors.standard.db.ColumnDescription;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * A database adapter that generates MS SQL Compatible SQL.
@@ -103,5 +108,29 @@ public class MSSQLDatabaseAdapter implements DatabaseAdapter {
     public String unwrapIdentifier(String identifier) {
         // Remove double quotes and square brackets.
         return identifier == null ? null : identifier.replaceAll("[\"\\[\\]]", "");
+    }
+
+    @Override
+    public List<String> getAlterTableStatements(final String tableName, final List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
+        List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
+        for (ColumnDescription column : columnsToAdd) {
+            String dataType = getSQLForDataType(column.getDataType());
+            StringBuilder sb = new StringBuilder("ADD ")
+                    .append(quoteColumnNames ? getColumnQuoteString() : "")
+                    .append(column.getColumnName())
+                    .append(quoteColumnNames ? getColumnQuoteString() : "")
+                    .append(" ")
+                    .append(dataType);
+            columnsAndDatatypes.add(sb.toString());
+        }
+
+        StringBuilder alterTableStatement = new StringBuilder();
+        return Collections.singletonList(alterTableStatement.append("ALTER TABLE ")
+                .append(quoteTableName ? getTableQuoteString() : "")
+                .append(tableName)
+                .append(quoteTableName ? getTableQuoteString() : "")
+                .append(" ")
+                .append(String.join(", ", columnsAndDatatypes))
+                .toString());
     }
 }

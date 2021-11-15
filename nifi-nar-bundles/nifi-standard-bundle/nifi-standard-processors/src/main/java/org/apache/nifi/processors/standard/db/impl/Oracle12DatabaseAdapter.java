@@ -16,13 +16,28 @@
  */
 package org.apache.nifi.processors.standard.db.impl;
 
+import java.sql.JDBCType;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.processors.standard.db.ColumnDescription;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
+
+import static java.sql.Types.CHAR;
+import static java.sql.Types.CLOB;
+import static java.sql.Types.LONGNVARCHAR;
+import static java.sql.Types.LONGVARCHAR;
+import static java.sql.Types.NCHAR;
+import static java.sql.Types.NCLOB;
+import static java.sql.Types.NVARCHAR;
+import static java.sql.Types.OTHER;
+import static java.sql.Types.SQLXML;
+import static java.sql.Types.VARCHAR;
 
 public class Oracle12DatabaseAdapter implements DatabaseAdapter {
     @Override
@@ -187,6 +202,55 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
 
     private String getColumnAssignment(String table, String columnName, String newTableAlias) {
         return table + "." + columnName + " = " + newTableAlias + "." + columnName;
+    }
+
+    @Override
+    public List<String> getAlterTableStatements(String tableName, List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
+        StringBuilder createTableStatement = new StringBuilder();
+
+        List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
+        for (ColumnDescription column : columnsToAdd) {
+            String dataType = getSQLForDataType(column.getDataType());
+            StringBuilder sb = new StringBuilder()
+                    .append(quoteColumnNames ? getColumnQuoteString() : "")
+                    .append(column.getColumnName())
+                    .append(quoteColumnNames ? getColumnQuoteString() : "")
+                    .append(" ")
+                    .append(dataType);
+            columnsAndDatatypes.add(sb.toString());
+        }
+
+        createTableStatement.append("ALTER TABLE ")
+                .append(quoteTableName ? getTableQuoteString() : "")
+                .append(tableName)
+                .append(quoteTableName ? getTableQuoteString() : "")
+                .append(" ADD (")
+                .append(String.join(", ", columnsAndDatatypes))
+                .append(") ");
+
+        return Collections.singletonList(createTableStatement.toString());
+    }
+
+    @Override
+    public String getSQLForDataType(int sqlType) {
+        switch (sqlType) {
+            case Types.DOUBLE:
+                return "DOUBLE PRECISION";
+            case CHAR:
+            case LONGNVARCHAR:
+            case LONGVARCHAR:
+            case NCHAR:
+            case NVARCHAR:
+            case VARCHAR:
+            case CLOB:
+            case NCLOB:
+            case OTHER:
+            case SQLXML:
+                // Must have a max length specified (the Oracle docs say 2000), and use VARCHAR2 instead of VARCHAR for consistent comparison semantics
+                return "VARCHAR2(2000)";
+            default:
+                return JDBCType.valueOf(sqlType).getName();
+        }
     }
 
 }
