@@ -48,6 +48,11 @@ public class Property {
     private boolean dynamicallyModifiesClasspath;
     private boolean dynamic;
 
+    @XmlElementWrapper
+    @XmlElement(name = "dependency")
+    private List<Dependency> dependencies;
+
+    private ResourceDefinition resourceDefinition;
 
     @ApiModelProperty(value = "The name of the property")
     public String getName() {
@@ -155,5 +160,23 @@ public class Property {
 
     public void setDynamic(boolean dynamic) {
         this.dynamic = dynamic;
+    }
+
+    @ApiModelProperty(value = "The properties that this property depends on")
+    public List<Dependency> getDependencies() {
+        return dependencies;
+    }
+
+    public void setDependencies(List<Dependency> dependencies) {
+        this.dependencies = dependencies;
+    }
+
+    @ApiModelProperty(value = "The optional resource definition")
+    public ResourceDefinition getResourceDefinition() {
+        return resourceDefinition;
+    }
+
+    public void setResourceDefinition(ResourceDefinition resourceDefinition) {
+        this.resourceDefinition = resourceDefinition;
     }
 }
