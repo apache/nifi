@@ -52,6 +52,8 @@ public class Property {
     @XmlElement(name = "dependency")
     private List<Dependency> dependencies;
 
+    private ResourceDefinition resourceDefinition;
+
     @ApiModelProperty(value = "The name of the property")
     public String getName() {
         return name;
@@ -167,5 +169,14 @@ public class Property {
 
     public void setDependencies(List<Dependency> dependencies) {
         this.dependencies = dependencies;
+    }
+
+    @ApiModelProperty(value = "The optional resource definition")
+    public ResourceDefinition getResourceDefinition() {
+        return resourceDefinition;
+    }
+
+    public void setResourceDefinition(ResourceDefinition resourceDefinition) {
+        this.resourceDefinition = resourceDefinition;
     }
 }
