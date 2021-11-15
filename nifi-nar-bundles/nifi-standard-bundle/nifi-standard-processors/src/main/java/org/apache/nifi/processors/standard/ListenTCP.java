@@ -170,7 +170,8 @@ public class ListenTCP extends AbstractProcessor {
         errorEvents = new LinkedBlockingQueue<>();
         final String msgDemarcator = getMessageDemarcator(context);
         messageDemarcatorBytes = msgDemarcator.getBytes(charset);
-        final NettyEventServerFactory eventFactory = new ByteArrayMessageNettyEventServerFactory(getLogger(), interfaceAddress, port, TransportProtocol.TCP, messageDemarcatorBytes, bufferSize, events);
+        final NettyEventServerFactory eventFactory =
+                new ByteArrayMessageNettyEventServerFactory(getLogger(), interfaceAddress, port, TransportProtocol.TCP, messageDemarcatorBytes, bufferSize, events);
 
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
