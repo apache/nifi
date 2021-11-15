@@ -424,6 +424,12 @@
                     <groupId>com.google.cloud.bigdataoss</groupId>
                     <artifactId>gcsio</artifactId>
                     <version>${ranger.gcs.version}</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>com.google.code.gson</groupId>
+                            <artifactId>gson</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
             </dependencies>
         </profile>
