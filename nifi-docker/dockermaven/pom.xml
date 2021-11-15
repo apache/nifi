@@ -29,12 +29,18 @@
     <profiles>
         <profile>
             <id>docker</id>
+            <dependencies>
+                <dependency>
+                    <groupId>javax.activation</groupId>
+                    <artifactId>activation</artifactId>
+                    <version>1.1.1</version>
+                </dependency>
+            </dependencies>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>com.spotify</groupId>
                         <artifactId>dockerfile-maven-plugin</artifactId>
-                        <version>1.3.5</version>
                         <executions>
                             <execution>
                                 <id>default</id>
@@ -51,6 +57,7 @@
                                         <NIFI_VERSION>${project.version}</NIFI_VERSION>
                                         <NIFI_BINARY>target/nifi-${nifi.version}-bin.zip</NIFI_BINARY>
                                         <NIFI_TOOLKIT_BINARY>target/nifi-toolkit-${nifi.version}-bin.zip</NIFI_TOOLKIT_BINARY>
+                                        <NIFI_SCRIPTS>target/sh</NIFI_SCRIPTS>
                                     </buildArgs>
                                     <repository>apache/nifi</repository>
                                     <tag>${project.version}-dockermaven</tag>
@@ -61,8 +68,24 @@
                     <!-- Copy generated artifact to nifi-docker -->
                     <plugin>
                         <artifactId>maven-antrun-plugin</artifactId>
-                        <version>1.8</version>
+                        <version>3.0.0</version>
                         <executions>
+                            <execution>
+                                <id>copy-sh-for-docker</id>
+                                <phase>process-sources</phase>
+                                <configuration>
+                                    <target name="copy docker scripts to nifi-docker for image build">
+                                        <copy todir="${project.basedir}/target/sh" overwrite="true" flatten="true">
+                                            <fileset dir="${project.basedir}/../dockerhub/sh" includes="*.sh">
+                                                <include name="*.sh" />
+                                            </fileset>
+                                        </copy>
+                                    </target>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
                             <execution>
                                 <id>copy-for-docker</id>
                                 <phase>process-sources</phase>
