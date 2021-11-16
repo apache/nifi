@@ -3877,6 +3877,19 @@ blank meaning all requests containing a proxy context path are rejected. Configu
 |`nifi.web.max.access.token.requests.per.second`|The maximum number of requests for login Access Tokens from a connection per second. Requests in excess of this are rejected with HTTP 429.
 |`nifi.web.request.ip.whitelist`|A comma separated list of IP addresses. Used to specify the IP addresses of clients which can exceed the maximum requests per second (`nifi.web.max.requests.per.second`). Does not apply to web request timeout.
 |`nifi.web.request.timeout`|The request timeout for web requests. Requests running longer than this time will be forced to end with a HTTP 503 Service Unavailable response. Default value is `60 secs`.
+|`nifi.web.request.log.format`|The parameterized format for HTTP request log messages.
+The format property supports the modifiers and codes described in the Jetty
+link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/server/CustomRequestLog.html[CustomRequestLog^].
+
+The default value uses the Combined Log Format, which follows the
+link:https://en.wikipedia.org/wiki/Common_Log_Format[Common Log Format^] with the addition of `Referer` and `User-Agent`
+request headers. The default value is:
+
+`%{client}a - %u %t "%r" %s %O "%{Referer}i" "%{User-Agent}i"`
+
+The CustomRequestLog writes formatted messages using the following SLF4J logger:
+
+`org.apache.nifi.web.server.RequestLog`
 |====
 
 [[security_properties]]
