@@ -60,6 +60,9 @@ import org.apache.nifi.web.security.headers.XContentTypeOptionsFilter;
 import org.apache.nifi.web.security.headers.XFrameOptionsFilter;
 import org.apache.nifi.web.security.headers.XSSProtectionFilter;
 import org.apache.nifi.web.security.requests.ContentLengthFilter;
+import org.apache.nifi.web.server.log.RequestAuthenticationFilter;
+import org.apache.nifi.web.server.log.RequestLogProvider;
+import org.apache.nifi.web.server.log.StandardRequestLogProvider;
 import org.apache.nifi.web.server.util.TrustStoreScanner;
 import org.eclipse.jetty.annotations.AnnotationConfiguration;
 import org.eclipse.jetty.deploy.App;
@@ -68,6 +71,7 @@ import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.RequestLog;
 import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -228,6 +232,11 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         deploymentManager.setContextAttribute(CONTAINER_INCLUDE_PATTERN_KEY, CONTAINER_INCLUDE_PATTERN_VALUE);
         deploymentManager.setContexts(contextHandlers);
         server.addBean(deploymentManager);
+
+        final String requestLogFormat = props.getProperty(NiFiProperties.WEB_REQUEST_LOG_FORMAT);
+        final RequestLogProvider requestLogProvider = new StandardRequestLogProvider(requestLogFormat);
+        final RequestLog requestLog = requestLogProvider.getRequestLog();
+        server.setRequestLog(requestLog);
     }
 
     /**
@@ -635,6 +644,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         if (props.isHTTPSConfigured()) {
             filters.add(StrictTransportSecurityFilter.class);
+            filters.add(RequestAuthenticationFilter.class);
         }
         filters.forEach((filter) -> addFilters(filter, webappContext));
         addDenialOfServiceFilters(webappContext, props);

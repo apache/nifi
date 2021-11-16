@@ -136,6 +136,7 @@
         <nifi.web.request.timeout>60 secs</nifi.web.request.timeout>
         <nifi.web.request.ip.whitelist />
         <nifi.web.should.send.server.version>true</nifi.web.should.send.server.version>
+        <nifi.web.request.log.format>%{client}a - %u %t "%r" %s %O "%{Referer}i" "%{User-Agent}i"</nifi.web.request.log.format>
         <!-- nifi.properties: security properties -->
         <nifi.security.autoreload.enabled>false</nifi.security.autoreload.enabled>
         <nifi.security.autoreload.interval>10 secs</nifi.security.autoreload.interval>
