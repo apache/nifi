@@ -20,10 +20,7 @@ import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,11 +31,11 @@ public abstract class EventBatcher<E extends ByteArrayMessage> {
 
     public static final int POLL_TIMEOUT_MS = 20;
 
-    private volatile BlockingQueue<E> events;
-    private volatile BlockingQueue<E> errorEvents;
+    private final BlockingQueue<E> events;
+    private final BlockingQueue<E> errorEvents;
     private final ComponentLog logger;
 
-    public EventBatcher(final ComponentLog logger, final BlockingQueue events, final BlockingQueue errorEvents) {
+    public EventBatcher(final ComponentLog logger, final BlockingQueue<E> events, final BlockingQueue<E> errorEvents) {
         this.logger = logger;
         this.events = events;
         this.errorEvents = errorEvents;
@@ -56,10 +53,10 @@ public abstract class EventBatcher<E extends ByteArrayMessage> {
      * @return a Map from the batch key to the FlowFile and events for that batch, the size of events in all
      * the batches will be <= batchSize
      */
-    public Map<String, FlowFileEventBatch> getBatches(final ProcessSession session, final int totalBatchSize,
+    public Map<String, FlowFileEventBatch<E>> getBatches(final ProcessSession session, final int totalBatchSize,
                                                       final byte[] messageDemarcatorBytes) {
 
-        final Map<String, FlowFileEventBatch> batches = new HashMap<String, FlowFileEventBatch>();
+        final Map<String, FlowFileEventBatch<E>> batches = new HashMap<>();
         for (int i = 0; i < totalBatchSize; i++) {
             final E event = getMessage(true, true, session);
             if (event == null) {
@@ -67,11 +64,11 @@ public abstract class EventBatcher<E extends ByteArrayMessage> {
             }
 
             final String batchKey = getBatchKey(event);
-            FlowFileEventBatch batch = batches.get(batchKey);
+            FlowFileEventBatch<E> batch = batches.get(batchKey);
 
             // if we don't have a batch for this key then create a new one
             if (batch == null) {
-                batch = new FlowFileEventBatch(session.create(), new ArrayList<E>());
+                batch = new FlowFileEventBatch<>(session.create(), new ArrayList<>());
                 batches.put(batchKey, batch);
             }
 
@@ -82,15 +79,12 @@ public abstract class EventBatcher<E extends ByteArrayMessage> {
             final boolean writeDemarcator = (i > 0);
             try {
                 final byte[] rawMessage = event.getMessage();
-                FlowFile appendedFlowFile = session.append(batch.getFlowFile(), new OutputStreamCallback() {
-                    @Override
-                    public void process(final OutputStream out) throws IOException {
-                        if (writeDemarcator) {
-                            out.write(messageDemarcatorBytes);
-                        }
-
-                        out.write(rawMessage);
+                FlowFile appendedFlowFile = session.append(batch.getFlowFile(), out -> {
+                    if (writeDemarcator) {
+                        out.write(messageDemarcatorBytes);
                     }
+
+                    out.write(rawMessage);
                 });
 
                 // update the FlowFile reference in the batch object
@@ -99,7 +93,7 @@ public abstract class EventBatcher<E extends ByteArrayMessage> {
             } catch (final Exception e) {
                 logger.error("Failed to write contents of the message to FlowFile due to {}; will re-queue message and try again",
                         e.getMessage(), e);
-                errorEvents.offer(event);
+                errorEvents.add(event);
                 break;
             }
         }
