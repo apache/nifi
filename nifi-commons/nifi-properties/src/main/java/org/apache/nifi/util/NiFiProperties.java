@@ -236,6 +236,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String WEB_REQUEST_TIMEOUT = "nifi.web.request.timeout";
     public static final String WEB_REQUEST_IP_WHITELIST = "nifi.web.request.ip.whitelist";
     public static final String WEB_SHOULD_SEND_SERVER_VERSION = "nifi.web.should.send.server.version";
+    public static final String WEB_REQUEST_LOG_FORMAT = "nifi.web.request.log.format";
 
     // ui properties
     public static final String UI_BANNER_TEXT = "nifi.ui.banner.text";
