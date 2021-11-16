@@ -34,6 +34,8 @@ import net.schmizz.sshj.userauth.password.PasswordFinder;
 import net.schmizz.sshj.userauth.password.PasswordUtils;
 
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.processors.standard.socket.SocketFactoryProvider;
+import org.apache.nifi.processors.standard.socket.StandardSocketFactoryProvider;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.util.StringUtils;
 
@@ -67,6 +69,8 @@ import static org.apache.nifi.processors.standard.util.SFTPTransfer.USE_COMPRESS
  */
 public class StandardSSHClientProvider implements SSHClientProvider {
     private static final SSHConfigProvider SSH_CONFIG_PROVIDER = new StandardSSHConfigProvider();
+
+    private static final SocketFactoryProvider SOCKET_FACTORY_PROVIDER = new StandardSocketFactoryProvider();
 
     private static final List<Proxy.Type> SUPPORTED_PROXY_TYPES = Arrays.asList(Proxy.Type.HTTP, Proxy.Type.SOCKS);
 
@@ -170,8 +174,7 @@ public class StandardSSHClientProvider implements SSHClientProvider {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context, createComponentProxyConfigSupplier(context));
         final Proxy.Type proxyType = proxyConfiguration.getProxyType();
         if (SUPPORTED_PROXY_TYPES.contains(proxyType)) {
-            final Proxy proxy = proxyConfiguration.createProxy();
-            final SocketFactory socketFactory = new ProxySocketFactory(proxy);
+            final SocketFactory socketFactory = SOCKET_FACTORY_PROVIDER.getSocketFactory(proxyConfiguration);
             client.setSocketFactory(socketFactory);
         }
     }
