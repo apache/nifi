@@ -1441,7 +1441,7 @@
         addControlsForSelectedPrioritizer: function (draggableElement) {
             var removeIcon = $('<div class="draggable-control"><div class="fa fa-remove"></div></div>')
                 .on('click', function () {
-                    // remove the remove ice
+                    // remove the remove icon
                     removeIcon.remove();
 
                     // restore to the available parameter contexts
@@ -1609,11 +1609,7 @@
                     // handle each prioritizer
                     $.each(connection.prioritizers, function (i, type) {
                         var selectedPrioritizer = $('#prioritizer-available').children('li[id="' + type + '"]');
-
-                        var draggableElement = selectedPrioritizer.find('div.draggable-control');
-                        if (draggableElement.length === 0 ) {
-                            nfConnectionConfiguration.addControlsForSelectedPrioritizer(selectedPrioritizer);
-                        }
+                        nfConnectionConfiguration.addControlsForSelectedPrioritizer(selectedPrioritizer);
                         selectedPrioritizer.detach().appendTo('#prioritizer-selected');
                     });
 

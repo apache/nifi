@@ -1774,7 +1774,7 @@
     var addControlsForSelectedParameterContext = function (draggableElement) {
         var removeIcon = $('<div class="draggable-control"><div class="fa fa-remove"></div></div>')
             .on('click', function () {
-                // remove the remove ice
+                // remove the remove icon
                 removeIcon.remove();
 
                 // restore to the available parameter contexts
