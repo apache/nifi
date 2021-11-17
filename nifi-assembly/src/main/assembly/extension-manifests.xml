@@ -16,7 +16,7 @@
 <assembly>
     <id>manifests</id>
     <includeBaseDirectory>true</includeBaseDirectory>
-    <baseDirectory>nifi-${project.version}-manifests</baseDirectory>
+    <baseDirectory>nifi-manifests</baseDirectory>
 
     <fileSets>
         <fileSet>

@@ -39,6 +39,9 @@ language governing permissions and limitations under the License. -->
                             <stripClassifier>true</stripClassifier>
                             <stripVersion>true</stripVersion>
                             <silent>true</silent>
+                            <fileMappers>
+                                <org.codehaus.plexus.components.io.filemappers.FlattenFileMapper />
+                            </fileMappers>
                         </configuration>
                     </execution>
                 </executions>
@@ -90,7 +93,6 @@ language governing permissions and limitations under the License. -->
                             </descriptors>
                             <tarLongFileMode>posix</tarLongFileMode>
                             <formats>
-                                <format>dir</format>
                                 <format>zip</format>
                             </formats>
                         </configuration>
