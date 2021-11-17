@@ -101,9 +101,11 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor UNESCAPE_COMMA = new PropertyDescriptor.Builder()
-            .name("Unescape Comma")
-            .description("When there is a comma in the header itself, with the help of this parameter, the header's own commas are not used in the splitting process.")
+    static final PropertyDescriptor UNESCAPE_COMMA_VALUE_IN_HEADER = new PropertyDescriptor.Builder()
+            .name("Unescape Comma Value In Header")
+            .description("When there is a comma in the header itself, with the help of this parameter, "
+                    + "the header's own commas are not used in the splitting process. "
+                    + "Then escape comma in the header is made unescaped again")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("False")
             .allowableValues("True", "False")
@@ -127,7 +129,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(EXCHANGE);
         properties.add(ROUTING_KEY);
-        properties.add(UNESCAPE_COMMA);
+        properties.add(UNESCAPE_COMMA_VALUE_IN_HEADER);
         properties.addAll(getCommonPropertyDescriptors());
         propertyDescriptors = Collections.unmodifiableList(properties);
 
@@ -155,7 +157,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             return;
         }
 
-        final BasicProperties amqpProperties = extractAmqpPropertiesFromFlowFile(flowFile,context.getProperty(UNESCAPE_COMMA).asBoolean());
+        final BasicProperties amqpProperties = extractAmqpPropertiesFromFlowFile(flowFile,context.getProperty(UNESCAPE_COMMA_VALUE_IN_HEADER).asBoolean());
         final String routingKey = context.getProperty(ROUTING_KEY).evaluateAttributeExpressions(flowFile).getValue();
         if (routingKey == null) {
             throw new IllegalArgumentException("Failed to determine 'routing key' with provided value '"

@@ -103,10 +103,10 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .required(true)
         .build();
 
-    static final PropertyDescriptor ESCAPE_COMMA = new PropertyDescriptor.Builder()
-        .name("escape.comma")
-        .displayName("Escape Comma")
-        .description("When there is a comma in the header itself, with the help of this parameter, the header's own commas are escaped. "
+    static final PropertyDescriptor ESCAPE_COMMA_VALUE_IN_HEADER = new PropertyDescriptor.Builder()
+        .name("escape.comma.value.in.header")
+        .displayName("Escape Comma Value In Header")
+        .description("When there is a comma in the header value itself, with the help of this parameter, the header's own commas are escaped. "
              + "When this parameter is selected true, the Unescape Comma parameter in PublishAMQP processor must be set to true ")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .defaultValue("False")
@@ -138,7 +138,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         properties.add(QUEUE);
         properties.add(AUTO_ACKNOWLEDGE);
         properties.add(BATCH_SIZE);
-        properties.add(ESCAPE_COMMA);
+        properties.add(ESCAPE_COMMA_VALUE_IN_HEADER);
         properties.add(REMOVE_CURLY_BRACES);
         properties.addAll(getCommonPropertyDescriptors());
         propertyDescriptors = Collections.unmodifiableList(properties);
@@ -177,7 +177,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
 
             final BasicProperties amqpProperties = response.getProps();
             final Envelope envelope = response.getEnvelope();
-            final Map<String, String> attributes = buildAttributes(amqpProperties, envelope, context.getProperty(REMOVE_CURLY_BRACES).asBoolean(), context.getProperty(ESCAPE_COMMA).asBoolean());
+            final Map<String, String> attributes = buildAttributes(amqpProperties, envelope, context.getProperty(REMOVE_CURLY_BRACES).asBoolean(),
+                    context.getProperty(ESCAPE_COMMA_VALUE_IN_HEADER).asBoolean());
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.getProvenanceReporter().receive(flowFile, connection.toString() + "/" + context.getProperty(QUEUE).getValue());
@@ -234,7 +235,13 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
                     .collect(Collectors.joining(", ", "{", "}"));
         } else if (removeCurlyBraces) {
             String headerString = headers.toString();
-            return headerString.substring(1, headerString.length() - 1);
+            if(headerString.startsWith("{")){
+                headerString = headerString.substring(1);
+            }
+            if(headerString.endsWith("}")){
+                headerString = headerString.substring(0,headerString.length()-1);
+            }
+            return headerString;
         }
 
         return headers.toString();

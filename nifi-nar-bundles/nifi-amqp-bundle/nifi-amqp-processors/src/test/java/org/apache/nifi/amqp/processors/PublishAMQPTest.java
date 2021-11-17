@@ -115,7 +115,7 @@ public class PublishAMQPTest {
         runner.setProperty(PublishAMQP.ROUTING_KEY, "key1");
         runner.setProperty(PublishAMQP.USER, "user");
         runner.setProperty(PublishAMQP.PASSWORD, "password");
-        runner.setProperty(PublishAMQP.UNESCAPE_COMMA,"True");
+        runner.setProperty(PublishAMQP.UNESCAPE_COMMA_VALUE_IN_HEADER,"True");
 
         final Map<String, String> attributes = new HashMap<>();
 

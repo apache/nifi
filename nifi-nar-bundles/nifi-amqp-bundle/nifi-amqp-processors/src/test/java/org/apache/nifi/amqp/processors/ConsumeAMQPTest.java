@@ -179,7 +179,7 @@ public class ConsumeAMQPTest {
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
             TestRunner runner = initTestRunner(proc);
-            runner.setProperty(ConsumeAMQP.ESCAPE_COMMA, "True");
+            runner.setProperty(ConsumeAMQP.ESCAPE_COMMA_VALUE_IN_HEADER, "True");
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
@@ -234,7 +234,7 @@ public class ConsumeAMQPTest {
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
             TestRunner runner = initTestRunner(proc);
             runner.setProperty(ConsumeAMQP.REMOVE_CURLY_BRACES,"True");
-            runner.setProperty(ConsumeAMQP.ESCAPE_COMMA,"True");
+            runner.setProperty(ConsumeAMQP.ESCAPE_COMMA_VALUE_IN_HEADER,"True");
 
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
