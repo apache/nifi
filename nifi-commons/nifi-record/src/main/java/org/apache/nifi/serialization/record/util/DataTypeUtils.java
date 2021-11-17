@@ -17,6 +17,7 @@
 
 package org.apache.nifi.serialization.record.util;
 
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -2305,5 +2306,48 @@ public class DataTypeUtils {
         }
 
         return false;
+    }
+
+    public static DataType inferSimpleDataType(final String value) {
+        if (value == null || value.isEmpty()) {
+            return null;
+        }
+
+        if (NumberUtils.isParsable(value)) {
+            if (value.contains(".")) {
+                try {
+                    final double doubleValue = Double.parseDouble(value);
+
+                    if (doubleValue == Double.POSITIVE_INFINITY || doubleValue == Double.NEGATIVE_INFINITY) {
+                        return RecordFieldType.DECIMAL.getDecimalDataType(value.length() - 1, value.length() - 1 - value.indexOf("."));
+                    }
+
+                    if (doubleValue > Float.MAX_VALUE || doubleValue < Float.MIN_VALUE) {
+                        return RecordFieldType.DOUBLE.getDataType();
+                    }
+
+                    return RecordFieldType.FLOAT.getDataType();
+                } catch (final NumberFormatException nfe) {
+                    return RecordFieldType.STRING.getDataType();
+                }
+            }
+
+            try {
+                final long longValue = Long.parseLong(value);
+                if (longValue > Integer.MAX_VALUE || longValue < Integer.MIN_VALUE) {
+                    return RecordFieldType.LONG.getDataType();
+                }
+
+                return RecordFieldType.INT.getDataType();
+            } catch (final NumberFormatException nfe) {
+                return RecordFieldType.STRING.getDataType();
+            }
+        }
+
+        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) {
+            return RecordFieldType.BOOLEAN.getDataType();
+        }
+
+        return RecordFieldType.STRING.getDataType();
     }
 }

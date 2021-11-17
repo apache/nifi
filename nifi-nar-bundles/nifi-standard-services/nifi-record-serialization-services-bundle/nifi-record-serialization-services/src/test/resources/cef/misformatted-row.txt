@@ -1,0 +1,1 @@
+Oct 12 04:16:11 localhost CEF:0|nxlog.org|nxlog|2.7.1243|
