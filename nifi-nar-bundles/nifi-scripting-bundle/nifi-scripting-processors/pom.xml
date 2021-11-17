@@ -76,9 +76,9 @@
             <version>2.4.0</version>
         </dependency>
         <dependency>
-            <groupId>org.scijava</groupId>
-            <artifactId>jython-shaded</artifactId>
-            <version>2.7.1.1</version>
+            <groupId>org.python</groupId>
+            <artifactId>jython-slim</artifactId>
+            <version>2.7.2</version>
         </dependency>
         <dependency>
             <groupId>org.luaj</groupId>
