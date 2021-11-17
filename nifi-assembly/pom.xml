@@ -22,11 +22,32 @@ language governing permissions and limitations under the License. -->
     <build>
         <plugins>
             <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>extract-extension-manifests</id>
+                        <goals>
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <includeTypes>nar</includeTypes>
+                            <includes>**/extension-manifest.xml</includes>
+                            <excludeTransitive>false</excludeTransitive>
+                            <outputDirectory>${project.build.directory}/extension-manifests</outputDirectory>
+                            <useSubDirectoryPerArtifact>true</useSubDirectoryPerArtifact>
+                            <stripClassifier>true</stripClassifier>
+                            <stripVersion>true</stripVersion>
+                            <silent>true</silent>
+                            <fileMappers>
+                                <org.codehaus.plexus.components.io.filemappers.FlattenFileMapper />
+                            </fileMappers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <finalName>nifi-${project.version}</finalName>
-                    <attach>false</attach>
-                </configuration>
                 <executions>
                     <execution>
                         <id>make shared resource</id>
@@ -35,6 +56,8 @@ language governing permissions and limitations under the License. -->
                         </goals>
                         <phase>package</phase>
                         <configuration>
+                            <finalName>nifi-${project.version}</finalName>
+                            <attach>false</attach>
                             <archiverConfig>
                                 <defaultDirectoryMode>0775</defaultDirectoryMode>
                                 <directoryMode>0775</directoryMode>
@@ -48,6 +71,29 @@ language governing permissions and limitations under the License. -->
                                 <format>dir</format>
                                 <format>zip</format>
                                 <format>tar.gz</format>
+                            </formats>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>make-extension-manifest-assembly</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <finalName>nifi-${project.version}</finalName>
+                            <attach>true</attach>
+                            <archiverConfig>
+                                <defaultDirectoryMode>0775</defaultDirectoryMode>
+                                <directoryMode>0775</directoryMode>
+                                <fileMode>0664</fileMode>
+                            </archiverConfig>
+                            <descriptors>
+                                <descriptor>src/main/assembly/extension-manifests.xml</descriptor>
+                            </descriptors>
+                            <tarLongFileMode>posix</tarLongFileMode>
+                            <formats>
+                                <format>zip</format>
                             </formats>
                         </configuration>
                     </execution>
@@ -1335,10 +1381,6 @@ language governing permissions and limitations under the License. -->
                 <plugins>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
-                        <configuration>
-                            <finalName>nifi-${project.version}</finalName>
-                            <attach>false</attach>
-                        </configuration>
                         <executions>
                             <execution>
                                 <id>make shared resource</id>
@@ -1347,6 +1389,8 @@ language governing permissions and limitations under the License. -->
                                 </goals>
                                 <phase>package</phase>
                                 <configuration>
+                                    <finalName>nifi-${project.version}</finalName>
+                                    <attach>false</attach>
                                     <archiverConfig>
                                         <defaultDirectoryMode>0775</defaultDirectoryMode>
                                         <directoryMode>0775</directoryMode>
@@ -1401,10 +1445,6 @@ language governing permissions and limitations under the License. -->
                 <plugins>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
-                        <configuration>
-                            <finalName>nifi-${project.version}</finalName>
-                            <attach>false</attach>
-                        </configuration>
                         <executions>
                             <execution>
                                 <id>make shared resource</id>
@@ -1413,6 +1453,8 @@ language governing permissions and limitations under the License. -->
                                 </goals>
                                 <phase>package</phase>
                                 <configuration>
+                                    <finalName>nifi-${project.version}</finalName>
+                                    <attach>false</attach>
                                     <archiverConfig>
                                         <defaultDirectoryMode>0775</defaultDirectoryMode>
                                         <directoryMode>0775</directoryMode>
