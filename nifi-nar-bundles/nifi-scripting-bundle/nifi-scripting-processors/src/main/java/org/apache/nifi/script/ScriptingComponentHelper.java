@@ -48,10 +48,13 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
+
 /**
  * This class contains variables and methods common to scripting processors, reporting tasks, etc.
  */
 public class ScriptingComponentHelper {
+    private static final String UNKNOWN_VERSION = "UNKNOWN";
 
     public PropertyDescriptor SCRIPT_ENGINE;
 
@@ -155,7 +158,8 @@ public class ScriptingComponentHelper {
             List<AllowableValue> engineList = new LinkedList<>();
             for (ScriptEngineFactory factory : scriptEngineFactories) {
                 if (!requireInvocable || factory.getScriptEngine() instanceof Invocable) {
-                    engineList.add(new AllowableValue(factory.getLanguageName()));
+                    final AllowableValue scriptEngineAllowableValue = getScriptLanguageAllowableValue(factory);
+                    engineList.add(scriptEngineAllowableValue);
                     scriptEngineFactoryMap.put(factory.getLanguageName(), factory);
                 }
             }
@@ -268,5 +272,14 @@ public class ScriptingComponentHelper {
         if (scriptRunnerQ != null) {
             scriptRunnerQ.clear();
         }
+    }
+
+    private AllowableValue getScriptLanguageAllowableValue(final ScriptEngineFactory factory) {
+        final String languageName = factory.getLanguageName();
+        final String languageVersion = defaultIfBlank(factory.getLanguageVersion(), UNKNOWN_VERSION);
+        final String engineVersion = defaultIfBlank(factory.getEngineVersion(), UNKNOWN_VERSION);
+
+        final String description = String.format("%s %s [%s %s]", languageName, languageVersion, factory.getEngineName(), engineVersion);
+        return new AllowableValue(languageName, languageName, description);
     }
 }
