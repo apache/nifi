@@ -346,7 +346,7 @@ public class TestParseCEF {
     @Test
     public void testAcceptEmptyExtensions() throws Exception {
         String sample3 = "CEF:0|TestVendor|TestProduct|TestVersion|TestEventClassID|TestName|Low|" +
-                "rt=Feb 09 2015 00:27:43 UTC cn3Label=Test Long cn3= " +
+                "rt=Feb 09 2015 00:27:43 UTC cn3Label= cn3= " +
                 "cfp1=1.234 cfp1Label=Test FP Number smac=00:00:0c:07:ac:00 " +
                 "c6a3=2001:cdba::3257:9652 c6a3Label=Test IPv6 cs1Label=Test String cs1=test test test chocolate " +
                 "destinationTranslatedAddress=123.123.123.123 " +
@@ -372,6 +372,9 @@ public class TestParseCEF {
         JsonNode extensions = results.get("extension");
         Assert.assertTrue(extensions.has("cn3"));
         Assert.assertTrue(extensions.get("cn3").isNull());
+
+        Assert.assertTrue(extensions.has("cn3Label"));
+        Assert.assertTrue(extensions.get("cn3Label").asText().isEmpty());
     }
 
     @Test

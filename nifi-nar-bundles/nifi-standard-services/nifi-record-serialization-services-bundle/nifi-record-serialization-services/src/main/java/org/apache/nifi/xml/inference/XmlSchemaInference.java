@@ -16,15 +16,13 @@
  */
 package org.apache.nifi.xml.inference;
 
-import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.nifi.schema.inference.HierarchicalSchemaInference;
 import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.util.SchemaInferenceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -49,49 +47,8 @@ public class XmlSchemaInference extends HierarchicalSchemaInference<XmlNode> {
     }
 
     public DataType inferTextualDataType(final String text) {
-        if (text == null || text.isEmpty()) {
-            return null;
-        }
-
-        if (NumberUtils.isParsable(text)) {
-            if (text.contains(".")) {
-                try {
-                    final double doubleValue = Double.parseDouble(text);
-
-                    if (doubleValue == Double.POSITIVE_INFINITY || doubleValue == Double.NEGATIVE_INFINITY) {
-                        return RecordFieldType.DECIMAL.getDecimalDataType(text.length() - 1, text.length() - 1 - text.indexOf("."));
-                    }
-
-                    if (doubleValue > Float.MAX_VALUE || doubleValue < Float.MIN_VALUE) {
-                        return RecordFieldType.DOUBLE.getDataType();
-                    }
-
-                    return RecordFieldType.FLOAT.getDataType();
-                } catch (final NumberFormatException nfe) {
-                    return RecordFieldType.STRING.getDataType();
-                }
-            }
-
-            try {
-                final long longValue = Long.parseLong(text);
-                if (longValue > Integer.MAX_VALUE || longValue < Integer.MIN_VALUE) {
-                    return RecordFieldType.LONG.getDataType();
-                }
-
-                return RecordFieldType.INT.getDataType();
-            } catch (final NumberFormatException nfe) {
-                return RecordFieldType.STRING.getDataType();
-            }
-        }
-
-        if (text.equalsIgnoreCase("true") || text.equalsIgnoreCase("false")) {
-            return RecordFieldType.BOOLEAN.getDataType();
-        }
-
-        final Optional<DataType> timeDataType = timeValueInference.getDataType(text);
-        return timeDataType.orElse(RecordFieldType.STRING.getDataType());
+        return SchemaInferenceUtil.getDataType(text, timeValueInference);
     }
-
 
     @Override
     protected boolean isObject(final XmlNode value) {
