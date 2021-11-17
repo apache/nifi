@@ -1,0 +1,1 @@
+Oct 12 04:16:11 localhost CEF:0|Company|Product|1.2.3|audit-login|Successful login|3|cn1Label=userid spt=46117 cn1=99999 cfp1=1.23  dst=127.0.0.1 c6a1=2345:0425:2CA1:0000:0000:0567:5673:23b5 dmac=00:0D:60:AF:1B:61 start=1479152665000 end=Jan 12 2017 12:23:45 dlat=456.789 loginsequence=
