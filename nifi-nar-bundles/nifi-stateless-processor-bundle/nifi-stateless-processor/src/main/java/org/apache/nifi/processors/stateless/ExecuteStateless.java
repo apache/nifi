@@ -55,6 +55,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.stateless.retrieval.CachingDataflowProvider;
 import org.apache.nifi.processors.stateless.retrieval.DataflowProvider;
 import org.apache.nifi.processors.stateless.retrieval.FileSystemDataflowProvider;
@@ -329,6 +330,16 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .defaultValue("1 MB")
         .build();
 
+    public static final PropertyDescriptor STATUS_TASK_INTERVAL = new Builder()
+            .name("Status Task Interval")
+            .displayName("Status Task Interval")
+            .description("The Stateless engine periodically logs the status of the dataflow's processors.  This property allows the interval to be changed, or the status logging " +
+                    "to be skipped altogether if the property is not set.")
+            .required(false)
+            .addValidator(StandardValidators.createTimePeriodValidator(10, TimeUnit.SECONDS, 24, TimeUnit.HOURS))
+            .expressionLanguageSupported(NONE)
+            .build();
+
     static final Relationship REL_ORIGINAL = new Relationship.Builder()
         .name("original")
         .description("For any incoming FlowFile that is successfully processed, the original incoming FlowFile will be transferred to this Relationship")
@@ -375,7 +386,8 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
             MAX_INGEST_FLOWFILES,
             MAX_INGEST_DATA_SIZE,
             STATELESS_SSL_CONTEXT_SERVICE,
-            KRB5_CONF);
+            KRB5_CONF,
+                STATUS_TASK_INTERVAL);
     }
 
     @Override
@@ -850,6 +862,8 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
             contentRepoDirectory = null;
         }
 
+        final String statusTaskInterval = context.getProperty(STATUS_TASK_INTERVAL).getValue();
+
         return new StatelessEngineConfiguration() {
             @Override
             public File getWorkingDirectory() {
@@ -899,6 +913,11 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
             @Override
             public boolean isLogExtensionDiscovery() {
                 return false;
+            }
+
+            @Override
+            public String getStatusTaskInterval() {
+                return statusTaskInterval;
             }
         };
     }

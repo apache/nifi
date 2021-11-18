@@ -121,6 +121,11 @@ public class StatelessSystemIT {
             public List<ExtensionClientDefinition> getExtensionClients() {
                 return Collections.emptyList();
             }
+
+            @Override
+            public String getStatusTaskInterval() {
+                return null;
+            }
         };
     }
 
