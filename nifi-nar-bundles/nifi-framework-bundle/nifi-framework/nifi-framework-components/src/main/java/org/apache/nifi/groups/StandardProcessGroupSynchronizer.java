@@ -140,7 +140,7 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
     }
 
     @Override
-    public void synchronize(final ProcessGroup group, final VersionedFlowSnapshot proposedSnapshot, final GroupSynchronizationOptions options) throws ProcessorInstantiationException {
+    public void synchronize(final ProcessGroup group, final VersionedFlowSnapshot proposedSnapshot, final GroupSynchronizationOptions options) {
 
         final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(context.getExtensionManager(), context.getFlowMappingOptions());
         final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(group, context.getControllerServiceProvider(), context.getFlowRegistryClient(), true);
@@ -213,7 +213,14 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
             preExistingVariables.addAll(knownVariables);
         }
 
-        synchronize(group, proposedSnapshot.getFlowContents(), proposedSnapshot.getParameterContexts());
+        context.getFlowManager().withParameterContextResolution(() -> {
+            try {
+                synchronize(group, proposedSnapshot.getFlowContents(), proposedSnapshot.getParameterContexts());
+            } catch (final ProcessorInstantiationException pie) {
+                throw new RuntimeException(pie);
+            }
+        });
+
         group.onComponentModified();
     }
 
@@ -393,7 +400,7 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
             final ProcessGroup childGroup = childGroupsByVersionedId.get(proposedChildGroup.getIdentifier());
             final VersionedFlowCoordinates childCoordinates = proposedChildGroup.getVersionedFlowCoordinates();
 
-            // if there is a nested process group that is versioned controlled, make sure get the param contexts that go with that snapshot
+            // if there is a nested process group that is version controlled, make sure get the param contexts that go with that snapshot
             // instead of the ones from the parent which would have been passed in to this method
             Map<String, VersionedParameterContext> childParameterContexts = versionedParameterContexts;
             if (childCoordinates != null && syncOptions.isUpdateDescendantVersionedFlows()) {
@@ -946,12 +953,11 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
 
                 if (!bundleExists && possibleBundles.size() != 1) {
                     LOG.warn("Unknown bundle {} for processor type {} - will use Ghosted component instead", serviceToAddCoordinate, serviceToAddClass);
-//                    throw new IllegalArgumentException("Unknown bundle " + serviceToAddCoordinate.toString() + " for service type " + serviceToAddClass);
                 }
             }
         }
 
-        // Ensure that all Prioritizers are instantiate-able and that any load balancing configuration is correct
+        // Ensure that all Prioritizers are instantiable and that any load balancing configuration is correct
         // Enforcing ancestry on connection matching here is not important because all we're interested in is locating
         // new prioritizers and load balance strategy types so if a matching connection existed anywhere in the current
         // flow, then its prioritizer and load balance strategy are already validated

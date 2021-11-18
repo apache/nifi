@@ -55,7 +55,7 @@ public class VersionedReportingTask extends VersionedComponent implements Versio
     }
 
     @Override
-    @ApiModelProperty(value = "The properties of the controller service.")
+    @ApiModelProperty(value = "The properties of the reporting task.")
     public Map<String, String> getProperties() {
         return properties;
     }
@@ -66,7 +66,7 @@ public class VersionedReportingTask extends VersionedComponent implements Versio
     }
 
     @Override
-    @ApiModelProperty("The property descriptors for the controller service.")
+    @ApiModelProperty("The property descriptors for the reporting task.")
     public Map<String, VersionedPropertyDescriptor> getPropertyDescriptors() {
         return propertyDescriptors;
     }
@@ -76,7 +76,7 @@ public class VersionedReportingTask extends VersionedComponent implements Versio
         this.propertyDescriptors = propertyDescriptors;
     }
 
-    @ApiModelProperty(value = "The annotation for the controller service. This is how the custom UI relays configuration to the controller service.")
+    @ApiModelProperty(value = "The annotation for the reporting task. This is how the custom UI relays configuration to the reporting task.")
     public String getAnnotationData() {
         return annotationData;
     }

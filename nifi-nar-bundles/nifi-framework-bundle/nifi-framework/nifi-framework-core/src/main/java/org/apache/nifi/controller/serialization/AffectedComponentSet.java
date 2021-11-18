@@ -510,7 +510,7 @@ public class AffectedComponentSet {
      * that one or more components referred to by the AffectedComponentSet can no longer be started (for example, there was a dataflow update that disabled a Processor that previously was running).
      *
      * @return an AffectedComponentSet that represents all components within this AffectedComponentSet that currently exist within the NiFi instance. The components contained by the returned
-     * AffectedComponentSetwill always be a subset or equal to the set of components contained by this.
+     * AffectedComponentSet will always be a subset or equal to the set of components contained by this.
      */
     public AffectedComponentSet toStartableSet() {
         final AffectedComponentSet startable = new AffectedComponentSet(flowController);

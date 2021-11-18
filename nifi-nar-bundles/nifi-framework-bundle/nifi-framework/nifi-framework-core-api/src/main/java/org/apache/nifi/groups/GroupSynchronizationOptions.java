@@ -168,7 +168,7 @@ public class GroupSynchronizationOptions {
         }
 
         /**
-         * Specifies whether or not the URLs / "Target URIs" of a Remote Process Group that exists in both the Proposed flow and the current flow
+         * Specifies whether or not the URLs / "Target URIs" of a Remote Process Group that exists in both the proposed flow and the current flow
          * should be updated to match that of the proposed flow
          *
          * @param updateRpgUrls whether or not to update the RPG URLs

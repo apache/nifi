@@ -201,7 +201,7 @@ public class TestFlowController {
         final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
-        // create a mock proposed data flow with the same auth fingerprint as the current authoriz
+        // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
         final File flowFile = new File("src/test/resources/conf/reporting-task-with-cs-flow-0.7.0.xml");
         final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);

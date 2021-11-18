@@ -131,7 +131,7 @@ public enum DifferenceType {
     PARAMETER_REMOVED("Parameter Removed"),
 
     /**
-     * The value of the Parameter is different each of the flows
+     * The value of the Parameter is different in each of the flows
      */
     PARAMETER_VALUE_CHANGED("Parameter Value Changed"),
 

@@ -21,7 +21,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.serialization.StandardFlowSynchronizer;
-import org.apache.nifi.fingerprint.FingerprintFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,8 +34,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * <p>
@@ -54,14 +51,13 @@ public class PopularVoteFlowElection implements FlowElection {
 
     private final long maxWaitNanos;
     private final Integer maxNodes;
-    private final FingerprintFactory fingerprintFactory;
 
     private volatile Long startNanos = null;
     private volatile DataFlow electedDataFlow = null;
 
     private final Map<String, FlowCandidate> candidateByFingerprint = new HashMap<>();
 
-    public PopularVoteFlowElection(final long maxWait, final TimeUnit maxWaitPeriod, final Integer maxNodes, final FingerprintFactory fingerprintFactory) {
+    public PopularVoteFlowElection(final long maxWait, final TimeUnit maxWaitPeriod, final Integer maxNodes) {
         this.maxWaitNanos = maxWaitPeriod.toNanos(maxWait);
         if (maxWaitNanos < 1) {
             throw new IllegalArgumentException("Maximum wait time to elect Cluster Flow cannot be less than 1 nanosecond");
@@ -71,8 +67,6 @@ public class PopularVoteFlowElection implements FlowElection {
         if (maxNodes != null && maxNodes < 1) {
             throw new IllegalArgumentException("Maximum number of nodes to wait on before electing Cluster Flow cannot be less than 1");
         }
-
-        this.fingerprintFactory = requireNonNull(fingerprintFactory);
     }
 
     @Override

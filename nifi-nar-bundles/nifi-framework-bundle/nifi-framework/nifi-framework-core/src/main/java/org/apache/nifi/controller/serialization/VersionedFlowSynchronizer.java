@@ -474,7 +474,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void addReportingTask(final FlowController controller, final VersionedReportingTask reportingTask) throws ReportingTaskInstantiationException {
-        final BundleCoordinate coordinate = createBundleCoordiate(reportingTask.getBundle(), reportingTask.getType());
+        final BundleCoordinate coordinate = createBundleCoordinate(reportingTask.getBundle(), reportingTask.getType());
 
         final ReportingTaskNode taskNode = controller.createReportingTask(reportingTask.getType(), reportingTask.getInstanceIdentifier(), coordinate, false);
         updateReportingTask(taskNode, reportingTask, controller);
@@ -691,7 +691,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void addRootControllerService(final FlowController controller, final VersionedControllerService versionedControllerService) {
-        final BundleCoordinate bundleCoordinate = createBundleCoordiate(versionedControllerService.getBundle(), versionedControllerService.getType());
+        final BundleCoordinate bundleCoordinate = createBundleCoordinate(versionedControllerService.getBundle(), versionedControllerService.getType());
         final ControllerServiceNode serviceNode = controller.getFlowManager().createControllerService(versionedControllerService.getType(),
             versionedControllerService.getInstanceIdentifier(), bundleCoordinate,Collections.emptySet(), true, true, null);
 
@@ -710,7 +710,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-    private BundleCoordinate createBundleCoordiate(final Bundle bundle, final String componentType) {
+    private BundleCoordinate createBundleCoordinate(final Bundle bundle, final String componentType) {
         BundleCoordinate coordinate;
         try {
             final BundleDTO bundleDto = new BundleDTO(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());

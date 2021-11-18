@@ -51,7 +51,6 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
-import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
@@ -3841,8 +3840,6 @@ public final class StandardProcessGroup implements ProcessGroup {
 
                 throw t;
             }
-        } catch (final ProcessorInstantiationException pie) {
-            throw new IllegalStateException("Failed to update flow", pie);
         } finally {
             writeLock.unlock();
         }
