@@ -181,19 +181,20 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             }
 
             final StatelessEngine<VersionedFlowSnapshot> statelessEngine = new StandardStatelessEngine.Builder()
-                .bulletinRepository(bulletinRepository)
-                .encryptor(lazyInitializedEncryptor)
-                .extensionManager(extensionManager)
-                .flowRegistryClient(flowRegistryClient)
-                .stateManagerProvider(stateManagerProvider)
-                .variableRegistry(variableRegistry)
-                .processScheduler(processScheduler)
-                .kerberosConfiguration(kerberosConfig)
-                .flowFileEventRepository(flowFileEventRepo)
-                .provenanceRepository(provenanceRepo)
-                .extensionRepository(extensionRepository)
-                .counterRepository(counterRepo)
-                .build();
+                    .bulletinRepository(bulletinRepository)
+                    .encryptor(lazyInitializedEncryptor)
+                    .extensionManager(extensionManager)
+                    .flowRegistryClient(flowRegistryClient)
+                    .stateManagerProvider(stateManagerProvider)
+                    .variableRegistry(variableRegistry)
+                    .processScheduler(processScheduler)
+                    .kerberosConfiguration(kerberosConfig)
+                    .flowFileEventRepository(flowFileEventRepo)
+                    .provenanceRepository(provenanceRepo)
+                    .extensionRepository(extensionRepository)
+                    .counterRepository(counterRepo)
+                    .statusTaskInterval(engineConfiguration.getStatusTaskInterval())
+                    .build();
 
             final StatelessFlowManager flowManager = new StatelessFlowManager(flowFileEventRepo, parameterContextManager, statelessEngine, () -> true, sslContext, bulletinRepository);
             final ControllerServiceProvider controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, flowManager, extensionManager);

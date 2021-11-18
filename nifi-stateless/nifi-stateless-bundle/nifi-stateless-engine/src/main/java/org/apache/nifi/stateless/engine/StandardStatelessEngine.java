@@ -74,9 +74,12 @@ import org.apache.nifi.stateless.parameter.CompositeParameterValueProvider;
 import org.apache.nifi.stateless.parameter.ParameterValueProvider;
 import org.apache.nifi.stateless.parameter.ParameterValueProviderInitializationContext;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
+import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -98,6 +101,7 @@ import static java.util.Objects.requireNonNull;
 public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSnapshot> {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessEngine.class);
     private static final int CONCURRENT_EXTENSION_DOWNLOADS = 8;
+    public static final Duration DEFAULT_STATUS_TASK_PERIOD = Duration.of(1, ChronoUnit.MINUTES);
 
     // Member Variables injected via Builder
     private final ExtensionManager extensionManager;
@@ -112,6 +116,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     private final ProvenanceRepository provenanceRepository;
     private final ExtensionRepository extensionRepository;
     private final CounterRepository counterRepository;
+    private final Duration statusTaskInterval;
 
     // Member Variables created/managed internally
     private final ReloadComponent reloadComponent;
@@ -137,6 +142,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         this.provenanceRepository = requireNonNull(builder.provenanceRepository, "Provenance Repository must be provided");
         this.extensionRepository = requireNonNull(builder.extensionRepository, "Extension Repository must be provided");
         this.counterRepository = requireNonNull(builder.counterRepository, "Counter Repository must be provided");
+        this.statusTaskInterval = parseDuration(builder.statusTaskInterval);
 
         this.reloadComponent = new StatelessReloadComponent(this);
         this.validationTrigger = new StandardValidationTrigger(new FlowEngine(1, "Component Validation", true), () -> true);
@@ -191,8 +197,10 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         final StandardStatelessFlow dataflow = new StandardStatelessFlow(childGroup, reportingTaskNodes, controllerServiceProvider, processContextFactory,
             repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler, bulletinRepository);
 
-        final LogComponentStatuses logComponentStatuses = new LogComponentStatuses(flowFileEventRepository, counterRepository, flowManager);
-        dataflow.scheduleBackgroundTask(logComponentStatuses, 1, TimeUnit.MINUTES);
+        if (statusTaskInterval != null) {
+            final LogComponentStatuses logComponentStatuses = new LogComponentStatuses(flowFileEventRepository, counterRepository, flowManager);
+            dataflow.scheduleBackgroundTask(logComponentStatuses, statusTaskInterval.toMillis(), TimeUnit.MILLISECONDS);
+        }
 
         return dataflow;
     }
@@ -653,6 +661,11 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return counterRepository;
     }
 
+    @Override
+    public Duration getStatusTaskInterval() {
+        return statusTaskInterval;
+    }
+
     public static class Builder {
         private ExtensionManager extensionManager = null;
         private BulletinRepository bulletinRepository = null;
@@ -666,6 +679,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         private ProvenanceRepository provenanceRepository = null;
         private ExtensionRepository extensionRepository = null;
         private CounterRepository counterRepository = null;
+        private String statusTaskInterval = null;
 
         public Builder extensionManager(final ExtensionManager extensionManager) {
             this.extensionManager = extensionManager;
@@ -727,8 +741,33 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             return this;
         }
 
+        public Builder statusTaskInterval(final String statusTaskInterval) {
+            this.statusTaskInterval = statusTaskInterval;
+            return this;
+        }
+
         public StandardStatelessEngine build() {
             return new StandardStatelessEngine(this);
+        }
+    }
+
+    static Duration parseDuration(final String durationValue) {
+        if (durationValue == null || durationValue.trim().isEmpty()) {
+            return null;
+        }
+
+        try {
+            final Long taskScheduleSeconds = FormatUtils.getTimeDuration(durationValue.trim(), TimeUnit.SECONDS);
+            final Duration taskScheduleDuration =  Duration.ofSeconds(taskScheduleSeconds);
+            if (taskScheduleDuration.toMillis() < 1000) {
+                logger.warn("Status task schedule period [{}] must be at least one second", durationValue);
+                throw new IllegalArgumentException("Status task schedule period is too small");
+            }
+
+            return taskScheduleDuration;
+        } catch (final IllegalArgumentException e) {
+            logger.warn("Encountered invalid status task schedule: <{}>. Will ignore this property.", durationValue);
+            return DEFAULT_STATUS_TASK_PERIOD;
         }
     }
 }

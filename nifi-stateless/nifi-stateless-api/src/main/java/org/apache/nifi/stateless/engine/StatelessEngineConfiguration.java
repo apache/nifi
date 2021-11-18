@@ -83,4 +83,10 @@ public interface StatelessEngineConfiguration {
     default boolean isLogExtensionDiscovery() {
         return true;
     }
+
+    /**
+     * @return a String representing the interval between periodic status task executions (e.g., 1 min).
+     * A <code>null</code> value indicates that no status tasks are scheduled.
+     */
+    String getStatusTaskInterval();
 }

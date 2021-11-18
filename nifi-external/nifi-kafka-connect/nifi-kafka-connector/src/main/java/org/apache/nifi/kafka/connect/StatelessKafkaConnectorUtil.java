@@ -315,6 +315,11 @@ public class StatelessKafkaConnectorUtil {
 
                 return extensionClientDefinitions;
             }
+
+            @Override
+            public String getStatusTaskInterval() {
+                return "1 min";
+            }
         };
 
         return engineConfiguration;

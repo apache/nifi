@@ -265,13 +265,18 @@ nifi.stateless.extension.client.mvn-central.useSslContext=false
 nifi.stateless.kerberos.krb5.file=/etc/krb5.conf
 ```
 
+Other configuration properties for the Engine Configuration include:
+
+| Property Name | Description | Example Value |
+|---------------|-------------|---------------|
+| nifi.stateless.status.task.interval | The Stateless Engine can periodically log the status of all processors.  This property can configure the period, or the logging can be avoided by setting this property value to empty.   | 1 min |
+
 
 A minimum configuration of the Engine Configuration may look as follows:
 ```
 nifi.stateless.nar.directory=/var/lib/nifi/lib
 nifi.stateless.working.directory=/var/lib/nifi/work/stateless
 ```
-
 
 #### Dataflow Configuration
 
