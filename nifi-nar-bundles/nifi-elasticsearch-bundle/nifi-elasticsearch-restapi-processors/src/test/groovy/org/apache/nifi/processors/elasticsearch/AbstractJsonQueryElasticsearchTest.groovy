@@ -279,7 +279,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
 
         runOnce(runner)
 
-        final TestElasticsearchClientService service = runner.getControllerService("esService") as TestElasticsearchClientService
+        final TestElasticsearchClientService service = getService(runner)
         if (getProcessor() instanceof SearchElasticsearch || getProcessor() instanceof PaginatedJsonQueryElasticsearch) {
             Assert.assertEquals(3, service.getRequestParameters().size())
             Assert.assertEquals("600s", service.getRequestParameters().get("scroll"))

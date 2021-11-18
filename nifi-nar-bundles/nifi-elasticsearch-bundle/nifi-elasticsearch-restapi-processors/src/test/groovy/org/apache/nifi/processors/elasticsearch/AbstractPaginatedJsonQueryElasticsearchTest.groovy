@@ -178,7 +178,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
         // check error was caught and logged
         assertThat(runner.getLogger().getErrorMessages().stream()
                 .anyMatch({ logMessage ->
-                    logMessage.getMsg().contains("Error processing flowfile") &&
+                    logMessage.getMsg().contains("Could not query documents") &&
                             logMessage.getThrowable().getMessage() == "Simulated IOException - initialisePointInTime"
                 }),
                 is(true)
@@ -199,7 +199,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
         // check error was caught and logged
         assertThat(runner.getLogger().getErrorMessages().stream()
                 .anyMatch({ logMessage ->
-                    logMessage.getMsg().contains("Error processing flowfile") &&
+                    logMessage.getMsg().contains("Could not query documents") &&
                             logMessage.getThrowable().getMessage() == "Query using pit/search_after must contain a \"sort\" field"
                 }),
                 is(true)
@@ -213,7 +213,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
         testCounts(runner, 0, 0, isInput() ? 1 : 0, 0)
         assertThat(runner.getLogger().getErrorMessages().stream()
                 .anyMatch({ logMessage ->
-                    logMessage.getMsg().contains("Error processing flowfile") &&
+                    logMessage.getMsg().contains("Could not query documents") &&
                             logMessage.getThrowable().getMessage() == "Query using pit/search_after must contain a \"sort\" field"
                 }),
                 is(true)

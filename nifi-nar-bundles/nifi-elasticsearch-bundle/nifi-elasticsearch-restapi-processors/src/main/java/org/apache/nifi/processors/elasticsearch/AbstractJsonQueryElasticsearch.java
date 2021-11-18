@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
+import org.apache.nifi.elasticsearch.ElasticsearchException;
 import org.apache.nifi.elasticsearch.SearchResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -168,9 +169,19 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
             final SearchResponse response = doQuery(queryJsonParameters, hitsFlowFiles, session, context, input, stopWatch);
 
             finishQuery(input, queryJsonParameters, session, context, response);
-        } catch (Exception ex) {
-            getLogger().error("Error processing flowfile.", ex);
+        } catch (final ElasticsearchException ese) {
+            final String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
+                    ese.isElastic() ? "Routing to retry." : "Routing to failure");
+            getLogger().error(msg, ese);
             if (input != null) {
+                session.penalize(input);
+                input = session.putAttribute(input, "elasticsearch.query.error", ese.getMessage());
+                session.transfer(input, ese.isElastic() ? REL_RETRY : REL_FAILURE);
+            }
+        } catch (Exception ex) {
+            getLogger().error("Could not query documents.", ex);
+            if (input != null) {
+                input = session.putAttribute(input, "elasticsearch.query.error", ex.getMessage());
                 session.transfer(input, REL_FAILURE);
             }
             context.yield();

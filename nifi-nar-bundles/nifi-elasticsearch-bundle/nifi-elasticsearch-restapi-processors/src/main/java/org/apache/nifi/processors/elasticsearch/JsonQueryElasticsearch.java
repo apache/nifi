@@ -39,11 +39,12 @@ import java.util.concurrent.TimeUnit;
     @WritesAttribute(attribute = "mime.type", description = "application/json"),
     @WritesAttribute(attribute = "aggregation.name", description = "The name of the aggregation whose results are in the output flowfile"),
     @WritesAttribute(attribute = "aggregation.number", description = "The number of the aggregation whose results are in the output flowfile"),
-    @WritesAttribute(attribute = "hit.count", description = "The number of hits that are in the output flowfile")
+    @WritesAttribute(attribute = "hit.count", description = "The number of hits that are in the output flowfile"),
+    @WritesAttribute(attribute = "elasticsearch.query.error", description = "The error message provided by Elasticsearch if there is an error querying the index.")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @EventDriven
-@Tags({"elasticsearch", "elasticsearch 5", "query", "read", "get", "json"})
+@Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "query", "read", "get", "json"})
 @CapabilityDescription("A processor that allows the user to run a query (with aggregations) written with the " +
         "Elasticsearch JSON DSL. It does not automatically paginate queries for the user. If an incoming relationship is added to this " +
         "processor, it will use the flowfile's content for the query. Care should be taken on the size of the query because the entire response " +

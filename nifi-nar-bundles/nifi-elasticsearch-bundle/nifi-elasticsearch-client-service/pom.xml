@@ -76,6 +76,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-proxy-configuration-api</artifactId>
+            <version>1.16.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-elasticsearch-client-service-api</artifactId>
             <version>1.16.0-SNAPSHOT</version>
             <scope>provided</scope>
@@ -143,9 +149,10 @@
              to an Elastic-provided Elasticsearch instead of an instance provided by someone else (e.g. AWS OpenSearch)
              see: https://opensearch.org/blog/community/2021/08/community-clients/ for more info.
 
-             Note: the low-level elasticsearch-rest-client remains licensed with Apache 2.0 even after the move
+             Note: the low-level elasticsearch-rest-client remains licensed with Apache 2.0
+             (https://www.elastic.co/guide/en/elasticsearch/client/java-rest/current/_license.html) even after the move
              of the main Elasticsearch product and elasticsearch-rest-high-level-client to Elastic 2.0/SSPL 1.0 in v7.11.0+ -->
-            <version>7.10.2</version>
+            <version>7.13.4</version>
             <scope>compile</scope>
             <exclusions>
                 <exclusion>

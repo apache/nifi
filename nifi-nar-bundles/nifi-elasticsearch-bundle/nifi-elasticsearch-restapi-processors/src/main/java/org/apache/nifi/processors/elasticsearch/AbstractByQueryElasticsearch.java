@@ -20,6 +20,7 @@ package org.apache.nifi.processors.elasticsearch;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
+import org.apache.nifi.elasticsearch.ElasticsearchException;
 import org.apache.nifi.elasticsearch.OperationResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -56,6 +57,7 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
         final Set<Relationship> rels = new HashSet<>();
         rels.add(REL_SUCCESS);
         rels.add(REL_FAILURE);
+        rels.add(REL_RETRY);
         relationships = Collections.unmodifiableSet(rels);
 
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
@@ -138,12 +140,21 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
             input = session.putAllAttributes(input, attrs);
 
             session.transfer(input, REL_SUCCESS);
+        } catch (final ElasticsearchException ese) {
+            final String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
+                    ese.isElastic() ? "Routing to retry." : "Routing to failure");
+            getLogger().error(msg, ese);
+            if (input != null) {
+                session.penalize(input);
+                input = session.putAttribute(input, getErrorAttribute(), ese.getMessage());
+                session.transfer(input, ese.isElastic() ? REL_RETRY : REL_FAILURE);
+            }
         } catch (final Exception e) {
+            getLogger().error("Error running \"by query\" operation: ", e);
             if (input != null) {
                 input = session.putAttribute(input, getErrorAttribute(), e.getMessage());
                 session.transfer(input, REL_FAILURE);
             }
-            getLogger().error("Error running \"by query\" operation: ", e);
             context.yield();
         }
     }

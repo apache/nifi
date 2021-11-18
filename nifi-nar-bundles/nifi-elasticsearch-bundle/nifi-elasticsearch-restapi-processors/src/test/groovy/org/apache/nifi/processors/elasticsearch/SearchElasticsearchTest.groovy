@@ -64,7 +64,7 @@ class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticsearchTes
         testCounts(runner, 0, 0, 0, 0)
         assertThat(runner.getLogger().getErrorMessages().stream()
                 .anyMatch({ logMessage ->
-                    logMessage.getMsg().contains("Error processing flowfile") &&
+                    logMessage.getMsg().contains("Could not query documents") &&
                             logMessage.getThrowable().getMessage() == "Simulated IOException - scroll"
                 }),
                 is(true)

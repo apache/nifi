@@ -20,7 +20,7 @@ package org.apache.nifi.elasticsearch;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ElasticsearchError extends RuntimeException {
+public class ElasticsearchException extends RuntimeException {
     /**
      * These are names of common Elasticsearch exceptions where it is safe to assume
      * that it's OK to retry the operation instead of just sending it to an error relationship.
@@ -32,17 +32,32 @@ public class ElasticsearchError extends RuntimeException {
         add("NodeClosedException");
     }};
 
-    protected boolean isElastic;
+    protected boolean elastic;
 
-    public ElasticsearchError(final Exception ex) {
+    protected boolean notFound;
+
+    public ElasticsearchException(final Exception ex) {
         super(ex);
+
         final boolean isKnownException = ELASTIC_ERROR_NAMES.contains(ex.getClass().getSimpleName());
-        final boolean isServiceUnavailable = "ResponseException".equals(ex.getClass().getSimpleName())
-                && ex.getMessage().contains("503 Service Unavailable");
-        isElastic = isKnownException || isServiceUnavailable;
+
+        final boolean isServiceUnavailable;
+        if ("ResponseException".equals(ex.getClass().getSimpleName())) {
+            isServiceUnavailable = ex.getMessage().contains("503 Service Unavailable");
+
+            notFound = ex.getMessage().contains("404 Not Found");
+        } else {
+            isServiceUnavailable = false;
+        }
+
+        elastic = isKnownException || isServiceUnavailable;
     }
 
     public boolean isElastic() {
-        return isElastic;
+        return elastic;
+    }
+
+    public boolean isNotFound() {
+        return notFound;
     }
 }
