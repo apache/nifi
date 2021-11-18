@@ -4931,6 +4931,9 @@ public final class StandardProcessGroup implements ProcessGroup {
         port.setName(name);
         port.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
         port.setMaxConcurrentTasks(proposed.getConcurrentlySchedulableTaskCount());
+        if (org.apache.nifi.flow.ScheduledState.DISABLED == proposed.getScheduledState()) {
+            port.disable();
+        }
     }
 
     private Port addInputPort(final ProcessGroup destination, final VersionedPort proposed, final String componentIdSeed, final String temporaryName) {
@@ -5186,6 +5189,10 @@ public final class StandardProcessGroup implements ProcessGroup {
         descriptor.setId(generateUuid(proposed.getIdentifier(), rpgId, componentIdSeed));
         descriptor.setName(proposed.getName());
         descriptor.setUseCompression(proposed.isUseCompression());
+
+        final boolean transmitting = org.apache.nifi.flow.ScheduledState.ENABLED == proposed.getScheduledState();
+        descriptor.setTransmitting(transmitting);
+
         return descriptor;
     }
 
