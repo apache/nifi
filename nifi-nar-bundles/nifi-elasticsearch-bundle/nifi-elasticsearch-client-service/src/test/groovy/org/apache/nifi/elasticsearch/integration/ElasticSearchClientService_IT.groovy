@@ -22,6 +22,7 @@ import org.apache.maven.artifact.versioning.ComparableVersion
 import org.apache.nifi.elasticsearch.DeleteOperationResponse
 import org.apache.nifi.elasticsearch.ElasticSearchClientService
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl
+import org.apache.nifi.elasticsearch.ElasticsearchException
 import org.apache.nifi.elasticsearch.IndexOperationRequest
 import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.elasticsearch.SearchResponse
@@ -467,21 +468,24 @@ class ElasticSearchClientService_IT {
     void testDeleteById() throws Exception {
         final String ID = "1"
         final def originalDoc = service.get(INDEX, TYPE, ID, null)
-        DeleteOperationResponse response = service.deleteById(INDEX, TYPE, ID, null)
-        Assert.assertNotNull(response)
-        Assert.assertTrue(response.getTook() > 0)
-        def doc = service.get(INDEX, TYPE, ID, null)
-        Assert.assertNull(doc)
-        doc = service.get(INDEX, TYPE, "2", null)
-        Assert.assertNotNull(doc)
-
-        // replace the deleted doc
-        service.add(new IndexOperationRequest(INDEX, TYPE, "1", originalDoc, IndexOperationRequest.Operation.Index), null)
-        waitForIndexRefresh() // (affects later tests using _search or _bulk)
+        try {
+            DeleteOperationResponse response = service.deleteById(INDEX, TYPE, ID, null)
+            Assert.assertNotNull(response)
+            Assert.assertTrue(response.getTook() > 0)
+            final ElasticsearchException ee = Assert.assertThrows(ElasticsearchException.class, { ->
+                service.get(INDEX, TYPE, ID, null) })
+            Assert.assertTrue(ee.isNotFound())
+            final def doc = service.get(INDEX, TYPE, "2", null)
+            Assert.assertNotNull(doc)
+        } finally {
+            // replace the deleted doc
+            service.add(new IndexOperationRequest(INDEX, TYPE, "1", originalDoc, IndexOperationRequest.Operation.Index), null)
+            waitForIndexRefresh() // (affects later tests using _search or _bulk)
+        }
     }
 
     @Test
-    void testGet() throws IOException {
+    void testGet() {
         Map old
         1.upto(15) { index ->
             String id = String.valueOf(index)
@@ -490,6 +494,12 @@ class ElasticSearchClientService_IT {
             Assert.assertNotNull("${doc.toString()}\t${doc.keySet().toString()}", doc.get("msg"))
             old = doc
         }
+    }
+
+    @Test
+    void testGetNotFound() {
+        final ElasticsearchException ee = Assert.assertThrows(ElasticsearchException.class, { -> service.get(INDEX, TYPE, "not_found", null) })
+        Assert.assertTrue(ee.isNotFound())
     }
 
     @Test
@@ -671,8 +681,10 @@ class ElasticSearchClientService_IT {
         deletes.add(new IndexOperationRequest(INDEX, TYPE, UPSERTED_ID, null, IndexOperationRequest.Operation.Delete))
         Assert.assertFalse(service.bulk(deletes, [refresh: "true"]).hasErrors())
         waitForIndexRefresh() // wait 1s for index refresh (doesn't prevent GET but affects later tests using _search or _bulk)
-        Assert.assertNull(service.get(INDEX, TYPE, TEST_ID, null))
-        Assert.assertNull(service.get(INDEX, TYPE, UPSERTED_ID, null))
+        ElasticsearchException ee = Assert.assertThrows(ElasticsearchException.class, { -> service.get(INDEX, TYPE, TEST_ID, null) })
+        Assert.assertTrue(ee.isNotFound())
+        ee = Assert.assertThrows(ElasticsearchException.class, { -> service.get(INDEX, TYPE, UPSERTED_ID, null) })
+        Assert.assertTrue(ee.isNotFound())
     }
 
     @Test

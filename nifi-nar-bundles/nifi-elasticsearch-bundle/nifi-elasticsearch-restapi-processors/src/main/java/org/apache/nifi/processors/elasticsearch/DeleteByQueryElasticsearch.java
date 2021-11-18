@@ -34,7 +34,7 @@ import java.util.Map;
         @WritesAttribute(attribute = "elasticsearch.delete.error", description = "The error message provided by Elasticsearch if there is an error running the delete.")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@Tags({ "elastic", "elasticsearch", "delete", "query"})
+@Tags({ "elastic", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "delete", "query"})
 @CapabilityDescription("Delete from an Elasticsearch index using a query. The query can be loaded from a flowfile body " +
         "or from the Query parameter.")
 @DynamicProperty(

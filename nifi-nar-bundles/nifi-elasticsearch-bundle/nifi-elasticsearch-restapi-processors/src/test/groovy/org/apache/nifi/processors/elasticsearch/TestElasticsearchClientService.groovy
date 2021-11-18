@@ -21,14 +21,20 @@ import groovy.json.JsonSlurper
 import org.apache.nifi.controller.AbstractControllerService
 import org.apache.nifi.elasticsearch.DeleteOperationResponse
 import org.apache.nifi.elasticsearch.ElasticSearchClientService
+import org.apache.nifi.elasticsearch.ElasticsearchException
 import org.apache.nifi.elasticsearch.IndexOperationRequest
 import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.elasticsearch.SearchResponse
 import org.apache.nifi.elasticsearch.UpdateOperationResponse
+import org.apache.nifi.processors.elasticsearch.mock.MockElasticsearchException
+import org.elasticsearch.client.Response
+import org.elasticsearch.client.ResponseException
 
 class TestElasticsearchClientService extends AbstractControllerService implements ElasticSearchClientService {
     private boolean returnAggs
     private boolean throwErrorInSearch
+    private boolean throwErrorInGet
+    private boolean throwNotFoundInGet
     private boolean throwErrorInDelete
     private boolean throwErrorInPit
     private boolean throwErrorInUpdate
@@ -43,7 +49,11 @@ class TestElasticsearchClientService extends AbstractControllerService implement
 
     private void common(boolean throwError, Map<String, String> requestParameters) {
         if (throwError) {
-            throw new IOException("Simulated IOException")
+            if (throwNotFoundInGet) {
+                throw new MockElasticsearchException(false, true)
+            } else {
+                throw new IOException("Simulated IOException")
+            }
         }
         this.requestParameters = requestParameters
     }
@@ -89,7 +99,7 @@ class TestElasticsearchClientService extends AbstractControllerService implement
 
     @Override
     Map<String, Object> get(String index, String type, String id, Map<String, String> requestParameters) {
-        common(false, requestParameters)
+        common(throwErrorInGet || throwNotFoundInGet, requestParameters)
         return [ "msg": "one" ]
     }
 
@@ -297,6 +307,14 @@ class TestElasticsearchClientService extends AbstractControllerService implement
             "        }\n" +
             "      }\n" +
             "    ]"
+
+    void setThrowNotFoundInGet(boolean throwNotFoundInGet) {
+        this.throwNotFoundInGet = throwNotFoundInGet
+    }
+
+    void setThrowErrorInGet(boolean throwErrorInGet) {
+        this.throwErrorInGet = throwErrorInGet
+    }
 
     void setThrowErrorInSearch(boolean throwErrorInSearch) {
         this.throwErrorInSearch = throwErrorInSearch
