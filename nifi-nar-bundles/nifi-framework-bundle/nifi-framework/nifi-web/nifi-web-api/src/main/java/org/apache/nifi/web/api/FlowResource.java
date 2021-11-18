@@ -444,11 +444,13 @@ public class FlowResource extends ApplicationResource {
             return generateOkResponse(response)
                     .type(MediaType.TEXT_PLAIN_TYPE)
                     .build();
-        } else if ("json".equalsIgnoreCase(producer)) {
+        } else if ("clouderamanager".equalsIgnoreCase(producer)) {
             final Collection<CollectorRegistry> allRegistries = serviceFacade.generateFlowMetrics();
             final Map<String, List<Collector.MetricFamilySamples.Sample>> response = new HashMap<>();
 
-
+            //Output format is the JMX format based of the Cloudera Manager metric descriptor can be found here:
+            //https://github.com/cloudera/cm_ext/wiki/Service-Monitoring-Descriptor-Language-Reference#-metrics
+            //Metric samples are filtered to jvm and root samples only
             for (CollectorRegistry collectorRegistry : allRegistries) {
                 Enumeration<Collector.MetricFamilySamples> e = collectorRegistry.metricFamilySamples();
                 while (e.hasMoreElements()) {
