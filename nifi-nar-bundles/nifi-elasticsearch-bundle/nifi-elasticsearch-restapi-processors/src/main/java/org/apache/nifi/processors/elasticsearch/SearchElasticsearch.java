@@ -55,13 +55,14 @@ import java.util.Set;
     @WritesAttribute(attribute = "aggregation.name", description = "The name of the aggregation whose results are in the output flowfile"),
     @WritesAttribute(attribute = "aggregation.number", description = "The number of the aggregation whose results are in the output flowfile"),
     @WritesAttribute(attribute = "page.number", description = "The number of the page (request) in which the results were returned that are in the output flowfile"),
-    @WritesAttribute(attribute = "hit.count", description = "The number of hits that are in the output flowfile")
+    @WritesAttribute(attribute = "hit.count", description = "The number of hits that are in the output flowfile"),
+    @WritesAttribute(attribute = "elasticsearch.query.error", description = "The error message provided by Elasticsearch if there is an error querying the index.")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @TriggerSerially
 @PrimaryNodeOnly
 @DefaultSchedule(period="1 min")
-@Tags({"elasticsearch", "elasticsearch 5", "query", "scroll", "page", "search", "json"})
+@Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "query", "scroll", "page", "search", "json"})
 @CapabilityDescription("A processor that allows the user to repeatedly run a paginated query (with aggregations) written with the Elasticsearch JSON DSL. " +
         "Search After/Point in Time queries must include a valid \"sort\" field. The processor will retrieve multiple pages of results " +
         "until either no more results are available or the Pagination Keep Alive expiration is reached, after which the query will " +
@@ -77,7 +78,7 @@ import java.util.Set;
         "(when the current time is later than the last query execution plus the Pagination Keep Alive interval).")
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "Care should be taken on the size of each page because each response " +
         "from Elasticsearch will be loaded into memory all at once and converted into the resulting flowfiles.")
-public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch implements ElasticsearchRestProcessor {
+public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch {
     static final String STATE_SCROLL_ID = "scrollId";
     static final String STATE_PIT_ID = "pitId";
     static final String STATE_SEARCH_AFTER = "searchAfter";

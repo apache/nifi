@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -30,7 +32,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
-import org.apache.nifi.elasticsearch.ElasticsearchError;
+import org.apache.nifi.elasticsearch.ElasticsearchException;
 import org.apache.nifi.elasticsearch.IndexOperationRequest;
 import org.apache.nifi.elasticsearch.IndexOperationResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -72,14 +74,17 @@ import java.util.Optional;
 import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "put", "index", "record"})
+@Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "put", "index", "record"})
 @CapabilityDescription("A record-aware Elasticsearch put processor that uses the official Elastic REST client libraries.")
+@WritesAttributes({
+        @WritesAttribute(attribute = "elasticsearch.put.error", description = "The error message provided by Elasticsearch if there is an error indexing the documents.")
+})
 @DynamicProperty(
         name = "The name of a URL query parameter to add",
         value = "The value of the URL query parameter",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing. " +
-                "These parameters will override any matching parameters in the query request body")
+                "These parameters will override any matching parameters in the _bulk request body")
 public class PutElasticsearchRecord extends AbstractProcessor implements ElasticsearchRestProcessor {
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("put-es-record-reader")
@@ -346,7 +351,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        final FlowFile input = session.get();
+        FlowFile input = session.get();
         if (input == null) {
             return;
         }
@@ -415,18 +420,21 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                     badRecords.add(bad);
                 }
             }
-        } catch (final ElasticsearchError ese) {
+        } catch (final ElasticsearchException ese) {
             final String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
-                    ese.isElastic() ? "Moving to retry." : "Moving to failure");
+                    ese.isElastic() ? "Routing to retry." : "Routing to failure");
             getLogger().error(msg, ese);
             final Relationship rel = ese.isElastic() ? REL_RETRY : REL_FAILURE;
             session.penalize(input);
+            input = session.putAttribute(input, "elasticsearch.put.error", ese.getMessage());
             session.transfer(input, rel);
             removeBadRecordFlowFiles(badRecords, session);
             return;
         } catch (final Exception ex) {
             getLogger().error("Could not index documents.", ex);
+            input = session.putAttribute(input, "elasticsearch.put.error", ex.getMessage());
             session.transfer(input, REL_FAILURE);
+            context.yield();
             removeBadRecordFlowFiles(badRecords, session);
             return;
         }

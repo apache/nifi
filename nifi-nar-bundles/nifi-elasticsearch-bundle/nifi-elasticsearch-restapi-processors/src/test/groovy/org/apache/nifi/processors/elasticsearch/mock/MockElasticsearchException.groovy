@@ -17,15 +17,16 @@
 
 package org.apache.nifi.processors.elasticsearch.mock
 
-import org.apache.nifi.elasticsearch.ElasticsearchError
+import org.apache.nifi.elasticsearch.ElasticsearchException
 
-class MockElasticsearchError extends ElasticsearchError {
-    MockElasticsearchError(boolean isElastic) {
+class MockElasticsearchException extends ElasticsearchException {
+    MockElasticsearchException(boolean elastic, boolean notFound) {
         this(new Exception())
-        this.isElastic = isElastic
+        this.elastic = elastic
+        this.notFound = notFound
     }
 
-    MockElasticsearchError(Exception ex) {
+    MockElasticsearchException(Exception ex) {
         super(ex)
     }
 }

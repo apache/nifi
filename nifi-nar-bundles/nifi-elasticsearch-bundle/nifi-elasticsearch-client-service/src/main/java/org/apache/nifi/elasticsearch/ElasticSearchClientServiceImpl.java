@@ -36,6 +36,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StopWatch;
@@ -50,6 +52,7 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.Proxy;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -79,6 +82,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         props.add(ElasticSearchClientService.USERNAME);
         props.add(ElasticSearchClientService.PASSWORD);
         props.add(ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE);
+        props.add(ElasticSearchClientService.PROXY_CONFIGURATION_SERVICE);
         props.add(ElasticSearchClientService.CONNECT_TIMEOUT);
         props.add(ElasticSearchClientService.SOCKET_TIMEOUT);
         props.add(ElasticSearchClientService.RETRY_TIMEOUT);
@@ -129,6 +133,8 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final Integer connectTimeout = context.getProperty(CONNECT_TIMEOUT).asInteger();
         final Integer readTimeout    = context.getProperty(SOCKET_TIMEOUT).asInteger();
 
+        final ProxyConfigurationService proxyConfigurationService = context.getProperty(PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
+
         final HttpHost[] hh = new HttpHost[hostsSplit.length];
         for (int x = 0; x < hh.length; x++) {
             final URL u = new URL(hostsSplit[x]);
@@ -150,10 +156,22 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                         httpClientBuilder.setSSLContext(sslContext);
                     }
 
+                    CredentialsProvider credentialsProvider = null;
                     if (username != null && password != null) {
-                        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-                        credentialsProvider.setCredentials(AuthScope.ANY,
-                                new UsernamePasswordCredentials(username, password));
+                        credentialsProvider = addCredentials(null, AuthScope.ANY, username, password);
+                    }
+
+                    if (proxyConfigurationService != null) {
+                        final ProxyConfiguration proxyConfiguration = proxyConfigurationService.getConfiguration();
+                        if (Proxy.Type.HTTP == proxyConfiguration.getProxyType()) {
+                            final HttpHost proxy = new HttpHost(proxyConfiguration.getProxyServerHost(), proxyConfiguration.getProxyServerPort(), "http");
+                            httpClientBuilder.setProxy(proxy);
+
+                            credentialsProvider = addCredentials(credentialsProvider, new AuthScope(proxy), proxyConfiguration.getProxyUserName(), proxyConfiguration.getProxyUserPassword());
+                        }
+                    }
+
+                    if (credentialsProvider != null) {
                         httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
                     }
 
@@ -166,6 +184,19 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                 });
 
         this.client = builder.build();
+    }
+
+    private CredentialsProvider addCredentials(final CredentialsProvider credentialsProvider, final AuthScope authScope, final String username, final String password) {
+        final CredentialsProvider cp = credentialsProvider != null ? credentialsProvider : new BasicCredentialsProvider();
+
+        if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
+            cp.setCredentials(
+                    authScope == null ? AuthScope.ANY : authScope,
+                    new UsernamePasswordCredentials(username, password)
+            );
+        }
+
+        return cp;
     }
 
     private Response runQuery(final String endpoint, final String query, final String index, final String type, final Map<String, String> requestParameters) {
@@ -183,7 +214,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         try {
             return performRequest("POST", sb.toString(), requestParameters, queryEntity);
         } catch (final Exception e) {
-            throw new ElasticsearchError(e);
+            throw new ElasticsearchException(e);
         }
     }
 
@@ -203,7 +234,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                 throw new IOException(errorMessage);
             }
         } catch (final Exception ex) {
-            throw new ElasticsearchError(ex);
+            throw new ElasticsearchException(ex);
         }
     }
 
@@ -301,7 +332,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
             return IndexOperationResponse.fromJsonResponse(rawResponse);
         } catch (final Exception ex) {
-            throw new ElasticsearchError(ex);
+            throw new ElasticsearchException(ex);
         }
     }
 
@@ -340,7 +371,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             parseResponseWarningHeaders(response);
             return new DeleteOperationResponse(watch.getDuration(TimeUnit.MILLISECONDS));
         } catch (final Exception ex) {
-            throw new RuntimeException(ex);
+            throw new ElasticsearchException(ex);
         }
     }
 
@@ -389,8 +420,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
             return (Map<String, Object>) mapper.readValue(body, Map.class).get("_source");
         } catch (final Exception ex) {
-            getLogger().error("", ex);
-            return null;
+            throw new ElasticsearchException(ex);
         }
     }
 
@@ -414,7 +444,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             final Response response = runQuery("_search", query, index, type, requestParameters);
             return buildSearchResponse(response);
         } catch (final Exception ex) {
-            throw new RuntimeException(ex);
+            throw new ElasticsearchException(ex);
         }
     }
 
@@ -425,7 +455,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             final Response response = performRequest("POST", "/_search/scroll", Collections.emptyMap(), scrollEntity);
             return buildSearchResponse(response);
         } catch (final Exception ex) {
-            throw new RuntimeException(ex);
+            throw new ElasticsearchException(ex);
         }
     }
 
@@ -447,7 +477,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
             return (String) mapper.readValue(body, Map.class).get("id");
         } catch (final Exception ex) {
-            throw new RuntimeException(ex);
+            throw new ElasticsearchException(ex);
         }
     }
 
@@ -472,11 +502,10 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             if (404 == re.getResponse().getStatusLine().getStatusCode()) {
                 getLogger().debug("Point in Time {} not found in Elasticsearch for deletion, ignoring", pitId);
                 return new DeleteOperationResponse(0);
-            } else {
-                throw new RuntimeException(re);
             }
+            throw new ElasticsearchException(re);
         } catch (final Exception ex) {
-            throw new RuntimeException(ex);
+            throw new ElasticsearchException(ex);
         }
     }
 
@@ -501,11 +530,10 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             if (404 == re.getResponse().getStatusLine().getStatusCode()) {
                 getLogger().debug("Scroll Id {} not found in Elasticsearch for deletion, ignoring", scrollId);
                 return new DeleteOperationResponse(0);
-            } else {
-                throw new RuntimeException(re);
             }
+            throw new ElasticsearchException(re);
         } catch (final Exception ex) {
-            throw new RuntimeException(ex);
+            throw new ElasticsearchException(ex);
         }
     }
 
