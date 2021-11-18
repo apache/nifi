@@ -16,27 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
-import java.net.SocketTimeoutException;
-import java.nio.channels.ServerSocketChannel;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -51,6 +30,11 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.RecordReaderEventServerFactory;
+import org.apache.nifi.event.transport.netty.channel.NetworkRecordReader;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -62,10 +46,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.listen.ListenerProperties;
-import org.apache.nifi.record.listen.SocketChannelRecordReader;
-import org.apache.nifi.record.listen.SocketChannelRecordReaderDispatcher;
 import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -74,6 +55,27 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
+
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketTimeoutException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -227,8 +229,8 @@ public class ListenTCPRecord extends AbstractProcessor {
     static final int POLL_TIMEOUT_MS = 20;
 
     private volatile int port;
-    private volatile SocketChannelRecordReaderDispatcher dispatcher;
-    private final BlockingQueue<SocketChannelRecordReader> socketReaders = new LinkedBlockingQueue<>();
+    private volatile EventServer eventServer;
+    private final BlockingQueue<NetworkRecordReader> recordReaders = new LinkedBlockingQueue<>();
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -260,7 +262,7 @@ public class ListenTCPRecord extends AbstractProcessor {
     public void onScheduled(final ProcessContext context) throws IOException {
         this.port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
 
-        final int readTimeout = context.getProperty(READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final Duration readTimeout = Duration.ofSeconds(context.getProperty(READ_TIMEOUT).asTimePeriod(TimeUnit.SECONDS));
         final int maxSocketBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxConnections = context.getProperty(MAX_CONNECTIONS).asInteger();
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
@@ -284,48 +286,37 @@ public class ListenTCPRecord extends AbstractProcessor {
             clientAuth = ClientAuth.valueOf(clientAuthValue);
         }
 
-        // create a ServerSocketChannel in non-blocking mode and bind to the given address and port
-        final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
-        serverSocketChannel.configureBlocking(false);
-        serverSocketChannel.bind(new InetSocketAddress(nicAddress, port));
+        NettyEventServerFactory eventServerFactory = new RecordReaderEventServerFactory(getLogger(), nicAddress, port, TransportProtocol.TCP, recordReaderFactory, recordReaders);
+        eventServerFactory.setSslContext(sslContext);
+        eventServerFactory.setClientAuth(clientAuth);
+        eventServerFactory.setSocketReceiveBuffer(maxSocketBufferSize);
+        eventServerFactory.setWorkerThreads(maxConnections);
+        eventServerFactory.setConnectionTimeout(readTimeout);
 
-        this.dispatcher = new SocketChannelRecordReaderDispatcher(serverSocketChannel, sslContext, clientAuth, readTimeout,
-                maxSocketBufferSize, maxConnections, recordReaderFactory, socketReaders, getLogger());
-
-        // start a thread to run the dispatcher
-        final Thread readerThread = new Thread(dispatcher);
-        readerThread.setName(getClass().getName() + " [" + getIdentifier() + "]");
-        readerThread.setDaemon(true);
-        readerThread.start();
+        eventServer = eventServerFactory.getEventServer();
     }
 
     @OnStopped
     public void onStopped() {
-        if (dispatcher != null) {
-            dispatcher.close();
-            dispatcher = null;
+        if (eventServer != null) {
+            eventServer.shutdown();
+            eventServer = null;
         }
 
-        SocketChannelRecordReader socketRecordReader;
-        while ((socketRecordReader = socketReaders.poll()) != null) {
+        NetworkRecordReader recordReader;
+        while ((recordReader = recordReaders.poll()) != null) {
             try {
-                socketRecordReader.close();
+                recordReader.getRecordReader().close();
             } catch (Exception e) {
-                getLogger().error("Couldn't close " + socketRecordReader, e);
+                getLogger().error("Couldn't close " + recordReader, e);
             }
         }
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final SocketChannelRecordReader socketRecordReader = pollForSocketRecordReader();
-        if (socketRecordReader == null) {
-            return;
-        }
-
-        if (socketRecordReader.isClosed()) {
-            getLogger().warn("Unable to read records from {}, socket already closed", new Object[] {getRemoteAddress(socketRecordReader)});
-            IOUtils.closeQuietly(socketRecordReader); // still need to call close so the overall count is decremented
+        NetworkRecordReader recordReader = pollForRecordReader();
+        if (recordReader == null) {
             return;
         }
 
@@ -333,46 +324,19 @@ public class ListenTCPRecord extends AbstractProcessor {
         final String readerErrorHandling = context.getProperty(READER_ERROR_HANDLING_STRATEGY).getValue();
         final RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        // synchronize to ensure there are no stale values in the underlying SocketChannel
-        synchronized (socketRecordReader) {
+        // synchronize to ensure there are no stale values in the underlying SocketChannel - is this still necessary?
+        synchronized (recordReader) {
             FlowFile flowFile = session.create();
             try {
-                // lazily creating the record reader here
-                RecordReader recordReader = socketRecordReader.getRecordReader();
-                if (recordReader == null) {
-                    recordReader = socketRecordReader.createRecordReader(getLogger());
-                }
-
                 Record record;
                 try {
-                    record = recordReader.nextRecord();
+                    record = recordReader.getRecordReader().nextRecord(); // TODO: This nextRecord call needs a timeout of some kind
                 } catch (final Exception e) {
-                    boolean timeout = false;
-
-                    // some of the underlying record libraries wrap the real exception in RuntimeException, so check each
-                    // throwable (starting with the current one) to see if its a SocketTimeoutException
-                    Throwable cause = e;
-                    while (cause != null) {
-                        if (cause instanceof SocketTimeoutException) {
-                            timeout = true;
-                            break;
-                        }
-                        cause = cause.getCause();
-                    }
-
-                    if (timeout) {
-                        getLogger().debug("Timeout reading records, will try again later", e);
-                        socketReaders.offer(socketRecordReader);
-                        session.remove(flowFile);
-                        return;
-                    } else {
-                        throw e;
-                    }
+                    throw e;
                 }
 
                 if (record == null) {
-                    getLogger().debug("No records available from {}, closing connection", new Object[]{getRemoteAddress(socketRecordReader)});
-                    IOUtils.closeQuietly(socketRecordReader);
+                    IOUtils.closeQuietly(recordReader.getRecordReader());
                     session.remove(flowFile);
                     return;
                 }
@@ -393,7 +357,8 @@ public class ListenTCPRecord extends AbstractProcessor {
                         // if discarding then bounce to the outer catch block which will close the connection and remove the flow file
                         // if keeping then null out the record to break out of the loop, which will transfer what we have and close the connection
                         try {
-                            record = recordReader.nextRecord();
+                            getLogger().info("Reading record from recordReader!");
+                            record = recordReader.getRecordReader().nextRecord();
                         } catch (final SocketTimeoutException ste) {
                             getLogger().debug("Timeout reading records, will try again later", ste);
                             break;
@@ -420,12 +385,12 @@ public class ListenTCPRecord extends AbstractProcessor {
                     getLogger().debug("Removing flow file, no records were written");
                     session.remove(flowFile);
                 } else {
-                    final String sender = getRemoteAddress(socketRecordReader);
+                    final String sender = recordReader.getSender().toString();
 
                     final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
                     attributes.put(CoreAttributes.MIME_TYPE.key(), mimeType);
                     attributes.put("tcp.sender", sender);
-                    attributes.put("tcp.port", String.valueOf(port));
+                    attributes.put("tcp.port", String.valueOf(port)); // Should this be the remote port..?
                     attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
                     flowFile = session.putAllAttributes(flowFile, attributes);
 
@@ -436,28 +401,23 @@ public class ListenTCPRecord extends AbstractProcessor {
                     session.transfer(flowFile, REL_SUCCESS);
                 }
 
-                getLogger().debug("Re-queuing connection for further processing...");
-                socketReaders.offer(socketRecordReader);
-
+                getLogger().debug("Re-queuing reader for further processing...");
+                recordReaders.offer(recordReader);
             } catch (Exception e) {
                 getLogger().error("Error processing records: " + e.getMessage(), e);
-                IOUtils.closeQuietly(socketRecordReader);
+                IOUtils.closeQuietly(recordReader);
                 session.remove(flowFile);
                 return;
             }
         }
     }
 
-    private SocketChannelRecordReader pollForSocketRecordReader() {
+    private NetworkRecordReader pollForRecordReader() {
         try {
-            return socketReaders.poll(POLL_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            return recordReaders.poll(POLL_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
         }
-    }
-
-    private String getRemoteAddress(final SocketChannelRecordReader socketChannelRecordReader) {
-        return socketChannelRecordReader.getRemoteAddress() == null ? "null" : socketChannelRecordReader.getRemoteAddress().toString();
     }
 }

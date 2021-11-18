@@ -16,14 +16,11 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Optional;
-import javax.net.ssl.SSLContext;
-
+import org.apache.nifi.event.transport.EventSender;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
@@ -48,6 +45,12 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+
 public class TestListenTCPRecord {
     static final String SCHEMA_TEXT = "{\n" +
             "  \"name\": \"syslogRecord\",\n" +
@@ -60,15 +63,16 @@ public class TestListenTCPRecord {
             "  ]\n" +
             "}";
 
-    static final String DATA = "[" +
+    static final String THREE_MESSAGES = "[" +
             "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 1\"}," +
             "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 2\"}," +
             "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 3\"}" +
             "]";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestListenTCPRecord.class);
+    private static final Duration SENDER_TIMEOUT = Duration.ofSeconds(10);
 
-    private static final long TEST_TIMEOUT = 30000;
+    private static final long TEST_TIMEOUT = 900000;
 
     private static final String LOCALHOST = "localhost";
 
@@ -119,12 +123,13 @@ public class TestListenTCPRecord {
         runner.assertValid();
     }
 
-    @Test(timeout = TEST_TIMEOUT)
-    public void testRunOneRecordPerFlowFile() throws IOException, InterruptedException {
+    @Test
+    public void testRunOneRecordPerFlowFile() throws Exception {
         runner.setProperty(ListenTCPRecord.RECORD_BATCH_SIZE, "1");
 
-        run(3, null);
+        run(3, THREE_MESSAGES.getBytes(StandardCharsets.UTF_8), null, true);
 
+        Assert.assertEquals(3 , runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS).size());
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
         for (int i = 0; i < mockFlowFiles.size(); i++) {
             final MockFlowFile flowFile = mockFlowFiles.get(i);
@@ -136,11 +141,15 @@ public class TestListenTCPRecord {
         }
     }
 
-    @Test(timeout = TEST_TIMEOUT)
-    public void testRunMultipleRecordsPerFlowFileLessThanBatchSize() throws IOException, InterruptedException {
+    @Test
+    public void testRunMultipleRecordsPerFlowFileLessThanBatchSize() throws Exception {
         runner.setProperty(ListenTCPRecord.RECORD_BATCH_SIZE, "5");
 
-        run(1, null);
+        //runner.run(1, false, true);
+        runner.getLogger().info("Sending 3 messages");
+        run(1, THREE_MESSAGES.getBytes(StandardCharsets.UTF_8), null, true);
+        runner.getLogger().info("Sending another 3 messages");
+        run(1, THREE_MESSAGES.getBytes(StandardCharsets.UTF_8), null, true);
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
         Assert.assertEquals(1, mockFlowFiles.size());
@@ -156,11 +165,11 @@ public class TestListenTCPRecord {
     }
 
     @Test(timeout = TEST_TIMEOUT)
-    public void testRunClientAuthRequired() throws InitializationException, IOException, InterruptedException {
+    public void testRunClientAuthRequired() throws Exception {
         runner.setProperty(ListenTCPRecord.CLIENT_AUTH, ClientAuth.REQUIRED.name());
         enableSslContextService(keyStoreSslContext);
 
-        run(1, keyStoreSslContext);
+        run(1, THREE_MESSAGES.getBytes(StandardCharsets.UTF_8), keyStoreSslContext, true);
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
         Assert.assertEquals(1, mockFlowFiles.size());
@@ -172,12 +181,12 @@ public class TestListenTCPRecord {
         Assert.assertTrue(content.contains("This is a test " + 3));
     }
 
-    @Test(timeout = TEST_TIMEOUT)
-    public void testRunClientAuthNone() throws InitializationException, IOException, InterruptedException {
+    @Test
+    public void testRunClientAuthNone() throws Exception {
         runner.setProperty(ListenTCPRecord.CLIENT_AUTH, ClientAuth.NONE.name());
         enableSslContextService(keyStoreSslContext);
 
-        run(1, trustStoreSslContext);
+        run(1, THREE_MESSAGES.getBytes(StandardCharsets.UTF_8), trustStoreSslContext, true);
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
         Assert.assertEquals(1, mockFlowFiles.size());
@@ -189,24 +198,17 @@ public class TestListenTCPRecord {
         Assert.assertTrue(content.contains("This is a test " + 3));
     }
 
-    protected void run(final int expectedTransferred, final SSLContext sslContext) throws IOException, InterruptedException {
+    protected void run(final int expectedTransferred, final byte[] data, final SSLContext sslContext, final boolean shouldInitialize) throws Exception {
         final int port = NetworkUtils.availablePort();
         runner.setProperty(ListenTCPRecord.PORT, Integer.toString(port));
 
         // Run Processor and start listener without shutting down
-        runner.run(1, false, true);
+        LOGGER.info("Before run:");
+        runner.run(1, false, shouldInitialize);
+        LOGGER.info("About to send messages:");
+        sendMessages(port, data, sslContext);
 
-        final Thread thread = new Thread(() -> {
-            try (final Socket socket = getSocket(port, sslContext)) {
-                final OutputStream outputStream = socket.getOutputStream();
-                outputStream.write(DATA.getBytes(StandardCharsets.UTF_8));
-                outputStream.flush();
-            } catch (final IOException e) {
-                LOGGER.error("Failed Sending Records to Port [{}]", port, e);
-            }
-        });
-        thread.start();
-
+        LOGGER.info("Sent messages to port: {}", port);
         // Run Processor until success leveraging test method timeouts for failure status
         int iterations = 0;
         while (getSuccessCount() < expectedTransferred) {
@@ -223,16 +225,6 @@ public class TestListenTCPRecord {
         return runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS).size();
     }
 
-    private Socket getSocket(final int port, final SSLContext sslContext) throws IOException {
-        final Socket socket;
-        if (sslContext == null) {
-            socket = new Socket(LOCALHOST, port);
-        } else {
-            socket = sslContext.getSocketFactory().createSocket(LOCALHOST, port);
-        }
-        return socket;
-    }
-
     private void enableSslContextService(final SSLContext sslContext) throws InitializationException {
         final RestrictedSSLContextService sslContextService = Mockito.mock(RestrictedSSLContextService.class);
         Mockito.when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_IDENTIFIER);
@@ -241,4 +233,19 @@ public class TestListenTCPRecord {
         runner.enableControllerService(sslContextService);
         runner.setProperty(ListenTCPRecord.SSL_CONTEXT_SERVICE, SSL_CONTEXT_IDENTIFIER);
     }
+
+    private void sendMessages(final int port, final byte[] data, final SSLContext sslContext) throws Exception {
+        final ByteArrayNettyEventSenderFactory eventSenderFactory = new ByteArrayNettyEventSenderFactory(runner.getLogger(), LOCALHOST, port, TransportProtocol.TCP);
+        eventSenderFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        eventSenderFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
+        if (sslContext != null) {
+            eventSenderFactory.setSslContext(sslContext);
+        }
+
+        eventSenderFactory.setTimeout(SENDER_TIMEOUT);
+        try (final EventSender<byte[]> eventSender = eventSenderFactory.getEventSender()) {
+            eventSender.sendEvent(data);
+        }
+    }
+
 }
