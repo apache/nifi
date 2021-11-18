@@ -245,6 +245,10 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
             }
         }
 
+        // Ensure that we create all Parameter Contexts before updating them. This is necessary in case the proposed incoming dataflow has
+        // parameter contexts that inherit from one another and neither the inheriting nor inherited parameter context exists.
+        versionedParameterContexts.values().forEach(this::createParameterContextWithoutReferences);
+
         updateParameterContext(group, proposed, versionedParameterContexts, context.getComponentIdGenerator());
         updateVariableRegistry(group, proposed);
 
@@ -1247,6 +1251,30 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
             .filter(context -> context.getName().equals(contextName))
             .findAny()
             .orElse(null);
+    }
+
+    private ParameterContext createParameterContextWithoutReferences(final VersionedParameterContext versionedParameterContext) {
+        final ParameterContext existing = context.getFlowManager().getParameterContextManager().getParameterContextNameMapping().get(versionedParameterContext.getName());
+        if (existing != null) {
+            return existing;
+        }
+
+        final ComponentIdGenerator componentIdGenerator = this.syncOptions.getComponentIdGenerator();
+        final String parameterContextId = componentIdGenerator.generateUuid(versionedParameterContext.getName(), versionedParameterContext.getName(), versionedParameterContext.getName());
+
+        final Map<String, Parameter> parameters = new HashMap<>();
+        for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
+            final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
+                .name(versionedParameter.getName())
+                .description(versionedParameter.getDescription())
+                .sensitive(versionedParameter.isSensitive())
+                .build();
+
+            final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue());
+            parameters.put(versionedParameter.getName(), parameter);
+        }
+
+        return context.getFlowManager().createParameterContext(parameterContextId, versionedParameterContext.getName(), parameters, Collections.emptyList());
     }
 
     private ParameterContext createParameterContext(final VersionedParameterContext versionedParameterContext, final String parameterContextId,
