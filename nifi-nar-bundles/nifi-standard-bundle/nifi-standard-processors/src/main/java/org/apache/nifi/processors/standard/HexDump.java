@@ -90,7 +90,7 @@ public class HexDump extends AbstractProcessor {
             .defaultValue("first16hex")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-    
+
     public static final PropertyDescriptor ATTRIBUTE_OFFSET = new PropertyDescriptor
             .Builder().name("ATTRIBUTE_OFFSET")
             .displayName("Attribute Hexdump Offset")
@@ -125,7 +125,6 @@ public class HexDump extends AbstractProcessor {
         '0', '1', '2', '3', '4', '5', '6', '7',
         '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
         };
-    
     private List<PropertyDescriptor> descriptors;
 
     private Set<Relationship> relationships;
@@ -158,9 +157,9 @@ public class HexDump extends AbstractProcessor {
     }
 
     private String outMode;
-	private int flowFileLength;
-	private int flowFileOffset;
-	private String attributeName;
+    private int flowFileLength;
+    private int flowFileOffset;
+    private String attributeName;
     private int attributeOffset;
     private int attributeLength;
 
@@ -183,7 +182,6 @@ public class HexDump extends AbstractProcessor {
     private byte[] readFlowFileToHex(ProcessSession session, FlowFile flowFile) throws IOException{
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         final InputStream in = new BufferedInputStream( session.read(flowFile));
-           
             while (true) {
                 final int nextByte = in.read();
                 if (nextByte == -1) {
@@ -244,17 +242,16 @@ public class HexDump extends AbstractProcessor {
             if (outMode.equals("BOTH") || outMode.equals("FLOWFILE")){
                 int[] index = getArrayLimits(flowFileOffset, flowFileLength, hexArray.length, 0);
                 if(!offsetOutOfBounds(index)) {
-                    session.write(outFlowFile, 
+                    session.write(outFlowFile,
                         outputStream -> outputStream.write(Arrays.copyOfRange(hexArray, index[0], index[1])));
                     transferFlowFile = true;
                 }
             }
-    
             if (outMode.equals("BOTH") || outMode.equals("ATTRIBUTE")){
                 int[] index = getArrayLimits(attributeOffset, attributeLength, hexArray.length, 255);
                 if(!offsetOutOfBounds(index)) {
-                    session.putAttribute(outFlowFile, 
-                        attributeName, 
+                    session.putAttribute(outFlowFile,
+                        attributeName,
                         new String(Arrays.copyOfRange(hexArray, index[0], index[1] ), StandardCharsets.UTF_8));
                     transferFlowFile = true;
                 }
