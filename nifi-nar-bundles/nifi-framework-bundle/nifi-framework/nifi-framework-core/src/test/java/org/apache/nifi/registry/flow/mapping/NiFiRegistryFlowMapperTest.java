@@ -34,6 +34,7 @@ import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
@@ -436,6 +437,7 @@ public class NiFiRegistryFlowMapperTest {
         prepareComponentAuthorizable(port, processGroupId);
         preparePositionable(port);
         prepareConnectable(port, ConnectableType.valueOf(portType.name()));
+        when(port.getScheduledState()).thenReturn(ScheduledState.RUNNING);
         return port;
     }
 
@@ -532,6 +534,7 @@ public class NiFiRegistryFlowMapperTest {
         prepareComponentAuthorizable(remoteGroupPort, remoteProcessGroup.getIdentifier());
         when(remoteGroupPort.getName()).thenReturn("remotePort" + (counter++));
         when(remoteGroupPort.getRemoteProcessGroup()).thenReturn(remoteProcessGroup);
+        when(remoteGroupPort.getScheduledState()).thenReturn(ScheduledState.DISABLED);
         return remoteGroupPort;
     }
 
@@ -751,6 +754,7 @@ public class NiFiRegistryFlowMapperTest {
             assertEquals(port.getPosition().getY(), versionedPort.getPosition().getY(), 0);
             assertEquals(port.getName(), versionedPort.getName());
             assertEquals(portType, versionedPort.getType());
+            assertEquals(org.apache.nifi.flow.ScheduledState.ENABLED, versionedPort.getScheduledState());
         }
     }
 
@@ -767,6 +771,8 @@ public class NiFiRegistryFlowMapperTest {
             assertEquals(expectedPortGroupIdentifier, versionedRemotePort.getGroupIdentifier());
             assertEquals(remotePort.getName(), versionedRemotePort.getName());
             assertEquals(componentType, versionedRemotePort.getComponentType());
+            assertNotNull(versionedRemotePort.getScheduledState());
+            assertEquals(remotePort.getScheduledState().name(), versionedRemotePort.getScheduledState().name());
         }
     }
 

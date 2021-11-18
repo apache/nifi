@@ -581,6 +581,7 @@ public class NiFiRegistryFlowMapper {
         versionedPort.setName(port.getName());
         versionedPort.setPosition(mapPosition(port.getPosition()));
         versionedPort.setType(PortType.valueOf(port.getConnectableType().name()));
+        versionedPort.setScheduledState(mapScheduledState(port.getScheduledState()));
 
         if (port instanceof PublicPort) {
             versionedPort.setAllowRemoteAccess(true);
@@ -621,8 +622,7 @@ public class NiFiRegistryFlowMapper {
         processor.setSchedulingStrategy(procNode.getSchedulingStrategy().name());
         processor.setStyle(procNode.getStyle());
         processor.setYieldDuration(procNode.getYieldPeriod());
-        processor.setScheduledState(procNode.getScheduledState() == ScheduledState.DISABLED ? org.apache.nifi.flow.ScheduledState.DISABLED
-            : org.apache.nifi.flow.ScheduledState.ENABLED);
+        processor.setScheduledState(mapScheduledState(procNode.getScheduledState()));
 
         return processor;
     }
@@ -664,6 +664,7 @@ public class NiFiRegistryFlowMapper {
         port.setBatchSize(mapBatchSettings(remotePort));
         port.setTargetId(remotePort.getTargetIdentifier());
         port.setComponentType(componentType);
+        port.setScheduledState(mapScheduledState(remotePort.getScheduledState()));
         return port;
     }
 
@@ -729,5 +730,11 @@ public class NiFiRegistryFlowMapper {
         versionedParameter.setSensitive(descriptor.isSensitive());
         versionedParameter.setValue(descriptor.isSensitive() ? null : parameter.getValue());
         return versionedParameter;
+    }
+
+    private org.apache.nifi.flow.ScheduledState mapScheduledState(final ScheduledState scheduledState) {
+         return scheduledState == ScheduledState.DISABLED
+                 ? org.apache.nifi.flow.ScheduledState.DISABLED
+                 : org.apache.nifi.flow.ScheduledState.ENABLED;
     }
 }
