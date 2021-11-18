@@ -123,6 +123,11 @@ public class TestPropertiesFileFlowDefinitionParser {
             public List<ExtensionClientDefinition> getExtensionClients() {
                 return Collections.emptyList();
             }
+
+            @Override
+            public String getStatusTaskSchedule() {
+                return null;
+            }
         };
     }
 }

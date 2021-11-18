@@ -51,6 +51,7 @@ public class PropertiesFileEngineConfigurationParser {
     private static final String READONLY_EXTENSIONS_DIRECTORY = PREFIX + "readonly.extensions.directory.";
     private static final String WORKING_DIRECTORY = PREFIX + "working.directory";
     private static final String CONTENT_REPO_DIRECTORY = PREFIX + "content.repository.directory";
+    private static final String STATUS_TASK_SCHEDULE = PREFIX + "status.task.schedule";
 
     private static final String TRUSTSTORE_FILE = PREFIX + "security.truststore";
     private static final String TRUSTSTORE_TYPE = PREFIX + "security.truststoreType";
@@ -108,6 +109,8 @@ public class PropertiesFileEngineConfigurationParser {
 
         final List<ExtensionClientDefinition> extensionClients = parseExtensionClients(properties);
 
+        final String statusTaskSchedule = properties.getProperty(STATUS_TASK_SCHEDULE, "1 min");
+
         return new StatelessEngineConfiguration() {
             @Override
             public File getWorkingDirectory() {
@@ -153,6 +156,11 @@ public class PropertiesFileEngineConfigurationParser {
             public List<ExtensionClientDefinition> getExtensionClients() {
                 return extensionClients;
             }
+
+            @Override
+            public String getStatusTaskSchedule() {
+                return statusTaskSchedule;
+            }
         };
     }
 
@@ -165,7 +173,6 @@ public class PropertiesFileEngineConfigurationParser {
             .map(File::new)
             .collect(Collectors.toList());
     }
-
 
     private List<ExtensionClientDefinition> parseExtensionClients(final Properties properties) {
         final Map<String, ExtensionClientDefinition> extensionClientDefinitions = new LinkedHashMap<>();
