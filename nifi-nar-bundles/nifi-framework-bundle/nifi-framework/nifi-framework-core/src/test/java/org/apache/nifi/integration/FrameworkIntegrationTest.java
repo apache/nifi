@@ -404,7 +404,7 @@ public class FrameworkIntegrationTest {
     protected final ProcessorNode createProcessorNode(final String processorType, final ProcessGroup destination) {
         final String uuid = getSimpleTypeName(processorType) + "-" + UUID.randomUUID().toString();
         final BundleCoordinate bundleCoordinate = SystemBundle.SYSTEM_BUNDLE_COORDINATE;
-        final ProcessorNode procNode = flowController.getFlowManager().createProcessor(processorType, uuid, bundleCoordinate, Collections.emptySet(), true, true);
+        final ProcessorNode procNode = flowController.getFlowManager().createProcessor(processorType, uuid, bundleCoordinate, Collections.emptySet(), true, true, null);
         destination.addProcessor(procNode);
 
         return procNode;
@@ -417,7 +417,7 @@ public class FrameworkIntegrationTest {
     protected final ControllerServiceNode createControllerServiceNode(final String controllerServiceType) {
         final String uuid = getSimpleTypeName(controllerServiceType) + "-" + UUID.randomUUID().toString();
         final BundleCoordinate bundleCoordinate = SystemBundle.SYSTEM_BUNDLE_COORDINATE;
-        final ControllerServiceNode serviceNode = flowController.getFlowManager().createControllerService(controllerServiceType, uuid, bundleCoordinate, Collections.emptySet(), true, true);
+        final ControllerServiceNode serviceNode = flowController.getFlowManager().createControllerService(controllerServiceType, uuid, bundleCoordinate, Collections.emptySet(), true, true, null);
         rootProcessGroup.addControllerService(serviceNode);
         return serviceNode;
     }

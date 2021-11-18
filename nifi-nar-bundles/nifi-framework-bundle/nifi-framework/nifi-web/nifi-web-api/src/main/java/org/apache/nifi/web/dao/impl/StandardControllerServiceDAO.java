@@ -92,7 +92,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
             final FlowManager flowManager = flowController.getFlowManager();
             final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
             final ControllerServiceNode controllerService = flowManager.createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), bundleCoordinate,
-                Collections.emptySet(), true, true);
+                Collections.emptySet(), true, true, null);
 
             // ensure we can perform the update
             verifyUpdate(controllerService, controllerServiceDTO);

@@ -384,7 +384,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
     private ReportingTaskNode createReportingTask(final ReportingTaskDefinition taskDefinition) {
         final BundleCoordinate bundleCoordinate = determineBundleCoordinate(taskDefinition, "Reporting Task");
-        final ReportingTaskNode taskNode = flowManager.createReportingTask(taskDefinition.getType(), UUID.randomUUID().toString(), bundleCoordinate, Collections.emptySet(), true, true);
+        final ReportingTaskNode taskNode = flowManager.createReportingTask(taskDefinition.getType(), UUID.randomUUID().toString(), bundleCoordinate, Collections.emptySet(), true, true, null);
 
         final Map<String, String> properties = resolveProperties(taskDefinition.getPropertyValues(), taskNode.getComponent(), taskNode.getProperties().keySet());
         taskNode.setProperties(properties);

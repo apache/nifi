@@ -306,8 +306,9 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         }
     }
 
+    @Override
     public ProcessorNode createProcessor(final String type, String id, final BundleCoordinate coordinate, final Set<URL> additionalUrls,
-                                         final boolean firstTimeAdded, final boolean registerLogObserver) {
+                                         final boolean firstTimeAdded, final boolean registerLogObserver, final String classloaderIsolationKey) {
 
         // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
@@ -326,6 +327,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .extensionManager(extensionManager)
+            .classloaderIsolationKey(classloaderIsolationKey)
             .buildProcessor();
 
         LogRepositoryFactory.getRepository(procNode.getIdentifier()).setLogger(procNode.getLogger());
@@ -352,7 +354,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     }
 
     public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls,
-                                                 final boolean firstTimeAdded, final boolean register) {
+                                                 final boolean firstTimeAdded, final boolean register, final String classloaderIsolationKey) {
         requireNonNull(type);
         requireNonNull(id);
         requireNonNull(bundleCoordinate);
@@ -375,6 +377,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .flowController(flowController)
             .extensionManager(extensionManager)
+            .classloaderIsolationKey(classloaderIsolationKey)
             .buildReportingTask();
 
         LogRepositoryFactory.getRepository(taskNode.getIdentifier()).setLogger(taskNode.getLogger());
@@ -458,7 +461,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     }
 
     public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
-                                                         final boolean registerLogObserver) {
+                                                         final boolean registerLogObserver, final String classloaderIsolationKey) {
         // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         final ExtensionManager extensionManager = flowController.getExtensionManager();
@@ -478,6 +481,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .stateManagerProvider(flowController.getStateManagerProvider())
             .extensionManager(extensionManager)
+            .classloaderIsolationKey(classloaderIsolationKey)
             .buildControllerService();
 
         LogRepositoryFactory.getRepository(serviceNode.getIdentifier()).setLogger(serviceNode.getLogger());

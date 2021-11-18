@@ -84,6 +84,7 @@ public class ExtensionBuilder {
     private ReloadComponent reloadComponent;
     private FlowController flowController;
     private StateManagerProvider stateManagerProvider;
+    private String classloaderIsolationKey;
 
     public ExtensionBuilder type(final String type) {
         this.type = type;
@@ -160,6 +161,11 @@ public class ExtensionBuilder {
 
     public ExtensionBuilder extensionManager(final ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;
+        return this;
+    }
+
+    public ExtensionBuilder classloaderIsolationKey(final String classloaderIsolationKey) {
+        this.classloaderIsolationKey = classloaderIsolationKey;
         return this;
     }
 
@@ -535,7 +541,8 @@ public class ExtensionBuilder {
                 throw new IllegalStateException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
             }
 
-            final ClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(type, identifier, bundle, classpathUrls == null ? Collections.emptySet() : classpathUrls);
+            final ClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(type, identifier, bundle, classpathUrls == null ? Collections.emptySet() : classpathUrls, true,
+                classloaderIsolationKey);
             final Class<?> rawClass = Class.forName(type, true, detectedClassLoader);
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
 

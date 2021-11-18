@@ -27,6 +27,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.ClassloaderIsolationKey;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -47,6 +48,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
+import org.apache.nifi.security.krb.ReentrantKerberosUser;
 
 import javax.net.SocketFactory;
 import java.io.File;
@@ -77,7 +79,7 @@ import java.util.regex.Pattern;
  * @see SecurityUtil#loginKerberos(Configuration, String, String)
  */
 @RequiresInstanceClassLoading(cloneAncestorResources = true)
-public abstract class AbstractHadoopProcessor extends AbstractProcessor {
+public abstract class AbstractHadoopProcessor extends AbstractProcessor implements ClassloaderIsolationKey {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
     private static final String DENY_LFS_ACCESS = "NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS";
@@ -202,6 +204,30 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
+    }
+
+    @Override
+    public String getClassloaderIsolationKey(final PropertyContext context) {
+        final String explicitKerberosPrincipal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
+        if (explicitKerberosPrincipal != null) {
+            return explicitKerberosPrincipal;
+        }
+
+        final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        if (credentialsService != null) {
+            final String credentialsServicePrincipal = credentialsService.getPrincipal();
+            if (credentialsServicePrincipal != null) {
+                return credentialsServicePrincipal;
+            }
+        }
+
+        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+        if (kerberosUserService != null) {
+            final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
+            return kerberosUser.getPrincipal();
+        }
+
+        return null;
     }
 
     @Override
@@ -488,7 +514,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         // The customValidate method ensures that KerberosUserService can't be set at the same time as the credentials service or explicit properties
         final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
         if (kerberosUserService != null) {
-            return kerberosUserService.createKerberosUser();
+            return new ReentrantKerberosUser(kerberosUserService.createKerberosUser());
         }
 
         // Kerberos User Service wasn't set, so create KerberosUser based on credentials service or explicit properties...
@@ -505,9 +531,9 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         }
 
         if (keyTab != null) {
-            return new KerberosKeytabUser(principal, keyTab);
+            return new ReentrantKerberosUser(new KerberosKeytabUser(principal, keyTab));
         } else if (password != null) {
-            return new KerberosPasswordUser(principal, password);
+            return new ReentrantKerberosUser(new KerberosPasswordUser(principal, password));
         } else {
             throw new IllegalStateException("Unable to authenticate with Kerberos, no keytab or password was provided");
         }

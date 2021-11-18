@@ -20,8 +20,6 @@ import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
-import org.apache.nifi.controller.exception.ProcessorInstantiationException;
-import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceInvocationHandler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
@@ -51,8 +49,7 @@ public class StandardReloadComponent implements ReloadComponent {
 
 
     @Override
-    public void reload(final ProcessorNode existingNode, final String newType, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls)
-        throws ProcessorInstantiationException {
+    public void reload(final ProcessorNode existingNode, final String newType, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls) {
         if (existingNode == null) {
             throw new IllegalStateException("Existing ProcessorNode cannot be null");
         }
@@ -70,20 +67,21 @@ public class StandardReloadComponent implements ReloadComponent {
         // save the instance class loader to use it for calling OnRemoved on the existing processor
         final ClassLoader existingInstanceClassLoader = extensionManager.getInstanceClassLoader(id);
 
-        // create a new node with firstTimeAdded as true so lifecycle methods get fired
-        // attempt the creation to make sure it works before firing the OnRemoved methods below
-        final ProcessorNode newNode = flowController.getFlowManager().createProcessor(newType, id, bundleCoordinate, additionalUrls, true, false);
+        final StateManager stateManager = flowController.getStateManagerProvider().getStateManager(id);
+        final StandardProcessContext processContext = new StandardProcessContext(existingNode, flowController.getControllerServiceProvider(),
+            flowController.getEncryptor(), stateManager, () -> false, flowController);
 
         // call OnRemoved for the existing processor using the previous instance class loader
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
-            final StateManager stateManager = flowController.getStateManagerProvider().getStateManager(id);
-            final StandardProcessContext processContext = new StandardProcessContext(existingNode, flowController.getControllerServiceProvider(),
-                flowController.getEncryptor(), stateManager, () -> false, flowController);
-
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getProcessor(), processContext);
         } finally {
             extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
         }
+
+        // create a new node with firstTimeAdded as true so lifecycle methods get fired
+        // attempt the creation to make sure it works before firing the OnRemoved methods below
+        final String classloaderIsolationKey = existingNode.getClassLoaderIsolationKey(processContext);
+        final ProcessorNode newNode = flowController.getFlowManager().createProcessor(newType, id, bundleCoordinate, additionalUrls, true, false, classloaderIsolationKey);
 
         // set the new processor in the existing node
         final ComponentLog componentLogger = new SimpleProcessLogger(id, newNode.getProcessor());
@@ -98,13 +96,12 @@ public class StandardReloadComponent implements ReloadComponent {
         existingNode.refreshProperties();
 
         // Notify the processor node that the configuration (properties, e.g.) has been restored
-        final StandardProcessContext processContext = new StandardProcessContext(existingNode, flowController.getControllerServiceProvider(), flowController.getEncryptor(),
-                flowController.getStateManagerProvider().getStateManager(existingNode.getProcessor().getIdentifier()), () -> false, flowController);
         existingNode.onConfigurationRestored(processContext);
 
         logger.debug("Triggering async validation of {} due to processor reload", existingNode);
         flowController.getValidationTrigger().trigger(existingNode);
     }
+
 
     @Override
     public void reload(final ControllerServiceNode existingNode, final String newType, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls)
@@ -126,19 +123,19 @@ public class StandardReloadComponent implements ReloadComponent {
         // save the instance class loader to use it for calling OnRemoved on the existing service
         final ClassLoader existingInstanceClassLoader = extensionManager.getInstanceClassLoader(id);
 
-        // create a new node with firstTimeAdded as true so lifecycle methods get called
-        // attempt the creation to make sure it works before firing the OnRemoved methods below
-        final ControllerServiceNode newNode = flowController.getFlowManager().createControllerService(newType, id, bundleCoordinate, additionalUrls, true, false);
-
         // call OnRemoved for the existing service using the previous instance class loader
+        final ConfigurationContext configurationContext = new StandardConfigurationContext(existingNode, flowController.getControllerServiceProvider(),
+            null, flowController.getVariableRegistry());
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
-            final ConfigurationContext configurationContext = new StandardConfigurationContext(existingNode, flowController.getControllerServiceProvider(),
-                null, flowController.getVariableRegistry());
-
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getControllerServiceImplementation(), configurationContext);
         } finally {
             extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
         }
+
+        // create a new node with firstTimeAdded as true so lifecycle methods get called
+        // attempt the creation to make sure it works before firing the OnRemoved methods below
+        final String classloaderIsolationKey = existingNode.getClassLoaderIsolationKey(configurationContext);
+        final ControllerServiceNode newNode = flowController.getFlowManager().createControllerService(newType, id, bundleCoordinate, additionalUrls, true, false, classloaderIsolationKey);
 
         // take the invocation handler that was created for new proxy and is set to look at the new node,
         // and set it to look at the existing node
@@ -165,8 +162,7 @@ public class StandardReloadComponent implements ReloadComponent {
     }
 
     @Override
-    public void reload(final ReportingTaskNode existingNode, final String newType, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls)
-        throws ReportingTaskInstantiationException {
+    public void reload(final ReportingTaskNode existingNode, final String newType, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls) {
         if (existingNode == null) {
             throw new IllegalStateException("Existing ReportingTaskNode cannot be null");
         }
@@ -184,16 +180,18 @@ public class StandardReloadComponent implements ReloadComponent {
         // save the instance class loader to use it for calling OnRemoved on the existing processor
         final ClassLoader existingInstanceClassLoader = extensionManager.getInstanceClassLoader(id);
 
-        // set firstTimeAdded to true so lifecycle annotations get fired, but don't register this node
-        // attempt the creation to make sure it works before firing the OnRemoved methods below
-        final ReportingTaskNode newNode = flowController.getFlowManager().createReportingTask(newType, id, bundleCoordinate, additionalUrls, true, false);
-
         // call OnRemoved for the existing reporting task using the previous instance class loader
+        final ConfigurationContext configurationContext = existingNode.getConfigurationContext();
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getReportingTask(), existingNode.getConfigurationContext());
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getReportingTask(), configurationContext);
         } finally {
             extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
         }
+
+        // set firstTimeAdded to true so lifecycle annotations get fired, but don't register this node
+        // attempt the creation to make sure it works before firing the OnRemoved methods below
+        final String classloaderIsolationKey = existingNode.getClassLoaderIsolationKey(configurationContext);
+        final ReportingTaskNode newNode = flowController.getFlowManager().createReportingTask(newType, id, bundleCoordinate, additionalUrls, true, false, classloaderIsolationKey);
 
         // set the new reporting task into the existing node
         final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getReportingTask());
