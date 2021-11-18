@@ -47,8 +47,8 @@ import java.nio.charset.StandardCharsets;
 @Tags({"hex", "dump", "convert", "flowfile"})
 @WritesAttributes({@WritesAttribute(attribute="first16hex", description="A customizable Hexdump of incoming " +
 " FlowFiles. The attributes length, offset and name can be altered.")})
-@CapabilityDescription("Converts incoming FlowFiles into hexadecimal format. The processor can output the HexDump " +
-    "data in new FlowFiles or/and as an renamable Attribute.")
+@CapabilityDescription("Converts incoming FlowFiles into hexadecimal format. Output HexDump " +
+    "data in new FlowFile or/and as Attribute.")
 public class HexDump extends AbstractProcessor {
 
     public static final PropertyDescriptor OUT_MODE = new PropertyDescriptor
@@ -64,7 +64,7 @@ public class HexDump extends AbstractProcessor {
 
     public static final PropertyDescriptor FLOWFILE_OFFSET = new PropertyDescriptor
             .Builder().name("FLOWFILE_OFFSET")
-            .displayName("FlowFile output offset")
+            .displayName("FlowFile Output Offset")
             .description("Non negative integer offset of Hexdump in FlowFile output. If offset is out of bounds no "+
             " data will be transferred. This is only used if mode is FLOWFILE or BOTH")
             .required(true)
@@ -74,7 +74,7 @@ public class HexDump extends AbstractProcessor {
 
     public static final PropertyDescriptor FLOWFILE_LENGTH = new PropertyDescriptor
             .Builder().name("FLOWFILE_LENGTH")
-            .displayName("FlowFile output length")
+            .displayName("FlowFile Output Length")
             .description("Non negative integer describing maximum size of Hexdump in FlowFile output. 0 = unlimited. "+
             "This is only used if Mode is FLOWFILE or BOTH.")
             .required(true)
@@ -84,7 +84,7 @@ public class HexDump extends AbstractProcessor {
 
     public static final PropertyDescriptor ATTRIBUTE_NAME = new PropertyDescriptor
             .Builder().name("ATTRIBUTE_NAME")
-            .displayName("Attribute hexdump name")
+            .displayName("Attribute Hexdump Name")
             .description("String Hexdump output attribute name. This is only used if mode is ATTRIBUTE or BOTH.")
             .required(true)
             .defaultValue("first16hex")
