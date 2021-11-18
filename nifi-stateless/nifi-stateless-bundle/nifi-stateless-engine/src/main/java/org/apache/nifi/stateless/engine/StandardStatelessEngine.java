@@ -116,7 +116,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     private final ProvenanceRepository provenanceRepository;
     private final ExtensionRepository extensionRepository;
     private final CounterRepository counterRepository;
-    private final Duration statusTaskSchedule;
+    private final Duration statusTaskInterval;
 
     // Member Variables created/managed internally
     private final ReloadComponent reloadComponent;
@@ -142,7 +142,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         this.provenanceRepository = requireNonNull(builder.provenanceRepository, "Provenance Repository must be provided");
         this.extensionRepository = requireNonNull(builder.extensionRepository, "Extension Repository must be provided");
         this.counterRepository = requireNonNull(builder.counterRepository, "Counter Repository must be provided");
-        this.statusTaskSchedule = parseDuration(builder.statusTaskSchedule);
+        this.statusTaskInterval = parseDuration(builder.statusTaskInterval);
 
         this.reloadComponent = new StatelessReloadComponent(this);
         this.validationTrigger = new StandardValidationTrigger(new FlowEngine(1, "Component Validation", true), () -> true);
@@ -197,9 +197,9 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         final StandardStatelessFlow dataflow = new StandardStatelessFlow(childGroup, reportingTaskNodes, controllerServiceProvider, processContextFactory,
             repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler, bulletinRepository);
 
-        if (statusTaskSchedule != null) {
+        if (statusTaskInterval != null) {
             final LogComponentStatuses logComponentStatuses = new LogComponentStatuses(flowFileEventRepository, counterRepository, flowManager);
-            dataflow.scheduleBackgroundTask(logComponentStatuses, statusTaskSchedule.toMillis(), TimeUnit.MILLISECONDS);
+            dataflow.scheduleBackgroundTask(logComponentStatuses, statusTaskInterval.toMillis(), TimeUnit.MILLISECONDS);
         }
 
         return dataflow;
@@ -662,8 +662,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     }
 
     @Override
-    public Duration getStatusTaskSchedule() {
-        return statusTaskSchedule;
+    public Duration getStatusTaskInterval() {
+        return statusTaskInterval;
     }
 
     public static class Builder {
@@ -679,7 +679,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         private ProvenanceRepository provenanceRepository = null;
         private ExtensionRepository extensionRepository = null;
         private CounterRepository counterRepository = null;
-        private String statusTaskSchedule = null;
+        private String statusTaskInterval = null;
 
         public Builder extensionManager(final ExtensionManager extensionManager) {
             this.extensionManager = extensionManager;
@@ -741,8 +741,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             return this;
         }
 
-        public Builder statusTaskSchedule(final String statusTaskSchedule) {
-            this.statusTaskSchedule = statusTaskSchedule;
+        public Builder statusTaskInterval(final String statusTaskInterval) {
+            this.statusTaskInterval = statusTaskInterval;
             return this;
         }
 
@@ -757,7 +757,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         }
 
         try {
-            final Long taskScheduleSeconds = FormatUtils.getTimeDuration(durationValue, TimeUnit.SECONDS);
+            final Long taskScheduleSeconds = FormatUtils.getTimeDuration(durationValue.trim(), TimeUnit.SECONDS);
             final Duration taskScheduleDuration =  Duration.ofSeconds(taskScheduleSeconds);
             if (taskScheduleDuration.toMillis() < 1000) {
                 logger.warn("Status task schedule period [{}] must be at least one second", durationValue);

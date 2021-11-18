@@ -125,7 +125,7 @@ public class TestPropertiesFileFlowDefinitionParser {
             }
 
             @Override
-            public String getStatusTaskSchedule() {
+            public String getStatusTaskInterval() {
                 return null;
             }
         };

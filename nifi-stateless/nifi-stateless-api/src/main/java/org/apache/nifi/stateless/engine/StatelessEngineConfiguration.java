@@ -21,7 +21,6 @@ import org.apache.nifi.stateless.config.ExtensionClientDefinition;
 import org.apache.nifi.stateless.config.SslContextDefinition;
 
 import java.io.File;
-import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -86,8 +85,8 @@ public interface StatelessEngineConfiguration {
     }
 
     /**
-     * @return a String representing the time between periodic status task executions (e.g., 1 min).
+     * @return a String representing the interval between periodic status task executions (e.g., 1 min).
      * A <code>null</code> value indicates that no status tasks are scheduled.
      */
-    String getStatusTaskSchedule();
+    String getStatusTaskInterval();
 }

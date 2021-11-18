@@ -330,10 +330,10 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         .defaultValue("1 MB")
         .build();
 
-    public static final PropertyDescriptor STATUS_TASK_SCHEDULE = new Builder()
-            .name("Status Task Schedule")
-            .displayName("Status Task Schedule")
-            .description("The Stateless engine periodically logs the status of the dataflow's processors.  This property allows the period to be changed, or the status logging " +
+    public static final PropertyDescriptor STATUS_TASK_INTERVAL = new Builder()
+            .name("Status Task Interval")
+            .displayName("Status Task Interval")
+            .description("The Stateless engine periodically logs the status of the dataflow's processors.  This property allows the interval to be changed, or the status logging " +
                     "to be skipped altogether if the property is not set.")
             .required(false)
             .addValidator(StandardValidators.createTimePeriodValidator(10, TimeUnit.SECONDS, 24, TimeUnit.HOURS))
@@ -387,7 +387,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
             MAX_INGEST_DATA_SIZE,
             STATELESS_SSL_CONTEXT_SERVICE,
             KRB5_CONF,
-            STATUS_TASK_SCHEDULE);
+                STATUS_TASK_INTERVAL);
     }
 
     @Override
@@ -862,7 +862,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
             contentRepoDirectory = null;
         }
 
-        final String statusTaskSchedule = context.getProperty(STATUS_TASK_SCHEDULE).isSet() ? context.getProperty(STATUS_TASK_SCHEDULE).getValue() : null;
+        final String statusTaskInterval = context.getProperty(STATUS_TASK_INTERVAL).getValue();
 
         return new StatelessEngineConfiguration() {
             @Override
@@ -916,8 +916,8 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
             }
 
             @Override
-            public String getStatusTaskSchedule() {
-                return statusTaskSchedule;
+            public String getStatusTaskInterval() {
+                return statusTaskInterval;
             }
         };
     }

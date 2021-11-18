@@ -73,5 +73,5 @@ public interface StatelessEngine<T> {
 
     CounterRepository getCounterRepository();
 
-    Duration getStatusTaskSchedule();
+    Duration getStatusTaskInterval();
 }

@@ -41,6 +41,7 @@ public class TestStandardStatelessEngine {
     public void parseDurationValid() {
         assertEquals(Duration.ofSeconds(1), StandardStatelessEngine.parseDuration("1 sec"));
         assertEquals(Duration.ofHours(24), StandardStatelessEngine.parseDuration("24 hours"));
+        assertEquals(Duration.ofSeconds(5), StandardStatelessEngine.parseDuration(" 5 secs "));
     }
 
     @Test

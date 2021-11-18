@@ -194,7 +194,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                     .provenanceRepository(provenanceRepo)
                     .extensionRepository(extensionRepository)
                     .counterRepository(counterRepo)
-                    .statusTaskSchedule(engineConfiguration.getStatusTaskSchedule())
+                    .statusTaskInterval(engineConfiguration.getStatusTaskInterval())
                     .build();
 
             final StatelessFlowManager flowManager = new StatelessFlowManager(flowFileEventRepo, parameterContextManager, statelessEngine, () -> true, sslContext, bulletinRepository);

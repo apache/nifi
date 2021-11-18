@@ -123,7 +123,7 @@ public class StatelessSystemIT {
             }
 
             @Override
-            public String getStatusTaskSchedule() {
+            public String getStatusTaskInterval() {
                 return null;
             }
         };

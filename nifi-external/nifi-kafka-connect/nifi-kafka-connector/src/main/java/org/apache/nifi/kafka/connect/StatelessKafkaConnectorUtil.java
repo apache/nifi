@@ -317,7 +317,7 @@ public class StatelessKafkaConnectorUtil {
             }
 
             @Override
-            public String getStatusTaskSchedule() {
+            public String getStatusTaskInterval() {
                 return "1 min";
             }
         };
