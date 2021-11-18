@@ -18,7 +18,7 @@
 package org.apache.nifi.processors.tests.system;
 
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
-import org.apache.nifi.components.ClassloaderIsolationKey;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.context.PropertyContext;
@@ -43,7 +43,7 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 
 @RequiresInstanceClassLoading(cloneAncestorResources = true)
-public class WriteFlowFileCountToFile extends AbstractProcessor implements ClassloaderIsolationKey {
+public class WriteFlowFileCountToFile extends AbstractProcessor implements ClassloaderIsolationKeyProvider {
     private static final AtomicLong counter = new AtomicLong(0L);
 
     static final PropertyDescriptor ISOLATION_KEY = new Builder()

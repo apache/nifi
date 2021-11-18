@@ -33,7 +33,7 @@ import org.apache.nifi.context.PropertyContext;
  * the same ClassLoader.
  * </p>
  */
-public interface ClassloaderIsolationKey {
+public interface ClassloaderIsolationKeyProvider {
 
     /**
      * <p>

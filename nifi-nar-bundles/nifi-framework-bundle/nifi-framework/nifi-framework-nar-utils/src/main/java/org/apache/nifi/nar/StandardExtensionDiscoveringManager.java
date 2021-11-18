@@ -23,7 +23,7 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.UserGroupProvider;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.ClassloaderIsolationKey;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateProvider;
@@ -388,7 +388,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             final ConfigurableComponent tempComponent = getTempComponent(classType, bundle.getBundleDetails().getCoordinate());
             final Class<?> type = tempComponent.getClass();
 
-            final boolean allowsSharedClassloader = tempComponent instanceof ClassloaderIsolationKey;
+            final boolean allowsSharedClassloader = tempComponent instanceof ClassloaderIsolationKeyProvider;
             if (allowsSharedClassloader && classloaderIsolationKey == null) {
                 instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, Collections.emptySet(), additionalUrls, bundleClassLoader);
             } else {
@@ -405,7 +405,6 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                 boolean resolvedSharedClassLoader = false;
                 final RequiresInstanceClassLoading requiresInstanceClassLoading = type.getAnnotation(RequiresInstanceClassLoading.class);
                 if (requiresInstanceClassLoading.cloneAncestorResources()) {
-                    // TODO: Deal with closing when no longer in use
                     // Check to see if there's already a shared ClassLoader that can be used as the parent/base classloader
                     if (baseClassLoaderKey != null) {
                         final ClassLoader sharedBaseClassloader = sharedBaseClassloaders.get(baseClassLoaderKey);

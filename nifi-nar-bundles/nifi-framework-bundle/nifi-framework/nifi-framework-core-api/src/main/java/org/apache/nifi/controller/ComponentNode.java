@@ -26,7 +26,7 @@ import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizableFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.ClassloaderIsolationKey;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -288,12 +288,12 @@ public interface ComponentNode extends ComponentAuthorizable {
 
     default String getClassLoaderIsolationKey(final PropertyContext context) {
         final ConfigurableComponent component = getComponent();
-        if (!(component instanceof ClassloaderIsolationKey)) {
+        if (!(component instanceof ClassloaderIsolationKeyProvider)) {
             return null;
         }
 
         try {
-            return ((ClassloaderIsolationKey) component).getClassloaderIsolationKey(context);
+            return ((ClassloaderIsolationKeyProvider) component).getClassloaderIsolationKey(context);
         } catch (final Exception e) {
             getLogger().error("Failed to determine ClassLoader Isolation Key for " + this + ". This could result in unexpected behavior by this processor.", e);
             return null;

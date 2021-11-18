@@ -22,7 +22,7 @@ import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.ClassloaderIsolationKey;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -307,7 +307,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     protected String determineClasloaderIsolationKey() {
         final ConfigurableComponent component = getComponent();
-        if (!(component instanceof ClassloaderIsolationKey)) {
+        if (!(component instanceof ClassloaderIsolationKeyProvider)) {
             return null;
         }
 
