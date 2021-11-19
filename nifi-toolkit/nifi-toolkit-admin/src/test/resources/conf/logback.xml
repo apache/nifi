@@ -133,9 +133,6 @@
     <logger name="org.apache.nifi.cluster.authorization" level="INFO" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
-    <logger name="org.apache.nifi.web.filter.RequestLogger" level="INFO" additivity="false">
-        <appender-ref ref="USER_FILE"/>
-    </logger>
 
 
     <!--
