@@ -313,4 +313,15 @@ public class TestExecuteProcess {
                     .anyMatch(m -> m.getMsg().contains("Failed to create process due to")));
     }
 
+    /**
+     * On configuration of this processor to run only on primary cluster node, other nodes call
+     * {@link org.apache.nifi.annotation.lifecycle.OnUnscheduled} method after an invocation (Start/Stop or RunOnce),
+     * causing an NPE.  NPE guard added; test for this situation.
+     */
+    @Test
+    public void testProcessorNotScheduled() {
+        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
+        runner.setProperty(ExecuteProcess.COMMAND, "ls");
+        runner.run(0);
+    }
 }
