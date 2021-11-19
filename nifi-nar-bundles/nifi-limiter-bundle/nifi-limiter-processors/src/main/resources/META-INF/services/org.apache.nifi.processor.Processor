@@ -13,5 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+org.apache.nifi.processors.limiter.RateLimiter
 org.apache.nifi.processors.limiter.RateLimiterRecord
 org.apache.nifi.processors.limiter.RateMultipleLimiterRecord
