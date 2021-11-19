@@ -233,7 +233,7 @@
             <dependency>
                 <groupId>net.sf.saxon</groupId>
                 <artifactId>Saxon-HE</artifactId>
-                <version>9.6.0-5</version>
+                <version>10.6</version>
             </dependency>
             <dependency>
                 <groupId>joda-time</groupId>

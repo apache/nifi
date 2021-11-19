@@ -2108,7 +2108,7 @@ Mozilla Public License v2.0
 
 The following binary components are provided under the Mozilla Public License v2.0.  See project link for details.
 
-    (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:9.6.0-5 - http://www.saxonica.com/)
+    (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:10.6 - http://www.saxonica.com/)
     (MPL 2.0) Rhino (org.mozilla:rhino:jar:1.7R5 - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino/Download_Rhino)
 
 *****************

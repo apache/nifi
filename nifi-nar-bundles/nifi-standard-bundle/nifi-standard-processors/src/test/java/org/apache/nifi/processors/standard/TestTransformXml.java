@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -36,14 +35,14 @@ import org.junit.Test;
 public class TestTransformXml {
 
     @Test
-    public void testStylesheetNotFound() throws IOException {
+    public void testStylesheetNotFound() {
         final TestRunner controller = TestRunners.newTestRunner(TransformXml.class);
         controller.setProperty(TransformXml.XSLT_FILE_NAME, "/no/path/to/math.xsl");
         controller.assertNotValid();
     }
 
     @Test
-    public void testNonXmlContent() throws IOException {
+    public void testNonXmlContent() {
         final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/math.xsl");
 
@@ -89,10 +88,10 @@ public class TestTransformXml {
         builder.append("<data>\n");
 
         try(BufferedReader reader = new BufferedReader(new InputStreamReader(
-                new FileInputStream(new File("src/test/resources/TestTransformXml/tokens.csv"))))){
+                new FileInputStream("src/test/resources/TestTransformXml/tokens.csv")))){
 
 
-            String line = null;
+            String line;
             while ((line = reader.readLine()) != null) {
                 builder.append(line).append("\n");
             }
@@ -144,7 +143,7 @@ public class TestTransformXml {
     }
 
     @Test
-    public void testTransformBothControllerFileNotValid() throws IOException, InitializationException {
+    public void testTransformBothControllerFileNotValid() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/math.xsl");
 
@@ -159,14 +158,14 @@ public class TestTransformXml {
     }
 
     @Test
-    public void testTransformNoneControllerFileNotValid() throws IOException, InitializationException {
+    public void testTransformNoneControllerFileNotValid() {
         final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty(TransformXml.CACHE_SIZE, "0");
         runner.assertNotValid();
     }
 
     @Test
-    public void testTransformControllerNoKey() throws IOException, InitializationException {
+    public void testTransformControllerNoKey() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
 
         final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
@@ -267,4 +266,35 @@ public class TestTransformXml {
         transformed.assertContentEquals(expectedContent);
     }
 
+    @Test
+    public void testTransformSecureProcessingEnabledXmlWithEntity() {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/doc-node.xsl");
+        runner.setProperty(TransformXml.INDENT_OUTPUT, Boolean.FALSE.toString());
+
+        final String input = "<!DOCTYPE doc [<!ENTITY uri SYSTEM \"http://127.0.0.1\" >]><doc>&uri;</doc>";
+        runner.enqueue(input);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+
+        final String expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><doc xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"/>";
+        transformed.assertContentEquals(expected);
+    }
+
+    @Test
+    public void testTransformSecureProcessingEnabledXslWithEntity() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/doctype-entity-file-uri.xsl");
+        runner.setProperty(TransformXml.INDENT_OUTPUT, Boolean.FALSE.toString());
+
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/doctype-entity-file-uri.xsl"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+
+        transformed.assertContentEquals("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+    }
 }
