@@ -60,6 +60,7 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -290,7 +291,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
             return;
         }
 
-        for(final Parameter parameter : fetchedParameters) {
+        for (final Parameter parameter : fetchedParameters) {
             final ParameterDescriptor descriptor = parameter.getDescriptor();
             if (descriptor == null) {
                 throw new IllegalStateException("Parameter is missing a Parameter Descriptor");
@@ -412,12 +413,11 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
         final Set<String> parameterNameFilter = parameterNames == null ? new HashSet<>() : parameterNames;
         final Map<String, Parameter> parameterUpdateMap = new HashMap<>();
 
-        // Get a list of the parameters with their sensitivity set based on the reference type
-        final List<Parameter> adjustedParameters = setSensitivity(fetchedParameters, reference.getSensitivity());
+        // Get a filtered list of the parameters with their sensitivity set based on the reference type and with
+        // names mapped according to the configuration context
+        final List<Parameter> filteredParameters = filterAndMapParameters(fetchedParameters, reference.getSensitivity(), parameterNameFilter);
 
-        final Map<ParameterDescriptor, Parameter> filteredFetchedParameters = adjustedParameters
-                .stream()
-                .filter(parameter -> parameterNameFilter.contains(parameter.getDescriptor().getName()))
+        final Map<ParameterDescriptor, Parameter> fetchedParameterMap = filteredParameters.stream()
                 .collect(Collectors.toMap(Parameter::getDescriptor, Function.identity()));
 
         final boolean isSensitive = reference.getSensitivity() == ParameterSensitivity.SENSITIVE;
@@ -427,12 +427,12 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
                 .filter(entry -> entry.getValue().getDescriptor().isSensitive() == isSensitive)
                 .forEach(entry -> {
                     final ParameterDescriptor descriptor = entry.getKey();
-                    if (!filteredFetchedParameters.containsKey(descriptor)) {
+                    if (!fetchedParameterMap.containsKey(descriptor)) {
                         parameterUpdateMap.put(descriptor.getName(), null);
                     }
                 });
         // Add all changed and new parameters of the same sensitivity
-        for(final Map.Entry<ParameterDescriptor, Parameter> entry : filteredFetchedParameters.entrySet()) {
+        for(final Map.Entry<ParameterDescriptor, Parameter> entry : fetchedParameterMap.entrySet()) {
             final ParameterDescriptor descriptor = entry.getKey();
             final Parameter fetchedParameter = entry.getValue();
             final Parameter currentParameter = currentParameters.get(descriptor);
@@ -452,9 +452,35 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     }
 
     /**
-     * Sets provided = true on all parameters in the list
+     * Filters the list of parameters based on the parameter names, sets the sensitivity accordingly, and maps
+     * any parameter names based on the configuration context.
      * @param parameters A list of Parameters
-     * @return An equivalent list, but with provided = true
+     * @param sensitivity The desired sensitivity of the Parameters
+     * @param parameterNamesToInclude A collection of parameter names to include (include all if null or empty)
+     * @return A filtered list, with the appropriate sensitivity and mapped names
+     */
+    private List<Parameter> filterAndMapParameters(final List<Parameter> parameters, final ParameterSensitivity sensitivity,
+                                                   final Collection<String> parameterNamesToInclude) {
+        final Map<String, String> parameterNameMapping = getParameterNameMapping(getConfigurationContext());
+        return parameters == null ? Collections.emptyList() : parameters.stream()
+                .filter(parameter -> parameterNamesToInclude.contains(parameter.getDescriptor().getName()))
+                .map(parameter -> {
+                    final String rawParameterName = parameter.getDescriptor().getName();
+                    final String mappedParameterName = parameterNameMapping.getOrDefault(rawParameterName, rawParameterName);
+                    final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
+                            .from(parameter.getDescriptor())
+                            .name(mappedParameterName)
+                            .sensitive(sensitivity == ParameterSensitivity.SENSITIVE)
+                            .build();
+                    return new Parameter(parameterDescriptor, parameter.getValue(), parameter.getParameterContextId(), true);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Sets provided = true on all parameters in the list, and maps any names based on dynamic properties.
+     * @param parameters A list of Parameters
+     * @return An equivalent list, but with provided = true and parameter names mapped
      */
     private static List<Parameter> toProvidedParameters(final List<Parameter> parameters) {
         return parameters == null ? Collections.emptyList() : parameters.stream()
@@ -463,20 +489,15 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     }
 
     /**
-     * Sets the sensitivity of all parameters in the list based on the provided sensitivity
-     * @param parameters A list of Parameters
-     * @return An equivalent list, but with the appropriate sensitivity
+     * @param context The configuration context
+     * @return a map from raw parameter name to mapped parameter name, using the dynamic properties of the context
      */
-    private static List<Parameter> setSensitivity(final List<Parameter> parameters, final ParameterSensitivity sensitivity) {
-        return parameters == null ? Collections.emptyList() : parameters.stream()
-                .map(parameter -> {
-                        final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
-                                .from(parameter.getDescriptor())
-                                .sensitive(sensitivity == ParameterSensitivity.SENSITIVE)
-                                .build();
-                        return new Parameter(descriptor, parameter.getValue(), parameter.getParameterContextId(), parameter.isProvided());
-                })
-                .collect(Collectors.toList());
+    private static Map<String, String> getParameterNameMapping(final ConfigurationContext context) {
+        return context.getProperties().entrySet().stream()
+                .filter(entry -> entry.getKey().isDynamic())
+                .collect(Collectors.toMap(
+                        entry -> entry.getKey().getName(),
+                        Map.Entry::getValue));
     }
 
     @Override
