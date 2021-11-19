@@ -87,8 +87,7 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
     static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
             .name("get-es-destination")
             .displayName("Destination")
-            .description("Indicates whether the retrieved document is written to the FlowFile content or a FlowFile attribute; " +
-                    "if using attribute, must specify the Attribute Name property, if the property name is ignored.")
+            .description("Indicates whether the retrieved document is written to the FlowFile content or a FlowFile attribute.")
             .required(true)
             .allowableValues(FLOWFILE_CONTENT, FLOWFILE_ATTRIBUTE)
             .defaultValue(FLOWFILE_CONTENT.getValue())
@@ -171,24 +170,26 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
                 attributes.put("elasticsearch.type", type);
             }
             final String json = mapper.writeValueAsString(doc);
-            FlowFile docFF = input != null ? input : session.create();
+            FlowFile documentFlowFile = input != null ? input : session.create();
             if (FLOWFILE_CONTENT.getValue().equals(destination)) {
-                docFF = session.write(docFF, out -> out.write(json.getBytes()));
+                documentFlowFile = session.write(documentFlowFile, out -> out.write(json.getBytes()));
             } else {
                 attributes.put(attributeName, json);
             }
 
-            docFF = session.putAllAttributes(docFF, attributes);
-            session.getProvenanceReporter().receive(docFF, clientService.getTransitUrl(index, type), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(docFF, REL_DOC);
+            documentFlowFile = session.putAllAttributes(documentFlowFile, attributes);
+            session.getProvenanceReporter().receive(documentFlowFile, clientService.getTransitUrl(index, type), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.transfer(documentFlowFile, REL_DOC);
         } catch (final ElasticsearchException ese) {
             if (ese.isNotFound()) {
                 if (input != null) {
                     session.transfer(input, REL_NOT_FOUND);
+                } else {
+                    getLogger().warn("Document with _id {} not found in index {} (and type {})", id, index, type);
                 }
             } else {
                 final String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
-                        ese.isElastic() ? "Moving to retry." : "Moving to failure");
+                        ese.isElastic() ? "Routing to retry." : "Routing to failure");
                 getLogger().error(msg, ese);
                 if (input != null) {
                     session.penalize(input);

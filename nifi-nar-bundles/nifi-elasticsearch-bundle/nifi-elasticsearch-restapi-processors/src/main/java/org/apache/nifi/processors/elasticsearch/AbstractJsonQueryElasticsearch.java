@@ -171,7 +171,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
             finishQuery(input, queryJsonParameters, session, context, response);
         } catch (final ElasticsearchException ese) {
             final String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
-                    ese.isElastic() ? "Moving to retry." : "Moving to failure");
+                    ese.isElastic() ? "Routing to retry." : "Routing to failure");
             getLogger().error(msg, ese);
             if (input != null) {
                 session.penalize(input);

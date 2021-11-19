@@ -422,7 +422,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
             }
         } catch (final ElasticsearchException ese) {
             final String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
-                    ese.isElastic() ? "Moving to retry." : "Moving to failure");
+                    ese.isElastic() ? "Routing to retry." : "Routing to failure");
             getLogger().error(msg, ese);
             final Relationship rel = ese.isElastic() ? REL_RETRY : REL_FAILURE;
             session.penalize(input);

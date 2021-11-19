@@ -142,7 +142,7 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
             session.transfer(input, REL_SUCCESS);
         } catch (final ElasticsearchException ese) {
             final String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
-                    ese.isElastic() ? "Moving to retry." : "Moving to failure");
+                    ese.isElastic() ? "Routing to retry." : "Routing to failure");
             getLogger().error(msg, ese);
             if (input != null) {
                 session.penalize(input);

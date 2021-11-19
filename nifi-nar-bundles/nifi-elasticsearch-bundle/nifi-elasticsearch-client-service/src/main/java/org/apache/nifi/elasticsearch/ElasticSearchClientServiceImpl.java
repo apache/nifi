@@ -186,19 +186,17 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         this.client = builder.build();
     }
 
-    private CredentialsProvider addCredentials(CredentialsProvider credentialsProvider, final AuthScope authScope, final String username, final String password) {
-        if (credentialsProvider == null) {
-            credentialsProvider = new BasicCredentialsProvider();
-        }
+    private CredentialsProvider addCredentials(final CredentialsProvider credentialsProvider, final AuthScope authScope, final String username, final String password) {
+        final CredentialsProvider cp = credentialsProvider != null ? credentialsProvider : new BasicCredentialsProvider();
 
         if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
-            credentialsProvider.setCredentials(
+            cp.setCredentials(
                     authScope == null ? AuthScope.ANY : authScope,
                     new UsernamePasswordCredentials(username, password)
             );
         }
 
-        return credentialsProvider;
+        return cp;
     }
 
     private Response runQuery(final String endpoint, final String query, final String index, final String type, final Map<String, String> requestParameters) {
