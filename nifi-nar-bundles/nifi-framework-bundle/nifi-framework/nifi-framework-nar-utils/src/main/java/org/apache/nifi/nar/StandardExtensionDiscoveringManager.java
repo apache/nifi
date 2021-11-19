@@ -442,13 +442,24 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                 // register our new InstanceClassLoader as the shared base classloader.
                 if (baseClassLoaderKey != null && !resolvedSharedClassLoader) {
                     // Created a shared class loader that is everything we need except for the additional URLs, as the additional URLs are instance-specific.
-                    final ClassLoader sharedClassLoader = new SharedInstanceClassLoader(instanceIdentifier, classType, instanceUrls, Collections.emptySet(), narNativeLibDirs, ancestorClassLoader);
+                    final SharedInstanceClassLoader sharedClassLoader = new SharedInstanceClassLoader(instanceIdentifier, classType, instanceUrls,
+                        Collections.emptySet(), narNativeLibDirs, ancestorClassLoader);
                     instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, Collections.emptySet(), additionalUrls, Collections.emptySet(), sharedClassLoader);
 
-                    logger.debug("Creating InstanceClassLoader for type {} using newly created shared Base ClassLoader {} for component {}", type, instanceClassLoader, instanceIdentifier);
+                    logger.debug("Creating InstanceClassLoader for type {} using newly created shared Base ClassLoader {} for component {}", type, sharedClassLoader, instanceIdentifier);
+                    if (logger.isTraceEnabled()) {
+                        for (URL url : sharedClassLoader.getURLs()) {
+                            logger.trace("Shared Base ClassLoader URL resource: {}", new Object[] {url.toExternalForm()});
+                        }
+                    }
+
                     sharedBaseClassloaders.putIfAbsent(baseClassLoaderKey, sharedClassLoader);
                 } else {
-                    instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, instanceUrls, additionalUrls, narNativeLibDirs, ancestorClassLoader);
+                    // If we resolved a shared classloader, the shared classloader already has the instance URLs, so there's no need to provide them for the Instance ClassLoader.
+                    // But if we did not resolve to a shared ClassLoader, it's important to pull in the instanceUrls.
+                    final Set<URL> resolvedInstanceUrls = resolvedSharedClassLoader ? Collections.emptySet() : instanceUrls;
+
+                    instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, resolvedInstanceUrls, additionalUrls, narNativeLibDirs, ancestorClassLoader);
                 }
             }
         } else {

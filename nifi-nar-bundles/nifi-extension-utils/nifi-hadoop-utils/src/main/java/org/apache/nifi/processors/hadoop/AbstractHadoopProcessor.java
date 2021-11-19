@@ -22,7 +22,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.security.SaslPlainServer;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -48,7 +47,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
-import org.apache.nifi.security.krb.ReentrantKerberosUser;
 
 import javax.net.SocketFactory;
 import java.io.File;
@@ -58,7 +56,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
-import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -388,28 +385,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
                     }
                 }
             }
-
-            final KerberosUser kerberosUser = resources.getKerberosUser();
-            if (kerberosUser != null) {
-                try {
-                    kerberosUser.logout();
-                } catch (final Exception e) {
-                    getLogger().warn("Error logging out KerberosUser: {}", e.getMessage(), e);
-                }
-            }
-
-            // Clean-up the static reference to the Configuration instance
-            UserGroupInformation.setConfiguration(new Configuration());
-
-            // Clean-up the reference to the InstanceClassLoader that was put into Configuration
-            final Configuration configuration = resources.getConfiguration();
-            if (configuration != null) {
-                configuration.setClassLoader(null);
-            }
-
-            // Need to remove the Provider instance from the JVM's Providers class so that InstanceClassLoader can be GC'd eventually
-            final SaslPlainServer.SecurityProvider saslProvider = new SaslPlainServer.SecurityProvider();
-            Security.removeProvider(saslProvider.getName());
         }
 
         // Clear out the reference to the resources
@@ -421,14 +396,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         statsField.setAccessible(true);
 
         final Object statsObj = statsField.get(fileSystem);
-        if (statsObj != null && statsObj instanceof FileSystem.Statistics) {
+        if (statsObj instanceof FileSystem.Statistics) {
             final FileSystem.Statistics statistics = (FileSystem.Statistics) statsObj;
 
             final Field statsThreadField = statistics.getClass().getDeclaredField("STATS_DATA_CLEANER");
             statsThreadField.setAccessible(true);
 
             final Object statsThreadObj = statsThreadField.get(statistics);
-            if (statsThreadObj != null && statsThreadObj instanceof Thread) {
+            if (statsThreadObj instanceof Thread) {
                 final Thread statsThread = (Thread) statsThreadObj;
                 try {
                     statsThread.interrupt();
@@ -514,7 +489,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         // The customValidate method ensures that KerberosUserService can't be set at the same time as the credentials service or explicit properties
         final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
         if (kerberosUserService != null) {
-            return new ReentrantKerberosUser(kerberosUserService.createKerberosUser());
+            return kerberosUserService.createKerberosUser();
         }
 
         // Kerberos User Service wasn't set, so create KerberosUser based on credentials service or explicit properties...
@@ -531,9 +506,9 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         }
 
         if (keyTab != null) {
-            return new ReentrantKerberosUser(new KerberosKeytabUser(principal, keyTab));
+            return new KerberosKeytabUser(principal, keyTab);
         } else if (password != null) {
-            return new ReentrantKerberosUser(new KerberosPasswordUser(principal, password));
+            return new KerberosPasswordUser(principal, password);
         } else {
             throw new IllegalStateException("Unable to authenticate with Kerberos, no keytab or password was provided");
         }
@@ -629,7 +604,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     public static String getPathDifference(final Path root, final Path child) {
         final int depthDiff = child.depth() - root.depth();
         if (depthDiff <= 1) {
-            return "".intern();
+            return "";
         }
         String lastRoot = root.getName();
         Path childsParent = child.getParent();
