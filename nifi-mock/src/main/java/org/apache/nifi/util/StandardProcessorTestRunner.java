@@ -166,6 +166,21 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public void doNotRun() {
+        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor, context);
+        try {
+            ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, context);
+        } catch (final Exception e) {
+            Assertions.fail("Could not invoke methods annotated with @OnScheduled annotation " + e.getMessage());
+        }
+        try {
+            ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, processor, context);
+        } catch (final Exception e) {
+            Assertions.fail("Could not invoke methods annotated with @OnUnscheduled annotation " + e.getMessage());
+        }
+    }
+
+    @Override
     public void run() {
         run(1);
     }
