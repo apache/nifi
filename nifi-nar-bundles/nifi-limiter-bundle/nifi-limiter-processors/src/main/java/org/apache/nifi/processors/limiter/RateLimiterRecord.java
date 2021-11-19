@@ -64,7 +64,7 @@ import io.github.bucket4j.*;
 import com.google.common.cache.*;
 
 @Tags({ "record", "rate limiter", "flooding", "record" })
-@CapabilityDescription("Provide a system to limit the incoming traffic in nifi. Each record will be limited using the provided key that can be define using a record path.")
+@CapabilityDescription("Provide a system to limit the incoming traffic in nifi. Each record will be limited using the provided key that can be defined using a record path.")
 @SeeAlso({})
 @ReadsAttributes({@ReadsAttribute(attribute="", description="")})
 @WritesAttributes({
