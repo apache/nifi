@@ -187,7 +187,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void run(final int iterations, final boolean stopOnFinish, final boolean initialize, final long runWait) {
-        if (iterations < 1) {
+        if (iterations < 0) {
             throw new IllegalArgumentException();
         }
 
