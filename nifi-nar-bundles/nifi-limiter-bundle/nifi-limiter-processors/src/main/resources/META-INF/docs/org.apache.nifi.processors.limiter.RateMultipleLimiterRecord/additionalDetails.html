@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>RateMultipleLimiterRecord</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+<body>
+    <p>This processor is designed to take any valid record and limit the flow coming through the processor. In the case of this specific processor, each 
+        record coming through can have a specific rate limit configuration. Using a custom configuration allows to take in record from different sources
+        and apply their own configuration. In addition, their configuration can change over time. However, if the configuration isn't respecting the
+        required format values, the default ones will be used.
+        Each record rate limit will be defined by the key used. The key is set using a record path, but if not found the default one will be set as a replacement.
+        You can also decide to remove the key, once the record passed through the processor. 
+    </p>
+    <p>The Rate Multiple Limiter Configuration :</p>
+    <ul>
+        <li><b>Refill</b> : Creates the Refill that does refill of tokens in intervally manner. "Intervally" in opposite to "greedy" 
+            will wait until whole period will be elapsed before regenerate tokens
+            <ul>
+                <li><b>Token</b> : amount of tokens</li>
+                <li><b>Period</b> : the period within tokens will be fully regenerated</li>
+            </ul>
+                
+        </li>
+        <li><b>Bandwidth Capacity</b> : Specifies limitation in classic interpretation of token-bucket algorithm.</li>
+        <li><b>Expire After Write Duration</b> : the maximum number of seconds for each entry to stay in the Cache</li>
+    </ul>
+    <p>Example document:</p>
+    <pre>
+        {
+            "name": "Bob",
+            "age": 22,
+            "bucket": {
+                "refill_token": 100,
+                "refill_period": "10 sec",
+                "bandwidth": 1
+            }
+        }
+    </pre>
+    <p>The following record path operations will extract the configuration :</p>
+    <ul>
+        <li><code  class="inlinecode">/bucket/refill_token</code> set for record path(Refill Tokens Record Path), and will have a default value(Refill tokens), and can be removed from the record once used if (Refill Tokens Removed) is set to `true`</li>
+        <li><code  class="inlinecode">/bucket/refill_period</code> set for record path(Refill Period Record Path), and will have a default value(Refill period), and can be removed from the record once used if (Refill Period Removed) is set to `true`</li>
+        <li><code  class="inlinecode">/bucket/bandwidth</code> set for record path(Bandwidth capacity Record Path), and will have a default value(Bandwidth capacity), and can be removed from the record once used if (Bandwidth capacity Removed) is set to `true`</li>
+    </ul>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>RateLimiterRecord</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+<body>
+    <p>This processor is designed to take any flow file and limit the flow coming through the processor. The limitation is done using the
+        key provided for each file using the value given in `KEY`. The configuration of the rate limiter is the same for all passing flow files. 
+    </p>
+    <p>The Rate Limiter Configuration :</p>
+    <ul>
+        <li><b>Refill</b> : Creates the Refill that does refill of tokens in intervally manner. "Intervally" in opposite to "greedy" 
+            will wait until whole period will be elapsed before regenerate tokens
+            <ul>
+                <li><b>Token</b> : amount of tokens</li>
+                <li><b>Period</b> : the period within tokens will be fully regenerated</li>
+            </ul>
+                
+        </li>
+        <li><b>Max Size Bucket</b> : specifies the maximum number of entries the cache may contain.</li>
+        <li><b>Bandwidth Capacity</b> : Specifies limitation in classic interpretation of token-bucket algorithm.</li>
+        <li><b>Expire After Write Duration</b> : the maximum number of seconds for each entry to stay in the Cache</li>
+    </ul>
+    <p>Example document:</p>
+    <pre>
+        {
+            "name": "John",
+            "age": 22
+        }
+    </pre>
+    <p>The following flow file will use the key, you used to pass through the processor KEY configuration.</p>
+</body>
+</html>
