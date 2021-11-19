@@ -96,7 +96,7 @@ public class RateLimiterMultipleRecordTest {
     }
 
     @Test
-    @Ignore
+    @Ignore //must have a HazelCast running localy 
     public void testRateMultiLimiterSuccess() throws Exception {
         commonTest("/json/record_multi-limiter.json", 1, 1, 0);
     }
