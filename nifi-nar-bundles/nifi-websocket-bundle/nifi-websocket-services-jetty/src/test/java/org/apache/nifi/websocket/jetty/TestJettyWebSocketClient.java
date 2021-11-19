@@ -17,8 +17,13 @@
 package org.apache.nifi.websocket.jetty;
 
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import java.net.URI;
 import java.util.Collection;
 
 import static org.junit.Assert.assertEquals;
@@ -96,5 +101,69 @@ public class TestJettyWebSocketClient {
         service.initialize(context.getInitializationContext());
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
         assertEquals(0, results.size());
+    }
+
+    @Test
+    public void testDynamicPropertiesAreAddedToTheUrlAsQueryParameters() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+
+        final TestableJettyWebSocketClient testSubject = new TestableJettyWebSocketClient();
+        runner.addControllerService("client", testSubject);
+        runner.setProperty(testSubject, JettyWebSocketClient.WS_URI, "wss://localhost:9001/test");
+        runner.setProperty(testSubject, "first", "123");
+        runner.setProperty(testSubject, "SENSITIVE.second", "456");
+        runner.assertValid(testSubject);
+        runner.enableControllerService(testSubject);
+
+        final URI uri = testSubject.getWebSocketUri();
+        assertEquals("wss://localhost:9001/test?first=123&second=456", uri.toString());
+
+        runner.stop();
+    }
+
+    @Test
+    public void testNonSensitivePropertiesAreReplacedFromVariables() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        runner.setVariable("star", "betelgeuse");
+
+        final TestableJettyWebSocketClient testSubject = new TestableJettyWebSocketClient();
+        runner.addControllerService("client", testSubject);
+        runner.setProperty(testSubject, JettyWebSocketClient.WS_URI, "wss://localhost:9001/test");
+        runner.setProperty(testSubject, "first", "${star}");
+        runner.setProperty(testSubject, "SENSITIVE.second", "2");
+        runner.assertValid(testSubject);
+        runner.enableControllerService(testSubject);
+
+        final URI uri = testSubject.getWebSocketUri();
+        assertEquals("wss://localhost:9001/test?first=betelgeuse&second=2", uri.toString());
+
+        runner.stop();
+    }
+
+    @Test
+    public void testSensitivePropertiesAreNotReplaced() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        runner.setVariable("star", "betelgeuse");
+
+        final TestableJettyWebSocketClient testSubject = new TestableJettyWebSocketClient();
+        runner.addControllerService("client", testSubject);
+        runner.setProperty(testSubject, JettyWebSocketClient.WS_URI, "wss://localhost:9001/test");
+        runner.setProperty(testSubject, "first", "1");
+        runner.setProperty(testSubject, "SENSITIVE.second", "${star}");
+        runner.assertValid(testSubject);
+        runner.enableControllerService(testSubject);
+
+        final URI uri = testSubject.getWebSocketUri();
+        assertEquals("wss://localhost:9001/test?first=1&second=%24%7Bstar%7D", uri.toString());
+
+        runner.stop();
+    }
+
+
+    private static class TestableJettyWebSocketClient extends JettyWebSocketClient {
+        URI getWebSocketUri() {
+            return webSocketUri;
+        }
+
     }
 }

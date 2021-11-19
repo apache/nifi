@@ -17,15 +17,19 @@
 package org.apache.nifi.websocket.jetty;
 
 import dto.SessionInfo;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -45,14 +49,17 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 import util.HeaderMapExtractor;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,12 +68,25 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 @Tags({"WebSocket", "Jetty", "client"})
 @CapabilityDescription("Implementation of WebSocketClientService." +
         " This service uses Jetty WebSocket client module to provide" +
         " WebSocket session management throughout the application.")
+@DynamicProperties({
+        @DynamicProperty(name = "HTTP query parameter name",
+                value = "HTTP query parameter value",
+                expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+                description = "HTTP query parameter name and value applied to JDBC connections."),
+        @DynamicProperty(name = "SENSITIVE.HTTP get parameter name",
+                value = "HTTP query parameter value",
+                expressionLanguageScope = ExpressionLanguageScope.NONE,
+                description = "HTTP query parameter name prefixed with 'SENSITIVE.' handled as a sensitive property.")
+})
 public class JettyWebSocketClient extends AbstractJettyWebSocketService implements WebSocketClientService {
+    /** Property Name Prefix for Sensitive Dynamic Properties */
+    protected static final String SENSITIVE_PROPERTY_PREFIX = "SENSITIVE.";
 
     public static final PropertyDescriptor WS_URI = new PropertyDescriptor.Builder()
             .name("websocket-uri")
@@ -183,11 +203,11 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     private final Map<String, SessionInfo> activeSessions = new ConcurrentHashMap<>();
     private final ReentrantLock connectionLock = new ReentrantLock();
     private WebSocketClient client;
-    private URI webSocketUri;
     private String authorizationHeader;
     private long connectionTimeoutMillis;
     private volatile ScheduledExecutorService sessionMaintenanceScheduler;
     private ConfigurationContext configurationContext;
+    protected URI webSocketUri;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -233,7 +253,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
 
         client.start();
         activeSessions.clear();
-        webSocketUri = new URI(context.getProperty(WS_URI).evaluateAttributeExpressions(new HashMap<>()).getValue());
+        webSocketUri = getEndpoint(context);
         connectionTimeoutMillis = context.getProperty(CONNECTION_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
         final Long sessionMaintenanceInterval = context.getProperty(SESSION_MAINTENANCE_INTERVAL).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
@@ -246,6 +266,44 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
                 getLogger().warn("Failed to maintain sessions due to {}", new Object[]{e}, e);
             }
         }, sessionMaintenanceInterval, sessionMaintenanceInterval, TimeUnit.MILLISECONDS);
+    }
+
+    private URI getEndpoint(final ConfigurationContext context) throws URISyntaxException {
+        final StringBuilder result = new StringBuilder(context.getProperty(WS_URI).evaluateAttributeExpressions(new HashMap<>()).getValue());
+        final List<PropertyDescriptor> dynamicProperties = context.getProperties()
+                .keySet()
+                .stream()
+                .filter(PropertyDescriptor::isDynamic)
+                .collect(Collectors.toList());
+
+        final Map<String, String> queryParameters = new HashMap<>();
+        dynamicProperties.forEach((descriptor) -> {
+            final PropertyValue propertyValue = context.getProperty(descriptor);
+            if (descriptor.isSensitive()) {
+                final String propertyName = org.apache.commons.lang3.StringUtils.substringAfter(descriptor.getName(), SENSITIVE_PROPERTY_PREFIX);
+                queryParameters.put(propertyName, propertyValue.getValue());
+            } else {
+                queryParameters.put(descriptor.getName(), propertyValue.evaluateAttributeExpressions().getValue());
+            }
+        });
+
+        if (!queryParameters.isEmpty()) {
+            final List<String> parameters = new LinkedList<>();
+
+            try {
+                for (final Map.Entry<String, String> parameter : queryParameters.entrySet()) {
+                    parameters.add(URLEncoder.encode(parameter.getKey(), "UTF-8") + '=' + URLEncoder.encode(parameter.getValue(), "UTF-8"));
+                }
+            } catch (final UnsupportedEncodingException e) {
+                getLogger().error("Could not be initialized because of: {}", new Object[]{e.getMessage()}, e);
+                throw new ProcessException(e);
+            }
+
+            result.append('?');
+            result.append(String.join("&", parameters));
+        }
+
+        return new URI(result.toString());
     }
 
     @Override
@@ -382,5 +440,23 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     @Override
     public String getTargetUri() {
         return webSocketUri.toString();
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        final PropertyDescriptor.Builder builder = new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .dynamic(true)
+                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR);
+
+        if (propertyDescriptorName.startsWith(SENSITIVE_PROPERTY_PREFIX)) {
+            builder.sensitive(true).expressionLanguageSupported(ExpressionLanguageScope.NONE);
+        } else {
+            builder.expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY);
+        }
+
+        return builder.build();
     }
 }
