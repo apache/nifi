@@ -23,7 +23,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.AbstractParameterProvider;
-import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ProvidedParameterGroup;
 import org.apache.nifi.parameter.VerifiableParameterProvider;
 
 import java.util.ArrayList;
@@ -76,7 +76,7 @@ public class EnsureParameterProviderConfigurationCorrect extends AbstractParamet
     }
 
     @Override
-    public List<Parameter> fetchParameters(final ConfigurationContext context) {
+    public List<ProvidedParameterGroup> fetchParameters(final ConfigurationContext context) {
         return null;
     }
 

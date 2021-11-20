@@ -20,7 +20,9 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ProvidedParameterNameGroup;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -40,11 +42,11 @@ public interface ParameterProviderNode extends ComponentNode {
 
     void fetchParameters();
 
-    void verifyCanApplyParameters(Set<String> parameterNames);
+    void verifyCanApplyParameters(Collection<ProvidedParameterNameGroup> parameterNames);
 
-    Set<String> getFetchedParameterNames();
+    Collection<ProvidedParameterNameGroup> getFetchedParameterNames();
 
-    List<ParametersApplication> getFetchedParametersToApply(Set<String> parameterNames);
+    List<ParametersApplication> getFetchedParametersToApply(Collection<ProvidedParameterNameGroup> parameterNames);
 
     void verifyCanClearState();
 

@@ -67,10 +67,21 @@ public interface ParameterProvider extends ConfigurableComponent {
     void initialize(ParameterProviderInitializationContext config) throws InitializationException;
 
     /**
-     * Fetches parameters from an external source.
+     * Fetches named groups of parameters from an external source.
+     *
+     * Any referencing Parameter Context will only receive the Parameters from a group if the Parameter Context name matches
+     * the group name (ignoring case).
+     *
+     * If group name is null, all referencing Parameter Contexts will receive the Parameters in that group,
+     * regardless of their name.
+     *
+     * If more than one ProvidedParameterGroup matches a given ParameterContext, only the parameters from the first group in the
+     * list will be applied.
+     *
      * @param context The <code>ConfigurationContext</code>for the provider
-     * @return A list of fetched Parameters.  The framework will set the sensitivity appropriately based on how the ParameterProvider is referenced in a ParameterContext.
+     * @return A list of fetched Parameter groups.  The framework will set the sensitivity appropriately based on how the ParameterProvider
+     * is referenced in a ParameterContext.
      * @throws IOException if there is an I/O problem while fetching the Parameters
      */
-    List<Parameter> fetchParameters(ConfigurationContext context) throws IOException;
+    List<ProvidedParameterGroup> fetchParameters(ConfigurationContext context) throws IOException;
 }

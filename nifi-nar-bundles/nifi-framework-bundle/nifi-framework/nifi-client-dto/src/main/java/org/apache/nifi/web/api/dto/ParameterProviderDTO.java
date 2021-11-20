@@ -18,6 +18,7 @@ package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentEntity;
+import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.Collection;
@@ -46,7 +47,7 @@ public class ParameterProviderDTO extends ComponentDTO {
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
     private Set<ParameterProviderReferencingComponentEntity> referencingComponents;
-    private Set<String> fetchedParameterNames;
+    private Collection<ProvidedParameterNameGroupEntity> fetchedParameterNameGroups;
 
     private String customUiUrl;
     private String annotationData;
@@ -69,17 +70,17 @@ public class ParameterProviderDTO extends ComponentDTO {
     }
 
     /**
-     * @return A set of parameter names for any fetched parameters.
+     * @return A set of grouped parameter names for any fetched parameters.
      */
     @ApiModelProperty(
-            value = "A set of parameter names for any fetched parameters."
+            value = "A set of grouped parameter names for any fetched parameters."
     )
-    public Set<String> getFetchedParameterNames() {
-        return fetchedParameterNames;
+    public Collection<ProvidedParameterNameGroupEntity> getFetchedParameterNameGroups() {
+        return fetchedParameterNameGroups;
     }
 
-    public void setFetchedParameterNames(final Set<String> fetchedParameterNames) {
-        this.fetchedParameterNames = fetchedParameterNames;
+    public void setFetchedParameterNameGroups(final Collection<ProvidedParameterNameGroupEntity> fetchedParameterNameGroups) {
+        this.fetchedParameterNameGroups = fetchedParameterNameGroups;
     }
 
     /**

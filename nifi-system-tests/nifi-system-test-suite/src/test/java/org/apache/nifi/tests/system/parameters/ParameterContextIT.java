@@ -31,6 +31,7 @@ import org.apache.nifi.web.api.entity.ParameterProviderApplyParametersRequestEnt
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -39,6 +40,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -217,22 +219,22 @@ public class ParameterContextIT extends NiFiSystemIT {
     public void testSetParameterProviders() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity countEvents = getClientUtil().createProcessor("CountEvents");
         final Map<String, String> properties = new HashMap<>();
-        properties.put("Name", "#{Non Sensitive}");
-        properties.put("Sensitive", "#{Sensitive}");
+        properties.put("Name", "#{non.sensitive}");
+        properties.put("Sensitive", "#{sensitive}");
         getClientUtil().updateProcessorProperties(countEvents, properties);
         final String processorId = countEvents.getId();
 
         // Neither property is required
         waitForInvalidProcessor(processorId);
 
-        final ParameterProviderEntity nonSensitiveProvider = createParameterProvider("DynamicPropertyParameterProvider");
+        final ParameterProviderEntity nonSensitiveProvider = createParameterProvider("PropertiesParameterProvider");
         final Map<String, String> nonSensitiveProviderProperties = new HashMap<>();
-        nonSensitiveProviderProperties.put("Non Sensitive", "My non-sensitive value");
+        nonSensitiveProviderProperties.put("Parameters", "non.sensitive=non-sensitive value");
         updateParameterProviderProperties(nonSensitiveProvider, nonSensitiveProviderProperties);
 
-        final ParameterProviderEntity sensitiveProvider = createParameterProvider("DynamicPropertyParameterProvider");
+        final ParameterProviderEntity sensitiveProvider = createParameterProvider("PropertiesParameterProvider");
         final Map<String, String> sensitiveProviderProperties = new HashMap<>();
-        sensitiveProviderProperties.put("Sensitive", "My sensitive value");
+        sensitiveProviderProperties.put("Parameters", "sensitive=My sensitive value");
         updateParameterProviderProperties(sensitiveProvider, sensitiveProviderProperties);
 
         final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, Collections.emptySet(),
@@ -253,8 +255,15 @@ public class ParameterContextIT extends NiFiSystemIT {
         // Now it's valid because both parameters are now provided
         waitForValidProcessor(processorId);
 
+        // Map the parameter name
+        sensitiveProviderProperties.put("Parameters", "sensitive.other.parameter=My sensitive value");
+        sensitiveProviderProperties.put("sensitive.other.parameter", "sensitive"); // Map raw parameter named 'sensitive.other.parameter' to one named 'sensitive' in the parameter context
+
+        // Should still get the 'sensitive' parameter
+        fetchAndWaitForAppliedParameters(nonSensitiveProvider);
+
         // Try to set a user-entered parameter, which should fail because a provider is already set
-        assertThrows(NiFiClientException.class, () -> updateParameterContext(createdContextEntity, "Non Sensitive", "value"));
+        assertThrows(NiFiClientException.class, () -> updateParameterContext(createdContextEntity, "non.sensitive", "value"));
 
         // Now unset the non-sensitive provider
         final ParameterContextUpdateRequestEntity updateRequest = updateParameterContext(createdContextEntity, Collections.emptyMap(), Collections.emptyList(), sensitiveProvider, null);
@@ -264,7 +273,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         final ParameterContextEntity updatedContextEntity = getClientUtil().getParameterContext(createdContextEntity.getId());
 
         // Now the user-entered parameter may be set
-        updateParameterContext(updatedContextEntity, "Non Sensitive", "value");
+        updateParameterContext(updatedContextEntity, "non.sensitive", "value");
 
         getClientUtil().waitForParameterContextRequestToComplete(createdContextEntity.getId(), updateRequest.getRequest().getRequestId());
 
@@ -751,8 +760,9 @@ public class ParameterContextIT extends NiFiSystemIT {
         return getClientUtil().fetchParameters(parameterProvider);
     }
 
-    public ParameterProviderApplyParametersRequestEntity applyParameters(final ParameterProviderEntity entity, final Set<String> parameterNames) throws NiFiClientException, IOException {
-        return getClientUtil().applyParameters(entity, parameterNames);
+    public ParameterProviderApplyParametersRequestEntity applyParameters(final ParameterProviderEntity entity,
+                                                                         final Collection<ProvidedParameterNameGroupEntity> parameterNameGroups) throws NiFiClientException, IOException {
+        return getClientUtil().applyParameters(entity, parameterNameGroups);
     }
 
     public void waitForAppliedParameters(final ParameterProviderApplyParametersRequestEntity applyParametersRequestEntity) throws NiFiClientException, IOException, InterruptedException {
@@ -760,17 +770,11 @@ public class ParameterContextIT extends NiFiSystemIT {
                 applyParametersRequestEntity.getRequest().getRequestId());
     }
 
-    public void fetchAndWaitForAppliedParameters(final ParameterProviderEntity entity) throws NiFiClientException, IOException, InterruptedException {
-        fetchAndWaitForAppliedParameters(entity, null);
-    }
-
-    public void fetchAndWaitForAppliedParameters(final ParameterProviderEntity entity, final Set<String> parameterNameFilter) throws NiFiClientException, IOException, InterruptedException {
+    public void fetchAndWaitForAppliedParameters(final ParameterProviderEntity entity)
+            throws NiFiClientException, IOException, InterruptedException {
         final ParameterProviderEntity fetched = fetchParameters(entity);
-        final Set<String> parameterNames = fetched.getComponent().getFetchedParameterNames();
-        if (parameterNameFilter != null) {
-            parameterNames.retainAll(parameterNameFilter);
-        }
-        final ParameterProviderApplyParametersRequestEntity request = applyParameters(entity, parameterNames);
+        final Collection<ProvidedParameterNameGroupEntity> parameterNameGroups = fetched.getComponent().getFetchedParameterNameGroups();
+        final ParameterProviderApplyParametersRequestEntity request = applyParameters(entity, parameterNameGroups);
         waitForAppliedParameters(request);
     }
 

@@ -30,6 +30,7 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
+import org.apache.nifi.parameter.ProvidedParameterNameGroup;
 import org.apache.nifi.registry.flow.ParameterProviderReference;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
@@ -2235,7 +2236,7 @@ public interface NiFiServiceFacade {
      * @param parameterProviderId parameter provider id
      * @param parameterNames A set of fetched parameter names to include.  Any parameters not found in this set will not be included in the update verification.
      */
-    void verifyCanApplyParameters(String parameterProviderId, Set<String> parameterNames);
+    void verifyCanApplyParameters(String parameterProviderId, Collection<ProvidedParameterNameGroup> parameterNames);
 
     /**
      * Returns a list of ParameterContext entities representing updates needed in order to apply the fetched
@@ -2245,7 +2246,7 @@ public interface NiFiServiceFacade {
      * @return The list of ParameterContextEntity objects representing required updates to referencing
      * parameter contexts
      */
-    List<ParameterContextEntity> getParameterContextUpdatesForAppliedParameters(String parameterProviderId, Set<String> parameterNames);
+    List<ParameterContextEntity> getParameterContextUpdatesForAppliedParameters(String parameterProviderId, Collection<ProvidedParameterNameGroup> parameterNames);
 
     /**
      * Gets the references for specified parameter provider.

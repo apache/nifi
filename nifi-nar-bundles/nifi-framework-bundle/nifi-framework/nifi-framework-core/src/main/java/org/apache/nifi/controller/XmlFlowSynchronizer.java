@@ -414,8 +414,6 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             final ParameterProviderDTO dto = FlowFromDOMFactory.getParameterProvider(taskElement, encryptor, encodingVersion);
             final ParameterProviderNode parameterProvider = getOrCreateParameterProvider(controller, dto, flowAlreadySynchronized, existingFlowEmpty);
             parameterProviderNodesToDTOs.put(parameterProvider, dto);
-
-            parameterProvider.fetchParameters();
         }
 
         // if this controller isn't initialized or its empty, add the root group, otherwise update
@@ -537,6 +535,15 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
 
                 // enable all the original controller services
                 ControllerServiceLoader.enableControllerServices(controllerServices, controller, encryptor, autoResumeState, encodingVersion);
+            }
+        }
+
+        // Now that root controller services are available, attempt to fetch parameters
+        for (final ParameterProviderNode parameterProviderNode : parameterProviderNodesToDTOs.keySet()) {
+            try {
+                parameterProviderNode.fetchParameters();
+            } catch (final Exception e) {
+                logger.warn("Failed to fetch parameters for provider " + parameterProviderNode.getName(), e);
             }
         }
 

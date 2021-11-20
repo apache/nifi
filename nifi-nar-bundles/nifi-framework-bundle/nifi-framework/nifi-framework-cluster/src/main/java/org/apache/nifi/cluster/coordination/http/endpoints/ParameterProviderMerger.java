@@ -16,17 +16,39 @@
  */
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
+import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
 
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ParameterProviderMerger {
 
     public static void merge(final ParameterProviderEntity target, final ParameterProviderEntity otherEntity) {
-        final Set<String> targetParameterNames = target.getComponent().getFetchedParameterNames();
-        if (targetParameterNames != null) {
-            if (otherEntity.getComponent().getFetchedParameterNames() != null) {
-                targetParameterNames.retainAll(otherEntity.getComponent().getFetchedParameterNames());
+        final Collection<ProvidedParameterNameGroupEntity> targetParameterNameGroups = target.getComponent().getFetchedParameterNameGroups();
+        if (targetParameterNameGroups != null) {
+            if (otherEntity.getComponent().getFetchedParameterNameGroups() != null) {
+                final Iterator<ProvidedParameterNameGroupEntity> otherGroupIterator = otherEntity.getComponent().getFetchedParameterNameGroups().iterator();
+                for (final ProvidedParameterNameGroupEntity targetParameterNameGroup : targetParameterNameGroups) {
+                    if (!otherGroupIterator.hasNext()) {
+                        continue;
+                    }
+                    ProvidedParameterNameGroupEntity otherGroup = otherGroupIterator.next();
+                    if (!StringUtils.equals(targetParameterNameGroup.getGroupName(), otherGroup.getGroupName())) {
+                        continue;
+                    }
+                    final Set<String> targetParameterNames = targetParameterNameGroup.getParameterNames();
+                    if (targetParameterNames != null) {
+                        if (otherGroup.getGroupName() != null) {
+                            targetParameterNames.retainAll(otherGroup.getParameterNames());
+                        }
+                        targetParameterNameGroup.setParameterNames(new LinkedHashSet<>(targetParameterNames.stream().sorted().collect(Collectors.toList())));
+                    }
+                }
             }
         }
     }

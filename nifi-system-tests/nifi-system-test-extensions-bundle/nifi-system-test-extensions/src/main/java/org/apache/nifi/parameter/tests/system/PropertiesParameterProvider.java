@@ -14,50 +14,61 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.parameter.mock;
+package org.apache.nifi.parameter.tests.system;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.parameter.AbstractParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ProvidedParameterGroup;
+import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
-public class DummyParameterProvider extends AbstractParameterProvider implements ParameterProvider {
+/**
+ * Parameters are provided by properties-style configuration.
+ */
+public class PropertiesParameterProvider extends AbstractParameterProvider implements ParameterProvider {
 
-    private static final String[] STATIC_PARAMETERS = new String[] { "Parameter One", "Parameter Two" };
 
-    public static final PropertyDescriptor SERVICE = new PropertyDescriptor.Builder()
-            .name("Controller Service")
-            .identifiesControllerService(ControllerService.class)
+    private PropertyDescriptor PARAMETERS = new PropertyDescriptor.Builder()
+            .name("Parameters")
+            .displayName("Parameters")
+            .description("Specifies parameters in a properties file format")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
             .build();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(SERVICE);
-        return descriptors;
+        return Collections.singletonList(PARAMETERS);
     }
 
     @Override
     public List<ProvidedParameterGroup> fetchParameters(final ConfigurationContext context) {
-        final List<Parameter> parameters = Arrays.stream(STATIC_PARAMETERS)
-                .map(parameterName -> {
+        final String parametersPropertiesValue = context.getProperty(PARAMETERS).getValue();
+        final Properties parameters = new Properties();
+        try {
+            parameters.load(new ByteArrayInputStream(parametersPropertiesValue.getBytes(StandardCharsets.UTF_8)));
+        } catch (final IOException e) {
+            throw new RuntimeException("Could not parse parameters as properties: " + parametersPropertiesValue);
+        }
+        final List<Parameter> parameterList = parameters.entrySet().stream()
+                .map(entry -> {
                     final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
-                            .name(parameterName)
+                            .name(entry.getKey().toString())
                             .build();
-                    return new Parameter(parameterDescriptor, parameterName + "-value", null, true);
+                    return new Parameter(parameterDescriptor, entry.getValue().toString(), null, true);
                 })
                 .collect(Collectors.toList());
-        return Collections.singletonList(new ProvidedParameterGroup(parameters));
+        return Collections.singletonList(new ProvidedParameterGroup(parameterList));
     }
 }

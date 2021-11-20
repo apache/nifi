@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.parameter;
 
+import org.apache.nifi.annotation.behavior.DynamicProperties;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -34,6 +36,11 @@ import java.util.stream.Collectors;
 
 @Tags({"environment", "variable"})
 @CapabilityDescription("Fetches parameters from environment variables")
+
+@DynamicProperties(
+    @DynamicProperty(name = "Raw parameter name", value = "Mapped parameter name",
+        description = "Maps a raw fetched parameter from the external system to the name of a parameter inside the dataflow")
+)
 public class EnvironmentVariableParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
     private final Map<String, String> environmentVariables = System.getenv();
 
@@ -70,13 +77,13 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
     }
 
     @Override
-    public List<Parameter> fetchParameters(final ConfigurationContext context) {
+    public List<ProvidedParameterGroup> fetchParameters(final ConfigurationContext context) {
         final Pattern includePattern = Pattern.compile(context.getProperty(INCLUDE_REGEX).getValue());
         final Pattern excludePattern = context.getProperty(EXCLUDE_REGEX).isSet()
                 ? Pattern.compile(context.getProperty(EXCLUDE_REGEX).getValue())
                 : null;
 
-        return environmentVariables.entrySet().stream()
+        final List<Parameter> parameters = environmentVariables.entrySet().stream()
                 .filter(entry -> includePattern.matcher(entry.getKey()).matches())
                 .filter(entry -> excludePattern == null || !excludePattern.matcher(entry.getKey()).matches())
                 .map(entry -> {
@@ -86,6 +93,7 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
                     return new Parameter(parameterDescriptor, entry.getValue(), null, true);
                 })
                 .collect(Collectors.toList());
+        return Collections.singletonList(new ProvidedParameterGroup(parameters));
     }
 
     @Override

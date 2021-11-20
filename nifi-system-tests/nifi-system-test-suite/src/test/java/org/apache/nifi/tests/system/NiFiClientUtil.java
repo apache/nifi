@@ -84,6 +84,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEntity;
+import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
@@ -223,13 +224,10 @@ public class NiFiClientUtil {
         return nifiClient.getParamProviderClient().fetchParameters(parameterFetchEntity);
     }
 
-    public ParameterProviderApplyParametersRequestEntity applyParameters(final ParameterProviderEntity existingEntity) throws NiFiClientException, IOException {
-        return applyParameters(existingEntity, existingEntity.getComponent().getFetchedParameterNames());
-    }
-
-    public ParameterProviderApplyParametersRequestEntity applyParameters(final ParameterProviderEntity existingEntity, final Set<String> parameterNames) throws NiFiClientException, IOException {
+    public ParameterProviderApplyParametersRequestEntity applyParameters(final ParameterProviderEntity existingEntity,
+                                                                         final Collection<ProvidedParameterNameGroupEntity> parameterNameGroups) throws NiFiClientException, IOException {
         final ParameterProviderParameterApplicationEntity parameterApplicationEntity = new ParameterProviderParameterApplicationEntity();
-        parameterApplicationEntity.setParameterNames(parameterNames);
+        parameterApplicationEntity.setParameterNameGroups(parameterNameGroups);
         parameterApplicationEntity.setId(existingEntity.getId());
         parameterApplicationEntity.setRevision(existingEntity.getRevision());
 

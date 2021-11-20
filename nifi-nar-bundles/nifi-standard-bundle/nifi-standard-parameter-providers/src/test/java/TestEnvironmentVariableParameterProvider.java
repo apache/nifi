@@ -20,6 +20,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.parameter.EnvironmentVariableParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ProvidedParameterGroup;
 import org.apache.nifi.parameter.VerifiableParameterProvider;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
@@ -60,7 +61,8 @@ public class TestEnvironmentVariableParameterProvider {
         final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);
 
         // Verify parameter fetching
-        final List<Parameter> parameters = parameterProvider.fetchParameters(mockConfigurationContext);
+        final List<ProvidedParameterGroup> parameterGroups = parameterProvider.fetchParameters(mockConfigurationContext);
+        final List<Parameter> parameters = parameterGroups.get(0).getParameters();
         assertEquals(filteredVariables.size(), parameters.size());
 
         // Verify config verification

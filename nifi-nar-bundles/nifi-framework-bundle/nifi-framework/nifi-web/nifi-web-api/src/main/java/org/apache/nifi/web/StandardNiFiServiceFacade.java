@@ -127,6 +127,7 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.ProvidedParameterNameGroup;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.prometheus.util.AbstractMetricsRegistry;
@@ -741,7 +742,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyCanApplyParameters(final String parameterProviderId, Set<String> parameterNames) {
+    public void verifyCanApplyParameters(final String parameterProviderId, Collection<ProvidedParameterNameGroup> parameterNames) {
         parameterProviderDAO.verifyCanApplyParameters(parameterProviderId, parameterNames);
     }
 // -----------------------------------------
@@ -3439,7 +3440,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public List<ParameterContextEntity> getParameterContextUpdatesForAppliedParameters(final String parameterProviderId, final Set<String> parameterNames) {
+    public List<ParameterContextEntity> getParameterContextUpdatesForAppliedParameters(final String parameterProviderId, final Collection<ProvidedParameterNameGroup> parameterNames) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         final List<ParametersApplication> parametersApplications = parameterProviderDAO.getFetchedParametersToApply(parameterProviderId, parameterNames);

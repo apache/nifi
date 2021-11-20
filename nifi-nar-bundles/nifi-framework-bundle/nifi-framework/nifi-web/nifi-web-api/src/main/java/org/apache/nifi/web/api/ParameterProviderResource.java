@@ -30,6 +30,8 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.controller.parameter.StandardProvidedParameterNameGroup;
+import org.apache.nifi.parameter.ProvidedParameterNameGroup;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -66,6 +68,7 @@ import org.apache.nifi.web.api.entity.ParameterProviderParameterApplicationEntit
 import org.apache.nifi.web.api.entity.ParameterProviderParameterFetchEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
+import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -810,7 +813,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
         // 10. Re-Start all Processors
 
         // Get a list of parameter context entities representing changes needed in order to apply the fetched parameters
-        final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, requestEntity.getParameterNames());
+        final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, getProvidedParameterNames(requestEntity));
 
         final Collection<ParameterContextDTO> updatedParameterContextDTOs = parameterContextUpdates.stream()
                 .map(ParameterContextEntity::getComponent)
@@ -837,7 +840,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
                 },
                 () -> {
                     // Verify Request
-                    serviceFacade.verifyCanApplyParameters(parameterProviderId, requestEntity.getParameterNames());
+                    serviceFacade.verifyCanApplyParameters(parameterProviderId, getProvidedParameterNames(requestEntity));
                 },
                 this::submitApplyRequest
         );
@@ -1262,6 +1265,17 @@ public class ParameterProviderResource extends AbstractParameterResource {
                 new StandardUpdateStep("Updating Parameter Contexts"),
                 new StandardUpdateStep("Re-Enabling Affected Controller Services"),
                 new StandardUpdateStep("Restarting Affected Processors"));
+    }
+
+    private Collection<ProvidedParameterNameGroup> getProvidedParameterNames(final ParameterProviderParameterApplicationEntity applicationEntity) {
+        final Collection<ProvidedParameterNameGroup> providedParameterNames = new ArrayList<>();
+
+        if (applicationEntity != null && applicationEntity.getParameterNameGroups() != null) {
+            for (final ProvidedParameterNameGroupEntity parameterNameGroup : applicationEntity.getParameterNameGroups()) {
+                providedParameterNames.add(new StandardProvidedParameterNameGroup(parameterNameGroup.getGroupName(), parameterNameGroup.getParameterNames()));
+            }
+        }
+        return providedParameterNames;
     }
 
     private static class InitiateParameterProviderApplyParametersRequestWrapper extends Entity {

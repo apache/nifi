@@ -23,13 +23,15 @@ import org.apache.nifi.toolkit.cli.impl.result.writer.Table;
 import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
+import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 
 public class ParamProviderResult extends AbstractWritableResult<ParameterProviderEntity> {
 
@@ -44,9 +46,10 @@ public class ParamProviderResult extends AbstractWritableResult<ParameterProvide
     protected void writeSimpleResult(final PrintStream output) throws IOException {
         final ParameterProviderDTO parameterProviderDTO = parameterProvider.getComponent();
 
-        final Set<String> fetchedParameterNames = parameterProviderDTO.getFetchedParameterNames();
-        final List<String> sortedParameterNames = fetchedParameterNames == null ? Collections.emptyList() : new ArrayList<>(parameterProviderDTO.getFetchedParameterNames());
-        Collections.sort(sortedParameterNames);
+        final Collection<ProvidedParameterNameGroupEntity> fetchedParameterNameGroups = parameterProviderDTO.getFetchedParameterNameGroups();
+        final List<ProvidedParameterNameGroupEntity> sortedParameterNameGroups = fetchedParameterNameGroups == null
+                ? Collections.emptyList() : new ArrayList<>(parameterProviderDTO.getFetchedParameterNameGroups());
+        Collections.sort(sortedParameterNameGroups, Comparator.nullsFirst(Comparator.comparing(ProvidedParameterNameGroupEntity::getGroupName)));
 
         final Table propertiesTable = new Table.Builder()
                 .column("Property Name", 20, 60, false)
@@ -56,10 +59,16 @@ public class ParamProviderResult extends AbstractWritableResult<ParameterProvide
             parameterProviderDTO.getProperties().forEach((name, value) -> propertiesTable.addRow(new String[] {name, value}));
         }
         final Table fetchedParametersTable = new Table.Builder()
+                .column("Parameter Group", 20, 60, false)
                 .column("Fetched Parameter Name", 20, 60, false)
                 .build();
-        if (!sortedParameterNames.isEmpty()) {
-            sortedParameterNames.forEach(param -> fetchedParametersTable.addRow(new String[] {param}));
+        if (!sortedParameterNameGroups.isEmpty()) {
+            sortedParameterNameGroups.forEach(group -> {
+                group.getParameterNames().stream().sorted()
+                        .forEach(param -> fetchedParametersTable.addRow(new String[] {
+                                group.getGroupName() == null ? "<none>" : group.getGroupName(),
+                                param }));
+            });
         }
 
         final TableWriter tableWriter = new DynamicTableWriter();

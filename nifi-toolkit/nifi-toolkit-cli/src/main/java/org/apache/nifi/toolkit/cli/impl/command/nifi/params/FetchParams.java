@@ -76,7 +76,7 @@ public class FetchParams extends AbstractNiFiCommand<ParamProviderResult> {
     private void applyParametersAndWait(final ParamProviderClient paramProviderClient, final ParameterProviderEntity fetchedParameterProvider) throws NiFiClientException, IOException {
         final ParameterProviderParameterApplicationEntity applicationEntity = new ParameterProviderParameterApplicationEntity();
         applicationEntity.setRevision(fetchedParameterProvider.getRevision());
-        applicationEntity.setParameterNames(fetchedParameterProvider.getComponent().getFetchedParameterNames());
+        applicationEntity.setParameterNameGroups(fetchedParameterProvider.getComponent().getFetchedParameterNameGroups());
         applicationEntity.setId(fetchedParameterProvider.getId());
         final ParameterProviderApplyParametersRequestEntity request = paramProviderClient.applyParameters(applicationEntity);
 

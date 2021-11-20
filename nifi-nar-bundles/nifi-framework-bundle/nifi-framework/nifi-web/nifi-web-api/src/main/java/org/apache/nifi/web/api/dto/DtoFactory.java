@@ -135,6 +135,7 @@ import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.ProvidedParameterNameGroup;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.lineage.ComputeLineageResult;
@@ -237,6 +238,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
@@ -1685,10 +1687,11 @@ public final class DtoFactory {
         }
         orderedProperties.putAll(sortedProperties);
 
-        final Set<String> fetchedParameterNames = parameterProviderNode.getFetchedParameterNames();
-        final List<String> sortedParameterNames = new ArrayList<>(fetchedParameterNames);
-        Collections.sort(sortedParameterNames);
-        dto.setFetchedParameterNames(new LinkedHashSet<>(sortedParameterNames));
+        final Collection<ProvidedParameterNameGroup> fetchedParameterNameGroups = parameterProviderNode.getFetchedParameterNames();
+        dto.setFetchedParameterNameGroups(new LinkedHashSet<>(fetchedParameterNameGroups.stream()
+                .sorted(Comparator.nullsFirst(Comparator.comparing(ProvidedParameterNameGroup::getGroupName)))
+                .map(this::getProvidedParameterNamesEntity)
+                .collect(Collectors.toList())));
 
         // build the descriptor and property dtos
         dto.setDescriptors(new LinkedHashMap<>());
@@ -1726,6 +1729,15 @@ public final class DtoFactory {
         }
 
         return dto;
+    }
+
+    private ProvidedParameterNameGroupEntity getProvidedParameterNamesEntity(final ProvidedParameterNameGroup providedParameterNameGroup) {
+        final ProvidedParameterNameGroupEntity entity = new ProvidedParameterNameGroupEntity();
+        entity.setGroupName(providedParameterNameGroup.getGroupName());
+        final List<String> parameterNames = new ArrayList<>(providedParameterNameGroup.getParameterNames());
+        Collections.sort(parameterNames);
+        entity.setParameterNames(new LinkedHashSet<>(parameterNames));
+        return entity;
     }
 
     public ControllerServiceDTO createControllerServiceDto(final ControllerServiceNode controllerServiceNode) {

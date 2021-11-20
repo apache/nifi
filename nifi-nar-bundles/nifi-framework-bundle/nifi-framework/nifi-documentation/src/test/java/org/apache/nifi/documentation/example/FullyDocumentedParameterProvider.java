@@ -26,8 +26,8 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.parameter.AbstractParameterProvider;
-import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ProvidedParameterGroup;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.ArrayList;
@@ -109,7 +109,7 @@ public class FullyDocumentedParameterProvider extends AbstractParameterProvider 
     }
 
     @Override
-    public List<Parameter> fetchParameters(final ConfigurationContext context) {
+    public List<ProvidedParameterGroup> fetchParameters(final ConfigurationContext context) {
         return Collections.emptyList();
     }
 }

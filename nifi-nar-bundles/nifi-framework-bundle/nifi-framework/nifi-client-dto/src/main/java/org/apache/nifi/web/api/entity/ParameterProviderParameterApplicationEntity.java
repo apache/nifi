@@ -20,7 +20,7 @@ import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
 import javax.xml.bind.annotation.XmlType;
-import java.util.Set;
+import java.util.Collection;
 
 /**
  * Request for applying fetched parameters from a Parameter Provider.
@@ -31,7 +31,7 @@ public class ParameterProviderParameterApplicationEntity extends Entity {
     private String id;
     private RevisionDTO revision;
     private Boolean disconnectedNodeAcknowledged;
-    private Set<String> parameterNames;
+    private Collection<ProvidedParameterNameGroupEntity> parameterNameGroups;
 
     @ApiModelProperty(
             value = "The id of the parameter provider."
@@ -70,16 +70,16 @@ public class ParameterProviderParameterApplicationEntity extends Entity {
     }
 
     /**
-     * @return All fetched parameter names that should be applied.
+     * @return Specifies per group which parameter names should be applied to the Parameter Contexts.
      */
     @ApiModelProperty(
-            value = "All fetched parameter names that should be applied."
+            value = "Specifies per group which parameter names should be applied to the Parameter Contexts."
     )
-    public Set<String> getParameterNames() {
-        return parameterNames;
+    public Collection<ProvidedParameterNameGroupEntity> getParameterNameGroups() {
+        return parameterNameGroups;
     }
 
-    public void setParameterNames(Set<String> parameterNames) {
-        this.parameterNames = parameterNames;
+    public void setParameterNameGroups(Collection<ProvidedParameterNameGroupEntity> parameterNameGroups) {
+        this.parameterNameGroups = parameterNameGroups;
     }
 }
