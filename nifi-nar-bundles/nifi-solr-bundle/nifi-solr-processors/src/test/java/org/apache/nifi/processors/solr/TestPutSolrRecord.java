@@ -18,9 +18,9 @@
  */
 package org.apache.nifi.processors.solr;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -719,12 +719,9 @@ public class TestPutSolrRecord {
         @Override
         protected SolrClient createSolrClient(ProcessContext context, String solrLocation) {
             mockSolrClient = Mockito.mock(SolrClient.class);
-            try {
-                when(mockSolrClient.request(any(SolrRequest.class),
-                        eq(null))).thenThrow(throwable);
-            } catch (SolrServerException|IOException e) {
-                fail(e.getMessage());
-            }
+            assertDoesNotThrow(() -> when(mockSolrClient.request(any(SolrRequest.class),
+                        eq(null))).thenThrow(throwable));
+
             return mockSolrClient;
         }
 

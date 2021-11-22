@@ -26,8 +26,6 @@ import org.apache.nifi.websocket.WebSocketSessionInfo;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.mockito.invocation.InvocationOnMock;
 
 import java.net.ServerSocket;
@@ -47,7 +45,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
-@DisabledOnOs(OS.WINDOWS)
 public class ITJettyWebSocketCommunication {
 
     protected int serverPort;

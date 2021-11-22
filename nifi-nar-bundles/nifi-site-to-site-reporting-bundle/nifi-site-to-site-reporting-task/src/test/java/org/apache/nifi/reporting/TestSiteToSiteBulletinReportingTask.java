@@ -46,11 +46,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteBulletinReportingTask {
@@ -181,18 +180,15 @@ public class TestSiteToSiteBulletinReportingTask {
                 final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
                 final Transaction transaction = Mockito.mock(Transaction.class);
 
-                try {
-                    Mockito.doAnswer((Answer<Object>) invocation -> {
-                        final byte[] data = invocation.getArgument(0, byte[].class);
-                        dataSent.add(data);
-                        return null;
-                    }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
+                assertDoesNotThrow(() -> {
+                            Mockito.doAnswer((Answer<Object>) invocation -> {
+                                final byte[] data = invocation.getArgument(0, byte[].class);
+                                dataSent.add(data);
+                                return null;
+                            }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
 
-                    when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
-                } catch (final Exception e) {
-                    e.printStackTrace();
-                    fail(e.toString());
-                }
+                            when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+                        });
                 siteToSiteClient = client;
             }
         }

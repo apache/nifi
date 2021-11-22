@@ -51,10 +51,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -710,14 +710,8 @@ public class TestPutSolrContentStream {
         @Override
         protected SolrClient createSolrClient(ProcessContext context, String solrLocation) {
             mockSolrClient = mock(SolrClient.class);
-            try {
-                when(mockSolrClient.request(any(SolrRequest.class),
-                        eq(null))).thenThrow(throwable);
-            } catch (SolrServerException e) {
-                fail(e.getMessage());
-            } catch (IOException e) {
-                fail(e.getMessage());
-            }
+            assertDoesNotThrow(() -> when(mockSolrClient.request(any(SolrRequest.class),
+                        eq(null))).thenThrow(throwable));
             return mockSolrClient;
         }
 

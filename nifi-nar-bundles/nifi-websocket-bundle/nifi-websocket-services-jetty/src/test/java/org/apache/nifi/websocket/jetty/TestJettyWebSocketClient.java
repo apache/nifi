@@ -17,10 +17,12 @@
 package org.apache.nifi.websocket.jetty;
 
 import org.apache.nifi.components.ValidationResult;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class TestJettyWebSocketClient {
@@ -31,9 +33,9 @@ public class TestJettyWebSocketClient {
         final ControllerServiceTestContext context = new ControllerServiceTestContext(service, "service-id");
         service.initialize(context.getInitializationContext());
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
-        Assertions.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         final ValidationResult result = results.iterator().next();
-        Assertions.assertEquals(JettyWebSocketClient.WS_URI.getDisplayName(), result.getSubject());
+        assertEquals(JettyWebSocketClient.WS_URI.getDisplayName(), result.getSubject());
     }
 
     @Test
@@ -43,7 +45,7 @@ public class TestJettyWebSocketClient {
         context.setCustomValue(JettyWebSocketClient.WS_URI, "ws://localhost:9001/test");
         service.initialize(context.getInitializationContext());
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
-        Assertions.assertEquals(0, results.size());
+        assertEquals(0, results.size());
     }
 
     @Test
@@ -53,9 +55,9 @@ public class TestJettyWebSocketClient {
         context.setCustomValue(JettyWebSocketClient.WS_URI, "http://localhost:9001/test");
         service.initialize(context.getInitializationContext());
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
-        Assertions.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         final ValidationResult result = results.iterator().next();
-        Assertions.assertEquals(JettyWebSocketClient.WS_URI.getName(), result.getSubject());
+        assertEquals(JettyWebSocketClient.WS_URI.getName(), result.getSubject());
     }
 
     @Test
@@ -66,9 +68,9 @@ public class TestJettyWebSocketClient {
         context.setCustomValue(JettyWebSocketClient.PROXY_HOST, "localhost");
         service.initialize(context.getInitializationContext());
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
-        Assertions.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         final ValidationResult result = results.iterator().next();
-        Assertions.assertTrue(result.getSubject().contains("Proxy"));
+        assertTrue(result.getSubject().contains("Proxy"));
     }
 
     @Test
@@ -79,9 +81,9 @@ public class TestJettyWebSocketClient {
         context.setCustomValue(JettyWebSocketClient.PROXY_PORT, "3128");
         service.initialize(context.getInitializationContext());
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
-        Assertions.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         final ValidationResult result = results.iterator().next();
-        Assertions.assertTrue(result.getSubject().contains("Proxy"));
+        assertTrue(result.getSubject().contains("Proxy"));
     }
 
     @Test
@@ -93,6 +95,6 @@ public class TestJettyWebSocketClient {
         context.setCustomValue(JettyWebSocketClient.PROXY_PORT, "3128");
         service.initialize(context.getInitializationContext());
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
-        Assertions.assertEquals(0, results.size());
+        assertEquals(0, results.size());
     }
 }
