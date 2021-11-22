@@ -171,10 +171,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
 
     @Override
     public void reload(final Set<URL> additionalUrls) throws ReportingTaskInstantiationException {
-        if (isRunning()) {
-            throw new IllegalStateException("Cannot reload Reporting Task while Reporting Task is running");
-        }
-        String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+        final String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
         setAdditionalResourcesFingerprint(additionalResourcesFingerprint);
         getReloadComponent().reload(this, getCanonicalClassName(), getBundleCoordinate(), additionalUrls);
     }
@@ -363,8 +360,10 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
                     final Bundle bundle = extensionManager.getBundle(getBundleCoordinate());
                     final Set<URL> classpathUrls = getAdditionalClasspathResources(context.getProperties().keySet(), descriptor -> context.getProperty(descriptor).getValue());
 
+                    final String classloaderIsolationKey = getClassLoaderIsolationKey(context);
                     final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
-                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false)) {
+                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false,
+                                    classloaderIsolationKey)) {
                         Thread.currentThread().setContextClassLoader(detectedClassLoader);
                         results.addAll(verifiable.verify(context, logger));
                     } finally {

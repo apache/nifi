@@ -22,11 +22,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.security.SaslPlainServer;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -56,7 +56,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
-import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -77,7 +76,7 @@ import java.util.regex.Pattern;
  * @see SecurityUtil#loginKerberos(Configuration, String, String)
  */
 @RequiresInstanceClassLoading(cloneAncestorResources = true)
-public abstract class AbstractHadoopProcessor extends AbstractProcessor {
+public abstract class AbstractHadoopProcessor extends AbstractProcessor implements ClassloaderIsolationKeyProvider {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
     private static final String DENY_LFS_ACCESS = "NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS";
@@ -202,6 +201,30 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
+    }
+
+    @Override
+    public String getClassloaderIsolationKey(final PropertyContext context) {
+        final String explicitKerberosPrincipal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
+        if (explicitKerberosPrincipal != null) {
+            return explicitKerberosPrincipal;
+        }
+
+        final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        if (credentialsService != null) {
+            final String credentialsServicePrincipal = credentialsService.getPrincipal();
+            if (credentialsServicePrincipal != null) {
+                return credentialsServicePrincipal;
+            }
+        }
+
+        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+        if (kerberosUserService != null) {
+            final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
+            return kerberosUser.getPrincipal();
+        }
+
+        return null;
     }
 
     @Override
@@ -362,28 +385,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                     }
                 }
             }
-
-            final KerberosUser kerberosUser = resources.getKerberosUser();
-            if (kerberosUser != null) {
-                try {
-                    kerberosUser.logout();
-                } catch (final Exception e) {
-                    getLogger().warn("Error logging out KerberosUser: {}", e.getMessage(), e);
-                }
-            }
-
-            // Clean-up the static reference to the Configuration instance
-            UserGroupInformation.setConfiguration(new Configuration());
-
-            // Clean-up the reference to the InstanceClassLoader that was put into Configuration
-            final Configuration configuration = resources.getConfiguration();
-            if (configuration != null) {
-                configuration.setClassLoader(null);
-            }
-
-            // Need to remove the Provider instance from the JVM's Providers class so that InstanceClassLoader can be GC'd eventually
-            final SaslPlainServer.SecurityProvider saslProvider = new SaslPlainServer.SecurityProvider();
-            Security.removeProvider(saslProvider.getName());
         }
 
         // Clear out the reference to the resources
@@ -395,14 +396,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         statsField.setAccessible(true);
 
         final Object statsObj = statsField.get(fileSystem);
-        if (statsObj != null && statsObj instanceof FileSystem.Statistics) {
+        if (statsObj instanceof FileSystem.Statistics) {
             final FileSystem.Statistics statistics = (FileSystem.Statistics) statsObj;
 
             final Field statsThreadField = statistics.getClass().getDeclaredField("STATS_DATA_CLEANER");
             statsThreadField.setAccessible(true);
 
             final Object statsThreadObj = statsThreadField.get(statistics);
-            if (statsThreadObj != null && statsThreadObj instanceof Thread) {
+            if (statsThreadObj instanceof Thread) {
                 final Thread statsThread = (Thread) statsThreadObj;
                 try {
                     statsThread.interrupt();
@@ -603,7 +604,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     public static String getPathDifference(final Path root, final Path child) {
         final int depthDiff = child.depth() - root.depth();
         if (depthDiff <= 1) {
-            return "".intern();
+            return "";
         }
         String lastRoot = root.getName();
         Path childsParent = child.getParent();

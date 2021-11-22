@@ -225,10 +225,13 @@ public interface FlowManager {
      * @param firstTimeAdded whether or not this is the first time this
      * Processor is added to the graph. If {@code true}, will invoke methods
      * annotated with the {@link org.apache.nifi.annotation.lifecycle.OnAdded} annotation.
+     * @param classloaderIsolationKey a classloader key that can be used in order to specify which shared class loader can be used as the instance class loader's parent, or <code>null</code> if the
+     * parent class loader should be shared or if cloning ancestors is not necessary
      * @return new processor node
      * @throws NullPointerException if either arg is null
      */
-    ProcessorNode createProcessor(String type, String id, BundleCoordinate coordinate, Set<URL> additionalUrls, boolean firstTimeAdded, boolean registerLogObserver);
+    ProcessorNode createProcessor(String type, String id, BundleCoordinate coordinate, Set<URL> additionalUrls, boolean firstTimeAdded, boolean registerLogObserver,
+                                  String classloaderIsolationKey);
 
 
 
@@ -299,7 +302,7 @@ public interface FlowManager {
 
     ReportingTaskNode createReportingTask(String type, String id, BundleCoordinate bundleCoordinate, boolean firstTimeAdded);
 
-    ReportingTaskNode createReportingTask(String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded, boolean register);
+    ReportingTaskNode createReportingTask(String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded, boolean register, String classloaderIsolationKey);
 
     ReportingTaskNode getReportingTaskNode(String taskId);
 
@@ -314,7 +317,7 @@ public interface FlowManager {
     ControllerServiceNode getControllerServiceNode(String id);
 
     ControllerServiceNode createControllerService(String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded,
-                                                         boolean registerLogObserver);
+                                                         boolean registerLogObserver, String classloaderIsolationKey);
 
 
     Set<ControllerServiceNode> getRootControllerServices();

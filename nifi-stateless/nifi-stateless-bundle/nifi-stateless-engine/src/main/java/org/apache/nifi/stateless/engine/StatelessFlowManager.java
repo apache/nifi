@@ -155,7 +155,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     @Override
     public ProcessorNode createProcessor(final String type, final String id, final BundleCoordinate coordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
-                                         final boolean registerLogObserver) {
+                                         final boolean registerLogObserver, final String classloaderIsolationKey) {
         logger.debug("Creating Processor of type {} with id {}", type, id);
 
         // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
@@ -266,7 +266,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     @Override
     public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
-                                                 final boolean register) {
+                                                 final boolean register, final String classloaderIsolationKey) {
 
         if (type == null || id == null || bundleCoordinate == null) {
             throw new NullPointerException("Must supply type, id, and bundle coordinate in order to create Reporting Task. Provided arguments were type=" + type + ", id=" + id
@@ -333,7 +333,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     @Override
     public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls,
-                                                         final boolean firstTimeAdded, final boolean registerLogObserver) {
+                                                         final boolean firstTimeAdded, final boolean registerLogObserver, final String classloaderIsolationKey) {
 
         logger.debug("Creating Controller Service of type {} with id {}", type, id);
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);

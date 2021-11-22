@@ -347,7 +347,7 @@ public abstract class AbstractFlowManager implements FlowManager {
     }
 
     public ProcessorNode createProcessor(final String type, String id, final BundleCoordinate coordinate, final boolean firstTimeAdded) {
-        return createProcessor(type, id, coordinate, Collections.emptySet(), firstTimeAdded, true);
+        return createProcessor(type, id, coordinate, Collections.emptySet(), firstTimeAdded, true, null);
     }
 
     public ReportingTaskNode createReportingTask(final String type, final BundleCoordinate bundleCoordinate) {
@@ -360,7 +360,7 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     @Override
     public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) {
-        return createReportingTask(type, id, bundleCoordinate, Collections.emptySet(), firstTimeAdded, true);
+        return createReportingTask(type, id, bundleCoordinate, Collections.emptySet(), firstTimeAdded, true, null);
     }
 
     public ReportingTaskNode getReportingTaskNode(final String taskId) {

@@ -118,7 +118,7 @@ public class TestClassLoaderUtils {
         final Set<URL> urls = new HashSet<>();
         URL testUrl = Paths.get("src/test/resources/TestClassLoaderUtils/TestSuccess.jar").toUri().toURL();
         urls.add(testUrl);
-        String testFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(urls);
+        String testFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(urls, null);
         assertNotNull(testFingerprint);
     }
 

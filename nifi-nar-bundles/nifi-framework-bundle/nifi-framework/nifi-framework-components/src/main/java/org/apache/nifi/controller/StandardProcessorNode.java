@@ -946,10 +946,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public synchronized void reload(final Set<URL> additionalUrls) throws ProcessorInstantiationException {
-        if (isRunning()) {
-            throw new IllegalStateException("Cannot reload Processor while the Processor is running");
-        }
-        String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+        final String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
         setAdditionalResourcesFingerprint(additionalResourcesFingerprint);
         getReloadComponent().reload(this, getCanonicalClassName(), getBundleCoordinate(), additionalUrls);
     }
@@ -1097,8 +1094,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     final Bundle bundle = extensionManager.getBundle(getBundleCoordinate());
                     final Set<URL> classpathUrls = getAdditionalClasspathResources(context.getProperties().keySet(), descriptor -> context.getProperty(descriptor).getValue());
 
+                    final String classloaderIsolationKey = getClassLoaderIsolationKey(context);
+
                     final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
-                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false)) {
+                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false,
+                                classloaderIsolationKey)) {
                         Thread.currentThread().setContextClassLoader(detectedClassLoader);
                         results.addAll(verifiable.verify(context, logger, attributes));
                     } finally {
@@ -1617,8 +1617,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
         // Create a task to invoke the @OnScheduled annotation of the processor
         final Callable<Void> startupTask = () -> {
-            final ProcessContext processContext = processContextFactory.get();
-
             final ScheduledState currentScheduleState = scheduledState.get();
             if (currentScheduleState == ScheduledState.STOPPING || currentScheduleState == ScheduledState.STOPPED || getDesiredState() == ScheduledState.STOPPED) {
                 LOG.debug("{} is stopped. Will not call @OnScheduled lifecycle methods or begin trigger onTrigger() method", StandardProcessorNode.this);
@@ -1643,6 +1641,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
             // Now that the task has been scheduled, set the timeout
             completionTimestampRef.set(System.currentTimeMillis() + timeoutMilis);
+
+            final ProcessContext processContext = processContextFactory.get();
 
             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), processor.getClass(), processor.getIdentifier())) {
                 try {

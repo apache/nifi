@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -62,15 +63,26 @@ public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
             final Set<URL> instanceUrls,
             final Set<URL> additionalResourceUrls,
             final Set<File> narNativeLibDirs,
-            final ClassLoader parent
-    ) {
+            final ClassLoader parent) {
         super(combineURLs(instanceUrls, additionalResourceUrls), parent, initNativeLibDirList(narNativeLibDirs, additionalResourceUrls), identifier);
         this.identifier = identifier;
         this.instanceType = type;
-        this.instanceUrls = Collections.unmodifiableSet(
-                instanceUrls == null ? Collections.emptySet() : new LinkedHashSet<>(instanceUrls));
-        this.additionalResourceUrls = Collections.unmodifiableSet(
-                additionalResourceUrls == null ? Collections.emptySet() : new LinkedHashSet<>(additionalResourceUrls));
+        this.instanceUrls = instanceUrls == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(instanceUrls));
+        this.additionalResourceUrls = additionalResourceUrls == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(additionalResourceUrls));
+
+        if (parent instanceof SharedInstanceClassLoader) {
+            ((SharedInstanceClassLoader) parent).incrementReferenceCount();
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        super.close();
+
+        final ClassLoader parent = getParent();
+        if (parent instanceof SharedInstanceClassLoader) {
+            ((SharedInstanceClassLoader) parent).close();
+        }
     }
 
     /**
