@@ -235,11 +235,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
                     .collect(Collectors.joining(", ", "{", "}"));
         } else if (removeCurlyBraces) {
             String headerString = headers.toString();
-            if(headerString.startsWith("{")){
-                headerString = headerString.substring(1);
-            }
-            if(headerString.endsWith("}")){
-                headerString = headerString.substring(0,headerString.length()-1);
+            if (headerString.startsWith("{") && headerString.endsWith("}"))  {
+                return headerString.substring(1, headerString.length() - 1);
             }
             return headerString;
         }
