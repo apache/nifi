@@ -110,6 +110,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
@@ -213,7 +214,8 @@ public class TestStandardProcessScheduler {
                 serviceProvider.onControllerServiceAdded(serviceNode);
                 return serviceNode;
             }
-        }).when(flowManager).createControllerService(anyString(), anyString(), any(BundleCoordinate.class), AdditionalMatchers.or(anySet(), isNull()), anyBoolean(), anyBoolean());
+        }).when(flowManager).createControllerService(anyString(), anyString(), any(BundleCoordinate.class),
+            AdditionalMatchers.or(anySet(), isNull()), anyBoolean(), anyBoolean(), nullable(String.class));
     }
 
     @After
@@ -257,7 +259,7 @@ public class TestStandardProcessScheduler {
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
 
         final ControllerServiceNode service = flowManager.createControllerService(NoStartServiceImpl.class.getName(), "service",
-                systemBundle.getBundleDetails().getCoordinate(), null, true, true);
+                systemBundle.getBundleDetails().getCoordinate(), null, true, true, null);
 
         rootGroup.addControllerService(service);
 
@@ -340,7 +342,7 @@ public class TestStandardProcessScheduler {
         final StandardProcessScheduler scheduler = createScheduler();
 
         final ControllerServiceNode serviceNode = flowManager.createControllerService(SimpleTestService.class.getName(),
-                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true);
+                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true, null);
 
         serviceNode.performValidation();
 
@@ -382,7 +384,7 @@ public class TestStandardProcessScheduler {
         final StandardProcessScheduler scheduler = createScheduler();
 
         final ControllerServiceNode serviceNode = flowManager.createControllerService(SimpleTestService.class.getName(),
-                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true);
+                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true, null);
         final SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
         final ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -418,7 +420,7 @@ public class TestStandardProcessScheduler {
     public void validateEnabledServiceCanOnlyBeDisabledOnce() throws Exception {
         final StandardProcessScheduler scheduler = createScheduler();
         final ControllerServiceNode serviceNode = flowManager.createControllerService(SimpleTestService.class.getName(),
-                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true);
+                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true, null);
 
         assertSame(ValidationStatus.VALID, serviceNode.performValidation());
 
@@ -455,7 +457,7 @@ public class TestStandardProcessScheduler {
         final StandardProcessScheduler scheduler = createScheduler();
 
         final ControllerServiceNode serviceNode = flowManager.createControllerService(FailingService.class.getName(),
-                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true);
+                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true, null);
         serviceNode.performValidation();
 
         final Future<?> future = scheduler.enableControllerService(serviceNode);
@@ -497,7 +499,7 @@ public class TestStandardProcessScheduler {
         final ExecutorService executor = Executors.newCachedThreadPool();
         for (int i = 0; i < 200; i++) {
             final ControllerServiceNode serviceNode = flowManager.createControllerService(RandomShortDelayEnablingService.class.getName(), "1",
-                    systemBundle.getBundleDetails().getCoordinate(), null, false, true);
+                    systemBundle.getBundleDetails().getCoordinate(), null, false, true, nullable(String.class));
 
             executor.execute(new Runnable() {
                 @Override
@@ -538,7 +540,7 @@ public class TestStandardProcessScheduler {
         final StandardProcessScheduler scheduler = createScheduler();
 
         final ControllerServiceNode serviceNode = flowManager.createControllerService(LongEnablingService.class.getName(),
-                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true);
+                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true, null);
 
         final LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
         ts.setLimit(Long.MAX_VALUE);

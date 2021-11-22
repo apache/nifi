@@ -271,7 +271,9 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
     @OnStopped
     public void onStopped() {
-        aclCache.invalidateAll();
+        if (aclCache != null) { // aclCache may be null if the parent class's @OnScheduled method failed
+            aclCache.invalidateAll();
+        }
     }
 
     @Override

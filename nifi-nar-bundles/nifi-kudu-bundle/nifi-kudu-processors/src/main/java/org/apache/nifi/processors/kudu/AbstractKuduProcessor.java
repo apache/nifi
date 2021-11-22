@@ -279,11 +279,12 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         return new KerberosKeytabUser(principal, keytab) {
             @Override
             public synchronized void login() {
-                if (!isLoggedIn()) {
-                    super.login();
-
-                    createKuduClient(context);
+                if (isLoggedIn()) {
+                    return;
                 }
+
+                super.login();
+                createKuduClient(context);
             }
         };
     }
@@ -292,11 +293,12 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         return new KerberosPasswordUser(principal, password) {
             @Override
             public synchronized void login() {
-                if (!isLoggedIn()) {
-                    super.login();
-
-                    createKuduClient(context);
+                if (isLoggedIn()) {
+                    return;
                 }
+
+                super.login();
+                createKuduClient(context);
             }
         };
     }

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
@@ -27,13 +26,16 @@ import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizableFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 
@@ -45,7 +47,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public interface ComponentNode extends ComponentAuthorizable {
-
     @Override
     public String getIdentifier();
 
@@ -284,4 +285,19 @@ public interface ComponentNode extends ComponentAuthorizable {
     }
 
     ParameterLookup getParameterLookup();
+
+    default String getClassLoaderIsolationKey(final PropertyContext context) {
+        final ConfigurableComponent component = getComponent();
+        if (!(component instanceof ClassloaderIsolationKeyProvider)) {
+            return null;
+        }
+
+        try {
+            return ((ClassloaderIsolationKeyProvider) component).getClassloaderIsolationKey(context);
+        } catch (final Exception e) {
+            getLogger().error("Failed to determine ClassLoader Isolation Key for " + this + ". This could result in unexpected behavior by this processor.", e);
+            return null;
+        }
+    }
+
 }

@@ -1510,6 +1510,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             } else if (state == ScheduledState.RUNNING) {
                 return CompletableFuture.completedFuture(null);
             }
+
             processor.reloadAdditionalResourcesIfNecessary();
 
             return scheduler.startProcessor(processor, failIfStopping);
@@ -4902,7 +4903,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         final boolean firstTimeAdded = true;
         final Set<URL> additionalUrls = Collections.emptySet();
 
-        final ControllerServiceNode newService = flowManager.createControllerService(type, id, coordinate, additionalUrls, firstTimeAdded, true);
+        final ControllerServiceNode newService = flowManager.createControllerService(type, id, coordinate, additionalUrls, firstTimeAdded, true, null);
         newService.setVersionedComponentId(proposed.getIdentifier());
 
         destination.addControllerService(newService);

@@ -22,6 +22,7 @@ import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -236,6 +237,9 @@ public abstract class AbstractComponentNode implements ComponentNode {
         try {
             verifyCanUpdateProperties(properties);
 
+            // Determine the Classloader Isolation Key, if applicable, so we can determine whether or not the key changes by setting properties.
+            final String initialIsolationKey = determineClasloaderIsolationKey();
+
             final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();
             final Map<String, PropertyConfiguration> configurationMap = configurationMapper.mapRawPropertyValuesToPropertyConfiguration(this, properties);
 
@@ -273,8 +277,12 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     }
                 }
 
+                // Determine the updated Classloader Isolation Key, if applicable.
+                final String updatedIsolationKey = determineClasloaderIsolationKey();
+                final boolean classloaderIsolationKeyChanged = !Objects.equals(initialIsolationKey, updatedIsolationKey);
+
                 // if at least one property with dynamicallyModifiesClasspath(true) was set, then reload the component with the new urls
-                if (classpathChanged) {
+                if (classpathChanged || classloaderIsolationKeyChanged) {
                     logger.info("Updating classpath for " + this.componentType + " with the ID " + this.getIdentifier());
 
                     final Set<URL> additionalUrls = getAdditionalClasspathResources(getComponent().getPropertyDescriptors());
@@ -295,6 +303,18 @@ public abstract class AbstractComponentNode implements ComponentNode {
         } finally {
             lock.unlock();
         }
+    }
+
+    protected String determineClasloaderIsolationKey() {
+        final ConfigurableComponent component = getComponent();
+        if (!(component instanceof ClassloaderIsolationKeyProvider)) {
+            return null;
+        }
+
+        final ValidationContext validationContext = getValidationContextFactory().newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier(),
+            getParameterContext(), true);
+
+        return getClassLoaderIsolationKey(validationContext);
     }
 
     public void verifyCanUpdateProperties(final Map<String, String> properties) {
@@ -620,7 +640,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         final Set<PropertyDescriptor> descriptors = this.getProperties().keySet();
         final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
 
-        final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+        final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
         if(!StringUtils.equals(additionalResourcesFingerprint, newFingerprint)) {
             setAdditionalResourcesFingerprint(newFingerprint);
             try {

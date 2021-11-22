@@ -77,7 +77,7 @@ public class StatelessReloadComponent implements ReloadComponent {
         // create a new node with firstTimeAdded as true so lifecycle methods get fired
         // attempt the creation to make sure it works before firing the OnRemoved methods below
         final ProcessorNode newNode = statelessEngine.getFlowManager().createProcessor(
-            newType, id, bundleCoordinate, additionalUrls, true, false);
+            newType, id, bundleCoordinate, additionalUrls, true, false, null);
 
         // call OnRemoved for the existing processor using the previous instance class loader
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
@@ -133,7 +133,7 @@ public class StatelessReloadComponent implements ReloadComponent {
 
         // create a new node with firstTimeAdded as true so lifecycle methods get called
         // attempt the creation to make sure it works before firing the OnRemoved methods below
-        final ControllerServiceNode newNode = statelessEngine.getFlowManager().createControllerService(newType, id, bundleCoordinate, additionalUrls, true, false);
+        final ControllerServiceNode newNode = statelessEngine.getFlowManager().createControllerService(newType, id, bundleCoordinate, additionalUrls, true, false, null);
 
         // call OnRemoved for the existing service using the previous instance class loader
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
@@ -189,7 +189,7 @@ public class StatelessReloadComponent implements ReloadComponent {
 
         // set firstTimeAdded to true so lifecycle annotations get fired, but don't register this node
         // attempt the creation to make sure it works before firing the OnRemoved methods below
-        final ReportingTaskNode newNode = statelessEngine.getFlowManager().createReportingTask(newType, id, bundleCoordinate, additionalUrls, true, false);
+        final ReportingTaskNode newNode = statelessEngine.getFlowManager().createReportingTask(newType, id, bundleCoordinate, additionalUrls, true, false, null);
 
         // call OnRemoved for the existing reporting task using the previous instance class loader
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {

@@ -23,6 +23,7 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.UserGroupProvider;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateProvider;
@@ -61,8 +62,10 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 /**
@@ -85,6 +88,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     private final Map<String, ConfigurableComponent> tempComponentLookup = new HashMap<>();
 
     private final Map<String, InstanceClassLoader> instanceClassloaderLookup = new ConcurrentHashMap<>();
+    private final ConcurrentMap<BaseClassLoaderKey, ClassLoader> sharedBaseClassloaders = new ConcurrentHashMap<>();
 
     public StandardExtensionDiscoveringManager() {
         this(Collections.emptyList());
@@ -358,7 +362,8 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     }
 
     @Override
-    public InstanceClassLoader createInstanceClassLoader(final String classType, final String instanceIdentifier, final Bundle bundle, final Set<URL> additionalUrls, final boolean register) {
+    public InstanceClassLoader createInstanceClassLoader(final String classType, final String instanceIdentifier, final Bundle bundle, final Set<URL> additionalUrls, final boolean register,
+                                                         final String classloaderIsolationKey) {
         if (StringUtils.isEmpty(classType)) {
             throw new IllegalArgumentException("Class-Type is required");
         }
@@ -383,42 +388,80 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             final ConfigurableComponent tempComponent = getTempComponent(classType, bundle.getBundleDetails().getCoordinate());
             final Class<?> type = tempComponent.getClass();
 
-            final RequiresInstanceClassLoading requiresInstanceClassLoading = type.getAnnotation(RequiresInstanceClassLoading.class);
+            final boolean allowsSharedClassloader = tempComponent instanceof ClassloaderIsolationKeyProvider;
+            if (allowsSharedClassloader && classloaderIsolationKey == null) {
+                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, Collections.emptySet(), additionalUrls, bundleClassLoader);
+            } else {
+                final BaseClassLoaderKey baseClassLoaderKey = classloaderIsolationKey == null ? null : new BaseClassLoaderKey(bundle, classloaderIsolationKey);
+                final NarClassLoader narBundleClassLoader = (NarClassLoader) bundleClassLoader;
+                logger.debug("Including ClassLoader resources from {} for component {}", new Object[]{bundle.getBundleDetails(), instanceIdentifier});
 
-            final NarClassLoader narBundleClassLoader = (NarClassLoader) bundleClassLoader;
-            logger.debug("Including ClassLoader resources from {} for component {}", new Object[] {bundle.getBundleDetails(), instanceIdentifier});
+                final Set<URL> instanceUrls = new LinkedHashSet<>(Arrays.asList(narBundleClassLoader.getURLs()));
+                final Set<File> narNativeLibDirs = new LinkedHashSet<>();
+                narNativeLibDirs.add(narBundleClassLoader.getNARNativeLibDir());
 
-            final Set<URL> instanceUrls = new LinkedHashSet<>();
-            final Set<File> narNativeLibDirs = new LinkedHashSet<>();
+                ClassLoader ancestorClassLoader = narBundleClassLoader.getParent();
 
-            narNativeLibDirs.add(narBundleClassLoader.getNARNativeLibDir());
-            instanceUrls.addAll(Arrays.asList(narBundleClassLoader.getURLs()));
-
-            ClassLoader ancestorClassLoader = narBundleClassLoader.getParent();
-
-            if (requiresInstanceClassLoading.cloneAncestorResources()) {
-                final ConfigurableComponent component = getTempComponent(classType, bundle.getBundleDetails().getCoordinate());
-                final Set<BundleCoordinate> reachableApiBundles = findReachableApiBundles(component);
-
-                while (ancestorClassLoader instanceof NarClassLoader) {
-                    final Bundle ancestorNarBundle = classLoaderBundleLookup.get(ancestorClassLoader);
-
-                    // stop including ancestor resources when we reach one of the APIs, or when we hit the Jetty NAR
-                    if (ancestorNarBundle == null || reachableApiBundles.contains(ancestorNarBundle.getBundleDetails().getCoordinate())
-                            || ancestorNarBundle.getBundleDetails().getCoordinate().getId().equals(NarClassLoaders.JETTY_NAR_ID)) {
-                        break;
+                boolean resolvedSharedClassLoader = false;
+                final RequiresInstanceClassLoading requiresInstanceClassLoading = type.getAnnotation(RequiresInstanceClassLoading.class);
+                if (requiresInstanceClassLoading.cloneAncestorResources()) {
+                    // Check to see if there's already a shared ClassLoader that can be used as the parent/base classloader
+                    if (baseClassLoaderKey != null) {
+                        final ClassLoader sharedBaseClassloader = sharedBaseClassloaders.get(baseClassLoaderKey);
+                        if (sharedBaseClassloader != null) {
+                            resolvedSharedClassLoader = true;
+                            ancestorClassLoader = sharedBaseClassloader;
+                            logger.debug("Creating InstanceClassLoader for type {} using shared Base ClassLoader {} for component {}", type, sharedBaseClassloader, instanceIdentifier);
+                        }
                     }
 
-                    final NarClassLoader ancestorNarClassLoader = (NarClassLoader) ancestorClassLoader;
+                    // If we didn't find a shared ClassLoader to use, go ahead and clone the bundle's ClassLoader.
+                    if (!resolvedSharedClassLoader) {
+                        final ConfigurableComponent component = getTempComponent(classType, bundle.getBundleDetails().getCoordinate());
+                        final Set<BundleCoordinate> reachableApiBundles = findReachableApiBundles(component);
 
-                    narNativeLibDirs.add(ancestorNarClassLoader.getNARNativeLibDir());
-                    Collections.addAll(instanceUrls, ancestorNarClassLoader.getURLs());
+                        while (ancestorClassLoader instanceof NarClassLoader) {
+                            final Bundle ancestorNarBundle = classLoaderBundleLookup.get(ancestorClassLoader);
 
-                    ancestorClassLoader = ancestorNarClassLoader.getParent();
+                            // stop including ancestor resources when we reach one of the APIs, or when we hit the Jetty NAR
+                            if (ancestorNarBundle == null || reachableApiBundles.contains(ancestorNarBundle.getBundleDetails().getCoordinate())
+                                || ancestorNarBundle.getBundleDetails().getCoordinate().getId().equals(NarClassLoaders.JETTY_NAR_ID)) {
+                                break;
+                            }
+
+                            final NarClassLoader ancestorNarClassLoader = (NarClassLoader) ancestorClassLoader;
+
+                            narNativeLibDirs.add(ancestorNarClassLoader.getNARNativeLibDir());
+                            Collections.addAll(instanceUrls, ancestorNarClassLoader.getURLs());
+
+                            ancestorClassLoader = ancestorNarClassLoader.getParent();
+                        }
+                    }
+                }
+
+                // register our new InstanceClassLoader as the shared base classloader.
+                if (baseClassLoaderKey != null && !resolvedSharedClassLoader) {
+                    // Created a shared class loader that is everything we need except for the additional URLs, as the additional URLs are instance-specific.
+                    final SharedInstanceClassLoader sharedClassLoader = new SharedInstanceClassLoader(instanceIdentifier, classType, instanceUrls,
+                        Collections.emptySet(), narNativeLibDirs, ancestorClassLoader);
+                    instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, Collections.emptySet(), additionalUrls, Collections.emptySet(), sharedClassLoader);
+
+                    logger.debug("Creating InstanceClassLoader for type {} using newly created shared Base ClassLoader {} for component {}", type, sharedClassLoader, instanceIdentifier);
+                    if (logger.isTraceEnabled()) {
+                        for (URL url : sharedClassLoader.getURLs()) {
+                            logger.trace("Shared Base ClassLoader URL resource: {}", new Object[] {url.toExternalForm()});
+                        }
+                    }
+
+                    sharedBaseClassloaders.putIfAbsent(baseClassLoaderKey, sharedClassLoader);
+                } else {
+                    // If we resolved a shared classloader, the shared classloader already has the instance URLs, so there's no need to provide them for the Instance ClassLoader.
+                    // But if we did not resolve to a shared ClassLoader, it's important to pull in the instanceUrls.
+                    final Set<URL> resolvedInstanceUrls = resolvedSharedClassLoader ? Collections.emptySet() : instanceUrls;
+
+                    instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, resolvedInstanceUrls, additionalUrls, narNativeLibDirs, ancestorClassLoader);
                 }
             }
-
-            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, instanceUrls, additionalUrls, narNativeLibDirs, ancestorClassLoader);
         } else {
             instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, Collections.emptySet(), additionalUrls, bundleClassLoader);
         }
@@ -435,6 +478,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
         return instanceClassLoader;
     }
+
 
     /**
      * Find the bundle coordinates for any service APIs that are referenced by this component and not part of the same bundle.
@@ -659,4 +703,37 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         }
     }
 
+
+    private static class BaseClassLoaderKey {
+        private final Bundle bundle;
+        private final String classloaderIsolationKey;
+
+        public BaseClassLoaderKey(final Bundle bundle, final String classloaderIsolationKey) {
+            this.bundle = Objects.requireNonNull(bundle);
+            this.classloaderIsolationKey = Objects.requireNonNull(classloaderIsolationKey);
+        }
+
+        public Bundle getBundle() {
+            return bundle;
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            final BaseClassLoaderKey that = (BaseClassLoaderKey) o;
+            return bundle.equals(that.bundle) && classloaderIsolationKey.equals(that.classloaderIsolationKey);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(bundle, classloaderIsolationKey);
+        }
+    }
 }

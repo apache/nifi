@@ -678,7 +678,7 @@ public class TestFlowController {
     @Test
     public void testCreateMissingControllerService() throws ProcessorInstantiationException {
         final ControllerServiceNode serviceNode = controller.getFlowManager().createControllerService("org.apache.nifi.NonExistingControllerService", "1234-Controller-Service",
-                systemBundle.getBundleDetails().getCoordinate(), null, false, true);
+                systemBundle.getBundleDetails().getCoordinate(), null, false, true, null);
         assertNotNull(serviceNode);
         assertEquals("org.apache.nifi.NonExistingControllerService", serviceNode.getCanonicalClassName());
         assertEquals("(Missing) NonExistingControllerService", serviceNode.getComponentType());
@@ -738,7 +738,7 @@ public class TestFlowController {
         ProcessGroup pg = controller.getFlowManager().createProcessGroup("my-process-group");
         pg.setName("my-process-group");
         ControllerServiceNode cs = controller.getFlowManager().createControllerService("org.apache.nifi.NonExistingControllerService", "my-controller-service",
-                systemBundle.getBundleDetails().getCoordinate(), null, false, true);
+                systemBundle.getBundleDetails().getCoordinate(), null, false, true, null);
         pg.addControllerService(cs);
         controller.getFlowManager().getRootGroup().addProcessGroup(pg);
         controller.getFlowManager().getRootGroup().removeProcessGroup(pg);
@@ -828,7 +828,7 @@ public class TestFlowController {
     public void testReloadControllerService() {
         final String id = "ServiceA" + System.currentTimeMillis();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ControllerServiceNode controllerServiceNode = controller.getFlowManager().createControllerService(ServiceA.class.getName(), id, coordinate, null, true, true);
+        final ControllerServiceNode controllerServiceNode = controller.getFlowManager().createControllerService(ServiceA.class.getName(), id, coordinate, null, true, true, null);
         final String originalName = controllerServiceNode.getName();
 
         assertEquals(id, controllerServiceNode.getIdentifier());
@@ -863,7 +863,7 @@ public class TestFlowController {
 
         final String id = "ServiceA" + System.currentTimeMillis();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ControllerServiceNode controllerServiceNode = controller.getFlowManager().createControllerService(ServiceA.class.getName(), id, coordinate, null, true, true);
+        final ControllerServiceNode controllerServiceNode = controller.getFlowManager().createControllerService(ServiceA.class.getName(), id, coordinate, null, true, true, null);
 
         // the instance class loader shouldn't have any of the resources yet
         URLClassLoader instanceClassLoader = extensionManager.getInstanceClassLoader(id);
@@ -1125,7 +1125,7 @@ public class TestFlowController {
     public void testInstantiateSnippetWhenControllerServiceMissingBundle() throws ProcessorInstantiationException {
         final String id = UUID.randomUUID().toString();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ControllerServiceNode controllerServiceNode = controller.getFlowManager().createControllerService(ServiceA.class.getName(), id, coordinate, null, true, true);
+        final ControllerServiceNode controllerServiceNode = controller.getFlowManager().createControllerService(ServiceA.class.getName(), id, coordinate, null, true, true, null);
 
         // create the controller service dto
         final ControllerServiceDTO csDto = new ControllerServiceDTO();
@@ -1156,7 +1156,7 @@ public class TestFlowController {
     public void testInstantiateSnippetWithControllerService() throws ProcessorInstantiationException {
         final String id = UUID.randomUUID().toString();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ControllerServiceNode controllerServiceNode = controller.getFlowManager().createControllerService(ServiceA.class.getName(), id, coordinate, null, true, true);
+        final ControllerServiceNode controllerServiceNode = controller.getFlowManager().createControllerService(ServiceA.class.getName(), id, coordinate, null, true, true, null);
 
         // create the controller service dto
         final ControllerServiceDTO csDto = new ControllerServiceDTO();
