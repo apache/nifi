@@ -130,8 +130,8 @@
             </activation>
             <dependencies>
                 <dependency>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-ozone-client</artifactId>
+                    <groupId>org.apache.ozone</groupId>
+                    <artifactId>ozone-client</artifactId>
                     <version>${ozone.version}</version>
                     <exclusions>
                       <exclusion>
@@ -145,8 +145,8 @@
                     </exclusions>
                 </dependency>
                 <dependency>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-ozone-filesystem</artifactId>
+                    <groupId>org.apache.ozone</groupId>
+                    <artifactId>ozone-filesystem</artifactId>
                     <version>${ozone.version}</version>
                 </dependency>
             </dependencies>
