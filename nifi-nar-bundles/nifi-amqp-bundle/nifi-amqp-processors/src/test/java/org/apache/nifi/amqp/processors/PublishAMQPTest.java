@@ -115,11 +115,11 @@ public class PublishAMQPTest {
         runner.setProperty(PublishAMQP.ROUTING_KEY, "key1");
         runner.setProperty(PublishAMQP.USER, "user");
         runner.setProperty(PublishAMQP.PASSWORD, "password");
-        runner.setProperty(PublishAMQP.UNESCAPE_COMMA_VALUE_IN_HEADER,"True");
+        runner.setProperty(PublishAMQP.HEADER_SEPARATOR,"|");
 
         final Map<String, String> attributes = new HashMap<>();
 
-        attributes.put("amqp$headers", "foo=(bar\\,bar),foo2=bar2,foo3");
+        attributes.put("amqp$headers", "foo=(bar,bar)|foo2=bar2|foo3");
 
         runner.enqueue("Hello Joe".getBytes(), attributes);
 
@@ -139,6 +139,46 @@ public class PublishAMQPTest {
         final Object foo3 = headerMap.get("foo3");
 
         assertEquals("(bar,bar)", foo.toString());
+        assertEquals("bar2", foo2.toString());
+        assertNull(foo3);
+
+
+        assertNotNull(channel.basicGet("queue2", true));
+    }
+
+    @Test
+    public void validateSuccessWithWrongValueSeparatorForHeaderWithCommaPublishToSuccess() throws Exception {
+        final PublishAMQP pubProc = new LocalPublishAMQP();
+        final TestRunner runner = TestRunners.newTestRunner(pubProc);
+        runner.setProperty(PublishAMQP.BROKERS, "injvm:5672");
+        runner.setProperty(PublishAMQP.EXCHANGE, "myExchange");
+        runner.setProperty(PublishAMQP.ROUTING_KEY, "key1");
+        runner.setProperty(PublishAMQP.USER, "user");
+        runner.setProperty(PublishAMQP.PASSWORD, "password");
+        runner.setProperty(PublishAMQP.HEADER_SEPARATOR,"|,");
+
+        final Map<String, String> attributes = new HashMap<>();
+
+        attributes.put("amqp$headers", "foo=(bar),foo2=bar2,foo3");
+
+        runner.enqueue("Hello Joe".getBytes(), attributes);
+
+        runner.run();
+
+        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+        assertNotNull(successFF);
+
+        final Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();
+        final GetResponse msg1 = channel.basicGet("queue1", true);
+        assertNotNull(msg1);
+
+        final Map<String, Object> headerMap = msg1.getProps().getHeaders();
+
+        final Object foo = headerMap.get("foo");
+        final Object foo2 = headerMap.get("foo2");
+        final Object foo3 = headerMap.get("foo3");
+
+        assertEquals("(bar)", foo.toString());
         assertEquals("bar2", foo2.toString());
         assertNull(foo3);
 

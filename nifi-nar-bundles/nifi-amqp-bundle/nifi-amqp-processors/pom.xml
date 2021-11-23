@@ -22,6 +22,7 @@ language governing permissions and limitations under the License. -->
     <properties>
         <amqp-client.version>5.8.0</amqp-client.version>
         <common-text.version>1.8</common-text.version>
+        <guava.version>28.0-jre</guava.version>
     </properties>
 
     <dependencies>
@@ -53,6 +54,11 @@ language governing permissions and limitations under the License. -->
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>
             <version>${common-text.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
         </dependency>
     </dependencies>
 

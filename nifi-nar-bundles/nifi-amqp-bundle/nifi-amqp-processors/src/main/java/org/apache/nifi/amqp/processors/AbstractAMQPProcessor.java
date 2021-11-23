@@ -46,7 +46,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 
-
 /**
  * Base processor that uses RabbitMQ client API
  * (https://www.rabbitmq.com/api-guide.html) to rendezvous with AMQP-based
@@ -344,5 +343,15 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         } catch (Exception e) {
             throw new IllegalStateException("Failed to establish connection with AMQP Broker: " + cf.toString(), e);
         }
+    }
+
+    protected  Character getValueSeparatorChar(String value,PropertyDescriptor valueSeparatorForHeader) {
+        if (value!=null && value.length()==1) {
+            return value.charAt(0);
+        }
+
+        getLogger().warn("'{}' property evaluated to an invalid value: \"{}\". It must be a single character. The property value will be ignored.", valueSeparatorForHeader.getName(), value);
+
+        return valueSeparatorForHeader.getDefaultValue().charAt(0);
     }
 }

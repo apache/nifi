@@ -30,12 +30,14 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
 
+import com.google.common.base.Splitter;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.rabbitmq.client.AMQP;
@@ -164,11 +166,13 @@ public class ConsumeAMQPTest {
     }
 
     @Test
-    public void validateHeaderWithEscapeCommaParameterConsumeAndTransferToSuccess() throws Exception {
+    public void validateHeaderWithValueSeparatorForHeaderParameterConsumeAndTransferToSuccess() throws Exception {
         final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
         final Map<String, Object> headersMap = new HashMap<>();
-        headersMap.put("foo","bar,bar");
+        headersMap.put("foo1","bar,bar");
+        headersMap.put("foo2","bar,bar");
+
         AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
         builderBasicProperties.headers(headersMap);
 
@@ -179,13 +183,45 @@ public class ConsumeAMQPTest {
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
             TestRunner runner = initTestRunner(proc);
-            runner.setProperty(ConsumeAMQP.ESCAPE_COMMA_VALUE_IN_HEADER, "True");
+            runner.setProperty(ConsumeAMQP.HEADER_SEPARATOR, "|");
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
             successFF.assertAttributeEquals("amqp$routingKey", "key1");
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
-            successFF.assertAttributeEquals("amqp$headers", "{foo=bar\\,bar}");
+            String headers = successFF.getAttribute("amqp$headers");
+            Map<String, String> properties = Splitter.on("|").withKeyValueSeparator("=").split(headers.substring(1,headers.length()-1));
+            Assert.assertEquals(headersMap,properties);
+
+        }
+    }
+    @Test
+    public void validateHeaderWithWrongValueSeparatorForHeaderParameterConsumeAndTransferToSuccess() throws Exception {
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
+        final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
+        final Map<String, Object> headersMap = new HashMap<>();
+        headersMap.put("foo1","bar");
+        headersMap.put("foo2","bar2");
+
+        AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
+        builderBasicProperties.headers(headersMap);
+
+        final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
+
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+            sender.publish("hello".getBytes(), builderBasicProperties.build(), "key1", "myExchange");
+
+            ConsumeAMQP proc = new LocalConsumeAMQP(connection);
+            TestRunner runner = initTestRunner(proc);
+            runner.setProperty(ConsumeAMQP.HEADER_SEPARATOR, "|,");
+            runner.run();
+            final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+            assertNotNull(successFF);
+            successFF.assertAttributeEquals("amqp$routingKey", "key1");
+            successFF.assertAttributeEquals("amqp$exchange", "myExchange");
+            String headers = successFF.getAttribute("amqp$headers");
+            Map<String, String> properties = Splitter.on(",").withKeyValueSeparator("=").split(headers.substring(1,headers.length()-1));
+            Assert.assertEquals(headersMap,properties);
 
         }
     }
@@ -218,11 +254,13 @@ public class ConsumeAMQPTest {
     }
 
     @Test
-    public void validateHeaderWithRemoveCurlyBracesAndEscapeCommaParameterConsumeAndTransferToSuccess() throws Exception {
+    public void validateHeaderWithRemoveCurlyBracesAndValueSeparatorForHeaderParameterConsumeAndTransferToSuccess() throws Exception {
         final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
         final Map<String, Object> headersMap = new HashMap<>();
         headersMap.put("key1","(bar,bar)");
+        headersMap.put("key2","(bar,bar)");
+
         AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
         builderBasicProperties.headers(headersMap);
 
@@ -234,14 +272,47 @@ public class ConsumeAMQPTest {
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
             TestRunner runner = initTestRunner(proc);
             runner.setProperty(ConsumeAMQP.REMOVE_CURLY_BRACES,"True");
-            runner.setProperty(ConsumeAMQP.ESCAPE_COMMA_VALUE_IN_HEADER,"True");
+            runner.setProperty(ConsumeAMQP.HEADER_SEPARATOR,"|");
 
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
             successFF.assertAttributeEquals("amqp$routingKey", "key1");
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
-            successFF.assertAttributeEquals("amqp$headers", "key1=(bar\\,bar)");
+            String headers = successFF.getAttribute("amqp$headers");
+            Map<String, String> properties = Splitter.on("|").withKeyValueSeparator("=").split(headers);
+            Assert.assertEquals(headersMap,properties);
+
+        }
+    }
+
+    @Test
+    public void validateHeaderWithoutParameterConsumeAndTransferToSuccess() throws Exception {
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
+        final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
+        final Map<String, Object> headersMap = new HashMap<>();
+        headersMap.put("key1","bar");
+        headersMap.put("key2","bar2");
+
+        AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
+        builderBasicProperties.headers(headersMap);
+
+        final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
+
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+            sender.publish("hello".getBytes(), builderBasicProperties.build(), "key1", "myExchange");
+
+            ConsumeAMQP proc = new LocalConsumeAMQP(connection);
+            TestRunner runner = initTestRunner(proc);
+
+            runner.run();
+            final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+            assertNotNull(successFF);
+            successFF.assertAttributeEquals("amqp$routingKey", "key1");
+            successFF.assertAttributeEquals("amqp$exchange", "myExchange");
+            String headers = successFF.getAttribute("amqp$headers");
+            Map<String, String> properties = Splitter.on(",").withKeyValueSeparator("=").split(headers.substring(1,headers.length()-1));
+            Assert.assertEquals(headersMap,properties);
 
         }
     }

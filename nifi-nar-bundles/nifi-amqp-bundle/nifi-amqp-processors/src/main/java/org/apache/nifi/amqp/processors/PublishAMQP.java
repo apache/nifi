@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -48,7 +48,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.StringUtils;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
@@ -101,15 +100,15 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor UNESCAPE_COMMA_VALUE_IN_HEADER = new PropertyDescriptor.Builder()
-            .name("Unescape Comma Value In Header")
-            .description("When there is a comma in the header itself, with the help of this parameter, "
-                    + "the header's own commas are not used in the splitting process. "
-                    + "Then escape comma in the header is made unescaped again")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .defaultValue("False")
-            .allowableValues("True", "False")
-            .required(false)
+    public static final PropertyDescriptor HEADER_SEPARATOR = new PropertyDescriptor.Builder()
+            .name("header.separator")
+            .displayName("Header Separator")
+            .description("The character that is used to split key-value for headers. The value must only one character. "
+                    + "Otherwise it will be skipped and the default header separator(comma',') will be used. "
+                    + "The value of this parameter must be same to the value of parameter in ConsumeAMQP, when you use the ConsumeAMQP processor" )
+            .defaultValue(",")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(true)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -129,7 +128,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(EXCHANGE);
         properties.add(ROUTING_KEY);
-        properties.add(UNESCAPE_COMMA_VALUE_IN_HEADER);
+        properties.add(HEADER_SEPARATOR);
         properties.addAll(getCommonPropertyDescriptors());
         propertyDescriptors = Collections.unmodifiableList(properties);
 
@@ -157,7 +156,8 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             return;
         }
 
-        final BasicProperties amqpProperties = extractAmqpPropertiesFromFlowFile(flowFile,context.getProperty(UNESCAPE_COMMA_VALUE_IN_HEADER).asBoolean());
+        final BasicProperties amqpProperties = extractAmqpPropertiesFromFlowFile(flowFile,
+                getValueSeparatorChar(context.getProperty(HEADER_SEPARATOR).toString(), HEADER_SEPARATOR));
         final String routingKey = context.getProperty(ROUTING_KEY).evaluateAttributeExpressions(flowFile).getValue();
         if (routingKey == null) {
             throw new IllegalArgumentException("Failed to determine 'routing key' with provided value '"
@@ -238,7 +238,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * {@link AMQPUtils#validateAMQPPriorityProperty}
      * {@link AMQPUtils#validateAMQPTimestampProperty}
      */
-    private BasicProperties extractAmqpPropertiesFromFlowFile(FlowFile flowFile,boolean escapeComma) {
+    private BasicProperties extractAmqpPropertiesFromFlowFile(FlowFile flowFile,Character escapeComma) {
         final AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
 
         updateBuilderFromAttribute(flowFile, "contentType", builder::contentType);
@@ -266,17 +266,10 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * @param amqpPropValue the value of the property
      * @return {@link Map} if valid otherwise null
      */
-    private Map<String, Object> validateAMQPHeaderProperty(String amqpPropValue,boolean unescapeComma) {
-        String[] strEntries;
-        String splitAttribute = ",";
-        if(unescapeComma) {
-            splitAttribute = StringUtils.REGEX_COMMA_WITHOUT_ESCAPE;
-        }
-
-        strEntries = amqpPropValue.split(splitAttribute);
+    private Map<String, Object> validateAMQPHeaderProperty(String amqpPropValue,Character splitValue) {
+        String[] strEntries = amqpPropValue.split(Pattern.quote(String.valueOf(splitValue)));
         Map<String, Object> headers = new HashMap<>();
         for (String strEntry : strEntries) {
-            strEntry = StringEscapeUtils.unescapeJava(strEntry);
             String[] kv = strEntry.split("=");
             if (kv.length == 2) {
                 headers.put(kv[0].trim(), kv[1].trim());
