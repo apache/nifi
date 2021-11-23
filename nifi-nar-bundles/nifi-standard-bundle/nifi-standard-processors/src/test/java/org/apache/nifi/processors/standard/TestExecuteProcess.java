@@ -322,6 +322,6 @@ public class TestExecuteProcess {
     public void testProcessorNotScheduled() {
         final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
         runner.setProperty(ExecuteProcess.COMMAND, "ls");
-        runner.doNotRun();
+        runner.run(0);
     }
 }

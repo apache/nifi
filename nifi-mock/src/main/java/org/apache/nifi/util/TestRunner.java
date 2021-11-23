@@ -62,13 +62,6 @@ public interface TestRunner {
     ProcessContext getProcessContext();
 
     /**
-     * Call the {@link org.apache.nifi.annotation.lifecycle.OnScheduled} /
-     * {@link org.apache.nifi.annotation.lifecycle.OnUnscheduled} methods, to simulate a processor
-     * that is enabled but never triggered.
-     */
-    void doNotRun();
-
-    /**
      * Performs exactly the same operation as calling {@link #run(int)} with a
      * value of 1.
      */
