@@ -145,7 +145,8 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
     public static final PropertyDescriptor PROP_QOS = new PropertyDescriptor.Builder()
             .name("Quality of Service(QoS)")
-            .description("The Quality of Service(QoS) to receive the message with. Accepts values '0', '1' or '2'; '0' for 'at most once', '1' for 'at least once', '2' for 'exactly once'.")
+            .displayName("Quality of Service (QoS)")
+            .description("The Quality of Service (QoS) to receive the message with. Accepts values '0', '1' or '2'; '0' for 'at most once', '1' for 'at least once', '2' for 'exactly once'.")
             .required(true)
             .defaultValue(ALLOWABLE_VALUE_QOS_0.getValue())
             .allowableValues(
@@ -387,7 +388,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
             return;
         }
 
-        if(context.getProperty(RECORD_READER).isSet()) {
+        if (context.getProperty(RECORD_READER).isSet()) {
             transferQueueRecord(context, session);
         } else if (context.getProperty(MESSAGE_DEMARCATOR).isSet()) {
             transferQueueDemarcator(context, session);
@@ -440,7 +441,8 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
             session.getProvenanceReporter().receive(messageFlowfile, getTransitUri(mqttMessage.getTopic()));
             session.transfer(messageFlowfile, REL_MESSAGE);
-            session.commitAsync(() -> mqttQueue.remove(mqttMessage));
+            session.commitAsync();
+            mqttQueue.remove(mqttMessage);
         }
     }
 
