@@ -144,7 +144,8 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
             .build();
 
     public static final PropertyDescriptor PROP_QOS = new PropertyDescriptor.Builder()
-            .name("Quality of Service (QoS)")
+            .name("Quality of Service(QoS)")
+            .displayName("Quality of Service (QoS)")
             .description("The Quality of Service (QoS) to receive the message with. Accepts values '0', '1' or '2'; '0' for 'at most once', '1' for 'at least once', '2' for 'exactly once'.")
             .required(true)
             .defaultValue(ALLOWABLE_VALUE_QOS_0.getValue())
