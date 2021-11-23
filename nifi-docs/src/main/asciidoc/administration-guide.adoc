@@ -1614,8 +1614,8 @@ NOTE: The Bcrypt Radix64 encoding is *not* compatible with standard MIME Base64 
 * link:http://security.stackexchange.com/a/6415/16485[Bcrypt vs PBKDF2^]
 * link:http://wildlyinaccurate.com/bcrypt-choosing-a-work-factor/[Choosing a work factor for Bcrypt^]
 * link:https://docs.spring.io/spring-security/site/docs/current/api/org/springframework/security/crypto/bcrypt/BCrypt.html[Spring Security Bcrypt^]
-* link:https://www.openssl.org/docs/man1.1.0/crypto/EVP_BytesToKey.html[OpenSSL EVP BytesToKey PKCS#1v1.5^]
-* link:https://wiki.openssl.org/index.php/Manual:PKCS5_PBKDF2_HMAC(3)[OpenSSL PBKDF2 KDF^]
+* link:https://www.openssl.org/docs/man3.0/man3/EVP_BytesToKey.html[OpenSSL EVP BytesToKey^]
+* link:https://en.wikipedia.org/wiki/PBKDF2[Wikipedia PBKDF2^]
 * link:http://security.stackexchange.com/a/29139/16485[OpenSSL KDF flaws description^]
 
 === Salt and IV Encoding
