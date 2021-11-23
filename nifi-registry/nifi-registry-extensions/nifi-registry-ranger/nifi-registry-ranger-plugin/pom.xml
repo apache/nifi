@@ -27,7 +27,7 @@
     <properties>
         <ranger.version>2.1.0</ranger.version>
         <ranger.hadoop.version>3.1.4</ranger.hadoop.version>
-        <ranger.ozone.version>1.0.0</ranger.ozone.version>
+        <ranger.ozone.version>1.2.1</ranger.ozone.version>
         <ranger.gcs.version>2.1.5</ranger.gcs.version>
     </properties>
 
@@ -352,8 +352,8 @@
             </activation>
             <dependencies>
                 <dependency>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-ozone-client</artifactId>
+                    <groupId>org.apache.ozone</groupId>
+                    <artifactId>ozone-client</artifactId>
                     <version>${ranger.ozone.version}</version>
                     <exclusions>
                       <exclusion>
@@ -367,8 +367,8 @@
                     </exclusions>
                 </dependency>
                 <dependency>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-ozone-filesystem</artifactId>
+                    <groupId>org.apache.ozone</groupId>
+                    <artifactId>ozone-filesystem</artifactId>
                     <version>${ranger.ozone.version}</version>
                 </dependency>
             </dependencies>
