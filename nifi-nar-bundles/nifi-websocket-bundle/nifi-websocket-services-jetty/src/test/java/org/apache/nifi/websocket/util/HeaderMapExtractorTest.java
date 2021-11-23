@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.websocket.util;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import util.HeaderMapExtractor;
 
@@ -25,6 +24,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class HeaderMapExtractorTest {
 
@@ -49,15 +51,15 @@ public class HeaderMapExtractorTest {
         final Map<String, List<String>> actual = HeaderMapExtractor.getHeaderMap(attributes);
 
         // THEN
-        Assertions.assertEquals(expected, actual);
+        assertEquals(expected, actual);
 
-        Assertions.assertEquals(expected.size(), actual.size());
+        assertEquals(expected.size(), actual.size());
         for (Map.Entry<String, List<String>> entry : actual.entrySet()) {
-            Assertions.assertTrue(expected.containsKey(entry.getKey()));
+            assertTrue(expected.containsKey(entry.getKey()));
             final List<String> actualHeaderValues = entry.getValue();
             final List<String> expectedHeaderValues = expected.get(entry.getKey());
             for (int i = 0; i < actualHeaderValues.size(); i++) {
-                Assertions.assertEquals(expectedHeaderValues.get(i), actualHeaderValues.get(i));
+                assertEquals(expectedHeaderValues.get(i), actualHeaderValues.get(i));
             }
         }
     }
