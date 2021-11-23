@@ -221,28 +221,18 @@ public class StandardProcessorTestRunner implements TestRunner {
             } catch (final InterruptedException e1) {
             }
 
-            int finishedCount = 0;
-            boolean unscheduledRun = false;
             for (final Future<Throwable> future : futures) {
                 try {
                     final Throwable thrown = future.get(); // wait for the result
                     if (thrown != null) {
                         throw new AssertionError(thrown);
                     }
-
-                    if (++finishedCount == 1) {
-                        unscheduledRun = true;
-                        unSchedule();
-                    }
                 } catch (final Exception e) {
                 }
             }
 
-            if (!unscheduledRun) {
-                unSchedule();
-            }
-
             if (stopOnFinish) {
+                unSchedule();
                 stop();
             }
         } finally {
