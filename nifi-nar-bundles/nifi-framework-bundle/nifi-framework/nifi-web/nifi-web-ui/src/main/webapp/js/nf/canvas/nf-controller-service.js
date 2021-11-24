@@ -2173,6 +2173,8 @@
                 nfCommon.populateField('controller-service-bundle', nfCommon.formatBundle(controllerService['bundle']));
                 nfCommon.populateField('read-only-controller-service-name', controllerService['name']);
                 nfCommon.populateField('read-only-controller-service-comments', controllerService['comments']);
+                
+                $('#controller-service-configuration').modal('setSubtitle', nfCommon.formatType(controllerService));
 
                 // set the implemented apis
                 if (!nfCommon.isEmpty(controllerService['controllerServiceApis'])) {
