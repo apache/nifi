@@ -349,7 +349,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
                     try {
                         binFlowFile(context, flowFile, session, manager, block);
                     } catch (final Exception e) {
-                        getLogger().error("Failed to bin {} due to {}", flowFile, e);
+                        getLogger().error("Failed to bin {} due to {}", flowFile, e, e);
                         session.transfer(flowFile, REL_FAILURE);
                     }
                 }
@@ -361,7 +361,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             try {
                 manager.completeExpiredBins();
             } catch (final Exception e) {
-                getLogger().error("Failed to merge FlowFiles to create new bin due to {}", e);
+                getLogger().error("Failed to merge FlowFiles to create new bin due to {}", e, e);
             }
         }
 
@@ -370,14 +370,14 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             try {
                 manager.completeExpiredBins();
             } catch (final Exception e) {
-                getLogger().error("Failed to merge FlowFiles to create new bin due to {}", e);
+                getLogger().error("Failed to merge FlowFiles to create new bin due to {}", e, e);
             }
 
             // Complete any bins that meet their minimum size requirements
             try {
                 manager.completeFullEnoughBins();
             } catch (final Exception e) {
-                getLogger().error("Failed to merge FlowFiles to create new bin due to {}", e);
+                getLogger().error("Failed to merge FlowFiles to create new bin due to {}", e, e);
             }
 
             getLogger().debug("No more FlowFiles to bin; will yield");
