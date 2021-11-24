@@ -107,8 +107,8 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
                     + "Otherwise it will be skipped and the default header separator(comma',') will be used. "
                     + "The value of this parameter must be same to the value of parameter in ConsumeAMQP, when you use the ConsumeAMQP processor" )
             .defaultValue(",")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
+            .addValidator(StandardValidators.SINGLE_CHAR_VALIDATOR)
+            .required(false)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -157,7 +157,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         }
 
         final BasicProperties amqpProperties = extractAmqpPropertiesFromFlowFile(flowFile,
-                getValueSeparatorChar(context.getProperty(HEADER_SEPARATOR).toString(), HEADER_SEPARATOR));
+                context.getProperty(HEADER_SEPARATOR).toString().charAt(0));
         final String routingKey = context.getProperty(ROUTING_KEY).evaluateAttributeExpressions(flowFile).getValue();
         if (routingKey == null) {
             throw new IllegalArgumentException("Failed to determine 'routing key' with provided value '"
@@ -238,7 +238,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * {@link AMQPUtils#validateAMQPPriorityProperty}
      * {@link AMQPUtils#validateAMQPTimestampProperty}
      */
-    private BasicProperties extractAmqpPropertiesFromFlowFile(FlowFile flowFile,Character escapeComma) {
+    private BasicProperties extractAmqpPropertiesFromFlowFile(FlowFile flowFile,Character headerSeparator) {
         final AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
 
         updateBuilderFromAttribute(flowFile, "contentType", builder::contentType);
@@ -254,7 +254,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         updateBuilderFromAttribute(flowFile, "userId", builder::userId);
         updateBuilderFromAttribute(flowFile, "appId", builder::appId);
         updateBuilderFromAttribute(flowFile, "clusterId", builder::clusterId);
-        updateBuilderFromAttribute(flowFile, "headers", headers -> builder.headers(validateAMQPHeaderProperty(headers,escapeComma)));
+        updateBuilderFromAttribute(flowFile, "headers", headers -> builder.headers(validateAMQPHeaderProperty(headers,headerSeparator)));
 
         return builder.build();
     }
@@ -262,7 +262,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     /**
      * Will validate if provided amqpPropValue can be converted to a {@link Map}.
      * Should be passed in the format: amqp$headers=key=value
-     * With unescape comma parameter, header values may contain escaped commas. The header value is unescaped and then published.
+     * @param splitValue is used to split for property
      * @param amqpPropValue the value of the property
      * @return {@link Map} if valid otherwise null
      */

@@ -28,8 +28,6 @@ import java.util.stream.Collectors;
 public class StringUtils {
 
     public static final String EMPTY = "";
-    //With this regular expression, commas without "\"-escape in string can be found.
-    public static final String REGEX_COMMA_WITHOUT_ESCAPE = "(?<!\\\\),";
 
     public static boolean isBlank(final String str) {
         if (str == null || str.isEmpty()) {

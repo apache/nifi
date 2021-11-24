@@ -345,13 +345,4 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         }
     }
 
-    protected  Character getValueSeparatorChar(String value,PropertyDescriptor valueSeparatorForHeader) {
-        if (value!=null && value.length()==1) {
-            return value.charAt(0);
-        }
-
-        getLogger().warn("'{}' property evaluated to an invalid value: \"{}\". It must be a single character. The property value will be ignored.", valueSeparatorForHeader.getName(), value);
-
-        return valueSeparatorForHeader.getDefaultValue().charAt(0);
-    }
 }

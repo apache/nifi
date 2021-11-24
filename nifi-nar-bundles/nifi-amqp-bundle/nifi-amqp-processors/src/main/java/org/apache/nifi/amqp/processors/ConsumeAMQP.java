@@ -107,9 +107,9 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
             .description("The character that is used to separate key-value for header in String. The value must only one character. "
                     + "Otherwise it will be skipped and the default header separator(',') will be used."
                     + "The value of this parameter must be same to the value of parameter in PublishAMQP, when you use the PublishAMQP processor" )
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.SINGLE_CHAR_VALIDATOR)
             .defaultValue(",")
-            .required(true)
+            .required(false)
             .build();
 
 
@@ -176,7 +176,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
             final BasicProperties amqpProperties = response.getProps();
             final Envelope envelope = response.getEnvelope();
             final Map<String, String> attributes = buildAttributes(amqpProperties, envelope, context.getProperty(REMOVE_CURLY_BRACES).asBoolean(),
-                    getValueSeparatorChar(context.getProperty(HEADER_SEPARATOR).toString(), HEADER_SEPARATOR));
+                    context.getProperty(HEADER_SEPARATOR).toString().charAt(0));
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.getProvenanceReporter().receive(flowFile, connection.toString() + "/" + context.getProperty(QUEUE).getValue());
