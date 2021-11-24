@@ -27,9 +27,10 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
+import org.apache.nifi.snmp.dto.ErrorStatus;
+import org.apache.nifi.snmp.dto.SNMPResponseStatus;
 import org.apache.nifi.snmp.dto.SNMPSingleResponse;
 import org.apache.nifi.snmp.dto.SNMPValue;
-import org.apache.nifi.snmp.exception.SNMPException;
 import org.apache.nifi.snmp.factory.core.SNMPFactoryProvider;
 import org.apache.nifi.snmp.logging.SLF4JLogFactory;
 import org.apache.nifi.snmp.operations.SNMPResourceHandler;
@@ -110,51 +111,52 @@ abstract class AbstractSNMPProcessor extends AbstractProcessor {
         }
     }
 
-    protected void processResponse(final ProcessContext context, final ProcessSession processSession, final FlowFile flowFile, final SNMPSingleResponse response,
-                                   final String provenanceAddress, final Relationship success, final Relationship failure, final boolean isFlowFileCreated) {
-        try {
-            if (response.isValid()) {
-                if (response.isReportPdu()) {
-                    final String oid = response.getVariableBindings().get(0).getOid();
-                    final Optional<String> reportPduErrorMessage = SNMPUtils.getErrorMessage(oid);
-                    if (!reportPduErrorMessage.isPresent()) {
-                        throw new SNMPException(String.format("Report-PDU returned, but no error message found. " +
-                                "Please, check the OID %s in an online OID repository.", oid));
-                    }
-                    throw new SNMPException("Report-PDU returned. " + reportPduErrorMessage.get());
-                }
-                checkV2cV3VariableBindings(response);
-                processSession.putAllAttributes(flowFile, response.getAttributes());
-                processSession.transfer(flowFile, success);
-                if (isFlowFileCreated) {
-                    processSession.getProvenanceReporter().create(flowFile, provenanceAddress);
-                } else {
-                    processSession.getProvenanceReporter().receive(flowFile, provenanceAddress);
-                }
-            } else {
-                final String errorMessage = response.getErrorStatusText();
-                throw new SNMPException(errorMessage);
-            }
-        } catch (SNMPException e) {
-            getLogger().error("SNMP request failed, response error: " + e.getMessage());
-            processSession.putAllAttributes(flowFile, response.getAttributes());
+    protected void handleResponse(final ProcessContext context, final ProcessSession processSession, final FlowFile flowFile, final SNMPSingleResponse response,
+                                  final Relationship success, final Relationship failure, final String provenanceAddress) {
+        final SNMPResponseStatus snmpResponseStatus = processResponse(response);
+        processSession.putAllAttributes(flowFile, response.getAttributes());
+        if (snmpResponseStatus.getErrorStatus() == ErrorStatus.FAILURE) {
+            getLogger().error("SNMP request failed, response error: " + snmpResponseStatus.getErrorMessage());
+            processSession.getProvenanceReporter().modifyAttributes(flowFile, response.getTargetAddress() + provenanceAddress);
             processSession.transfer(flowFile, failure);
             context.yield();
+        } else {
+            processSession.getProvenanceReporter().modifyAttributes(flowFile, response.getTargetAddress() + provenanceAddress);
+            processSession.transfer(flowFile, success);
         }
     }
 
-    private void checkV2cV3VariableBindings(SNMPSingleResponse response) {
+    protected SNMPResponseStatus processResponse(final SNMPSingleResponse response) {
+        if (response.isValid()) {
+            if (response.isReportPdu()) {
+                final String oid = response.getVariableBindings().get(0).getOid();
+                final Optional<String> reportPduErrorMessage = SNMPUtils.getErrorMessage(oid);
+                if (!reportPduErrorMessage.isPresent()) {
+                    return new SNMPResponseStatus(String.format("Report-PDU returned, but no error message found. " +
+                            "Please, check the OID %s in an online OID repository.", oid), ErrorStatus.FAILURE);
+                }
+                return new SNMPResponseStatus("Report-PDU returned. " + reportPduErrorMessage.get(), ErrorStatus.FAILURE);
+            }
+            return checkV2cV3VariableBindings(response);
+        } else {
+            final String errorMessage = response.getErrorStatusText();
+            return new SNMPResponseStatus(errorMessage, ErrorStatus.FAILURE);
+        }
+    }
+
+    private SNMPResponseStatus checkV2cV3VariableBindings(SNMPSingleResponse response) {
         if (response.getVersion() == SnmpConstants.version2c || response.getVersion() == SnmpConstants.version3) {
             final Optional<SNMPValue> firstVariableBinding = response.getVariableBindings().stream().findFirst();
             if (firstVariableBinding.isPresent()) {
                 final String value = firstVariableBinding.get().getVariable();
                 if (NO_SUCH_OBJECT.equals(value)) {
-                    throw new SNMPException("OID not found.");
+                    return new SNMPResponseStatus("OID not found.", ErrorStatus.FAILURE);
                 }
             } else {
-                throw new SNMPException("Empty SNMP response: no variable binding found.");
+                return new SNMPResponseStatus("Empty SNMP response: no variable binding found.", ErrorStatus.FAILURE);
             }
         }
+        return new SNMPResponseStatus("Successful SNMP Response", ErrorStatus.SUCCESS);
     }
 
     protected abstract String getTargetHost(ProcessContext processContext);

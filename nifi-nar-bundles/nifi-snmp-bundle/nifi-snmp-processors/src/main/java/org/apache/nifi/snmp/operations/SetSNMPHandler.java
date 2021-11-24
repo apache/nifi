@@ -19,8 +19,6 @@ package org.apache.nifi.snmp.operations;
 import org.apache.nifi.snmp.dto.SNMPSingleResponse;
 import org.apache.nifi.snmp.exception.RequestTimeoutException;
 import org.apache.nifi.snmp.utils.SNMPUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.snmp4j.PDU;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
@@ -35,7 +33,6 @@ import java.util.Optional;
 import static org.apache.nifi.snmp.operations.SNMPResourceHandler.REQUEST_TIMEOUT_EXCEPTION_TEMPLATE;
 
 public class SetSNMPHandler {
-    private static final Logger logger = LoggerFactory.getLogger(SetSNMPHandler.class);
     private static PDUFactory setPduFactory = new DefaultPDUFactory(PDU.SET);
 
     private final SNMPResourceHandler snmpResourceHandler;

@@ -19,15 +19,11 @@ package org.apache.nifi.snmp.configuration;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.junit.Test;
 import org.snmp4j.mp.SnmpConstants;
-import org.snmp4j.smi.UdpAddress;
-import org.snmp4j.transport.DefaultUdpTransportMapping;
 
-import java.io.IOException;
-
-import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PASSPHRASE;
-import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PROTOCOL;
 import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.COMMUNITY_STRING;
 import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.DEFAULT_HOST;
+import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PASSPHRASE;
+import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PROTOCOL;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.PRIV_PASSPHRASE;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.PRIV_PROTOCOL;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.SECURITY_LEVEL;
@@ -41,14 +37,6 @@ public class SNMPConfigurationTest {
     private static final int RETRIES = 3;
     private static final int VERSION = SnmpConstants.version3;
     private static final int TIMEOUT_IN_MS = 3000;
-
-    @Test
-    public void test() throws IOException {
-        UdpAddress udpAddress = new UdpAddress(MANAGER_PORT);
-        DefaultUdpTransportMapping tm = new DefaultUdpTransportMapping(udpAddress);
-        System.out.println(tm.getListenAddress());
-        System.out.println(tm.getAddress());
-    }
 
     @Test
     public void testMembersAreSetCorrectly() {

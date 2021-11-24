@@ -28,9 +28,9 @@ import org.snmp4j.security.USM;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OctetString;
 
+import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.DEFAULT_HOST;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PASSPHRASE;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PROTOCOL;
-import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.DEFAULT_HOST;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.PRIV_PASSPHRASE;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.PRIV_PROTOCOL;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.SECURITY_NAME;

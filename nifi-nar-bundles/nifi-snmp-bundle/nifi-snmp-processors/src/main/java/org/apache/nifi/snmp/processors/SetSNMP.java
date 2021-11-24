@@ -114,14 +114,16 @@ public class SetSNMP extends AbstractSNMPProcessor {
                     processSession.remove(flowFile);
                     final FlowFile outgoingFlowFile = processSession.create();
                     final SNMPSingleResponse response = optionalResponse.get();
-                    processResponse(context, processSession, outgoingFlowFile, response, response.getTargetAddress() + "/set", REL_SUCCESS, REL_FAILURE, true);
+                    processSession.getProvenanceReporter().receive(outgoingFlowFile, "/set");
+                    handleResponse(context, processSession, outgoingFlowFile, response, REL_SUCCESS, REL_FAILURE, "/set");
                 } else {
                     getLogger().warn("No SNMP specific attributes found in flowfile.");
                     processSession.transfer(flowFile, REL_FAILURE);
                 }
             } catch (IOException e) {
                 getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.");
-                processError(context, processSession, flowFile);
+                processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
+                context.yield();
             }
         }
     }
@@ -144,11 +146,5 @@ public class SetSNMP extends AbstractSNMPProcessor {
     @Override
     protected String getTargetPort(ProcessContext processContext) {
         return processContext.getProperty(AGENT_PORT).getValue();
-    }
-
-
-    private void processError(final ProcessContext context, final ProcessSession processSession, final FlowFile flowFile) {
-        processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
-        context.yield();
     }
 }

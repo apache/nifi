@@ -21,14 +21,7 @@ import org.apache.nifi.snmp.helper.testrunners.SNMPV1TestRunnerFactory;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.snmp4j.agent.mo.DefaultMOFactory;
-import org.snmp4j.agent.mo.MOAccessImpl;
-import org.snmp4j.smi.OID;
-import org.snmp4j.smi.OctetString;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -36,8 +29,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class GetSNMPTest {
 

@@ -26,11 +26,6 @@ import org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory;
 import org.apache.nifi.snmp.helper.configurations.SNMPV1V2cConfigurationFactory;
 import org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory;
 import org.apache.nifi.snmp.testagents.TestAgent;
-import org.apache.nifi.util.MockFlowFile;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.snmp4j.CommunityTarget;
-import org.snmp4j.Snmp;
 import org.apache.nifi.snmp.testagents.TestSNMPV1Agent;
 import org.apache.nifi.snmp.testagents.TestSNMPV2cAgent;
 import org.apache.nifi.snmp.testagents.TestSNMPV3Agent;
@@ -107,12 +102,12 @@ public class SNMPRequestTest {
         registerManagedObjects(v3TestAgent);
     }
 
-    @BeforeEach
+    @Before
     public void initAgent() throws IOException {
         agent.start();
     }
 
-    @AfterEach
+    @After
     public void tearDown() {
         agent.stop();
         agent.unregister();

@@ -67,8 +67,8 @@ public class AbstractSNMPProcessorTest {
         when(mockResponse.getErrorStatusText()).thenReturn(errorStatus);
 
 
-        getSNMP.processResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, "provenanceAddress",
-                GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, false);
+        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress");
+
         final String actualLogMessage = getTestRunner.getLogger().getErrorMessages().get(0).getMsg();
         final String expectedLogMessage = String.format("SNMP request failed, response error: %s", errorStatus);
         assertTrue(actualLogMessage.contains(expectedLogMessage));
@@ -83,8 +83,8 @@ public class AbstractSNMPProcessorTest {
         when(mockResponse.getVariableBindings()).thenReturn(vbs);
 
 
-        getSNMP.processResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, "provenanceAddress",
-                GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, false);
+        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress");
+
 
         final String actualLogMessage = getTestRunner.getLogger().getErrorMessages().get(0).getMsg();
         final String expectedLogMessage = "SNMP request failed, response error: OID not found.";
@@ -98,8 +98,8 @@ public class AbstractSNMPProcessorTest {
 
         when(mockResponse.getVariableBindings()).thenReturn(Collections.emptyList());
 
-        getSNMP.processResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, "provenanceAddress",
-                GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, false);
+        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress");
+
 
         final String actualLogMessage = getTestRunner.getLogger().getErrorMessages().get(0).getMsg();
         final String expectedLogMessage = "Empty SNMP response: no variable binding found.";
@@ -117,8 +117,7 @@ public class AbstractSNMPProcessorTest {
         final Map<String, String> attributes = Collections.singletonMap(TEST_OID, "testOIDValue");
         when(mockResponse.getAttributes()).thenReturn(attributes);
 
-        getSNMP.processResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, "provenanceAddress",
-                GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, false);
+        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress");
         final List<MockFlowFile> flowFilesForRelationship = mockProcessSession.getFlowFilesForRelationship(GetSNMP.REL_SUCCESS);
 
         assertEquals("testOIDValue", flowFilesForRelationship.get(0).getAttribute(TEST_OID));
@@ -133,8 +132,8 @@ public class AbstractSNMPProcessorTest {
         when(mockResponse.getVariableBindings()).thenReturn(vbs);
 
 
-        getSNMP.processResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, "provenanceAddress",
-                GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, false);
+        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress");
+
 
         final String actualLogMessage = getTestRunner.getLogger().getErrorMessages().get(0).getMsg();
         final String expectedLogMessage = String.format("SNMP request failed, response error: Report-PDU returned, but no error message found. " +
@@ -152,8 +151,8 @@ public class AbstractSNMPProcessorTest {
         when(mockResponse.getVariableBindings()).thenReturn(vbs);
 
 
-        getSNMP.processResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, "provenanceAddress",
-                GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, false);
+        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress");
+
 
         final String actualLogMessage = getTestRunner.getLogger().getErrorMessages().get(0).getMsg();
         final String expectedLogMessage = String.format("SNMP request failed, response error: Report-PDU returned. %s: usmStatsUnsupportedSecLevels", UNSUPPORTED_SECURITY_LEVEL);
