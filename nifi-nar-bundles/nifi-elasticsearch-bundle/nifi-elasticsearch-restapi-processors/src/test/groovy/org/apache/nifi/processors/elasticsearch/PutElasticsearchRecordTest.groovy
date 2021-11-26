@@ -334,7 +334,7 @@ class PutElasticsearchRecordTest {
         runner.setProperty(PutElasticsearchRecord.RETAIN_ID_FIELD, "true")
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP, "100")
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/date")
-        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_DATE_FORMAT, "dd/MM/yyyy")
+        runner.setProperty(PutElasticsearchRecord.DATE_FORMAT, "dd/MM/yyyy")
         runner.setProperty(PutElasticsearchRecord.RETAIN_AT_TIMESTAMP_FIELD, "true")
         runner.enqueue(flowFileContents, [
             "schema.name": "recordPathTest",
@@ -437,6 +437,132 @@ class PutElasticsearchRecordTest {
         runner.enqueue(flowFileContents, [
                 "schema.name": "recordPathTest"
         ])
+        runner.run()
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+    }
+
+    @Test
+    void testDateTimeFormatting() {
+        def newSchema = prettyPrint(toJson([
+                type: "record",
+                name: "DateTimeFormattingTestType",
+                fields: [
+                        [ name: "msg", type: ["null", "string"] ],
+                        [ name: "ts", type: ["null", [ type: "long", logicalType: "timestamp-millis" ]] ],
+                        [ name: "date", type: ["null", [ type: "int", logicalType: "date" ]] ],
+                        [ name: "time", type: ["null", [ type: "int", logicalType: "time-millis" ]] ],
+                        [ name: "choice_ts", type: ["null", [ type: "long", logicalType: "timestamp-millis" ], "string"] ]
+                ]
+        ]))
+
+        def flowFileContents = prettyPrint(toJson([
+                [ msg: "1", ts: Timestamp.valueOf(LOCAL_DATE_TIME).toInstant().toEpochMilli() ],
+                [ msg: "2", date: Date.valueOf(LOCAL_DATE).getTime() ],
+                [ msg: "3", time: Time.valueOf(LOCAL_TIME).getTime() ],
+                [ msg: "4", choice_ts: Timestamp.valueOf(LOCAL_DATE_TIME).toInstant().toEpochMilli() ],
+                [ msg: "5",
+                  ts: Timestamp.valueOf(LOCAL_DATE_TIME).toInstant().toEpochMilli(),
+                  time: Time.valueOf(LOCAL_TIME).getTime(),
+                  date: Date.valueOf(LOCAL_DATE).getTime(),
+                  choice_ts: "not-timestamp"
+                ]
+        ]))
+
+        def evalClosure = { List<IndexOperationRequest> items ->
+            int msg = items.findAll { (it.fields.get("msg") != null) }.size()
+            int timestamp = items.findAll { it.fields.get("ts") ==
+                    LOCAL_DATE_TIME.format(DateTimeFormatter.ofPattern(RecordFieldType.TIMESTAMP.getDefaultFormat())) // "yyyy-MM-dd HH:mm:ss"
+            }.size()
+            int date = items.findAll { it.fields.get("date") ==
+                    LOCAL_DATE.format(DateTimeFormatter.ofPattern(RecordFieldType.DATE.getDefaultFormat())) // "yyyy-MM-dd"
+            }.size()
+            int time = items.findAll { it.fields.get("time") ==
+                    LOCAL_TIME.format(DateTimeFormatter.ofPattern(RecordFieldType.TIME.getDefaultFormat())) // "HH:mm:ss"
+            }.size()
+            int choiceTs = items.findAll { it.fields.get("choice_ts") ==
+                    LOCAL_DATE_TIME.format(DateTimeFormatter.ofPattern(RecordFieldType.TIMESTAMP.getDefaultFormat()))
+            }.size()
+            int choiceNotTs = items.findAll { it.fields.get("choice_ts") == "not-timestamp" }.size()
+            int atTimestampDefault = items.findAll { it.fields.get("@timestamp") == "test_timestamp" }.size()
+            int tsNull = items.findAll { it.fields.get("ts") == null }.size()
+            int dateNull = items.findAll { it.fields.get("date") == null }.size()
+            int timeNull = items.findAll { it.fields.get("time") == null }.size()
+            int choiceTsNull = items.findAll { it.fields.get("choice_ts") == null }.size()
+            Assert.assertEquals(5, msg)
+            Assert.assertEquals(2, timestamp)
+            Assert.assertEquals(2, date)
+            Assert.assertEquals(2, time)
+            Assert.assertEquals(1, choiceTs)
+            Assert.assertEquals(1, choiceNotTs)
+            Assert.assertEquals(3, tsNull)
+            Assert.assertEquals(3, dateNull)
+            Assert.assertEquals(3, timeNull)
+            Assert.assertEquals(3, choiceTsNull)
+            Assert.assertEquals(5, atTimestampDefault)
+        }
+
+        clientService.evalClosure = evalClosure
+
+        registry.addSchema("dateTimeFormattingTest", AvroTypeUtil.createSchema(new Schema.Parser().parse(newSchema)))
+
+        runner.enqueue(flowFileContents, [
+                "schema.name": "dateTimeFormattingTest"
+        ])
+
+        runner.run()
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+
+        runner.clearTransferState()
+
+        evalClosure = { List<IndexOperationRequest> items ->
+            String timestampOutput = LOCAL_DATE_TIME.format(DateTimeFormatter.ofPattern("yy MMM D H"))
+            int msg = items.findAll { (it.fields.get("msg") != null) }.size()
+            int timestamp = items.findAll { it.fields.get("ts") == timestampOutput }.size()
+            int date = items.findAll { it.fields.get("date") ==
+                    LOCAL_DATE.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            }.size()
+            int time = items.findAll { it.fields.get("time") ==
+                    // converted to a Long because the output is completely numerical
+                    Long.parseLong(LOCAL_TIME.format(DateTimeFormatter.ofPattern("HHmmss")))
+            }.size()
+            int choiceTs = items.findAll { it.fields.get("choice_ts") == timestampOutput }.size()
+            int choiceNotTs = items.findAll { it.fields.get("choice_ts") == "not-timestamp" }.size()
+            int atTimestampDefault = items.findAll { it.fields.get("@timestamp") == "test_timestamp" }.size()
+            int atTimestamp = items.findAll { it.fields.get("@timestamp") == timestampOutput }.size()
+            int tsNull = items.findAll { it.fields.get("ts") == null }.size()
+            int dateNull = items.findAll { it.fields.get("date") == null }.size()
+            int timeNull = items.findAll { it.fields.get("time") == null }.size()
+            int choiceTsNull = items.findAll { it.fields.get("choice_ts") == null }.size()
+            Assert.assertEquals(5, msg)
+            Assert.assertEquals(2, timestamp)
+            Assert.assertEquals(2, date)
+            Assert.assertEquals(2, time)
+            Assert.assertEquals(1, choiceTs)
+            Assert.assertEquals(1, choiceNotTs)
+            Assert.assertEquals(3, tsNull)
+            Assert.assertEquals(3, dateNull)
+            Assert.assertEquals(3, timeNull)
+            Assert.assertEquals(3, choiceTsNull)
+            Assert.assertEquals(2, atTimestamp)
+            Assert.assertEquals(3, atTimestampDefault)
+        }
+
+        clientService.evalClosure = evalClosure
+
+        runner.setProperty(PutElasticsearchRecord.TIMESTAMP_FORMAT, "yy MMM D H")
+        runner.setProperty(PutElasticsearchRecord.DATE_FORMAT, "dd/MM/yyyy")
+        runner.setProperty(PutElasticsearchRecord.TIME_FORMAT, "HHmmss")
+        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/ts")
+        runner.setProperty(PutElasticsearchRecord.RETAIN_AT_TIMESTAMP_FIELD, "true")
+
+        runner.enqueue(flowFileContents, [
+                "schema.name": "dateTimeFormattingTest"
+        ])
+
         runner.run()
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
