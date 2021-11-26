@@ -510,5 +510,4 @@ public class StringUtils {
                 .map(word -> Character.toTitleCase(word.charAt(0)) + word.substring(1))
                 .collect(Collectors.joining(" "));
     }
-
 }

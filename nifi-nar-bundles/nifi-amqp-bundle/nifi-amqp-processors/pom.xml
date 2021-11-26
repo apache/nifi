@@ -21,7 +21,6 @@ language governing permissions and limitations under the License. -->
 
     <properties>
         <amqp-client.version>5.8.0</amqp-client.version>
-        <common-text.version>1.8</common-text.version>
         <guava.version>28.0-jre</guava.version>
     </properties>
 

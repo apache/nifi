@@ -46,6 +46,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 
+
 /**
  * Base processor that uses RabbitMQ client API
  * (https://www.rabbitmq.com/api-guide.html) to rendezvous with AMQP-based
@@ -344,5 +345,4 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             throw new IllegalStateException("Failed to establish connection with AMQP Broker: " + cf.toString(), e);
         }
     }
-
 }

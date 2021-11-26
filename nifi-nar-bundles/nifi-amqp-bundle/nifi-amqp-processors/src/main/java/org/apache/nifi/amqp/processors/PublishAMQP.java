@@ -99,18 +99,15 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
     public static final PropertyDescriptor HEADER_SEPARATOR = new PropertyDescriptor.Builder()
             .name("header.separator")
             .displayName("Header Separator")
             .description("The character that is used to split key-value for headers. The value must only one character. "
-                    + "Otherwise it will be skipped and the default header separator(comma',') will be used. "
-                    + "The value of this parameter must be same to the value of parameter in ConsumeAMQP, when you use the ConsumeAMQP processor" )
+                    + "Otherwise you will get an error message")
             .defaultValue(",")
             .addValidator(StandardValidators.SINGLE_CHAR_VALIDATOR)
             .required(false)
             .build();
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles that are sent to the AMQP destination are routed to this relationship")

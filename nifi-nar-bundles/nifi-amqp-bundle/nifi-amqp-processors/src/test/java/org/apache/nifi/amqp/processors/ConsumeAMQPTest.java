@@ -192,7 +192,6 @@ public class ConsumeAMQPTest {
             String headers = successFF.getAttribute("amqp$headers");
             Map<String, String> properties = Splitter.on("|").withKeyValueSeparator("=").split(headers.substring(1,headers.length()-1));
             Assert.assertEquals(headersMap,properties);
-
         }
     }
     @Test
@@ -262,7 +261,6 @@ public class ConsumeAMQPTest {
             String headers = successFF.getAttribute("amqp$headers");
             Map<String, String> properties = Splitter.on("|").withKeyValueSeparator("=").split(headers);
             Assert.assertEquals(headersMap,properties);
-
         }
     }
 
@@ -293,7 +291,6 @@ public class ConsumeAMQPTest {
             String headers = successFF.getAttribute("amqp$headers");
             Map<String, String> properties = Splitter.on(",").withKeyValueSeparator("=").split(headers.substring(1,headers.length()-1));
             Assert.assertEquals(headersMap,properties);
-
         }
     }
 

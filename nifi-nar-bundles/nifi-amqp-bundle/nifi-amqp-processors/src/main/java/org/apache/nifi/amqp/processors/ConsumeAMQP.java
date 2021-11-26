@@ -45,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 @Tags({"amqp", "rabbit", "get", "message", "receive", "consume"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Consumes AMQP Messages from an AMQP Broker using the AMQP 0.9.1 protocol. Each message that is received from the AMQP Broker will be "
@@ -100,19 +99,15 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .defaultValue("10")
         .required(true)
         .build();
-
     public static final PropertyDescriptor HEADER_SEPARATOR = new PropertyDescriptor.Builder()
-            .name("header.separator")
-            .displayName("Header Separator")
-            .description("The character that is used to separate key-value for header in String. The value must only one character. "
-                    + "Otherwise it will be skipped and the default header separator(',') will be used."
-                    + "The value of this parameter must be same to the value of parameter in PublishAMQP, when you use the PublishAMQP processor" )
-            .addValidator(StandardValidators.SINGLE_CHAR_VALIDATOR)
-            .defaultValue(",")
-            .required(false)
-            .build();
-
-
+       .name("header.separator")
+       .displayName("Header Separator")
+       .description("The character that is used to separate key-value for header in String. The value must only one character."
+               + "Otherwise you will get an error message")
+       .addValidator(StandardValidators.SINGLE_CHAR_VALIDATOR)
+       .defaultValue(",")
+       .required(false)
+       .build();
     static final PropertyDescriptor REMOVE_CURLY_BRACES = new PropertyDescriptor.Builder()
         .name("remove.curly.braces")
         .displayName("Remove Curly Braces")
@@ -232,7 +227,6 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         }
         return headerString;
     }
-
 
     @Override
     protected synchronized AMQPConsumer createAMQPWorker(final ProcessContext context, final Connection connection) {

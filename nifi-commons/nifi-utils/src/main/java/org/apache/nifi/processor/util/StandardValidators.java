@@ -990,15 +990,6 @@ public class StandardValidators {
                     .explanation("Input is null for this property")
                     .build();
         }
-
-        if (input.isEmpty()) {
-            return new ValidationResult.Builder()
-                    .input(input)
-                    .subject(subject)
-                    .valid(false)
-                    .explanation("Value must be exactly 1 character but was 0 in length")
-                    .build();
-        }
         if (input.length() != 1) {
             return new ValidationResult.Builder()
                     .input(input)
@@ -1008,7 +999,6 @@ public class StandardValidators {
                     .build();
         }
         return new ValidationResult.Builder().input(input).subject(subject).valid(true).build();
-
     };
 
 }
