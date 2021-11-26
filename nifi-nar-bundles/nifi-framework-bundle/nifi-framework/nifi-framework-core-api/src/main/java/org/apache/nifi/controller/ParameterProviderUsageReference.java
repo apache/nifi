@@ -17,6 +17,7 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterGroupKey;
 import org.apache.nifi.parameter.ParameterSensitivity;
 
 public class ParameterProviderUsageReference {
@@ -36,5 +37,18 @@ public class ParameterProviderUsageReference {
 
     public ParameterSensitivity getSensitivity() {
         return sensitivity;
+    }
+
+    /**
+     * @param groupKey A ParameterGroupKey
+     * @return True if this reference parameter context's name matches (ignoring ase) the group key name, as well as sensitivity
+     */
+    public boolean matchesParameterGroup(final ParameterGroupKey groupKey) {
+        if (groupKey == null) {
+            return false;
+        }
+
+        return groupKey.getSensitivity() == sensitivity
+                && (groupKey.getGroupName() == null || groupKey.getGroupName().equalsIgnoreCase(parameterContext.getName()));
     }
 }

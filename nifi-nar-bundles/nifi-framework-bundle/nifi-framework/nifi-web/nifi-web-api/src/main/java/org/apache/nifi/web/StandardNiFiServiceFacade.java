@@ -3458,7 +3458,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                             ));
                     final Set<ParameterEntity> updatedParameterEntities = new LinkedHashSet<>();
                     entity.getComponent().setParameters(updatedParameterEntities);
-                    for(final Map.Entry<String, Parameter> parameterEntry : parameterUpdates.entrySet()) {
+                    for (final Map.Entry<String, Parameter> parameterEntry : parameterUpdates.entrySet()) {
                         final String parameterName = parameterEntry.getKey();
                         final Parameter parameter = parameterEntry.getValue();
                         final ParameterEntity parameterEntity;

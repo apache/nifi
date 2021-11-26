@@ -23,6 +23,7 @@ import org.apache.nifi.parameter.AbstractParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.parameter.ProvidedParameterGroup;
 
 import java.util.ArrayList;
@@ -58,6 +59,6 @@ public class DummyParameterProvider extends AbstractParameterProvider implements
                     return new Parameter(parameterDescriptor, parameterName + "-value", null, true);
                 })
                 .collect(Collectors.toList());
-        return Collections.singletonList(new ProvidedParameterGroup(parameters));
+        return Collections.singletonList(new ProvidedParameterGroup(ParameterSensitivity.NON_SENSITIVE, parameters));
     }
 }

@@ -124,7 +124,7 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
         // perform the update
         configureParameterProvider(parameterProvider, parameterProviderDTO);
 
-        // attempt to change the underlying processor if an updated bundle is specified
+        // attempt to change the underlying parameter provider if an updated bundle is specified
         // updating the bundle must happen after configuring so that any additional classpath resources are set first
         updateBundle(parameterProvider, parameterProviderDTO);
 

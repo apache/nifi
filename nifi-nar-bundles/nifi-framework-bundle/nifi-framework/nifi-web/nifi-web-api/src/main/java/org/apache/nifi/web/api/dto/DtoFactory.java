@@ -1689,7 +1689,7 @@ public final class DtoFactory {
 
         final Collection<ProvidedParameterNameGroup> fetchedParameterNameGroups = parameterProviderNode.getFetchedParameterNames();
         dto.setFetchedParameterNameGroups(new LinkedHashSet<>(fetchedParameterNameGroups.stream()
-                .sorted(Comparator.nullsFirst(Comparator.comparing(ProvidedParameterNameGroup::getGroupName)))
+                .sorted()
                 .map(this::getProvidedParameterNamesEntity)
                 .collect(Collectors.toList())));
 
@@ -1733,8 +1733,9 @@ public final class DtoFactory {
 
     private ProvidedParameterNameGroupEntity getProvidedParameterNamesEntity(final ProvidedParameterNameGroup providedParameterNameGroup) {
         final ProvidedParameterNameGroupEntity entity = new ProvidedParameterNameGroupEntity();
-        entity.setGroupName(providedParameterNameGroup.getGroupName());
-        final List<String> parameterNames = new ArrayList<>(providedParameterNameGroup.getParameterNames());
+        entity.setGroupName(providedParameterNameGroup.getGroupKey().getGroupName());
+        entity.setSensitivity(providedParameterNameGroup.getGroupKey().getSensitivity().name());
+        final List<String> parameterNames = new ArrayList<>(providedParameterNameGroup.getItems());
         Collections.sort(parameterNames);
         entity.setParameterNames(new LinkedHashSet<>(parameterNames));
         return entity;

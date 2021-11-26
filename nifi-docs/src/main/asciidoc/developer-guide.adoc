@@ -64,8 +64,7 @@ high-level description of the most common extension points:
 
 - ParameterProvider
     * The ParameterProvider interface allows Parameters to be provided by external sources.  Provided parameters
-      are still stored in Parameter Contexts, but this mechanism allows them to be provided and managed externally,
-      and even automatically updated in NiFi if opted in.
+      are still stored in Parameter Contexts, but this mechanism allows them to be provided and managed externally.
 
 - ControllerService
     * A ControllerService provides shared state and functionality across Processors, other ControllerServices,
@@ -2062,8 +2061,7 @@ interface allows an extension point for providing parameters to
 Parameter Contexts.  Each Parameter Context can be configured
 optionally with a Sensitive and a Non-Sensitive `ParameterProvider`,
 and provided Parameters can be fetched and applied to their
-referencing Parameter Contexts either on-demand or periodically if
-opted in.
+referencing Parameter Contexts.
 
 This extensibility allows parameters to be both initially provided and
 managed external to NiFi.
@@ -2073,8 +2071,7 @@ managed external to NiFi.
 
 The ParameterProvider interface exposes methods for
 configuration, validation, and initialization. These methods are all
-identical to those of the
-Processor and ControllerService interfaces except that the
+identical to those of the Processor and ControllerService interfaces except that the
 `initialize` method is passed a `ParameterProviderInitializationContext`
 object, as opposed to the initialization objects received by the other
 Components. The ParameterProvider also has

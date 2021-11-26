@@ -27,12 +27,11 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Tags({"environment", "variable"})
 @CapabilityDescription("Fetches parameters from environment variables")
@@ -44,18 +43,20 @@ import java.util.stream.Collectors;
 public class EnvironmentVariableParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
     private final Map<String, String> environmentVariables = System.getenv();
 
-    public static final PropertyDescriptor INCLUDE_REGEX = new PropertyDescriptor.Builder()
-            .name("include-regex")
-            .displayName("Include Regex")
-            .description("A Regular Expression indicating which Environment Variables to include as parameters.")
+    public static final PropertyDescriptor SENSITIVE_PARAMETER_REGEX = new PropertyDescriptor.Builder()
+            .name("sensitive-parameter-regex")
+            .displayName("Sensitive Parameter Regex")
+            .description("A Regular Expression indicating which Environment Variables to include as sensitive parameters.  Any that this pattern " +
+                    " are automatically excluded from the non-sensitive parameters.  If not specified, no sensitive parameters will be included.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .required(true)
-            .defaultValue(".*")
+            .required(false)
             .build();
-    public static final PropertyDescriptor EXCLUDE_REGEX = new PropertyDescriptor.Builder()
-            .name("exclude-regex")
-            .displayName("Exclude Regex")
-            .description("A Regular Expression indicating which Environment Variables to exclude as parameters.")
+    public static final PropertyDescriptor NON_SENSITIVE_PARAMETER_REGEX = new PropertyDescriptor.Builder()
+            .name("non-sensitive-parameter-regex")
+            .displayName("Non-Sensitive Parameter Regex")
+            .description("A Regular Expression indicating which Environment Variables to include as non-sensitive parameters.  If the Sensitive Parameter Regex " +
+                    "is specified, Environment Variables matching that Regex will be excluded from the non-sensitive parameters.  " +
+                    "If not specified, no non-sensitive parameters will be included.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .required(false)
             .build();
@@ -65,8 +66,8 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
     @Override
     protected void init(final ParameterProviderInitializationContext config) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(INCLUDE_REGEX);
-        properties.add(EXCLUDE_REGEX);
+        properties.add(SENSITIVE_PARAMETER_REGEX);
+        properties.add(NON_SENSITIVE_PARAMETER_REGEX);
 
         this.properties = Collections.unmodifiableList(properties);
     }
@@ -78,48 +79,63 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
 
     @Override
     public List<ProvidedParameterGroup> fetchParameters(final ConfigurationContext context) {
-        final Pattern includePattern = Pattern.compile(context.getProperty(INCLUDE_REGEX).getValue());
-        final Pattern excludePattern = context.getProperty(EXCLUDE_REGEX).isSet()
-                ? Pattern.compile(context.getProperty(EXCLUDE_REGEX).getValue())
+        final Pattern sensitivePattern = context.getProperty(SENSITIVE_PARAMETER_REGEX).isSet()
+                ? Pattern.compile(context.getProperty(SENSITIVE_PARAMETER_REGEX).getValue())
+                : null;
+        final Pattern nonSensitivePattern = context.getProperty(NON_SENSITIVE_PARAMETER_REGEX).isSet()
+                ? Pattern.compile(context.getProperty(NON_SENSITIVE_PARAMETER_REGEX).getValue())
                 : null;
 
-        final List<Parameter> parameters = environmentVariables.entrySet().stream()
-                .filter(entry -> includePattern.matcher(entry.getKey()).matches())
-                .filter(entry -> excludePattern == null || !excludePattern.matcher(entry.getKey()).matches())
-                .map(entry -> {
-                    final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
-                            .name(entry.getKey())
-                            .build();
-                    return new Parameter(parameterDescriptor, entry.getValue(), null, true);
-                })
-                .collect(Collectors.toList());
-        return Collections.singletonList(new ProvidedParameterGroup(parameters));
+        final List<Parameter> sensitiveParameters = new ArrayList<>();
+        final List<Parameter> nonSensitiveParameters = new ArrayList<>();
+        environmentVariables.forEach( (key, value) -> {
+            final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(key).build();
+            final Parameter parameter = new Parameter(parameterDescriptor, value, null, true);
+            boolean sensitiveMatch = false;
+            if (sensitivePattern != null && sensitivePattern.matcher(key).matches()) {
+                sensitiveParameters.add(parameter);
+                sensitiveMatch = true;
+            }
+            if (nonSensitivePattern != null && nonSensitivePattern.matcher(key).matches()) {
+                if (!sensitiveMatch) {
+                    nonSensitiveParameters.add(parameter);
+                }
+            }
+        });
+        return Arrays.asList(
+                new ProvidedParameterGroup(ParameterSensitivity.SENSITIVE, sensitiveParameters),
+                new ProvidedParameterGroup(ParameterSensitivity.NON_SENSITIVE, nonSensitiveParameters));
     }
 
     @Override
     public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger) {
-        final Pattern includePattern = Pattern.compile(context.getProperty(INCLUDE_REGEX).getValue());
-        final Pattern excludePattern = context.getProperty(EXCLUDE_REGEX).isSet()
-                ? Pattern.compile(context.getProperty(EXCLUDE_REGEX).getValue())
-                : null;
+        final List<ConfigVerificationResult> results = new ArrayList<>();
 
-        final Set<String> includedVariables = environmentVariables.keySet().stream()
-                .filter(key -> includePattern.matcher(key).matches())
-                .collect(Collectors.toSet());
-
-        final String verificationMessage;
-        if (excludePattern == null) {
-            verificationMessage = String.format("Included %s environment variables matching the filter.", includedVariables.size());
-        } else {
-            final int finalCount = Long.valueOf(includedVariables.stream()
-                    .filter(key -> !excludePattern.matcher(key).matches())
-                    .count()).intValue();
-            verificationMessage = String.format("Included %s environment variables matching the filter, and excluded %s of these, resulting in a total of %s parameters.", includedVariables.size(),
-                    (includedVariables.size() - finalCount), finalCount);
+        try {
+            final List<ProvidedParameterGroup> parameterGroups = fetchParameters(context);
+            int sensitiveCount = 0;
+            int nonSensitiveCount = 0;
+            for (final ProvidedParameterGroup group : parameterGroups) {
+                if (group.getGroupKey().getSensitivity() == ParameterSensitivity.SENSITIVE) {
+                    sensitiveCount += group.getItems().size();
+                }
+                if (group.getGroupKey().getSensitivity() == ParameterSensitivity.NON_SENSITIVE) {
+                    nonSensitiveCount += group.getItems().size();
+                }
+            }
+            results.add(new ConfigVerificationResult.Builder()
+                    .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                    .verificationStepName("Fetch Environment Variables")
+                    .explanation(String.format("Fetched %s Environment Variables as sensitive parameters and %s Environment Variables as non-sensitive parameters", sensitiveCount, nonSensitiveCount))
+                    .build());
+        } catch (final IllegalArgumentException e) {
+            verificationLogger.error("Failed to fetch parameters", e);
+            results.add(new ConfigVerificationResult.Builder()
+                    .outcome(ConfigVerificationResult.Outcome.FAILED)
+                    .verificationStepName("Fetch Environment Variables")
+                    .explanation("Failed to fetch parameters: " + e.getMessage())
+                    .build());
         }
-        return Collections.singletonList(new ConfigVerificationResult.Builder()
-                .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
-                .verificationStepName("Fetch Environment Variables")
-                .explanation(verificationMessage).build());
+        return results;
     }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.nifi;
 
+import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.AbstractWritableResult;
 import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
@@ -30,7 +31,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 public class ParamProviderResult extends AbstractWritableResult<ParameterProviderEntity> {
@@ -49,7 +49,7 @@ public class ParamProviderResult extends AbstractWritableResult<ParameterProvide
         final Collection<ProvidedParameterNameGroupEntity> fetchedParameterNameGroups = parameterProviderDTO.getFetchedParameterNameGroups();
         final List<ProvidedParameterNameGroupEntity> sortedParameterNameGroups = fetchedParameterNameGroups == null
                 ? Collections.emptyList() : new ArrayList<>(parameterProviderDTO.getFetchedParameterNameGroups());
-        Collections.sort(sortedParameterNameGroups, Comparator.nullsFirst(Comparator.comparing(ProvidedParameterNameGroupEntity::getGroupName)));
+        Collections.sort(sortedParameterNameGroups);
 
         final Table propertiesTable = new Table.Builder()
                 .column("Property Name", 20, 60, false)
@@ -60,6 +60,7 @@ public class ParamProviderResult extends AbstractWritableResult<ParameterProvide
         }
         final Table fetchedParametersTable = new Table.Builder()
                 .column("Parameter Group", 20, 60, false)
+                .column("Parameter Group Sensitivity", 20, 60, false)
                 .column("Fetched Parameter Name", 20, 60, false)
                 .build();
         if (!sortedParameterNameGroups.isEmpty()) {
@@ -67,7 +68,9 @@ public class ParamProviderResult extends AbstractWritableResult<ParameterProvide
                 group.getParameterNames().stream().sorted()
                         .forEach(param -> fetchedParametersTable.addRow(new String[] {
                                 group.getGroupName() == null ? "<none>" : group.getGroupName(),
-                                param }));
+                                ParameterSensitivity.valueOf(group.getSensitivity()).getName(),
+                                param
+                        }));
             });
         }
 

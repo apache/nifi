@@ -70,13 +70,14 @@ public interface ParameterProvider extends ConfigurableComponent {
      * Fetches named groups of parameters from an external source.
      *
      * Any referencing Parameter Context will only receive the Parameters from a group if the Parameter Context name matches
-     * the group name (ignoring case).
+     * the group name (ignoring case) and the reference sensitivity matches the group sensitivity.
      *
      * If group name is null, all referencing Parameter Contexts will receive the Parameters in that group,
      * regardless of their name.
      *
-     * If more than one ProvidedParameterGroup matches a given ParameterContext, only the parameters from the first group in the
-     * list will be applied.
+     * If more than one ProvidedParameterGroup matches a given ParameterContext, all parameters from these groups will be
+     * applied.  However, if any parameters among these matching groups have the same name but different value, the framework
+     * will throw a <code>RuntimeException</code>
      *
      * @param context The <code>ConfigurationContext</code>for the provider
      * @return A list of fetched Parameter groups.  The framework will set the sensitivity appropriately based on how the ParameterProvider

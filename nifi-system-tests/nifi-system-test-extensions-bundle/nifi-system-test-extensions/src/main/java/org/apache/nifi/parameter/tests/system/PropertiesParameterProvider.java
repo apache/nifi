@@ -22,12 +22,14 @@ import org.apache.nifi.parameter.AbstractParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.parameter.ProvidedParameterGroup;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -38,30 +40,46 @@ import java.util.stream.Collectors;
  */
 public class PropertiesParameterProvider extends AbstractParameterProvider implements ParameterProvider {
 
-
-    private PropertyDescriptor PARAMETERS = new PropertyDescriptor.Builder()
-            .name("Parameters")
-            .displayName("Parameters")
-            .description("Specifies parameters in a properties file format")
+    private PropertyDescriptor SENSITIVE_PARAMETERS = new PropertyDescriptor.Builder()
+            .name("sensitive-parameters")
+            .displayName("Sensitive Parameters")
+            .description("Specifies sensitive parameters in a properties file format")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
+            .required(false)
+            .build();
+    private PropertyDescriptor NON_SENSITIVE_PARAMETERS = new PropertyDescriptor.Builder()
+            .name("non-sensitive-parameters")
+            .displayName("Non-Sensitive Parameters")
+            .description("Specifies non-sensitive parameters in a properties file format")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
             .build();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.singletonList(PARAMETERS);
+        return Arrays.asList(SENSITIVE_PARAMETERS, NON_SENSITIVE_PARAMETERS);
     }
 
     @Override
     public List<ProvidedParameterGroup> fetchParameters(final ConfigurationContext context) {
-        final String parametersPropertiesValue = context.getProperty(PARAMETERS).getValue();
+
+        final List<Parameter> sensitiveParameters = context.getProperty(SENSITIVE_PARAMETERS).isSet()
+                ? fetchParametersFromProperties(context.getProperty(SENSITIVE_PARAMETERS).getValue())
+                : Collections.emptyList();
+        final List<Parameter> nonSensitiveParameters = context.getProperty(NON_SENSITIVE_PARAMETERS).isSet()
+                ? fetchParametersFromProperties(context.getProperty(NON_SENSITIVE_PARAMETERS).getValue())
+                : Collections.emptyList();
+        return Arrays.asList(new ProvidedParameterGroup(ParameterSensitivity.SENSITIVE, sensitiveParameters), new ProvidedParameterGroup(ParameterSensitivity.NON_SENSITIVE, nonSensitiveParameters));
+    }
+
+    private List<Parameter> fetchParametersFromProperties(final String parametersPropertiesValue) {
         final Properties parameters = new Properties();
         try {
             parameters.load(new ByteArrayInputStream(parametersPropertiesValue.getBytes(StandardCharsets.UTF_8)));
         } catch (final IOException e) {
             throw new RuntimeException("Could not parse parameters as properties: " + parametersPropertiesValue);
         }
-        final List<Parameter> parameterList = parameters.entrySet().stream()
+       return parameters.entrySet().stream()
                 .map(entry -> {
                     final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
                             .name(entry.getKey().toString())
@@ -69,6 +87,5 @@ public class PropertiesParameterProvider extends AbstractParameterProvider imple
                     return new Parameter(parameterDescriptor, entry.getValue().toString(), null, true);
                 })
                 .collect(Collectors.toList());
-        return Collections.singletonList(new ProvidedParameterGroup(parameterList));
     }
 }

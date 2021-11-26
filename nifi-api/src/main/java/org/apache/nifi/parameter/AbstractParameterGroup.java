@@ -16,30 +16,45 @@
  */
 package org.apache.nifi.parameter;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.Collection;
 
-/**
- * Encapsulates a named group of externally fetched parameters that can be provided to referencing Parameter Contexts.
- */
-public class ProvidedParameterGroup extends AbstractParameterGroup<Parameter> {
+public abstract class AbstractParameterGroup<T> {
+
+    private final ParameterGroupKey groupKey;
+
+    private final Collection<T> items;
 
     /**
      * Creates a named parameter group with a specific sensitivity.
      * @param groupName The parameter group name
      * @param sensitivity The parameter sensitivity
-     * @param parameters A list of parameters
+     * @param items A collection of grouped items
      */
-    public ProvidedParameterGroup(final String groupName, final ParameterSensitivity sensitivity, final List<Parameter> parameters) {
-        super(groupName, sensitivity, Collections.unmodifiableList(parameters));
+    protected AbstractParameterGroup(final String groupName, final ParameterSensitivity sensitivity, final Collection<T> items) {
+        this.groupKey = new ParameterGroupKey(groupName, sensitivity);
+        this.items = items;
     }
 
     /**
      * Creates an unnamed parameter group with a specific sensitivity.
      * @param sensitivity The parameter sensitivity
-     * @param parameters A list of parameters
+     * @param items A collection of grouped items
      */
-    public ProvidedParameterGroup(final ParameterSensitivity sensitivity, final List<Parameter> parameters) {
-        super(sensitivity, Collections.unmodifiableList(parameters));
+    public AbstractParameterGroup(final ParameterSensitivity sensitivity, final Collection<T> items) {
+        this(null, sensitivity, items);
+    }
+
+    /**
+     * @return The group key
+     */
+    public ParameterGroupKey getGroupKey() {
+        return groupKey;
+    }
+
+    /**
+     * @return The collection of grouped items
+     */
+    public Collection<T> getItems() {
+        return items;
     }
 }

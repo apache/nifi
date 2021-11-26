@@ -16,21 +16,48 @@
  */
 package org.apache.nifi.parameter;
 
+import java.util.Collections;
 import java.util.Set;
 
 /**
- * Encapsulates a named group of externally fetched parameter names.
+ * Encapsulates a named group of externally fetched parameters names.
  */
-public interface ProvidedParameterNameGroup {
+public class ProvidedParameterNameGroup extends AbstractParameterGroup<String> implements Comparable<ProvidedParameterNameGroup> {
 
     /**
-     *
-     * @return The name of the parameter group
+     * Creates a named group of parameter names with a specific sensitivity.
+     * @param groupName The parameter group name
+     * @param sensitivity The parameter sensitivity
+     * @param parameterNames A set of parameter names
      */
-    String getGroupName();
+    public ProvidedParameterNameGroup(final String groupName, final ParameterSensitivity sensitivity, final Set<String> parameterNames) {
+        super(groupName, sensitivity, Collections.unmodifiableSet(parameterNames));
+    }
 
     /**
-     * @return The names of the provided parameters.
+     * Creates an unnamed group of parameter names with a specific sensitivity.
+     * @param sensitivity The parameter sensitivity
+     * @param parameterNames A set of parameter names
      */
-    Set<String> getParameterNames();
+    public ProvidedParameterNameGroup(final ParameterSensitivity sensitivity, final Set<String> parameterNames) {
+        super(sensitivity, Collections.unmodifiableSet(parameterNames));
+    }
+
+    @Override
+    public int compareTo(final ProvidedParameterNameGroup other) {
+        if (other == null) {
+            return -1;
+        }
+
+        final String groupName = getGroupKey().getGroupName();
+        final String otherGroupName = other.getGroupKey().getGroupName();
+
+        if (groupName == null) {
+            return otherGroupName == null ? 0 : -1;
+        }
+        if (otherGroupName == null) {
+            return 1;
+        }
+        return groupName.compareTo(otherGroupName);
+    }
 }

@@ -229,12 +229,12 @@ public class ParameterContextIT extends NiFiSystemIT {
 
         final ParameterProviderEntity nonSensitiveProvider = createParameterProvider("PropertiesParameterProvider");
         final Map<String, String> nonSensitiveProviderProperties = new HashMap<>();
-        nonSensitiveProviderProperties.put("Parameters", "non.sensitive=non-sensitive value");
+        nonSensitiveProviderProperties.put("non-sensitive-parameters", "non.sensitive=non-sensitive value");
         updateParameterProviderProperties(nonSensitiveProvider, nonSensitiveProviderProperties);
 
         final ParameterProviderEntity sensitiveProvider = createParameterProvider("PropertiesParameterProvider");
         final Map<String, String> sensitiveProviderProperties = new HashMap<>();
-        sensitiveProviderProperties.put("Parameters", "sensitive=My sensitive value");
+        sensitiveProviderProperties.put("sensitive-parameters", "sensitive=My sensitive value");
         updateParameterProviderProperties(sensitiveProvider, sensitiveProviderProperties);
 
         final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, Collections.emptySet(),
@@ -256,7 +256,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         waitForValidProcessor(processorId);
 
         // Map the parameter name
-        sensitiveProviderProperties.put("Parameters", "sensitive.other.parameter=My sensitive value");
+        sensitiveProviderProperties.put("sensitive-parameters", "sensitive.other.parameter=My sensitive value");
         sensitiveProviderProperties.put("sensitive.other.parameter", "sensitive"); // Map raw parameter named 'sensitive.other.parameter' to one named 'sensitive' in the parameter context
 
         // Should still get the 'sensitive' parameter
@@ -280,9 +280,21 @@ public class ParameterContextIT extends NiFiSystemIT {
         // Processor is still valid with user-entered parameter
         waitForValidProcessor(processorId);
 
-        // Can't set the same provider for both sensitivities
-        assertThrows(NiFiClientException.class, () -> updateParameterContext(updatedContextEntity, Collections.emptyMap(), Collections.emptyList(), sensitiveProvider, sensitiveProvider));
-        assertThrows(NiFiClientException.class, () -> updateParameterContext(updatedContextEntity, Collections.emptyMap(), Collections.emptyList(), nonSensitiveProvider, nonSensitiveProvider));
+        // May set the same provider for both sensitivities
+        sensitiveProviderProperties.put("sensitive-parameters", "sensitive=My sensitive value");
+        sensitiveProviderProperties.put("non-sensitive-parameters", "non.sensitive=My non-sensitive value");
+        updateParameterProviderProperties(sensitiveProvider, sensitiveProviderProperties);
+
+        updateParameterContext(updatedContextEntity, Collections.emptyMap(), Collections.emptyList(), sensitiveProvider, sensitiveProvider);
+
+        fetchAndWaitForAppliedParameters(sensitiveProvider);
+
+        // However, may not fetch parameters provided with both sensitivities
+        sensitiveProviderProperties.put("sensitive-parameters", "sensitive=My sensitive value");
+        sensitiveProviderProperties.put("non-sensitive-parameters", "sensitive=My erroneous value that is both sensitive and non-sensitive");
+        updateParameterProviderProperties(sensitiveProvider, sensitiveProviderProperties);
+
+        assertThrows(NiFiClientException.class, () -> fetchAndWaitForAppliedParameters(sensitiveProvider));
     }
 
     @Test

@@ -41,7 +41,7 @@ public class SetParamProviderProperty extends AbstractNiFiCommand<StringResult> 
 
     @Override
     public String getDescription() {
-        return "Sets a property on a parameter provider.  If 'propertyValue' is not specified, this clears the value of the specified property.";
+        return "Sets a property on a parameter provider.";
     }
 
     @Override
@@ -77,11 +77,7 @@ public class SetParamProviderProperty extends AbstractNiFiCommand<StringResult> 
             updatedProperties.putAll(existingParameterProviderDTO.getProperties());
         }
 
-        if (propertyValue == null) {
-            updatedProperties.remove(propertyName);
-        } else {
-            updatedProperties.put(propertyName, propertyValue);
-        }
+        updatedProperties.put(propertyName, propertyValue);
         paramProviderDTO.setProperties(updatedProperties);
 
         final ParameterProviderEntity paramProviderEntity = new ParameterProviderEntity();
@@ -89,7 +85,7 @@ public class SetParamProviderProperty extends AbstractNiFiCommand<StringResult> 
         paramProviderEntity.setId(paramProviderId);
         paramProviderEntity.setRevision(existingParameterProvider.getRevision());
 
-        final ParameterProviderEntity createdParamProvider = paramProviderClient.updateParamProvider(paramProviderEntity);
-        return new StringResult(createdParamProvider.getId(), isInteractive());
+        final ParameterProviderEntity updatedParameterProvider = paramProviderClient.updateParamProvider(paramProviderEntity);
+        return new StringResult(updatedParameterProvider.getId(), isInteractive());
     }
 }

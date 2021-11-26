@@ -59,12 +59,6 @@ public interface ParameterProviderNode extends ComponentNode {
     Set<ParameterProviderUsageReference> getReferences();
 
     /**
-     * Verifies that the reference can be added.
-     * @param reference the reference to this provider
-     */
-    void verifyCanAddReference(ParameterProviderUsageReference reference);
-
-    /**
      * Indicates that a parameter context is now referencing this Parameter Provider
      * @param reference the reference to this provider
      */

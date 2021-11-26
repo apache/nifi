@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.parameter;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.authorization.Resource;
@@ -48,6 +49,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterGroupKey;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterSensitivity;
@@ -68,7 +70,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -233,24 +234,6 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     }
 
     @Override
-    public void verifyCanAddReference(final ParameterProviderUsageReference reference) {
-        readLock.lock();
-        try {
-            referencingParameterContexts.stream()
-                    .filter(existingReference -> existingReference.getSensitivity() != reference.getSensitivity())
-                    .findFirst()
-                    .ifPresent(existingReference -> {
-                        throw new IllegalArgumentException(String.format("Parameter Provider [%s] cannot provide %s parameters to Parameter Context [%s] " +
-                                        "because it already providers %s values for Parameter Context [%s]",
-                                getIdentifier(), reference.getSensitivity().getName(), reference.getParameterContext().getName(),
-                                existingReference.getSensitivity().getName(), existingReference.getParameterContext().getName()));
-                    });
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    @Override
     public void addReference(final ParameterProviderUsageReference reference) {
         writeLock.lock();
         try {
@@ -299,9 +282,9 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
         try {
             this.fetchedParameterGroups.clear();
             for (final ProvidedParameterGroup group : fetchedParameterGroups) {
-                final List<Parameter> parameters = group.getParameters();
+                final Collection<Parameter> parameters = group.getItems();
 
-                if (parameters == null || parameters.isEmpty()) {
+                if (parameters == null) {
                     continue;
                 }
                 for (final Parameter parameter : parameters) {
@@ -310,7 +293,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
                         throw new IllegalStateException("All fetched parameters require a ParameterDescriptor");
                     }
                 }
-                this.fetchedParameterGroups.add(new ProvidedParameterGroup(group.getGroupName(), toProvidedParameters(parameters)));
+                this.fetchedParameterGroups.add(new ProvidedParameterGroup(group.getGroupKey().getGroupName(), group.getGroupKey().getSensitivity(), toProvidedParameters(parameters)));
             }
         } finally {
             writeLock.unlock();
@@ -416,31 +399,57 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
      * Using the existing parameters from the ParameterContext and the fetched parameters in the provider, constructs
      * a map from Parameter name to updated Parameter (or null if the parameter has been removed in the fetch).
      * @param reference A ParameterProviderUsageReference
-     * @param parameterNames only parameter names in this list are selected
+     * @param parameterNameGroups only parameter names in this list are selected for each matching fetched group
      * @return A map from name to Parameter (or null if parameter should be removed)
      */
     private Map<String, Parameter> getFetchedParameterUpdateMap(final ParameterProviderUsageReference reference,
-                                                                final Collection<ProvidedParameterNameGroup> parameterNames) {
+                                                                final Collection<ProvidedParameterNameGroup> parameterNameGroups) {
         final ParameterContext parameterContext = reference.getParameterContext();
         final Map<String, Parameter> parameterUpdateMap = new HashMap<>();
 
-        final ProvidedParameterGroup parameterGroup = fetchedParameterGroups.stream()
-                .filter(group -> group.getGroupName() == null || group.getGroupName().equalsIgnoreCase(parameterContext.getName()))
-                .findFirst().orElse(null);
-        final ProvidedParameterNameGroup groupedParameterNames = parameterNames == null ? null : parameterNames.stream()
-                .filter(group -> group.getGroupName() == null || group.getGroupName().equalsIgnoreCase(parameterContext.getName()))
-                .findFirst().orElse(null);
+        // Collect all parameter names whose group key matches the reference.  This will be used as a filter on the fetched parameters
+        final Set<String> parameterNameFilter = new HashSet<>();
+        for (final ProvidedParameterNameGroup parameterNameGroup : parameterNameGroups) {
+            final ParameterGroupKey groupKey = parameterNameGroup.getGroupKey();
 
-        if (parameterGroup == null) {
+            if (!reference.matchesParameterGroup(groupKey)) {
+                continue;
+            }
+            parameterNameFilter.addAll(parameterNameGroup.getItems());
+        }
+
+        // Collect all parameters whose group key matches the reference and the parameter name filter
+        final Map<ParameterDescriptor, Parameter> relevantParameters = new HashMap<>();
+        final List<ProvidedParameterGroup> matchingParameterGroups = fetchedParameterGroups.stream()
+                .filter(group -> reference.matchesParameterGroup(group.getGroupKey()))
+                .collect(Collectors.toList());
+
+        for (final ProvidedParameterGroup parameterGroup : matchingParameterGroups) {
+            final ParameterGroupKey groupKey = parameterGroup.getGroupKey();
+
+            for (final Parameter parameter : parameterGroup.getItems()) {
+                final ParameterDescriptor descriptor = parameter.getDescriptor();
+                final Parameter existingParameter = relevantParameters.get(descriptor);
+                if (existingParameter != null) {
+                    if (!StringUtils.equals(existingParameter.getValue(), parameter.getValue())) {
+                        final String valueComparison = reference.getSensitivity() == ParameterSensitivity.NON_SENSITIVE
+                                ? String.format(": %s and %s", existingParameter.getValue(), parameter.getValue()) : "";
+                        throw new RuntimeException(String.format("Parameter [%s] was fetched in group [%s] with two different values%s",
+                                descriptor.getName(), groupKey, valueComparison));
+                    }
+                } else if (parameterNameFilter.isEmpty() || parameterNameFilter.contains(descriptor.getName())) {
+                    relevantParameters.put(descriptor, parameter);
+                }
+            }
+        }
+
+        if (matchingParameterGroups.isEmpty()) {
             return parameterUpdateMap;
         }
 
-        final Set<String> parameterNameFilter = groupedParameterNames == null ? Collections.emptySet()
-                : Optional.ofNullable(groupedParameterNames.getParameterNames()).orElse(Collections.emptySet());
-
         // Get a filtered list of the parameters with their sensitivity set based on the reference type and with
         // names mapped according to the configuration context
-        final List<Parameter> filteredParameters = filterAndMapParameters(parameterGroup.getParameters(), reference.getSensitivity(), parameterNameFilter);
+        final List<Parameter> filteredParameters = filterAndMapParameters(relevantParameters.values(), reference.getSensitivity(), parameterNameFilter);
 
         final Map<ParameterDescriptor, Parameter> fetchedParameterMap = filteredParameters.stream()
                 .collect(Collectors.toMap(Parameter::getDescriptor, Function.identity()));
@@ -448,16 +457,13 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
         final boolean isSensitive = reference.getSensitivity() == ParameterSensitivity.SENSITIVE;
         final Map<ParameterDescriptor, Parameter> currentParameters = parameterContext.getParameters();
         // Find parameters of the same sensitivity that were removed
-        currentParameters.entrySet().stream()
-                .filter(entry -> entry.getValue().getDescriptor().isSensitive() == isSensitive)
-                .forEach(entry -> {
-                    final ParameterDescriptor descriptor = entry.getKey();
-                    if (!fetchedParameterMap.containsKey(descriptor)) {
-                        parameterUpdateMap.put(descriptor.getName(), null);
-                    }
-                });
+        currentParameters.keySet().forEach(descriptor -> {
+                if (descriptor.isSensitive() == isSensitive && !fetchedParameterMap.containsKey(descriptor)) {
+                    parameterUpdateMap.put(descriptor.getName(), null);
+                }
+        });
         // Add all changed and new parameters of the same sensitivity
-        for(final Map.Entry<ParameterDescriptor, Parameter> entry : fetchedParameterMap.entrySet()) {
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : fetchedParameterMap.entrySet()) {
             final ParameterDescriptor descriptor = entry.getKey();
             final Parameter fetchedParameter = entry.getValue();
             final Parameter currentParameter = currentParameters.get(descriptor);
@@ -484,7 +490,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
      * @param parameterNamesToInclude A collection of parameter names to include (include all if null or empty)
      * @return A filtered list, with the appropriate sensitivity and mapped names
      */
-    private List<Parameter> filterAndMapParameters(final List<Parameter> parameters, final ParameterSensitivity sensitivity,
+    private List<Parameter> filterAndMapParameters(final Collection<Parameter> parameters, final ParameterSensitivity sensitivity,
                                                    final Collection<String> parameterNamesToInclude) {
         final Map<String, String> parameterNameMapping = getParameterNameMapping(getConfigurationContext());
         return parameters == null ? Collections.emptyList() : parameters.stream()
@@ -507,7 +513,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
      * @param parameters A list of Parameters
      * @return An equivalent list, but with provided = true
      */
-    private static List<Parameter> toProvidedParameters(final List<Parameter> parameters) {
+    private static List<Parameter> toProvidedParameters(final Collection<Parameter> parameters) {
         return parameters == null ? Collections.emptyList() : parameters.stream()
                 .map(parameter -> new Parameter(parameter.getDescriptor(), parameter.getValue(), null, true))
                 .collect(Collectors.toList());
@@ -528,9 +534,10 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     @Override
     public Collection<ProvidedParameterNameGroup> getFetchedParameterNames() {
         return fetchedParameterGroups.stream()
-                .map(group -> new StandardProvidedParameterNameGroup(
-                        group.getGroupName(),
-                        group.getParameters().stream().map(p -> p.getDescriptor().getName()).collect(Collectors.toSet())))
+                .map(group -> new ProvidedParameterNameGroup(
+                        group.getGroupKey().getGroupName(),
+                        group.getGroupKey().getSensitivity(),
+                        group.getItems().stream().map(p -> p.getDescriptor().getName()).collect(Collectors.toSet())))
                 .collect(Collectors.toList());
     }
 
@@ -538,10 +545,18 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     public List<ParametersApplication> getFetchedParametersToApply(final Collection<ProvidedParameterNameGroup> parameterNames) {
         readLock.lock();
         try {
-            return getReferences().stream()
-                    .map(reference ->
-                            new ParametersApplication(reference.getParameterContext(), getFetchedParameterUpdateMap(reference, parameterNames)))
-                    .collect(Collectors.toList());
+            final Map<String, ParametersApplication> parametersApplicationMap = new HashMap<>();
+            for (final ParameterProviderUsageReference reference : getReferences()) {
+                final ParameterContext parameterContext = reference.getParameterContext();
+                final Map<String, Parameter> parameterUpdateMap = getFetchedParameterUpdateMap(reference, parameterNames);
+                final ParametersApplication parametersApplication = parametersApplicationMap.get(parameterContext.getName());
+                if (parametersApplication == null) {
+                    parametersApplicationMap.put(parameterContext.getName(), new ParametersApplication(parameterContext, parameterUpdateMap));
+                } else {
+                    parametersApplication.getParameterUpdates().putAll(parameterUpdateMap);
+                }
+            }
+            return new ArrayList<>(parametersApplicationMap.values());
         } finally {
             readLock.unlock();
         }

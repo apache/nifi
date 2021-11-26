@@ -30,7 +30,7 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.controller.parameter.StandardProvidedParameterNameGroup;
+import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.parameter.ProvidedParameterNameGroup;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
@@ -1272,7 +1272,8 @@ public class ParameterProviderResource extends AbstractParameterResource {
 
         if (applicationEntity != null && applicationEntity.getParameterNameGroups() != null) {
             for (final ProvidedParameterNameGroupEntity parameterNameGroup : applicationEntity.getParameterNameGroups()) {
-                providedParameterNames.add(new StandardProvidedParameterNameGroup(parameterNameGroup.getGroupName(), parameterNameGroup.getParameterNames()));
+                providedParameterNames.add(new ProvidedParameterNameGroup(parameterNameGroup.getGroupName(),
+                        ParameterSensitivity.valueOf(parameterNameGroup.getSensitivity()), parameterNameGroup.getParameterNames()));
             }
         }
         return providedParameterNames;

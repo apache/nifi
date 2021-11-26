@@ -41,6 +41,9 @@ public class ParameterProviderMerger {
                     if (!StringUtils.equals(targetParameterNameGroup.getGroupName(), otherGroup.getGroupName())) {
                         continue;
                     }
+                    if (!StringUtils.equals(targetParameterNameGroup.getSensitivity(), otherGroup.getSensitivity())) {
+                        continue;
+                    }
                     final Set<String> targetParameterNames = targetParameterNameGroup.getParameterNames();
                     if (targetParameterNames != null) {
                         if (otherGroup.getGroupName() != null) {
