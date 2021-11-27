@@ -76,9 +76,12 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class StandardParameterProviderNode extends AbstractComponentNode implements ParameterProviderNode {
+
+    private static final Pattern PARAMETER_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9-_. ]+$");
 
     private final AtomicReference<ParameterProviderDetails> parameterProviderRef;
     private final ControllerServiceLookup serviceLookup;
@@ -277,7 +280,6 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
             return;
         }
 
-
         writeLock.lock();
         try {
             this.fetchedParameterGroups.clear();
@@ -287,13 +289,26 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
                 if (parameters == null) {
                     continue;
                 }
+                final List<Parameter> validParameters = new ArrayList<>();
                 for (final Parameter parameter : parameters) {
                     final ParameterDescriptor descriptor = parameter.getDescriptor();
                     if (descriptor == null) {
                         throw new IllegalStateException("All fetched parameters require a ParameterDescriptor");
                     }
+
+                    if (parameter.getValue() == null) {
+                        getLogger().warn("Skipping parameter [{}], which is missing a value", new Object[] { descriptor.getName() });
+                        continue;
+                    }
+
+                    if (PARAMETER_NAME_PATTERN.matcher(parameter.getDescriptor().getName()).matches()) {
+                        validParameters.add(parameter);
+                    } else {
+                        getLogger().warn("Skipping parameter [{}}], whose name has invalid characters.  Only alpha-numeric characters (a-z, A-Z, 0-9), hyphens (-), underscores (_), " +
+                                "periods (.), and spaces ( ) are accepted.", new Object[] { descriptor.getName() });
+                    }
                 }
-                this.fetchedParameterGroups.add(new ProvidedParameterGroup(group.getGroupKey().getGroupName(), group.getGroupKey().getSensitivity(), toProvidedParameters(parameters)));
+                this.fetchedParameterGroups.add(new ProvidedParameterGroup(group.getGroupKey().getGroupName(), group.getGroupKey().getSensitivity(), toProvidedParameters(validParameters)));
             }
         } finally {
             writeLock.unlock();
