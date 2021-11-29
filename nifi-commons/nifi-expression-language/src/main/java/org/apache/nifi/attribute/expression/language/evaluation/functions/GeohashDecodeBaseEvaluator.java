@@ -31,9 +31,11 @@ public abstract class GeohashDecodeBaseEvaluator extends NumberEvaluator {
     public enum GeohashFormat {
         BASE32, BINARY, LONG
     }
+
     public enum GeoCoord {
         LATITUDE, LONGITUDE
     }
+
     private final Evaluator<String> subject;
     private final Evaluator<String> format;
 
@@ -45,9 +47,9 @@ public abstract class GeohashDecodeBaseEvaluator extends NumberEvaluator {
     protected QueryResult<Number> geohashDecodeEvaluate(final EvaluationContext evaluationContext, final GeoCoord geoCoord) {
         //Optional argument. If not specified, defaults to BASE_32_STRING.
         final GeohashFormat geohashFormatValue;
-        if(format != null) {
+        if (format != null) {
             geohashFormatValue = GeohashFormat.valueOf(format.evaluate(evaluationContext).getValue());
-        }else {
+        } else {
             geohashFormatValue = GeohashFormat.BASE32;
 
         }
@@ -73,9 +75,9 @@ public abstract class GeohashDecodeBaseEvaluator extends NumberEvaluator {
                 default:
                     boundingBoxCenter = GeoHash.fromGeohashString(geohashStringValue).getBoundingBoxCenter();
             }
-            if(geoCoord == GeoCoord.LATITUDE) {
+            if (geoCoord == GeoCoord.LATITUDE) {
                 return new NumberQueryResult(boundingBoxCenter.getLatitude());
-            }else {
+            } else {
                 return new NumberQueryResult(boundingBoxCenter.getLongitude());
             }
 

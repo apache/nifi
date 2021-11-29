@@ -36,21 +36,28 @@ public class GeohashLongEncodeEvaluator extends WholeNumberEvaluator {
         this.longitude = longitude;
         this.level = level;
     }
+
     @Override
     public QueryResult<Long> evaluate(final EvaluationContext evaluationContext) {
         final Number latitudeValue = latitude.evaluate(evaluationContext).getValue();
         if (latitudeValue == null) {
             return new WholeNumberQueryResult(null);
         }
+        if (latitudeValue.doubleValue() < -90 || latitudeValue.doubleValue() > 90) {
+            throw new AttributeExpressionLanguageException("Latitude values must be between -90 and 90.");
+        }
 
         final Number longitudeValue = longitude.evaluate(evaluationContext).getValue();
         if (longitudeValue == null) {
             return new WholeNumberQueryResult(null);
         }
+        if (longitudeValue.doubleValue() < -180 || longitudeValue.doubleValue() > 180) {
+            throw new AttributeExpressionLanguageException("Longitude values must be between -180 and 180.");
+        }
 
         final Long levelValue = level.evaluate(evaluationContext).getValue();
-        if(levelValue == null) {
-            return new WholeNumberQueryResult(null);
+        if (levelValue == null || levelValue < 1 || levelValue > 12) {
+            throw new AttributeExpressionLanguageException("Level values must be between 1 and 12");
         }
 
         try {

@@ -50,22 +50,28 @@ public class GeohashStringEncodeEvaluator extends StringEvaluator {
         if (latitudeValue == null) {
             return new StringQueryResult(null);
         }
+        if (latitudeValue.doubleValue() < -90 || latitudeValue.doubleValue() > 90) {
+            throw new AttributeExpressionLanguageException("Latitude values must be between -90 and 90.");
+        }
 
         final Number longitudeValue = longitude.evaluate(evaluationContext).getValue();
         if (longitudeValue == null) {
             return new StringQueryResult(null);
         }
+        if (longitudeValue.doubleValue() < -180 || longitudeValue.doubleValue() > 180) {
+            throw new AttributeExpressionLanguageException("Longitude values must be between -180 and 180.");
+        }
 
         final Long levelValue = level.evaluate(evaluationContext).getValue();
-        if(levelValue == null) {
-            return new StringQueryResult(null);
+        if (levelValue == null || levelValue < 1 || levelValue > 12) {
+            throw new AttributeExpressionLanguageException("Level values must be between 1 and 12");
         }
 
         //Optional argument. If not specified, defaults to BASE_32_STRING.
         final GeohashStringFormat geohashStringFormatValue;
-        if(format != null) {
+        if (format != null) {
             geohashStringFormatValue = GeohashStringFormat.valueOf(format.evaluate(evaluationContext).getValue());
-        }else {
+        } else {
             geohashStringFormatValue = GeohashStringFormat.BASE32;
         }
 
