@@ -147,6 +147,16 @@ public class ParseCEF extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
+    public static final PropertyDescriptor ACCEPT_EMPTY_EXTENSIONS = new PropertyDescriptor.Builder()
+            .name("ACCEPT_EMPTY_EXTENSIONS")
+            .displayName("Accept empty extensions")
+            .description("If set to true, empty extensions will be accepted and will be associated to a null value.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
     public static final PropertyDescriptor VALIDATE_DATA = new PropertyDescriptor.Builder()
             .name("VALIDATE_DATA")
             .displayName("Validate the CEF event")
@@ -200,6 +210,7 @@ public class ParseCEF extends AbstractProcessor {
         properties.add(FIELDS_DESTINATION);
         properties.add(APPEND_RAW_MESSAGE_TO_JSON);
         properties.add(INCLUDE_CUSTOM_EXTENSIONS);
+        properties.add(ACCEPT_EMPTY_EXTENSIONS);
         properties.add(VALIDATE_DATA);
         properties.add(TIME_REPRESENTATION);
         properties.add(DATETIME_REPRESENTATION);
@@ -262,12 +273,13 @@ public class ParseCEF extends AbstractProcessor {
             // validator failed to identify an invalid Locale
             final Locale parcefoneLocale = Locale.forLanguageTag(context.getProperty(DATETIME_REPRESENTATION).getValue());
             final boolean validateData = context.getProperty(VALIDATE_DATA).asBoolean();
-            event = parser.parse(buffer, validateData, parcefoneLocale);
+            final boolean acceptEmptyExtensions = context.getProperty(ACCEPT_EMPTY_EXTENSIONS).asBoolean();
+            event = parser.parse(buffer, validateData, acceptEmptyExtensions, parcefoneLocale);
 
         } catch (Exception e) {
             // This should never trigger but adding in here as a fencing mechanism to
             // address possible ParCEFone bugs.
-            getLogger().error("Parser returned unexpected Exception {} while processing {}; routing to failure", new Object[] {e, flowFile});
+            getLogger().error("CEF Parsing Failed: {}", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -339,7 +351,7 @@ public class ParseCEF extends AbstractProcessor {
             session.transfer(flowFile, REL_SUCCESS);
         } catch (CEFHandlingException e) {
             // The flowfile has failed parsing & validation, routing to failure and committing
-            getLogger().error("Failed to parse {} as a CEF message due to {}; routing to failure", new Object[] {flowFile, e});
+            getLogger().error("Reading CEF Event Failed: {}", flowFile, e);
             // Create a provenance event recording the routing to failure
             session.getProvenanceReporter().route(flowFile, REL_FAILURE);
             session.transfer(flowFile, REL_FAILURE);
@@ -379,6 +391,7 @@ public class ParseCEF extends AbstractProcessor {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(false)
                         .explanation(subject + " cannot be empty").build();
             }
+
             final Locale testLocale = Locale.forLanguageTag(input);
             final Locale[] availableLocales = Locale.getAvailableLocales();
 
@@ -389,7 +402,6 @@ public class ParseCEF extends AbstractProcessor {
                         .explanation(input + " is not a valid locale format.").build();
             } else {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-
             }
 
         }
