@@ -232,9 +232,11 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         resolveInheritedParameterContexts(parameterContextDto);
 
         final List<ParameterContext> inheritedParameterContexts = new ArrayList<>();
-        inheritedParameterContexts.addAll(parameterContextDto.getInheritedParameterContexts().stream()
-                .map(entity -> flowManager.getParameterContextManager().getParameterContext(entity.getComponent().getId()))
-                .collect(Collectors.toList()));
+        if (parameterContextDto.getInheritedParameterContexts() != null) {
+            inheritedParameterContexts.addAll(parameterContextDto.getInheritedParameterContexts().stream()
+                    .map(entity -> flowManager.getParameterContextManager().getParameterContext(entity.getComponent().getId()))
+                    .collect(Collectors.toList()));
+        }
 
         return inheritedParameterContexts;
     }
