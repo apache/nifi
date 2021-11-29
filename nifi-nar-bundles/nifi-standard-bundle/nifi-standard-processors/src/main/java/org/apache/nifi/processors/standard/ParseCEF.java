@@ -351,7 +351,7 @@ public class ParseCEF extends AbstractProcessor {
             session.transfer(flowFile, REL_SUCCESS);
         } catch (CEFHandlingException e) {
             // The flowfile has failed parsing & validation, routing to failure and committing
-            getLogger().error("Failed to parse {} as a CEF message due to {}; routing to failure", new Object[] {flowFile, e}, e);
+            getLogger().error("Reading CEF Event Failed: {}", flowFile, e);
             // Create a provenance event recording the routing to failure
             session.getProvenanceReporter().route(flowFile, REL_FAILURE);
             session.transfer(flowFile, REL_FAILURE);
