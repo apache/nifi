@@ -256,14 +256,25 @@ public class ParameterContextIT extends NiFiSystemIT {
         waitForValidProcessor(processorId);
 
         // Map the parameter name
+        sensitiveProviderProperties.clear();
         sensitiveProviderProperties.put("sensitive-parameters", "sensitive.other.parameter=My sensitive value");
-        sensitiveProviderProperties.put("sensitive.other.parameter", "sensitive"); // Map raw parameter named 'sensitive.other.parameter' to one named 'sensitive' in the parameter context
+        sensitiveProviderProperties.put("sensitive", "sensitive.other.parameter"); // Map raw parameter named 'sensitive.other.parameter' to one named 'sensitive' in the parameter context
+        updateParameterProviderProperties(sensitiveProvider, sensitiveProviderProperties);
 
         // Should still get the 'sensitive' parameter
-        fetchAndWaitForAppliedParameters(nonSensitiveProvider);
+        fetchAndWaitForAppliedParameters(sensitiveProvider);
 
         // Try to set a user-entered parameter, which should fail because a provider is already set
         assertThrows(NiFiClientException.class, () -> updateParameterContext(createdContextEntity, "non.sensitive", "value"));
+
+        // Parameter name conflict (provided directly and by mapping)
+        sensitiveProviderProperties.clear();
+        sensitiveProviderProperties.put("sensitive-parameters", "sensitive.other.parameter=My mapped sensitive value\n" +
+                                                                "sensitive=My direct sensitive value");
+        sensitiveProviderProperties.put("sensitive", "sensitive.other.parameter"); // Map raw parameter named 'sensitive.other.parameter' to one named 'sensitive' in the parameter context
+        updateParameterProviderProperties(sensitiveProvider, sensitiveProviderProperties);
+
+        assertThrows(NiFiClientException.class, () -> fetchAndWaitForAppliedParameters(sensitiveProvider));
 
         // Now unset the non-sensitive provider
         final ParameterContextUpdateRequestEntity updateRequest = updateParameterContext(createdContextEntity, Collections.emptyMap(), Collections.emptyList(), sensitiveProvider, null);

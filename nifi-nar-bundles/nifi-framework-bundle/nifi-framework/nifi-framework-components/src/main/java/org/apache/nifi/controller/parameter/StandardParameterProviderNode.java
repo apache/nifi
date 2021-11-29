@@ -507,18 +507,28 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
      */
     private List<Parameter> filterAndMapParameters(final Collection<Parameter> parameters, final ParameterSensitivity sensitivity,
                                                    final Collection<String> parameterNamesToInclude) {
-        final Map<String, String> parameterNameMapping = getParameterNameMapping(getConfigurationContext());
+        final Map<String, Collection<String>> parameterNameMapping = getParameterNameMapping(getConfigurationContext());
+        final Set<String> detectedParameterNames = new HashSet<>();
         return parameters == null ? Collections.emptyList() : parameters.stream()
                 .filter(parameter -> parameterNamesToInclude.contains(parameter.getDescriptor().getName()))
-                .map(parameter -> {
-                    final String rawParameterName = parameter.getDescriptor().getName();
-                    final String mappedParameterName = parameterNameMapping.getOrDefault(rawParameterName, rawParameterName);
-                    final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
-                            .from(parameter.getDescriptor())
-                            .name(mappedParameterName)
-                            .sensitive(sensitivity == ParameterSensitivity.SENSITIVE)
-                            .build();
-                    return new Parameter(parameterDescriptor, parameter.getValue(), parameter.getParameterContextId(), true);
+                .flatMap(parameter -> {
+                    final String externalParameterName = parameter.getDescriptor().getName();
+                    final Collection<String> mappedParameterNames = parameterNameMapping.getOrDefault(externalParameterName, Collections.singleton(externalParameterName));
+                    final List<Parameter> mappedParameters = new ArrayList<>();
+                    for (final String mappedParameterName : mappedParameterNames) {
+                        if (detectedParameterNames.contains(mappedParameterName)) {
+                            throw new IllegalStateException(String.format("Parameter name conflict: Parameter [%s] is provided both directly and as mapped from external parameter [%s]",
+                                    mappedParameterName, externalParameterName));
+                        }
+                        detectedParameterNames.add(mappedParameterName);
+                        final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
+                                .from(parameter.getDescriptor())
+                                .name(mappedParameterName)
+                                .sensitive(sensitivity == ParameterSensitivity.SENSITIVE)
+                                .build();
+                        mappedParameters.add(new Parameter(parameterDescriptor, parameter.getValue(), parameter.getParameterContextId(), true));
+                    }
+                    return mappedParameters.stream();
                 })
                 .collect(Collectors.toList());
     }
@@ -535,15 +545,19 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     }
 
     /**
+     * Gets a mapping from the raw parameter name to one or more dataflow parameter names.  The same external parameter may be
+     * mapped to multiple dataflow parameters.
      * @param context The configuration context
-     * @return a map from raw parameter name to mapped parameter name, using the dynamic properties of the context
+     * @return a map from external parameter name to mapped parameter names, using the dynamic properties of the context
      */
-    private static Map<String, String> getParameterNameMapping(final ConfigurationContext context) {
-        return context.getProperties().entrySet().stream()
-                .filter(entry -> entry.getKey().isDynamic())
-                .collect(Collectors.toMap(
-                        entry -> entry.getKey().getName(),
-                        Map.Entry::getValue));
+    private static Map<String, Collection<String>> getParameterNameMapping(final ConfigurationContext context) {
+        final Map<String, Collection<String>> mapping = new HashMap<>();
+        context.getProperties().forEach( (descriptor, externalParameterName) -> {
+            if (descriptor.isDynamic()) {
+                mapping.computeIfAbsent(externalParameterName, key -> new HashSet<>()).add(descriptor.getName());
+            }
+        });
+        return mapping;
     }
 
     @Override

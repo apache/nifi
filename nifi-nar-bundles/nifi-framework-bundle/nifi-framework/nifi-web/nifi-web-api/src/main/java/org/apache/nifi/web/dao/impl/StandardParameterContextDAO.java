@@ -431,12 +431,14 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         getBoundProcessGroups(parameterContextId).forEach(group -> group.setParameterContext(null));
 
         flowManager.getAllParameterProviders().forEach(provider -> {
+            final List<ParameterProviderUsageReference> referencesToRemove = new ArrayList<>();
             for (final ParameterProviderUsageReference reference : provider.getReferences()) {
                 final ParameterContext referencedContext = reference.getParameterContext();
                 if (referencedContext.getIdentifier().equals(parameterContextId)) {
-                    provider.removeReference(reference);
+                    referencesToRemove.add(reference);
                 }
             }
+            referencesToRemove.forEach(reference -> provider.removeReference(reference));
         });
     }
 

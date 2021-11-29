@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
 @CapabilityDescription("Fetches parameters from environment variables")
 
 @DynamicProperties(
-    @DynamicProperty(name = "Raw parameter name", value = "Mapped parameter name",
+    @DynamicProperty(name = "Mapped parameter name", value = "Environment variable name",
         description = "Maps a raw fetched parameter from the external system to the name of a parameter inside the dataflow")
 )
 public class EnvironmentVariableParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {

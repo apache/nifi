@@ -75,9 +75,10 @@ public abstract class AbstractParameterProvider extends AbstractConfigurableComp
                 .name(propertyDescriptorName)
                 .displayName(propertyDescriptorName)
                 .dynamic(true)
+                .description(String.format("Maps the value to a Parameter named [%s]", propertyDescriptorName))
                 .addValidator((subject, input, context) -> new ValidationResult.Builder()
                         .subject(subject)
-                        .input(input).valid(input != null && input.matches("^[a-zA-Z0-9_. -]+$"))
+                        .input(input).valid(subject != null && subject.matches("^[a-zA-Z0-9_. -]+$"))
                         .explanation(subject + " contains invalid characters.  Only alpha-numeric characters (a-z, A-Z, 0-9), hyphens (-), " +
                                 "underscores (_), periods (.), and spaces ( ) are accepted as mapped Parameter Names.")
                         .build())
