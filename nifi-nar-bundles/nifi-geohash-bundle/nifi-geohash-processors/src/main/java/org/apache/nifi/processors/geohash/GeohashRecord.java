@@ -334,7 +334,6 @@ public class GeohashRecord extends AbstractProcessor {
             output = session.putAllAttributes(output, buildAttributes(foundCount, writer.getMimeType(), writeResult));
             if (routingStrategy != RoutingStrategy.SPLIT) {
                 session.transfer(output, targetRelationship);
-                session.remove(input);
             } else {
                 if (notFoundCount > 0) {
                     notFound = session.putAllAttributes(notFound, buildAttributes(notFoundCount, writer.getMimeType(), notFoundWriterResult));
@@ -342,9 +341,13 @@ public class GeohashRecord extends AbstractProcessor {
                 } else {
                     session.remove(notFound);
                 }
-                session.transfer(output, REL_SUCCESS);
-                session.transfer(input, REL_ORIGINAL);
+                if (foundCount > 0) {
+                    session.transfer(output, REL_SUCCESS);
+                } else {
+                    session.remove(output);
+                }
             }
+            session.transfer(input, REL_ORIGINAL);
 
         } catch (Exception ex) {
             getLogger().error("Failed to {} due to {}", encode ? "encode" : "decode", ex.getLocalizedMessage(), ex);

@@ -98,7 +98,7 @@ public class GeohashRecordTest {
         runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.SKIP_UNENRICHED.toString());
         runner.assertValid();
 
-        assertTransfers("/record_encode.json", 0, 1, 0);
+        assertTransfers("/record_encode.json", 0, 1, 1);
 
         MockFlowFile ff = runner.getFlowFilesForRelationship(GeohashRecord.REL_SUCCESS).get(0);
         byte[] raw = runner.getContentAsByteArray(ff);
@@ -120,7 +120,7 @@ public class GeohashRecordTest {
         runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.SKIP_UNENRICHED.toString());
         runner.assertValid();
 
-        assertTransfers("/record_decode.json", 1, 0, 0);
+        assertTransfers("/record_decode.json", 1, 0, 1);
     }
 
     @Test
@@ -138,7 +138,7 @@ public class GeohashRecordTest {
         runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.REQUIRE_ALL_ENRICHED.toString());
         runner.assertValid();
 
-        assertTransfers("/record_encode.json", 1, 0, 0);
+        assertTransfers("/record_encode.json", 1, 0, 1);
     }
 
     @Test
@@ -147,6 +147,6 @@ public class GeohashRecordTest {
         runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.REQUIRE_ALL_ENRICHED.toString());
         runner.assertValid();
 
-        assertTransfers("/record_decode.json", 0, 1, 0);
+        assertTransfers("/record_decode.json", 0, 1, 1);
     }
 }
