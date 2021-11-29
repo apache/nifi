@@ -1,5 +1,21 @@
 <extensionManifest>
+    <groupId>org.apache.nifi</groupId>
+    <artifactId>nifi-kafka-2-6-nar</artifactId>
+    <version>1.16.0-SNAPSHOT</version>
+    <parentNar>
+        <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi-standard-services-api-nar</artifactId>
+        <version>1.16.0-SNAPSHOT</version>
+    </parentNar>
     <systemApiVersion>1.16.0-SNAPSHOT</systemApiVersion>
+    <buildInfo>
+        <tag>nifi-1.15.0-RC3</tag>
+        <branch>main</branch>
+        <revision>123</revision>
+        <jdk>1.8.0_282</jdk>
+        <builtBy>jsmith</builtBy>
+        <timestamp>2021-11-29T15:18:55Z</timestamp>
+    </buildInfo>
     <extensions>
         <extension>
             <name>org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_6</name>
