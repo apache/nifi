@@ -83,12 +83,6 @@ public class GeohashRecord extends AbstractProcessor {
         BASE32, BINARY, LONG
     }
 
-    public enum RoutingStrategy {
-        SKIP_UNENRICHED,
-        SPLIT,
-        REQUIRE_ALL_ENRICHED
-    }
-
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
             .name("mode")
             .displayName("Mode")
@@ -98,17 +92,15 @@ public class GeohashRecord extends AbstractProcessor {
             .defaultValue(ProcessingMode.ENCODE.name())
             .build();
 
-    public static final PropertyDescriptor ROUTING_STRATEGY = new PropertyDescriptor.Builder()
-            .name("routing-strategy")
-            .displayName("Routing Strategy")
-            .description("Specifies how to route records after encoding or decoding has been performed. "
-                    + "SKIP_UNENRICHED will route a flowfile to success if any of its records is enriched; otherwise, it will be sent to failure. "
-                    + "SPLIT will separate the records that have been enriched from those that have not and send them to success, while unenriched records will be sent to failure; "
-                    + "and the original flowfile will be sent to the original relationship. "
-                    + "REQUIRE_ALL_ENRICHED will route a flowfile to success only if all of its records are enriched; otherwise, it will be sent to failure")
+    public static final PropertyDescriptor SPLIT_FOUND_NOT_FOUND = new PropertyDescriptor.Builder()
+            .name("split-found-not-found")
+            .displayName("Separate Enriched From Not Enriched")
+            .description("Separate records that have been enriched from ones that have not. Default behavior is " +
+                    "to send everything to the not found relationship if any of the records is not enriched.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
             .required(true)
-            .allowableValues(RoutingStrategy.values())
-            .defaultValue(RoutingStrategy.SKIP_UNENRICHED.name())
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -177,19 +169,19 @@ public class GeohashRecord extends AbstractProcessor {
             .dependsOn(MODE, ProcessingMode.ENCODE.name())
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("Records that are successfully encoded or decoded will be routed to success")
+    public static final Relationship REL_FOUND = new Relationship.Builder()
+            .name("found")
+            .description("Flowfiles with geo-related data provided that are successfully encoded or decoded will be routed to found")
             .build();
 
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("Records that cannot be encoded or decoded will be routed to failure")
+    public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
+            .name("not found")
+            .description("Flowfiles without geo-related data that cannot be encoded or decoded will be routed to not found")
             .build();
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
-            .description("With the SPLIT strategy, the original input flowfile will be sent to this relationship regardless of whether it was enriched or not.")
+            .description("The original input flowfile will be sent to this relationship regardless of whether it was enriched or not.")
             .build();
 
     private static final List<PropertyDescriptor> RECORD_PATH_PROPERTIES = Collections.unmodifiableList(Arrays.asList(
@@ -208,7 +200,7 @@ public class GeohashRecord extends AbstractProcessor {
         descriptors.add(MODE);
         descriptors.add(RECORD_READER);
         descriptors.add(RECORD_WRITER);
-        descriptors.add(ROUTING_STRATEGY);
+        descriptors.add(SPLIT_FOUND_NOT_FOUND);
         descriptors.add(LATITUDE_RECORD_PATH);
         descriptors.add(LONGITUDE_RECORD_PATH);
         descriptors.add(GEOHASH_RECORD_PATH);
@@ -217,8 +209,8 @@ public class GeohashRecord extends AbstractProcessor {
         descriptors = Collections.unmodifiableList(descriptors);
 
         relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
+        relationships.add(REL_FOUND);
+        relationships.add(REL_NOT_FOUND);
         relationships.add(REL_ORIGINAL);
         relationships = Collections.unmodifiableSet(relationships);
     }
@@ -243,19 +235,19 @@ public class GeohashRecord extends AbstractProcessor {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         final boolean encode = context.getProperty(MODE).getValue().equalsIgnoreCase(ProcessingMode.ENCODE.toString());
-        final RoutingStrategy routingStrategy = RoutingStrategy.valueOf(context.getProperty(ROUTING_STRATEGY).getValue());
+        final boolean splitOutput = context.getProperty(SPLIT_FOUND_NOT_FOUND).asBoolean();
         final GeohashFormat format = GeohashFormat.valueOf(context.getProperty(GEOHASH_FORMAT).getValue());
 
         FlowFile output = session.create(input);
-        FlowFile notFound = routingStrategy == RoutingStrategy.SPLIT ? session.create(input) : null;
+        FlowFile notFound = splitOutput ? session.create(input) : null;
 
         try (final InputStream is = session.read(input);
              final RecordReader reader = readerFactory.createRecordReader(input, is, getLogger());
              final OutputStream os = session.write(output);
-             final OutputStream osNotFound = routingStrategy == RoutingStrategy.SPLIT ? session.write(notFound) : null) {
+             final OutputStream osNotFound = splitOutput ? session.write(notFound) : null) {
 
             final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writerFactory.getSchema(input.getAttributes(), reader.getSchema()), os, output);
-            final RecordSetWriter notFoundWriter = routingStrategy == RoutingStrategy.SPLIT ? writerFactory.createWriter(getLogger(), reader.getSchema(), osNotFound, notFound) : null;
+            final RecordSetWriter notFoundWriter = splitOutput ? writerFactory.createWriter(getLogger(), reader.getSchema(), osNotFound, notFound) : null;
 
             Map<PropertyDescriptor, RecordPath> paths = new HashMap<>();
             for (PropertyDescriptor descriptor : RECORD_PATH_PROPERTIES) {
@@ -266,9 +258,9 @@ public class GeohashRecord extends AbstractProcessor {
 
             Record record;
 
-            //The overall relationship used by the REQUIRE_ALL_ENRICHED and SKIP_UNENRICHED routing strategies to transfer Flowfiles.
-            //For the SPLIT strategy, the transfer of Flowfiles does not rely on this overall relationship. Instead, each individual record will be sent to success or failure.
-            Relationship targetRelationship = routingStrategy == RoutingStrategy.REQUIRE_ALL_ENRICHED ? REL_SUCCESS : REL_FAILURE;
+            //The overall relationship used to transfer Flowfiles if SPLIT_FOUND_NOT_FOUND is set to false.
+            //if SPLIT_FOUND_NOT_FOUND is set to true, the transfer of Flowfiles does not rely on this overall relationship. Instead, each individual record will be sent to success or failure.
+            Relationship targetRelationship = REL_FOUND;
 
             writer.beginRecordSet();
 
@@ -300,22 +292,24 @@ public class GeohashRecord extends AbstractProcessor {
                     }
                 }
 
-                if (routingStrategy == RoutingStrategy.REQUIRE_ALL_ENRICHED) {
-                    if (!updated) { //If the routing strategy is REQUIRE_ALL_ENRICHED and there exists a record that is not updated, the entire flowfile should be route to REL_FAILURE
-                        targetRelationship = REL_FAILURE;
+                if (!splitOutput) {
+                    if (!updated) {
+                        //If SPLIT_FOUND_NOT_FOUND is set to false(which means all or nothing) and there exists a record
+                        //that is not updated, the entire flowfile should be route to REL_NOT_FOUND
+                        targetRelationship = REL_NOT_FOUND;
                     }
                 } else {
                     if (updated) {
-                        //If the routing strategy is SKIP_UNENRICHED and there exists a record that is updated, the entire flowfile should be route to REL_SUCCESS
-                        //If the routing strategy is SPLIT and there exists a record that is updated, this record should be route to REL_SUCCESS
-                        targetRelationship = REL_SUCCESS;
+                        //If SPLIT_FOUND_NOT_FOUND is set to true(which means individual record processing is allowed) and
+                        //there exists a record that is updated, this record should be route to REL_FOUND
+                        targetRelationship = REL_FOUND;
                     }
                 }
 
-                if (routingStrategy != RoutingStrategy.SPLIT || updated) {
+                if (!splitOutput || updated) {
                     writer.write(record);
                     foundCount++;
-                } else { //if the routing strategy is SPLIT and the record is not updated
+                } else { //if SPLIT_FOUND_NOT_FOUND is set to true and the record is not updated
                     notFoundWriter.write(record);
                     notFoundCount++;
                 }
@@ -332,17 +326,17 @@ public class GeohashRecord extends AbstractProcessor {
             }
 
             output = session.putAllAttributes(output, buildAttributes(foundCount, writer.getMimeType(), writeResult));
-            if (routingStrategy != RoutingStrategy.SPLIT) {
+            if (!splitOutput) {
                 session.transfer(output, targetRelationship);
             } else {
                 if (notFoundCount > 0) {
                     notFound = session.putAllAttributes(notFound, buildAttributes(notFoundCount, writer.getMimeType(), notFoundWriterResult));
-                    session.transfer(notFound, REL_FAILURE);
+                    session.transfer(notFound, REL_NOT_FOUND);
                 } else {
                     session.remove(notFound);
                 }
                 if (foundCount > 0) {
-                    session.transfer(output, REL_SUCCESS);
+                    session.transfer(output, REL_FOUND);
                 } else {
                     session.remove(output);
                 }

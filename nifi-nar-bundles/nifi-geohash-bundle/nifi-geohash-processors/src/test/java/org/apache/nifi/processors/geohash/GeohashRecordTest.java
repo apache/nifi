@@ -33,6 +33,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -81,72 +82,66 @@ public class GeohashRecordTest {
         runner.setProperty(GeohashRecord.GEOHASH_LEVEL, "12");
     }
 
-    private void assertTransfers(String path, int failure, int success, int original) {
+    private void assertTransfers(String path, int notFound, int found, int original) {
         Map<String, String> attrs = new HashMap<>();
         attrs.put("schema.name", "record");
         runner.enqueue(getClass().getResourceAsStream(path), attrs);
         runner.run();
 
-        runner.assertTransferCount(GeohashRecord.REL_FAILURE, failure);
-        runner.assertTransferCount(GeohashRecord.REL_SUCCESS, success);
+        runner.assertTransferCount(GeohashRecord.REL_NOT_FOUND, notFound);
+        runner.assertTransferCount(GeohashRecord.REL_FOUND, found);
         runner.assertTransferCount(GeohashRecord.REL_ORIGINAL, original);
     }
 
     @Test
-    public void testEncodeSendToSuccessDefault() throws Exception {
-        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
-        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.SKIP_UNENRICHED.toString());
+    public void testDecodeSendToFoundDefault() throws Exception {
+        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.DECODE.toString());
+        runner.setProperty(GeohashRecord.SPLIT_FOUND_NOT_FOUND, "false");
         runner.assertValid();
 
-        assertTransfers("/record_encode.json", 0, 1, 1);
+        assertTransfers("/record_decode.json", 0, 1, 1);
 
-        MockFlowFile ff = runner.getFlowFilesForRelationship(GeohashRecord.REL_SUCCESS).get(0);
+        MockFlowFile ff = runner.getFlowFilesForRelationship(GeohashRecord.REL_FOUND).get(0);
         byte[] raw = runner.getContentAsByteArray(ff);
         String content = new String(raw);
         ObjectMapper mapper = new ObjectMapper();
         List<Map<String, Object>> result = (List<Map<String, Object>>) mapper.readValue(content, List.class);
 
         assertNotNull(result);
-        assertEquals(2, result.size());
+        assertEquals(1, result.size());
 
         Map<String, Object> element = result.get(0);
-        String geohash = (String)element.get("geohash");
-        assertNotNull(geohash);
+        Double latitude = (Double) element.get("latitude");
+        Double longitude = (Double) element.get("longitude");
+        assertNotNull(latitude);
+        assertNotNull(longitude);
     }
 
     @Test
-    public void testEncodeSendToFailureDefault() {
+    public void testEncodeSendToNotFoundDefault() {
         runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
-        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.SKIP_UNENRICHED.toString());
-        runner.assertValid();
-
-        assertTransfers("/record_decode.json", 1, 0, 1);
-    }
-
-    @Test
-    public void testSplit() {
-        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
-        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.SPLIT.toString());
-        runner.assertValid();
-
-        assertTransfers("/record_encode.json", 1, 1, 1);
-    }
-
-    @Test
-    public void testRequireAllEnrichedSendToFailure() {
-        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
-        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.REQUIRE_ALL_ENRICHED.toString());
+        runner.setProperty(GeohashRecord.SPLIT_FOUND_NOT_FOUND, "false");
         runner.assertValid();
 
         assertTransfers("/record_encode.json", 1, 0, 1);
     }
 
     @Test
-    public void testRequireAllEnrichedSendToSuccess() {
-        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.DECODE.toString());
-        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.REQUIRE_ALL_ENRICHED.toString());
+    public void testSplit() {
+        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
+        runner.setProperty(GeohashRecord.SPLIT_FOUND_NOT_FOUND, "true");
         runner.assertValid();
 
-        assertTransfers("/record_decode.json", 0, 1, 1);
+        assertTransfers("/record_encode.json", 1, 1, 1);
     }
+
+    @Test
+    public void testSplitEmptyRemoved() {
+        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
+        runner.setProperty(GeohashRecord.SPLIT_FOUND_NOT_FOUND, "true");
+        runner.assertValid();
+
+        assertTransfers("/record_decode.json", 1, 0, 1);
+    }
+
 }
