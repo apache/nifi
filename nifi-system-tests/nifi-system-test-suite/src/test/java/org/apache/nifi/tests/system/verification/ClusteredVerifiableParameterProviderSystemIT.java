@@ -33,7 +33,6 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 
 public class ClusteredVerifiableParameterProviderSystemIT extends VerifiableParameterProviderSystemIT {
-
     @Override
     protected NiFiInstanceFactory getInstanceFactory() {
         return new SpawnedClusterNiFiInstanceFactory(
@@ -60,5 +59,4 @@ public class ClusteredVerifiableParameterProviderSystemIT extends VerifiablePara
         // Third verification result is for Fail On Primary Node
         assertEquals(Outcome.FAILED.name(), resultList.get(2).getOutcome());
     }
-
 }
