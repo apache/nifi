@@ -279,7 +279,7 @@ public class ParseCEF extends AbstractProcessor {
         } catch (Exception e) {
             // This should never trigger but adding in here as a fencing mechanism to
             // address possible ParCEFone bugs.
-            getLogger().error("Parser returned unexpected Exception {} while processing {}; routing to failure", new Object[] {e, flowFile}, e);
+            getLogger().error("CEF Parsing Failed: {}", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
