@@ -31,7 +31,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.parameter.ProvidedParameterNameGroup;
-import org.apache.nifi.registry.flow.ParameterProviderReference;
+import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.flow.VersionedParameterContext;

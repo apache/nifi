@@ -43,7 +43,7 @@ import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
-import org.apache.nifi.registry.flow.ParameterProviderReference;
+import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.registry.flow.RestBasedFlowRegistry;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;

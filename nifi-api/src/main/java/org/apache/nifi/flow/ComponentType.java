@@ -32,6 +32,7 @@ public enum ComponentType {
     CONTROLLER_SERVICE("Controller Service"),
     REPORTING_TASK("Reporting Task"),
     PARAMETER_CONTEXT("Parameter Context"),
+    PARAMETER_PROVIDER("Parameter Provider"),
     TEMPLATE("Template");
 
 

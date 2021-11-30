@@ -19,6 +19,7 @@ package org.apache.nifi.registry.flow;
 
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
+import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedExternalFlowMetadata;
 import org.apache.nifi.flow.VersionedParameterContext;

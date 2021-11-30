@@ -48,6 +48,7 @@ import org.apache.nifi.flow.BatchSize;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ConnectableComponent;
+import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
@@ -88,7 +89,6 @@ import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.FlowRegistry;
-import org.apache.nifi.registry.flow.ParameterProviderReference;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
@@ -248,7 +248,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         context.getFlowManager().withParameterContextResolution(() -> {
             try {
-                synchronize(group, versionedExternalFlow.getFlowContents(), versionedExternalFlow.getParameterContexts());
+                synchronize(group, versionedExternalFlow.getFlowContents(), versionedExternalFlow.getParameterContexts(), versionedExternalFlow.getParameterProviders());
             } catch (final ProcessorInstantiationException pie) {
                 throw new RuntimeException(pie);
             }
@@ -257,7 +257,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         group.onComponentModified();
     }
 
-    private void synchronize(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts)
+    private void synchronize(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts,
+                             final Map<String, ParameterProviderReference> parameterProviderReferences)
         throws ProcessorInstantiationException {
 
         // Some components, such as Processors, may have a Scheduled State of RUNNING in the proposed flow. However, if we
@@ -286,7 +287,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             versionedParameterContexts.values().forEach(this::createParameterContextWithoutReferences);
         }
 
-        updateParameterContext(group, proposed, versionedParameterContexts, context.getComponentIdGenerator());
+        updateParameterContext(group, proposed, versionedParameterContexts, parameterProviderReferences, context.getComponentIdGenerator());
         updateVariableRegistry(group, proposed);
 
         final FlowFileConcurrency flowFileConcurrency = proposed.getFlowFileConcurrency() == null ? FlowFileConcurrency.UNBOUNDED :
@@ -401,7 +402,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             removeMissingChildGroups(group, proposed, childGroupsByVersionedId);
 
             // Synchronize Child Process Groups
-            synchronizeChildGroups(group, proposed, versionedParameterContexts, childGroupsByVersionedId);
+            synchronizeChildGroups(group, proposed, versionedParameterContexts, childGroupsByVersionedId, parameterProviderReferences);
 
             synchronizeFunnels(group, proposed, funnelsByVersionedId);
             synchronizeInputPorts(group, proposed, proposedPortFinalNames, inputPortsByVersionedId);
@@ -456,7 +457,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private void synchronizeChildGroups(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts,
-                                        final Map<String, ProcessGroup> childGroupsByVersionedId) throws ProcessorInstantiationException {
+                                        final Map<String, ProcessGroup> childGroupsByVersionedId,
+                                        final Map<String, ParameterProviderReference> parameterProviderReferences) throws ProcessorInstantiationException {
 
         for (final VersionedProcessGroup proposedChildGroup : proposed.getProcessGroups()) {
             final ProcessGroup childGroup = childGroupsByVersionedId.get(proposedChildGroup.getIdentifier());
@@ -475,7 +477,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
 
             if (childGroup == null) {
-                final ProcessGroup added = addProcessGroup(group, proposedChildGroup, context.getComponentIdGenerator(), preExistingVariables, childParameterContexts);
+                final ProcessGroup added = addProcessGroup(group, proposedChildGroup, context.getComponentIdGenerator(), preExistingVariables,
+                        childParameterContexts, parameterProviderReferences);
                 context.getFlowManager().onProcessGroupAdded(added);
                 added.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
                 LOG.info("Added {} to {}", added, group);
@@ -489,7 +492,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     .build();
 
                 sync.setSynchronizationOptions(options);
-                sync.synchronize(childGroup, proposedChildGroup, childParameterContexts);
+                sync.synchronize(childGroup, proposedChildGroup, childParameterContexts, parameterProviderReferences);
 
                 LOG.info("Updated {}", childGroup);
             }
@@ -1049,7 +1052,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private ProcessGroup addProcessGroup(final ProcessGroup destination, final VersionedProcessGroup proposed, final ComponentIdGenerator componentIdGenerator, final Set<String> variablesToSkip,
-                                         final Map<String, VersionedParameterContext> versionedParameterContexts) throws ProcessorInstantiationException {
+                                         final Map<String, VersionedParameterContext> versionedParameterContexts,
+                                         final Map<String, ParameterProviderReference> parameterProviderReferences) throws ProcessorInstantiationException {
         final String id = componentIdGenerator.generateUuid(proposed.getIdentifier(), proposed.getInstanceIdentifier(), destination.getIdentifier());
         final ProcessGroup group = context.getFlowManager().createProcessGroup(id);
         group.setVersionedComponentId(proposed.getIdentifier());
@@ -1066,7 +1070,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             .updateGroupSettings(true)
             .build();
         sync.setSynchronizationOptions(options);
-        sync.synchronize(group, proposed, versionedParameterContexts);
+        sync.synchronize(group, proposed, versionedParameterContexts, parameterProviderReferences);
 
         return group;
     }
@@ -1794,7 +1798,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private void updateParameterContext(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts,
-                                        final ComponentIdGenerator componentIdGenerator) {
+                                        final Map<String, ParameterProviderReference> parameterProviderReferences, final ComponentIdGenerator componentIdGenerator) {
         // Update the Parameter Context
         final ParameterContext currentParamContext = group.getParameterContext();
         final String proposedParameterContextName = proposed.getParameterContextName();
@@ -1802,9 +1806,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             group.setParameterContext(null);
         } else if (proposedParameterContextName != null) {
             final VersionedParameterContext versionedParameterContext = versionedParameterContexts.get(proposedParameterContextName);
-            /* TODO:
             createMissingParameterProviders(versionedParameterContext, parameterProviderReferences, componentIdGenerator);
-             */
             if (currentParamContext == null) {
                 // Create a new Parameter Context based on the parameters provided
 
@@ -1835,8 +1837,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private void createMissingParameterProviders(final VersionedParameterContext versionedParameterContext,
                                                       final Map<String, ParameterProviderReference> parameterProviderReferences, final ComponentIdGenerator componentIdGenerator) {
-        createMissingParameterProvider(versionedParameterContext, versionedParameterContext.getSensitiveParameterProvider(), true, parameterProviderReferences, componentIdGenerator);
-        createMissingParameterProvider(versionedParameterContext, versionedParameterContext.getNonSensitiveParameterProvider(), false, parameterProviderReferences, componentIdGenerator);
+        final String sensitiveParameterProviderId = versionedParameterContext.getSensitiveParameterProvider();
+        String nonSensitiveParameterProviderId = versionedParameterContext.getNonSensitiveParameterProvider();
+        createMissingParameterProvider(versionedParameterContext, sensitiveParameterProviderId, true, parameterProviderReferences, componentIdGenerator);
+        // If both references are the same, use the newly created identifier
+        if (sensitiveParameterProviderId != null && sensitiveParameterProviderId.equals(nonSensitiveParameterProviderId)) {
+            nonSensitiveParameterProviderId = versionedParameterContext.getSensitiveParameterProvider();
+        }
+        createMissingParameterProvider(versionedParameterContext, nonSensitiveParameterProviderId, false, parameterProviderReferences, componentIdGenerator);
     }
 
     private void createMissingParameterProvider(final VersionedParameterContext versionedParameterContext, final String parameterProviderId, final boolean sensitive,
@@ -1934,7 +1942,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 .sensitive(versionedParameter.isSensitive())
                 .build();
 
-            final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue());
+            final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue(), null, versionedParameter.isProvided());
             parameters.put(versionedParameter.getName(), parameter);
         }
 
@@ -1973,7 +1981,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 .sensitive(versionedParameter.isSensitive())
                 .build();
 
-            final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue());
+            final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue(), null, versionedParameter.isProvided());
             parameters.put(versionedParameter.getName(), parameter);
         }
 
@@ -2017,7 +2025,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 .sensitive(versionedParameter.isSensitive())
                 .build();
 
-            final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue());
+            final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue(), null, versionedParameter.isProvided());
             parameters.put(versionedParameter.getName(), parameter);
         }
 

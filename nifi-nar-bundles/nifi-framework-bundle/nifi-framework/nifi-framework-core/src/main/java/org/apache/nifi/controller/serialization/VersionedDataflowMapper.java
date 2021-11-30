@@ -19,6 +19,7 @@ package org.apache.nifi.controller.serialization;
 
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Template;
@@ -29,6 +30,7 @@ import org.apache.nifi.controller.flow.VersionedTemplate;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.groups.ProcessGroup;
@@ -84,6 +86,7 @@ public class VersionedDataflowMapper {
         dataflow.setParameterContexts(mapParameterContexts());
         dataflow.setRegistries(mapRegistries());
         dataflow.setReportingTasks(mapReportingTasks());
+        dataflow.setParameterProviders(mapParameterProviders());
         dataflow.setRootGroup(mapRootGroup());
         dataflow.setTemplates(mapTemplates());
 
@@ -145,6 +148,17 @@ public class VersionedDataflowMapper {
         }
 
         return reportingTasks;
+    }
+
+    private List<VersionedParameterProvider> mapParameterProviders() {
+        final List<VersionedParameterProvider> parameterProviders = new ArrayList<>();
+
+        for (final ParameterProviderNode taskNode : flowController.getFlowManager().getAllParameterProviders()) {
+            final VersionedParameterProvider versionedParameterProvider = flowMapper.mapParameterProvider(taskNode, flowController.getControllerServiceProvider());
+            parameterProviders.add(versionedParameterProvider);
+        }
+
+        return parameterProviders;
     }
 
     private VersionedProcessGroup mapRootGroup() {

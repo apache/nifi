@@ -173,7 +173,12 @@ public enum DifferenceType {
     /**
      * The Parameter Context inherits from a different collection of Parameter Contexts in each of the flows
      */
-    INHERITED_CONTEXTS_CHANGED("Inhereted Parameter Contexts Changed"),
+    INHERITED_CONTEXTS_CHANGED("Inherited Parameter Contexts Changed"),
+
+    /**
+     * The Parameter Context references different Parameter Providers in each of the flows
+     */
+    PARAMETER_PROVIDER_REFERENCE_CHANGED("Parameter Provider Reference Changed"),
 
     /**
      * The component has a different value for the Annotation Data in each of the flows

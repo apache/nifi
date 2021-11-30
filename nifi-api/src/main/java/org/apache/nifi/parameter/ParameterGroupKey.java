@@ -24,7 +24,7 @@ public class ParameterGroupKey {
 
     private final ParameterSensitivity sensitivity;
 
-    ParameterGroupKey(final String groupName, final ParameterSensitivity sensitivity) {
+    public ParameterGroupKey(final String groupName, final ParameterSensitivity sensitivity) {
         this.groupName = groupName;
         this.sensitivity = sensitivity;
     }

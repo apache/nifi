@@ -31,6 +31,7 @@ import org.apache.nifi.controller.AbstractComponentNode;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.MissingBundleException;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.SnippetManager;
 import org.apache.nifi.controller.StandardSnippet;
@@ -58,6 +59,7 @@ import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
@@ -195,6 +197,12 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             verifyNoConnectionsWithDataRemoved(existingDataFlow, proposedFlow, controller, flowComparison);
 
             synchronizeFlow(controller, existingDataFlow, proposedFlow, affectedComponents);
+
+            try {
+                flowManager.getAllParameterProviders().forEach(ParameterProviderNode::fetchParameters);
+            } catch (final Exception e) {
+                logger.warn("Failed to fetch parameters: " + e.getMessage(), e);
+            }
         } finally {
             // We have to call toExistingSet() here because some of the components that existed in the active set may no longer exist,
             // so attempting to start them will fail.
@@ -235,6 +243,17 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final Bundle compatibleBundle = getCompatibleBundle(reportingTask.getBundle(), extensionManager, reportingTask.getType());
             if (compatibleBundle != null) {
                 reportingTask.setBundle(compatibleBundle);
+            }
+        }
+
+        for (final VersionedParameterProvider parameterProvider : dataflow.getParameterProviders()) {
+            if (missingComponentIds.contains(parameterProvider.getInstanceIdentifier())) {
+                continue;
+            }
+
+            final Bundle compatibleBundle = getCompatibleBundle(parameterProvider.getBundle(), extensionManager, parameterProvider.getType());
+            if (compatibleBundle != null) {
+                parameterProvider.setBundle(compatibleBundle);
             }
         }
 
@@ -320,6 +339,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 inheritControllerServices(controller, versionedFlow, affectedComponentSet);
                 inheritParameterContexts(controller, versionedFlow);
                 inheritReportingTasks(controller, versionedFlow, affectedComponentSet);
+                inheritParameterProviders(controller, versionedFlow, affectedComponentSet);
                 inheritRegistries(controller, versionedFlow);
 
                 final ComponentIdGenerator componentIdGenerator = (proposedId, instanceId, destinationGroupId) -> instanceId;
@@ -387,11 +407,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final VersionedDataflow existingVersionedFlow = existingFlow.getVersionedDataflow() == null ? createEmptyVersionedDataflow() : existingFlow.getVersionedDataflow();
         final ComparableDataFlow localDataFlow = new StandardComparableDataFlow("Local Flow", existingVersionedFlow.getRootGroup(), toSet(existingVersionedFlow.getControllerServices()),
-            toSet(existingVersionedFlow.getReportingTasks()), toSet(existingVersionedFlow.getParameterContexts()));
+            toSet(existingVersionedFlow.getReportingTasks()), toSet(existingVersionedFlow.getParameterContexts()), toSet(existingVersionedFlow.getParameterProviders()));
 
         final VersionedDataflow clusterVersionedFlow = proposedFlow.getVersionedDataflow();
         final ComparableDataFlow clusterDataFlow = new StandardComparableDataFlow("Cluster Flow", clusterVersionedFlow.getRootGroup(), toSet(clusterVersionedFlow.getControllerServices()),
-            toSet(clusterVersionedFlow.getReportingTasks()), toSet(clusterVersionedFlow.getParameterContexts()));
+            toSet(clusterVersionedFlow.getReportingTasks()), toSet(clusterVersionedFlow.getParameterContexts()), toSet(clusterVersionedFlow.getParameterProviders()));
 
         final FlowComparator flowComparator = new StandardFlowComparator(localDataFlow, clusterDataFlow, Collections.emptySet(),
             differenceDescriptor, encryptor::decrypt, VersionedComponent::getInstanceIdentifier);
@@ -411,6 +431,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         dataflow.setControllerServices(Collections.emptyList());
         dataflow.setEncodingVersion(new VersionedFlowEncodingVersion(2, 0));
         dataflow.setParameterContexts(Collections.emptyList());
+        dataflow.setParameterProviders(Collections.emptyList());
         dataflow.setRegistries(Collections.emptyList());
         dataflow.setReportingTasks(Collections.emptyList());
         dataflow.setRootGroup(new VersionedProcessGroup());
@@ -540,6 +561,33 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
+    private void inheritParameterProviders(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) {
+        for (final VersionedParameterProvider versionedParameterProvider : dataflow.getParameterProviders()) {
+            final ParameterProviderNode existing = controller.getFlowManager().getParameterProvider(versionedParameterProvider.getInstanceIdentifier());
+            if (existing == null) {
+                addParameterProvider(controller, versionedParameterProvider);
+            } else if (affectedComponentSet.isParameterProviderAffected(existing.getIdentifier())) {
+                updateParameterProvider(existing, versionedParameterProvider);
+            }
+        }
+    }
+
+    private void addParameterProvider(final FlowController controller, final VersionedParameterProvider parameterProvider) {
+        final BundleCoordinate coordinate = createBundleCoordinate(parameterProvider.getBundle(), parameterProvider.getType());
+
+        final ParameterProviderNode parameterProviderNode = controller.getFlowManager()
+                .createParameterProvider(parameterProvider.getType(), parameterProvider.getInstanceIdentifier(), coordinate, false);
+        updateParameterProvider(parameterProviderNode, parameterProvider);
+    }
+
+    private void updateParameterProvider(final ParameterProviderNode parameterProviderNode, final VersionedParameterProvider parameterProvider) {
+        parameterProviderNode.setName(parameterProvider.getName());
+        parameterProviderNode.setComments(parameterProvider.getComments());
+
+        parameterProviderNode.setAnnotationData(parameterProvider.getAnnotationData());
+        parameterProviderNode.setProperties(parameterProvider.getProperties());
+    }
+
     private void inheritParameterContexts(final FlowController controller, final VersionedDataflow dataflow) {
         controller.getFlowManager().withParameterContextResolution(() -> {
             final List<VersionedParameterContext> parameterContexts = dataflow.getParameterContexts();
@@ -636,7 +684,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 parameterValue = rawValue;
             }
 
-            final Parameter parameter = new Parameter(descriptor, parameterValue);
+            final Parameter parameter = new Parameter(descriptor, parameterValue, null, versioned.isProvided());
             parameters.put(versioned.getName(), parameter);
         }
 
@@ -932,6 +980,12 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             return false;
         }
 
+        final Set<ParameterProviderNode> parameterProviders = flowManager.getAllParameterProviders();
+        if (!parameterProviders.isEmpty()) {
+            logger.debug("Existing Dataflow is not empty because there are {} Parameter Providers", parameterProviders.size());
+            return false;
+        }
+
         final Set<String> registryIdentifiers = controller.getFlowRegistryClient().getRegistryIdentifiers();
         if (!registryIdentifiers.isEmpty()) {
             logger.debug("Existing Dataflow is not empty because there are {} NiFi Registries", registryIdentifiers.size());
@@ -956,6 +1010,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         }
 
         if (!CollectionUtils.isEmpty(dataflow.getReportingTasks())) {
+            return false;
+        }
+        if (!CollectionUtils.isEmpty(dataflow.getParameterProviders())) {
             return false;
         }
         if (!CollectionUtils.isEmpty(dataflow.getControllerServices())) {
@@ -997,6 +1054,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final Set<String> missingComponents = new HashSet<>();
         flowManager.getAllControllerServices().stream().filter(ComponentNode::isExtensionMissing).forEach(cs -> missingComponents.add(cs.getIdentifier()));
         flowManager.getAllReportingTasks().stream().filter(ComponentNode::isExtensionMissing).forEach(r -> missingComponents.add(r.getIdentifier()));
+        flowManager.getAllParameterProviders().stream().filter(ComponentNode::isExtensionMissing).forEach(r -> missingComponents.add(r.getIdentifier()));
         flowManager.findAllProcessors(AbstractComponentNode::isExtensionMissing).forEach(p -> missingComponents.add(p.getIdentifier()));
 
         logger.trace("Exporting snippets from controller");

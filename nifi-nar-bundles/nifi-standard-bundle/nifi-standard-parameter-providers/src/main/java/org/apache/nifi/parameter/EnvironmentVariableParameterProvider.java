@@ -91,15 +91,10 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
         environmentVariables.forEach( (key, value) -> {
             final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(key).build();
             final Parameter parameter = new Parameter(parameterDescriptor, value, null, true);
-            boolean sensitiveMatch = false;
             if (sensitivePattern != null && sensitivePattern.matcher(key).matches()) {
                 sensitiveParameters.add(parameter);
-                sensitiveMatch = true;
-            }
-            if (nonSensitivePattern != null && nonSensitivePattern.matcher(key).matches()) {
-                if (!sensitiveMatch) {
-                    nonSensitiveParameters.add(parameter);
-                }
+            } else if (nonSensitivePattern != null && nonSensitivePattern.matcher(key).matches()) {
+                nonSensitiveParameters.add(parameter);
             }
         });
         return Arrays.asList(

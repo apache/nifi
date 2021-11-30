@@ -23,6 +23,7 @@ import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedFunnel;
 import org.apache.nifi.flow.VersionedLabel;
+import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedPort;
@@ -84,6 +85,7 @@ public class StandardFlowComparator implements FlowComparator {
 
         differences.addAll(compareComponents(flowA.getControllerLevelServices(), flowB.getControllerLevelServices(), this::compare));
         differences.addAll(compareComponents(flowA.getReportingTasks(), flowB.getReportingTasks(), this::compare));
+        differences.addAll(compareComponents(flowA.getParameterProviders(), flowB.getParameterProviders(), this::compare));
         differences.addAll(compareComponents(flowA.getParameterContexts(), flowB.getParameterContexts(), this::compare));
 
         return new StandardFlowComparison(flowA, flowB, differences);
@@ -193,13 +195,26 @@ public class StandardFlowComparator implements FlowComparator {
         compareProperties(taskA, taskB, taskA.getProperties(), taskB.getProperties(), taskA.getPropertyDescriptors(), taskB.getPropertyDescriptors(), differences);
     }
 
-    void compare(final VersionedParameterContext contextA, final VersionedParameterContext contextB, final Set<FlowDifference> differences) {
+    private void compare(final VersionedParameterProvider parameterProviderA, final VersionedParameterProvider parameterProviderB, final Set<FlowDifference> differences) {
+        if (compareComponents(parameterProviderA, parameterProviderB, differences)) {
+            return;
+        }
+
+        addIfDifferent(differences, DifferenceType.ANNOTATION_DATA_CHANGED, parameterProviderA, parameterProviderB, VersionedParameterProvider::getAnnotationData);
+        addIfDifferent(differences, DifferenceType.BUNDLE_CHANGED, parameterProviderA, parameterProviderB, VersionedParameterProvider::getBundle);
+        compareProperties(parameterProviderA, parameterProviderB, parameterProviderA.getProperties(), parameterProviderB.getProperties(),
+                parameterProviderA.getPropertyDescriptors(), parameterProviderB.getPropertyDescriptors(), differences);
+    }
+
+    private void compare(final VersionedParameterContext contextA, final VersionedParameterContext contextB, final Set<FlowDifference> differences) {
         if (compareComponents(contextA, contextB, differences)) {
             return;
         }
 
         addIfDifferent(differences, DifferenceType.DESCRIPTION_CHANGED, contextA, contextB, VersionedParameterContext::getDescription);
         addIfDifferent(differences, DifferenceType.INHERITED_CONTEXTS_CHANGED, contextA, contextB, VersionedParameterContext::getInheritedParameterContexts);
+        addIfDifferent(differences, DifferenceType.PARAMETER_PROVIDER_REFERENCE_CHANGED, contextA, contextB, VersionedParameterContext::getSensitiveParameterProvider);
+        addIfDifferent(differences, DifferenceType.PARAMETER_PROVIDER_REFERENCE_CHANGED, contextA, contextB, VersionedParameterContext::getNonSensitiveParameterProvider);
 
         final Map<String, VersionedParameter> contextAParameters = parametersByName(contextA.getParameters());
         final Map<String, VersionedParameter> contextBParameters = parametersByName(contextB.getParameters());

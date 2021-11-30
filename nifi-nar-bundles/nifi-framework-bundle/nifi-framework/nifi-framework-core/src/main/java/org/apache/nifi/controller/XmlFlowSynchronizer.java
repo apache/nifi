@@ -561,9 +561,10 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             .map(this::createParameter)
             .collect(Collectors.toMap(param -> param.getDescriptor().getName(), Function.identity()));
 
-        final List<String> referencedIds = dto.getInheritedParameterContexts().stream()
-                .map(ParameterContextReferenceEntity::getId)
-                .collect(Collectors.toList());
+        final List<String> referencedIds = dto.getInheritedParameterContexts() == null ? Collections.emptyList()
+                : dto.getInheritedParameterContexts().stream()
+                        .map(ParameterContextReferenceEntity::getId)
+                        .collect(Collectors.toList());
 
         final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters, referencedIds,
                 getReferenceId(dto.getSensitiveParameterProviderRef()), getReferenceId(dto.getNonSensitiveParameterProviderRef()));

@@ -2078,6 +2078,16 @@ Components. The ParameterProvider also has
 a `fetchParameters` method that is invoked by the framework to fetch
 the parameters from its source.
 
+Fetched parameters are returned in `ProvidedParameterGroup` s, each of which has
+a group name and a `ParameterSensitivity`.  The group name specifies which
+Parameter Context may receive the parameters in that group, if the Parameter Context
+references that provider.  If the group name is null, any Parameter Context may receive
+the parameters in that group as long as it references the provider.  The sensitivity
+determines whether the parameters in that group will be marked as sensitive or
+non-sensitive when applied to referencing Parameter Contexts.  This pattern allows a
+single ParameterProvider instance to provide different parameters to multiple Parameter
+Contexts based on matching group names.
+
 Within the `fetchParameters` method, the ParameterProvider is given access to a
 `ConfigurationContext`, from which configuration
 and information about the NiFi instance can be obtained. The
