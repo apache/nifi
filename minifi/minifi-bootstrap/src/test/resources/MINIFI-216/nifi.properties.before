@@ -15,7 +15,6 @@
 
 # Core Properties #
 
-nifi.version=1.1.0
 nifi.flow.configuration.file=./conf/flow.xml.gz
 nifi.flow.configuration.archive.enabled=false
 nifi.flow.configuration.archive.dir=./conf/archive/
@@ -92,7 +91,7 @@ nifi.web.jetty.working.directory=./work/jetty
 nifi.web.jetty.threads=200
 
 # security properties #
-nifi.sensitive.props.key=
+# This needs to be ignored during unit testing: nifi.sensitive.props.key=
 nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
 
 nifi.security.keystore=/tmp/ssl/localhost-ks.jks
