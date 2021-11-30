@@ -25,6 +25,7 @@ import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarLoadResult;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.stateless.engine.NarUnpackLock;
+import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,18 +47,22 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
 
     private final ExtensionDiscoveringManager extensionManager;
     private final NarClassLoaders narClassLoaders;
-    private final File writableLibDirectory;
+    private final File narDirectory;
+    private final File writableExtensionDirectory;
     private final Set<File> readOnlyExtensionDirectories;
     private final File workingDirectory;
     private final List<ExtensionClient> clients;
 
 
-    public FileSystemExtensionRepository(final ExtensionDiscoveringManager extensionManager, final File writableLibDirectory, final Collection<File> readOnlyExtensionDirectories,
-                                         final File workingDirectory, final NarClassLoaders narClassLoaders, final List<ExtensionClient> clients) {
+    public FileSystemExtensionRepository(final ExtensionDiscoveringManager extensionManager, final StatelessEngineConfiguration engineConfiguration, final NarClassLoaders narClassLoaders,
+                                         final List<ExtensionClient> clients) {
         this.extensionManager = extensionManager;
-        this.writableLibDirectory = writableLibDirectory;
-        this.readOnlyExtensionDirectories = readOnlyExtensionDirectories == null ? Collections.emptySet() : new HashSet<>(readOnlyExtensionDirectories);
-        this.workingDirectory = workingDirectory;
+        this.narDirectory = engineConfiguration.getNarDirectory();
+        this.writableExtensionDirectory = engineConfiguration.getExtensionsDirectory();
+        this.readOnlyExtensionDirectories = engineConfiguration.getReadOnlyExtensionsDirectories() == null
+                ? Collections.emptySet()
+                : new HashSet<>(engineConfiguration.getReadOnlyExtensionsDirectories());
+        this.workingDirectory = engineConfiguration.getWorkingDirectory();
         this.narClassLoaders = narClassLoaders;
         this.clients = clients;
     }
@@ -66,7 +71,10 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
     public void initialize() throws IOException {
         final Set<File> narFiles = new HashSet<>();
 
-        narFiles.addAll(listNarFiles(writableLibDirectory));
+        // if nar.directory and extensions.directory are the same, StatelessBootstrap has already loaded the nars
+        if (writableExtensionDirectory != null && !writableExtensionDirectory.equals(narDirectory)) {
+            narFiles.addAll(listNarFiles(writableExtensionDirectory));
+        }
 
         for (final File extensionDir : readOnlyExtensionDirectories) {
             narFiles.addAll(listNarFiles(extensionDir));
@@ -113,7 +121,7 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
             return CompletableFuture.completedFuture(Collections.emptySet());
         }
 
-        final DownloadQueue downloadQueue = new DownloadQueue(extensionManager, executorService, concurrentDownloads, bundleCoordinates, writableLibDirectory, clients);
+        final DownloadQueue downloadQueue = new DownloadQueue(extensionManager, executorService, concurrentDownloads, bundleCoordinates, writableExtensionDirectory, clients);
         final CompletableFuture<Void> downloadFuture = downloadQueue.download();
         logger.info("Beginning download of extensions {}", bundleCoordinates);
 
