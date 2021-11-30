@@ -156,6 +156,7 @@ a result, Connect can be configured with the URL of a Nexus server. The example 
 extensions. When a connector is started, it will first identify which extensions are necessary to run the dataflow, determine which extensions are available,
 and then automatically download any necessary extensions that it currently does not have available. If configuring a Nexus instance that has multiple repositories,
 the name of the repository should be included in the URL. For example: `https://nexus-private.myorganization.org/nexus/repository/my-repository/`.
+If the property is not specified, the necessary extensions (used by the flow) must be provided in the `extensions.directory` before deploying the connector.
 
 `(9) flow.snapshot`: Specifies the dataflow to run. This is the file that was downloaded by right-clicking on the Process Group in NiFi and
 clicking "Download flow". The dataflow can be stored external to the configured and the location can be represented as an HTTP (or HTTPS URL), or a filename.
@@ -292,6 +293,7 @@ a result, Connect can be configured with the URL of a Nexus server. The example 
 extensions. When a connector is started, it will first identify which extensions are necessary to run the dataflow, determine which extensions are available,
 and then automatically download any necessary extensions that it currently does not have available. If configuring a Nexus instance that has multiple repositories,
 the name of the repository should be included in the URL. For example: `https://nexus-private.myorganization.org/nexus/repository/my-repository/`.
+If the property is not specified, the necessary extensions (used by the flow) must be provided in the `extensions.directory` before deploying the connector.
 
 `(9) flow.snapshot`: Specifies the dataflow to run. This is the file that was downloaded by right-clicking on the Process Group in NiFi and
 clicking "Download flow". The dataflow can be stored external to the configured and the location can be represented as an HTTP (or HTTPS URL), or a filename.
