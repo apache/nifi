@@ -64,22 +64,24 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
 
     @Override
     public void initialize() throws IOException {
-        if (readOnlyExtensionDirectories.isEmpty()) {
-            return;
-        }
+        final Set<File> narFiles = new HashSet<>();
 
-        final Set<File> readOnlyNars = new HashSet<>();
+        narFiles.addAll(listNarFiles(writableLibDirectory));
+
         for (final File extensionDir : readOnlyExtensionDirectories) {
-            final File[] narFiles = extensionDir.listFiles(file -> file.getName().endsWith(".nar"));
-            if (narFiles == null) {
-                logger.warn("Failed to perform listing of read-only extensions directory {}. Will not load extensions from this directory.", extensionDir.getAbsolutePath());
-                continue;
-            }
-
-            readOnlyNars.addAll(Arrays.asList(narFiles));
+            narFiles.addAll(listNarFiles(extensionDir));
         }
 
-        loadExtensions(readOnlyNars);
+        loadExtensions(narFiles);
+    }
+
+    private Collection<File> listNarFiles(File extensionDir) {
+        final File[] narFiles = extensionDir.listFiles(file -> file.getName().endsWith(".nar"));
+        if (narFiles == null) {
+            logger.warn("Failed to perform listing of extensions directory {}. Will not preload extensions from this directory.", extensionDir.getAbsolutePath());
+            return Collections.emptyList();
+        }
+        return Arrays.asList(narFiles);
     }
 
     @Override
