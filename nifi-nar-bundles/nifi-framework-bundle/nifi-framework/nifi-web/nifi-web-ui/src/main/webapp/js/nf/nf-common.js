@@ -1012,8 +1012,8 @@
          *
          * @argument {string} value     The value to check
          */
-        hasWhitespace : function (value) {
-            if (!value) {
+        hasLeadTrailWhitespace : function (value) {
+            if ( !value || value.trim().length === 0 ) {
                 return false;
             }
             var leadOrTrailWhitespaceRegex = /^[ \s]+|[ \s]+$/;

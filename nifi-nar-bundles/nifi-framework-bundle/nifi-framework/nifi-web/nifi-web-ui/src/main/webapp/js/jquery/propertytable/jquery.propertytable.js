@@ -1326,7 +1326,7 @@
                             valueMarkup = '<div class="table-cell value"><pre class="ellipsis">' + nfCommon.escapeHtml(value) + '</pre></div>';
 
                             // add a tooltip icon for trailing and/or leading whitespace
-                            if (nfCommon.hasWhitespace(value)) {
+                            if (nfCommon.hasLeadTrailWhitespace(value)) {
                                 valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
                                 nameWidthOffset = 20; // 10 + icon width (10)
                             }
@@ -1967,6 +1967,7 @@
 
         // clean up any tooltips that may have been generated
         nfCommon.cleanUpTooltips(table, 'div.fa-question-circle');
+        nfCommon.cleanUpTooltips(table, 'div.fa-info');
 
         // clear the data in the grid
         var propertyGrid = table.data('gridInstance');
