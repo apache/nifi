@@ -88,6 +88,15 @@ jobs:
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_RUN_ARGUMENTS }}
           ${{ env.MAVEN_PROJECTS }}
+      - name: Upload Troublehsooting Logs
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: surefire-reports-ja
+          path: "target/troubleshooting/"
+          retention-days: 14
+
+
   macos:
     timeout-minutes: 120
     runs-on: macos-latest
@@ -124,3 +133,10 @@ jobs:
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_RUN_ARGUMENTS }}
           ${{ env.MAVEN_PROJECTS }}
+      - name: Upload Troublehsooting Logs
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: surefire-reports-ja
+          path: "target/troubleshooting/"
+          retention-days: 14
