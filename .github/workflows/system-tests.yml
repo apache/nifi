@@ -93,7 +93,7 @@ jobs:
         if: always()
         with:
           name: surefire-reports-ja
-          path: "target/troubleshooting/"
+          path: "**/target/troubleshooting/"
           retention-days: 14
 
 
@@ -138,5 +138,5 @@ jobs:
         if: always()
         with:
           name: surefire-reports-ja
-          path: "target/troubleshooting/"
+          path: "**/target/troubleshooting/"
           retention-days: 14
