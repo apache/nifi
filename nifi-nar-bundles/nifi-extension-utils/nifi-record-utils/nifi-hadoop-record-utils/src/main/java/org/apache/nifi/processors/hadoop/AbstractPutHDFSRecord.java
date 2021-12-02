@@ -279,8 +279,18 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 createDirectory(fileSystem, directoryPath, remoteOwner, remoteGroup);
 
                 // write to tempFile first and on success rename to destFile
-                final Path tempFile = new Path(directoryPath, "." + filenameValue);
-                final Path destFile = new Path(directoryPath, filenameValue);
+                final Path tempFile = new Path(directoryPath, "." + filenameValue) {
+                    @Override
+                    public FileSystem getFileSystem(Configuration conf) throws IOException {
+                        return fileSystem;
+                    }
+                };
+                final Path destFile = new Path(directoryPath, filenameValue) {
+                    @Override
+                    public FileSystem getFileSystem(Configuration conf) throws IOException {
+                        return fileSystem;
+                    }
+                };
 
                 final boolean destinationOrTempExists = fileSystem.exists(destFile) || fileSystem.exists(tempFile);
                 final boolean shouldOverwrite = context.getProperty(OVERWRITE).asBoolean();
