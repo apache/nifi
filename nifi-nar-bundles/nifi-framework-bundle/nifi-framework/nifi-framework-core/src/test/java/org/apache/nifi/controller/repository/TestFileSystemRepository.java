@@ -23,6 +23,7 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.util.DiskUtils;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -65,8 +66,6 @@ import static org.junit.Assert.assertTrue;
 
 public class TestFileSystemRepository {
 
-    public static final int NUM_REPO_SECTIONS = 1;
-
     public static final File helloWorldFile = new File("src/test/resources/hello.txt");
 
     private FileSystemRepository repository = null;
@@ -87,7 +86,7 @@ public class TestFileSystemRepository {
         }
         repository = new FileSystemRepository(nifiProperties);
         claimManager = new StandardResourceClaimManager();
-        repository.initialize(claimManager);
+        repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
         repository.purge();
     }
 
@@ -183,7 +182,7 @@ public class TestFileSystemRepository {
             bogus.setReadable(false);
 
             repository = new FileSystemRepository(nifiProperties);
-            repository.initialize(new StandardResourceClaimManager());
+            repository.initialize(new StandardContentRepositoryContext(new StandardResourceClaimManager(), EventReporter.NO_OP));
         } finally {
             bogus.setReadable(true);
             assertTrue(bogus.delete());
@@ -267,7 +266,7 @@ public class TestFileSystemRepository {
         Thread.sleep(1000L);
 
         repository = new FileSystemRepository(nifiProperties);
-        repository.initialize(new StandardResourceClaimManager());
+        repository.initialize(new StandardContentRepositoryContext(new StandardResourceClaimManager(), EventReporter.NO_OP));
         repository.purge();
 
         final ContentClaim claim2 = repository.create(false);
@@ -567,7 +566,7 @@ public class TestFileSystemRepository {
             };
 
             final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
-            repository.initialize(claimManager);
+            repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
             repository.purge();
 
             final ContentClaim claim = repository.create(false);
@@ -621,7 +620,7 @@ public class TestFileSystemRepository {
             };
 
             final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
-            repository.initialize(claimManager);
+            repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
             repository.purge();
 
             final ContentClaim claim = repository.create(false);
@@ -699,7 +698,8 @@ public class TestFileSystemRepository {
             };
 
             final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
-            repository.initialize(claimManager);
+
+            repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
             repository.purge();
 
             final ContentClaim claim = repository.create(false);

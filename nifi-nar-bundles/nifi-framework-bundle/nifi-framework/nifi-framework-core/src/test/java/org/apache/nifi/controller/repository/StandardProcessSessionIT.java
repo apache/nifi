@@ -33,6 +33,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -202,7 +203,7 @@ public class StandardProcessSessionIT {
         when(connectable.getConnections()).thenReturn(new HashSet<>(connList));
 
         contentRepo = new MockContentRepository();
-        contentRepo.initialize(new StandardResourceClaimManager());
+        contentRepo.initialize(new StandardContentRepositoryContext(new StandardResourceClaimManager(), EventReporter.NO_OP));
         flowFileRepo = new MockFlowFileRepository(contentRepo);
 
         stateManager = new MockStateManager(connectable);
@@ -3175,8 +3176,8 @@ public class StandardProcessSessionIT {
         }
 
         @Override
-        public void initialize(ResourceClaimManager claimManager) throws IOException {
-            this.claimManager = claimManager;
+        public void initialize(ContentRepositoryContext context) throws IOException {
+            this.claimManager = context.getResourceClaimManager();
         }
     }
 }

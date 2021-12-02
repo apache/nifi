@@ -18,6 +18,7 @@
 package org.apache.nifi.stateless.repository;
 
 import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.ContentRepositoryContext;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
@@ -69,8 +70,8 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
     }
 
     @Override
-    public void initialize(final ResourceClaimManager claimManager) throws IOException {
-        this.resourceClaimManager = claimManager;
+    public void initialize(final ContentRepositoryContext context) throws IOException {
+        this.resourceClaimManager = context.getResourceClaimManager();
         if (!directory.exists() && !directory.mkdirs()) {
             throw new IOException("Cannot initialize Content Repository because " + directory.getAbsolutePath() + " does not exist and cannot be created");
         }
