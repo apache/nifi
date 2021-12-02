@@ -43,7 +43,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
@@ -119,8 +118,10 @@ public class LoadBalanceSession {
         return phase.getRequiredSelectionKey();
     }
 
-    public synchronized List<FlowFileRecord> getFlowFilesSent() {
-        return Collections.unmodifiableList(flowFilesSent);
+    public synchronized List<FlowFileRecord> getAndPurgeFlowFilesSent() {
+        final List<FlowFileRecord> copy = new ArrayList<>(flowFilesSent);
+        flowFilesSent.clear();
+        return copy;
     }
 
     public synchronized boolean isComplete() {
