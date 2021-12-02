@@ -20,9 +20,10 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import org.apache.nifi.c2.protocol.api.extension.Bundle;
-import org.apache.nifi.c2.protocol.api.extension.ComponentManifest;
-import org.apache.nifi.c2.protocol.api.extension.SchedulingDefaults;
+import org.apache.nifi.c2.protocol.component.api.BuildInfo;
+import org.apache.nifi.c2.protocol.component.api.Bundle;
+import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
+import org.apache.nifi.c2.protocol.component.api.SchedulingDefaults;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;

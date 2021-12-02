@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2.protocol.api.extension;
+package org.apache.nifi.c2.protocol.component.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;

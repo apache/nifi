@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2.protocol.api.extension;
+package org.apache.nifi.c2.protocol.component.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -26,22 +26,17 @@ import org.apache.nifi.components.PropertyDescriptor;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 @ApiModel
-public class ProcessorDefinition extends ExtensionComponent implements ConfigurableComponentDefinition {
-    private static final long serialVersionUID = -421341248144419723L;
+public class ControllerServiceDefinition extends ExtensionComponent implements ConfigurableComponentDefinition {
+    private static final long serialVersionUID = -876296212819594455L;
 
     private Map<String, PropertyDescriptor> propertyDescriptors;
     private boolean supportsDynamicProperties;
-    private InputRequirement inputRequirement;
-
-    private List<Relationship> supportedRelationships;
-    private boolean supportsDynamicRelationships;
 
     @Override
-    @ApiModelProperty("Descriptions of configuration properties applicable to this reporting task")
+    @ApiModelProperty("Descriptions of configuration properties applicable to this controller service")
     public Map<String, PropertyDescriptor> getPropertyDescriptors() {
         return (propertyDescriptors != null ? Collections.unmodifiableMap(propertyDescriptors) : null);
     }
@@ -62,30 +57,4 @@ public class ProcessorDefinition extends ExtensionComponent implements Configura
         this.supportsDynamicProperties = supportsDynamicProperties;
     }
 
-    @ApiModelProperty("Any input requirements this processor has")
-    public InputRequirement getInputRequirement() {
-        return inputRequirement;
-    }
-
-    public void setInputRequirement(InputRequirement inputRequirement) {
-        this.inputRequirement = inputRequirement;
-    }
-
-    @ApiModelProperty("The supported relationships for this processor")
-    public List<Relationship> getSupportedRelationships() {
-        return (supportedRelationships == null ? Collections.emptyList() : Collections.unmodifiableList(supportedRelationships));
-    }
-
-    public void setSupportedRelationships(List<Relationship> supportedRelationships) {
-        this.supportedRelationships = supportedRelationships;
-    }
-
-    @ApiModelProperty("Whether or not this processor supports dynamic relationships")
-    public boolean getSupportsDynamicRelationships() {
-        return supportsDynamicRelationships;
-    }
-
-    public void setSupportsDynamicRelationships(boolean supportsDynamicRelationships) {
-        this.supportsDynamicRelationships = supportsDynamicRelationships;
-    }
 }

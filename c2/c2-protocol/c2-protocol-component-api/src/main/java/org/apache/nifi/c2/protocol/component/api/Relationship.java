@@ -18,24 +18,34 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2.protocol.api;
+package org.apache.nifi.c2.protocol.component.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import java.io.Serializable;
 
 @ApiModel
-public class Flow extends FlowSummary {
-    private static final long serialVersionUID = 6023554070857273480L;
+public class Relationship implements Serializable {
 
-    private String flowContent;
+    private static final long serialVersionUID = 2098349371897080033L;
+    private String name;
+    private String description;
 
-    @ApiModelProperty(value = "The content of the flow according to the flow format")
-    public String getFlowContent() {
-        return flowContent;
+    @ApiModelProperty("The name of the relationship")
+    public String getName() {
+        return name;
     }
 
-    public void setFlowContent(String flowContent) {
-        this.flowContent = flowContent;
+    public void setName(String name) {
+        this.name = name;
     }
 
+    @ApiModelProperty("The description of the relationship")
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
 }

@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2.protocol.api.extension;
+package org.apache.nifi.c2.protocol.component.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -26,17 +26,21 @@ import org.apache.nifi.components.PropertyDescriptor;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @ApiModel
-public class ControllerServiceDefinition extends ExtensionComponent implements ConfigurableComponentDefinition {
-    private static final long serialVersionUID = -876296212819594455L;
+public class ReportingTaskDefinition extends ExtensionComponent implements ConfigurableComponentDefinition {
+    private static final long serialVersionUID = -6736467402450650934L;
 
     private Map<String, PropertyDescriptor> propertyDescriptors;
+    private List<String> supportedSchedulingStrategies;
+    private String defaultSchedulingStrategy;
+    private Map<String, Map<String, String>> defaultValuesBySchedulingStrategy;
     private boolean supportsDynamicProperties;
 
     @Override
-    @ApiModelProperty("Descriptions of configuration properties applicable to this controller service")
+    @ApiModelProperty("Descriptions of configuration properties applicable to this reporting task")
     public Map<String, PropertyDescriptor> getPropertyDescriptors() {
         return (propertyDescriptors != null ? Collections.unmodifiableMap(propertyDescriptors) : null);
     }
@@ -47,7 +51,7 @@ public class ControllerServiceDefinition extends ExtensionComponent implements C
     }
 
     @Override
-    @ApiModelProperty("Whether or not this processor makes use of dynamic (user-set) properties")
+    @ApiModelProperty("Whether or not this reporting task makes use of dynamic (user-set) properties")
     public boolean getSupportsDynamicProperties() {
         return supportsDynamicProperties;
     }
@@ -57,4 +61,30 @@ public class ControllerServiceDefinition extends ExtensionComponent implements C
         this.supportsDynamicProperties = supportsDynamicProperties;
     }
 
+    @ApiModelProperty
+    public List<String> getSupportedSchedulingStrategies() {
+        return (supportedSchedulingStrategies != null ? Collections.unmodifiableList(supportedSchedulingStrategies) : null);
+    }
+
+    public void setSupportedSchedulingStrategies(List<String> supportedSchedulingStrategies) {
+        this.supportedSchedulingStrategies = supportedSchedulingStrategies;
+    }
+
+    @ApiModelProperty
+    public String getDefaultSchedulingStrategy() {
+        return defaultSchedulingStrategy;
+    }
+
+    public void setDefaultSchedulingStrategy(String defaultSchedulingStrategy) {
+        this.defaultSchedulingStrategy = defaultSchedulingStrategy;
+    }
+
+    @ApiModelProperty
+    public Map<String, Map<String, String>> getDefaultValuesBySchedulingStrategy() {
+        return (defaultValuesBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultValuesBySchedulingStrategy) : null);
+    }
+
+    public void setDefaultValuesBySchedulingStrategy(Map<String, Map<String, String>> defaultValuesBySchedulingStrategy) {
+        this.defaultValuesBySchedulingStrategy = defaultValuesBySchedulingStrategy;
+    }
 }

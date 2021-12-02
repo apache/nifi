@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2.protocol.api.extension;
+package org.apache.nifi.c2.protocol.component.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -30,14 +30,15 @@ import java.util.List;
 import java.util.Map;
 
 @ApiModel
-public class ReportingTaskDefinition extends ExtensionComponent implements ConfigurableComponentDefinition {
-    private static final long serialVersionUID = -6736467402450650934L;
+public class ProcessorDefinition extends ExtensionComponent implements ConfigurableComponentDefinition {
+    private static final long serialVersionUID = -421341248144419723L;
 
     private Map<String, PropertyDescriptor> propertyDescriptors;
-    private List<String> supportedSchedulingStrategies;
-    private String defaultSchedulingStrategy;
-    private Map<String, Map<String, String>> defaultValuesBySchedulingStrategy;
     private boolean supportsDynamicProperties;
+    private InputRequirement inputRequirement;
+
+    private List<Relationship> supportedRelationships;
+    private boolean supportsDynamicRelationships;
 
     @Override
     @ApiModelProperty("Descriptions of configuration properties applicable to this reporting task")
@@ -51,7 +52,7 @@ public class ReportingTaskDefinition extends ExtensionComponent implements Confi
     }
 
     @Override
-    @ApiModelProperty("Whether or not this reporting task makes use of dynamic (user-set) properties")
+    @ApiModelProperty("Whether or not this processor makes use of dynamic (user-set) properties")
     public boolean getSupportsDynamicProperties() {
         return supportsDynamicProperties;
     }
@@ -61,30 +62,30 @@ public class ReportingTaskDefinition extends ExtensionComponent implements Confi
         this.supportsDynamicProperties = supportsDynamicProperties;
     }
 
-    @ApiModelProperty
-    public List<String> getSupportedSchedulingStrategies() {
-        return (supportedSchedulingStrategies != null ? Collections.unmodifiableList(supportedSchedulingStrategies) : null);
+    @ApiModelProperty("Any input requirements this processor has")
+    public InputRequirement getInputRequirement() {
+        return inputRequirement;
     }
 
-    public void setSupportedSchedulingStrategies(List<String> supportedSchedulingStrategies) {
-        this.supportedSchedulingStrategies = supportedSchedulingStrategies;
+    public void setInputRequirement(InputRequirement inputRequirement) {
+        this.inputRequirement = inputRequirement;
     }
 
-    @ApiModelProperty
-    public String getDefaultSchedulingStrategy() {
-        return defaultSchedulingStrategy;
+    @ApiModelProperty("The supported relationships for this processor")
+    public List<Relationship> getSupportedRelationships() {
+        return (supportedRelationships == null ? Collections.emptyList() : Collections.unmodifiableList(supportedRelationships));
     }
 
-    public void setDefaultSchedulingStrategy(String defaultSchedulingStrategy) {
-        this.defaultSchedulingStrategy = defaultSchedulingStrategy;
+    public void setSupportedRelationships(List<Relationship> supportedRelationships) {
+        this.supportedRelationships = supportedRelationships;
     }
 
-    @ApiModelProperty
-    public Map<String, Map<String, String>> getDefaultValuesBySchedulingStrategy() {
-        return (defaultValuesBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultValuesBySchedulingStrategy) : null);
+    @ApiModelProperty("Whether or not this processor supports dynamic relationships")
+    public boolean getSupportsDynamicRelationships() {
+        return supportsDynamicRelationships;
     }
 
-    public void setDefaultValuesBySchedulingStrategy(Map<String, Map<String, String>> defaultValuesBySchedulingStrategy) {
-        this.defaultValuesBySchedulingStrategy = defaultValuesBySchedulingStrategy;
+    public void setSupportsDynamicRelationships(boolean supportsDynamicRelationships) {
+        this.supportsDynamicRelationships = supportsDynamicRelationships;
     }
 }
