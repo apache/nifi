@@ -92,7 +92,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: always()
         with:
-          name: surefire-reports-ja
+          name: ubuntu-latest-troubleshooting-logs
           path: "**/target/troubleshooting/"
           retention-days: 14
 
@@ -137,6 +137,6 @@ jobs:
         uses: actions/upload-artifact@v2
         if: always()
         with:
-          name: surefire-reports-ja
+          name: macos-latest-troubleshooting-logs
           path: "**/target/troubleshooting/"
           retention-days: 14

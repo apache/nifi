@@ -114,14 +114,25 @@ public abstract class NiFiSystemIT {
     }
 
     @After
-    public void teardown() throws IOException, NiFiClientException {
+    public void teardown() throws Exception {
         try {
+            Exception destroyFlowFailure = null;
+
             if (isDestroyFlowAfterEachTest()) {
-                destroyFlow();
+                try {
+                    destroyFlow();
+                } catch (final Exception e) {
+                    logger.error("Failed to destroy flow", e);
+                    destroyFlowFailure = e;
+                }
             }
 
             if (isDestroyEnvironmentAfterEachTest()) {
                 cleanup();
+            }
+
+            if (destroyFlowFailure != null) {
+                throw destroyFlowFailure;
             }
         } finally {
             if (nifiClient != null) {
