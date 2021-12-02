@@ -1292,6 +1292,7 @@
         // function for formatting the property value
         var valueFormatter = function (row, cell, value, columnDef, dataContext) {
             var valueMarkup;
+            var nameWidthOffset = 0;
             if (nfCommon.isDefinedAndNotNull(value)) {
                 // get the property descriptor
                 var descriptors = table.data('descriptors');
@@ -1323,6 +1324,13 @@
                             valueMarkup = '<span class="table-cell blank">Incompatible Controller Service Configured</div>';
                         } else {
                             valueMarkup = '<div class="table-cell value"><pre class="ellipsis">' + nfCommon.escapeHtml(value) + '</pre></div>';
+
+                            // add a tooltip icon for trailing and/or leading whitespace
+                            if (nfCommon.hasLeadTrailWhitespace(value)) {
+                                valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
+                                nameWidthOffset = 20; // 10 + icon width (10)
+                            }
+
                         }
                     }
                 }
@@ -1335,7 +1343,7 @@
             if (dataContext.type === 'required') {
                 content.addClass('required');
             }
-            content.find('.ellipsis').width(columnDef.width - 10).ellipsis();
+            content.find('.ellipsis').width(columnDef.width - 10 - nameWidthOffset).ellipsis();
 
             // return the appropriate markup
             return $('<div />').append(content).html();
@@ -1660,6 +1668,9 @@
         });
 
         if (options.readOnly !== true) {
+            propertyGrid.onBeforeEditCell.subscribe(function (e, args) {
+                nfCommon.cleanUpTooltips(table, 'div.fa-question-circle, div.fa-info');
+            });
             propertyGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
                 setTimeout(function() {
                     var propertyData = propertyGrid.getData();
@@ -1763,13 +1774,26 @@
                 var propertyHistory = history[property];
 
                 // format the tooltip
-                var tooltip = nfCommon.formatPropertyTooltip(propertyDescriptor, propertyHistory);
+                var propertyTooltip = nfCommon.formatPropertyTooltip(propertyDescriptor, propertyHistory);
 
-                if (nfCommon.isDefinedAndNotNull(tooltip)) {
+                if (nfCommon.isDefinedAndNotNull(propertyTooltip)) {
                     infoIcon.qtip($.extend({},
                         nfCommon.config.tooltipConfig,
                         {
-                            content: tooltip
+                            content: propertyTooltip
+                        }));
+                }
+            }
+
+            var whitespaceIcon = $(this).find('div.fa-info');
+            if (whitespaceIcon.length && !whitespaceIcon.data('qtip')) {
+                var whitespaceTooltip = nfCommon.formatWhitespaceTooltip();
+
+                if (nfCommon.isDefinedAndNotNull(whitespaceTooltip)) {
+                    whitespaceIcon.qtip($.extend({},
+                        nfCommon.config.tooltipConfig,
+                        {
+                            content: whitespaceTooltip
                         }));
                 }
             }
@@ -1945,7 +1969,7 @@
         table.removeData('descriptors history');
 
         // clean up any tooltips that may have been generated
-        nfCommon.cleanUpTooltips(table, 'div.fa-question-circle');
+        nfCommon.cleanUpTooltips(table, 'div.fa-question-circle, div.fa-info');
 
         // clear the data in the grid
         var propertyGrid = table.data('gridInstance');

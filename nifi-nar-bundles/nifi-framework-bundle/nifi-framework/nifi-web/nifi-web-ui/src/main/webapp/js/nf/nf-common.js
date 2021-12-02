@@ -997,6 +997,30 @@
         },
 
         /**
+         * Returns a tooltip for leading and/or trailing whitespace.
+         *
+         * @returns {string}
+         */
+        formatWhitespaceTooltip: function () {
+            return nfCommon.escapeHtml('The specified value contains leading and/or trailing whitespace character(s). ' +
+                'This could produce unexpected results if it was not intentional.');
+
+        },
+
+        /**
+         * Checks the specified value for leading and/or trailing whitespace.
+         *
+         * @argument {string} value     The value to check
+         */
+        hasLeadTrailWhitespace : function (value) {
+            if ( !value || value.trim().length === 0 ) {
+                return false;
+            }
+            var leadOrTrailWhitespaceRegex = /^[ \s]+|[ \s]+$/;
+            return leadOrTrailWhitespaceRegex.test(value);
+        },
+
+        /**
          * Formats the specified property (name and value) accordingly.
          *
          * @argument {string} name      The name of the property
