@@ -1668,6 +1668,9 @@
         });
 
         if (options.readOnly !== true) {
+            propertyGrid.onBeforeEditCell.subscribe(function (e, args) {
+                nfCommon.cleanUpTooltips(table, 'div.fa-question-circle, div.fa-info');
+            });
             propertyGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
                 setTimeout(function() {
                     var propertyData = propertyGrid.getData();
@@ -1966,8 +1969,7 @@
         table.removeData('descriptors history');
 
         // clean up any tooltips that may have been generated
-        nfCommon.cleanUpTooltips(table, 'div.fa-question-circle');
-        nfCommon.cleanUpTooltips(table, 'div.fa-info');
+        nfCommon.cleanUpTooltips(table, 'div.fa-question-circle, div.fa-info');
 
         // clear the data in the grid
         var propertyGrid = table.data('gridInstance');
