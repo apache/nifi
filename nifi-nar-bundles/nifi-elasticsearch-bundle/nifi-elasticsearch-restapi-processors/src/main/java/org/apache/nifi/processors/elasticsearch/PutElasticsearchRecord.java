@@ -17,27 +17,22 @@
 
 package org.apache.nifi.processors.elasticsearch;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticsearchException;
 import org.apache.nifi.elasticsearch.IndexOperationRequest;
 import org.apache.nifi.elasticsearch.IndexOperationResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -49,6 +44,7 @@ import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.record.path.validation.RecordPathValidator;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -62,11 +58,11 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -86,7 +82,10 @@ import java.util.Set;
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing. " +
                 "These parameters will override any matching parameters in the _bulk request body")
-public class PutElasticsearchRecord extends AbstractProcessor implements ElasticsearchRestProcessor {
+@SystemResourceConsideration(
+        resource = SystemResource.MEMORY,
+        description = "The Batch of Records will be stored in memory until the bulk operation is performed.")
+public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("put-es-record-reader")
         .displayName("Record Reader")
@@ -96,23 +95,9 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         .build();
 
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-        .name("put-es-record-batch-size")
-        .displayName("Batch Size")
+        .fromPropertyDescriptor(AbstractPutElasticsearch.BATCH_SIZE)
         .description("The number of records to send over in a single batch.")
-        .defaultValue("100")
-        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .required(true)
-        .build();
-
-    static final PropertyDescriptor INDEX_OP = new PropertyDescriptor.Builder()
-        .name("put-es-record-index-op")
-        .displayName("Index Operation")
-        .description("The type of the operation used to index (create, delete, index, update, upsert)")
-        .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .defaultValue(IndexOperationRequest.Operation.Index.getValue())
-        .required(true)
         .build();
 
     static final PropertyDescriptor AT_TIMESTAMP = new PropertyDescriptor.Builder()
@@ -245,6 +230,11 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         .required(false)
         .build();
 
+    static final Relationship REL_FAILED_RECORDS = new Relationship.Builder()
+            .name("errors").description("If an Error Record Writer is set, any record that failed to process the way it was " +
+                    "configured will be sent to this relationship as part of a failed record set.")
+            .autoTerminateDefault(true).build();
+
     static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
         INDEX_OP, INDEX, TYPE, AT_TIMESTAMP, CLIENT_SERVICE, RECORD_READER, BATCH_SIZE, ID_RECORD_PATH, RETAIN_ID_FIELD,
         INDEX_OP_RECORD_PATH, INDEX_RECORD_PATH, TYPE_RECORD_PATH, AT_TIMESTAMP_RECORD_PATH, RETAIN_AT_TIMESTAMP_FIELD,
@@ -254,21 +244,10 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS
     )));
 
-    static final List<String> ALLOWED_INDEX_OPERATIONS = Collections.unmodifiableList(Arrays.asList(
-            IndexOperationRequest.Operation.Create.getValue().toLowerCase(),
-            IndexOperationRequest.Operation.Delete.getValue().toLowerCase(),
-            IndexOperationRequest.Operation.Index.getValue().toLowerCase(),
-            IndexOperationRequest.Operation.Update.getValue().toLowerCase(),
-            IndexOperationRequest.Operation.Upsert.getValue().toLowerCase()
-    ));
-
     private RecordPathCache recordPathCache;
     private RecordReaderFactory readerFactory;
     private RecordSetWriterFactory writerFactory;
-    private boolean logErrors;
-    private ObjectMapper errorMapper;
 
-    private volatile ElasticSearchClientService clientService;
     private volatile String dateFormat;
     private volatile String timeFormat;
     private volatile String timestampFormat;
@@ -283,24 +262,13 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         return DESCRIPTORS;
     }
 
-    @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .required(false)
-                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                .dynamic(true)
-                .build();
-    }
-
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        super.onScheduled(context);
+
         this.readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        this.clientService = context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class);
         this.recordPathCache = new RecordPathCache(16);
         this.writerFactory = context.getProperty(ERROR_RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        this.logErrors = context.getProperty(LOG_ERROR_RESPONSES).asBoolean();
 
         this.dateFormat = context.getProperty(DATE_FORMAT).evaluateAttributeExpressions().getValue();
         if (this.dateFormat == null) {
@@ -314,36 +282,6 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         if (this.timestampFormat == null) {
             this.timestampFormat = RecordFieldType.TIMESTAMP.getDefaultFormat();
         }
-
-        if (errorMapper == null && (logErrors || getLogger().isDebugEnabled())) {
-            errorMapper = new ObjectMapper();
-            errorMapper.enable(SerializationFeature.INDENT_OUTPUT);
-        }
-    }
-
-    @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> validationResults = new ArrayList<>();
-
-        final PropertyValue indexOp = validationContext.getProperty(INDEX_OP);
-        final ValidationResult.Builder indexOpValidationResult = new ValidationResult.Builder().subject(INDEX_OP.getName());
-        if (!indexOp.isExpressionLanguagePresent()) {
-            final String indexOpValue = indexOp.evaluateAttributeExpressions().getValue();
-            indexOpValidationResult.input(indexOpValue);
-            if (!ALLOWED_INDEX_OPERATIONS.contains(indexOpValue.toLowerCase())) {
-                indexOpValidationResult.valid(false)
-                        .explanation(String.format("%s must be Expression Language or one of %s",
-                                INDEX_OP.getDisplayName(), ALLOWED_INDEX_OPERATIONS)
-                        );
-            } else {
-                indexOpValidationResult.valid(true);
-            }
-        } else {
-            indexOpValidationResult.valid(true).input(indexOp.getValue()).explanation("Expression Language present");
-        }
-        validationResults.add(indexOpValidationResult.build());
-
-        return validationResults;
     }
 
     @Override
@@ -423,15 +361,18 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                     ese.isElastic() ? "Routing to retry." : "Routing to failure");
             getLogger().error(msg, ese);
             final Relationship rel = ese.isElastic() ? REL_RETRY : REL_FAILURE;
-            session.penalize(input);
-            input = session.putAttribute(input, "elasticsearch.put.error", ese.getMessage());
-            session.transfer(input, rel);
+            transferFlowFilesOnException(ese, rel, session, true, input);
+            removeBadRecordFlowFiles(badRecords, session);
+            return;
+        } catch (final IOException | SchemaNotFoundException ex) {
+            getLogger().warn("Could not log Elasticsearch operation errors nor determine which documents errored.", ex);
+            final Relationship rel = writerFactory != null ? REL_FAILED_RECORDS : REL_FAILURE;
+            transferFlowFilesOnException(ex, rel, session, true, input);
             removeBadRecordFlowFiles(badRecords, session);
             return;
         } catch (final Exception ex) {
             getLogger().error("Could not index documents.", ex);
-            input = session.putAttribute(input, "elasticsearch.put.error", ex.getMessage());
-            session.transfer(input, REL_FAILURE);
+            transferFlowFilesOnException(ex, REL_FAILURE, session, false, input);
             context.yield();
             removeBadRecordFlowFiles(badRecords, session);
             return;
@@ -447,19 +388,10 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         bad.clear();
     }
 
-    private FlowFile indexDocuments(final BulkOperation bundle, final ProcessContext context, final ProcessSession session, final FlowFile input) throws Exception {
+    private FlowFile indexDocuments(final BulkOperation bundle, final ProcessContext context, final ProcessSession session, final FlowFile input) throws IOException, SchemaNotFoundException {
         final IndexOperationResponse response = clientService.bulk(bundle.getOperationList(), getUrlQueryParameters(context, input));
         if (response.hasErrors()) {
-            if (logErrors || getLogger().isDebugEnabled()) {
-                final List<Map<String, Object>> errors = response.getItems();
-                final String output = String.format("An error was encountered while processing bulk operations. Server response below:%n%n%s", errorMapper.writeValueAsString(errors));
-
-                if (logErrors) {
-                    getLogger().error(output);
-                } else {
-                    getLogger().debug(output);
-                }
-            }
+            logElasticsearchDocumentErrors(response);
 
             if (writerFactory != null) {
                 FlowFile errorFF = session.create(input);
@@ -469,17 +401,9 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                          final RecordSetWriter writer = writerFactory.createWriter(getLogger(), bundle.getSchema(), os, errorFF )) {
 
                         writer.beginRecordSet();
-                        for (int index = 0; index < response.getItems().size(); index++) {
-                            final Map<String, Object> current = response.getItems().get(index);
-                            if (!current.isEmpty()) {
-                                final String key = current.keySet().stream().findFirst().orElse(null);
-                                @SuppressWarnings("unchecked")
-                                final Map<String, Object> inner = (Map<String, Object>) current.get(key);
-                                if (inner != null && inner.containsKey("error")) {
-                                    writer.write(bundle.getOriginalRecords().get(index));
-                                    added++;
-                                }
-                            }
+                        for (final int index : findElasticsearchErrorIndices(response)) {
+                            writer.write(bundle.getOriginalRecords().get(index));
+                            added++;
                         }
                         writer.finishRecordSet();
                     }
@@ -489,8 +413,8 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                     session.transfer(errorFF, REL_FAILED_RECORDS);
 
                     return errorFF;
-                } catch (final Exception ex) {
-                    getLogger().error("", ex);
+                } catch (final IOException | SchemaNotFoundException ex) {
+                    getLogger().error("Unable to write error records", ex);
                     session.remove(errorFF);
                     throw ex;
                 }
