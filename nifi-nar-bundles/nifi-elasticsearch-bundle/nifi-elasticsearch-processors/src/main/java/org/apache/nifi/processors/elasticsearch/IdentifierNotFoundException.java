@@ -19,6 +19,7 @@ package org.apache.nifi.processors.elasticsearch;
 /**
  * A domain-specific exception for when a valid Elasticsearch document identifier is expected but not found
  */
+@Deprecated
 public class IdentifierNotFoundException extends Exception {
 
     public IdentifierNotFoundException() {

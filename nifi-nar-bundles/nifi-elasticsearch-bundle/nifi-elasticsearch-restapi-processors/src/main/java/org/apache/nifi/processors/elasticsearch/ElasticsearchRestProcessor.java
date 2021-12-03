@@ -104,10 +104,6 @@ public interface ElasticsearchRestProcessor {
             .name("success")
             .description("All flowfiles that succeed in being transferred into Elasticsearch go here.")
             .build();
-    Relationship REL_FAILED_RECORDS = new Relationship.Builder()
-            .name("errors").description("If an output record write is set, any record that failed to process the way it was " +
-                    "configured will be sent to this relationship as part of a failed record record set.")
-            .autoTerminateDefault(true).build();
 
     default String getQuery(final FlowFile input, final ProcessContext context, final ProcessSession session) throws IOException {
         String retVal = null;

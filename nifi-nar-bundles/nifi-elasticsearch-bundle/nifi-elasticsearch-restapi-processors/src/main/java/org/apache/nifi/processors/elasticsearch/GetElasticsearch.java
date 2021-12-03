@@ -49,7 +49,8 @@ import java.util.concurrent.TimeUnit;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "put", "index", "record"})
-@CapabilityDescription("Elasticsearch get processor that uses the official Elastic REST client libraries. " +
+@CapabilityDescription("Elasticsearch get processor that uses the official Elastic REST client libraries " +
+        "to fetch a single document from Elasticsearch by _id. " +
         "Note that the full body of the document will be read into memory before being written to a FlowFile for transfer.")
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The filename attribute is set to the document identifier"),

@@ -135,6 +135,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, failure)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, retry)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, success)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
     }
 
     @Test
@@ -291,6 +292,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
 
         runner.clearTransferState()
 
@@ -344,6 +346,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
 
         runner.clearTransferState()
 
@@ -384,6 +387,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
 
         runner.clearTransferState()
 
@@ -421,6 +425,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
 
         runner.clearTransferState()
 
@@ -441,6 +446,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
     }
 
     @Test
@@ -515,6 +521,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
 
         runner.clearTransferState()
 
@@ -567,6 +574,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
     }
 
     @Test
@@ -588,12 +596,16 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 1)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
     }
 
     @Test
     void testInputRequired() {
         runner.run()
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
     }
 
     @Test
@@ -631,6 +643,8 @@ class PutElasticsearchRecordTest {
         runner.run()
 
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 1)
 
         def errorFF = runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[0]

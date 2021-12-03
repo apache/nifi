@@ -19,6 +19,7 @@ package org.apache.nifi.processors.elasticsearch;
 /**
  * Represents a retryable exception from ElasticSearch.
  */
+@Deprecated
 public class RetryableException extends RuntimeException {
 
     private static final long serialVersionUID = -2755015600102381620L;
