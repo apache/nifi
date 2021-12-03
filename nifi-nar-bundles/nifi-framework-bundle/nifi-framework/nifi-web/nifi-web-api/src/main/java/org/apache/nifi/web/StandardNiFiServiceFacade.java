@@ -120,6 +120,7 @@ import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.processor.VerifiableProcessor;
+import org.apache.nifi.prometheus.util.AbstractMetricsRegistry;
 import org.apache.nifi.prometheus.util.BulletinMetricsRegistry;
 import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
@@ -308,6 +309,7 @@ import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
+import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
@@ -418,12 +420,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private AuthorizableLookup authorizableLookup;
 
     // Prometheus Metrics objects
-    private NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
-    private JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
-    private ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry = new ConnectionAnalyticsMetricsRegistry();
-    private BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
+    private final NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
+    private final JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
+    private final ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry = new ConnectionAnalyticsMetricsRegistry();
+    private final BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
 
-    public final Collection<CollectorRegistry> ALL_REGISTRIES = Arrays.asList(
+    private final Collection<AbstractMetricsRegistry> configuredRegistries = Arrays.asList(
+            nifiMetricsRegistry,
+            jvmMetricsRegistry,
+            connectionAnalyticsMetricsRegistry,
+            bulletinMetricsRegistry
+    );
+
+    private final Collection<CollectorRegistry> metricsRegistries = Arrays.asList(
             nifiMetricsRegistry.getRegistry(),
             jvmMetricsRegistry.getRegistry(),
             connectionAnalyticsMetricsRegistry.getRegistry(),
@@ -5654,7 +5663,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 );
             }
         }
-        return ALL_REGISTRIES;
+        return metricsRegistries;
+    }
+
+    @Override
+    public Collection<CollectorRegistry> generateFlowMetrics(final Set<FlowMetricsRegistry> includeRegistries) {
+        final Set<FlowMetricsRegistry> selectedRegistries = includeRegistries.isEmpty() ? new HashSet<>(Arrays.asList(FlowMetricsRegistry.values())) : includeRegistries;
+
+        final Set<Class<? extends AbstractMetricsRegistry>> registryClasses = selectedRegistries.stream()
+                .map(FlowMetricsRegistry::getRegistryClass)
+                .collect(Collectors.toSet());
+
+        generateFlowMetrics();
+        return configuredRegistries.stream()
+                .filter(configuredRegistry -> registryClasses.contains(configuredRegistry.getClass()))
+                .map(AbstractMetricsRegistry::getRegistry)
+                .collect(Collectors.toList());
     }
 
     @Override
