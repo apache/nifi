@@ -1,0 +1,116 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.web.api;
+
+import io.prometheus.client.CollectorRegistry;
+import io.prometheus.client.exporter.common.TextFormat;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
+import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.request.FlowMetricsProducer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+public class TestFlowResource {
+    private static final String INSTANCE_ID = TestFlowResource.class.getSimpleName();
+
+    private static final String THREAD_COUNT_NAME = "nifi_jvm_thread_count";
+
+    private static final String HEAP_USAGE_NAME = "nifi_jvm_heap_usage";
+
+    @InjectMocks
+    private FlowResource resource = new FlowResource();
+
+    @Mock
+    private NiFiServiceFacade serviceFacade;
+
+    @Test
+    public void testGetFlowMetricsProducerInvalid() {
+        assertThrows(ResourceNotFoundException.class, () -> resource.getFlowMetrics(String.class.toString(), Collections.emptySet(), Collections.emptySet()));
+    }
+
+    @Test
+    public void testGetFlowMetricsPrometheus() throws IOException {
+        final List<CollectorRegistry> registries = getCollectorRegistries();
+        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), Collections.emptySet());
+
+        assertNotNull(response);
+        assertEquals(MediaType.valueOf(TextFormat.CONTENT_TYPE_004), response.getMediaType());
+
+        final String output = getResponseOutput(response);
+
+        assertTrue(output.contains(THREAD_COUNT_NAME), "Thread Count name not found");
+        assertTrue(output.contains(HEAP_USAGE_NAME), "Heap Usage name not found");
+    }
+
+    @Test
+    public void testGetFlowMetricsPrometheusIncludedNames() throws IOException {
+        final List<CollectorRegistry> registries = getCollectorRegistries();
+        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+
+        final Set<String> includedNames = new HashSet<>(Collections.singletonList(THREAD_COUNT_NAME));
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), includedNames);
+
+        assertNotNull(response);
+        assertEquals(MediaType.valueOf(TextFormat.CONTENT_TYPE_004), response.getMediaType());
+
+        final String output = getResponseOutput(response);
+
+        assertTrue(output.contains(THREAD_COUNT_NAME), "Thread Count name not found");
+        assertFalse(output.contains(HEAP_USAGE_NAME), "Heap Usage name not filtered");
+    }
+
+    private String getResponseOutput(final Response response) throws IOException {
+        final StreamingOutput streamingOutput = (StreamingOutput) response.getEntity();
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        streamingOutput.write(outputStream);
+        final byte[] outputBytes = outputStream.toByteArray();
+        return new String(outputBytes);
+    }
+
+    private List<CollectorRegistry> getCollectorRegistries() {
+        final JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
+        final CollectorRegistry jvmCollectorRegistry = PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), INSTANCE_ID);
+        return Collections.singletonList(jvmCollectorRegistry);
+    }
+}
