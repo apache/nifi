@@ -331,7 +331,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
                 }
 
                 if (writer.isCheckpoint()) {
-                    commit(session, listCount, maxTimestamp, keysMatchingTimestamp);
+                    commit(session, listCount);
                     listCount = 0;
                 }
 
@@ -344,7 +344,12 @@ public class ListGCSBucket extends AbstractGCSProcessor {
                 getLogger().debug("No new objects in GCS bucket {} to list. Yielding.", bucket);
                 context.yield();
             } else {
-                commit(session, listCount, maxTimestamp, keysMatchingTimestamp);
+                commit(session, listCount);
+
+                currentTimestamp = maxTimestamp;
+                currentKeys.clear();
+                currentKeys.addAll(keysMatchingTimestamp);
+                persistState(session, currentTimestamp, currentKeys);
             }
         } catch (final Exception e) {
             getLogger().error("Failed to list contents of GCS Bucket due to {}", new Object[] {e}, e);
@@ -358,13 +363,8 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         getLogger().info("Successfully listed GCS bucket {} in {} millis", new Object[]{bucket, listMillis});
     }
 
-    private void commit(final ProcessSession session, final int listCount, final long timestamp, final Set<String> keysMatchingTimestamp) {
+    private void commit(final ProcessSession session, final int listCount) {
         if (listCount > 0) {
-            currentTimestamp = timestamp;
-            currentKeys.clear();
-            currentKeys.addAll(keysMatchingTimestamp);
-            persistState(session, currentTimestamp, currentKeys);
-
             getLogger().info("Successfully listed {} new files from GCS; routing to success", new Object[] {listCount});
             session.commitAsync();
         }
