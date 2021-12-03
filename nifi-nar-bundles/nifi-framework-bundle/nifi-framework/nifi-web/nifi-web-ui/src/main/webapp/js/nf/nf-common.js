@@ -1008,16 +1008,20 @@
         },
 
         /**
-         * Checks the specified value for leading and/or trailing whitespace.
+         * Constant regex for leading and/or trailing whitespace.
+         */
+        LEAD_TRAIL_WHITE_SPACE_REGEX: /^[ \s]+|[ \s]+$/,
+
+        /**
+         * Checks the specified value for leading and/or trailing whitespace only.
          *
          * @argument {string} value     The value to check
          */
         hasLeadTrailWhitespace : function (value) {
-            if ( !value || value.trim().length === 0 ) {
+            if (nfCommon.isBlank(value)) {
                 return false;
             }
-            var leadOrTrailWhitespaceRegex = /^[ \s]+|[ \s]+$/;
-            return leadOrTrailWhitespaceRegex.test(value);
+            return nfCommon.LEAD_TRAIL_WHITE_SPACE_REGEX.test(value);
         },
 
         /**

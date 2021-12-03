@@ -1330,7 +1330,6 @@
                                 valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
                                 nameWidthOffset = 20; // 10 + icon width (10)
                             }
-
                         }
                     }
                 }
@@ -1789,13 +1788,11 @@
             if (whitespaceIcon.length && !whitespaceIcon.data('qtip')) {
                 var whitespaceTooltip = nfCommon.formatWhitespaceTooltip();
 
-                if (nfCommon.isDefinedAndNotNull(whitespaceTooltip)) {
-                    whitespaceIcon.qtip($.extend({},
-                        nfCommon.config.tooltipConfig,
-                        {
-                            content: whitespaceTooltip
-                        }));
-                }
+                whitespaceIcon.qtip($.extend({},
+                    nfCommon.config.tooltipConfig,
+                    {
+                        content: whitespaceTooltip
+                    }));
             }
         });
     };
