@@ -130,6 +130,7 @@ import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
+import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 
 import java.util.Collection;
 import java.util.Date;
@@ -322,6 +323,14 @@ public interface NiFiServiceFacade {
      * Gets the metrics for the flow.
      */
     Collection<CollectorRegistry> generateFlowMetrics();
+
+    /**
+     * Generate metrics for the flow and return selected registries
+     *
+     * @param includeRegistries Set of Flow Metrics Registries to be returned
+     * @return Collector Registries
+     */
+    Collection<CollectorRegistry> generateFlowMetrics(Set<FlowMetricsRegistry> includeRegistries);
 
     /**
      * Updates the configuration for this controller.
