@@ -175,7 +175,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .description("Enables or disables the auto commit functionality of the DB connection. For some JDBC drivers, it is required to disable the auto committing "
                     + "to limit the number of result rows fetching at a time. Ex: PostgreSQL")
             .allowableValues("true", "false")
-            .defaultValue("false")
+            .defaultValue("true")
             .required(true)
             .build();
 
