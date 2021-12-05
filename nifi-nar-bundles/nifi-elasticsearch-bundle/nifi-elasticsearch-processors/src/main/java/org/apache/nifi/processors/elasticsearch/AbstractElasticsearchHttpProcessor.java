@@ -55,6 +55,7 @@ import javax.net.ssl.X509TrustManager;
 /**
  * A base class for Elasticsearch processors that use the HTTP API
  */
+@Deprecated
 public abstract class AbstractElasticsearchHttpProcessor extends AbstractElasticsearchProcessor {
     static final String SOURCE_QUERY_PARAM = "_source";
     static final String QUERY_QUERY_PARAM = "q";

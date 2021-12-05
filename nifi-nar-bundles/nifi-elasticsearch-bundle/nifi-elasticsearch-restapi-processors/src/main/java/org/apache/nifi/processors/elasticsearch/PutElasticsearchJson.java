@@ -103,8 +103,9 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         .build();
 
     static final Relationship REL_FAILED_DOCUMENTS = new Relationship.Builder()
-            .name("errors").description("If an Error Record Writer is set, any FlowFile that failed to process the way it was " +
-                    "configured will be sent to this relationship as part of a failed document set.")
+            .name("errors").description("If \"" + OUTPUT_ERROR_DOCUMENTS.getDisplayName() + "\" is set, " +
+                    "any FlowFile that failed to process the way it was configured will be sent to this relationship " +
+                    "as part of a failed document set.")
             .autoTerminateDefault(true).build();
 
     static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
