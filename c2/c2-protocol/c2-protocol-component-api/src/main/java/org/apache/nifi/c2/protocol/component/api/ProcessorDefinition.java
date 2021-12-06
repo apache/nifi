@@ -37,6 +37,23 @@ public class ProcessorDefinition extends ExtensionComponent implements Configura
     private List<Relationship> supportedRelationships;
     private boolean supportsDynamicRelationships;
 
+    private boolean triggerSerially;
+    private boolean triggerWhenEmpty;
+    private boolean triggerWhenAnyDestinationAvailable;
+    private boolean supportsBatching;
+    private boolean supportsEventDriven;
+    private boolean primaryNodeOnly;
+    private boolean sideEffectFree;
+
+    private List<String> supportedSchedulingStrategies;
+    private String defaultSchedulingStrategy;
+    private Map<String, Integer> defaultConcurrentTasksBySchedulingStrategy;
+    private Map<String, String> defaultSchedulingPeriodBySchedulingStrategy;
+
+    private String defaultPenaltyDuration;
+    private String defaultYieldDuration;
+    private String defaultBulletinLevel;
+
     @Override
     @ApiModelProperty("Descriptions of configuration properties applicable to this reporting task")
     public Map<String, PropertyDescriptor> getPropertyDescriptors() {
@@ -84,5 +101,131 @@ public class ProcessorDefinition extends ExtensionComponent implements Configura
 
     public void setSupportsDynamicRelationships(boolean supportsDynamicRelationships) {
         this.supportsDynamicRelationships = supportsDynamicRelationships;
+    }
+
+    @ApiModelProperty("Whether or not this processor should be triggered serially")
+    public boolean getTriggerSerially() {
+        return triggerSerially;
+    }
+
+    public void setTriggerSerially(boolean triggerSerially) {
+        this.triggerSerially = triggerSerially;
+    }
+
+    @ApiModelProperty("Whether or not this processor should be triggered when incoming queues are empty")
+    public boolean getTriggerWhenEmpty() {
+        return triggerWhenEmpty;
+    }
+
+    public void setTriggerWhenEmpty(boolean triggerWhenEmpty) {
+        this.triggerWhenEmpty = triggerWhenEmpty;
+    }
+
+    @ApiModelProperty("Whether or not this processor should be triggered when any destination queue has room")
+    public boolean getTriggerWhenAnyDestinationAvailable() {
+        return triggerWhenAnyDestinationAvailable;
+    }
+
+    public void setTriggerWhenAnyDestinationAvailable(boolean triggerWhenAnyDestinationAvailable) {
+        this.triggerWhenAnyDestinationAvailable = triggerWhenAnyDestinationAvailable;
+    }
+
+    @ApiModelProperty("Whether or not this processor supports batching")
+    public boolean getSupportsBatching() {
+        return supportsBatching;
+    }
+
+    public void setSupportsBatching(boolean supportsBatching) {
+        this.supportsBatching = supportsBatching;
+    }
+
+    @ApiModelProperty("Whether or not this processor supports event driven scheduling")
+    public boolean getSupportsEventDriven() {
+        return supportsEventDriven;
+    }
+
+    public void setSupportsEventDriven(boolean supportsEventDriven) {
+        this.supportsEventDriven = supportsEventDriven;
+    }
+
+    @ApiModelProperty("Whether or not this processor should be scheduled only on the primary node in a cluster")
+    public boolean getPrimaryNodeOnly() {
+        return primaryNodeOnly;
+    }
+
+    public void setPrimaryNodeOnly(boolean primaryNodeOnly) {
+        this.primaryNodeOnly = primaryNodeOnly;
+    }
+
+    @ApiModelProperty("Whether or not this processor is considered side-effect free")
+    public boolean getSideEffectFree() {
+        return sideEffectFree;
+    }
+
+    public void setSideEffectFree(boolean sideEffectFree) {
+        this.sideEffectFree = sideEffectFree;
+    }
+
+    @ApiModelProperty("The supported scheduling strategies")
+    public List<String> getSupportedSchedulingStrategies() {
+        return supportedSchedulingStrategies;
+    }
+
+    public void setSupportedSchedulingStrategies(List<String> supportedSchedulingStrategies) {
+        this.supportedSchedulingStrategies = supportedSchedulingStrategies;
+    }
+
+    @ApiModelProperty("The default scheduling strategy for the processor")
+    public String getDefaultSchedulingStrategy() {
+        return defaultSchedulingStrategy;
+    }
+
+    public void setDefaultSchedulingStrategy(String defaultSchedulingStrategy) {
+        this.defaultSchedulingStrategy = defaultSchedulingStrategy;
+    }
+
+    @ApiModelProperty("The default concurrent tasks for each scheduling strategy")
+    public Map<String, Integer> getDefaultConcurrentTasksBySchedulingStrategy() {
+        return defaultConcurrentTasksBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultConcurrentTasksBySchedulingStrategy) : null;
+    }
+
+    public void setDefaultConcurrentTasksBySchedulingStrategy(Map<String, Integer> defaultConcurrentTasksBySchedulingStrategy) {
+        this.defaultConcurrentTasksBySchedulingStrategy = defaultConcurrentTasksBySchedulingStrategy;
+    }
+
+    @ApiModelProperty("The default scheduling period for each scheduling strategy")
+    public Map<String, String> getDefaultSchedulingPeriodBySchedulingStrategy() {
+        return defaultSchedulingPeriodBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultSchedulingPeriodBySchedulingStrategy) : null;
+    }
+
+    public void setDefaultSchedulingPeriodBySchedulingStrategy(Map<String, String> defaultSchedulingPeriodBySchedulingStrategy) {
+        this.defaultSchedulingPeriodBySchedulingStrategy = defaultSchedulingPeriodBySchedulingStrategy;
+    }
+
+    @ApiModelProperty("The default penalty duration")
+    public String getDefaultPenaltyDuration() {
+        return defaultPenaltyDuration;
+    }
+
+    public void setDefaultPenaltyDuration(String defaultPenaltyDuration) {
+        this.defaultPenaltyDuration = defaultPenaltyDuration;
+    }
+
+    @ApiModelProperty("The default yield duration")
+    public String getDefaultYieldDuration() {
+        return defaultYieldDuration;
+    }
+
+    public void setDefaultYieldDuration(String defaultYieldDuration) {
+        this.defaultYieldDuration = defaultYieldDuration;
+    }
+
+    @ApiModelProperty("The default bulletin level")
+    public String getDefaultBulletinLevel() {
+        return defaultBulletinLevel;
+    }
+
+    public void setDefaultBulletinLevel(String defaultBulletinLevel) {
+        this.defaultBulletinLevel = defaultBulletinLevel;
     }
 }

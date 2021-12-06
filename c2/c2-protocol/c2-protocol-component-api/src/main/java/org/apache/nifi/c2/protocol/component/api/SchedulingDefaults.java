@@ -22,6 +22,8 @@ import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.Map;
 
 @ApiModel
 public class SchedulingDefaults implements Serializable {
@@ -33,6 +35,9 @@ public class SchedulingDefaults implements Serializable {
     private long yieldDurationMillis;
     private long defaultRunDurationNanos;
     private String defaultMaxConcurrentTasks;
+
+    private Map<String, Integer> defaultConcurrentTasksBySchedulingStrategy;
+    private Map<String, String> defaultSchedulingPeriodsBySchedulingStrategy;
 
     @ApiModelProperty("The name of the default scheduling strategy")
     public SchedulingStrategy getDefaultSchedulingStrategy() {
@@ -86,6 +91,24 @@ public class SchedulingDefaults implements Serializable {
 
     public void setDefaultMaxConcurrentTasks(String defaultMaxConcurrentTasks) {
         this.defaultMaxConcurrentTasks = defaultMaxConcurrentTasks;
+    }
+
+    @ApiModelProperty("The default concurrent tasks for each scheduling strategy")
+    public Map<String, Integer> getDefaultConcurrentTasksBySchedulingStrategy() {
+        return defaultConcurrentTasksBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultConcurrentTasksBySchedulingStrategy) : null;
+    }
+
+    public void setDefaultConcurrentTasksBySchedulingStrategy(Map<String, Integer> defaultConcurrentTasksBySchedulingStrategy) {
+        this.defaultConcurrentTasksBySchedulingStrategy = defaultConcurrentTasksBySchedulingStrategy;
+    }
+
+    @ApiModelProperty("The default scheduling period for each scheduling strategy")
+    public Map<String, String> getDefaultSchedulingPeriodsBySchedulingStrategy() {
+        return defaultSchedulingPeriodsBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultSchedulingPeriodsBySchedulingStrategy) : null;
+    }
+
+    public void setDefaultSchedulingPeriodsBySchedulingStrategy(Map<String, String> defaultSchedulingPeriodsBySchedulingStrategy) {
+        this.defaultSchedulingPeriodsBySchedulingStrategy = defaultSchedulingPeriodsBySchedulingStrategy;
     }
 
 }

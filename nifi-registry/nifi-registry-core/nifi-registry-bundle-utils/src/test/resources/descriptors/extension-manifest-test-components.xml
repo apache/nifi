@@ -9,6 +9,23 @@
                 <tag>test</tag>
                 <tag>processor</tag>
             </tags>
+            <triggerSerially>true</triggerSerially>
+            <triggerWhenEmpty>true</triggerWhenEmpty>
+            <triggerWhenAnyDestinationAvailable>true</triggerWhenAnyDestinationAvailable>
+            <primaryNodeOnly>true</primaryNodeOnly>
+            <supportsBatching>true</supportsBatching>
+            <eventDriven>true</eventDriven>
+            <sideEffectFree>true</sideEffectFree>
+            <defaultSettings>
+                <yieldDuration>10 secs</yieldDuration>
+                <penaltyDuration>20 secs</penaltyDuration>
+                <bulletinLevel>DEBUG</bulletinLevel>
+            </defaultSettings>
+            <defaultSchedule>
+                <strategy>CRON_DRIVEN</strategy>
+                <period>* 1 * * *</period>
+                <concurrentTasks>5</concurrentTasks>
+            </defaultSchedule>
         </extension>
         <extension>
             <name>org.apache.nifi.processors.TestProcessor2</name>
