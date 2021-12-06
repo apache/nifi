@@ -109,14 +109,14 @@ public class GetSplunk extends AbstractProcessor {
     public static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Connection Timeout")
             .description("Max wait time for connection to the Splunk server.")
-            .required(true)
+            .required(false)
             .defaultValue("5 secs")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
     public static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Read Timeout")
             .description("Max wait time for response from the Splunk server.")
-            .required(true)
+            .required(false)
             .defaultValue("15 secs")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
