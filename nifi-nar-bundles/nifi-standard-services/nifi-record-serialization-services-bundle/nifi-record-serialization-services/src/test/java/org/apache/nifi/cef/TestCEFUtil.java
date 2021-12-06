@@ -36,7 +36,9 @@ public class TestCEFUtil {
 
     static final String INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY = "src/test/resources/cef/single-row-header-fields-only.txt";
     static final String INPUT_SINGLE_ROW_WITH_EXTENSIONS = "src/test/resources/cef/single-row-with-extensions.txt";
+    static final String INPUT_SINGLE_ROW_WITH_EMPTY_EXTENSION = "src/test/resources/cef/single-row-with-empty-extension.txt";
     static final String INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS = "src/test/resources/cef/single-row-with-custom-extensions.txt";
+    static final String INPUT_SINGLE_ROW_WITH_EMPTY_CUSTOM_EXTENSIONS = "src/test/resources/cef/single-row-with-empty-custom-extensions.txt";
     static final String INPUT_SINGLE_ROW_WITH_INCORRECT_HEADER_FIELD = "src/test/resources/cef/single-row-with-incorrect-header-field.txt";
     static final String INPUT_SINGLE_ROW_WITH_INCORRECT_CUSTOM_EXTENSIONS = "src/test/resources/cef/single-row-with-incorrect-custom-extensions.txt";
     static final String INPUT_EMPTY_ROW = "src/test/resources/cef/empty-row.txt";

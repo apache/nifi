@@ -54,6 +54,7 @@ public class TestCEFRecordReader {
     private CEFRecordReader testSubject;
     private List<Record> results;
     private boolean includeCustomExtensions;
+    private boolean acceptEmptyExtensions;
     private boolean dropUnknownFields;
     private String rawField;
 
@@ -64,6 +65,7 @@ public class TestCEFRecordReader {
         testSubject = null;
         results = null;
         includeCustomExtensions = false;
+        acceptEmptyExtensions = false;
         dropUnknownFields = true;
         rawField = null;
     }
@@ -394,6 +396,40 @@ public class TestCEFRecordReader {
         whenReadingRecords();
     }
 
+    @Test
+    public void testReadingEmptyValuesWhenAcceptingEmptyExtensions() throws Exception {
+        // given
+        givenSchema(TestCEFUtil.givenFieldWithExtensions());
+        givenAcceptingEmptyExtensions();
+        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_EXTENSION);
+
+        // when
+        whenReadingRecords();
+
+        // then
+        thenAssertNumberOfResults(1);
+        thenAssertSchemaIsSet();
+
+        final Map<String, Object> expectedExtensionValues = new HashMap<>();
+        expectedExtensionValues.putAll(TestCEFUtil.EXPECTED_EXTENSION_VALUES);
+        expectedExtensionValues.put("cn1", null);
+        expectedExtensionValues.put("cn1Label", "");
+
+        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, expectedExtensionValues);
+    }
+
+    @Test(expected = NumberFormatException.class)
+    public void testReadingEmptyValuesWhenNotAcceptingEmptyExtensions() throws Exception {
+        // given
+        givenSchema(TestCEFUtil.givenFieldWithExtensions());
+        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_EXTENSION);
+
+        // when
+        whenReadingRecords();
+
+        // then - as empty is not accepted, number type fields will not be parsed properly
+    }
+
     private static List<RecordField> givenFieldsWithHeaderAndRaw() {
         final List<RecordField> result = new ArrayList<>(CEFSchemaUtil.getHeaderFields());
         result.add(new RecordField(TestCEFUtil.RAW_FIELD, RecordFieldType.STRING.getDataType()));
@@ -422,6 +458,10 @@ public class TestCEFRecordReader {
         includeCustomExtensions = true;
     }
 
+    private void givenAcceptingEmptyExtensions() {
+        acceptEmptyExtensions = true;
+    }
+
     private void givenRawMessageField(final String rawField) {
         this.rawField = rawField;
     }
@@ -432,7 +472,7 @@ public class TestCEFRecordReader {
 
     private void givenReader(final String file) throws FileNotFoundException {
         inputStream = new FileInputStream(file);
-        testSubject = new CEFRecordReader(inputStream, schema, parser, new MockComponentLogger(), Locale.US, rawField, includeCustomExtensions);
+        testSubject = new CEFRecordReader(inputStream, schema, parser, new MockComponentLogger(), Locale.US, rawField, includeCustomExtensions, acceptEmptyExtensions);
     }
 
     private void whenReadingRecords() throws IOException, MalformedRecordException {

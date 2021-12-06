@@ -174,6 +174,35 @@ public class TestCEFSchemaInference {
     }
 
     @Test
+    public void testInferBasedOnRowWithEmptyExtensions() throws Exception {
+        // given
+        givenIncludeExtensions();
+        givenRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_EXTENSION);
+        givenTestSubject();
+
+        // when
+        whenInferSchema();
+
+        // then - as extension types are defined by the extension dictionary, even with empty value the data type can be inferred
+        thenSchemaConsistsOf(TestCEFUtil.givenFieldWithExtensions());
+    }
+
+    @Test
+    public void testInferBasedOnRowWithEmptyCustomExtensions() throws Exception {
+        // given
+        givenIncludeExtensions();
+        givenIncludeCustomExtensions(CEFCustomExtensionTypeResolver.SIMPLE_RESOLVER);
+        givenRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_CUSTOM_EXTENSIONS);
+        givenTestSubject();
+
+        // when
+        whenInferSchema();
+
+        // then - as there is no value provided to infer based on, the empty custom field will be considered as string
+        thenSchemaConsistsOf(TestCEFUtil.givenFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD_AS_STRING));
+    }
+
+    @Test
     public void testInferWhenStartingWithEmptyRow() throws Exception {
         // given
         givenRecordSource(TestCEFUtil.INPUT_MULTIPLE_ROWS_STARTING_WITH_EMPTY_ROW);
@@ -243,7 +272,7 @@ public class TestCEFSchemaInference {
 
     private void givenRecordSource(final String inputFile) throws FileNotFoundException {
         final FileInputStream inputStream = new FileInputStream(inputFile);
-        this.recordSource = new CEFRecordSource(inputStream, parser, Locale.US);
+        this.recordSource = new CEFRecordSource(inputStream, parser, Locale.US, true);
     }
 
     private void whenInferSchema() throws IOException {

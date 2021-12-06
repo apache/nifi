@@ -101,12 +101,23 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
             .defaultValue("en-US")
             .build();
 
+    static final PropertyDescriptor ACCEPT_EMPTY_EXTENSIONS = new PropertyDescriptor.Builder()
+            .name("accept-empty-extensions")
+            .displayName("Accept empty extensions")
+            .description("If set to true, empty extensions will be accepted and will be associated to a null value.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
     private final javax.validation.Validator validator = Validation.byProvider(ApacheValidationProvider.class).configure().buildValidatorFactory().getValidator();
     private final CEFParser parser = new CEFParser(validator);
 
     private volatile String rawMessageField;
     private volatile Locale parcefoneLocale;
     private volatile boolean includeCustomExtensions;
+    private volatile boolean acceptEmptyExtensions;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -120,6 +131,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
                 .dependsOn(SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA)
                 .build());
 
+        properties.add(ACCEPT_EMPTY_EXTENSIONS);
         return properties;
     }
 
@@ -159,7 +171,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
                 strategy,
                 context,
                 getLogger(),
-                (variables, in) -> new CEFRecordSource(in, parser, parcefoneLocale),
+                (variables, in) -> new CEFRecordSource(in, parser, parcefoneLocale, acceptEmptyExtensions),
                 () -> inference,
                 () -> super.getSchemaAccessStrategy(strategy, schemaRegistry, context));
         }
@@ -176,6 +188,8 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
         final boolean inferenceNeedsCustomExtensions = !inferenceStrategy.equals(HEADERS_ONLY.getValue()) && !inferenceStrategy.equals(HEADERS_AND_EXTENSIONS.getValue());
         final boolean isInferSchema =  context.getProperty(SCHEMA_ACCESS_STRATEGY).getValue().equals(SchemaInferenceUtil.INFER_SCHEMA.getValue());
         includeCustomExtensions = !isInferSchema || (isInferSchema && inferenceNeedsCustomExtensions);
+
+        acceptEmptyExtensions = context.getProperty(ACCEPT_EMPTY_EXTENSIONS).asBoolean();
     }
 
     @Override
@@ -183,7 +197,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
         final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger
     ) throws MalformedRecordException, IOException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
-        return new CEFRecordReader(in, schema, parser, logger, parcefoneLocale, rawMessageField, includeCustomExtensions);
+        return new CEFRecordReader(in, schema, parser, logger, parcefoneLocale, rawMessageField, includeCustomExtensions, acceptEmptyExtensions);
     }
 
     private static class ValidateRawField implements Validator {

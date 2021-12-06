@@ -71,6 +71,7 @@ final class CEFRecordReader implements RecordReader {
      * required. For better performance, in these cases we do not work with these fields.
      */
     private final boolean includeCustomExtensions;
+    private final boolean acceptEmptyExtensions;
 
     CEFRecordReader(
         final InputStream inputStream,
@@ -79,7 +80,8 @@ final class CEFRecordReader implements RecordReader {
         final ComponentLog logger,
         final Locale locale,
         final String rawMessageField,
-        final boolean includeCustomExtensions
+        final boolean includeCustomExtensions,
+        final boolean acceptEmptyExtensions
     ) {
         this.reader = new BufferedReader(new InputStreamReader(inputStream));
         this.schema = recordSchema;
@@ -88,6 +90,7 @@ final class CEFRecordReader implements RecordReader {
         this.locale = locale;
         this.rawMessageField = rawMessageField;
         this.includeCustomExtensions = includeCustomExtensions;
+        this.acceptEmptyExtensions = acceptEmptyExtensions;
     }
 
     @Override
@@ -98,7 +101,7 @@ final class CEFRecordReader implements RecordReader {
             return null;
         }
 
-        final CommonEvent event = parser.parse(line,true, locale);
+        final CommonEvent event = parser.parse(line, true, acceptEmptyExtensions, locale);
 
         if (event == null) {
             logger.debug("Event parsing resulted no event");

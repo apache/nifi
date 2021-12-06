@@ -209,12 +209,32 @@ public class TestCEFReader {
         thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
     }
 
+    @Test
+    public void testReadingSingleRowWithEmptyExtensionFields() throws Exception {
+        // given
+        givenReaderSetUp();
+        givenAcceptEmptyExtensions();
+        givenSchemaIsInferred(CEFReader.CUSTOM_EXTENSIONS_INFERRED);
+        givenReaderIsEnabled();
+
+        // when
+        whenProcessorRuns(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_CUSTOM_EXTENSIONS);
+
+        // then
+        thenAssertNumberOfResults(1);
+        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, ""));
+    }
+
     private void givenReaderSetUp() throws InitializationException {
         processor = new TestCEFProcessor();
         runner = TestRunners.newTestRunner(processor);
         reader = new CEFReader();
         runner.addControllerService("reader", reader);
         runner.setProperty(TestCEFProcessor.READER, "reader");
+    }
+
+    private void givenAcceptEmptyExtensions() {
+        runner.setProperty(reader, CEFReader.ACCEPT_EMPTY_EXTENSIONS, "true");
     }
 
     private void givenSchemaIsInferred(final AllowableValue value) {

@@ -127,7 +127,7 @@
         <dependency>
             <groupId>com.fluenda</groupId>
             <artifactId>parcefone</artifactId>
-            <version>2.0.0</version>
+            <version>2.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.bval</groupId>
@@ -169,6 +169,8 @@
                         <exclude>src/test/resources/cef/multiple-rows-with-empty-rows.txt</exclude>
                         <exclude>src/test/resources/cef/single-row-header-fields-only.txt</exclude>
                         <exclude>src/test/resources/cef/single-row-with-custom-extensions.txt</exclude>
+                        <exclude>src/test/resources/cef/single-row-with-empty-extension.txt</exclude>
+                        <exclude>src/test/resources/cef/single-row-with-empty-custom-extensions.txt</exclude>
                         <exclude>src/test/resources/cef/single-row-with-extensions.txt</exclude>
                         <exclude>src/test/resources/cef/single-row-with-incorrect-custom-extensions.txt</exclude>
                         <exclude>src/test/resources/cef/single-row-with-incorrect-header-field.txt</exclude>
