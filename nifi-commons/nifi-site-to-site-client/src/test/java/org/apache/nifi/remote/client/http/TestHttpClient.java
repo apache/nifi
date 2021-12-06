@@ -18,6 +18,7 @@ package org.apache.nifi.remote.client.http;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
@@ -62,10 +63,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.littleshoot.proxy.HttpProxyServer;
 import org.littleshoot.proxy.ProxyAuthenticator;
 import org.littleshoot.proxy.impl.DefaultHttpProxyServer;
 import org.littleshoot.proxy.impl.ThreadPoolConfiguration;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +86,7 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -89,6 +94,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_HEADER_NAME;
@@ -96,13 +102,15 @@ import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTE
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.PROTOCOL_VERSION;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.SERVER_SIDE_TRANSACTION_TTL;
-import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.fail;
 
+@ExtendWith(MockitoExtension.class)
 public class TestHttpClient {
 
     private static final Logger logger = LoggerFactory.getLogger(TestHttpClient.class);
@@ -122,6 +130,13 @@ public class TestHttpClient {
     private static String serverChecksum;
 
     private static TlsConfiguration tlsConfiguration;
+
+    private static final int INITIAL_TRANSACTIONS = 0;
+
+    private static final AtomicInteger outputExtendTransactions = new AtomicInteger(INITIAL_TRANSACTIONS);
+
+    @Mock
+    private EventReporter eventReporter;
 
     public static class SiteInfoServlet extends HttpServlet {
 
@@ -161,7 +176,7 @@ public class TestHttpClient {
 
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-            // This response simulates when a Site-to-Site is given an URL which has wrong path.
+            // This response simulates when a Site-to-Site is given a URL which has wrong path.
             respondWithText(resp, "<p class=\"message-pane-content\">You may have mistyped...</p>", 200);
         }
     }
@@ -252,6 +267,7 @@ public class TestHttpClient {
 
         @Override
         protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+            outputExtendTransactions.incrementAndGet();
             final int reqProtocolVersion = getReqProtocolVersion(req);
 
             final TransactionResultEntity entity = new TransactionResultEntity();
@@ -295,7 +311,7 @@ public class TestHttpClient {
             }
             logger.info("finish receiving data packets.");
 
-            assertNotNull("Test case should set <serverChecksum> depending on the test scenario.", serverChecksum);
+            assertNotNull(serverChecksum, "Test case should set <serverChecksum> depending on the test scenario.");
             respondWithText(resp, serverChecksum, HttpServletResponse.SC_ACCEPTED);
         }
 
@@ -372,6 +388,7 @@ public class TestHttpClient {
                 fail("Test case timeout.");
             }
         } catch (InterruptedException e) {
+            fail("Test interrupted");
         }
     }
 
@@ -387,7 +404,7 @@ public class TestHttpClient {
 
     private static OutputStream getOutputStream(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         OutputStream outputStream = resp.getOutputStream();
-        if (Boolean.valueOf(req.getHeader(HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION))){
+        if (Boolean.parseBoolean(req.getHeader(HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION))){
             outputStream = new CompressionOutputStream(outputStream);
         }
         return outputStream;
@@ -396,7 +413,7 @@ public class TestHttpClient {
     private static DataPacket readIncomingPacket(HttpServletRequest req) throws IOException {
         final StandardFlowFileCodec codec = new StandardFlowFileCodec();
         InputStream inputStream = req.getInputStream();
-        if (Boolean.valueOf(req.getHeader(HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION))){
+        if (Boolean.parseBoolean(req.getHeader(HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION))){
             inputStream = new CompressionInputStream(inputStream);
         }
 
@@ -605,6 +622,7 @@ public class TestHttpClient {
 
     @BeforeEach
     public void before() throws Exception {
+        outputExtendTransactions.set(INITIAL_TRANSACTIONS);
         testCaseFinished = new CountDownLatch(1);
 
         final PeerDTO peer = new PeerDTO();
@@ -708,7 +726,7 @@ public class TestHttpClient {
     private static void consumeDataPacket(DataPacket packet) throws IOException {
         final ByteArrayOutputStream bos = new ByteArrayOutputStream();
         StreamUtils.copy(packet.getData(), bos);
-        String contents = new String(bos.toByteArray());
+        String contents = new String(bos.toByteArray(), StandardCharsets.UTF_8);
         logger.info("received: {}, {}", contents, packet.getAttributes());
     }
 
@@ -924,7 +942,6 @@ public class TestHttpClient {
             transaction.complete();
         } catch (final IOException e) {
             if (isProxyEnabled && e.getMessage().contains("504")) {
-                // Gateway Timeout happens sometimes at Travis CI.
                 logger.warn("Request timeout. Most likely an environment dependent issue.", e);
             } else {
                 throw e;
@@ -1106,7 +1123,7 @@ public class TestHttpClient {
     }
 
     private void completeShouldFail(Transaction transaction) {
-        assertThrows(IllegalStateException.class, () -> transaction.complete());
+        assertThrows(IllegalStateException.class, transaction::complete);
     }
 
     private void confirmShouldFail(Transaction transaction) throws IOException {
@@ -1139,7 +1156,7 @@ public class TestHttpClient {
             serverChecksum = "1345413116";
 
             transaction.send(packet);
-            IOException e = assertThrows(IOException.class, () -> transaction.confirm());
+            IOException e = assertThrows(IOException.class, transaction::confirm);
             assertTrue(e.getMessage().contains("TimeoutException"));
 
             completeShouldFail(transaction);
@@ -1313,7 +1330,7 @@ public class TestHttpClient {
             DataPacket packet;
             while ((packet = transaction.receive()) != null) {
                 consumeDataPacket(packet);
-                Thread.sleep(500);
+                TimeUnit.MILLISECONDS.sleep(500);
             }
             transaction.confirm();
             transaction.complete();
@@ -1336,12 +1353,11 @@ public class TestHttpClient {
 
     @Test
     public void testReceiveTimeoutAfterDataExchange() throws Exception {
-
-        try (
-                SiteToSiteClient client = getDefaultBuilder()
-                        .timeout(5, TimeUnit.SECONDS)
-                        .portName("output-timeout-data-ex")
-                        .build()
+        try (final SiteToSiteClient client = getDefaultBuilder()
+                .timeout(3, TimeUnit.SECONDS)
+                .portName("output-timeout-data-ex")
+                .eventReporter(eventReporter)
+                .build()
         ) {
             final Transaction transaction = client.createTransaction(TransferDirection.RECEIVE);
             assertNotNull(transaction);
@@ -1350,11 +1366,13 @@ public class TestHttpClient {
             assertNotNull(packet);
             consumeDataPacket(packet);
 
-            IOException e = assertThrows(IOException.class, () -> transaction.receive());
+            IOException e = assertThrows(IOException.class, transaction::receive);
             assertTrue(e.getCause() instanceof SocketTimeoutException);
 
             confirmShouldFail(transaction);
             completeShouldFail(transaction);
+
+            assertNotSame(INITIAL_TRANSACTIONS, outputExtendTransactions.get());
         }
     }
 

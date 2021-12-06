@@ -540,7 +540,9 @@ public class PeerSelector {
             this.peerStatusCache = peerStatusCache;
 
             // The #save mechanism persists the cache to stateful or file-based storage
-            peerPersistence.save(peerStatusCache);
+            if (peerPersistence != null) {
+                peerPersistence.save(peerStatusCache);
+            }
         } catch (final IOException e) {
             error(logger, eventReporter, "Failed to persist list of peers due to {}; if restarted" +
                     " and the nodes specified at the remote instance are down," +
