@@ -65,6 +65,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @TriggerSerially
@@ -104,6 +105,20 @@ public class GetSplunk extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .defaultValue("8089")
+            .build();
+    public static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Connection Timeout")
+            .description("Max wait time for connection to the Splunk server.")
+            .required(false)
+            .defaultValue("5 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Read Timeout")
+            .description("Max wait time for response from the Splunk server.")
+            .required(false)
+            .defaultValue("15 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
     public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
             .name("Query")
@@ -256,6 +271,8 @@ public class GetSplunk extends AbstractProcessor {
         descriptors.add(SCHEME);
         descriptors.add(HOSTNAME);
         descriptors.add(PORT);
+        descriptors.add(CONNECT_TIMEOUT);
+        descriptors.add(READ_TIMEOUT);
         descriptors.add(QUERY);
         descriptors.add(TIME_FIELD_STRATEGY);
         descriptors.add(TIME_RANGE_STRATEGY);
@@ -515,6 +532,12 @@ public class GetSplunk extends AbstractProcessor {
 
         final int port = context.getProperty(PORT).asInteger();
         serviceArgs.setPort(port);
+
+        final int connect_timeout = context.getProperty(CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        serviceArgs.add("connectTimeout",connect_timeout);
+
+        final int read_timeout = context.getProperty(READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        serviceArgs.add("readTimeout",read_timeout);
 
         final String app = context.getProperty(APP).getValue();
         if (!StringUtils.isBlank(app)) {
