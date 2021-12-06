@@ -1932,7 +1932,7 @@ public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescrip
 Using this method, the user will be prompted to supply the SSL Context
 Service that should be used. This is
 done by providing the user with a drop-down menu from which they are
-able to choose any of the SSLContextService
+able to choose any of the `SSLContextService`
 configurations that have been configured, regardless of the implementation.
 
 In order to make use of this service, the Processor can use code such as:
@@ -2483,7 +2483,7 @@ far less complicated. Note here that the
 This is done so that any NAR that has a dependency on
 `my-controller-service-api-nar` will also be able to access
 all of the Controller Services that are provided by the
-`nifi-standard-services-api-nar`, such as the SSLContextService.
+`nifi-standard-services-api-nar`, such as the `SSLContextService`.
 In this same vein, it is not necessary to create a different
 "service-api" NAR for each service. Instead, it often
 makes sense to have a single "service-api" NAR that encapsulates the
@@ -2530,8 +2530,8 @@ directories, an OS-handled temporary copy is created and cached before loading i
 and classloader isolation.
 
 Each property may impose further restrictions on the format of the value through the validators.
-For example, using StandardValidators.FILE_EXISTS_VALIDATOR restricts the property to accepting a
-single file. Using StandardValidators.NON_EMPTY_VALIDATOR allows any combination of comma-separated
+For example, using `StandardValidators.FILE_EXISTS_VALIDATOR` restricts the property to accepting a
+single file. Using `StandardValidators.NON_EMPTY_VALIDATOR` allows any combination of comma-separated
 files or directories.
 
 Resources are added to the instance ClassLoader by adding them to an inner ClassLoader that is always
@@ -2545,17 +2545,17 @@ component's NAR ClassLoader. When `@RequiresInstanceClassLoading` is not present
 instance ClassLoader simply has its parent ClassLoader set to the NAR ClassLoader, rather than
 copying resources.
 
-The `@RequiresInstanceClassLoading` annotation also provides an optional flag `cloneAncestorResources'. If
+The `@RequiresInstanceClassLoading` annotation also provides an optional flag `cloneAncestorResources`. If
 set to true, the instance ClassLoader will include ancestor resources up to the first ClassLoader containing a
 controller service API referenced by the component, or up to the Jetty NAR. If set to false, or not specified,
 only the resources from the component's NAR will be included.
 
-Because @RequiresInstanceClassLoading copies resources from the NAR ClassLoader for each instance of the
+Because `@RequiresInstanceClassLoading` copies resources from the NAR ClassLoader for each instance of the
 component, use this capability judiciously. If ten instances of one component are created, all classes
 from the component's NAR ClassLoader are loaded into memory ten times. This could eventually increase the
 memory footprint significantly when enough instances of the component are created.
 
-Additionally, there are some restrictions when using @RequiresInstanceClassLoading when using Controller
+Additionally, there are some restrictions when using `@RequiresInstanceClassLoading` when using Controller
 Services. Processors, Reporting Tasks, and Controller Services can reference a Controller Service API
 in one of its Property Descriptors. An issue may arise when the Controller Service API is bundled in the same
 NAR with a component that references it or with the Controller Service implementation. If either of these cases
@@ -2563,14 +2563,14 @@ are encountered and the extension requires instance classloading, the extension 
 ERROR will be logged. To address this issue, the Controller Service API should be bundled in a parent NAR. The
 service implementation and extensions that reference that service should depend on the Controller Service API NAR.
 Please refer to the Controller Service NAR Layout in the <<nars>> section. Anytime a Controller Service API is
-bundled with an extension that requires it, even if @RequiresInstanceClassLoading isn't used, a WARNING will be
+bundled with an extension that requires it, even if `@RequiresInstanceClassLoading` isn't used, a WARNING will be
 logged to help avoid this bad practice.
 
 
 [[deprecation]]
 == Deprecating a Component
 Sometimes it may be desirable to deprecate a component. Whenever this occurs the developer may use the
- @DeprecationNotice annotation to indicate that a component has been deprecated, allowing the developer
+ `@DeprecationNotice` annotation to indicate that a component has been deprecated, allowing the developer
  to describe a reason for the deprecation and suggest alternative components. An example of how to do this can
  be found below:
 
