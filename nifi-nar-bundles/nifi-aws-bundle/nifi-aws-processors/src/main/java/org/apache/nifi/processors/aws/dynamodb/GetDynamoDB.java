@@ -107,13 +107,29 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, verificationLogger, attributes));
 
-        final TableKeysAndAttributes tableKeysAndAttributes = getTableKeysAndAttributes(context, attributes);
-
         final String table = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
         final String jsonDocument = context.getProperty(JSON_DOCUMENT).evaluateAttributeExpressions().getValue();
 
-        if (tableKeysAndAttributes.getPrimaryKeys().isEmpty()) {
+        TableKeysAndAttributes tableKeysAndAttributes;
 
+        try {
+            tableKeysAndAttributes = getTableKeysAndAttributes(context, attributes);
+            results.add(new ConfigVerificationResult.Builder()
+                    .outcome(Outcome.SUCCESSFUL)
+                    .verificationStepName("Configure DynamoDB BatchGetItems Request")
+                    .explanation(String.format("Successfully configured BatchGetItems Request"))
+                    .build());
+        } catch (final IllegalArgumentException e) {
+            verificationLogger.error("Failed to configured BatchGetItems Request", e);
+            results.add(new ConfigVerificationResult.Builder()
+                    .outcome(Outcome.FAILED)
+                    .verificationStepName("Configure DynamoDB BatchGetItems Request")
+                    .explanation(String.format("Failed to configured BatchGetItems Request: " + e.getMessage()))
+                    .build());
+            return results;
+        }
+
+        if (tableKeysAndAttributes.getPrimaryKeys() == null || tableKeysAndAttributes.getPrimaryKeys().isEmpty()) {
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(Outcome.SKIPPED)
                     .verificationStepName("Get DynamoDB Items")
@@ -165,8 +181,14 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
 
         final Map<ItemKeys,FlowFile> keysToFlowFileMap = getKeysToFlowFileMap(context, session, flowFiles);
 
-        final TableKeysAndAttributes tableKeysAndAttributes = getTableKeysAndAttributes(context, flowFiles.stream()
-                .map(FlowFile::getAttributes).collect(Collectors.toList()).toArray(new Map[0]));
+        final TableKeysAndAttributes tableKeysAndAttributes;
+        try {
+            tableKeysAndAttributes = getTableKeysAndAttributes(context, flowFiles.stream()
+                    .map(FlowFile::getAttributes).collect(Collectors.toList()).toArray(new Map[0]));
+        } catch (final IllegalArgumentException e) {
+            getLogger().error(e.getMessage(), e);
+            return;
+        }
 
         final String table = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
         final String hashKeyName = context.getProperty(HASH_KEY_NAME).evaluateAttributeExpressions().getValue();
@@ -267,13 +289,8 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, attributeMap);
             final Object rangeKeyValue = getValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, attributeMap);
 
-            if (!isHashKeyValueConsistent(hashKeyValue)) {
-                continue;
-            }
-
-            if (!isRangeKeyValueConsistent(rangeKeyName, rangeKeyValue)) {
-                continue;
-            }
+            validateHashKeyValue(hashKeyValue);
+            validateRangeKeyValue(rangeKeyName, rangeKeyValue);
 
             if (rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString())) {
                 tableKeysAndAttributes.addHashOnlyPrimaryKey(hashKeyName, hashKeyValue);
