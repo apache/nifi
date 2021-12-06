@@ -18,13 +18,22 @@ package org.apache.nifi.documentation.xml;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
+import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
+import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.components.AllowableValue;
@@ -418,6 +427,88 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         writeStartElement("writesAttribute");
         writeTextElement("name", attribute.attribute());
         writeTextElement("description", attribute.description());
+        writeEndElement();
+    }
+
+    @Override
+    protected void writeTriggerSerially(TriggerSerially triggerSerially) throws IOException {
+        if (triggerSerially == null) {
+            return;
+        }
+        writeBooleanElement("triggerSerially", true);
+    }
+
+    @Override
+    protected void writeTriggerWhenEmpty(TriggerWhenEmpty triggerWhenEmpty) throws IOException {
+        if (triggerWhenEmpty == null) {
+            return;
+        }
+        writeBooleanElement("triggerWhenEmpty", true);
+    }
+
+    @Override
+    protected void writeTriggerWhenAnyDestinationAvailable(TriggerWhenAnyDestinationAvailable triggerWhenAnyDestinationAvailable) throws IOException {
+        if (triggerWhenAnyDestinationAvailable == null) {
+            return;
+        }
+        writeBooleanElement("triggerWhenAnyDestinationAvailable", true);
+    }
+
+    @Override
+    protected void writeSupportsBatching(SupportsBatching supportsBatching) throws IOException {
+        if (supportsBatching == null) {
+            return;
+        }
+        writeBooleanElement("supportsBatching", true);
+    }
+
+    @Override
+    protected void writeEventDriven(EventDriven eventDriven) throws IOException {
+        if (eventDriven == null) {
+            return;
+        }
+        writeBooleanElement("eventDriven", true);
+    }
+
+    @Override
+    protected void writePrimaryNodeOnly(PrimaryNodeOnly primaryNodeOnly) throws IOException {
+        if (primaryNodeOnly == null) {
+            return;
+        }
+        writeBooleanElement("primaryNodeOnly", true);
+    }
+
+    @Override
+    protected void writeSideEffectFree(SideEffectFree sideEffectFree) throws IOException {
+        if (sideEffectFree == null) {
+            return;
+        }
+        writeBooleanElement("sideEffectFree", true);
+    }
+
+    @Override
+    protected void writeDefaultSchedule(DefaultSchedule defaultSchedule) throws IOException {
+        if (defaultSchedule == null) {
+            return;
+        }
+
+        writeStartElement("defaultSchedule");
+        writeTextElement("strategy", defaultSchedule.strategy().name());
+        writeTextElement("period", defaultSchedule.period());
+        writeTextElement("concurrentTasks", String.valueOf(defaultSchedule.concurrentTasks()));
+        writeEndElement();
+    }
+
+    @Override
+    protected void writeDefaultSettings(DefaultSettings defaultSettings) throws IOException {
+        if (defaultSettings == null) {
+            return;
+        }
+
+        writeStartElement("defaultSettings");
+        writeTextElement("yieldDuration", defaultSettings.yieldDuration());
+        writeTextElement("penaltyDuration", defaultSettings.penaltyDuration());
+        writeTextElement("bulletinLevel", defaultSettings.bulletinLevel().name());
         writeEndElement();
     }
 

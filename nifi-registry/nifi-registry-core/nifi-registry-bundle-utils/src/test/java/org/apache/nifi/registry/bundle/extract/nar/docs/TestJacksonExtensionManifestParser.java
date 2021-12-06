@@ -17,6 +17,8 @@
 package org.apache.nifi.registry.bundle.extract.nar.docs;
 
 import org.apache.nifi.registry.extension.component.manifest.Cardinality;
+import org.apache.nifi.registry.extension.component.manifest.DefaultSchedule;
+import org.apache.nifi.registry.extension.component.manifest.DefaultSettings;
 import org.apache.nifi.registry.extension.component.manifest.Dependency;
 import org.apache.nifi.registry.extension.component.manifest.DependentValues;
 import org.apache.nifi.registry.extension.component.manifest.Extension;
@@ -36,6 +38,7 @@ import java.io.InputStream;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -151,6 +154,46 @@ public class TestJacksonExtensionManifestParser {
         final List<Extension> extensionDetails = extensionManifest.getExtensions();
         assertEquals(4, extensionDetails.size());
 
+        final Extension processor1 = extensionDetails.stream()
+                .filter(extension -> extension.getName().equals("org.apache.nifi.processors.TestProcessor1"))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(processor1);
+        assertTrue(processor1.getTriggerSerially());
+        assertTrue(processor1.getTriggerWhenEmpty());
+        assertTrue(processor1.getTriggerWhenAnyDestinationAvailable());
+        assertTrue(processor1.getPrimaryNodeOnly());
+        assertTrue(processor1.getEventDriven());
+        assertTrue(processor1.getSupportsBatching());
+        assertTrue(processor1.getSideEffectFree());
+
+        final DefaultSettings defaultSettingsProc1 = processor1.getDefaultSettings();
+        assertNotNull(defaultSettingsProc1);
+        assertEquals("10 secs", defaultSettingsProc1.getYieldDuration());
+        assertEquals("20 secs", defaultSettingsProc1.getPenaltyDuration());
+        assertEquals("DEBUG", defaultSettingsProc1.getBulletinLevel());
+
+        final DefaultSchedule defaultScheduleProc1 = processor1.getDefaultSchedule();
+        assertNotNull(defaultScheduleProc1);
+        assertEquals("CRON_DRIVEN", defaultScheduleProc1.getStrategy());
+        assertEquals("* 1 * * *", defaultScheduleProc1.getPeriod());
+        assertEquals("5", defaultScheduleProc1.getConcurrentTasks());
+
+        final Extension processor2 = extensionDetails.stream()
+                .filter(extension -> extension.getName().equals("org.apache.nifi.processors.TestProcessor2"))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(processor2);
+        assertFalse(processor2.getTriggerSerially());
+        assertFalse(processor2.getTriggerWhenEmpty());
+        assertFalse(processor2.getTriggerWhenAnyDestinationAvailable());
+        assertFalse(processor2.getPrimaryNodeOnly());
+        assertFalse(processor2.getEventDriven());
+        assertFalse(processor2.getSupportsBatching());
+        assertFalse(processor2.getSideEffectFree());
+
+        assertNull(processor2.getDefaultSchedule());
+        assertNull(processor2.getDefaultSettings());
     }
 
     @Test

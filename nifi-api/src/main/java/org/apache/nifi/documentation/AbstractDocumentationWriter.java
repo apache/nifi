@@ -19,14 +19,23 @@ package org.apache.nifi.documentation;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
+import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
+import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -127,6 +136,15 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
             writeDynamicRelationship(getDynamicRelationship(processor));
             writeReadsAttributes(getReadsAttributes(processor));
             writeWritesAttributes(getWritesAttributes(processor));
+
+            writeTriggerSerially(processor.getClass().getAnnotation(TriggerSerially.class));
+            writeTriggerWhenEmpty(processor.getClass().getAnnotation(TriggerWhenEmpty.class));
+            writeTriggerWhenAnyDestinationAvailable(processor.getClass().getAnnotation(TriggerWhenAnyDestinationAvailable.class));
+            writeSupportsBatching(processor.getClass().getAnnotation(SupportsBatching.class));
+            writeEventDriven(processor.getClass().getAnnotation(EventDriven.class));
+            writePrimaryNodeOnly(processor.getClass().getAnnotation(PrimaryNodeOnly.class));
+            writeSideEffectFree(processor.getClass().getAnnotation(SideEffectFree.class));
+            writeDefaultSettings(processor.getClass().getAnnotation(DefaultSettings.class));
         }
 
         writeStatefulInfo(component.getClass().getAnnotation(Stateful.class));
@@ -134,8 +152,8 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
         writeInputRequirementInfo(getInputRequirement(component));
         writeSystemResourceConsiderationInfo(getSystemResourceConsiderations(component));
         writeSeeAlso(component.getClass().getAnnotation(SeeAlso.class));
+        writeDefaultSchedule(component.getClass().getAnnotation(DefaultSchedule.class));
     }
-
 
     protected String getDescription(final ConfigurableComponent component) {
         final CapabilityDescription capabilityDescription = component.getClass().getAnnotation(CapabilityDescription.class);
@@ -265,7 +283,7 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
 
     protected abstract void writeSeeAlso(SeeAlso seeAlso) throws IOException;
 
-
+    protected abstract void writeDefaultSchedule(DefaultSchedule defaultSchedule) throws IOException;
 
     // Processor-specific methods
     protected abstract void writeRelationships(Set<Relationship> relationships) throws IOException;
@@ -276,10 +294,25 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
 
     protected abstract void writeWritesAttributes(List<WritesAttribute> attributes) throws IOException;
 
+    protected abstract void writeTriggerSerially(TriggerSerially triggerSerially) throws IOException;
+
+    protected abstract void writeTriggerWhenEmpty(TriggerWhenEmpty triggerWhenEmpty) throws IOException;
+
+    protected abstract void writeTriggerWhenAnyDestinationAvailable(TriggerWhenAnyDestinationAvailable triggerWhenAnyDestinationAvailable) throws IOException;
+
+    protected abstract void writeSupportsBatching(SupportsBatching supportsBatching) throws IOException;
+
+    protected abstract void writeEventDriven(EventDriven eventDriven) throws IOException;
+
+    protected abstract void writePrimaryNodeOnly(PrimaryNodeOnly primaryNodeOnly) throws IOException;
+
+    protected abstract void writeSideEffectFree(SideEffectFree sideEffectFree) throws IOException;
+
+    protected abstract void writeDefaultSettings(DefaultSettings defaultSettings) throws IOException;
 
     // ControllerService-specific methods
     protected abstract void writeProvidedServices(Collection<ServiceAPI> providedServices) throws IOException;
 
-
     protected abstract void writeFooter(ConfigurableComponent component) throws IOException;
+
 }

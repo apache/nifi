@@ -32,7 +32,7 @@ public class ReportingTaskDefinition extends ExtensionComponent implements Confi
     private Map<String, PropertyDescriptor> propertyDescriptors;
     private List<String> supportedSchedulingStrategies;
     private String defaultSchedulingStrategy;
-    private Map<String, Map<String, String>> defaultValuesBySchedulingStrategy;
+    private Map<String, String> defaultSchedulingPeriodBySchedulingStrategy;
     private boolean supportsDynamicProperties;
 
     @Override
@@ -57,7 +57,7 @@ public class ReportingTaskDefinition extends ExtensionComponent implements Confi
         this.supportsDynamicProperties = supportsDynamicProperties;
     }
 
-    @ApiModelProperty
+    @ApiModelProperty("The supported scheduling strategies, such as TIME_DRIVER or CRON.")
     public List<String> getSupportedSchedulingStrategies() {
         return (supportedSchedulingStrategies != null ? Collections.unmodifiableList(supportedSchedulingStrategies) : null);
     }
@@ -66,7 +66,7 @@ public class ReportingTaskDefinition extends ExtensionComponent implements Confi
         this.supportedSchedulingStrategies = supportedSchedulingStrategies;
     }
 
-    @ApiModelProperty
+    @ApiModelProperty("The default scheduling strategy for the reporting task.")
     public String getDefaultSchedulingStrategy() {
         return defaultSchedulingStrategy;
     }
@@ -75,12 +75,14 @@ public class ReportingTaskDefinition extends ExtensionComponent implements Confi
         this.defaultSchedulingStrategy = defaultSchedulingStrategy;
     }
 
-    @ApiModelProperty
-    public Map<String, Map<String, String>> getDefaultValuesBySchedulingStrategy() {
-        return (defaultValuesBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultValuesBySchedulingStrategy) : null);
+    @ApiModelProperty("The default scheduling period for each scheduling strategy. " +
+            "The scheduling period is expected to be a time period, such as \"30 sec\".")
+    public Map<String, String> getDefaultSchedulingPeriodBySchedulingStrategy() {
+        return defaultSchedulingPeriodBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultSchedulingPeriodBySchedulingStrategy) : null;
     }
 
-    public void setDefaultValuesBySchedulingStrategy(Map<String, Map<String, String>> defaultValuesBySchedulingStrategy) {
-        this.defaultValuesBySchedulingStrategy = defaultValuesBySchedulingStrategy;
+    public void setDefaultSchedulingPeriodBySchedulingStrategy(Map<String, String> defaultSchedulingPeriodBySchedulingStrategy) {
+        this.defaultSchedulingPeriodBySchedulingStrategy = defaultSchedulingPeriodBySchedulingStrategy;
     }
+
 }
