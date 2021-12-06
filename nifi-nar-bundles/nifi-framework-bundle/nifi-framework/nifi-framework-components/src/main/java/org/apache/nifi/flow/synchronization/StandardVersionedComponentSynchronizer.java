@@ -1197,6 +1197,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             service.setComments(proposed.getComments());
             service.setName(proposed.getName());
 
+            if (proposed.getBulletinLevel() != null) {
+                service.setBulletinLevel(LogLevel.valueOf(proposed.getBulletinLevel()));
+            } else {
+                // this situation exists for backward compatibility with nifi 1.16 and earlier where controller services do not have bulletinLevels set in flow.xml/flow.json
+                // and bulletinLevels are at the WARN level by default
+                service.setBulletinLevel(LogLevel.WARN);
+            }
+
             final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(service, proposed.getProperties(), proposed.getPropertyDescriptors().values());
             final Map<String, String> properties = populatePropertiesMap(service, proposed.getProperties(), service.getProcessGroup());
             service.setProperties(properties, true, sensitiveDynamicPropertyNames);

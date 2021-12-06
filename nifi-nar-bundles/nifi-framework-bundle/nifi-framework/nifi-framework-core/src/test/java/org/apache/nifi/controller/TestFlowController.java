@@ -835,13 +835,15 @@ public class TestFlowController {
         assertEquals(ServiceA.class.getCanonicalName(), controllerServiceNode.getCanonicalClassName());
         assertEquals(ServiceA.class.getSimpleName(), controllerServiceNode.getComponentType());
         assertEquals(ServiceA.class.getCanonicalName(), controllerServiceNode.getComponent().getClass().getCanonicalName());
+        assertEquals(LogLevel.WARN, controllerServiceNode.getBulletinLevel());
 
         controller.getReloadComponent().reload(controllerServiceNode, ServiceB.class.getName(), coordinate, Collections.emptySet());
 
-        // ids and coordinate should stay the same
+        // ids, coordinate and bulletin Level should stay the same
         assertEquals(id, controllerServiceNode.getIdentifier());
         assertEquals(id, controllerServiceNode.getComponent().getIdentifier());
         assertEquals(coordinate.getCoordinate(), controllerServiceNode.getBundleCoordinate().getCoordinate());
+        assertEquals(LogLevel.WARN, controllerServiceNode.getBulletinLevel());
 
         // in this test we happened to change between two services that have different canonical class names
         // but in the running application the DAO layer would call verifyCanUpdateBundle and would prevent this so
@@ -1147,6 +1149,7 @@ public class TestFlowController {
         csDto.setState(controllerServiceNode.getState().name());
         csDto.setAnnotationData(controllerServiceNode.getAnnotationData());
         csDto.setComments(controllerServiceNode.getComments());
+        csDto.setBulletinLevel(controllerServiceNode.getBulletinLevel().name());
         csDto.setPersistsState(controllerServiceNode.getControllerServiceImplementation().getClass().isAnnotationPresent(Stateful.class));
         csDto.setRestricted(controllerServiceNode.isRestricted());
         csDto.setExtensionMissing(controllerServiceNode.isExtensionMissing());
@@ -1178,6 +1181,7 @@ public class TestFlowController {
         csDto.setState(controllerServiceNode.getState().name());
         csDto.setAnnotationData(controllerServiceNode.getAnnotationData());
         csDto.setComments(controllerServiceNode.getComments());
+        csDto.setBulletinLevel(controllerServiceNode.getBulletinLevel().name());
         csDto.setPersistsState(controllerServiceNode.getControllerServiceImplementation().getClass().isAnnotationPresent(Stateful.class));
         csDto.setRestricted(controllerServiceNode.isRestricted());
         csDto.setExtensionMissing(controllerServiceNode.isExtensionMissing());

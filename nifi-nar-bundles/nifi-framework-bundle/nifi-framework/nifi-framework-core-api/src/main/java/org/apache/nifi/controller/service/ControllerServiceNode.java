@@ -24,6 +24,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.components.ConfigVerificationResult;
 
@@ -140,6 +141,10 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
     void setComments(String comment);
 
     String getComments();
+
+    void setBulletinLevel(LogLevel valueOf);
+
+    LogLevel getBulletinLevel();
 
     void verifyCanEnable();
 

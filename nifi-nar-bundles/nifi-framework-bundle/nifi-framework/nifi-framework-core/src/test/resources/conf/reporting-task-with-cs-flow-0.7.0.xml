@@ -48,6 +48,7 @@
       <id>edf22ee5-376a-46dc-a38a-919351124456</id>
       <name>ControllerService</name>
       <comment/>
+      <bulletinLevel>WARN</bulletinLevel>
       <class>org.apache.nifi.controller.service.mock.ServiceD</class>
       <enabled>false</enabled>
       <property>

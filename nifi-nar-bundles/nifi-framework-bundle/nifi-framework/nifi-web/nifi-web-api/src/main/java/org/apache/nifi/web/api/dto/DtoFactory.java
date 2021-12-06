@@ -1635,6 +1635,7 @@ public final class DtoFactory {
         dto.setState(controllerServiceNode.getState().name());
         dto.setAnnotationData(controllerServiceNode.getAnnotationData());
         dto.setComments(controllerServiceNode.getComments());
+        dto.setBulletinLevel(controllerServiceNode.getBulletinLevel().name());
         dto.setPersistsState(controllerServiceClass.isAnnotationPresent(Stateful.class));
         dto.setSupportsSensitiveDynamicProperties(controllerServiceNode.isSupportsSensitiveDynamicProperties());
         dto.setRestricted(controllerServiceNode.isRestricted());
@@ -4128,6 +4129,7 @@ public final class DtoFactory {
         copy.setId(original.getId());
         copy.setParentGroupId(original.getParentGroupId());
         copy.setName(original.getName());
+        copy.setBulletinLevel(original.getBulletinLevel());
         copy.setProperties(copy(original.getProperties()));
         copy.setSensitiveDynamicPropertyNames(copy(original.getSensitiveDynamicPropertyNames()));
         copy.setReferencingComponents(copy(original.getReferencingComponents()));

@@ -98,6 +98,9 @@
         if ($('#controller-service-comments').val() !== entity.component['comments']) {
             return true;
         }
+        if ($('#controller-service-bulletin-level-combo').combo('getSelectedOption').value !== (entity.component['bulletinLevel'] + '')) {
+            return true;
+        }
 
         // defer to the properties
         return $('#controller-service-properties').propertytable('isSaveRequired');
@@ -114,6 +117,7 @@
         var controllerServiceDto = {};
         controllerServiceDto['id'] = $('#controller-service-id').text();
         controllerServiceDto['name'] = $('#controller-service-name').val();
+        controllerServiceDto['bulletinLevel'] = $('#controller-service-bulletin-level-combo').combo('getSelectedOption').value;
         controllerServiceDto['comments'] = $('#controller-service-comments').val();
 
         // set the properties
@@ -1858,6 +1862,27 @@
                     }
                 }
             });
+            
+            // initialize the bulletin combo
+            $('#controller-service-bulletin-level-combo').combo({
+                options: [{
+                    text: 'DEBUG',
+                    value: 'DEBUG'
+                }, {
+                    text: 'INFO',
+                    value: 'INFO'
+                }, {
+                    text: 'WARN',
+                    value: 'WARN'
+                }, {
+                    text: 'ERROR',
+                    value: 'ERROR'
+                }, {
+                    text: 'NONE',
+                    value: 'NONE'
+                }]
+            });
+
 
             // initialize the enable scope combo
             $('#enable-controller-service-scope').combo({
@@ -2004,6 +2029,11 @@
                 nfCommon.populateField('controller-service-bundle', nfCommon.formatBundle(controllerService['bundle']));
                 $('#controller-service-name').val(controllerService['name']);
                 $('#controller-service-comments').val(controllerService['comments']);
+
+                // select the appropriate bulletin level
+                $('#controller-service-bulletin-level-combo').combo('setSelectedOption', {
+                    value: controllerService['bulletinLevel']
+                });
 
                 // set the implemented apis
                 if (!nfCommon.isEmpty(controllerService['controllerServiceApis'])) {
@@ -2193,6 +2223,7 @@
                 nfCommon.populateField('controller-service-id', controllerService['id']);
                 nfCommon.populateField('controller-service-type', nfCommon.formatType(controllerService));
                 nfCommon.populateField('controller-service-bundle', nfCommon.formatBundle(controllerService['bundle']));
+                nfCommon.populateField('read-only-controller-service-bulletin-level', controllerService['bulletinLevel']);
                 nfCommon.populateField('read-only-controller-service-name', controllerService['name']);
                 nfCommon.populateField('read-only-controller-service-comments', controllerService['comments']);
 

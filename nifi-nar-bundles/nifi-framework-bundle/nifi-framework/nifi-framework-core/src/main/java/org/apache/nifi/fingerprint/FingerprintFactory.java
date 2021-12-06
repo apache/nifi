@@ -735,6 +735,7 @@ public class FingerprintFactory {
         addBundleFingerprint(builder, dto.getBundle());
 
         builder.append(dto.getComments());
+        builder.append(dto.getBulletinLevel());
         builder.append(dto.getAnnotationData());
         builder.append(dto.getState());
 
