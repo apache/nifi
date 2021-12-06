@@ -36,7 +36,7 @@ public class GetSNMPTest {
 
     @Test
     public void testOnTriggerWithGetStrategyPerformsSnmpGet() {
-        final TestRunner getSnmpTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(NetworkUtils.availablePort(), OID, "GET");
+        final TestRunner getSnmpTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(NetworkUtils.getAvailableUdpPort(), OID, "GET");
         final GetSNMP spyGetSNMP = spy((GetSNMP) getSnmpTestRunner.getProcessor());
         final MockProcessSession mockProcessSession = new MockProcessSession(new SharedSessionState(spyGetSNMP, new AtomicLong(0L)), spyGetSNMP);
 
@@ -49,7 +49,7 @@ public class GetSNMPTest {
 
     @Test
     public void testOnTriggerWithWalkStrategyPerformsSnmpWalk() {
-        final TestRunner getSnmpTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(NetworkUtils.availablePort(), OID, "WALK");
+        final TestRunner getSnmpTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(NetworkUtils.getAvailableUdpPort(), OID, "WALK");
         final GetSNMP spyGetSNMP = spy((GetSNMP) getSnmpTestRunner.getProcessor());
         final MockProcessSession mockProcessSession = new MockProcessSession(new SharedSessionState(spyGetSNMP, new AtomicLong(0L)), spyGetSNMP);
 
