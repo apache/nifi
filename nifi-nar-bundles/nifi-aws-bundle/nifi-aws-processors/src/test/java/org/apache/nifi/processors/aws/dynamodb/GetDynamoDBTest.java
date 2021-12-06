@@ -544,17 +544,18 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
     private void assertVerificationFailure(final TestRunner runner) {
         final List<ConfigVerificationResult> results = ((VerifiableProcessor) runner.getProcessor())
                 .verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
-        assertEquals(2, results.size());
+        assertEquals(3, results.size());
         assertEquals(Outcome.SUCCESSFUL, results.get(0).getOutcome());
-        assertEquals(Outcome.FAILED, results.get(1).getOutcome());
+        assertEquals(Outcome.SUCCESSFUL, results.get(1).getOutcome());
+        assertEquals(Outcome.FAILED, results.get(2).getOutcome());
     }
 
     private void assertVerificationResults(final TestRunner runner, final int expectedTotalCount, final int expectedJsonDocumentCount) {
         final List<ConfigVerificationResult> results = ((VerifiableProcessor) runner.getProcessor())
                 .verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
-        assertEquals(2, results.size());
+        assertEquals(3, results.size());
         results.forEach(result -> assertEquals(Outcome.SUCCESSFUL, result.getOutcome()));
-        assertTrue(results.get(1).getExplanation().contains("retrieved " + expectedTotalCount + " items"));
-        assertTrue(results.get(1).getExplanation().contains(expectedJsonDocumentCount + " JSON"));
+        assertTrue(results.get(2).getExplanation().contains("retrieved " + expectedTotalCount + " items"));
+        assertTrue(results.get(2).getExplanation().contains(expectedJsonDocumentCount + " JSON"));
     }
 }
