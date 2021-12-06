@@ -115,6 +115,7 @@ public class FlowFromDOMFactory {
         dto.setVersionedComponentId(getString(element, "versionedComponentId"));
         dto.setName(getString(element, "name"));
         dto.setComments(getString(element, "comment"));
+        dto.setBulletinLevel(getString(element, "bulletinLevel"));
         dto.setType(getString(element, "class"));
         dto.setBundle(getBundle(DomUtils.getChild(element, "bundle")));
 

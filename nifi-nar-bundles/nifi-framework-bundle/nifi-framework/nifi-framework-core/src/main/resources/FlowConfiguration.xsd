@@ -502,6 +502,7 @@
             <xs:element name="versionedComponentId" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="comment" type="xs:string" />
+            <xs:element name="bulletinLevel" type="LogLevel" minOccurs="0" maxOccurs="1" />
             <xs:element name="class" type="NonEmptyStringType" />
             <xs:element name="bundle" type="BundleType" />
             <xs:element name="enabled" type="xs:boolean" />

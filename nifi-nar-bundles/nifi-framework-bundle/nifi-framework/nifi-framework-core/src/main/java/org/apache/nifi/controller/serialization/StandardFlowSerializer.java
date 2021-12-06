@@ -624,6 +624,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         addTextElement(serviceElement, "versionedComponentId", serviceNode.getVersionedComponentId());
         addTextElement(serviceElement, "name", serviceNode.getName());
         addTextElement(serviceElement, "comment", serviceNode.getComments());
+        addTextElement(serviceElement, "bulletinLevel", serviceNode.getBulletinLevel().toString());
         addTextElement(serviceElement, "class", serviceNode.getCanonicalClassName());
 
         addBundle(serviceElement, serviceNode.getBundleCoordinate());

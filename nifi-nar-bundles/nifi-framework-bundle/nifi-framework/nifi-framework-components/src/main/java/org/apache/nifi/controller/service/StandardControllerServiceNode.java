@@ -47,6 +47,8 @@ import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
@@ -86,6 +88,8 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardControllerServiceNode.class);
 
+    public static final String BULLETIN_OBSERVER_ID = "bulletin-observer";
+
     private final AtomicReference<ControllerServiceDetails> controllerServiceHolder = new AtomicReference<>(null);
     private final ControllerServiceProvider serviceProvider;
     private final ServiceStateTransition stateTransition;
@@ -98,6 +102,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     private final Set<Tuple<ComponentNode, PropertyDescriptor>> referencingComponents = new HashSet<>();
     private volatile String comment;
     private volatile ProcessGroup processGroup;
+    private volatile LogLevel bulletinLevel = LogLevel.WARN;
 
     private final AtomicBoolean active;
 
@@ -712,4 +717,23 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     public ParameterLookup getParameterLookup() {
         return getParameterContext();
     }
+
+
+    @Override
+    public LogLevel getBulletinLevel() {
+        return bulletinLevel;
+    }
+
+    @Override
+    public synchronized void setBulletinLevel(LogLevel level) {
+        // handling backward compatibility with nifi 1.16 and earlier when bulletinLevel did not exist in flow.xml/flow.json
+        // and bulletins were always logged at WARN level
+        if (level == null) {
+            level = LogLevel.WARN;
+        }
+
+        LogRepositoryFactory.getRepository(getIdentifier()).setObservationLevel(BULLETIN_OBSERVER_ID, level);
+        this.bulletinLevel = level;
+    }
+
 }

@@ -239,6 +239,15 @@ public class StandardFlowSnippet implements FlowSnippet {
                 serviceNode.setAnnotationData(controllerServiceDTO.getAnnotationData());
                 serviceNode.setComments(controllerServiceDTO.getComments());
                 serviceNode.setName(controllerServiceDTO.getName());
+
+                if (controllerServiceDTO.getBulletinLevel() != null) {
+                    serviceNode.setBulletinLevel(LogLevel.valueOf(controllerServiceDTO.getBulletinLevel()));
+                } else {
+                    // this situation exists for backward compatibility with nifi 1.16 and earlier where controller services do not have bulletinLevels set in flow.xml/flow.json
+                    // and bulletinLevels are at the WARN level by default
+                    serviceNode.setBulletinLevel(LogLevel.WARN);
+                }
+
                 if (!topLevel) {
                     serviceNode.setVersionedComponentId(controllerServiceDTO.getVersionedComponentId());
                 }

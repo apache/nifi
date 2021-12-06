@@ -62,6 +62,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     private static final String NAME = "Name";
     private static final String ANNOTATION_DATA = "Annotation Data";
     private static final String EXTENSION_VERSION = "Extension Version";
+    private static final String BULLETIN_LEVEL = "Bulletin Level";
 
     /**
      * Audits the creation of controller service via createControllerService().
@@ -435,6 +436,9 @@ public class ControllerServiceAuditor extends NiFiAuditor {
         }
         if (controllerServiceDTO.getComments() != null) {
             values.put(COMMENTS, controllerService.getComments());
+        }
+        if (controllerServiceDTO.getBulletinLevel() != null) {
+            values.put(BULLETIN_LEVEL, controllerService.getBulletinLevel().name());
         }
 
         return values;

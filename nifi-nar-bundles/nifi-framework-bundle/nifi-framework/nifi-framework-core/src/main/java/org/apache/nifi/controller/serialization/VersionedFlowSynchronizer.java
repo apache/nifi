@@ -68,6 +68,7 @@ import org.apache.nifi.groups.ComponentIdGenerator;
 import org.apache.nifi.groups.ComponentScheduler;
 import org.apache.nifi.groups.FlowSynchronizationOptions;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -752,6 +753,14 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             serviceNode.setName(versionedControllerService.getName());
             serviceNode.setAnnotationData(versionedControllerService.getAnnotationData());
             serviceNode.setComments(versionedControllerService.getComments());
+
+            if (versionedControllerService.getBulletinLevel() != null) {
+                serviceNode.setBulletinLevel(LogLevel.valueOf(versionedControllerService.getBulletinLevel()));
+            } else {
+                // this situation exists for backward compatibility with nifi 1.16 and earlier where controller services do not have bulletinLevels set in flow.xml/flow.json
+                // and bulletinLevels are at the WARN level by default
+                serviceNode.setBulletinLevel(LogLevel.WARN);
+            }
 
             final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(serviceNode, versionedControllerService);
             final Map<String, String> decryptedProperties = decryptProperties(versionedControllerService.getProperties(), encryptor);

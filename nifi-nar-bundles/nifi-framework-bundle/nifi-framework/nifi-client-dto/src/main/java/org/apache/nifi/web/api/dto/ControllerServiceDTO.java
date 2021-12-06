@@ -58,6 +58,7 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     private Collection<String> validationErrors;
     private String validationStatus;
+    private String bulletinLevel;
 
     /**
      * @return controller service name
@@ -131,6 +132,20 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     public void setComments(String comments) {
         this.comments = comments;
+    }
+
+    /**
+     * @return the level at which this controller service will report bulletins
+     */
+    @ApiModelProperty(
+            value = "The level at which the controller service will report bulletins."
+    )
+    public String getBulletinLevel() {
+        return bulletinLevel;
+    }
+
+    public void setBulletinLevel(String bulletinLevel) {
+        this.bulletinLevel = bulletinLevel;
     }
 
     /**

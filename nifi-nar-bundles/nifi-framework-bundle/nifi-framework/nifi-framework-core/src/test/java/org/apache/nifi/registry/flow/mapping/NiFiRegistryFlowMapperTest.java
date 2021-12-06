@@ -519,6 +519,7 @@ public class NiFiRegistryFlowMapperTest {
         when(controllerServiceNode.getBundleCoordinate()).thenReturn(mock(BundleCoordinate.class));
         when(controllerServiceNode.getControllerServiceImplementation()).thenReturn(mock(ControllerService.class));
         when(controllerServiceNode.getProperties()).thenReturn(Collections.emptyMap());
+        when(controllerServiceNode.getBulletinLevel()).thenReturn(LogLevel.WARN);
         return controllerServiceNode;
     }
 

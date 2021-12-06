@@ -442,6 +442,7 @@ public class NiFiRegistryFlowMapper {
         versionedService.setAnnotationData(controllerService.getAnnotationData());
         versionedService.setBundle(mapBundle(controllerService.getBundleCoordinate()));
         versionedService.setComments(controllerService.getComments());
+        versionedService.setBulletinLevel(controllerService.getBulletinLevel().name());
 
         versionedService.setControllerServiceApis(mapControllerServiceApis(controllerService));
         versionedService.setProperties(mapProperties(controllerService, serviceProvider));

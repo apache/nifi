@@ -226,6 +226,7 @@ public class VersionedFlowBuilder {
         service.setGroupIdentifier(group.getIdentifier());
         service.setIdentifier(UUID.randomUUID().toString());
         service.setName(type);
+        service.setBulletinLevel("WARN");
         service.setPosition(new Position(0, 0));
         service.setProperties(new HashMap<>());
         service.setPropertyDescriptors(new HashMap<>());

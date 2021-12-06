@@ -27,6 +27,7 @@ public class VersionedControllerService extends VersionedConfigurableExtension {
 
     private String annotationData;
     private ScheduledState scheduledState;
+    private String bulletinLevel;
 
     @ApiModelProperty(value = "Lists the APIs this Controller Service implements.")
     public List<ControllerServiceAPI> getControllerServiceApis() {
@@ -58,5 +59,14 @@ public class VersionedControllerService extends VersionedConfigurableExtension {
 
     public void setScheduledState(final ScheduledState scheduledState) {
         this.scheduledState = scheduledState;
+    }
+
+    @ApiModelProperty("The level at which the controller service will report bulletins.")
+    public String getBulletinLevel() {
+        return bulletinLevel;
+    }
+
+    public void setBulletinLevel(String bulletinLevel) {
+        this.bulletinLevel = bulletinLevel;
     }
 }

@@ -1265,7 +1265,11 @@ You can obtain information about Controller Services by clicking the "Usage" and
 
 image:controller-services-info-buttons.png["Controller Services Information Buttons"]
 
-When the DFM clicks the "Configure" button, a Configure Controller Service window opens. It has three tabs: Settings, Properties,and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Controller Service a unique name (if desired). It also lists the UUID, Type, Bundle and Support information for the service and provides a list of other components (reporting tasks or other controller services) that reference the service.
+When the DFM clicks the "Configure" button, a Configure Controller Service window opens. It has three tabs: Settings, Properties,and Comments. This window is similar to the Configure Processor window.
+
+The Settings tab provides a place for the DFM to give the Controller Service a unique name (if desired). It also lists the UUID, Type, Bundle and Support information for the service and provides a list of other components (reporting tasks or other controller services) that reference the service.
+
+Finally, the Bulletin level is able to be modified. Whenever the Controller Service writes to its log, the Controller Service will also generate a Bulletin. This setting indicates the lowest level of Bulletin that should be shown in the User Interface. By default, the Bulletin level is set to WARN, which means it will display all warning and error-level bulletins.
 
 image:configure-controller-service-settings.png["Configure Controller Service Settings"]
 
