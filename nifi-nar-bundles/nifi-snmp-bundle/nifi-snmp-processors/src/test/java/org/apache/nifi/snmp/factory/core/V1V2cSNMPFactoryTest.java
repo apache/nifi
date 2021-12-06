@@ -39,8 +39,8 @@ public class V1V2cSNMPFactoryTest {
     @Test
     public void testFactoryCreatesV1V2Configuration() {
         final V1V2cSNMPFactory snmpFactory = new V1V2cSNMPFactory();
-        final int managerPort = NetworkUtils.availablePort();
-        final String targetPort = String.valueOf(NetworkUtils.availablePort());
+        final int managerPort = NetworkUtils.getAvailableUdpPort();
+        final String targetPort = String.valueOf(NetworkUtils.getAvailableUdpPort());
         final SNMPConfiguration snmpConfiguration = getSnmpConfiguration(managerPort, targetPort);
 
         final Target target = snmpFactory.createTargetInstance(snmpConfiguration);
@@ -55,8 +55,8 @@ public class V1V2cSNMPFactoryTest {
     @Test
     public void testFactoryCreatesSnmpManager() {
         final V1V2cSNMPFactory snmpFactory = new V1V2cSNMPFactory();
-        final int managerPort = NetworkUtils.availablePort();
-        final String targetPort = String.valueOf(NetworkUtils.availablePort());
+        final int managerPort = NetworkUtils.getAvailableUdpPort();
+        final String targetPort = String.valueOf(NetworkUtils.getAvailableUdpPort());
         final SNMPConfiguration snmpConfiguration = getSnmpConfiguration(managerPort, targetPort);
 
         final Snmp snmpManager = snmpFactory.createSnmpManagerInstance(snmpConfiguration);
@@ -68,8 +68,8 @@ public class V1V2cSNMPFactoryTest {
     @Test
     public void testFactoryCreatesResourceHandler() {
         final V1V2cSNMPFactory snmpFactory = spy(V1V2cSNMPFactory.class);
-        final int managerPort = NetworkUtils.availablePort();
-        final String targetPort = String.valueOf(NetworkUtils.availablePort());
+        final int managerPort = NetworkUtils.getAvailableUdpPort();
+        final String targetPort = String.valueOf(NetworkUtils.getAvailableUdpPort());
         final SNMPConfiguration snmpConfiguration = getSnmpConfiguration(managerPort, targetPort);
 
         snmpFactory.createSNMPResourceHandler(snmpConfiguration);

@@ -53,7 +53,7 @@ public class AbstractSNMPProcessorTest {
 
     @Before
     public void init() {
-        getTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(NetworkUtils.availablePort(), TEST_OID, "GET");
+        getTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(NetworkUtils.getAvailableUdpPort(), TEST_OID, "GET");
         getSNMP = (GetSNMP) getTestRunner.getProcessor();
         mockProcessContext = new MockProcessContext(getSNMP);
         mockProcessSession = new MockProcessSession(new SharedSessionState(getSNMP, new AtomicLong(0L)), getSNMP);
