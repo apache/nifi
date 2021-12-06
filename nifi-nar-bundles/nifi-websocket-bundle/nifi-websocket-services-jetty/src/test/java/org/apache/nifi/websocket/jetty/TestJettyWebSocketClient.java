@@ -17,7 +17,11 @@
 package org.apache.nifi.websocket.jetty;
 
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.Collection;
 
@@ -26,6 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class TestJettyWebSocketClient {
+
+    public static final String CUSTOM_AUTH = "Apikey 8743b52063cd84097a65d1633f5c74f5";
 
     @Test
     public void testValidationRequiredProperties() throws Exception {
@@ -96,5 +102,23 @@ public class TestJettyWebSocketClient {
         service.initialize(context.getInitializationContext());
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
         assertEquals(0, results.size());
+    }
+
+    @Test
+    public void testCustomAuthHeader() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        final TestableJettyWebSocketClient testSubject = new TestableJettyWebSocketClient();
+        runner.addControllerService("client", testSubject);
+        runner.setProperty(testSubject, JettyWebSocketClient.WS_URI, "wss://localhost:9001/test");
+        runner.setProperty(testSubject, JettyWebSocketClient.CUSTOM_AUTH, CUSTOM_AUTH);
+        runner.assertValid(testSubject);
+        runner.enableControllerService(testSubject);
+        assertEquals(CUSTOM_AUTH, testSubject.getAuthHeaderValue());
+    }
+
+    private static class TestableJettyWebSocketClient extends JettyWebSocketClient {
+        public String getAuthHeaderValue() {
+            return authorizationHeader;
+        }
     }
 }
