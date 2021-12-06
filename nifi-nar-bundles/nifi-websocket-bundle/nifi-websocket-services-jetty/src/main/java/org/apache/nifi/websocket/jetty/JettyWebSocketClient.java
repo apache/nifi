@@ -145,6 +145,19 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .defaultValue("US-ASCII")
             .build();
 
+    public static final PropertyDescriptor CUSTOM_AUTH = new PropertyDescriptor.Builder()
+            .name("custom-authorization")
+            .displayName("Custom Authorization")
+            .description(
+                    "If set tgether with \"User Name\" and \"User Password\", instead of using Basic" +
+                    " Authentication the value of the property will be assigned to the \"Authorization\" HTTP header.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
+
+
     public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
             .name("proxy-host")
             .displayName("HTTP Proxy Host")
@@ -174,6 +187,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         props.add(USER_NAME);
         props.add(USER_PASSWORD);
         props.add(AUTH_CHARSET);
+        props.add(CUSTOM_AUTH);
         props.add(PROXY_HOST);
         props.add(PROXY_PORT);
 
@@ -184,10 +198,10 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     private final ReentrantLock connectionLock = new ReentrantLock();
     private WebSocketClient client;
     private URI webSocketUri;
-    private String authorizationHeader;
     private long connectionTimeoutMillis;
     private volatile ScheduledExecutorService sessionMaintenanceScheduler;
     private ConfigurationContext configurationContext;
+    protected String authorizationHeader;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -219,7 +233,11 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         configurePolicy(context, client.getPolicy());
         final String userName = context.getProperty(USER_NAME).evaluateAttributeExpressions().getValue();
         final String userPassword = context.getProperty(USER_PASSWORD).evaluateAttributeExpressions().getValue();
-        if (!StringUtils.isEmpty(userName) && !StringUtils.isEmpty(userPassword)) {
+        final String customAuth = context.getProperty(CUSTOM_AUTH).evaluateAttributeExpressions().getValue();
+
+        if (!StringUtils.isEmpty(customAuth)) {
+            authorizationHeader = customAuth;
+        } else if (!StringUtils.isEmpty(userName) && !StringUtils.isEmpty(userPassword)) {
             final String charsetName = context.getProperty(AUTH_CHARSET).evaluateAttributeExpressions().getValue();
             if (StringUtils.isEmpty(charsetName)) {
                 throw new IllegalArgumentException(AUTH_CHARSET.getDisplayName() + " was not specified.");
