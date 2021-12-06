@@ -73,6 +73,8 @@ import java.util.concurrent.TimeUnit;
         + "of the Dynamic Property.")
 public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
 
+    private static final Set<String> IDEMPOTENT_METHODS = new HashSet<>(Arrays.asList("GET", "HEAD", "OPTIONS"));
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays
             .asList(
                     PROP_METHOD,
@@ -154,8 +156,8 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        ComponentLog logger = getLogger();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final ComponentLog logger = getLogger();
         FlowFile requestFlowFile = session.get();
 
         // Checking to see if the property to put the body of the response in an attribute was set
@@ -186,8 +188,8 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
             final Map<String, String> attributes = requestFlowFile == null ? Collections.emptyMap() : requestFlowFile.getAttributes();
             final GatewayResponse gatewayResponse = invokeGateway(client, context, session, requestFlowFile, attributes, logger);
 
-            GenericApiGatewayResponse response = gatewayResponse.response;
-            GenericApiGatewayException exception = gatewayResponse.exception;
+            final GenericApiGatewayResponse response = gatewayResponse.response;
+            final GenericApiGatewayException exception = gatewayResponse.exception;
             final int statusCode = gatewayResponse.statusCode;
 
             final String endpoint = context.getProperty(PROP_AWS_GATEWAY_API_ENDPOINT).getValue();
@@ -296,7 +298,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                 if (attributeKey == null) {
                     attributeKey = RESPONSE_BODY;
                 }
-                byte[] outputBuffer;
+                final byte[] outputBuffer;
                 int size = 0;
                 outputBuffer = new byte[maxAttributeSize];
                 if (bodyExists) {
@@ -325,7 +327,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
 
             route(requestFlowFile, responseFlowFile, session, context, statusCode,
                   getRelationships());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // penalize or yield
             if (requestFlowFile != null) {
                 logger.error("Routing to {} due to exception: {}",
@@ -339,8 +341,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                 session.transfer(requestFlowFile,
                                  getRelationshipForName(REL_FAILURE_NAME, getRelationships()));
             } else {
-                logger.error(
-                    "Yielding processor due to exception encountered as a source processor: {}", e);
+                logger.error("Yielding processor due to exception encountered as a source processor: {}", e);
                 context.yield();
             }
 
@@ -361,6 +362,11 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
         final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, verificationLogger, attributes));
 
         final String method = context.getProperty(PROP_METHOD).getValue();
+
+        if (!IDEMPOTENT_METHODS.contains(method)) {
+            return results;
+        }
+
         final String endpoint = context.getProperty(PROP_AWS_GATEWAY_API_ENDPOINT).getValue();
         final String resource = context.getProperty(PROP_RESOURCE_NAME).getValue();
         try {
