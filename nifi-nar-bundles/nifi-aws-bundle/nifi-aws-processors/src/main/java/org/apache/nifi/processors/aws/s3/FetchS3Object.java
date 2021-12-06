@@ -18,13 +18,11 @@ package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.SSEAlgorithm;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.output.CountingOutputStream;
-import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -161,23 +159,22 @@ public class FetchS3Object extends AbstractS3Processor {
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
 
         final AmazonS3 client = getConfiguration(context).getClient();
-        final GetObjectRequest request = createGetObjectRequest(context, attributes);
+        final GetObjectMetadataRequest request = createGetObjectMetadataRequest(context, attributes);
 
-        try (final S3Object s3Object = client.getObject(request)) {
-            final CountingOutputStream out = new CountingOutputStream(NullOutputStream.NULL_OUTPUT_STREAM);
-            IOUtils.copy(s3Object.getObjectContent(), out);
-            final long byteCount = out.getByteCount();
+        try {
+            final ObjectMetadata objectMetadata = client.getObjectMetadata(request);
+            final long byteCount = objectMetadata.getContentLength();
             results.add(new ConfigVerificationResult.Builder()
-                    .verificationStepName("Fetch S3 Object")
+                    .verificationStepName("HEAD S3 Object")
                     .outcome(Outcome.SUCCESSFUL)
-                    .explanation(String.format("Successfully fetched [%s] from Bucket [%s], totaling %s bytes", key, bucket, byteCount))
+                    .explanation(String.format("Successfully performed HEAD on [%s] (%s bytes) from Bucket [%s]", key, byteCount, bucket))
                     .build());
         } catch (final Exception e) {
             getLogger().error(String.format("Failed to fetch [%s] from Bucket [%s]", key, bucket), e);
             results.add(new ConfigVerificationResult.Builder()
-                    .verificationStepName("Fetch S3 Object")
+                    .verificationStepName("HEAD S3 Object")
                     .outcome(Outcome.FAILED)
-                    .explanation(String.format("Failed to fetch [%s] from Bucket [%s]: %s", key, bucket, e.getMessage()))
+                    .explanation(String.format("Failed to perform HEAD on [%s] from Bucket [%s]: %s", key, bucket, e.getMessage()))
                     .build());
         }
 
@@ -276,6 +273,22 @@ public class FetchS3Object extends AbstractS3Processor {
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully retrieved S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
         session.getProvenanceReporter().fetch(flowFile, "http://" + bucket + ".amazonaws.com/" + key, transferMillis);
+    }
+
+    private GetObjectMetadataRequest createGetObjectMetadataRequest(final ProcessContext context, final Map<String, String> attributes) {
+        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
+        final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
+        final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(attributes).getValue();
+        final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
+
+        final GetObjectMetadataRequest request;
+        if (versionId == null) {
+            request = new GetObjectMetadataRequest(bucket, key);
+        } else {
+            request = new GetObjectMetadataRequest(bucket, key, versionId);
+        }
+        request.setRequesterPays(requesterPays);
+        return request;
     }
 
     private GetObjectRequest createGetObjectRequest(final ProcessContext context, final Map<String, String> attributes) {
