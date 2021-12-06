@@ -46,7 +46,7 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
     public static final PropertyDescriptor SENSITIVE_PARAMETER_REGEX = new PropertyDescriptor.Builder()
             .name("sensitive-parameter-regex")
             .displayName("Sensitive Parameter Regex")
-            .description("A Regular Expression indicating which Environment Variables to include as sensitive parameters.  Any that this pattern " +
+            .description("A Regular Expression indicating which Environment Variables to include as sensitive parameters.  Any that match this pattern " +
                     " are automatically excluded from the non-sensitive parameters.  If not specified, no sensitive parameters will be included.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .required(false)

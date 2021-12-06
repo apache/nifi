@@ -198,10 +198,12 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
             synchronizeFlow(controller, existingDataFlow, proposedFlow, affectedComponents);
 
-            try {
-                flowManager.getAllParameterProviders().forEach(ParameterProviderNode::fetchParameters);
-            } catch (final Exception e) {
-                logger.warn("Failed to fetch parameters: " + e.getMessage(), e);
+            for (final ParameterProviderNode parameterProviderNode : flowManager.getAllParameterProviders()) {
+                try {
+                    parameterProviderNode.fetchParameters();
+                } catch (final Exception e) {
+                    logger.warn("Failed to fetch parameters for provider {}: {}", new Object[] { parameterProviderNode.getName(), e.getMessage() }, e);
+                }
             }
         } finally {
             // We have to call toExistingSet() here because some of the components that existed in the active set may no longer exist,
@@ -337,9 +339,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
                 // Inherit controller-level components.
                 inheritControllerServices(controller, versionedFlow, affectedComponentSet);
+                inheritParameterProviders(controller, versionedFlow, affectedComponentSet);
                 inheritParameterContexts(controller, versionedFlow);
                 inheritReportingTasks(controller, versionedFlow, affectedComponentSet);
-                inheritParameterProviders(controller, versionedFlow, affectedComponentSet);
                 inheritRegistries(controller, versionedFlow);
 
                 final ComponentIdGenerator componentIdGenerator = (proposedId, instanceId, destinationGroupId) -> instanceId;
