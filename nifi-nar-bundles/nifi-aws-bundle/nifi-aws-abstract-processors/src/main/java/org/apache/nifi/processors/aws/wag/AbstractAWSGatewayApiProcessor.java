@@ -558,8 +558,11 @@ public abstract class AbstractAWSGatewayApiProcessor extends
         responseHttp.getHttpResponse().getHeaders().entrySet().forEach((entry) -> {
 
             final String key = entry.getKey();
-            final
+            final String value = entry.getValue();
 
+            if (key == null) {
+                return;
+            }
             // we ignore any headers with no actual values (rare)
             if (StringUtils.isBlank(value)) {
                 return;
