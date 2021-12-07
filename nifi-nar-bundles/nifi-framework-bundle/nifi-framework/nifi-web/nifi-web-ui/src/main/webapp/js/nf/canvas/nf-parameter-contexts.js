@@ -1029,55 +1029,6 @@
         };
     };
 
-
-    //==================================================================================
-    //     if (value !== null && !isChecked) {
-    //         // check if value has length
-    //         if (value.length === 0) {
-    //             value = null;
-    //         }
-    //     }
-    //
-    //     var hasChanged = parameter.value !== value;
-    //
-    //     if (!nfCommon.isBlank(value) || parameter.sensitive === true) {
-    //         // if the value is sensitive and the user has not made a change
-    //         if (!_.isEmpty(parameter) && parameter.sensitive === true && input.hasClass('sensitive') && parameter.isNew === false) {
-    //             serializedValue = parameter.previousValue;
-    //             hasChanged = false;
-    //         } else {
-    //             // value is not sensitive or it is sensitive and the user has changed it then always take the current value
-    //             serializedValue = value;
-    //
-    //             // if the param is sensitive and the param value has not "changed", that means it matches the mask and it should still be considered changed
-    //             if (!hasChanged && !_.isEmpty(parameter) && parameter.sensitive === true && parameter.isNew === false) {
-    //                 hasChanged = true;
-    //             }
-    //         }
-    //     } else {
-    //         if (isChecked) {
-    //             serializedValue = '';
-    //         } else if (value != null) {
-    //             if (value.length !== 0) {
-    //                 // value is not sensitive or it is sensitive and the user has changed it then always take the current value
-    //                 serializedValue = value;
-    //             }
-    //         } else {
-    //             serializedValue = null;
-    //         }
-    //
-    //         // if the param is sensitive and the param value has not "changed", that means it matches the mask and it should still be considered changed
-    //         if (!hasChanged && !_.isEmpty(parameter) && parameter.sensitive === true && parameter.isNew === false) {
-    //             hasChanged = true;
-    //         }
-    //     }
-    //
-    //     return {
-    //         value: serializedValue,
-    //         hasChanged: hasChanged
-    //     };
-    // };
-
     /**
      * Update a parameter.
      *
