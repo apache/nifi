@@ -149,8 +149,8 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .name("custom-authorization")
             .displayName("Custom Authorization")
             .description(
-                    "If set tgether with \"User Name\" and \"User Password\", instead of using Basic" +
-                    " Authentication the value of the property will be assigned to the \"Authorization\" HTTP header.")
+                    "Configures a custom HTTP Authorization Header as described in RFC 7235 Section 4.2." +
+                    " Setting a custom Authorization Header excludes configuring the User Name and User Password properties for Basic Authentication.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -276,6 +276,14 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             results.add(new ValidationResult.Builder().subject("HTTP Proxy Host and Port").valid(false).explanation(
                     "If HTTP Proxy Host or HTTP Proxy Port is set, both must be set").build());
         }
+
+        final boolean isBaseAuthUsed = validationContext.getProperty(USER_NAME).isSet() || validationContext.getProperty(USER_PASSWORD).isSet();
+
+        if (isBaseAuthUsed && validationContext.getProperty(CUSTOM_AUTH).isSet()) {
+            results.add((new ValidationResult.Builder().subject("Authentication").valid(false).explanation(
+                    "Properties related to Basic Authentication (\"User Name\" and \"User Password\") cannot be used together with \"Custom Authorization\"")).build());
+        }
+
         return results;
     }
 
