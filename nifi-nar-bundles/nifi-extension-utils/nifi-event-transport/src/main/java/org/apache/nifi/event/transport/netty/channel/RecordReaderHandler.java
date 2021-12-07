@@ -51,9 +51,8 @@ public class RecordReaderHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
-        final SocketAddress remoteSender = ctx.channel().remoteAddress();
-        logger.info("Netty message received to {}, sender is: {}", ctx.channel().localAddress(), remoteSender);
-        fromChannel.write(ByteBufUtil.getBytes(msg));
+         fromChannel.write(ByteBufUtil.getBytes(msg));
+         fromChannel.flush();
     }
 
     @Override

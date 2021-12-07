@@ -95,7 +95,7 @@ public class SocketChannelRecordReaderDispatcher implements Runnable, Closeable 
 
                 if (logger.isDebugEnabled()) {
                     final String remoteAddress = remoteSocketAddress == null ? "null" : remoteSocketAddress.toString();
-                    logger.debug("Accepted connection from {}", remoteAddress);
+                    logger.debug("Accepted connection from {}", new Object[]{remoteAddress});
                 }
 
                 // create a StandardSocketChannelRecordReader or an SSLSocketChannelRecordReader based on presence of SSLContext

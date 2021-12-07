@@ -25,8 +25,10 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.RecordReaderFactory;
 
 import java.net.InetAddress;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The Record Reader Event Server for reading in records from a Netty server/socket
@@ -46,13 +48,14 @@ public class RecordReaderEventServerFactory extends NettyEventServerFactory {
                                           final int port,
                                           final TransportProtocol protocol,
                                           final RecordReaderFactory readerFactory,
-                                          final BlockingQueue<NetworkRecordReader> senderStreams) {
+                                          final BlockingQueue<NetworkRecordReader> senderStreams,
+                                          final Duration readTimeout) {
         super(address, port, protocol);
         final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);
 
         setHandlerSupplier(() -> Arrays.asList(
                 logExceptionChannelHandler,
-                new ReadTimeoutHandler(1),
+                new ReadTimeoutHandler(readTimeout.getSeconds(), TimeUnit.SECONDS),
                 new RecordReaderHandler(readerFactory, senderStreams, log)
         ));
     }

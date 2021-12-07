@@ -47,6 +47,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.security.util.ClientAuth;
+import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -286,12 +287,11 @@ public class ListenTCPRecord extends AbstractProcessor {
             clientAuth = ClientAuth.valueOf(clientAuthValue);
         }
 
-        NettyEventServerFactory eventServerFactory = new RecordReaderEventServerFactory(getLogger(), nicAddress, port, TransportProtocol.TCP, recordReaderFactory, recordReaders);
+        NettyEventServerFactory eventServerFactory = new RecordReaderEventServerFactory(getLogger(), nicAddress, port, TransportProtocol.TCP, recordReaderFactory, recordReaders, readTimeout);
         eventServerFactory.setSslContext(sslContext);
         eventServerFactory.setClientAuth(clientAuth);
         eventServerFactory.setSocketReceiveBuffer(maxSocketBufferSize);
         eventServerFactory.setWorkerThreads(maxConnections);
-        eventServerFactory.setConnectionTimeout(readTimeout);
 
         eventServer = eventServerFactory.getEventServer();
     }
@@ -308,15 +308,15 @@ public class ListenTCPRecord extends AbstractProcessor {
             try {
                 recordReader.getRecordReader().close();
             } catch (Exception e) {
-                getLogger().error("Couldn't close " + recordReader, e);
+                getLogger().error("Close Record Reader [{}] Failed", recordReader, e);
             }
         }
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        NetworkRecordReader recordReader = pollForRecordReader();
-        if (recordReader == null) {
+        NetworkRecordReader networkReader = pollForRecordReader();
+        if (networkReader == null) {
             return;
         }
 
@@ -324,19 +324,21 @@ public class ListenTCPRecord extends AbstractProcessor {
         final String readerErrorHandling = context.getProperty(READER_ERROR_HANDLING_STRATEGY).getValue();
         final RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        // synchronize to ensure there are no stale values in the underlying SocketChannel - is this still necessary?
-        synchronized (recordReader) {
+        synchronized (networkReader) {
             FlowFile flowFile = session.create();
             try {
+                RecordReader recordReader = networkReader.getRecordReader();
                 Record record;
                 try {
-                    record = recordReader.getRecordReader().nextRecord(); // TODO: This nextRecord call needs a timeout of some kind
+                    record = recordReader.nextRecord();
                 } catch (final Exception e) {
+                    getLogger().error("Exception was thrown attempting to read the next record");
                     throw e;
                 }
 
                 if (record == null) {
-                    IOUtils.closeQuietly(recordReader.getRecordReader());
+                    getLogger().debug("No records available from {}", networkReader.getSender());
+                    IOUtils.closeQuietly(recordReader);
                     session.remove(flowFile);
                     return;
                 }
@@ -357,8 +359,8 @@ public class ListenTCPRecord extends AbstractProcessor {
                         // if discarding then bounce to the outer catch block which will close the connection and remove the flow file
                         // if keeping then null out the record to break out of the loop, which will transfer what we have and close the connection
                         try {
-                            getLogger().info("Reading record from recordReader!");
-                            record = recordReader.getRecordReader().nextRecord();
+                            getLogger().debug("Reading next record from recordReader");
+                            record = recordReader.nextRecord();
                         } catch (final SocketTimeoutException ste) {
                             getLogger().debug("Timeout reading records, will try again later", ste);
                             break;
@@ -385,12 +387,12 @@ public class ListenTCPRecord extends AbstractProcessor {
                     getLogger().debug("Removing flow file, no records were written");
                     session.remove(flowFile);
                 } else {
-                    final String sender = recordReader.getSender().toString();
+                    final String sender = networkReader.getSender().toString();
 
                     final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
                     attributes.put(CoreAttributes.MIME_TYPE.key(), mimeType);
                     attributes.put("tcp.sender", sender);
-                    attributes.put("tcp.port", String.valueOf(port)); // Should this be the remote port..?
+                    attributes.put("tcp.port", String.valueOf(port));
                     attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
                     flowFile = session.putAllAttributes(flowFile, attributes);
 
@@ -402,10 +404,10 @@ public class ListenTCPRecord extends AbstractProcessor {
                 }
 
                 getLogger().debug("Re-queuing reader for further processing...");
-                recordReaders.offer(recordReader);
+                recordReaders.offer(networkReader);
             } catch (Exception e) {
-                getLogger().error("Error processing records: " + e.getMessage(), e);
-                IOUtils.closeQuietly(recordReader);
+                getLogger().error("Record Processing Failed", e);
+                IOUtils.closeQuietly(networkReader);
                 session.remove(flowFile);
                 return;
             }

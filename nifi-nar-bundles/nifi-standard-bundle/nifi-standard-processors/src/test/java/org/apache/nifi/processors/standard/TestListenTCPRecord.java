@@ -203,12 +203,9 @@ public class TestListenTCPRecord {
         runner.setProperty(ListenTCPRecord.PORT, Integer.toString(port));
 
         // Run Processor and start listener without shutting down
-        LOGGER.info("Before run:");
         runner.run(1, false, shouldInitialize);
-        LOGGER.info("About to send messages:");
         sendMessages(port, data, sslContext);
 
-        LOGGER.info("Sent messages to port: {}", port);
         // Run Processor until success leveraging test method timeouts for failure status
         int iterations = 0;
         while (getSuccessCount() < expectedTransferred) {

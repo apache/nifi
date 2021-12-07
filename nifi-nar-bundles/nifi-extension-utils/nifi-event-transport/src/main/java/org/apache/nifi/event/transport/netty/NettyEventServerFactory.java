@@ -29,7 +29,6 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.EventServerFactory;
-import org.apache.nifi.event.transport.configuration.ConnectionTimeout;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
@@ -68,8 +67,6 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     private Duration shutdownQuietPeriod = ShutdownQuietPeriod.DEFAULT.getDuration();
 
     private Duration shutdownTimeout = ShutdownTimeout.DEFAULT.getDuration();
-
-    private Duration connectionTimeout = ConnectionTimeout.DEFAULT.getDuration();
 
     public NettyEventServerFactory(final InetAddress address, final int port, final TransportProtocol protocol) {
         this.address = address;
@@ -141,15 +138,6 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     }
 
     /**
-     * Set the
-     *
-     * @param timeout
-     */
-    public void setConnectionTimeout(final Duration timeout) {
-        this.connectionTimeout = timeout;
-    }
-
-    /**
      * Get Event Server with Channel bound to configured address and port number
      *
      * @return Event Sender
@@ -172,9 +160,6 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
         if (socketKeepAlive != null) {
             bootstrap.option(ChannelOption.SO_KEEPALIVE, socketKeepAlive);
         }
-
-        // ChannelOption only takes integer for time in milliseconds? strange
-        bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, Math.toIntExact(connectionTimeout.toMillis()));
     }
 
     private AbstractBootstrap<?, ?> getBootstrap() {
