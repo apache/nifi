@@ -80,6 +80,7 @@ public class StatelessKafkaConnectorUtil {
     static final String BOOTSTRAP_SNAPSHOT_FILE = "nifi.stateless.flow.snapshot.file";
     static final String BOOTSTRAP_SNAPSHOT_CONTENTS = "nifi.stateless.flow.snapshot.contents";
     static final String BOOTSTRAP_FLOW_NAME = "nifi.stateless.flow.name";
+    static final String BOOTSTRAP_TRANSACTION_INGEST_STRATEGY = "nifi.stateless.transaction.ingest.strategy";
 
     static final String DEFAULT_KRB5_FILE = "/etc/krb5.conf";
     static final String DEFAULT_DATAFLOW_TIMEOUT = "60 sec";
@@ -173,6 +174,10 @@ public class StatelessKafkaConnectorUtil {
             }
 
             dataflowDefinitionProperties.put(BOOTSTRAP_FLOW_NAME, dataflowName);
+
+            if (properties.containsKey(BOOTSTRAP_TRANSACTION_INGEST_STRATEGY)) {
+                dataflowDefinitionProperties.put(BOOTSTRAP_TRANSACTION_INGEST_STRATEGY, properties.get(BOOTSTRAP_TRANSACTION_INGEST_STRATEGY));
+            }
 
             MDC.setContextMap(Collections.singletonMap("dataflow", dataflowName));
 

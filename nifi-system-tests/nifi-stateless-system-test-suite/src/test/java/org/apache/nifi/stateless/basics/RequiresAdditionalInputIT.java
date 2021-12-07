@@ -18,7 +18,6 @@
 package org.apache.nifi.stateless.basics;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.stateless.StatelessSystemIT;
@@ -36,10 +35,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.concurrent.TimeUnit;
 
 import static junit.framework.TestCase.assertEquals;
+import static org.apache.nifi.stateless.TransactionThresholdsFactory.createTransactionThresholds;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -66,15 +65,14 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
         flowBuilder.createConnection(merge, originalPort, "original");
 
         // If allowing only a single FlowFile, we expect the dataflow to timeout.
-        final StatelessDataflow timeoutDataflow = loadDataflow(flowBuilder.getFlowSnapshot(), Collections.emptyList(),
-            Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE);
+        final StatelessDataflow timeoutDataflow = loadDataflow(flowBuilder.getFlowSnapshot(), TransactionThresholds.SINGLE_FLOWFILE);
 
         final DataflowTrigger timeoutTrigger = timeoutDataflow.trigger();
         final Optional<TriggerResult> optionalResult = timeoutTrigger.getResult(1, TimeUnit.SECONDS);
         assertFalse(optionalResult.isPresent());
 
         // Startup the dataflow allowing a Transaction Threshold large enough to accommodate
-        final StatelessDataflow dataflow = loadDataflow(flowBuilder.getFlowSnapshot(), Collections.emptyList(), Collections.emptySet(), createTransactionThresholds(flowFileCount));
+        final StatelessDataflow dataflow = loadDataflow(flowBuilder.getFlowSnapshot(), createTransactionThresholds(flowFileCount));
 
         // Enqueue data and trigger
         final DataflowTrigger trigger = dataflow.trigger();
@@ -161,22 +159,4 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
         result.acknowledge();
     }
 
-    private TransactionThresholds createTransactionThresholds(final int maxFlowFiles) {
-        return new TransactionThresholds() {
-            @Override
-            public OptionalLong getMaxFlowFiles() {
-                return OptionalLong.of(maxFlowFiles);
-            }
-
-            @Override
-            public OptionalLong getMaxContentSize(final DataUnit dataUnit) {
-                return OptionalLong.empty();
-            }
-
-            @Override
-            public OptionalLong getMaxTime(final TimeUnit timeUnit) {
-                return OptionalLong.empty();
-            }
-        };
-    }
 }

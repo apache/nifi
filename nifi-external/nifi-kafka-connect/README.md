@@ -344,13 +344,14 @@ With traditional NiFi, we can simply set a minimum and maximum size for the merg
 this may not work as well, because only a limited number of FlowFiles will be made available to the Processor. We can still use these Processor in
 order to merge the data together, but with a bit of a limitation.
 
-If MergeContent / MergeRecord are triggered but do not have enough FlowFiles to create a batch, the processor will do nothing. If there are more FlowFiles
-queued up than the configured maximum number of entries, the Processor will merge up to that number of FlowFiles but then leave the rest sitting in the queue.
-The next invocation will then not have enough FlowFiles to create a batch and therefore will remain queued. In either of these situations, the result can be
-that the dataflow is constantly triggering the merge processor, which makes no process, and as a result the dataflow times out and rolls back the entire session.
-Therefore, it is advisable that the MergeContent / MergeRecord processors be configured with a `Minimum Number of Entries` of `1` and a very large value for the
-`Maximum Number of Entries` property (for example 1000000). Kafka Connect properties such as `offset.flush.timeout.ms` may be used to control
-the amount of data that gets merged together.
+If MergeContent / MergeRecord are triggered but do not have enough FlowFiles to create a batch, the processor will do nothing. Therefore, it is advisable
+that the MergeContent / MergeRecord processors be configured with a `Minimum Number of Entries` of `1` and `Minimum Group Size` of `0 B` (default settings).
+As a result, the MergeContent / MergeRecord processor will create a merged FlowFile from input FlowFiles available in the given execution of the connector
+and will not wait for more data.
+Kafka Connect properties such as `offset.flush.timeout.ms` may be used to control the amount of data that is provided by the Kafka Connect framework
+for a single execution of the connector. `Maximum Number of Entries` and `Maximum Group Size` processor properties can also be used to maximize the size
+of the merged FlowFile. It may create multiple merged FlowFiles per connector execution, the last FlowFile will contain the leftover items and it may be
+smaller than the maximum size.
 
 
 

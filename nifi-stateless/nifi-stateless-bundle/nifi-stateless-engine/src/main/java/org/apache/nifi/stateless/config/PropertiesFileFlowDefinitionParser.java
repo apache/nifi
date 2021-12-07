@@ -35,6 +35,7 @@ import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.DataflowDefinitionParser;
 import org.apache.nifi.stateless.flow.StandardDataflowDefinition;
+import org.apache.nifi.stateless.flow.TransactionIngestStrategy;
 import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.apache.nifi.stateless.parameter.EnvironmentVariableParameterValueProvider;
 import org.apache.nifi.stateless.parameter.OverrideParameterValueProvider;
@@ -95,6 +96,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     private static final String TRANSACTION_THRESHOLD_FLOWFILES = "nifi.stateless.transaction.thresholds.flowfiles";
     private static final String TRANSACTION_THRESHOLD_DATA_SIZE = "nifi.stateless.transaction.thresholds.bytes";
     private static final String TRANSACTION_THRESHOLD_TIME = "nifi.stateless.transaction.thresholds.time";
+    private static final String TRANSACTION_INGEST_STRATEGY = "nifi.stateless.transaction.ingest.strategy";
 
 
     public DataflowDefinition<VersionedFlowSnapshot> parseFlowDefinition(final File propertiesFile, final StatelessEngineConfiguration engineConfig, final List<ParameterOverride> parameterOverrides)
@@ -332,6 +334,8 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         final OptionalLong maxBytes = dataSizeThreshold == null ? OptionalLong.empty() : OptionalLong.of(dataSizeThreshold.longValue());
         final OptionalLong maxNanos = timeThreshold == null ? OptionalLong.empty() : OptionalLong.of(timeThreshold.longValue());
 
+        final TransactionIngestStrategy transactionIngestStrategy = TransactionIngestStrategy.fromString(getTrimmedProperty(properties, TRANSACTION_INGEST_STRATEGY));
+
         return new TransactionThresholds() {
             @Override
             public OptionalLong getMaxFlowFiles() {
@@ -346,6 +350,11 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
             @Override
             public OptionalLong getMaxTime(final TimeUnit timeUnit) {
                 return maxNanos.isPresent() ? OptionalLong.of(timeUnit.convert(maxNanos.getAsLong(), TimeUnit.NANOSECONDS)) : OptionalLong.empty();
+            }
+
+            @Override
+            public TransactionIngestStrategy getIngestStrategy() {
+                return transactionIngestStrategy;
             }
         };
     }

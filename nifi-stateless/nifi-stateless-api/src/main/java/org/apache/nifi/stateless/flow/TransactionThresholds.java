@@ -57,6 +57,11 @@ public interface TransactionThresholds {
     OptionalLong getMaxTime(TimeUnit timeUnit);
 
     /**
+     * @return TransactionIngestStrategy that controls how the source component will be triggered and will ingest FlowFiles
+     */
+    TransactionIngestStrategy getIngestStrategy();
+
+    /**
      * A TransactionThresholds that limit the number of FlowFiles to 1 and place no bounds on the size of the contents or amount of time
      */
     TransactionThresholds SINGLE_FLOWFILE = new TransactionThresholds() {
@@ -73,6 +78,11 @@ public interface TransactionThresholds {
         @Override
         public OptionalLong getMaxTime(final TimeUnit timeUnit) {
             return OptionalLong.empty();
+        }
+
+        @Override
+        public TransactionIngestStrategy getIngestStrategy() {
+            return TransactionIngestStrategy.LAZY;
         }
 
         @Override

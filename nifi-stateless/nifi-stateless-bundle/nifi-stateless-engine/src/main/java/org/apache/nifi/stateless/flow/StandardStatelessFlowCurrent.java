@@ -107,18 +107,39 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
     }
 
     private void triggerRootConnectables() {
-        for (final Connectable connectable : rootConnectables) {
-            currentComponent = connectable;
+        TransactionIngestStrategy transactionIngestStrategy = transactionThresholdMeter.getThresholds().getIngestStrategy();
 
-            // Reset progress and trigger the component. This allows us to track whether or not any progress was made by the given connectable
-            // during this invocation of its onTrigger method.
-            tracker.resetProgress();
-            trigger(connectable, executionProgress, tracker);
+        boolean wasProgress;
+        do {
+            wasProgress = false;
 
-            // Keep track of the output of the source component so that we can determine whether or not we've reached our transaction threshold.
-            transactionThresholdMeter.incrementFlowFiles(tracker.getFlowFilesProduced());
-            transactionThresholdMeter.incrementBytes(tracker.getBytesProduced());
-        }
+            for (final Connectable connectable : rootConnectables) {
+                currentComponent = connectable;
+
+                // Reset progress and trigger the component. This allows us to track whether or not any progress was made by the given connectable
+                // during this invocation of its onTrigger method.
+                tracker.resetProgress();
+                trigger(connectable, executionProgress, tracker);
+
+                // Keep track of the output of the source component so that we can determine whether or not we've reached our transaction threshold.
+                transactionThresholdMeter.incrementFlowFiles(tracker.getFlowFilesProduced());
+                transactionThresholdMeter.incrementBytes(tracker.getBytesProduced());
+
+                if (!wasProgress) {
+                    wasProgress = tracker.isProgress();
+                }
+            }
+
+            if (transactionIngestStrategy == TransactionIngestStrategy.LAZY) {
+                break;
+            }
+            if (transactionIngestStrategy == TransactionIngestStrategy.EAGER && transactionThresholdMeter.isThresholdMet()) {
+                break;
+            }
+            if (executionProgress.isCanceled()) {
+                break;
+            }
+        } while (wasProgress);
     }
 
     private NextConnectable triggerWhileReady(final Connectable connectable) {

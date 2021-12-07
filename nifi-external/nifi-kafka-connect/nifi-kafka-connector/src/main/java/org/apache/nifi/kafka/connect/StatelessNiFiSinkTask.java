@@ -28,6 +28,7 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
+import org.apache.nifi.stateless.flow.TransactionIngestStrategy;
 import org.apache.nifi.stateless.flow.TriggerResult;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
@@ -76,6 +77,8 @@ public class StatelessNiFiSinkTask extends SinkTask {
         final String regex = properties.get(StatelessNiFiSinkConnector.HEADERS_AS_ATTRIBUTES_REGEX);
         headerNameRegex = regex == null ? null : Pattern.compile(regex);
         headerNamePrefix = properties.getOrDefault(StatelessNiFiSinkConnector.HEADER_ATTRIBUTE_NAME_PREFIX, "");
+
+        properties.put(StatelessKafkaConnectorUtil.BOOTSTRAP_TRANSACTION_INGEST_STRATEGY, TransactionIngestStrategy.EAGER.name());
 
         dataflow = StatelessKafkaConnectorUtil.createDataflow(properties);
         dataflow.initialize();

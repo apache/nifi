@@ -31,7 +31,6 @@ import org.apache.nifi.stream.io.StreamUtils;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -45,6 +44,16 @@ public class ConcatenateFlowFiles extends AbstractProcessor {
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
 
+    static final PropertyDescriptor STRICT_SIZE = new Builder()
+            .name("Strict Size")
+            .displayName("Strict Size")
+            .description("If true, the FlowFile Count property will be handled as a strict size and the session will be rolled back if not enough FlowFilea are available." +
+                    "If false, the processor simply concatenates the available FlowFiles (up to FlowFile Count size).")
+            .required(true)
+            .defaultValue("true")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     static final Relationship ORIGINAL = new Relationship.Builder()
         .name("original")
         .build();
@@ -54,7 +63,9 @@ public class ConcatenateFlowFiles extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.singletonList(FLOWFILE_COUNT);
+        return Arrays.asList(
+                FLOWFILE_COUNT,
+                STRICT_SIZE);
     }
 
     @Override
@@ -65,8 +76,11 @@ public class ConcatenateFlowFiles extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final int flowFileCount = context.getProperty(FLOWFILE_COUNT).asInteger();
+        final boolean strictSize = context.getProperty(STRICT_SIZE).asBoolean();
+
         final List<FlowFile> flowFiles = session.get(flowFileCount);
-        if (flowFiles.size() != flowFileCount) {
+
+        if (strictSize && flowFiles.size() != flowFileCount) {
             session.rollback();
             context.yield();
             getLogger().debug("Need {} FlowFiles but currently on {} are available. Will not merge.", flowFileCount, flowFiles.size());

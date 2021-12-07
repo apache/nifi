@@ -153,6 +153,10 @@ public class StatelessSystemIT {
         return loadDataflow(versionedFlowSnapshot, parameterContexts, failurePortNames, TransactionThresholds.SINGLE_FLOWFILE);
     }
 
+    protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final TransactionThresholds transactionThresholds) throws IOException, StatelessConfigurationException {
+        return loadDataflow(versionedFlowSnapshot, Collections.emptyList(), Collections.emptySet(), transactionThresholds);
+    }
+
     protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts, final Set<String> failurePortNames,
                                              final TransactionThresholds transactionThresholds) throws IOException, StatelessConfigurationException {
         return loadDataflow(versionedFlowSnapshot, parameterContexts, Collections.emptyList(), failurePortNames, transactionThresholds);

@@ -113,13 +113,15 @@ the amount of data that may be brought into a single invocation of the dataflow 
 limits the amount of data per invocation to say 10 MB, but MergeContent is configured not to create a bin until at least 100 MB of data is
 available, the dataflow will continue to trigger MergeContent to run, without making any progress, until either the Max Bin Age is reached
 (if configured) or the dataflow times out.
+For this reason, it is important to ensure that if MergeContent / MergeRecord have a minimum size set (Minimum Number of Entries and/or Minimum Group Size),
+then Max Bin Age must be configured too.
 
 Additionally, depending on the context in which Stateless is run, triggering the source components may not provide additional data.
-For example, if Stateless is run in an enviornment where data is queued up in an Input Port and then the dataflow is triggered, subsequently
-triggering the Input Port to run will not produce additional data.
-
-As a result, it is important to ensure that any dataflows that contain logic to merge FlowFiles is configured with a Max Bin Age for MergeContent
-and MergeRecord.
+For example, if Stateless is run in an environment where data is queued up once in an Input Port and then the dataflow is triggered, the amount of data
+available for the source processor is determined.
+In this case EAGER ingest strategy is a better approach (see `nifi.stateless.transaction.ingest.strategy` property). The source processor ingests
+all FlowFiles available in the Input Port and MergeContent / MergeRecord can process all of them in a batch. Minimum Number of Entries must be set to 1
+and Minimum Group Size to 0B (default settings) in order not to wait for more input (as it will never come). Max Bin Age does not need to be set in this case. 
 
 #### Failure Handling
 
@@ -316,30 +318,49 @@ There are times, however, when we do not want to provide the list of Parameters 
 an external service. For this reason, Stateless supports a notion of a Parameter Value Provider. A Parameter Value Provider is an extension point that can be used to retrieve Parameters
 from elsewhere. For information on how to configure Parameter Value Provider, see the [Passing Parameters](#passing-parameters) section below.
 
-When a stateless dataflow is triggered, it can also be important to consider how much data should be allowed to enter the dataflow for a given invocation.
+When a stateless dataflow is triggered, it can also be important to consider how much data should be allowed to enter the dataflow for a given invocation and when it should be ingested by the source processor.
 Typically, this consists of a single FlowFile at a time or a single batch of FlowFiles at a time, depending on the source processor. However, some processors may
 require additional data in order to perform their tasks. For example, if we have a dataflow whose source processor brings in a single message from a JMS Queue, and
-later in the flow have a MergeContent processor, that MergeContent processor may not be able to perform its function with just one message. As a result, the source
-processor will be triggered again. This process will continue until either the MergeContent processor is able to make progress and empty its incoming FlowFile Queues
-OR until some threshold has been reached. These thresholds can be configured using the following properties:
+later in the flow have a MergeContent processor, that MergeContent processor may not be able to perform its function with just one message.
+In this case the source processor needs to be triggered multiple times.
+It can happen on-demand when a downstream processor indicates the need for more FlowFiles via 'no-progress' (e.g MergeContent with Minimum Number of Entries > 1).
+As a result, the source processor will be triggered again. This process will continue until either the downstream processor is able to make progress and empty its incoming FlowFile Queues
+OR until some threshold has been reached. This is the LAZY ingest strategy which is the default.
+The other approach is the EAGER ingest strategy when the source processor pre-ingests FlowFiles (up to the thresholds) at the beginning of the transaction.
+It is useful when a downstream processor (e.g. MergeContent with Minimum Number of Entries = 1) would be able to process multiple FlowFiles in a batch, but it cannot indicate it via 'no-progress'
+or it does not want to wait for more data, just to simply process the instantly available FlowFiles from its input queue.
+Please note that configuring EAGER strategy without thresholds may lead to ingesting data infinitely (and OutOfMemoryError in the end) if the source processor gets input data continuously (e.g. consuming from a JMS Queue
+with active producers in parallel).
+
+The thresholds and the ingest strategy can be configured using the following properties:
 
 
-/ Property Name / Description / Example Value /
-/---------------/-------------/---------------/
-/ nifi.stateless.transaction.thresholds.flowfiles / The maximum number of FlowFiles that a source processors should bring into the flow each time the dataflow is triggered. / 1000 /
-/ nifi.stateless.transaction.thresholds.bytes / The maximum amount of data for all FlowFiles' contents. / 100 MB /
-/ nifi.stateless.transaction.thresholds.time / The amount of time between when the dataflow was triggered and when the source processors should stop being triggered. / 1 sec /
+| Property Name | Description | Example Value |
+|---------------|-------------|---------------|
+| nifi.stateless.transaction.thresholds.flowfiles | The maximum number of FlowFiles that a source processors should bring into the flow each time the dataflow is triggered. | 1000 |
+| nifi.stateless.transaction.thresholds.bytes | The maximum amount of data for all FlowFiles' contents. | 100 MB |
+| nifi.stateless.transaction.thresholds.time | The amount of time between when the dataflow was triggered and when the source processors should stop being triggered. | 1 sec |
+| nifi.stateless.transaction.ingest.strategy | Controls how the source processors ingest data. LAZY: triggered once at the beginning of the transaction and on-demand later. EAGER: triggered till transaction thresholds reached (or no more input data available). | LAZY |
 
 For example, to ensure that the source processors are not triggered to bring in more than 1 MB of data and not more than 10 FlowFiles, we can use:
 ```
 nifi.stateless.transaction.thresholds.flowfiles=10
 nifi.stateless.transaction.thresholds.bytes=1 MB
-```  
+```
 
 With this configuration, each time the dataflow is triggered, the source processor (or all sources, cumulatively, if there is more than one) will not be triggered again after it has brought
 10 FlowFiles OR 1 MB worth of FlowFile content (regardless if that 1 MB was from 1 FlowFiles or the sum of all FlowFiles) into the flow.
 Note, however, that if the source were to bring in 1,000 FlowFiles and 50 MB of data in a single invocation, that would be allowed, but the component would no longer be triggered until the dataflow
 has completed.
+The source processor gets triggered when a downstream processor cannot progress and waits for more input (LAZY ingest strategy which is the default).
+
+Using EAGER ingest strategy:
+```
+nifi.stateless.transaction.thresholds.flowfiles=10
+nifi.stateless.transaction.thresholds.bytes=1 MB
+nifi.stateless.transaction.ingest.strategy=EAGER
+```
+Everything is the same as in the previous example but the source processor may get triggered multiple times at the beginning of the dataflow execution, till it fills the queue up to the thresholds.
 
 
 ##### Reporting Tasks

@@ -82,6 +82,7 @@ import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.DataflowTriggerContext;
 import org.apache.nifi.stateless.flow.FailurePortEncounteredException;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
+import org.apache.nifi.stateless.flow.TransactionIngestStrategy;
 import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.apache.nifi.stateless.flow.TriggerResult;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -768,6 +769,11 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
             @Override
             public OptionalLong getMaxTime(final TimeUnit timeUnit) {
                 return OptionalLong.of(timeUnit.convert(maxTimeNanos, TimeUnit.NANOSECONDS));
+            }
+
+            @Override
+            public TransactionIngestStrategy getIngestStrategy() {
+                return TransactionIngestStrategy.LAZY;
             }
         };
 
