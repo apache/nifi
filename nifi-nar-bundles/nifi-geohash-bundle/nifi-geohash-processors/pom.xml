@@ -89,8 +89,9 @@
                 <configuration>
                     <excludes combine.children="append">
                         <exclude>src/test/resources/record_schema.avsc</exclude>
-                        <exclude>src/test/resources/record_decode.json</exclude>
-                        <exclude>src/test/resources/record_encode.json</exclude>
+                        <exclude>src/test/resources/decode-record.json</exclude>
+                        <exclude>src/test/resources/encode-records-with-illegal-arguments.json</exclude>
+                        <exclude>src/test/resources/encode-records-with-incorrect-format.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>

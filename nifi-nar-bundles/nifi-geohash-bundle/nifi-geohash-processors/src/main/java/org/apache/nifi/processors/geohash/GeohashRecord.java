@@ -40,6 +40,8 @@ import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.record.path.validation.RecordPathValidator;
 
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -50,6 +52,7 @@ import org.apache.nifi.serialization.WriteResult;
 import ch.hsr.geohash.GeoHash;
 import ch.hsr.geohash.WGS84Point;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -83,6 +86,12 @@ public class GeohashRecord extends AbstractProcessor {
         BASE32, BINARY, LONG
     }
 
+    public enum RoutingStrategy {
+        SKIP_UNENRICHED,
+        SPLIT,
+        REQUIRE_ALL_ENRICHED
+    }
+
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
             .name("mode")
             .displayName("Mode")
@@ -92,15 +101,20 @@ public class GeohashRecord extends AbstractProcessor {
             .defaultValue(ProcessingMode.ENCODE.name())
             .build();
 
-    public static final PropertyDescriptor SPLIT_FOUND_NOT_FOUND = new PropertyDescriptor.Builder()
-            .name("split-found-not-found")
-            .displayName("Separate Enriched From Not Enriched")
-            .description("Separate records that have been enriched from ones that have not. Default behavior is " +
-                    "to send everything to the not found relationship if any of the records is not enriched.")
-            .allowableValues("true", "false")
-            .defaultValue("false")
+    public static final PropertyDescriptor ROUTING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("routing-strategy")
+            .displayName("Routing Strategy")
+            .description("Specifies how to route flowfiles after encoding or decoding being performed. "
+                    + "SKIP_UNENRICHED will enrich those records that can be enriched and skip the rest. "
+                    + "The SKIP_UNENRICHED strategy will route a flowfile to failure only if unable to parse the data. "
+                    + "Otherwise, it will route the enriched flowfile to success, and the original input to original. "
+                    + "SPLIT will separate the records that have been enriched from those that have not and send them to matched, while unenriched records will be sent to unmatched; "
+                    + "the original input flowfile will be sent to original. The SPLIT strategy will route a flowfile to failure only if unable to parse the data. "
+                    + "REQUIRE_ALL_ENRICHED will route a flowfile to success only if all of its records are enriched, and the original input will be sent to original. "
+                    + "The REQUIRE_ALL_ENRICHED strategy will route the original input flowfile to failure if any of its records cannot be enriched or unable to be parsed")
             .required(true)
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues(RoutingStrategy.values())
+            .defaultValue(RoutingStrategy.SKIP_UNENRICHED.name())
             .build();
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -122,8 +136,9 @@ public class GeohashRecord extends AbstractProcessor {
     public static final PropertyDescriptor LATITUDE_RECORD_PATH = new PropertyDescriptor.Builder()
             .name("latitude-record-path")
             .displayName("Latitude Record Path")
-            .description("In the ENCODE mode, this property specifies the record path to retrieve the latitude value; "
-                    + "in the DECODE mode, this property specifies the record path to put the latitude value")
+            .description("In the ENCODE mode, this property specifies the record path to retrieve the latitude values. "
+                    + "Latitude values should be in the range of [-90, 90]; invalid values will be logged at warn level. "
+                    + "In the DECODE mode, this property specifies the record path to put the latitude value")
             .required(true)
             .addValidator(new RecordPathValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -132,8 +147,9 @@ public class GeohashRecord extends AbstractProcessor {
     public static final PropertyDescriptor LONGITUDE_RECORD_PATH = new PropertyDescriptor.Builder()
             .name("longitude-record-path")
             .displayName("Longitude Record Path")
-            .description("In the ENCODE mode, this property specifies the record path to retrieve the longitude value; "
-                    + "in the DECODE mode, this property specifies the record path to put the longitude value")
+            .description("In the ENCODE mode, this property specifies the record path to retrieve the longitude values; "
+                    + "Longitude values should be in the range of [-180, 180]; invalid values will be logged at warn level. "
+                    + "In the DECODE mode, this property specifies the record path to put the longitude value")
             .required(true)
             .addValidator(new RecordPathValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -169,30 +185,42 @@ public class GeohashRecord extends AbstractProcessor {
             .dependsOn(MODE, ProcessingMode.ENCODE.name())
             .build();
 
-    public static final Relationship REL_FOUND = new Relationship.Builder()
-            .name("found")
-            .description("Flowfiles with geo-related data provided that are successfully encoded or decoded will be routed to found")
+    public static final Relationship REL_NOT_MATCHED = new Relationship.Builder()
+            .name("not matched")
+            .description("Using the SPLIT strategy, flowfiles that cannot be encoded or decoded due to the lack of lat/lon or geohashes will be routed to not matched")
             .build();
 
-    public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
-            .name("not found")
-            .description("Flowfiles without geo-related data that cannot be encoded or decoded will be routed to not found")
+    public static final Relationship REL_MATCHED = new Relationship.Builder()
+            .name("matched")
+            .description("Using the SPLIT strategy, flowfiles with lat/lon or geohashes provided that are successfully encoded or decoded will be routed to matched")
+            .build();
+
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Flowfiles that cannot be encoded or decoded will be routed to failure")
+            .build();
+
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Flowfiles that are successfully encoded or decoded will be routed to success")
             .build();
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
-            .description("The original input flowfile will be sent to this relationship regardless of whether it was enriched or not.")
+            .description("The original input flowfile will be sent to this relationship")
             .build();
 
     private static final List<PropertyDescriptor> RECORD_PATH_PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             LATITUDE_RECORD_PATH, LONGITUDE_RECORD_PATH, GEOHASH_RECORD_PATH
     ));
 
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_ORIGINAL, REL_FAILURE)));
+    private static final Set<Relationship> SPLIT_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_MATCHED, REL_NOT_MATCHED, REL_ORIGINAL, REL_FAILURE)));
+    private boolean isSplit;
+
     private final RecordPathCache cache = new RecordPathCache(100);
 
     private List<PropertyDescriptor> descriptors;
-
-    private Set<Relationship> relationships;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -200,24 +228,25 @@ public class GeohashRecord extends AbstractProcessor {
         descriptors.add(MODE);
         descriptors.add(RECORD_READER);
         descriptors.add(RECORD_WRITER);
-        descriptors.add(SPLIT_FOUND_NOT_FOUND);
+        descriptors.add(ROUTING_STRATEGY);
         descriptors.add(LATITUDE_RECORD_PATH);
         descriptors.add(LONGITUDE_RECORD_PATH);
         descriptors.add(GEOHASH_RECORD_PATH);
         descriptors.add(GEOHASH_FORMAT);
         descriptors.add(GEOHASH_LEVEL);
         descriptors = Collections.unmodifiableList(descriptors);
+    }
 
-        relationships = new HashSet<>();
-        relationships.add(REL_FOUND);
-        relationships.add(REL_NOT_FOUND);
-        relationships.add(REL_ORIGINAL);
-        relationships = Collections.unmodifiableSet(relationships);
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (descriptor.equals(ROUTING_STRATEGY)) {
+            isSplit = RoutingStrategy.SPLIT.name().equals(newValue);
+        }
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return this.relationships;
+        return isSplit ? SPLIT_RELATIONSHIPS : RELATIONSHIPS;
     }
 
     @Override
@@ -235,19 +264,26 @@ public class GeohashRecord extends AbstractProcessor {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         final boolean encode = context.getProperty(MODE).getValue().equalsIgnoreCase(ProcessingMode.ENCODE.toString());
-        final boolean splitOutput = context.getProperty(SPLIT_FOUND_NOT_FOUND).asBoolean();
+        final RoutingStrategy routingStrategy = RoutingStrategy.valueOf(context.getProperty(ROUTING_STRATEGY).getValue());
         final GeohashFormat format = GeohashFormat.valueOf(context.getProperty(GEOHASH_FORMAT).getValue());
 
         FlowFile output = session.create(input);
-        FlowFile notFound = splitOutput ? session.create(input) : null;
+        FlowFile notMatched = routingStrategy == RoutingStrategy.SPLIT ? session.create(input) : null;
+
+        int matchedCount = 0;
+        int notMatchedCount = 0;
+
+        //The overall relationship used by the REQUIRE_ALL_ENRICHED and SKIP_UNENRICHED routing strategies to transfer Flowfiles.
+        //For the SPLIT strategy, the transfer of Flowfiles does not rely on this overall relationship. Instead, each individual record will be sent to success or failure.
+        Relationship targetRelationship = routingStrategy == RoutingStrategy.REQUIRE_ALL_ENRICHED ? REL_SUCCESS : REL_FAILURE;
 
         try (final InputStream is = session.read(input);
              final RecordReader reader = readerFactory.createRecordReader(input, is, getLogger());
              final OutputStream os = session.write(output);
-             final OutputStream osNotFound = splitOutput ? session.write(notFound) : null) {
+             final OutputStream osNotFound = routingStrategy == RoutingStrategy.SPLIT ? session.write(notMatched) : null) {
 
             final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writerFactory.getSchema(input.getAttributes(), reader.getSchema()), os, output);
-            final RecordSetWriter notFoundWriter = splitOutput ? writerFactory.createWriter(getLogger(), reader.getSchema(), osNotFound, notFound) : null;
+            final RecordSetWriter notMatchedWriter = routingStrategy == RoutingStrategy.SPLIT ? writerFactory.createWriter(getLogger(), reader.getSchema(), osNotFound, notMatched) : null;
 
             Map<PropertyDescriptor, RecordPath> paths = new HashMap<>();
             for (PropertyDescriptor descriptor : RECORD_PATH_PROPERTIES) {
@@ -258,18 +294,11 @@ public class GeohashRecord extends AbstractProcessor {
 
             Record record;
 
-            //The overall relationship used to transfer Flowfiles if SPLIT_FOUND_NOT_FOUND is set to false.
-            //if SPLIT_FOUND_NOT_FOUND is set to true, the transfer of Flowfiles does not rely on this overall relationship. Instead, each individual record will be sent to success or failure.
-            Relationship targetRelationship = REL_FOUND;
-
             writer.beginRecordSet();
 
-            if (notFoundWriter != null) {
-                notFoundWriter.beginRecordSet();
+            if (notMatchedWriter != null) {
+                notMatchedWriter.beginRecordSet();
             }
-
-            int foundCount = 0;
-            int notFoundCount = 0;
 
             int level = context.getProperty(GEOHASH_LEVEL).evaluateAttributeExpressions(input).asInteger();
             final String rawLatitudePath = context.getProperty(LATITUDE_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
@@ -281,73 +310,97 @@ public class GeohashRecord extends AbstractProcessor {
 
             while ((record = reader.nextRecord()) != null) {
                 boolean updated = false;
-                if (encode) {
-                    Object encodedGeohash = getEncodedGeohash(latitudePath, longitudePath, record, format, level);
-                    updated = updateRecord(GEOHASH_RECORD_PATH, encodedGeohash, record, paths);
-                } else {
-                    WGS84Point decodedPoint = getDecodedPointFromGeohash(geohashPath, record, format);
-                    if (decodedPoint != null) {
-                        updated = updateRecord(LATITUDE_RECORD_PATH, String.valueOf(decodedPoint.getLatitude()), record, paths)
-                                && updateRecord(LONGITUDE_RECORD_PATH, String.valueOf(decodedPoint.getLongitude()), record, paths);
+                try {
+                    if (encode) {
+                        Object encodedGeohash = getEncodedGeohash(latitudePath, longitudePath, record, format, level);
+                        updated = updateRecord(GEOHASH_RECORD_PATH, encodedGeohash, record, paths);
+                    } else {
+                        WGS84Point decodedPoint = getDecodedPointFromGeohash(geohashPath, record, format);
+                        if (decodedPoint != null) {
+                            updated = updateRecord(LATITUDE_RECORD_PATH, String.valueOf(decodedPoint.getLatitude()), record, paths)
+                                    && updateRecord(LONGITUDE_RECORD_PATH, String.valueOf(decodedPoint.getLongitude()), record, paths);
+                        }
                     }
+                } catch (IllegalArgumentException e) {
+                    //lat/lon/geohash values out of range or is not valid
+                    getLogger().warn(e.getLocalizedMessage(), e);
                 }
 
-                if (!splitOutput) {
-                    if (!updated) {
-                        //If SPLIT_FOUND_NOT_FOUND is set to false(which means all or nothing) and there exists a record
-                        //that is not updated, the entire flowfile should be route to REL_NOT_FOUND
-                        targetRelationship = REL_NOT_FOUND;
+                if (routingStrategy == RoutingStrategy.REQUIRE_ALL_ENRICHED) {
+                    if (!updated) { //If the routing strategy is REQUIRE_ALL_ENRICHED and there exists a record that is not updated, the entire flowfile should be route to REL_FAILURE
+                        targetRelationship = REL_FAILURE;
                     }
                 } else {
                     if (updated) {
-                        //If SPLIT_FOUND_NOT_FOUND is set to true(which means individual record processing is allowed) and
-                        //there exists a record that is updated, this record should be route to REL_FOUND
-                        targetRelationship = REL_FOUND;
+                        //If the routing strategy is SKIP_UNENRICHED and there exists a record that is updated, the entire flowfile should be route to REL_SUCCESS
+                        //If the routing strategy is SPLIT and there exists a record that is updated, this record should be route to REL_SUCCESS
+                        targetRelationship = REL_SUCCESS;
                     }
                 }
 
-                if (!splitOutput || updated) {
+                if (routingStrategy != RoutingStrategy.SPLIT || updated) {
                     writer.write(record);
-                    foundCount++;
-                } else { //if SPLIT_FOUND_NOT_FOUND is set to true and the record is not updated
-                    notFoundWriter.write(record);
-                    notFoundCount++;
+                    matchedCount++;
+                } else { //if the routing strategy is SPLIT and the record is not updated
+                    notMatchedWriter.write(record);
+                    notMatchedCount++;
                 }
             }
 
             final WriteResult writeResult = writer.finishRecordSet();
             writer.close();
 
-            WriteResult notFoundWriterResult = null;
+            WriteResult notMatchedWriterResult = null;
 
-            if (notFoundWriter != null) {
-                notFoundWriterResult = notFoundWriter.finishRecordSet();
-                notFoundWriter.close();
+            if (notMatchedWriter != null) {
+                notMatchedWriterResult = notMatchedWriter.finishRecordSet();
+                notMatchedWriter.close();
+            }
+            if (notMatchedCount > 0) {
+                notMatched = session.putAllAttributes(notMatched, buildAttributes(notMatchedCount, writer.getMimeType(), notMatchedWriterResult));
             }
 
-            output = session.putAllAttributes(output, buildAttributes(foundCount, writer.getMimeType(), writeResult));
-            if (!splitOutput) {
-                session.transfer(output, targetRelationship);
-            } else {
-                if (notFoundCount > 0) {
-                    notFound = session.putAllAttributes(notFound, buildAttributes(notFoundCount, writer.getMimeType(), notFoundWriterResult));
-                    session.transfer(notFound, REL_NOT_FOUND);
+            output = session.putAllAttributes(output, buildAttributes(matchedCount, writer.getMimeType(), writeResult));
+        } catch (IOException | SchemaNotFoundException | MalformedRecordException e) {
+            //cannot parse incoming data
+            getLogger().error("Cannot parse the incoming data", e.getLocalizedMessage(), e);
+            session.remove(output);
+            if (notMatched != null) {
+                session.remove(notMatched);
+            }
+            session.transfer(input, REL_FAILURE);
+            return;
+        }
+
+        //Transfer Flowfiles by routing strategy
+        switch (routingStrategy) {
+            case SKIP_UNENRICHED:
+                session.transfer(output, REL_SUCCESS);
+                session.transfer(input, REL_ORIGINAL);
+                return;
+            case REQUIRE_ALL_ENRICHED:
+                if (targetRelationship.compareTo(REL_SUCCESS) == 0) {
+                    session.transfer(output, REL_SUCCESS);
+                    session.transfer(input, REL_ORIGINAL);
                 } else {
-                    session.remove(notFound);
+                    session.remove(output);
+                    session.transfer(input, REL_FAILURE);
                 }
-                if (foundCount > 0) {
-                    session.transfer(output, REL_FOUND);
+                return;
+            case SPLIT:
+                if (notMatchedCount > 0) {
+                    session.transfer(notMatched, REL_NOT_MATCHED);
+                } else {
+                    session.remove(notMatched);
+                }
+                if (matchedCount > 0) {
+                    session.transfer(output, REL_MATCHED);
                 } else {
                     session.remove(output);
                 }
-            }
-            session.transfer(input, REL_ORIGINAL);
-
-        } catch (Exception ex) {
-            getLogger().error("Failed to {} due to {}", encode ? "encode" : "decode", ex.getLocalizedMessage(), ex);
+                session.transfer(input, REL_ORIGINAL);
         }
     }
-
 
     private Object getEncodedGeohash(RecordPath latitudePath, RecordPath longitudePath, Record record, GeohashFormat format, int level) {
         RecordPathResult latitudeResult = latitudePath.evaluate(record);

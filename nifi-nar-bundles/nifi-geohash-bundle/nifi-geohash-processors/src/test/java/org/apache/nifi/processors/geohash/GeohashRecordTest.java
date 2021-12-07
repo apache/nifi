@@ -35,8 +35,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
@@ -82,66 +84,118 @@ public class GeohashRecordTest {
         runner.setProperty(GeohashRecord.GEOHASH_LEVEL, "12");
     }
 
-    private void assertTransfers(String path, int notFound, int found, int original) {
+    private void assertTransfers(String path, int failure, int success, int matched, int notMatched, int original) {
         Map<String, String> attrs = new HashMap<>();
         attrs.put("schema.name", "record");
         runner.enqueue(getClass().getResourceAsStream(path), attrs);
         runner.run();
 
-        runner.assertTransferCount(GeohashRecord.REL_NOT_FOUND, notFound);
-        runner.assertTransferCount(GeohashRecord.REL_FOUND, found);
+        runner.assertTransferCount(GeohashRecord.REL_FAILURE, failure);
+        runner.assertTransferCount(GeohashRecord.REL_SUCCESS, success);
+        runner.assertTransferCount(GeohashRecord.REL_MATCHED, matched);
+        runner.assertTransferCount(GeohashRecord.REL_NOT_MATCHED, notMatched);
         runner.assertTransferCount(GeohashRecord.REL_ORIGINAL, original);
     }
 
     @Test
-    public void testDecodeSendToFoundDefault() throws Exception {
-        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.DECODE.toString());
-        runner.setProperty(GeohashRecord.SPLIT_FOUND_NOT_FOUND, "false");
+    public void testSkipUnEnrichedEncodeSendToSuccess() throws Exception {
+        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
+        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.SKIP_UNENRICHED.toString());
         runner.assertValid();
 
-        assertTransfers("/record_decode.json", 0, 1, 1);
+        assertTransfers("/encode-records-with-illegal-arguments.json", 0, 1, 0, 0, 1);
 
-        MockFlowFile ff = runner.getFlowFilesForRelationship(GeohashRecord.REL_FOUND).get(0);
-        byte[] raw = runner.getContentAsByteArray(ff);
+        MockFlowFile outSuccess = runner.getFlowFilesForRelationship(GeohashRecord.REL_SUCCESS).get(0);
+        byte[] raw = runner.getContentAsByteArray(outSuccess);
         String content = new String(raw);
         ObjectMapper mapper = new ObjectMapper();
         List<Map<String, Object>> result = (List<Map<String, Object>>) mapper.readValue(content, List.class);
 
         assertNotNull(result);
-        assertEquals(1, result.size());
+        assertEquals(3, result.size());
 
         Map<String, Object> element = result.get(0);
-        Double latitude = (Double) element.get("latitude");
-        Double longitude = (Double) element.get("longitude");
-        assertNotNull(latitude);
-        assertNotNull(longitude);
+        String geohash = (String) element.get("geohash");
+        assertNotNull(geohash);
     }
 
     @Test
-    public void testEncodeSendToNotFoundDefault() {
+    public void testSkipUnEnrichedEncodeIllegalLatLon() {
         runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
-        runner.setProperty(GeohashRecord.SPLIT_FOUND_NOT_FOUND, "false");
+        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.SKIP_UNENRICHED.toString());
         runner.assertValid();
 
-        assertTransfers("/record_encode.json", 1, 0, 1);
+        assertTransfers("/encode-records-with-illegal-arguments.json", 0, 1, 0, 0, 1);
     }
 
     @Test
-    public void testSplit() {
+    public void testSkipUnEnrichedEncodeParseFailure() {
         runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
-        runner.setProperty(GeohashRecord.SPLIT_FOUND_NOT_FOUND, "true");
+        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.SKIP_UNENRICHED.toString());
         runner.assertValid();
 
-        assertTransfers("/record_encode.json", 1, 1, 1);
+        assertTransfers("/encode-records-with-incorrect-format.json", 1, 0, 0, 0, 0);
     }
 
     @Test
-    public void testSplitEmptyRemoved() {
+    public void testSplitEncode() throws IOException {
         runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
-        runner.setProperty(GeohashRecord.SPLIT_FOUND_NOT_FOUND, "true");
+        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.SPLIT.toString());
         runner.assertValid();
 
-        assertTransfers("/record_decode.json", 1, 0, 1);
+        assertTransfers("/encode-records-with-illegal-arguments.json", 0, 0, 1, 1, 1);
+
+        final MockFlowFile outNotMatched = runner.getFlowFilesForRelationship(GeohashRecord.REL_NOT_MATCHED).get(0);
+        final MockFlowFile outMatched = runner.getFlowFilesForRelationship(GeohashRecord.REL_MATCHED).get(0);
+
+        byte[] rawNotMatched = runner.getContentAsByteArray(outNotMatched);
+        byte[] rawMatched = runner.getContentAsByteArray(outMatched);
+        String contentNotMatched = new String(rawNotMatched);
+        String contentMatched = new String(rawMatched);
+        ObjectMapper mapper = new ObjectMapper();
+        List<Map<String, Object>> resultNotMatched = (List<Map<String, Object>>) mapper.readValue(contentNotMatched, List.class);
+        List<Map<String, Object>> resultMatched = (List<Map<String, Object>>) mapper.readValue(contentMatched, List.class);
+
+        assertNotNull(resultNotMatched);
+        assertNotNull(resultMatched);
+        assertEquals(2, resultNotMatched.size());
+        assertEquals(1, resultMatched.size());
+
+        for (Map<String, Object> elementNotMatched : resultNotMatched) {
+            String geohashNotMatched = (String) elementNotMatched.get("geohash");
+            assertNull(geohashNotMatched);
+        }
+
+        Map<String, Object> elementMatched = resultMatched.get(0);
+        String geohashMatched = (String) elementMatched.get("geohash");
+        assertNotNull(geohashMatched);
+    }
+
+    @Test
+    public void testSplitEncodeParseFailure() {
+        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
+        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.SPLIT.toString());
+        runner.assertValid();
+
+        assertTransfers("/encode-records-with-incorrect-format.json", 1, 0, 0, 0, 0);
+    }
+
+    @Test
+    public void testRequireAllEnrichedSendToSuccess() {
+        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.DECODE.toString());
+        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.REQUIRE_ALL_ENRICHED.toString());
+        runner.assertValid();
+
+        assertTransfers("/decode-record.json", 0, 1, 0, 0, 1);
+    }
+
+    @Test
+    public void testRequireAllEnrichedSendToFailure() {
+        runner.setProperty(GeohashRecord.MODE, GeohashRecord.ProcessingMode.ENCODE.toString());
+        runner.setProperty(GeohashRecord.ROUTING_STRATEGY, GeohashRecord.RoutingStrategy.REQUIRE_ALL_ENRICHED.toString());
+        runner.assertValid();
+
+        assertTransfers("/encode-records-with-illegal-arguments.json", 1, 0, 0, 0, 0);
     }
 
 }

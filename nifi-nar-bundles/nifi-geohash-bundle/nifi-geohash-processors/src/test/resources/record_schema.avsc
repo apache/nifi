@@ -7,11 +7,11 @@
   },
     {
       "name": "latitude",
-      "type": ["double", "null"]
+      "type": ["string", "double", "null"]
     },
     {
       "name": "longitude",
-      "type": ["double", "null"]
+      "type": ["string", "double", "null"]
     },
     {
       "name": "geohash",
