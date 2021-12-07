@@ -58,6 +58,10 @@ div.context-menu-provenance {
     overflow: hidden;
 }
 
+.hide-multi-line {
+    max-height: 16px;
+}
+
 .ellipsis.multiline {
     white-space: normal;
 }

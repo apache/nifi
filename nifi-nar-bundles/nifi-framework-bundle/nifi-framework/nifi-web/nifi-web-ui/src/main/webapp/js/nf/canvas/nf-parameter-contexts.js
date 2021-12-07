@@ -996,16 +996,13 @@
         var serializedValue;
 
         var value = input.val();
-        if (value !== null && !isChecked) {
-            // check if value has length
-            if (value.length === 0) {
-                value = null;
-            }
+        if (!isChecked && value === '') {
+            value = null;
         }
 
         var hasChanged = parameter.value !== value;
 
-        if (!nfCommon.isBlank(value) || parameter.sensitive === true) {
+        if (nfCommon.isDefinedAndNotNull(value)) {
             // if the value is sensitive and the user has not made a change
             if (!_.isEmpty(parameter) && parameter.sensitive === true && input.hasClass('sensitive') && parameter.isNew === false) {
                 serializedValue = parameter.previousValue;
@@ -1013,7 +1010,6 @@
             } else {
                 // value is not sensitive or it is sensitive and the user has changed it then always take the current value
                 serializedValue = value;
-
                 // if the param is sensitive and the param value has not "changed", that means it matches the mask and it should still be considered changed
                 if (!hasChanged && !_.isEmpty(parameter) && parameter.sensitive === true && parameter.isNew === false) {
                     hasChanged = true;
@@ -1022,18 +1018,8 @@
         } else {
             if (isChecked) {
                 serializedValue = '';
-            } else if (value != null) {
-                if (value.length !== 0) {
-                    // value is not sensitive or it is sensitive and the user has changed it then always take the current value
-                    serializedValue = value;
-                }
             } else {
                 serializedValue = null;
-            }
-
-            // if the param is sensitive and the param value has not "changed", that means it matches the mask and it should still be considered changed
-            if (!hasChanged && !_.isEmpty(parameter) && parameter.sensitive === true && parameter.isNew === false) {
-                hasChanged = true;
             }
         }
 
@@ -1042,6 +1028,55 @@
             hasChanged: hasChanged
         };
     };
+
+
+    //==================================================================================
+    //     if (value !== null && !isChecked) {
+    //         // check if value has length
+    //         if (value.length === 0) {
+    //             value = null;
+    //         }
+    //     }
+    //
+    //     var hasChanged = parameter.value !== value;
+    //
+    //     if (!nfCommon.isBlank(value) || parameter.sensitive === true) {
+    //         // if the value is sensitive and the user has not made a change
+    //         if (!_.isEmpty(parameter) && parameter.sensitive === true && input.hasClass('sensitive') && parameter.isNew === false) {
+    //             serializedValue = parameter.previousValue;
+    //             hasChanged = false;
+    //         } else {
+    //             // value is not sensitive or it is sensitive and the user has changed it then always take the current value
+    //             serializedValue = value;
+    //
+    //             // if the param is sensitive and the param value has not "changed", that means it matches the mask and it should still be considered changed
+    //             if (!hasChanged && !_.isEmpty(parameter) && parameter.sensitive === true && parameter.isNew === false) {
+    //                 hasChanged = true;
+    //             }
+    //         }
+    //     } else {
+    //         if (isChecked) {
+    //             serializedValue = '';
+    //         } else if (value != null) {
+    //             if (value.length !== 0) {
+    //                 // value is not sensitive or it is sensitive and the user has changed it then always take the current value
+    //                 serializedValue = value;
+    //             }
+    //         } else {
+    //             serializedValue = null;
+    //         }
+    //
+    //         // if the param is sensitive and the param value has not "changed", that means it matches the mask and it should still be considered changed
+    //         if (!hasChanged && !_.isEmpty(parameter) && parameter.sensitive === true && parameter.isNew === false) {
+    //             hasChanged = true;
+    //         }
+    //     }
+    //
+    //     return {
+    //         value: serializedValue,
+    //         hasChanged: hasChanged
+    //     };
+    // };
 
     /**
      * Update a parameter.
@@ -1860,7 +1895,7 @@
             } else if (_.isNil(value)) {
                 return '<span class="unset">No value set</span>';
             } else {
-                var valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre">' + nfCommon.escapeHtml(value) + '</div></div>';
+                var valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre hide-multi-line">' + nfCommon.escapeHtml(value) + '</div></div>';
 
                 if (nfCommon.hasLeadTrailWhitespace(value)) {
                     valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
