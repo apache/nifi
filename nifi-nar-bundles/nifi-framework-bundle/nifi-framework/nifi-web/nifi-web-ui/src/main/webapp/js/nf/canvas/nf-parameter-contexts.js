@@ -861,6 +861,9 @@
                 parameterContext: parameterContext
             });
 
+            // clean up any tooltips that may have been generated
+            nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
+
             if (_.isNil(param.id)) {
                 var matchingParameter = _.find(parameterData.getItems(), {name: parameter.name});
                 if (_.isNil(matchingParameter)) {
@@ -993,8 +996,11 @@
         var serializedValue;
 
         var value = input.val();
-        if (nfCommon.isBlank(value) && isChecked) {
-            value = null;
+        if (value !== null && !isChecked) {
+            // check if value has length
+            if (value.length === 0) {
+                value = null;
+            }
         }
 
         var hasChanged = parameter.value !== value;
@@ -1016,9 +1022,11 @@
         } else {
             if (isChecked) {
                 serializedValue = '';
-            } else if (value.length !== 0) {
-                // value is not sensitive or it is sensitive and the user has changed it then always take the current value
-                serializedValue = value;
+            } else if (value != null) {
+                if (value.length !== 0) {
+                    // value is not sensitive or it is sensitive and the user has changed it then always take the current value
+                    serializedValue = value;
+                }
             } else {
                 serializedValue = null;
             }
@@ -1068,6 +1076,9 @@
                 isInherited: originalParameter.isInherited,
                 parameterContext: originalParameter.parameterContext
             });
+
+            // clean up any tooltips that may have been generated
+            nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
 
             // update row for the parameter
             parameterData.updateItem(originalParameter.id, parameter);
@@ -1137,6 +1148,9 @@
      * @returns {*}
      */
     var updateParameterContext = function (parameterContextEntity) {
+        // clean up any tooltips that may have been generated
+        nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
+
         var parameters = marshalParameters();
         var inheritedParameterContexts = marshalInheritedParameterContexts();
 
@@ -1839,23 +1853,24 @@
         };
 
         var valueFormatter = function (row, cell, value, columnDef, dataContext) {
-            if (dataContext.sensitive === true && !_.isNil(value)) {
+            if (dataContext.sensitive === true) {
                 return '<span class="table-cell sensitive">Sensitive value set</span>';
             } else if (value === '') {
                 return '<span class="table-cell blank">Empty string set</span>';
             } else if (_.isNil(value)) {
                 return '<span class="unset">No value set</span>';
-            } else if (nfCommon.hasLeadTrailWhitespace(value)) {
-                var valueMarkup = '<div class="table-cell value"><pre class="ellipsis">' + nfCommon.escapeHtml(value) + '</pre></div>';
-                valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
+            } else {
+                var valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre">' + nfCommon.escapeHtml(value) + '</div></div>';
+
+                if (nfCommon.hasLeadTrailWhitespace(value)) {
+                    valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
+                }
 
                 // adjust the width accordingly
                 var content = $(valueMarkup);
-                content.find('.ellipsis').width(columnDef.width - 30);
+                content.find('.ellipsis-white-space-pre').width(columnDef.width - 30).ellipsis();
 
                 return $('<div />').append(content).html();
-            } else {
-                return nfCommon.escapeHtml(value);
             }
         };
 
@@ -1939,6 +1954,9 @@
 
                 // determine the desired action
                 if (target.hasClass('delete-parameter')) {
+                    // clean any tooltips that may have been added for this item
+                    nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
+
                     if (!parameter.isNew) {
                         // mark the parameter in question for removal and refresh the table
                         parameterData.updateItem(parameter.id, $.extend(parameter, {
@@ -2050,8 +2068,6 @@
                             },
                             handler: {
                                 click: function () {
-                                    // clean up any tooltips that may have been generated
-                                    nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
                                     updateParameter(parameter);
                                 }
                             }
@@ -2263,8 +2279,6 @@
                     },
                     handler: {
                         click: function () {
-                            // clean up any tooltips that may have been generated
-                            nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
                             addNewParameter();
                         }
                     }
@@ -2927,8 +2941,6 @@
                             text: '#ffffff'
                         },
                         disabled: function () {
-                            // clean up any tooltips that may have been generated
-                            nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
                             if ($('#parameter-context-name').val() !== '' && hasParameterContextChanged(currentParameterContextEntity)) {
                                 return false;
                             }
@@ -2936,8 +2948,6 @@
                         },
                         handler: {
                             click: function () {
-                                // clean up any tooltips that may have been generated
-                                nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
                                 updateParameterContext(currentParameterContextEntity);
                             }
                         }

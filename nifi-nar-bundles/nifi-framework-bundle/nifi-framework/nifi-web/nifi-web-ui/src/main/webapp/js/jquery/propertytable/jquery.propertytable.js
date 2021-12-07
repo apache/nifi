@@ -1323,7 +1323,7 @@
                         if (!resolvedAllowableValue && nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
                             valueMarkup = '<span class="table-cell blank">Incompatible Controller Service Configured</div>';
                         } else {
-                            valueMarkup = '<div class="table-cell value"><pre class="ellipsis">' + nfCommon.escapeHtml(value) + '</pre></div>';
+                            valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre">' + nfCommon.escapeHtml(value) + '</div></div>';
 
                             // add a tooltip icon for trailing and/or leading whitespace
                             if (nfCommon.hasLeadTrailWhitespace(value)) {
@@ -1342,7 +1342,7 @@
             if (dataContext.type === 'required') {
                 content.addClass('required');
             }
-            content.find('.ellipsis').width(columnDef.width - 10 - nameWidthOffset).ellipsis();
+            content.find('.ellipsis-white-space-pre').width(columnDef.width - 10 - nameWidthOffset).ellipsis();
 
             // return the appropriate markup
             return $('<div />').append(content).html();

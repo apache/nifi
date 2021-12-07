@@ -53,6 +53,11 @@ div.context-menu-provenance {
     overflow: hidden;
 }
 
+.ellipsis-white-space-pre {
+    white-space: pre;
+    overflow: hidden;
+}
+
 .ellipsis.multiline {
     white-space: normal;
 }
