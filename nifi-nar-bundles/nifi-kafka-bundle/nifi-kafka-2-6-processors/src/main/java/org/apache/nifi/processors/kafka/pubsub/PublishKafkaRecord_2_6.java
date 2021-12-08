@@ -29,20 +29,11 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.ConfigVerificationResult;
-import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.*;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.VerifiableProcessor;
+import org.apache.nifi.processor.*;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -62,16 +53,7 @@ import org.apache.nifi.serialization.record.RecordSet;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAccumulator;
 import java.util.function.Function;
@@ -124,6 +106,14 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         "Interprets the <Partition> property as Expression Language that will be evaluated against each FlowFile. This Expression will be evaluated once against the FlowFile, " +
             "so all Records in a given FlowFile will go to the same partition.");
 
+    static final AllowableValue MESSAGE_PROPERTY_KEY_RESOLVER_SELECTION = new AllowableValue("MessageValuePropertyResolver",
+            "MessageValuePropertyResolver", "The <Message Key Field> property will be interpreted as the name of a simple, " +
+            "non-nested property of the message value");
+    static final AllowableValue RECORD_PATH_KEY_RESOLVER_SELECTION = new AllowableValue("RecordPathResolver",
+            "RecordPathResolver", "The <Message Key Field> property will be interpreted as a record path of the message value.");
+    static final AllowableValue SIMPLE_VALUE_KEY_RESOLVER_SELECTION = new AllowableValue("ExpressionLanguageResolver",
+            "ExpressionLanguageResolver", "The <Message Key Field> property will be interpreted as a expression for directly " +
+            "deriving the message key value.");
 
     static final PropertyDescriptor TOPIC = new Builder()
         .name("topic")
@@ -155,9 +145,20 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
     static final PropertyDescriptor MESSAGE_KEY_FIELD = new Builder()
         .name("message-key-field")
         .displayName("Message Key Field")
-        .description("The name of a field in the Input Records that should be used as the Key for the Kafka message.")
+        .description("The value to be used for deriving the Key for the Kafka message. Interpretation depends on the selected <Message Key Resolver Class>." +
+                " The resulting key value is expected to be of type String.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
+        .required(false)
+        .build();
+
+    static final PropertyDescriptor MESSAGE_KEY_RESOLVER_STRATEGY = new Builder()
+        .name("message-key-resolver-strategy")
+        .displayName("Message Key Resolver Strategy")
+        .description("Specifies which strategy to apply for resolving the Kafka message key.")
+        .allowableValues(MESSAGE_PROPERTY_KEY_RESOLVER_SELECTION, RECORD_PATH_KEY_RESOLVER_SELECTION, SIMPLE_VALUE_KEY_RESOLVER_SELECTION)
+        .defaultValue(MESSAGE_PROPERTY_KEY_RESOLVER_SELECTION.getValue())
+        .dependsOn(MESSAGE_KEY_FIELD)
         .required(false)
         .build();
 
@@ -286,6 +287,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
 
     private volatile PublisherPool publisherPool = null;
     private final RecordPathCache recordPathCache = new RecordPathCache(25);
+    private final MessageKeyResolver recordPathKeyResolver = MessageKeyResolvers.RECORD_PATH_RESOLVER_FACTORY(recordPathCache);
 
     static {
         final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -311,6 +313,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         properties.add(KafkaProcessorUtils.TOKEN_AUTH);
         properties.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
         properties.add(MESSAGE_KEY_FIELD);
+        properties.add(MESSAGE_KEY_RESOLVER_STRATEGY);
         properties.add(MAX_REQUEST_SIZE);
         properties.add(ACK_WAIT_TIME);
         properties.add(METADATA_WAIT_TIME);
@@ -388,6 +391,17 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
                     .valid(false)
                     .explanation("The <Partition> property must be specified if using the Expression Language Partitioning class")
                     .build());
+            }
+        }
+
+        final String messageKeyField = validationContext.getProperty(MESSAGE_KEY_FIELD).getValue();
+        if(messageKeyField != null && !messageKeyField.isEmpty()) {
+            final String resolverStrategy = validationContext.getProperty(MESSAGE_KEY_RESOLVER_STRATEGY).getValue();
+            if(RECORD_PATH_KEY_RESOLVER_SELECTION.getValue().equals(resolverStrategy)) {
+                final ValidationResult result = new RecordPathValidator().validate(MESSAGE_KEY_FIELD.getDisplayName(), messageKeyField, validationContext);
+                if (result != null) {
+                    results.add(result);
+                }
             }
         }
 
@@ -480,9 +494,10 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
                     }
 
                     final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
-                    final String messageKeyField = context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile).getValue();
+                    final PropertyValue messageKeyField = context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile);
 
                     final Function<Record, Integer> partitioner = getPartitioner(context, flowFile);
+                    final MessageKeyResolver keyResolver = getMessageKeyResolver(context, flowFile);
 
                     try {
                         session.read(flowFile, new InputStreamCallback() {
@@ -493,7 +508,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
                                     final RecordSet recordSet = reader.createRecordSet();
 
                                     final RecordSchema schema = writerFactory.getSchema(flowFile.getAttributes(), recordSet.getSchema());
-                                    lease.publish(flowFile, recordSet, writerFactory, schema, messageKeyField, topic, partitioner);
+                                    lease.publish(flowFile, recordSet, writerFactory, schema, messageKeyField, topic, partitioner, keyResolver);
                                 } catch (final SchemaNotFoundException | MalformedRecordException e) {
                                     throw new ProcessException(e);
                                 }
@@ -556,6 +571,28 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         }
 
         return null;
+    }
+
+    private MessageKeyResolver getMessageKeyResolver(final ProcessContext context, final FlowFile flowFile) {
+        final String msgKeyField = context.getProperty(MESSAGE_KEY_FIELD).getValue();
+        if(msgKeyField != null) {
+            final String resolverClass = context.getProperty(MESSAGE_KEY_RESOLVER_STRATEGY).getValue();
+            if(MESSAGE_PROPERTY_KEY_RESOLVER_SELECTION.getValue().equals(resolverClass)) {
+                return MessageKeyResolvers.MESSAGE_VALUE_PROPERTY_RESOLVER;
+            } else if(RECORD_PATH_KEY_RESOLVER_SELECTION.getValue().equals(resolverClass)) {
+                return recordPathKeyResolver;
+            } else if(SIMPLE_VALUE_KEY_RESOLVER_SELECTION.getValue().equals(resolverClass)) {
+                return MessageKeyResolvers.SIMPLE_VALUE_RESOLVER;
+            }
+            else {
+                getLogger().warn("No message key resolver specified, no message key will be written!");
+            }
+        } else {
+            getLogger().debug("MessageKeyResolver configuration skipped since 'Message Key Field' is not set");
+        }
+
+        return null;
+
     }
 
     private Integer evaluateRecordPath(final RecordPath recordPath, final Record record) {

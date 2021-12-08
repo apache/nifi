@@ -21,6 +21,7 @@ import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.ProducerFencedException;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.kafka.pubsub.util.MockRecordParser;
@@ -35,6 +36,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockPropertyValue;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -262,19 +264,24 @@ public class TestPublisherLease {
         final RecordSchema schema = reader.getSchema();
 
         final String topic = "unit-test";
-        final String keyField = "person_id";
+        final PropertyValue keyField = new MockPropertyValue("person_id");
 
         final RecordSetWriterFactory writerFactory = Mockito.mock(RecordSetWriterFactory.class);
         final RecordSetWriter writer = Mockito.mock(RecordSetWriter.class);
+        final MessageKeyResolver keyResolver = Mockito.mock(MessageKeyResolver.class);
+
         Mockito.when(writer.write(Mockito.any(Record.class))).thenReturn(WriteResult.of(1, Collections.emptyMap()));
 
         Mockito.when(writerFactory.createWriter(eq(logger), eq(schema), any(), eq(flowFile))).thenReturn(writer);
 
-        lease.publish(flowFile, recordSet, writerFactory, schema, keyField, topic, null);
+        Mockito.when(keyResolver.apply(Mockito.any(FlowFile.class), Mockito.any(Record.class), Mockito.any(PropertyValue.class))).thenReturn("WALTER");
+
+        lease.publish(flowFile, recordSet, writerFactory, schema, keyField, topic, null, keyResolver);
 
         verify(writerFactory, times(2)).createWriter(eq(logger), eq(schema), any(), eq(flowFile));
         verify(writer, times(2)).write(any(Record.class));
         verify(producer, times(2)).send(any(), any());
+        verify(keyResolver, times(2)).apply(any(), any(), any());
         assertEquals(0, lease.getPoisonCount());
     }
 

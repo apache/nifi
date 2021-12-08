@@ -29,6 +29,7 @@ import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.header.Headers;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -172,7 +173,7 @@ public class PublisherLease implements Closeable {
     }
 
     void publish(final FlowFile flowFile, final RecordSet recordSet, final RecordSetWriterFactory writerFactory, final RecordSchema schema,
-                 final String messageKeyField, final String topic, final Function<Record, Integer> partitioner) throws IOException {
+                 final PropertyValue messageKeyField, final String topic, final Function<Record, Integer> partitioner, final MessageKeyResolver keyResolver) throws IOException {
         if (tracker == null) {
             tracker = new InFlightMessageTracker(logger);
         }
@@ -195,7 +196,7 @@ public class PublisherLease implements Closeable {
                 }
 
                 final byte[] messageContent = baos.toByteArray();
-                final String key = messageKeyField == null ? null : record.getAsString(messageKeyField);
+                final String key = resolveMessageKeyIdNeeded(keyResolver, flowFile, record, messageKeyField);
                 final byte[] messageKey = (key == null) ? null : key.getBytes(StandardCharsets.UTF_8);
 
                 final Integer partition = partitioner == null ? null : partitioner.apply(record);
@@ -219,6 +220,20 @@ public class PublisherLease implements Closeable {
             poison();
             throw e;
         }
+    }
+
+    private String resolveMessageKeyIdNeeded(MessageKeyResolver keyResolver, FlowFile flowFile, Record record, PropertyValue messageKeyField) {
+        logger.warn("**** DEBUG ****: messageKeyField={}, resolver={}", messageKeyField, keyResolver);
+        if(keyResolver != null) {
+            final String key = keyResolver.apply(flowFile, record, messageKeyField);
+            if(key != null) {
+                logger.warn("Message key resolved: key={}, messageKeyField={}", key, messageKeyField);
+                return key;
+            } else {
+                logger.warn("Message key resolver configured, but no key resolved! messageKeyField={}, record={}", messageKeyField, record);
+            }
+        }
+        return null;
     }
 
     private void addHeaders(final FlowFile flowFile, final Map<String, String> additionalAttributes, final ProducerRecord<?, ?> record) {

@@ -18,9 +18,11 @@
 package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.common.errors.ProducerFencedException;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.kafka.pubsub.util.MockRecordParser;
+import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -34,18 +36,13 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.AdditionalMatchers;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -55,6 +52,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -74,7 +72,7 @@ public class TestPublishKafkaRecord_2_6 {
         mockPool = mock(PublisherPool.class);
         mockLease = mock(PublisherLease.class);
         Mockito.doCallRealMethod().when(mockLease).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-            any(RecordSchema.class), any(String.class), any(String.class), nullable(Function.class));
+            any(RecordSchema.class), nullable(PropertyValue.class), any(String.class), nullable(Function.class), nullable(MessageKeyResolver.class));
 
         when(mockPool.obtainPublisher()).thenReturn(mockLease);
 
@@ -114,7 +112,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), nullable(PropertyValue.class), eq(TOPIC_NAME), nullable(Function.class), nullable(MessageKeyResolver.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();
@@ -133,7 +131,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 3);
 
         verify(mockLease, times(3)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), nullable(PropertyValue.class), eq(TOPIC_NAME), nullable(Function.class), nullable(MessageKeyResolver.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();
@@ -149,7 +147,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_FAILURE, 1);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), nullable(PropertyValue.class), eq(TOPIC_NAME), nullable(Function.class), nullable(MessageKeyResolver.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
     }
@@ -166,7 +164,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_FAILURE, 0);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-            AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+            AdditionalMatchers.or(any(RecordSchema.class), isNull()), nullable(PropertyValue.class), eq(TOPIC_NAME), nullable(Function.class), nullable(MessageKeyResolver.class));
         verify(mockLease, times(1)).close();
 
         assertEquals(1, runner.getQueueSize().getObjectCount());
@@ -224,7 +222,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_FAILURE, 3);
 
         verify(mockLease, times(3)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), nullable(PropertyValue.class), eq(TOPIC_NAME), nullable(Function.class), nullable(MessageKeyResolver.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
     }
@@ -243,7 +241,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_FAILURE, 0);
 
         verify(mockLease, times(3)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-            AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+            AdditionalMatchers.or(any(RecordSchema.class), isNull()), nullable(PropertyValue.class), eq(TOPIC_NAME), nullable(Function.class), nullable(MessageKeyResolver.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
 
@@ -268,7 +266,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 2);
 
         verify(mockLease, times(2)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), nullable(PropertyValue.class), eq(TOPIC_NAME), nullable(Function.class), nullable(MessageKeyResolver.class));
         verify(mockLease, times(0)).publish(
             any(FlowFile.class), any(Map.class), eq(null), any(byte[].class), eq(TOPIC_NAME), any(InFlightMessageTracker.class), any(Integer.class));
         verify(mockLease, times(1)).complete();
@@ -300,7 +298,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), nullable(PropertyValue.class), eq(TOPIC_NAME), nullable(Function.class), nullable(MessageKeyResolver.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();
@@ -346,13 +344,13 @@ public class TestPublishKafkaRecord_2_6 {
                 return null;
             }
         }).when(mockLease).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-            nullable(RecordSchema.class), nullable(String.class), any(String.class), nullable(Function.class));
+            nullable(RecordSchema.class), nullable(PropertyValue.class), any(String.class), nullable(Function.class), nullable(MessageKeyResolver.class));
 
         runner.run();
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-            nullable(RecordSchema.class), nullable(String.class), any(String.class), nullable(Function.class));
+            nullable(RecordSchema.class), nullable(PropertyValue.class), any(String.class), nullable(Function.class), nullable(MessageKeyResolver.class));
 
         assertEquals(2, partitionsByAge.size()); // 2 ages
 
@@ -364,6 +362,98 @@ public class TestPublishKafkaRecord_2_6 {
         assertEquals(partitionsForAge48.get(0), partitionsForAge48.get(1));
     }
 
+    @Test
+    public void testMessagePropertyKeyResolversWithAttribute() throws IOException {
+        runner.setProperty(PublishKafkaRecord_2_6.MESSAGE_KEY_FIELD, "${my.key}");
+        runner.setProperty(PublishKafkaRecord_2_6.MESSAGE_KEY_RESOLVER_STRATEGY, PublishKafkaRecord_2_6.MESSAGE_PROPERTY_KEY_RESOLVER_SELECTION);
+
+        final String myAttributeValue = "abc";
+        final HashMap<String, String> attributes = new HashMap<>();
+        attributes.put("my.key", myAttributeValue);
+
+        doRunWithAttributes(attributes);
+
+        verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
+            nullable(RecordSchema.class), argThat(new PropertyValueMatcher(myAttributeValue)), any(String.class), nullable(Function.class), eq(MessageKeyResolvers.MESSAGE_VALUE_PROPERTY_RESOLVER));
+    }
+
+    @Test
+    public void testSimpleValueKeyResolversWithAttribute() throws IOException {
+        runner.setProperty(PublishKafkaRecord_2_6.MESSAGE_KEY_FIELD, "${my.key}");
+        runner.setProperty(PublishKafkaRecord_2_6.MESSAGE_KEY_RESOLVER_STRATEGY, PublishKafkaRecord_2_6.SIMPLE_VALUE_KEY_RESOLVER_SELECTION);
+
+        final String myAttributeValue = "abc";
+        final HashMap<String, String> attributes = new HashMap<>();
+        attributes.put("my.key", myAttributeValue);
+
+        doRunWithAttributes(attributes);
+
+        verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
+            nullable(RecordSchema.class), argThat(new PropertyValueMatcher(myAttributeValue)), any(String.class), nullable(Function.class), eq(MessageKeyResolvers.SIMPLE_VALUE_RESOLVER));
+    }
+
+    @Test
+    public void testSimpleValueKeyResolversWithExpressionLanguage() throws IOException {
+        runner.setProperty(PublishKafkaRecord_2_6.MESSAGE_KEY_FIELD, "${my.key:toUpper()}");
+        runner.setProperty(PublishKafkaRecord_2_6.MESSAGE_KEY_RESOLVER_STRATEGY, PublishKafkaRecord_2_6.SIMPLE_VALUE_KEY_RESOLVER_SELECTION);
+
+        final HashMap<String, String> attributes = new HashMap<>();
+        attributes.put("my.key", "abc");
+
+        doRunWithAttributes(attributes);
+
+        verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
+            nullable(RecordSchema.class), argThat(new PropertyValueMatcher("ABC")), any(String.class), nullable(Function.class), eq(MessageKeyResolvers.SIMPLE_VALUE_RESOLVER));
+    }
+
+    @Test
+    public void testRecordPathResolverWithExpresionLanguage() throws IOException {
+        runner.setProperty(PublishKafkaRecord_2_6.MESSAGE_KEY_FIELD, "/${my.key}");
+        runner.setProperty(PublishKafkaRecord_2_6.MESSAGE_KEY_RESOLVER_STRATEGY, PublishKafkaRecord_2_6.RECORD_PATH_KEY_RESOLVER_SELECTION);
+
+        final String myAttributeValue = "abc";
+        final HashMap<String, String> attributes = new HashMap<>();
+        attributes.put("my.key", myAttributeValue);
+
+        doRunWithAttributes(attributes);
+
+        final RecordPathCache cache = new RecordPathCache(25);
+        // no good way found to test that exactly the one instance of the processor's RecordPathResolver is used ...
+        verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
+            nullable(RecordSchema.class), argThat(new PropertyValueMatcher("/abc")), any(String.class), nullable(Function.class), any(MessageKeyResolver.class));
+    }
+
+    private void doRunWithAttributes(HashMap<String, String> attributes) {
+        final List<FlowFile> flowFiles = new ArrayList<>();
+        flowFiles.add(runner.enqueue("John Doe, 48", attributes));
+
+        final Map<FlowFile, Integer> msgCounts = new HashMap<>();
+        msgCounts.put(flowFiles.get(0), 0);
+
+        final PublishResult result = createPublishResult(msgCounts, new HashSet<>(flowFiles), Collections.emptyMap());
+
+        mockLease = mock(PublisherLease.class);
+
+        when(mockLease.complete()).thenReturn(result);
+        when(mockPool.obtainPublisher()).thenReturn(mockLease);
+        runner.setValidateExpressionUsage(false);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
+    }
+
+    private static class PropertyValueMatcher implements ArgumentMatcher<PropertyValue> {
+
+        private final String value;
+
+        public PropertyValueMatcher(String value) {
+            this.value = value;
+        }
+
+        @Override
+        public boolean matches(PropertyValue right) {
+            return Objects.equals(right.getValue(), value);
+        }
+    }
 
     @Test
     public void testSomeSuccessSomeFailure() throws IOException {
@@ -390,7 +480,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertTransferCount(PublishKafkaRecord_2_6.REL_FAILURE, 4);
 
         verify(mockLease, times(4)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), nullable(PropertyValue.class), eq(TOPIC_NAME), nullable(Function.class), nullable(MessageKeyResolver.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
 
