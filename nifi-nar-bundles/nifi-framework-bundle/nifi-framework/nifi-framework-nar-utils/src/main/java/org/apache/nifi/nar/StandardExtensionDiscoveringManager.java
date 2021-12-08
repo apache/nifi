@@ -88,7 +88,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     private final Map<String, ConfigurableComponent> tempComponentLookup = new HashMap<>();
 
     private final Map<String, InstanceClassLoader> instanceClassloaderLookup = new ConcurrentHashMap<>();
-    private final ConcurrentMap<BaseClassLoaderKey, ClassLoader> sharedBaseClassloaders = new ConcurrentHashMap<>();
+    private final ConcurrentMap<BaseClassLoaderKey, SharedInstanceClassLoader> sharedBaseClassloaders = new ConcurrentHashMap<>();
 
     public StandardExtensionDiscoveringManager() {
         this(Collections.emptyList());
@@ -407,8 +407,8 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                 if (requiresInstanceClassLoading.cloneAncestorResources()) {
                     // Check to see if there's already a shared ClassLoader that can be used as the parent/base classloader
                     if (baseClassLoaderKey != null) {
-                        final ClassLoader sharedBaseClassloader = sharedBaseClassloaders.get(baseClassLoaderKey);
-                        if (sharedBaseClassloader != null) {
+                        final SharedInstanceClassLoader sharedBaseClassloader = sharedBaseClassloaders.get(baseClassLoaderKey);
+                        if (sharedBaseClassloader != null && sharedBaseClassloader.incrementReferenceCount()) {
                             resolvedSharedClassLoader = true;
                             ancestorClassLoader = sharedBaseClassloader;
                             logger.debug("Creating InstanceClassLoader for type {} using shared Base ClassLoader {} for component {}", type, sharedBaseClassloader, instanceIdentifier);
@@ -444,6 +444,8 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                     // Created a shared class loader that is everything we need except for the additional URLs, as the additional URLs are instance-specific.
                     final SharedInstanceClassLoader sharedClassLoader = new SharedInstanceClassLoader(instanceIdentifier, classType, instanceUrls,
                         Collections.emptySet(), narNativeLibDirs, ancestorClassLoader);
+                    sharedClassLoader.incrementReferenceCount();
+
                     instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, Collections.emptySet(), additionalUrls, Collections.emptySet(), sharedClassLoader);
 
                     logger.debug("Creating InstanceClassLoader for type {} using newly created shared Base ClassLoader {} for component {}", type, sharedClassLoader, instanceIdentifier);
