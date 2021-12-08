@@ -266,6 +266,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
 
     private static ClassLoader createClassLoader(final String implementationClassName, final String instanceId, final Bundle bundle, final ExtensionManager extensionManager)
                 throws ClassNotFoundException {
+
         final ClassLoader bundleClassLoader = bundle.getClassLoader();
         final Class<?> rawClass = Class.forName(implementationClassName, true, bundleClassLoader);
 

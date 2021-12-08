@@ -34,7 +34,7 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -64,18 +64,31 @@ public class WriteFlowFileCountToFile extends AbstractProcessor implements Class
         .defaultValue("counts.txt")
         .build();
 
+    static final PropertyDescriptor CLASS_TO_CREATE = new Builder()
+        .name("Class to Create")
+        .displayName("Class to Create")
+        .description("If specified, each iteration of #onTrigger will create an instance of this class in order to test ClassLoader behavior. If unable to create the object, the FlowFile will be " +
+            "routed to failure")
+        .required(false)
+        .addValidator(NON_EMPTY_VALIDATOR)
+        .build();
+
     private final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
+        .build();
+    private final Relationship REL_FAILURE = new Relationship.Builder()
+        .name("failure")
+        .autoTerminateDefault(true)
         .build();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Arrays.asList(ISOLATION_KEY, FILE_TO_WRITE);
+        return Arrays.asList(ISOLATION_KEY, FILE_TO_WRITE, CLASS_TO_CREATE);
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return Collections.singleton(REL_SUCCESS);
+        return new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE));
     }
 
     @Override
@@ -88,6 +101,17 @@ public class WriteFlowFileCountToFile extends AbstractProcessor implements Class
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
+        }
+
+        final String className = context.getProperty(CLASS_TO_CREATE).getValue();
+        if (className != null) {
+            try {
+                Class.forName(className, true, Thread.currentThread().getContextClassLoader());
+            } catch (final ClassNotFoundException e) {
+                getLogger().error("Failed to load class {} for {}; routing to failure", className, flowFile);
+                session.transfer(flowFile, REL_FAILURE);
+                return;
+            }
         }
 
         final long counterValue = counter.incrementAndGet();

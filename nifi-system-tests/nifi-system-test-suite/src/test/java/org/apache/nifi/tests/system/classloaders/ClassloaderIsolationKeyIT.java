@@ -19,6 +19,7 @@ package org.apache.nifi.tests.system.classloaders;
 
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.Test;
 
@@ -28,7 +29,61 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Collections;
 
+import static org.junit.Assert.assertEquals;
+
 public class ClassloaderIsolationKeyIT extends NiFiSystemIT {
+
+    /**
+     * After creating 1+ processors with the same ClassLoader Isolation Key, and then removing them,
+     * the SharedInstanceClassLoader will be closed. If we then create a new processor with the same
+     * ClassLoader Isolation Key, we need to ensure that we are then able to load classes from the ClassLoader
+     * that were not loaded previously.
+     */
+    @Test
+    public void testRemoveAllInstancesThenCreateForSameIsolationKeyAllowsClassLoading() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        final ProcessorEntity counter = getClientUtil().createProcessor("WriteFlowFileCountToFile");
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+
+        getClientUtil().updateProcessorProperties(counter, Collections.singletonMap("File to Write", "count1.txt"));
+        getClientUtil().updateProcessorProperties(counter, Collections.singletonMap("Isolation Key", "abc123"));
+
+        getClientUtil().createConnection(generate, counter, "success");
+        final ConnectionEntity counterToTerminate = getClientUtil().createConnection(counter, terminate, "success");
+
+        getClientUtil().waitForValidProcessor(counter.getId());
+
+        getClientUtil().startProcessor(generate);
+        getClientUtil().startProcessor(counter);
+
+        waitForQueueCount(counterToTerminate.getId(), 1);
+
+        // Stop components, purge FlowFiles, delete all components
+        destroyFlow();
+
+        final ProcessorEntity newGenerate = getClientUtil().createProcessor("GenerateFlowFile");
+        final ProcessorEntity newCounter = getClientUtil().createProcessor("WriteFlowFileCountToFile");
+        final ProcessorEntity terminateSuccess = getClientUtil().createProcessor("TerminateFlowFile");
+        final ProcessorEntity terminateFailure = getClientUtil().createProcessor("TerminateFlowFile");
+
+        final ConnectionEntity generateToCounter = getClientUtil().createConnection(newGenerate, newCounter, "success");
+        final ConnectionEntity counterSuccess = getClientUtil().createConnection(newCounter, terminateSuccess, "success");
+        final ConnectionEntity counterFailure = getClientUtil().createConnection(newCounter, terminateFailure, "failure");
+
+        getClientUtil().updateProcessorProperties(newCounter, Collections.singletonMap("Class to Create", "org.apache.nifi.processors.tests.system.CountEvents"));
+        getClientUtil().updateProcessorProperties(newCounter, Collections.singletonMap("File to Write", "count1.txt"));
+        getClientUtil().updateProcessorProperties(newCounter, Collections.singletonMap("Isolation Key", "abc123"));
+
+        getClientUtil().waitForValidProcessor(newCounter.getId());
+
+        getClientUtil().startProcessor(newGenerate);
+        getClientUtil().startProcessor(newCounter);
+
+        waitForQueueCount(generateToCounter.getId(), 0);
+        assertEquals(0, getConnectionQueueSize(counterFailure.getId()));
+        assertEquals(1, getConnectionQueueSize(counterSuccess.getId()));
+    }
+
 
     @Test
     public void testClassloaderChanges() throws NiFiClientException, IOException, InterruptedException {

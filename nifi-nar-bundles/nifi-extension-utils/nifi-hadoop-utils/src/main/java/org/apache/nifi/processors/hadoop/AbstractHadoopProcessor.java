@@ -205,7 +205,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
 
     @Override
     public String getClassloaderIsolationKey(final PropertyContext context) {
-        final String explicitKerberosPrincipal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
+        final String explicitKerberosPrincipal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
         if (explicitKerberosPrincipal != null) {
             return explicitKerberosPrincipal;
         }

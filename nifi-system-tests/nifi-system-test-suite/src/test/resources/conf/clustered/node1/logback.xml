@@ -57,6 +57,17 @@
         </encoder>
     </appender>
 
+    <appender name="REQUEST_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-request.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-request_%d.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
     <appender name="BOOTSTRAP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-bootstrap.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -82,21 +93,22 @@
     </appender>
 
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
+
     <logger name="org.apache.nifi" level="INFO"/>
     <logger name="org.apache.nifi.processors" level="INFO"/>
     <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO"/>
     <logger name="org.apache.nifi.processors.standard.LogMessage" level="INFO"/>
     <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="WARN" />
-    <logger name="org.apache.nifi.connectable.LocalPort" level="DEBUG"/>
-    <logger name="org.apache.nifi.web.util.ClusterReplicationComponentLifecycle" level="DEBUG" />
 
 
     <logger name="org.apache.zookeeper.ClientCnxn" level="ERROR" />
     <logger name="org.apache.zookeeper.server.NIOServerCnxn" level="ERROR" />
     <logger name="org.apache.zookeeper.server.NIOServerCnxnFactory" level="ERROR" />
+    <logger name="org.apache.zookeeper.server.NettyServerCnxnFactory" level="ERROR" />
     <logger name="org.apache.zookeeper.server.quorum" level="ERROR" />
     <logger name="org.apache.zookeeper.ZooKeeper" level="ERROR" />
     <logger name="org.apache.zookeeper.server.PrepRequestProcessor" level="ERROR" />
+    <logger name="org.apache.nifi.controller.reporting.LogComponentStatuses" level="ERROR" />
 
     <logger name="org.apache.calcite.runtime.CalciteException" level="OFF" />
 
@@ -128,6 +140,17 @@
     <!-- Suppress non-error messages from SMBJ which was emitting large amounts of INFO logs by default -->
     <logger name="com.hierynomus.smbj" level="WARN" />
 
+    <!-- Suppress non-error messages from AWS KCL which was emitting large amounts of INFO logs by default -->
+    <logger name="com.amazonaws.services.kinesis" level="WARN" />
+
+    <!-- Suppress non-error messages from Apache Atlas which was emitting large amounts of INFO logs by default -->
+    <logger name="org.apache.atlas" level="WARN"/>
+
+    <!-- These log messages would normally go to the USER_FILE log, but they belong in the APP_FILE -->
+    <logger name="org.apache.nifi.web.security.requests" level="INFO" additivity="false">
+        <appender-ref ref="APP_FILE"/>
+    </logger>
+
     <!--
         Logger for capturing user events. We do not want to propagate these
         log events to the root logger. These messages are only sent to the
@@ -148,10 +171,17 @@
     <logger name="org.apache.nifi.web.api.AccessResource" level="INFO" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
-    <logger name="org.apache.nifi.web.api" level="DEBUG" additivity="false">
+    <logger name="org.springframework.security.saml.log" level="WARN" additivity="false">
+        <appender-ref ref="USER_FILE"/>
+    </logger>
+    <logger name="org.opensaml" level="WARN" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
 
+    <!-- Web Server Request Log -->
+    <logger name="org.apache.nifi.web.server.RequestLog" level="INFO" additivity="false">
+        <appender-ref ref="REQUEST_FILE"/>
+    </logger>
 
     <!--
         Logger for capturing Bootstrap logs and NiFi's standard error and standard out.
@@ -174,9 +204,8 @@
         <appender-ref ref="BOOTSTRAP_FILE" />
     </logger>
 
-
     <root level="INFO">
-        <appender-ref ref="APP_FILE"/>
+        <appender-ref ref="APP_FILE" />
     </root>
 
 </configuration>

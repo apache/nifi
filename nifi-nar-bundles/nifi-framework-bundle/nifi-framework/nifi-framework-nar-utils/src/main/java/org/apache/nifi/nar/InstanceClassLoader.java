@@ -69,10 +69,6 @@ public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
         this.instanceType = type;
         this.instanceUrls = instanceUrls == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(instanceUrls));
         this.additionalResourceUrls = additionalResourceUrls == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(additionalResourceUrls));
-
-        if (parent instanceof SharedInstanceClassLoader) {
-            ((SharedInstanceClassLoader) parent).incrementReferenceCount();
-        }
     }
 
     @Override
