@@ -101,6 +101,16 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .defaultValue("3 sec")
             .build();
 
+    public static final PropertyDescriptor CONNECTION_ATTEMPT_COUNT = new PropertyDescriptor.Builder()
+            .name("connection-attempt-timeout")
+            .displayName("Connection Attempt Count")
+            .description("The number of times to try and establish a connection.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("3")
+            .build();
+
     public static final PropertyDescriptor SESSION_MAINTENANCE_INTERVAL = new PropertyDescriptor.Builder()
             .name("session-maintenance-interval")
             .displayName("Session Maintenance Interval")
@@ -183,6 +193,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         props.add(WS_URI);
         props.add(SSL_CONTEXT);
         props.add(CONNECTION_TIMEOUT);
+        props.add(CONNECTION_ATTEMPT_COUNT);
         props.add(SESSION_MAINTENANCE_INTERVAL);
         props.add(USER_NAME);
         props.add(USER_PASSWORD);
@@ -347,14 +358,23 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             if (!StringUtils.isEmpty(authorizationHeader)) {
                 request.setHeader(HttpHeader.AUTHORIZATION.asString(), authorizationHeader);
             }
-            final Future<Session> connect = client.connect(listener, webSocketUri, request);
-            getLogger().info("Connecting to : {}", webSocketUri);
 
-            final Session session;
-            try {
-                session = connect.get(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-                throw new IOException("Failed to connect " + webSocketUri + " due to: " + e, e);
+            final int connectCount = configurationContext.getProperty(CONNECTION_ATTEMPT_COUNT).evaluateAttributeExpressions().asInteger();
+
+            Session session = null;
+            for (int i = 0; i < connectCount; i++) {
+                final Future<Session> connect = createWebsocketSession(listener, request);
+                getLogger().info("Connecting to : {}", webSocketUri);
+                try {
+                    session = connect.get(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
+                    break;
+                } catch (Exception e) {
+                    if (i == connectCount - 1) {
+                        throw new IOException("Failed to connect " + webSocketUri + " due to: " + e, e);
+                    } else {
+                        getLogger().warn("Failed to connect to {}, reconnection attempt {}", webSocketUri, i + 1);
+                    }
+                }
             }
             getLogger().info("Connected, session={}", session);
             activeSessions.put(clientId, new SessionInfo(listener.getSessionId(), flowFileAttributes));
@@ -363,6 +383,10 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             connectionLock.unlock();
         }
 
+    }
+
+    Future<Session> createWebsocketSession(RoutingWebSocketListener listener, ClientUpgradeRequest request) throws IOException {
+        return client.connect(listener, webSocketUri, request);
     }
 
     void maintainSessions() throws Exception {
