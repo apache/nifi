@@ -202,11 +202,8 @@ public final class StandardFlowConfigurationDAO implements FlowConfigurationDAO 
     private void saveFlow(final FlowController controller, final FlowSerializer<?> serializer, final File file, final boolean archive) throws IOException {
         final File tempFile = new File(file.getParentFile(), file.getName() + ".temp.gz");
 
-        try (final OutputStream fileOut = new FileOutputStream(tempFile);
-             final OutputStream outStream = new GZIPOutputStream(fileOut)) {
-
-            controller.serialize(serializer, outStream);
-
+        try {
+            serializeControllerStateToTempFile(controller, serializer, tempFile);
             Files.deleteIfExists(file.toPath());
             FileUtils.renameFile(tempFile, file, 5, true);
         } catch (final FlowSerializationException fse) {
@@ -224,6 +221,14 @@ public final class StandardFlowConfigurationDAO implements FlowConfigurationDAO 
                     LOG.error("", ex);
                 }
             }
+        }
+    }
+
+    private void serializeControllerStateToTempFile(FlowController controller, FlowSerializer<?> serializer, File tempFile) throws IOException {
+        try (final OutputStream fileOut = new FileOutputStream(tempFile);
+             final OutputStream outStream = new GZIPOutputStream(fileOut)) {
+
+            controller.serialize(serializer, outStream);
         }
     }
 }
