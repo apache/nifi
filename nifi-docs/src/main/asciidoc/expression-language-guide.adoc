@@ -1525,6 +1525,7 @@ between 1 and 12, indicating the number of characters in a standard BASE32 geoha
 a value of "0.083", and we want to encode the coordinates of this point to the standard geohash format with
 the highest precision, we can use the Expression `${geohashStringEncode(${lat}, ${lon}, 12)}`, which will return "sp2j1zs7y01r".
 
+This function returns null if either latitude or longitude is empty and generates an exception bulletin if the latitude or longitude provided is invalid.
 
 
 [.function]
@@ -1549,7 +1550,7 @@ between 1 and 12, indicating the number of characters in a standard BASE32 geoha
 a value of "0.083", and we want to encode the coordinates of this point to a 64-bit geohash integer of level 12,
 we can use the Expression `${geohashLongEncode(${lat}, ${lon}, 12)}`, which will return -4231957587308838032L.
 
-
+This function returns null if either latitude or longitude is empty and generates an exception bulletin if the latitude or longitude provided is invalid.
 
 [.function]
 === geohashDecodeLatitude

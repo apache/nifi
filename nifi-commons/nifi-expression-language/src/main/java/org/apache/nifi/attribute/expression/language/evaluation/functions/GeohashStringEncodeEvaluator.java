@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
+import org.apache.commons.lang3.EnumUtils;
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
@@ -70,6 +71,9 @@ public class GeohashStringEncodeEvaluator extends StringEvaluator {
         //Optional argument. If not specified, defaults to BASE_32_STRING.
         final GeohashStringFormat geohashStringFormatValue;
         if (format != null) {
+            if(!EnumUtils.isValidEnum(GeohashStringFormat.class, format.evaluate(evaluationContext).getValue())) {
+                throw new AttributeExpressionLanguageException("Format values must be either 'BASE32' or 'BINARY'");
+            }
             geohashStringFormatValue = GeohashStringFormat.valueOf(format.evaluate(evaluationContext).getValue());
         } else {
             geohashStringFormatValue = GeohashStringFormat.BASE32;
