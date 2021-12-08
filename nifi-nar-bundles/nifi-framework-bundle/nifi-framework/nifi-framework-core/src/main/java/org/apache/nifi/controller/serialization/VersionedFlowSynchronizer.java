@@ -237,6 +237,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final Set<String> missingComponentIds = proposedFlow.getMissingComponents();
         final VersionedDataflow dataflow = proposedFlow.getVersionedDataflow();
 
+        if (dataflow.getReportingTasks() == null) {
+            dataflow.setReportingTasks(new ArrayList<>());
+        }
         for (final VersionedReportingTask reportingTask : dataflow.getReportingTasks()) {
             if (missingComponentIds.contains(reportingTask.getInstanceIdentifier())) {
                 continue;
@@ -248,6 +251,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
+        if (dataflow.getParameterProviders() == null) {
+            dataflow.setParameterProviders(new ArrayList<>());
+        }
         for (final VersionedParameterProvider parameterProvider : dataflow.getParameterProviders()) {
             if (missingComponentIds.contains(parameterProvider.getInstanceIdentifier())) {
                 continue;
@@ -259,6 +265,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
+        if (dataflow.getControllerServices() == null) {
+            dataflow.setControllerServices(new ArrayList<>());
+        }
         for (final VersionedControllerService service : dataflow.getControllerServices()) {
             if (missingComponentIds.contains(service.getInstanceIdentifier())) {
                 continue;
