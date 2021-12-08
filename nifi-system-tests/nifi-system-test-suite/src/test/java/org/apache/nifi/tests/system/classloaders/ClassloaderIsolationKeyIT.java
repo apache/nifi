@@ -45,7 +45,6 @@ public class ClassloaderIsolationKeyIT extends NiFiSystemIT {
         final ProcessorEntity counter = getClientUtil().createProcessor("WriteFlowFileCountToFile");
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
 
-//        getClientUtil().updateProcessorProperties(counter, Collections.singletonMap("Class to Create", "org.apache.nifi.processors.tests.system.CountEvents"));
         getClientUtil().updateProcessorProperties(counter, Collections.singletonMap("File to Write", "count1.txt"));
         getClientUtil().updateProcessorProperties(counter, Collections.singletonMap("Isolation Key", "abc123"));
 

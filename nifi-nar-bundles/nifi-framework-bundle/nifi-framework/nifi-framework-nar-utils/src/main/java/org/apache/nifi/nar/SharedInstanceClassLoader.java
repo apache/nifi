@@ -24,6 +24,7 @@ import java.util.Set;
 
 public class SharedInstanceClassLoader extends InstanceClassLoader {
     private long referenceCount = 0L;
+    private boolean closed = false;
 
     public SharedInstanceClassLoader(final String identifier, final String type, final Set<URL> instanceUrls, final Set<URL> additionalResourceUrls,
                                      final Set<File> narNativeLibDirs, final ClassLoader parent) {
@@ -35,11 +36,17 @@ public class SharedInstanceClassLoader extends InstanceClassLoader {
         referenceCount--;
 
         if (referenceCount <= 0) {
+            closed = true;
             super.close();
         }
     }
 
-    public synchronized void incrementReferenceCount() {
+    public synchronized boolean incrementReferenceCount() {
+        if (closed) {
+            return false;
+        }
+
         referenceCount++;
+        return true;
     }
 }
