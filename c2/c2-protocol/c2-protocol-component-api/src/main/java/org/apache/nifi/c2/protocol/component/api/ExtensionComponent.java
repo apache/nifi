@@ -30,7 +30,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
  */
 @ApiModel
 public class ExtensionComponent extends DefinedType {
-    private static final long serialVersionUID = -3862421043918277329L;
+    private static final long serialVersionUID = 1L;
 
     private BuildInfo buildInfo;
 

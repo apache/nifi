@@ -23,7 +23,7 @@ import java.io.Serializable;
 
 @ApiModel
 public class BuildInfo implements Serializable {
-    private static final long serialVersionUID = -6765534459547472548L;
+    private static final long serialVersionUID = 1L;
 
     private String version;
     private String revision;

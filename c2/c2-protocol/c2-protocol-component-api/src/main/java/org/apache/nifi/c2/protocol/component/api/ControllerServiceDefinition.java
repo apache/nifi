@@ -26,7 +26,7 @@ import java.util.Map;
 
 @ApiModel
 public class ControllerServiceDefinition extends ExtensionComponent implements ConfigurableComponentDefinition {
-    private static final long serialVersionUID = -876296212819594455L;
+    private static final long serialVersionUID = 1L;
 
     private Map<String, PropertyDescriptor> propertyDescriptors;
     private boolean supportsDynamicProperties;

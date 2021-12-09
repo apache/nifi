@@ -25,7 +25,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 @ApiModel
 public class PropertyAllowableValue implements Serializable {
-    private static final long serialVersionUID = 3318585605254710650L;
+    private static final long serialVersionUID = 1L;
 
     private String value;
     private String displayName;

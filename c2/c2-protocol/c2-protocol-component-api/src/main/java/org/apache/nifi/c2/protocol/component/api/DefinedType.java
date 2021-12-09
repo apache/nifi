@@ -28,7 +28,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
  */
 @ApiModel
 public class DefinedType implements Serializable {
-    private static final long serialVersionUID = -2964632370563990581L;
+    private static final long serialVersionUID = 1L;
 
     private String group;
     private String artifact;

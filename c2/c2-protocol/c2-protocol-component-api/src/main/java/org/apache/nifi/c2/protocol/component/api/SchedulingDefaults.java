@@ -25,7 +25,7 @@ import java.io.Serializable;
 
 @ApiModel
 public class SchedulingDefaults implements Serializable {
-    private static final long serialVersionUID = -8593968890120502434L;
+    private static final long serialVersionUID = 1L;
 
     private SchedulingStrategy defaultSchedulingStrategy;
     private long defaultSchedulingPeriodMillis;

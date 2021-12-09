@@ -25,7 +25,7 @@ import java.util.List;
 
 @ApiModel
 public class ComponentManifest implements Serializable {
-    private static final long serialVersionUID = 3768758346230531253L;
+    private static final long serialVersionUID = 1L;
 
     private List<DefinedType> apis;
     private List<ControllerServiceDefinition> controllerServices;

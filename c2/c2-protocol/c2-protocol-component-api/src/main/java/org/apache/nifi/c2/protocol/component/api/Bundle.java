@@ -25,7 +25,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 @ApiModel
 public class Bundle implements Serializable {
-    private static final long serialVersionUID = 9075160852174422394L;
+    private static final long serialVersionUID = 1L;
 
     public static final String DEFAULT_GROUP = "default";
     public static final String DEFAULT_ARTIFACT = "unknown";

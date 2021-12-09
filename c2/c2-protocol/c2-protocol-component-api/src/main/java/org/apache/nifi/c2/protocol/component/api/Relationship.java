@@ -24,7 +24,7 @@ import java.io.Serializable;
 @ApiModel
 public class Relationship implements Serializable {
 
-    private static final long serialVersionUID = 2098349371897080033L;
+    private static final long serialVersionUID = 1L;
     private String name;
     private String description;
 

@@ -28,7 +28,7 @@ import java.util.Map;
 
 @ApiModel
 public class ProcessorDefinition extends ExtensionComponent implements ConfigurableComponentDefinition {
-    private static final long serialVersionUID = -421341248144419723L;
+    private static final long serialVersionUID = 1L;
 
     private Map<String, PropertyDescriptor> propertyDescriptors;
     private boolean supportsDynamicProperties;

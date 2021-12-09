@@ -27,7 +27,7 @@ import java.util.Map;
 
 @ApiModel
 public class ReportingTaskDefinition extends ExtensionComponent implements ConfigurableComponentDefinition {
-    private static final long serialVersionUID = -6736467402450650934L;
+    private static final long serialVersionUID = 1L;
 
     private Map<String, PropertyDescriptor> propertyDescriptors;
     private List<String> supportedSchedulingStrategies;
