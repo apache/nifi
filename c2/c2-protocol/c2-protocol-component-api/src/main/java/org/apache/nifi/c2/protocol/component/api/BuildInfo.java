@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -30,7 +27,7 @@ public class BuildInfo implements Serializable {
 
     private String version;
     private String revision;
-    private Long timestamp;
+    private long timestamp;
     private String targetArch;
     private String compiler;
     private String compilerFlags;
@@ -54,11 +51,11 @@ public class BuildInfo implements Serializable {
     }
 
     @ApiModelProperty("The timestamp (milliseconds since Epoch) of the build.")
-    public Long getTimestamp() {
+    public long getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(Long timestamp) {
+    public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
     }
 

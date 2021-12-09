@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -23,20 +20,18 @@ package org.apache.nifi.c2.protocol.api;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
-import javax.xml.bind.annotation.XmlTransient;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 /**
- * TODO add Builder interface
+ * An object representation of a Heartbeat in the C2 protocol
  */
 @ApiModel
 public class C2Heartbeat implements Serializable {
-    private static final long serialVersionUID = -1168790962754919591L;
+    private static final long serialVersionUID = 1L;
 
-    // Internal, not part of REST API
     private String identifier;
-    private Long created;
+    private long created;
 
     private DeviceInfo deviceInfo;
     private AgentInfo agentInfo;
@@ -52,11 +47,11 @@ public class C2Heartbeat implements Serializable {
     }
 
     @ApiModelProperty(hidden = true)
-    public Long getCreated() {
+    public long getCreated() {
         return created;
     }
 
-    public void setCreated(Long created) {
+    public void setCreated(long created) {
         this.created = created;
     }
 
@@ -88,26 +83,21 @@ public class C2Heartbeat implements Serializable {
     }
 
     // Convenience getters
-
-    @XmlTransient
     @ApiModelProperty(hidden = true)
     public String getDeviceId() {
         return deviceInfo != null ? deviceInfo.getIdentifier() : null;
     }
 
-    @XmlTransient
     @ApiModelProperty(hidden = true)
     public String getAgentId() {
         return agentInfo != null ? agentInfo.getIdentifier() : null;
     }
 
-    @XmlTransient
     @ApiModelProperty(hidden = true)
     public String getAgentClass() {
         return agentInfo != null ? agentInfo.getAgentClass() : null;
     }
 
-    @XmlTransient
     @ApiModelProperty(hidden = true)
     public String getAgentManifestId() {
         if (agentInfo != null && agentInfo.getAgentManifest() != null) {
@@ -116,7 +106,6 @@ public class C2Heartbeat implements Serializable {
         return null;
     }
 
-    @XmlTransient
     @ApiModelProperty(hidden = true)
     public String getFlowId() {
         return flowInfo != null ? flowInfo.getFlowId() : null;

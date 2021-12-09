@@ -1,7 +1,4 @@
 /*
- * Apache NiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -24,13 +21,11 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
 
 @ApiModel
 public class DeviceInfo implements Serializable {
-    private static final long serialVersionUID = 3711842391029491097L;
+    private static final long serialVersionUID = 1L;
 
-    @NotBlank
     @ApiModelProperty(
         value = "A unique, long-lived identifier for the MiNiFi-enabled device",
         required = true)

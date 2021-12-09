@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -26,7 +23,7 @@ import java.io.Serializable;
 
 @ApiModel
 public class C2OperationAck implements Serializable {
-    private static final long serialVersionUID = 1151250724977394087L;
+    private static final long serialVersionUID = 1L;
 
     @ApiModelProperty("The id of the requested operation that is being acknowledged")
     private String operationId;

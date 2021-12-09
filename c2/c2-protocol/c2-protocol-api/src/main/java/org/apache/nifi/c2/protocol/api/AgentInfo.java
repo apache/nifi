@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -22,25 +19,22 @@ package org.apache.nifi.c2.protocol.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+
 import java.io.Serializable;
-import javax.validation.constraints.NotBlank;
 
 @ApiModel
 public class AgentInfo implements Serializable {
-    private static final long serialVersionUID = -8812289319080770084L;
+    private static final long serialVersionUID = 1L;
 
-    @NotBlank
     private String identifier;
-    // TODO, do we also need identity. e.g., cert DN
     private String agentClass;
     private AgentManifest agentManifest;
     private AgentStatus status;
-    // private Map<String, String> configProperties;  // TODO we should add this information eventually, but we need to handle the best way to handle sharing sensitive properties.
 
     @ApiModelProperty(
-        value = "A unique identifier for the Agent",
-        notes = "Usually set when the agent is provisioned and deployed",
-        required = true)
+            value = "A unique identifier for the Agent",
+            notes = "Usually set when the agent is provisioned and deployed",
+            required = true)
     public String getIdentifier() {
         return identifier;
     }
@@ -50,8 +44,8 @@ public class AgentInfo implements Serializable {
     }
 
     @ApiModelProperty(
-        value = "The class or category label of the agent, e.g., 'sensor-collector'",
-        notes = "Usually set when the agent is provisioned and deployed")
+            value = "The class or category label of the agent, e.g., 'sensor-collector'",
+            notes = "Usually set when the agent is provisioned and deployed")
     public String getAgentClass() {
         return agentClass;
     }
@@ -81,8 +75,8 @@ public class AgentInfo implements Serializable {
     @Override
     public String toString() {
         return "AgentInfo{" +
-            "identifier='" + identifier + '\'' +
-            ", agentClass='" + agentClass + '\'' +
-            '}';
+                "identifier='" + identifier + '\'' +
+                ", agentClass='" + agentClass + '\'' +
+                '}';
     }
 }

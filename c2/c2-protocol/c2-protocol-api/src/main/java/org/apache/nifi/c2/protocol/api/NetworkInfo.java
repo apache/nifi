@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -23,23 +20,17 @@ package org.apache.nifi.c2.protocol.api;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
-import javax.validation.constraints.Size;
 
 @ApiModel
 public class NetworkInfo implements Serializable {
-    private static final long serialVersionUID = 6574362622904811901L;
+    private static final long serialVersionUID = 1L;
 
-    public static final int DEVICE_ID_SIZE = 200;
-    public static final int IP_ADDRESS_MAX_SIZE = 45;
-
-    @Size(max = DEVICE_ID_SIZE)
     @ApiModelProperty("The device network interface ID")
     private String deviceId;
 
     @ApiModelProperty("The device network hostname")
     private String hostname;
 
-    @Size(max = IP_ADDRESS_MAX_SIZE)
     @ApiModelProperty("The device network interface IP Address (v4 or v6)")
     private String ipAddress;
 

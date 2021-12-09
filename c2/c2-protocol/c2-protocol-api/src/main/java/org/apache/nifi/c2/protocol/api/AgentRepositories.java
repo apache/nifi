@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -26,26 +23,26 @@ import java.io.Serializable;
 
 @ApiModel
 public class AgentRepositories implements Serializable {
-    private static final long serialVersionUID = 6350263064169212602L;
+    private static final long serialVersionUID = 1L;
 
-    private AgentRepositoryStatus flowfile;
-    private AgentRepositoryStatus provenance;
-
-    @ApiModelProperty
-    public AgentRepositoryStatus getFlowfile() {
-        return flowfile;
-    }
-
-    public void setFlowfile(AgentRepositoryStatus flowfile) {
-        this.flowfile = flowfile;
-    }
+    private AgentRepositoryStatus flowFileStatus;
+    private AgentRepositoryStatus provenanceStatus;
 
     @ApiModelProperty
-    public AgentRepositoryStatus getProvenance() {
-        return provenance;
+    public AgentRepositoryStatus getFlowFileStatus() {
+        return flowFileStatus;
     }
 
-    public void setProvenance(AgentRepositoryStatus provenance) {
-        this.provenance = provenance;
+    public void setFlowFileStatus(AgentRepositoryStatus flowFileStatus) {
+        this.flowFileStatus = flowFileStatus;
+    }
+
+    @ApiModelProperty
+    public AgentRepositoryStatus getProvenanceStatus() {
+        return provenanceStatus;
+    }
+
+    public void setProvenanceStatus(AgentRepositoryStatus provenanceStatus) {
+        this.provenanceStatus = provenanceStatus;
     }
 }

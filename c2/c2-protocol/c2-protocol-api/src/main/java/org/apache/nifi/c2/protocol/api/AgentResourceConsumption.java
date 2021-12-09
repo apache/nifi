@@ -1,7 +1,4 @@
 /*
- * Apache NiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -29,26 +26,26 @@ import java.io.Serializable;
  */
 @ApiModel
 public class AgentResourceConsumption implements Serializable {
-    private static final long serialVersionUID = 8139800002750651523L;
+    private static final long serialVersionUID = 1L;
 
-    private Long memoryUsage;
-    private Double cpuUtilization;
+    private long memoryUsage;
+    private double cpuUtilization;
 
     @ApiModelProperty("The memory footprint of the agent in bytes.")
-    public Long getMemoryUsage() {
+    public long getMemoryUsage() {
         return memoryUsage;
     }
 
-    public void setMemoryUsage(Long memoryUsage) {
+    public void setMemoryUsage(long memoryUsage) {
         this.memoryUsage = memoryUsage;
     }
 
     @ApiModelProperty("The CPU utilisation of the agent [0.0 - 1.0] and -1.0 in case of errors.")
-    public Double getCpuUtilization() {
+    public double getCpuUtilization() {
         return cpuUtilization;
     }
 
-    public void setCpuUtilization(Double cpuUtilization) {
+    public void setCpuUtilization(double cpuUtilization) {
         this.cpuUtilization = cpuUtilization;
     }
 }

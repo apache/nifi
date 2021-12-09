@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -34,7 +31,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 @ApiModel
 public class AgentManifest implements Serializable {
-    private static final long serialVersionUID = -857319440135476478L;
+    private static final long serialVersionUID = 1L;
 
     private String identifier;
     private String agentType;

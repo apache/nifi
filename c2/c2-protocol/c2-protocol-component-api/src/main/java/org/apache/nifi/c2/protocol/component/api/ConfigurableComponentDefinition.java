@@ -1,7 +1,4 @@
 /*
- * Apache NiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -19,8 +16,6 @@
  */
 
 package org.apache.nifi.c2.protocol.component.api;
-
-import org.apache.nifi.components.PropertyDescriptor;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

@@ -1,7 +1,4 @@
 /*
- * Apache NiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -37,7 +34,7 @@ import java.io.Serializable;
  */
 @ApiModel
 public class C2OperationState implements Serializable {
-    private static final long serialVersionUID = -6715652647187980686L;
+    private static final long serialVersionUID = 1L;
 
     @ApiModelProperty(value = "State of the operation performed", required = true, example = "FULLY_APPLIED")
     private OperationState state;

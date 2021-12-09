@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -31,19 +28,19 @@ import java.util.Map;
  */
 @ApiModel
 public class AgentStatus implements Serializable {
-    private static final long serialVersionUID = 3893024138038013841L;
+    private static final long serialVersionUID = 1L;
 
-    private Long uptime;
+    private long uptime;
     private AgentRepositories repositories;
     private Map<String, ComponentStatus> components;
     private AgentResourceConsumption resourceConsumption;
 
     @ApiModelProperty("The number of milliseconds since the agent started.")
-    public Long getUptime() {
+    public long getUptime() {
         return uptime;
     }
 
-    public void setUptime(Long uptime) {
+    public void setUptime(long uptime) {
         this.uptime = uptime;
     }
 
@@ -56,7 +53,7 @@ public class AgentStatus implements Serializable {
         this.repositories = repositories;
     }
 
-    @ApiModelProperty("Status and for shared agent components (that is, components that exist outside the context of a specific flow).")
+    @ApiModelProperty("Status for shared agent components (that is, components that exist outside the context of a specific flow).")
     public Map<String, ComponentStatus> getComponents() {
         return components;
     }

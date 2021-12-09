@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -22,16 +19,19 @@ package org.apache.nifi.c2.protocol.api;
 
 public enum OperationType {
 
-    // MiNiFi Agent Status Updates -> C2 Server
+    // C2 Client Status Updates -> C2 Server
     ACKNOWLEDGE,
     HEARTBEAT,
 
-    // C2 Server -> MiNiFi Agent Commands
+    // C2 Server -> C2 Client Commands
     CLEAR,
     DESCRIBE,
     UPDATE,
     RESTART,
     START,
     STOP,
-
+    PAUSE,
+    REPLICATE,
+    SUBSCRIBE,
+    TRANSFER
 }

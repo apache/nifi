@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -30,7 +27,7 @@ import java.io.Serializable;
         value = "FlowUri",
         description = "Uniform Resource Identifier for flows, used to uniquely identify a flow version ")
 public class FlowUri implements Serializable {
-    private static final long serialVersionUID = 1413849976167766690L;
+    private static final long serialVersionUID = 1L;
 
     private String uriString;
 

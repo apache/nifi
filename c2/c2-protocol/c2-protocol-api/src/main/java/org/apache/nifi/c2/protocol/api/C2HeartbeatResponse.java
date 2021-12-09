@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -27,7 +24,7 @@ import java.util.List;
 
 @ApiModel
 public class C2HeartbeatResponse implements Serializable {
-    private static final long serialVersionUID = -753605737621149456L;
+    private static final long serialVersionUID = 1L;
 
     private List<C2Operation> requestedOperations;
 

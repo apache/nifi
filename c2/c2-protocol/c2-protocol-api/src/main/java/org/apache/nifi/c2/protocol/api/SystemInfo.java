@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -23,57 +20,39 @@ package org.apache.nifi.c2.protocol.api;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
-import javax.validation.constraints.DecimalMax;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.Size;
 import java.io.Serializable;
 import java.util.Objects;
 
 @ApiModel
 public class SystemInfo implements Serializable {
-    private static final long serialVersionUID = 830834593998474779L;
+    private static final long serialVersionUID = 1L;
 
-    public static final int MACHINE_ARCH_MAX_SIZE = 100;
-    public static final int OS_MAX_SIZE = 100;
-
-    @Size(max = MACHINE_ARCH_MAX_SIZE)
     @ApiModelProperty("Machine architecture of the device, e.g., ARM, x86")
     private String machineArch;
 
-    @Size(max = OS_MAX_SIZE)
     private String operatingSystem;
 
-    @Min(0)
-    @Max(Long.MAX_VALUE)
     @ApiModelProperty(value = "Size of physical memory of the device in bytes", allowableValues = "range[0, 9223372036854775807]")
-    private Long physicalMem;
+    private long physicalMem;
 
-    @Min(0)
-    @Max(Integer.MAX_VALUE)
     @ApiModelProperty(
             value = "Number of virtual cores on the device",
             name = "vCores",
             allowableValues = "range[0, 2147483647]")
-    private Integer vCores;
+    private int vCores;
 
-    @Min(value = -1, message = "Was not able to determine memory usage of the system")
-    @Max(Long.MAX_VALUE)
     @ApiModelProperty
-    private Long memoryUsage;
+    private long memoryUsage;
 
-    @DecimalMin(value = "-1.0", message = "Was not able to determine CPU utilisation of the system")
-    @DecimalMax("1.0")
     @ApiModelProperty
-    private Double cpuUtilization;
+    private double cpuUtilization;
 
     // See note on field for why vCores accessors do not use Lombok
-    public Integer getvCores() {
+    public int getvCores() {
         return vCores;
     }
 
-    public void setvCores(Integer vCores) {
+    public void setvCores(int vCores) {
         this.vCores = vCores;
     }
 
@@ -93,27 +72,27 @@ public class SystemInfo implements Serializable {
         this.operatingSystem = operatingSystem;
     }
 
-    public Long getPhysicalMem() {
+    public long getPhysicalMem() {
         return physicalMem;
     }
 
-    public void setPhysicalMem(Long physicalMem) {
+    public void setPhysicalMem(long physicalMem) {
         this.physicalMem = physicalMem;
     }
 
-    public Long getMemoryUsage() {
+    public long getMemoryUsage() {
         return memoryUsage;
     }
 
-    public void setMemoryUsage(Long memoryUsage) {
+    public void setMemoryUsage(long memoryUsage) {
         this.memoryUsage = memoryUsage;
     }
 
-    public Double getCpuUtilization() {
+    public double getCpuUtilization() {
         return cpuUtilization;
     }
 
-    public void setCpuUtilization(Double cpuUtilization) {
+    public void setCpuUtilization(double cpuUtilization) {
         this.cpuUtilization = cpuUtilization;
     }
 

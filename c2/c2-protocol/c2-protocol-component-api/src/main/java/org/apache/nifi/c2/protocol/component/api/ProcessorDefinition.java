@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -22,7 +19,7 @@ package org.apache.nifi.c2.protocol.component.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

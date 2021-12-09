@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -24,13 +21,11 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
 import java.util.Map;
-import javax.validation.constraints.NotBlank;
 
 @ApiModel
 public class FlowInfo implements Serializable {
-    private static final long serialVersionUID = 7576080726533697542L;
+    private static final long serialVersionUID = 1L;
 
-    @NotBlank
     private String flowId;
     private FlowUri flowUri;
     private Map<String, ComponentStatus> components;

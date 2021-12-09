@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -22,64 +19,51 @@ package org.apache.nifi.c2.protocol.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+
 import java.io.Serializable;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.xml.bind.annotation.XmlTransient;
 
 @ApiModel
 public class AgentRepositoryStatus implements Serializable {
-    private static final long serialVersionUID = 6563881979096175411L;
+    private static final long serialVersionUID = 1L;
 
-    @Min(0)
-    @Max(Long.MAX_VALUE)
-    private Long size;
-
-    @Min(0)
-    @Max(Long.MAX_VALUE)
-    private Long sizeMax;
-
-    @Min(0)
-    @Max(Long.MAX_VALUE)
-    private Long dataSize;
-
-    @Min(0)
-    @Max(Long.MAX_VALUE)
-    private Long dataSizeMax;
+    private long size;
+    private long sizeMax;
+    private long dataSize;
+    private long dataSizeMax;
 
     @ApiModelProperty(value = "The number of items in the repository", allowableValues = "range[0, 9223372036854775807]")
-    public Long getSize() {
+    public long getSize() {
         return size;
     }
 
-    public void setSize(Long size) {
+    public void setSize(long size) {
         this.size = size;
     }
 
     @ApiModelProperty(value = "The maximum number of items the repository is capable of storing", allowableValues = "range[0, 9223372036854775807]")
-    public Long getSizeMax() {
+    public long getSizeMax() {
         return sizeMax;
     }
 
-    public void setSizeMax(Long sizeMax) {
+    public void setSizeMax(long sizeMax) {
         this.sizeMax = sizeMax;
     }
 
     @ApiModelProperty(value = "The data size (in Bytes) of all items in the repository", allowableValues = "range[0, 9223372036854775807]")
-    public Long getDataSize() {
+    public long getDataSize() {
         return dataSize;
     }
 
-    public void setDataSize(Long dataSize) {
+    public void setDataSize(long dataSize) {
         this.dataSize = dataSize;
     }
 
     @ApiModelProperty(value = "The maximum data size (in Bytes) that the repository is capable of storing", allowableValues = "range[0, 9223372036854775807]")
-    public Long getDataSizeMax() {
+    public long getDataSizeMax() {
         return dataSizeMax;
     }
 
-    public void setDataSizeMax(Long dataSizeMax) {
+    public void setDataSizeMax(long dataSizeMax) {
         this.dataSizeMax = dataSizeMax;
     }
 
@@ -91,10 +75,9 @@ public class AgentRepositoryStatus implements Serializable {
      *
      * @return a decimal between [0, 1] representing the sizeMax utilization percentage
      */
-    @XmlTransient
     @ApiModelProperty(hidden = true)
-    public Double getSizeUtilization() {
-        return size != null && sizeMax != null && sizeMax > 0 ? (double) size / (double) sizeMax : null;
+    public double getSizeUtilization() {
+        return sizeMax > 0 ? (double) size / (double) sizeMax : 0;
     }
 
     /**
@@ -103,10 +86,9 @@ public class AgentRepositoryStatus implements Serializable {
      *
      * @return a decimal between [0, 1] representing the dataSizeMax utilization percentage
      */
-    @XmlTransient
     @ApiModelProperty(hidden = true)
-    public Double getDataSizeUtilization() {
-        return dataSize != null && dataSizeMax != null && dataSizeMax > 0 ? (double) dataSize / (double) dataSizeMax : null;
+    public double getDataSizeUtilization() {
+        return dataSizeMax > 0 ? (double) dataSize / (double) dataSizeMax : 0;
     }
 
 }

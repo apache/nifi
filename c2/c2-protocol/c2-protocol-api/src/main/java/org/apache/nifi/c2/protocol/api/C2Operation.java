@@ -1,7 +1,4 @@
 /*
- * Apache NiFi - MiNiFi
- * Copyright 2014-2018 The Apache Software Foundation
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -25,14 +22,12 @@ import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
-import javax.validation.constraints.NotNull;
 
 @ApiModel
 public class C2Operation implements Serializable {
-    private static final long serialVersionUID = 6386197383548094291L;
+    private static final long serialVersionUID = 1L;
 
     private String identifier;
-    @NotNull
     private OperationType operation;
     private String operand;
     private Map<String, String> args;
