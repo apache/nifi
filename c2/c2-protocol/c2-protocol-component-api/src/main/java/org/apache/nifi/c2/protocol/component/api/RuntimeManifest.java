@@ -30,7 +30,7 @@ public class RuntimeManifest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String identifier;
-    private String runtimeType;
+    private String agentType;
     private String version;
     private BuildInfo buildInfo;
     private List<Bundle> bundles;
@@ -48,12 +48,12 @@ public class RuntimeManifest implements Serializable {
     @ApiModelProperty(
         value = "The type of the runtime binary, e.g., 'minifi-java' or 'minifi-cpp'",
         notes = "Usually set when the runtime is built.")
-    public String getRuntimeType() {
-        return runtimeType;
+    public String getAgentType() {
+        return agentType;
     }
 
-    public void setRuntimeType(String runtimeType) {
-        this.runtimeType = runtimeType;
+    public void setAgentType(String agentType) {
+        this.agentType = agentType;
     }
 
     @ApiModelProperty(
@@ -122,7 +122,7 @@ public class RuntimeManifest implements Serializable {
     public String toString() {
         return "RuntimeManifest{" +
             "identifier='" + identifier + '\'' +
-            ", runtimeType='" + runtimeType + '\'' +
+            ", runtimeType='" + agentType + '\'' +
             ", version='" + version + '\'' +
             ", buildInfo=" + buildInfo +
             '}';

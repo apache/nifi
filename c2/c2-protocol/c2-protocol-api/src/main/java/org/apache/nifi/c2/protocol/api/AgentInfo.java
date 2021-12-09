@@ -29,7 +29,7 @@ public class AgentInfo implements Serializable {
 
     private String identifier;
     private String agentClass;
-    private RuntimeManifest runtimeManifest;
+    private RuntimeManifest agentManifest;
     private AgentStatus status;
 
     @ApiModelProperty(
@@ -57,11 +57,11 @@ public class AgentInfo implements Serializable {
 
     @ApiModelProperty("The specification of the agent's capabilities")
     public RuntimeManifest getAgentManifest() {
-        return runtimeManifest;
+        return agentManifest;
     }
 
     public void setAgentManifest(RuntimeManifest runtimeManifest) {
-        this.runtimeManifest = runtimeManifest;
+        this.agentManifest = runtimeManifest;
     }
 
     @ApiModelProperty("A summary of the runtime status of the agent")
