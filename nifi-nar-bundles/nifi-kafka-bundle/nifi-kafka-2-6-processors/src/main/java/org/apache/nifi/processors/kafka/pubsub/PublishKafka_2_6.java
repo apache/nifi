@@ -128,7 +128,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements VerifiablePro
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
-        .defaultValue(DELIVERY_BEST_EFFORT.getValue())
+        .defaultValue(DELIVERY_REPLICATED.getValue())
         .build();
 
     static final PropertyDescriptor METADATA_WAIT_TIME = new PropertyDescriptor.Builder()

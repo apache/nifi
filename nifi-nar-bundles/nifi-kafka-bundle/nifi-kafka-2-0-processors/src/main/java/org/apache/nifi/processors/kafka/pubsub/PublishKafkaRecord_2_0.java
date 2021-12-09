@@ -166,7 +166,7 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
         .required(true)
         .expressionLanguageSupported(NONE)
         .allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
-        .defaultValue(DELIVERY_BEST_EFFORT.getValue())
+        .defaultValue(DELIVERY_REPLICATED.getValue())
         .build();
 
     static final PropertyDescriptor METADATA_WAIT_TIME = new Builder()
