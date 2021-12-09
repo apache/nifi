@@ -4447,18 +4447,26 @@ Example configuration:
 
 == NiFi diagnostics
 
-It is possible to run diagnostics on NiFi with
+It is possible to get diagnostics data from a NiFi node by executing the below command:
 
 ```
-$ ./bin/nifi.sh --diagnostics --verbose <dumpfilePath>
+$ ./bin/nifi.sh diagnostics --verbose <file>
 ```
 
-During the diagnostic, NiFi sends a request to an already running NiFi instance, which collects information about clusters,
-components, part of the configuration, memory usage, etc., and writes it to the specified file or, failing that, to the logs.
+If the file argument is not specified, the information would be added to the `nifi-bootstrap.log` file.
 
-The verbose switch is optional and can be used to control the level of diagnostic detail. In case of a missing dump file path, NiFi writes the diagnostics information to the bootstrap.log file.
+During the diagnostics command execution, the NiFi bootstrap process sends a request to the running NiFi instance, which collects information about the JVM, the operating system and hardware, the NARs loaded in NiFi, the flow configuration and the components being used, the long-running processor tasks, the clustering status, garbage collection, memory pool peak usage, NiFi repositories, parts of the NiFi configuration, a thread dump, etc., and writes it to the specified location.
+
+The `--verbose` flag may be provided as an option before the filename, which may result in additional diagnostic information being written.
 
 === Automatic diagnostics on restart and shutdown
 
-NiFi supports automatic diagnostics in the event of a shutdown. The feature is disabled by default. The settings can be found in the nifi.properties file and the feature can be enabled there also.
-In the case of a lengthy diagnostic, NiFi may terminate before the diagnostics are completed. In this case, the graceful.shutdown.seconds property should be set to a higher value in the bootstrap.conf.
+NiFi can be configured to automatically execute the diagnostics command in the event of a shutdown. The feature is disabled by default and can be enabled with the `nifi.diagnostics.on.shutdown.enabled` property in the `nifi.properties` configuration file. It is also possible to configure where the files should be stored and how many files should be kept using the below properties:
+
+```
+nifi.diagnostics.on.shutdown.directory=./diagnostics
+nifi.diagnostics.on.shutdown.max.filecount=10
+nifi.diagnostics.on.shutdown.max.directory.size=10 MB
+```
+
+In the case of a lengthy diagnostic, NiFi may terminate before the command execution ends. In this case, the `graceful.shutdown.seconds` property should be set to a higher value in the `bootstrap.conf` configuration file.
