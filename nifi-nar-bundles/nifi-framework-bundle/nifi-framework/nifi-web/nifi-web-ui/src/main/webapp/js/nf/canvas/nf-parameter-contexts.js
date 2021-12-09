@@ -2012,6 +2012,7 @@
                         $('#parameter-not-sensitive-radio-button').prop('disabled', true);
                         if (parameter.value === '') {
                             $('#parameter-set-empty-string-field').removeClass('checkbox-unchecked').addClass('checkbox-checked');
+                            $('#parameter-value-field').prop('disabled', true);
                         } else {
                             $('#parameter-set-empty-string-field').removeClass('checkbox-checked').addClass('checkbox-unchecked');
                         }
