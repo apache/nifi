@@ -223,11 +223,10 @@ public class PublisherLease implements Closeable {
     }
 
     private String resolveMessageKeyIdNeeded(MessageKeyResolver keyResolver, FlowFile flowFile, Record record, PropertyValue messageKeyField) {
-        logger.warn("**** DEBUG ****: messageKeyField={}, resolver={}", messageKeyField, keyResolver);
         if(keyResolver != null) {
             final String key = keyResolver.apply(flowFile, record, messageKeyField);
             if(key != null) {
-                logger.warn("Message key resolved: key={}, messageKeyField={}", key, messageKeyField);
+                logger.debug("Message key resolved: key={}, messageKeyField={}", key, messageKeyField);
                 return key;
             } else {
                 logger.warn("Message key resolver configured, but no key resolved! messageKeyField={}, record={}", messageKeyField, record);
