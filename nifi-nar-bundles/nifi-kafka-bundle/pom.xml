@@ -29,7 +29,7 @@
       <kafka11.version>0.11.0.3</kafka11.version>
       <kafka1.0.version>1.0.2</kafka1.0.version>
       <kafka2.0.version>2.0.0</kafka2.0.version>
-      <kafka2.6.version>2.6.0</kafka2.6.version>
+      <kafka2.6.version>2.6.3</kafka2.6.version>
     </properties>
 
     <modules>
