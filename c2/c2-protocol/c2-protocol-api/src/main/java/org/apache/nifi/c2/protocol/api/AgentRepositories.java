@@ -25,24 +25,24 @@ import java.io.Serializable;
 public class AgentRepositories implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private AgentRepositoryStatus flowFileStatus;
-    private AgentRepositoryStatus provenanceStatus;
+    private AgentRepositoryStatus flowFile;
+    private AgentRepositoryStatus provenance;
 
     @ApiModelProperty
-    public AgentRepositoryStatus getFlowFileStatus() {
-        return flowFileStatus;
+    public AgentRepositoryStatus getFlowFile() {
+        return flowFile;
     }
 
-    public void setFlowFileStatus(AgentRepositoryStatus flowFileStatus) {
-        this.flowFileStatus = flowFileStatus;
+    public void setFlowFile(AgentRepositoryStatus flowFile) {
+        this.flowFile = flowFile;
     }
 
     @ApiModelProperty
-    public AgentRepositoryStatus getProvenanceStatus() {
-        return provenanceStatus;
+    public AgentRepositoryStatus getProvenance() {
+        return provenance;
     }
 
-    public void setProvenanceStatus(AgentRepositoryStatus provenanceStatus) {
-        this.provenanceStatus = provenanceStatus;
+    public void setProvenance(AgentRepositoryStatus provenance) {
+        this.provenance = provenance;
     }
 }

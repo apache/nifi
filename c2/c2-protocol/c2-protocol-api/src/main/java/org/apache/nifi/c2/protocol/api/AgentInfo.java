@@ -19,6 +19,7 @@ package org.apache.nifi.c2.protocol.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 
 import java.io.Serializable;
 
@@ -28,7 +29,7 @@ public class AgentInfo implements Serializable {
 
     private String identifier;
     private String agentClass;
-    private AgentManifest agentManifest;
+    private RuntimeManifest runtimeManifest;
     private AgentStatus status;
 
     @ApiModelProperty(
@@ -55,12 +56,12 @@ public class AgentInfo implements Serializable {
     }
 
     @ApiModelProperty("The specification of the agent's capabilities")
-    public AgentManifest getAgentManifest() {
-        return agentManifest;
+    public RuntimeManifest getAgentManifest() {
+        return runtimeManifest;
     }
 
-    public void setAgentManifest(AgentManifest agentManifest) {
-        this.agentManifest = agentManifest;
+    public void setAgentManifest(RuntimeManifest runtimeManifest) {
+        this.runtimeManifest = runtimeManifest;
     }
 
     @ApiModelProperty("A summary of the runtime status of the agent")

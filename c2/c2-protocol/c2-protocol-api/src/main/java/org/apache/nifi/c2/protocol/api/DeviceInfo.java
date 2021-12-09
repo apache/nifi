@@ -27,7 +27,7 @@ public class DeviceInfo implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty(
-        value = "A unique, long-lived identifier for the MiNiFi-enabled device",
+        value = "A unique, long-lived identifier for the device",
         required = true)
     private String identifier;
 

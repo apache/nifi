@@ -32,7 +32,7 @@ public class ProcessorDefinition extends ExtensionComponent implements Configura
 
     private Map<String, PropertyDescriptor> propertyDescriptors;
     private boolean supportsDynamicProperties;
-    private InputRequirement inputRequirement;
+    private InputRequirement.Requirement inputRequirement;
 
     private List<Relationship> supportedRelationships;
     private boolean supportsDynamicRelationships;
@@ -60,11 +60,11 @@ public class ProcessorDefinition extends ExtensionComponent implements Configura
     }
 
     @ApiModelProperty("Any input requirements this processor has")
-    public InputRequirement getInputRequirement() {
+    public InputRequirement.Requirement getInputRequirement() {
         return inputRequirement;
     }
 
-    public void setInputRequirement(InputRequirement inputRequirement) {
+    public void setInputRequirement(InputRequirement.Requirement inputRequirement) {
         this.inputRequirement = inputRequirement;
     }
 

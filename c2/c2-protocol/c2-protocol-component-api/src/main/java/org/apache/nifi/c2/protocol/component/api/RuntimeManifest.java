@@ -15,12 +15,8 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2.protocol.api;
+package org.apache.nifi.c2.protocol.component.api;
 
-import org.apache.nifi.c2.protocol.component.api.BuildInfo;
-import org.apache.nifi.c2.protocol.component.api.Bundle;
-import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
-import org.apache.nifi.c2.protocol.component.api.SchedulingDefaults;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
@@ -30,15 +26,14 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 @ApiModel
-public class AgentManifest implements Serializable {
+public class RuntimeManifest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String identifier;
-    private String agentType;
+    private String runtimeType;
     private String version;
     private BuildInfo buildInfo;
     private List<Bundle> bundles;
-    private ComponentManifest componentManifest;
     private SchedulingDefaults schedulingDefaults;
 
     @ApiModelProperty("A unique identifier for the manifest")
@@ -51,19 +46,19 @@ public class AgentManifest implements Serializable {
     }
 
     @ApiModelProperty(
-        value = "The type of the agent binary, e.g., 'minifi-java' or 'minifi-cpp'",
-        notes = "Usually set when the agent is built.")
-    public String getAgentType() {
-        return agentType;
+        value = "The type of the runtime binary, e.g., 'minifi-java' or 'minifi-cpp'",
+        notes = "Usually set when the runtime is built.")
+    public String getRuntimeType() {
+        return runtimeType;
     }
 
-    public void setAgentType(String agentType) {
-        this.agentType = agentType;
+    public void setRuntimeType(String runtimeType) {
+        this.runtimeType = runtimeType;
     }
 
     @ApiModelProperty(
-        value = "The version of the agent binary, e.g., '1.0.1'",
-        notes = "Usually set when the agent is built.")
+        value = "The version of the runtime binary, e.g., '1.0.1'",
+        notes = "Usually set when the runtime is built.")
     public String getVersion() {
         return version;
     }
@@ -72,7 +67,7 @@ public class AgentManifest implements Serializable {
         this.version = version;
     }
 
-    @ApiModelProperty("Build summary for this agent binary")
+    @ApiModelProperty("Build summary for this runtime binary")
     public BuildInfo getBuildInfo() {
         return buildInfo;
     }
@@ -81,22 +76,13 @@ public class AgentManifest implements Serializable {
         this.buildInfo = buildInfo;
     }
 
-    @ApiModelProperty("All extension bundles included with this agent")
+    @ApiModelProperty("All extension bundles included with this runtime")
     public List<Bundle> getBundles() {
         return (bundles != null ? Collections.unmodifiableList(bundles) : null);
     }
 
     public void setBundles(List<Bundle> bundles) {
         this.bundles = bundles;
-    }
-
-    @ApiModelProperty("All components of this agent that are not part of a bundle.")
-    public ComponentManifest getComponentManifest() {
-        return componentManifest;
-    }
-
-    public void setComponentManifest(ComponentManifest componentManifest) {
-        this.componentManifest = componentManifest;
     }
 
     @ApiModelProperty("Scheduling defaults for components defined in this manifest")
@@ -118,7 +104,7 @@ public class AgentManifest implements Serializable {
             return false;
         }
 
-        AgentManifest that = (AgentManifest) o;
+        RuntimeManifest that = (RuntimeManifest) o;
 
         return new EqualsBuilder()
             .append(identifier, that.identifier)
@@ -134,9 +120,9 @@ public class AgentManifest implements Serializable {
 
     @Override
     public String toString() {
-        return "AgentManifest{" +
+        return "RuntimeManifest{" +
             "identifier='" + identifier + '\'' +
-            ", agentType='" + agentType + '\'' +
+            ", runtimeType='" + runtimeType + '\'' +
             ", version='" + version + '\'' +
             ", buildInfo=" + buildInfo +
             '}';
