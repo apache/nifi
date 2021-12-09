@@ -1839,22 +1839,34 @@
         };
 
         var valueFormatter = function (row, cell, value, columnDef, dataContext) {
-            if (dataContext.sensitive === true) {
+            var valueWidthOffset = 0;
+            if (dataContext.sensitive === true && !_.isNil(value)) {
                 return '<span class="table-cell sensitive">Sensitive value set</span>';
             } else if (value === '') {
                 return '<span class="table-cell blank">Empty string set</span>';
             } else if (_.isNil(value)) {
                 return '<span class="unset">No value set</span>';
             } else {
-                var valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre hide-multi-line">' + nfCommon.escapeHtml(value) + '</div></div>';
+                var valueMarkup;
 
+                // check for multiline
+                var isMultilineMatcher = /\n/.exec(value);
+                if (isMultilineMatcher) {
+                    valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre hide-multi-line multiline">' + nfCommon.escapeHtml(value) + '</div></div>';
+                } else {
+                    valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre hide-multi-line">' + nfCommon.escapeHtml(value) + '</div></div>';
+                    valueWidthOffset = 15;
+                }
+
+                // check for leading or trailing whitespace
                 if (nfCommon.hasLeadTrailWhitespace(value)) {
                     valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
+                    valueWidthOffset = 30;
                 }
 
                 // adjust the width accordingly
                 var content = $(valueMarkup);
-                content.find('.ellipsis-white-space-pre').width(columnDef.width - 30).ellipsis();
+                content.find('.ellipsis-white-space-pre').width(columnDef.width - valueWidthOffset).ellipsis();
 
                 return $('<div />').append(content).html();
             }
