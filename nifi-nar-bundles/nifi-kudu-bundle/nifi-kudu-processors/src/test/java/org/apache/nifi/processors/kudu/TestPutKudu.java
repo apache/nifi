@@ -511,19 +511,29 @@ public class TestPutKudu {
     }
 
     @Test
+    public void testBuildPartialRowWithDateToString() throws ParseException {
+        final SimpleDateFormat dateFormat = new SimpleDateFormat(ISO_8601_YEAR_MONTH_DAY_PATTERN);
+        final java.util.Date dateFieldValue = dateFormat.parse(ISO_8601_YEAR_MONTH_DAY);
+
+        final PartialRow row = buildPartialRowDateField(dateFieldValue, Type.STRING);
+        final String column = row.getString(DATE_FIELD);
+        assertEquals("Partial Row Field not matched", ISO_8601_YEAR_MONTH_DAY, column);
+    }
+
+    @Test
     public void testBuildPartialRowWithDateString() {
         assertPartialRowDateFieldEquals(ISO_8601_YEAR_MONTH_DAY);
     }
 
     private void assertPartialRowDateFieldEquals(final Object dateFieldValue) {
-        final PartialRow row = buildPartialRowDateField(dateFieldValue);
+        final PartialRow row = buildPartialRowDateField(dateFieldValue, Type.DATE);
         final java.sql.Date rowDate = row.getDate(DATE_FIELD);
         assertEquals("Partial Row Date Field not matched", ISO_8601_YEAR_MONTH_DAY, rowDate.toString());
     }
 
-    private PartialRow buildPartialRowDateField(final Object dateFieldValue) {
+    private PartialRow buildPartialRowDateField(final Object dateFieldValue, final Type columnType) {
         final Schema kuduSchema = new Schema(Collections.singletonList(
-                new ColumnSchema.ColumnSchemaBuilder(DATE_FIELD, Type.DATE).nullable(true).build()
+                new ColumnSchema.ColumnSchemaBuilder(DATE_FIELD, columnType).nullable(true).build()
         ));
 
         final RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(

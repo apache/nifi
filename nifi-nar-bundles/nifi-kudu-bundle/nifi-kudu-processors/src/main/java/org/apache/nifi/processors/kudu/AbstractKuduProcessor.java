@@ -400,6 +400,8 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 }
             } else {
                 Object value = record.getValue(recordFieldName);
+                final Optional<DataType> fieldDataType = record.getSchema().getDataType(recordFieldName);
+                final String dataTypeFormat = fieldDataType.map(DataType::getFormat).orElse(null);
                 switch (colType) {
                     case BOOL:
                         row.addBoolean(columnIndex, DataTypeUtils.toBoolean(value, recordFieldName));
@@ -423,10 +425,10 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                         row.addTimestamp(columnIndex, timestamp);
                         break;
                     case STRING:
-                        row.addString(columnIndex, DataTypeUtils.toString(value, recordFieldName));
+                        row.addString(columnIndex, DataTypeUtils.toString(value, dataTypeFormat));
                         break;
                     case BINARY:
-                        row.addBinary(columnIndex, DataTypeUtils.toString(value, recordFieldName).getBytes());
+                        row.addBinary(columnIndex, DataTypeUtils.toString(value, dataTypeFormat).getBytes());
                         break;
                     case FLOAT:
                         row.addFloat(columnIndex, DataTypeUtils.toFloat(value, recordFieldName));
@@ -435,15 +437,14 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                         row.addDouble(columnIndex, DataTypeUtils.toDouble(value, recordFieldName));
                         break;
                     case DECIMAL:
-                        row.addDecimal(columnIndex, new BigDecimal(DataTypeUtils.toString(value, recordFieldName)));
+                        row.addDecimal(columnIndex, new BigDecimal(DataTypeUtils.toString(value, dataTypeFormat)));
                         break;
                     case VARCHAR:
-                        row.addVarchar(columnIndex, DataTypeUtils.toString(value, recordFieldName));
+                        row.addVarchar(columnIndex, DataTypeUtils.toString(value, dataTypeFormat));
                         break;
                     case DATE:
-                        final Optional<DataType> fieldDataType = record.getSchema().getDataType(recordFieldName);
-                        final String format = fieldDataType.isPresent() ? fieldDataType.get().getFormat() : RecordFieldType.DATE.getDefaultFormat();
-                        row.addDate(columnIndex, getDate(value, recordFieldName, format));
+                        final String dateFormat = dataTypeFormat == null ? RecordFieldType.DATE.getDefaultFormat() : dataTypeFormat;
+                        row.addDate(columnIndex, getDate(value, recordFieldName, dateFormat));
                         break;
                     default:
                         throw new IllegalStateException(String.format("unknown column type %s", colType));
