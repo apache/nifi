@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -87,9 +88,9 @@ public class GeohashRecord extends AbstractProcessor {
     }
 
     public enum RoutingStrategy {
-        SKIP_UNENRICHED,
+        SKIP,
         SPLIT,
-        REQUIRE_ALL_ENRICHED
+        REQUIRE
     }
 
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
@@ -105,16 +106,16 @@ public class GeohashRecord extends AbstractProcessor {
             .name("routing-strategy")
             .displayName("Routing Strategy")
             .description("Specifies how to route flowfiles after encoding or decoding being performed. "
-                    + "SKIP_UNENRICHED will enrich those records that can be enriched and skip the rest. "
-                    + "The SKIP_UNENRICHED strategy will route a flowfile to failure only if unable to parse the data. "
+                    + "SKIP will enrich those records that can be enriched and skip the rest. "
+                    + "The SKIP strategy will route a flowfile to failure only if unable to parse the data. "
                     + "Otherwise, it will route the enriched flowfile to success, and the original input to original. "
                     + "SPLIT will separate the records that have been enriched from those that have not and send them to matched, while unenriched records will be sent to unmatched; "
                     + "the original input flowfile will be sent to original. The SPLIT strategy will route a flowfile to failure only if unable to parse the data. "
-                    + "REQUIRE_ALL_ENRICHED will route a flowfile to success only if all of its records are enriched, and the original input will be sent to original. "
-                    + "The REQUIRE_ALL_ENRICHED strategy will route the original input flowfile to failure if any of its records cannot be enriched or unable to be parsed")
+                    + "REQUIRE will route a flowfile to success only if all of its records are enriched, and the original input will be sent to original. "
+                    + "The REQUIRE strategy will route the original input flowfile to failure if any of its records cannot be enriched or unable to be parsed")
             .required(true)
             .allowableValues(RoutingStrategy.values())
-            .defaultValue(RoutingStrategy.SKIP_UNENRICHED.name())
+            .defaultValue(RoutingStrategy.SKIP.name())
             .build();
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -216,7 +217,10 @@ public class GeohashRecord extends AbstractProcessor {
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_ORIGINAL, REL_FAILURE)));
     private static final Set<Relationship> SPLIT_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_MATCHED, REL_NOT_MATCHED, REL_ORIGINAL, REL_FAILURE)));
-    private boolean isSplit;
+
+    private RoutingStrategyExecutor routingStrategyExecutor;
+    private static boolean isSplit;
+    private static Integer enrichedCount, unenrichedCount;
 
     private final RecordPathCache cache = new RecordPathCache(100);
 
@@ -254,6 +258,26 @@ public class GeohashRecord extends AbstractProcessor {
         return descriptors;
     }
 
+    @OnScheduled
+    public void setup(ProcessContext context) {
+        final RoutingStrategy routingStrategy = RoutingStrategy.valueOf(context.getProperty(ROUTING_STRATEGY).getValue());
+        switch (routingStrategy) {
+            case REQUIRE:
+                routingStrategyExecutor = new RequireRoutingStrategyExecutor();
+                break;
+            case SKIP:
+                routingStrategyExecutor = new SkipRoutingStrategyExecutor();
+                break;
+            case SPLIT:
+                routingStrategyExecutor = new SplitRoutingStrategyExecutor();
+                break;
+            default:
+                throw new AssertionError();
+        }
+        enrichedCount = 0;
+        unenrichedCount = 0;
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile input = session.get();
@@ -269,13 +293,6 @@ public class GeohashRecord extends AbstractProcessor {
 
         FlowFile output = session.create(input);
         FlowFile notMatched = routingStrategy == RoutingStrategy.SPLIT ? session.create(input) : null;
-
-        int matchedCount = 0;
-        int notMatchedCount = 0;
-
-        //The overall relationship used by the REQUIRE_ALL_ENRICHED and SKIP_UNENRICHED routing strategies to transfer Flowfiles.
-        //For the SPLIT strategy, the transfer of Flowfiles does not rely on this overall relationship. Instead, each individual record will be sent to success or failure.
-        Relationship targetRelationship = routingStrategy == RoutingStrategy.REQUIRE_ALL_ENRICHED ? REL_SUCCESS : REL_FAILURE;
 
         try (final InputStream is = session.read(input);
              final RecordReader reader = readerFactory.createRecordReader(input, is, getLogger());
@@ -305,11 +322,12 @@ public class GeohashRecord extends AbstractProcessor {
             RecordPath latitudePath = cache.getCompiled(rawLatitudePath);
             final String rawLongitudePath = context.getProperty(LONGITUDE_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
             RecordPath longitudePath = cache.getCompiled(rawLongitudePath);
-            final String rawgeohashPath = context.getProperty(GEOHASH_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
-            RecordPath geohashPath = cache.getCompiled(rawgeohashPath);
+            final String rawGeohashPath = context.getProperty(GEOHASH_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
+            RecordPath geohashPath = cache.getCompiled(rawGeohashPath);
 
             while ((record = reader.nextRecord()) != null) {
                 boolean updated = false;
+
                 try {
                     if (encode) {
                         Object encodedGeohash = getEncodedGeohash(latitudePath, longitudePath, record, format, level);
@@ -326,41 +344,22 @@ public class GeohashRecord extends AbstractProcessor {
                     getLogger().warn(e.getLocalizedMessage(), e);
                 }
 
-                if (routingStrategy == RoutingStrategy.REQUIRE_ALL_ENRICHED) {
-                    if (!updated) { //If the routing strategy is REQUIRE_ALL_ENRICHED and there exists a record that is not updated, the entire flowfile should be route to REL_FAILURE
-                        targetRelationship = REL_FAILURE;
-                    }
-                } else {
-                    if (updated) {
-                        //If the routing strategy is SKIP_UNENRICHED and there exists a record that is updated, the entire flowfile should be route to REL_SUCCESS
-                        //If the routing strategy is SPLIT and there exists a record that is updated, this record should be route to REL_SUCCESS
-                        targetRelationship = REL_SUCCESS;
-                    }
-                }
-
-                if (routingStrategy != RoutingStrategy.SPLIT || updated) {
-                    writer.write(record);
-                    matchedCount++;
-                } else { //if the routing strategy is SPLIT and the record is not updated
-                    notMatchedWriter.write(record);
-                    notMatchedCount++;
-                }
+                routingStrategyExecutor.writeFlowFiles(record, writer, notMatchedWriter, updated);
             }
 
             final WriteResult writeResult = writer.finishRecordSet();
             writer.close();
+            output = session.putAllAttributes(output, buildAttributes(writeResult.getRecordCount(), writer.getMimeType(), writeResult));
 
-            WriteResult notMatchedWriterResult = null;
+            WriteResult notMatchedWriterResult;
 
             if (notMatchedWriter != null) {
                 notMatchedWriterResult = notMatchedWriter.finishRecordSet();
                 notMatchedWriter.close();
+                if (notMatchedWriterResult.getRecordCount() > 0) {
+                    notMatched = session.putAllAttributes(notMatched, buildAttributes(notMatchedWriterResult.getRecordCount(), writer.getMimeType(), notMatchedWriterResult));
+                }
             }
-            if (notMatchedCount > 0) {
-                notMatched = session.putAllAttributes(notMatched, buildAttributes(notMatchedCount, writer.getMimeType(), notMatchedWriterResult));
-            }
-
-            output = session.putAllAttributes(output, buildAttributes(matchedCount, writer.getMimeType(), writeResult));
         } catch (IOException | SchemaNotFoundException | MalformedRecordException e) {
             //cannot parse incoming data
             getLogger().error("Cannot parse the incoming data", e.getLocalizedMessage(), e);
@@ -373,32 +372,75 @@ public class GeohashRecord extends AbstractProcessor {
         }
 
         //Transfer Flowfiles by routing strategy
-        switch (routingStrategy) {
-            case SKIP_UNENRICHED:
+        routingStrategyExecutor.transferFlowFiles(session, input, output, notMatched);
+    }
+
+    private interface RoutingStrategyExecutor {
+        void writeFlowFiles(Record record, RecordSetWriter writer, RecordSetWriter notMatchedWriter, boolean updated) throws IOException;
+
+        void transferFlowFiles(final ProcessSession session, FlowFile input, FlowFile output, FlowFile notMatched);
+    }
+
+    private static class SkipRoutingStrategyExecutor implements RoutingStrategyExecutor {
+        @Override
+        public void writeFlowFiles(Record record, RecordSetWriter writer, RecordSetWriter notMatchedWriter, boolean updated) throws IOException {
+            writer.write(record);
+        }
+
+        @Override
+        public void transferFlowFiles(final ProcessSession session, FlowFile input, FlowFile output, FlowFile notMatched) {
+            session.transfer(output, REL_SUCCESS);
+            session.transfer(input, REL_ORIGINAL);
+        }
+    }
+
+    private static class SplitRoutingStrategyExecutor implements RoutingStrategyExecutor {
+        @Override
+        public void writeFlowFiles(Record record, RecordSetWriter writer, RecordSetWriter notMatchedWriter, boolean updated) throws IOException {
+            if (updated) {
+                enrichedCount++;
+                writer.write(record);
+            } else {
+                unenrichedCount++;
+                notMatchedWriter.write(record);
+            }
+        }
+
+        @Override
+        public void transferFlowFiles(final ProcessSession session, FlowFile input, FlowFile output, FlowFile notMatched) {
+            if (unenrichedCount > 0) {
+                session.transfer(notMatched, REL_NOT_MATCHED);
+            } else {
+                session.remove(notMatched);
+            }
+            if (enrichedCount > 0) {
+                session.transfer(output, REL_MATCHED);
+            } else {
+                session.remove(output);
+            }
+            session.transfer(input, REL_ORIGINAL);
+        }
+    }
+
+    private static class RequireRoutingStrategyExecutor implements RoutingStrategyExecutor {
+        @Override
+        public void writeFlowFiles(Record record, RecordSetWriter writer, RecordSetWriter notMatchedWriter, boolean updated) throws IOException {
+            if (updated) {
+                writer.write(record);
+            } else {
+                unenrichedCount++;
+            }
+        }
+
+        @Override
+        public void transferFlowFiles(final ProcessSession session, FlowFile input, FlowFile output, FlowFile notMatched) {
+            if (unenrichedCount > 0) {
+                session.remove(output);
+                session.transfer(input, REL_FAILURE);
+            } else {
                 session.transfer(output, REL_SUCCESS);
                 session.transfer(input, REL_ORIGINAL);
-                return;
-            case REQUIRE_ALL_ENRICHED:
-                if (targetRelationship.compareTo(REL_SUCCESS) == 0) {
-                    session.transfer(output, REL_SUCCESS);
-                    session.transfer(input, REL_ORIGINAL);
-                } else {
-                    session.remove(output);
-                    session.transfer(input, REL_FAILURE);
-                }
-                return;
-            case SPLIT:
-                if (notMatchedCount > 0) {
-                    session.transfer(notMatched, REL_NOT_MATCHED);
-                } else {
-                    session.remove(notMatched);
-                }
-                if (matchedCount > 0) {
-                    session.transfer(output, REL_MATCHED);
-                } else {
-                    session.remove(output);
-                }
-                session.transfer(input, REL_ORIGINAL);
+            }
         }
     }
 
