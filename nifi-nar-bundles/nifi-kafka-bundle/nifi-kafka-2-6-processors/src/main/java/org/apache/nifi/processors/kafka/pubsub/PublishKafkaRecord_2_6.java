@@ -116,7 +116,8 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         "Messages will be assigned partitions in a round-robin fashion, sending the first message to Partition 1, "
             + "the next Partition to Partition 2, and so on, wrapping as necessary.");
     static final AllowableValue RANDOM_PARTITIONING = new AllowableValue("org.apache.kafka.clients.producer.internals.DefaultPartitioner",
-        "DefaultPartitioner", "Messages will be assigned to random partitions.");
+        "DefaultPartitioner", "The default partitioning strategy will choose the sticky partition that changes when the batch is full "
+                + "(See KIP-480 for details about sticky partitioning).");
     static final AllowableValue RECORD_PATH_PARTITIONING = new AllowableValue(Partitioners.RecordPathPartitioner.class.getName(),
         "RecordPath Partitioner", "Interprets the <Partition> property as a RecordPath that will be evaluated against each Record to determine which partition the Record will go to. All Records " +
         "that have the same value for the given RecordPath will go to the same Partition.");

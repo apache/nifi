@@ -102,7 +102,8 @@ public class PublishKafka_2_6 extends AbstractProcessor implements VerifiablePro
         "Messages will be assigned partitions in a round-robin fashion, sending the first message to Partition 1, "
             + "the next Partition to Partition 2, and so on, wrapping as necessary.");
     static final AllowableValue RANDOM_PARTITIONING = new AllowableValue("org.apache.kafka.clients.producer.internals.DefaultPartitioner",
-        "DefaultPartitioner", "Messages will be assigned to random partitions.");
+        "DefaultPartitioner", "The default partitioning strategy will choose the sticky partition that changes when the batch is full "
+                + "(See KIP-480 for details about sticky partitioning).");
     static final AllowableValue EXPRESSION_LANGUAGE_PARTITIONING = new AllowableValue(Partitioners.ExpressionLanguagePartitioner.class.getName(), "Expression Language Partitioner",
         "Interprets the <Partition> property as Expression Language that will be evaluated against each FlowFile. This Expression will be evaluated once against the FlowFile, " +
             "so all Records in a given FlowFile will go to the same partition.");
