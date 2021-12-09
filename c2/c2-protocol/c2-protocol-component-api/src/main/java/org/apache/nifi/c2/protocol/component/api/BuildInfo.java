@@ -27,7 +27,7 @@ public class BuildInfo implements Serializable {
 
     private String version;
     private String revision;
-    private long timestamp;
+    private Long timestamp;
     private String targetArch;
     private String compiler;
     private String compilerFlags;
@@ -51,11 +51,11 @@ public class BuildInfo implements Serializable {
     }
 
     @ApiModelProperty("The timestamp (milliseconds since Epoch) of the build.")
-    public long getTimestamp() {
+    public Long getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(long timestamp) {
+    public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -89,12 +89,12 @@ public class BuildInfo implements Serializable {
     @Override
     public String toString() {
         return "BuildInfo{" +
-            "version='" + version + '\'' +
-            ", revision='" + revision + '\'' +
-            ", timestamp=" + timestamp +
-            ", targetArch='" + targetArch + '\'' +
-            ", compiler='" + compiler + '\'' +
-            ", compilerFlags='" + compilerFlags + '\'' +
-            '}';
+                "version='" + version + '\'' +
+                ", revision='" + revision + '\'' +
+                ", timestamp=" + timestamp +
+                ", targetArch='" + targetArch + '\'' +
+                ", compiler='" + compiler + '\'' +
+                ", compilerFlags='" + compilerFlags + '\'' +
+                '}';
     }
 }

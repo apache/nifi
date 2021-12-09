@@ -28,24 +28,24 @@ public class Location implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty
-    private double latitude;
+    private Double latitude;
 
     @ApiModelProperty
-    private double longitude;
+    private Double longitude;
 
-    public double getLatitude() {
+    public Double getLatitude() {
         return latitude;
     }
 
-    public void setLatitude(double latitude) {
+    public void setLatitude(Double latitude) {
         this.latitude = latitude;
     }
 
-    public double getLongitude() {
+    public Double getLongitude() {
         return longitude;
     }
 
-    public void setLongitude(double longitude) {
+    public void setLongitude(Double longitude) {
         this.longitude = longitude;
     }
 
@@ -62,17 +62,16 @@ public class Location implements Serializable {
         Location location = (Location) o;
 
         return new EqualsBuilder()
-            .append(latitude, location.latitude)
-            .append(longitude, location.longitude)
-            .isEquals();
+                .append(latitude, location.latitude)
+                .append(longitude, location.longitude)
+                .isEquals();
     }
 
     @Override
     public int hashCode() {
         return new HashCodeBuilder(17, 37)
-            .append(latitude)
-            .append(longitude)
-            .toHashCode();
+                .append(latitude)
+                .append(longitude)
+                .toHashCode();
     }
-
 }

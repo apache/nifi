@@ -21,7 +21,6 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 import java.io.Serializable;
-import java.util.Objects;
 
 @ApiModel
 public class SystemInfo implements Serializable {
@@ -33,28 +32,19 @@ public class SystemInfo implements Serializable {
     private String operatingSystem;
 
     @ApiModelProperty(value = "Size of physical memory of the device in bytes", allowableValues = "range[0, 9223372036854775807]")
-    private long physicalMem;
+    private Long physicalMem;
 
     @ApiModelProperty(
             value = "Number of virtual cores on the device",
             name = "vCores",
             allowableValues = "range[0, 2147483647]")
-    private int vCores;
+    private Integer vCores;
 
     @ApiModelProperty
-    private long memoryUsage;
+    private Long memoryUsage;
 
     @ApiModelProperty
-    private double cpuUtilization;
-
-    // See note on field for why vCores accessors do not use Lombok
-    public int getvCores() {
-        return vCores;
-    }
-
-    public void setvCores(int vCores) {
-        this.vCores = vCores;
-    }
+    private Double cpuUtilization;
 
     public String getMachineArch() {
         return machineArch;
@@ -72,45 +62,35 @@ public class SystemInfo implements Serializable {
         this.operatingSystem = operatingSystem;
     }
 
-    public long getPhysicalMem() {
+    public Long getPhysicalMem() {
         return physicalMem;
     }
 
-    public void setPhysicalMem(long physicalMem) {
+    public void setPhysicalMem(Long physicalMem) {
         this.physicalMem = physicalMem;
     }
 
-    public long getMemoryUsage() {
+    public Long getMemoryUsage() {
         return memoryUsage;
     }
 
-    public void setMemoryUsage(long memoryUsage) {
+    public void setMemoryUsage(Long memoryUsage) {
         this.memoryUsage = memoryUsage;
     }
 
-    public double getCpuUtilization() {
+    public Double getCpuUtilization() {
         return cpuUtilization;
     }
 
-    public void setCpuUtilization(double cpuUtilization) {
+    public void setCpuUtilization(Double cpuUtilization) {
         this.cpuUtilization = cpuUtilization;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SystemInfo that = (SystemInfo) o;
-        return Objects.equals(machineArch, that.machineArch)
-                && Objects.equals(operatingSystem, that.operatingSystem)
-                && Objects.equals(physicalMem, that.physicalMem)
-                && Objects.equals(vCores, that.vCores)
-                && Objects.equals(memoryUsage, that.memoryUsage)
-                && Objects.equals(cpuUtilization, that.cpuUtilization);
+    public Integer getvCores() {
+        return vCores;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(machineArch, operatingSystem, physicalMem, vCores, memoryUsage, cpuUtilization);
+    public void setvCores(Integer vCores) {
+        this.vCores = vCores;
     }
 }

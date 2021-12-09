@@ -29,8 +29,8 @@ public class Operation extends C2Operation {
     private String details;
     private String bulkOperationId;
     private String createdBy;
-    private long created;
-    private long updated;
+    private Long created;
+    private Long updated;
 
     @ApiModelProperty("The identifier of the agent to which the operation applies")
     public String getTargetAgentId() {
@@ -42,8 +42,8 @@ public class Operation extends C2Operation {
     }
 
     @ApiModelProperty(
-        value = "The current state of the operation",
-        readOnly = true)
+            value = "The current state of the operation",
+            readOnly = true)
     public OperationState getState() {
         return state;
     }
@@ -61,11 +61,11 @@ public class Operation extends C2Operation {
         this.bulkOperationId = bulkOperationId;
     }
 
-    @ApiModelProperty(value = "The verified identity of the C2 server client that created the operation",
-        readOnly = true,
-        notes = "This field is set by the server when an operation request is submitted to identify the origin. " +
-            "When the C2 instance is secured, this is the client principal identity (e.g., certificate DN). " +
-            "When the C2 instances is unsecured, this will be 'anonymous' as client identity can not be authenticated.")
+    @ApiModelProperty(value = "The verified identity of the C2 client that created the operation",
+            readOnly = true,
+            notes = "This field is set by the server when an operation request is submitted to identify the origin. " +
+                    "When the C2 instance is secured, this is the client principal identity (e.g., certificate DN). " +
+                    "When the C2 instances is unsecured, this will be 'anonymous' as client identity can not be authenticated.")
     public String getCreatedBy() {
         return createdBy;
     }
@@ -75,20 +75,20 @@ public class Operation extends C2Operation {
     }
 
     @ApiModelProperty("The time (in milliseconds since Epoch) that this operation was created")
-    public long getCreated() {
+    public Long getCreated() {
         return created;
     }
 
-    public void setCreated(long created) {
+    public void setCreated(Long created) {
         this.created = created;
     }
 
     @ApiModelProperty("The time (in milliseconds since Epoch) that this operation was last updated")
-    public long getUpdated() {
+    public Long getUpdated() {
         return updated;
     }
 
-    public void setUpdated(long updated) {
+    public void setUpdated(Long updated) {
         this.updated = updated;
     }
 

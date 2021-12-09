@@ -28,24 +28,24 @@ import java.io.Serializable;
 public class AgentResourceConsumption implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private long memoryUsage;
-    private double cpuUtilization;
+    private Long memoryUsage;
+    private Double cpuUtilization;
 
     @ApiModelProperty("The memory footprint of the agent in bytes.")
-    public long getMemoryUsage() {
+    public Long getMemoryUsage() {
         return memoryUsage;
     }
 
-    public void setMemoryUsage(long memoryUsage) {
+    public void setMemoryUsage(Long memoryUsage) {
         this.memoryUsage = memoryUsage;
     }
 
     @ApiModelProperty("The CPU utilisation of the agent [0.0 - 1.0] and -1.0 in case of errors.")
-    public double getCpuUtilization() {
+    public Double getCpuUtilization() {
         return cpuUtilization;
     }
 
-    public void setCpuUtilization(double cpuUtilization) {
+    public void setCpuUtilization(Double cpuUtilization) {
         this.cpuUtilization = cpuUtilization;
     }
 }

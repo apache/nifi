@@ -26,44 +26,44 @@ import java.io.Serializable;
 public class FlowQueueStatus implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private long size;
-    private long sizeMax;
-    private long dataSize;
-    private long dataSizeMax;
+    private Long size;
+    private Long sizeMax;
+    private Long dataSize;
+    private Long dataSizeMax;
 
     @ApiModelProperty(value = "The number of flow files in the queue", allowableValues = "range[0, 9223372036854775807]")
-    public long getSize() {
+    public Long getSize() {
         return size;
     }
 
-    public void setSize(long size) {
+    public void setSize(Long size) {
         this.size = size;
     }
 
     @ApiModelProperty(value = "The maximum number of flow files that the queue is configured to hold", allowableValues = "range[0, 9223372036854775807]")
-    public long getSizeMax() {
+    public Long getSizeMax() {
         return sizeMax;
     }
 
-    public void setSizeMax(long sizeMax) {
+    public void setSizeMax(Long sizeMax) {
         this.sizeMax = sizeMax;
     }
 
     @ApiModelProperty(value = "The size (in Bytes) of all flow files in the queue", allowableValues = "range[0, 9223372036854775807]")
-    public long getDataSize() {
+    public Long getDataSize() {
         return dataSize;
     }
 
-    public void setDataSize(long dataSize) {
+    public void setDataSize(Long dataSize) {
         this.dataSize = dataSize;
     }
 
     @ApiModelProperty(value = "The maximum size (in Bytes) that the queue is configured to hold", allowableValues = "range[0, 9223372036854775807]")
-    public long getDataSizeMax() {
+    public Long getDataSizeMax() {
         return dataSizeMax;
     }
 
-    public void setDataSizeMax(long dataSizeMax) {
+    public void setDataSizeMax(Long dataSizeMax) {
         this.dataSizeMax = dataSizeMax;
     }
 
@@ -76,8 +76,8 @@ public class FlowQueueStatus implements Serializable {
      * @return a decimal between [0, 1] representing the sizeMax utilization percentage
      */
     @ApiModelProperty(hidden = true)
-    public double getSizeUtilization() {
-        return sizeMax > 0 ? (double) size / (double) sizeMax : 0;
+    public Double getSizeUtilization() {
+        return size != null && sizeMax != null && sizeMax > 0 ? (double) size / (double) sizeMax : null;
     }
 
     /**
@@ -87,8 +87,7 @@ public class FlowQueueStatus implements Serializable {
      * @return a decimal between [0, 1] representing the dataSizeMax utilization percentage
      */
     @ApiModelProperty(hidden = true)
-    public double getDataSizeUtilization() {
-        return dataSizeMax > 0 ? (double) dataSize / (double) dataSizeMax : 0;
+    public Double getDataSizeUtilization() {
+        return dataSize != null && dataSizeMax != null && dataSizeMax > 0 ? (double) dataSize / (double) dataSizeMax : null;
     }
-
 }

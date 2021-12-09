@@ -30,17 +30,17 @@ import java.util.Map;
 public class AgentStatus implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private long uptime;
+    private Long uptime;
     private AgentRepositories repositories;
     private Map<String, ComponentStatus> components;
     private AgentResourceConsumption resourceConsumption;
 
     @ApiModelProperty("The number of milliseconds since the agent started.")
-    public long getUptime() {
+    public Long getUptime() {
         return uptime;
     }
 
-    public void setUptime(long uptime) {
+    public void setUptime(Long uptime) {
         this.uptime = uptime;
     }
 

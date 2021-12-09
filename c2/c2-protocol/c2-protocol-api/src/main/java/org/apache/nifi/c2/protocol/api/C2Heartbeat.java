@@ -31,7 +31,7 @@ public class C2Heartbeat implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String identifier;
-    private long created;
+    private Long created;
 
     private DeviceInfo deviceInfo;
     private AgentInfo agentInfo;
@@ -47,11 +47,11 @@ public class C2Heartbeat implements Serializable {
     }
 
     @ApiModelProperty(hidden = true)
-    public long getCreated() {
+    public Long getCreated() {
         return created;
     }
 
-    public void setCreated(long created) {
+    public void setCreated(Long created) {
         this.created = created;
     }
 
