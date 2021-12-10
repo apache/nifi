@@ -1821,6 +1821,20 @@
             return key.split('.').reduce(function(o,x){
                 return(typeof o === undefined || o === null)? o : (typeof o[x] == 'function')?o[x]():o[x];
             }, obj);
+        },
+
+        /**
+         * Checks if the given value has multi-lines.
+         *
+         * @param value to check
+         * @returns {boolean}
+         */
+        isMultiLine: function (value) {
+            const multiLineMatcher = /\n/.exec(value);
+            if (multiLineMatcher) {
+                return true;
+            }
+            return false;
         }
 
     };

@@ -1848,14 +1848,13 @@
                 return '<span class="unset">No value set</span>';
             } else {
                 var valueMarkup;
+                valueWidthOffset = 15;
 
-                // check for multiline
-                var isMultilineMatcher = /\n/.exec(value);
-                if (isMultilineMatcher) {
-                    valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre hide-multi-line multiline">' + nfCommon.escapeHtml(value) + '</div></div>';
+                // check for multi-line
+                if (nfCommon.isMultiLine(value)) {
+                    valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre hide-multi-line multi-line-clamp-ellipsis" title="' + nfCommon.escapeHtml(value) + '">' + nfCommon.escapeHtml(value) + '</div></div>';
                 } else {
-                    valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre hide-multi-line">' + nfCommon.escapeHtml(value) + '</div></div>';
-                    valueWidthOffset = 15;
+                    valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre hide-multi-line" title="' + nfCommon.escapeHtml(value) + '">' + nfCommon.escapeHtml(value) + '</div></div>';
                 }
 
                 // check for leading or trailing whitespace
@@ -1866,7 +1865,7 @@
 
                 // adjust the width accordingly
                 var content = $(valueMarkup);
-                content.find('.ellipsis-white-space-pre').width(columnDef.width - valueWidthOffset).ellipsis();
+                content.find('.ellipsis-white-space-pre').width(columnDef.width - valueWidthOffset);
 
                 return $('<div />').append(content).html();
             }

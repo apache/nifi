@@ -1292,7 +1292,7 @@
         // function for formatting the property value
         var valueFormatter = function (row, cell, value, columnDef, dataContext) {
             var valueMarkup;
-            var nameWidthOffset = 0;
+            var valueWidthOffset = 0;
             if (nfCommon.isDefinedAndNotNull(value)) {
                 // get the property descriptor
                 var descriptors = table.data('descriptors');
@@ -1323,12 +1323,19 @@
                         if (!resolvedAllowableValue && nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
                             valueMarkup = '<span class="table-cell blank">Incompatible Controller Service Configured</div>';
                         } else {
-                            valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre hide-multi-line">' + nfCommon.escapeHtml(value) + '</div></div>';
+                            valueWidthOffset = 10;
 
-                            // add a tooltip icon for trailing and/or leading whitespace
+                            // check for multi-line
+                            if (nfCommon.isMultiLine(value)) {
+                                valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre hide-multi-line multi-line-clamp-ellipsis" title="' + nfCommon.escapeHtml(value) + '">' + nfCommon.escapeHtml(value) + '</div></div>';
+                            } else {
+                                valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre hide-multi-line" title="' + nfCommon.escapeHtml(value) + '">' + nfCommon.escapeHtml(value) + '</div></div>';
+                            }
+
+                            // check for leading or trailing whitespace
                             if (nfCommon.hasLeadTrailWhitespace(value)) {
                                 valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
-                                nameWidthOffset = 20; // 10 + icon width (10)
+                                valueWidthOffset = 20;
                             }
                         }
                     }
@@ -1342,7 +1349,7 @@
             if (dataContext.type === 'required') {
                 content.addClass('required');
             }
-            content.find('.ellipsis-white-space-pre').width(columnDef.width - 10 - nameWidthOffset).ellipsis();
+            content.find('.ellipsis-white-space-pre').width(columnDef.width - 10 - valueWidthOffset);
 
             // return the appropriate markup
             return $('<div />').append(content).html();
