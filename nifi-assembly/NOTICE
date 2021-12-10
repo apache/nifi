@@ -981,6 +981,11 @@ The following binary components are provided under the Apache Software License v
       GeoIP2 Java API
       This software is Copyright (c) 2013 by MaxMind, Inc.
 
+  (ASLv2) Geohash Java
+    The following NOTICE information applies:
+      Geohash Java
+      Copyright 2016 Silvio Heuberger and contributors
+
     (ASLv2) Apache XMLBeans
       The following NOTICE information applies:
         Portions of this software were originally based on the following:
