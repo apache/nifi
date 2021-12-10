@@ -18,6 +18,8 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.csv.CSVReader;
+import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
@@ -1130,6 +1132,31 @@ public class TestQueryRecord {
         runner.run();
 
         runner.assertTransferCount(REL_NAME, 1);
+    }
+
+    @Test
+    public void testReturnsNoResultWithArrayColumn() throws InitializationException {
+        TestRunner runner = getRunner();
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.enableControllerService(jsonWriter);
+
+        runner.setProperty(REL_NAME, "SELECT * from FLOWFILE WHERE status = 'failure'");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(QueryRecord.INCLUDE_ZERO_RECORD_FLOWFILES, "true");
+
+        runner.enqueue("{\"status\": \"starting\",\"myArray\": [{\"foo\": \"foo\"}]}");
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+        final MockFlowFile flowFileOut = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        flowFileOut.assertContentEquals("[]");
     }
 
 

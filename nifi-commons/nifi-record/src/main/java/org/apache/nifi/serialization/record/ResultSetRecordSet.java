@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -301,6 +302,12 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             return RecordFieldType.ARRAY.getArrayDataType(baseType);
         } catch (SQLFeatureNotSupportedException sfnse) {
             return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
+        } catch (SQLException sqle) {
+            if (sqle.getCause() instanceof NoSuchElementException) {
+                return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
+            } else {
+                throw sqle;
+            }
         }
     }
 
