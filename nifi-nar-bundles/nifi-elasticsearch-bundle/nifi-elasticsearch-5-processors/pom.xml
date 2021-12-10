@@ -24,7 +24,7 @@ language governing permissions and limitations under the License. -->
         <slf4jversion>2.7</slf4jversion>
         <es.version>5.0.1</es.version>
         <lucene.version>6.2.1</lucene.version>
-        <log4j.version>2.14.1</log4j.version>
+        <log4j.version>2.15.0</log4j.version>
     </properties>
 
     <dependencies>
