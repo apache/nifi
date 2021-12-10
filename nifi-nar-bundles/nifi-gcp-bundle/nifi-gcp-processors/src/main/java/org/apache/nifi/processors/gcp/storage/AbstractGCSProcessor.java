@@ -18,6 +18,7 @@ package org.apache.nifi.processors.gcp.storage;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.BaseServiceException;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.collect.ImmutableList;
@@ -33,6 +34,7 @@ import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -73,7 +75,35 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
 
     @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
-        return verifyCloudService(context, verificationLogger, attributes);
+        final List<ConfigVerificationResult> results = new ArrayList<>(verifyCloudService(context, verificationLogger, attributes));
+        final Storage storage = getCloudService(context);
+        if (storage != null) {
+            try {
+                final String bucket = getBucketName(context, attributes);
+                final List<String> requiredPermissions = getRequiredPermissions();
+                if (storage.testIamPermissions(bucket, requiredPermissions).size() >= requiredPermissions.size()) {
+                    results.add(new ConfigVerificationResult.Builder()
+                            .verificationStepName("Test IAM Permissions")
+                            .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                            .explanation(String.format("Verified Bucket [%s] exists and the configured user has the correct permissions.", bucket))
+                            .build());
+                } else {
+                    results.add(new ConfigVerificationResult.Builder()
+                            .verificationStepName("Test IAM Permissions")
+                            .outcome(ConfigVerificationResult.Outcome.FAILED)
+                            .explanation(String.format("The configured user does not have the correct permissions on Bucket [%s].", bucket))
+                            .build());
+                }
+            } catch (final BaseServiceException e) {
+                verificationLogger.error("The configured user appears to have the correct permissions, but the following error was encountered", e);
+                results.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName("Test IAM Permissions")
+                        .outcome(ConfigVerificationResult.Outcome.FAILED)
+                        .explanation(String.format("The configured user appears to have the correct permissions, but the following error was encountered: " + e.getMessage()))
+                        .build());
+            }
+        }
+        return results;
     }
 
     @Override
@@ -88,6 +118,15 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
      * If sub-classes needs to implement any custom validation, override this method then add validation result to the results.
      */
     protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
+    }
+
+    /**
+     * @return The list of GCP permissions required for the processor
+     */
+    protected abstract List<String> getRequiredPermissions();
+
+    protected String getBucketName(final ProcessContext context, final Map<String, String> attributes) {
+        return context.getProperty("gcs-bucket").evaluateAttributeExpressions(attributes).getValue();
     }
 
     @Override

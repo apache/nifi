@@ -268,9 +268,19 @@ public class ListGCSBucket extends AbstractGCSProcessor {
     }
 
     @Override
+    protected List<String> getRequiredPermissions() {
+        return Collections.singletonList("storage.objects.list");
+    }
+
+    @Override
+    protected String getBucketName(final ProcessContext context, final Map<String, String> attributes) {
+        return context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+    }
+
+    @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, verificationLogger, attributes));
-        final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+        final String bucketName = getBucketName(context, attributes);
 
         try {
             final VerifyListingAction listingAction = new VerifyListingAction(context);

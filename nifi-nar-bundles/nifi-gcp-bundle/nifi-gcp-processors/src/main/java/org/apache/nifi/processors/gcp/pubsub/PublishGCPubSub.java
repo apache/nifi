@@ -19,9 +19,14 @@ package org.apache.nifi.processors.gcp.pubsub;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.batching.BatchingSettings;
 import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.api.gax.rpc.ApiException;
 import com.google.api.gax.rpc.DeadlineExceededException;
 import com.google.cloud.pubsub.v1.Publisher;
+import com.google.cloud.pubsub.v1.stub.GrpcPublisherStub;
+import com.google.cloud.pubsub.v1.stub.PublisherStubSettings;
 import com.google.common.collect.ImmutableList;
+import com.google.iam.v1.TestIamPermissionsRequest;
+import com.google.iam.v1.TestIamPermissionsResponse;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
 import com.google.pubsub.v1.ProjectTopicName;
@@ -83,6 +88,7 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content "
         + "will be read into memory to be sent as a PubSub message.")
 public class PublishGCPubSub extends AbstractGCPubSubProcessor{
+    private static final List<String> REQUIRED_PERMISSIONS = Collections.singletonList("pubsub.topics.publish");
 
     public static final PropertyDescriptor TOPIC_NAME = new PropertyDescriptor.Builder()
             .name("gcp-pubsub-topic")
@@ -141,24 +147,68 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
 
     @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
-
-        ConfigVerificationResult result;
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+        Publisher publisher = null;
         try {
-            getPublisherBuilder(context).build();
-            result = new ConfigVerificationResult.Builder()
+            publisher = getPublisherBuilder(context).build();
+            results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Create Publisher")
                     .outcome(Outcome.SUCCESSFUL)
                     .explanation("Successfully created Publisher")
-                    .build();
+                    .build());
         } catch (final IOException e) {
             verificationLogger.error("Failed to create Publisher", e);
-            result = new ConfigVerificationResult.Builder()
+            results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Create Publisher")
                     .outcome(Outcome.FAILED)
                     .explanation(String.format("Failed to create Publisher: " + e.getMessage()))
-                    .build();
+                    .build());
         }
-        return Collections.singletonList(result);
+
+        if (publisher != null) {
+            try {
+                final PublisherStubSettings publisherStubSettings = PublisherStubSettings.newBuilder()
+                        .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
+                        .build();
+
+                final GrpcPublisherStub publisherStub = GrpcPublisherStub.create(publisherStubSettings);
+                final String topicName = context.getProperty(TOPIC_NAME).evaluateAttributeExpressions().getValue();
+                final TestIamPermissionsRequest request = TestIamPermissionsRequest.newBuilder()
+                        .addAllPermissions(REQUIRED_PERMISSIONS)
+                        .setResource(topicName)
+                        .build();
+                final TestIamPermissionsResponse response = publisherStub.testIamPermissionsCallable().call(request);
+                if (response.getPermissionsCount() >= REQUIRED_PERMISSIONS.size()) {
+                    results.add(new ConfigVerificationResult.Builder()
+                            .verificationStepName("Test IAM Permissions")
+                            .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                            .explanation(String.format("Verified Topic [%s] exists and the configured user has the correct permissions.", topicName))
+                            .build());
+                } else {
+                    results.add(new ConfigVerificationResult.Builder()
+                            .verificationStepName("Test IAM Permissions")
+                            .outcome(ConfigVerificationResult.Outcome.FAILED)
+                            .explanation(String.format("The configured user does not have the correct permissions on Topic [%s].", topicName))
+                            .build());
+                }
+            } catch (final ApiException e) {
+                verificationLogger.error("The configured user appears to have the correct permissions, but the following error was encountered", e);
+                results.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName("Test IAM Permissions")
+                        .outcome(ConfigVerificationResult.Outcome.FAILED)
+                        .explanation(String.format("The configured user appears to have the correct permissions, but the following error was encountered: " + e.getMessage()))
+                        .build());
+            } catch (final IOException e) {
+                verificationLogger.error("The publisher stub could not be created in order to test the permissions", e);
+                results.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName("Test IAM Permissions")
+                        .outcome(ConfigVerificationResult.Outcome.FAILED)
+                        .explanation(String.format("The publisher stub could not be created in order to test the permissions: " + e.getMessage()))
+                        .build());
+
+            }
+        }
+        return results;
     }
 
     @Override

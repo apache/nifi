@@ -50,6 +50,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -202,6 +203,10 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             .build();
     }
 
+    @Override
+    protected List<String> getRequiredPermissions() {
+        return Collections.singletonList("storage.objects.get");
+    }
 
     @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
@@ -282,6 +287,9 @@ public class FetchGCSObject extends AbstractGCSProcessor {
         final BlobId blobId = BlobId.of(bucketName, key, generation);
         final List<Storage.BlobSourceOption> blobSourceOptions = getBlobSourceOptions(context, attributes);
 
+        if (blobId.getName() == null || blobId.getName().isEmpty()) {
+            throw new IllegalArgumentException("Name is required");
+        }
         final Blob blob = storage.get(blobId);
         if (blob == null) {
             throw new StorageException(404, "Blob " + blobId + " not found");

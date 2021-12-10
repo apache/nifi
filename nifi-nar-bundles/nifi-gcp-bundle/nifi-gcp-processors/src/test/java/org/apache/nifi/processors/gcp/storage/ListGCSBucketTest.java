@@ -251,11 +251,14 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
     private void verifyConfigVerification(final TestRunner runner, final ListGCSBucket processor, final int expectedCount) {
         final List<ConfigVerificationResult> verificationResults = processor.verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
-        assertEquals(2, verificationResults.size());
+        assertEquals(3, verificationResults.size());
         final ConfigVerificationResult cloudServiceResult = verificationResults.get(0);
         assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, cloudServiceResult.getOutcome());
 
-        final ConfigVerificationResult listingResult = verificationResults.get(1);
+        final ConfigVerificationResult iamPermissionsResult = verificationResults.get(1);
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, iamPermissionsResult.getOutcome());
+
+        final ConfigVerificationResult listingResult = verificationResults.get(2);
         assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, listingResult.getOutcome());
 
         assertTrue(String.format("Expected %s blobs to be counted, but explanation was: %s", expectedCount, listingResult.getExplanation()),
@@ -281,6 +284,8 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         runner.enqueue("test");
         runner.run();
+
+        when(storage.testIamPermissions(anyString(), any())).thenReturn(Collections.singletonList(true));
 
         runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS);
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 2);
@@ -323,6 +328,8 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         runner.enqueue("test2");
         runner.run(2);
 
+        when(storage.testIamPermissions(anyString(), any())).thenReturn(Collections.singletonList(true));
+
         runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS);
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 1);
         verifyConfigVerification(runner, processor, 1);
@@ -350,6 +357,8 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         runner.enqueue("test");
         runner.run();
 
+        when(storage.testIamPermissions(anyString(), any())).thenReturn(Collections.singletonList(true));
+
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 0);
         verifyConfigVerification(runner, processor, 0);
 
@@ -376,6 +385,8 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
         when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
+
+        when(storage.testIamPermissions(anyString(), any())).thenReturn(Collections.singletonList(true));
 
         runner.enqueue("test");
         runner.run();
@@ -427,6 +438,8 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         runner.enqueue("test");
         runner.run();
 
+        when(storage.testIamPermissions(anyString(), any())).thenReturn(Collections.singletonList(true));
+
         runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS);
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 1);
 
@@ -472,6 +485,8 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         when(storage.list(anyString(), any(Storage.BlobListOption[].class)))
                 .thenReturn(mockBlobPage);
+
+        when(storage.testIamPermissions(anyString(), any())).thenReturn(Collections.singletonList(true));
 
         runner.enqueue("test");
         runner.run();
@@ -525,6 +540,8 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         when(storage.list(anyString(), any(Storage.BlobListOption[].class)))
                 .thenReturn(mockBlobPage);
+
+        when(storage.testIamPermissions(anyString(), any())).thenReturn(Collections.singletonList(true));
 
         runner.enqueue("test");
         runner.run();
