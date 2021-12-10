@@ -2011,8 +2011,10 @@
                         $('#parameter-sensitive-radio-button').prop('disabled', true);
                         $('#parameter-not-sensitive-radio-button').prop('disabled', true);
                         if (parameter.value === '') {
-                            $('#parameter-set-empty-string-field').removeClass('checkbox-unchecked').addClass('checkbox-checked');
-                            $('#parameter-value-field').prop('disabled', true);
+                            if (!parameter.sensitive) {
+                                $('#parameter-set-empty-string-field').removeClass('checkbox-unchecked').addClass('checkbox-checked');
+                                $('#parameter-value-field').prop('disabled', true);
+                            }
                         } else {
                             $('#parameter-set-empty-string-field').removeClass('checkbox-checked').addClass('checkbox-unchecked');
                         }
@@ -2022,6 +2024,7 @@
                             $('#parameter-not-sensitive-radio-button').prop('checked', false);
                             if (!_.isNil(parameter.value)) {
                                 $('#parameter-value-field').addClass('sensitive').val(nfCommon.config.sensitiveText).select();
+                                $('#parameter-set-empty-string-field').removeClass('checkbox-checked').addClass('checkbox-unchecked');
                             }
                         } else {
                             $('#parameter-sensitive-radio-button').prop('checked', false);
