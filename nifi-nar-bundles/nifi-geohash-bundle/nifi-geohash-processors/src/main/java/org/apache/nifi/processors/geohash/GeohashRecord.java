@@ -341,7 +341,7 @@ public class GeohashRecord extends AbstractProcessor {
                     }
                 } catch (IllegalArgumentException e) {
                     //lat/lon/geohash values out of range or is not valid
-                    getLogger().warn(e.getLocalizedMessage(), e);
+                    getLogger().warn("Unable to " + (encode ? "encode" : "decode"), e);
                 }
 
                 routingStrategyExecutor.writeFlowFiles(record, writer, notMatchedWriter, updated);
@@ -362,7 +362,7 @@ public class GeohashRecord extends AbstractProcessor {
             }
         } catch (IOException | SchemaNotFoundException | MalformedRecordException e) {
             //cannot parse incoming data
-            getLogger().error("Cannot parse the incoming data", e.getLocalizedMessage(), e);
+            getLogger().error("Cannot parse the incoming data", e);
             session.remove(output);
             if (notMatched != null) {
                 session.remove(notMatched);
@@ -381,7 +381,7 @@ public class GeohashRecord extends AbstractProcessor {
         void transferFlowFiles(final ProcessSession session, FlowFile input, FlowFile output, FlowFile notMatched);
     }
 
-    private static class SkipRoutingStrategyExecutor implements RoutingStrategyExecutor {
+    private class SkipRoutingStrategyExecutor implements RoutingStrategyExecutor {
         @Override
         public void writeFlowFiles(Record record, RecordSetWriter writer, RecordSetWriter notMatchedWriter, boolean updated) throws IOException {
             writer.write(record);
@@ -394,7 +394,7 @@ public class GeohashRecord extends AbstractProcessor {
         }
     }
 
-    private static class SplitRoutingStrategyExecutor implements RoutingStrategyExecutor {
+    private class SplitRoutingStrategyExecutor implements RoutingStrategyExecutor {
         @Override
         public void writeFlowFiles(Record record, RecordSetWriter writer, RecordSetWriter notMatchedWriter, boolean updated) throws IOException {
             if (updated) {
@@ -422,7 +422,7 @@ public class GeohashRecord extends AbstractProcessor {
         }
     }
 
-    private static class RequireRoutingStrategyExecutor implements RoutingStrategyExecutor {
+    private class RequireRoutingStrategyExecutor implements RoutingStrategyExecutor {
         @Override
         public void writeFlowFiles(Record record, RecordSetWriter writer, RecordSetWriter notMatchedWriter, boolean updated) throws IOException {
             if (updated) {
@@ -436,6 +436,7 @@ public class GeohashRecord extends AbstractProcessor {
         public void transferFlowFiles(final ProcessSession session, FlowFile input, FlowFile output, FlowFile notMatched) {
             if (unenrichedCount > 0) {
                 session.remove(output);
+                getLogger().error("There exists some records that cannot be enriched or parsed. The original input flowfile is routed to failure using the REQUIRE strategy");
                 session.transfer(input, REL_FAILURE);
             } else {
                 session.transfer(output, REL_SUCCESS);
