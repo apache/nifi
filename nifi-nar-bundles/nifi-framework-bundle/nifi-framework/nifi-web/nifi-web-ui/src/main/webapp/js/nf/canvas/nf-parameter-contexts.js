@@ -1852,9 +1852,9 @@
 
                 // check for multi-line
                 if (nfCommon.isMultiLine(value)) {
-                    valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre hide-multi-line multi-line-clamp-ellipsis" title="' + nfCommon.escapeHtml(value) + '">' + nfCommon.escapeHtml(value) + '</div></div>';
+                    valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre multi-line-clamp-ellipsis">' + nfCommon.escapeHtml(value) + '</div></div>';
                 } else {
-                    valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre hide-multi-line" title="' + nfCommon.escapeHtml(value) + '">' + nfCommon.escapeHtml(value) + '</div></div>';
+                    valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre">' + nfCommon.escapeHtml(value) + '</div></div>';
                 }
 
                 // check for leading or trailing whitespace
@@ -1865,7 +1865,8 @@
 
                 // adjust the width accordingly
                 var content = $(valueMarkup);
-                content.find('.ellipsis-white-space-pre').width(columnDef.width - valueWidthOffset);
+                var contentValue = content.find('.ellipsis-white-space-pre');
+                contentValue.attr('title', contentValue.text()).width(columnDef.width - valueWidthOffset);
 
                 return $('<div />').append(content).html();
             }

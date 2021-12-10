@@ -59,10 +59,6 @@ div.context-menu-provenance {
     text-overflow: ellipsis;
 }
 
-.hide-multi-line {
-    max-height: 16px;
-}
-
 /* max 1 line text with ellipsis - works in Chrome and Firefox */
 .multi-line-clamp-ellipsis {
     display: -webkit-box;
