@@ -94,7 +94,6 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
     @Override
     protected void writeDeprecationNotice(final DeprecationNotice deprecationNotice) throws IOException {
         if (deprecationNotice == null) {
-            writeEmptyElement("deprecationNotice");
             return;
         }
 
@@ -127,21 +126,29 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
 
     @Override
     protected void writeDescription(final String description) throws IOException {
+        if (description == null) {
+            return;
+        }
         writeTextElement("description", description);
     }
 
     @Override
     protected void writeTags(final List<String> tags) throws IOException {
+        if (tags == null) {
+            return;
+        }
         writeTextArray("tags", "tag", tags);
     }
 
     @Override
     protected void writeProperties(final List<PropertyDescriptor> properties, Map<String,ServiceAPI> propertyServices) throws IOException {
+        if (properties == null || properties.isEmpty()) {
+            return;
+        }
+
         writeStartElement("properties");
-        if (properties != null) {
-            for (final PropertyDescriptor property : properties) {
-                writeProperty(property, propertyServices);
-            }
+        for (final PropertyDescriptor property : properties) {
+            writeProperty(property, propertyServices);
         }
         writeEndElement();
     }
@@ -152,7 +159,9 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         writeTextElement("name", property.getName());
         writeTextElement("displayName", property.getDisplayName());
         writeTextElement("description", property.getDescription());
-        writeTextElement("defaultValue", property.getDefaultValue());
+        if (property.getDefaultValue() != null) {
+            writeTextElement("defaultValue", property.getDefaultValue());
+        }
 
         if (property.getControllerServiceDefinition() != null) {
             writeStartElement("controllerServiceDefinition");
@@ -173,11 +182,16 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
             writeEndElement();
         }
 
-        writeArray("allowableValues", property.getAllowableValues(), this::writeAllowableValue);
+        if (property.getAllowableValues() != null && !property.getAllowableValues().isEmpty()) {
+            writeArray("allowableValues", property.getAllowableValues(), this::writeAllowableValue);
+        }
+
         writeBooleanElement("required", property.isRequired());
         writeBooleanElement("sensitive", property.isSensitive());
         writeBooleanElement("expressionLanguageSupported", property.isExpressionLanguageSupported());
-        writeTextElement("expressionLanguageScope", property.getExpressionLanguageScope() == null ? null : property.getExpressionLanguageScope().name());
+        if (property.getExpressionLanguageScope() != null) {
+            writeTextElement("expressionLanguageScope", property.getExpressionLanguageScope().name());
+        }
         writeBooleanElement("dynamicallyModifiesClasspath", property.isDynamicClasspathModifier());
         writeBooleanElement("dynamic", property.isDynamic());
         writeResourceDefinition(property.getResourceDefinition());
@@ -187,11 +201,13 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
     }
 
     private void writeResourceDefinition(final ResourceDefinition resourceDefinition) throws IOException {
-        writeStartElement("resourceDefinition");
-        if (resourceDefinition != null) {
-            writeTextElement("cardinality", resourceDefinition.getCardinality().name());
-            writeArray("resourceTypes", resourceDefinition.getResourceTypes(), this::writeResourceType);
+        if (resourceDefinition == null) {
+            return;
         }
+
+        writeStartElement("resourceDefinition");
+        writeTextElement("cardinality", resourceDefinition.getCardinality().name());
+        writeArray("resourceTypes", resourceDefinition.getResourceTypes(), this::writeResourceType);
         writeEndElement();
     }
 
@@ -237,6 +253,9 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
 
     @Override
     protected void writeDynamicProperties(final List<DynamicProperty> dynamicProperties) throws IOException {
+        if (dynamicProperties == null || dynamicProperties.isEmpty()) {
+            return;
+        }
         writeArray("dynamicProperties", dynamicProperties, this::writeDynamicProperty);
     }
 
@@ -254,29 +273,31 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
 
     @Override
     protected void writeStatefulInfo(final Stateful stateful) throws IOException {
-        writeStartElement("stateful");
-
-        if (stateful != null) {
-            writeTextElement("description", stateful.description());
-            writeArray("scopes", Arrays.asList(stateful.scopes()), scope -> writeTextElement("scope", scope.name()));
+        if (stateful == null) {
+            return;
         }
 
+        writeStartElement("stateful");
+        writeTextElement("description", stateful.description());
+        writeArray("scopes", Arrays.asList(stateful.scopes()), scope -> writeTextElement("scope", scope.name()));
         writeEndElement();
     }
 
     @Override
     protected void writeRestrictedInfo(final Restricted restricted) throws IOException {
+        if (restricted == null) {
+            return;
+        }
+
         writeStartElement("restricted");
 
-        if (restricted != null) {
-            if (restricted.value() != null && !restricted.value().isEmpty()) {
-                writeTextElement("generalRestrictionExplanation", restricted.value());
-            }
+        if (restricted.value() != null && !restricted.value().isEmpty()) {
+            writeTextElement("generalRestrictionExplanation", restricted.value());
+        }
 
-            final Restriction[] restrictions = restricted.restrictions();
-            if (restrictions != null) {
-                writeArray("restrictions", Arrays.asList(restrictions), this::writeRestriction);
-            }
+        final Restriction[] restrictions = restricted.restrictions();
+        if (restrictions != null) {
+            writeArray("restrictions", Arrays.asList(restrictions), this::writeRestriction);
         }
 
         writeEndElement();
@@ -295,11 +316,17 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
 
     @Override
     protected void writeInputRequirementInfo(final InputRequirement.Requirement requirement) throws IOException {
-        writeTextElement("inputRequirement", requirement == null ? null : requirement.name());
+        if (requirement == null) {
+            return;
+        }
+        writeTextElement("inputRequirement", requirement.name());
     }
 
     @Override
     protected void writeSystemResourceConsiderationInfo(final List<SystemResourceConsideration> considerations) throws IOException {
+        if (considerations == null || considerations.isEmpty()) {
+            return;
+        }
         writeArray("systemResourceConsiderations", considerations, this::writeSystemResourceConsideration);
     }
 
@@ -315,7 +342,6 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
     @Override
     protected void writeSeeAlso(final SeeAlso seeAlso) throws IOException {
         if (seeAlso == null) {
-            writeEmptyElement("seeAlso");
             return;
         }
 
@@ -338,6 +364,10 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
 
     @Override
     protected void writeRelationships(final Set<Relationship> relationships) throws IOException {
+        if (relationships == null || relationships.isEmpty()) {
+            return;
+        }
+
         writeArray("relationships", relationships,rel -> {
             writeStartElement("relationship");
 
@@ -351,18 +381,21 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
 
     @Override
     protected void writeDynamicRelationship(final DynamicRelationship dynamicRelationship) throws IOException {
-        writeStartElement("dynamicRelationship");
-
-        if (dynamicRelationship != null) {
-            writeTextElement("name", dynamicRelationship.name());
-            writeTextElement("description", dynamicRelationship.description());
+        if (dynamicRelationship == null) {
+            return;
         }
 
+        writeStartElement("dynamicRelationship");
+        writeTextElement("name", dynamicRelationship.name());
+        writeTextElement("description", dynamicRelationship.description());
         writeEndElement();
     }
 
     @Override
     protected void writeReadsAttributes(final List<ReadsAttribute> attributes) throws IOException {
+        if (attributes == null || attributes.isEmpty()) {
+            return;
+        }
         writeArray("readsAttributes", attributes, this::writeReadsAttribute);
     }
 
@@ -375,6 +408,9 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
 
     @Override
     protected void writeWritesAttributes(final List<WritesAttribute> attributes) throws IOException {
+        if (attributes == null) {
+            return;
+        }
         writeArray("writesAttributes", attributes, this::writeWritesAttribute);
     }
 
@@ -392,6 +428,9 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
 
     @Override
     protected void writeProvidedServices(final Collection<ServiceAPI> providedServices) throws IOException {
+        if (providedServices == null || providedServices.isEmpty()) {
+            return;
+        }
         writeArray("providedServiceAPIs", providedServices, this::writeProvidedService);
     }
 

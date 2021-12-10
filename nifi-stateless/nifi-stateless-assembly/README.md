@@ -221,8 +221,11 @@ The following properties may be used to indicate where extensions are to be loca
 
 When Stateless NiFi is started, it parses the provided dataflow and determines which bundles/extensions are necessary
 to run the dataflow. If an extension is not available, or the version referenced by the flow is not available, Stateless
-may attempt to download the extensions automatically. To do this, one or more Extension Clients must be configured.
-Each client is configured using several properties, which are all tied together using a 'key'. For example, if we have
+may attempt to download the extensions automatically. To do this, one or more Extension Clients need to be configured. If no
+Extension Clients are configured, only those extensions can be used that are already available (e.g. manually downloaded and copied offline)
+in the directories specified by the `nifi.stateless.extensions.directory` and `nifi.stateless.readonly.extensions.directory.<suffix>` properties described above.
+
+Each Extension Client is configured using several properties, which are all tied together using a 'key'. For example, if we have
 4 properties, `nifi.stateless.extension.client.ABC.type`, `nifi.stateless.extension.client.ABC.baseUrl`,
 `nifi.stateless.extension.client.XYZ.type`, and `nifi.stateless.extension.client.XYZ.baseUrl`, then we know that
 the first `type` property refers to the same client as the first `baseUrl` property because they both have the 'key'

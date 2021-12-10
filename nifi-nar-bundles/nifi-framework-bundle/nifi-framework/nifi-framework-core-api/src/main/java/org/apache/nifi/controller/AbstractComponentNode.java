@@ -462,20 +462,21 @@ public abstract class AbstractComponentNode implements ComponentNode {
         final PropertyConfiguration oldConfiguration = properties.put(descriptor, propertyConfiguration);
         final String effectiveValue = propertyConfiguration.getEffectiveValue(getParameterContext());
 
-        if (!propertyConfiguration.equals(oldConfiguration)) {
-            if (descriptor.getControllerServiceDefinition() != null) {
-                if (oldConfiguration != null) {
-                    final String oldEffectiveValue = oldConfiguration.getEffectiveValue(getParameterContext());
-                    final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(oldEffectiveValue);
-                    if (oldNode != null) {
-                        oldNode.removeReference(this, descriptor);
-                    }
+        // If the property references a Controller Service, we need to register this component & property descriptor as a reference.
+        // If it previously referenced a Controller Service, we need to also remove that reference.
+        // It is okay if the new & old values are the same - we just unregister the component/descriptor and re-register it.
+        if (descriptor.getControllerServiceDefinition() != null) {
+            if (oldConfiguration != null) {
+                final String oldEffectiveValue = oldConfiguration.getEffectiveValue(getParameterContext());
+                final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(oldEffectiveValue);
+                if (oldNode != null) {
+                    oldNode.removeReference(this, descriptor);
                 }
+            }
 
-                final ControllerServiceNode newNode = serviceProvider.getControllerServiceNode(effectiveValue);
-                if (newNode != null) {
-                    newNode.addReference(this, descriptor);
-                }
+            final ControllerServiceNode newNode = serviceProvider.getControllerServiceNode(effectiveValue);
+            if (newNode != null) {
+                newNode.addReference(this, descriptor);
             }
         }
 

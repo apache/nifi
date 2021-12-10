@@ -146,7 +146,6 @@ import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
-import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
@@ -2547,39 +2546,14 @@ public final class DtoFactory {
     }
 
 
-    public Set<ComponentDifferenceDTO> createComponentDifferenceDtos(final FlowComparison comparison, final FlowManager flowManager) {
+    public Set<ComponentDifferenceDTO> createComponentDifferenceDtosForLocalModifications(final FlowComparison comparison, final VersionedProcessGroup localGroup, final FlowManager flowManager) {
         final Map<ComponentDifferenceDTO, List<DifferenceDTO>> differencesByComponent = new HashMap<>();
 
         final Map<String, VersionedProcessGroup> versionedGroups = flattenProcessGroups(comparison.getFlowA().getContents());
 
         for (final FlowDifference difference : comparison.getDifferences()) {
-            // Ignore these as local differences for now because we can't do anything with it
-            if (difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED) {
-                continue;
-            }
-
-            // Ignore differences that are the result of the Versioned Flow not having a Scheduled State and the newer flow being "ENABLED". We do this because
-            // Scheduled State was not always part of the Versioned Flow - it was always assumed to be ENABLED. We don't want flows that were previously stored in this
-            // format to now be considered different than the local flow.
-            if (FlowDifferenceFilters.isScheduledStateNew(difference)) {
-                continue;
-            }
-
-            // Ignore differences for adding remote ports
-            if (FlowDifferenceFilters.isAddedOrRemovedRemotePort(difference)) {
-                continue;
-            }
-
-            // Ignore name changes to public ports
-            if (FlowDifferenceFilters.isPublicPortNameChange(difference)) {
-                continue;
-            }
-
-            if (FlowDifferenceFilters.isIgnorableVersionedFlowCoordinateChange(difference)) {
-                continue;
-            }
-
-            if (FlowDifferenceFilters.isNewPropertyWithDefaultValue(difference, flowManager)) {
+            // Ignore any environment-specific change
+            if (FlowDifferenceFilters.isEnvironmentalChange(difference, localGroup, flowManager)) {
                 continue;
             }
 
@@ -2632,7 +2606,7 @@ public final class DtoFactory {
 
         if (component instanceof InstantiatedVersionedComponent) {
             final InstantiatedVersionedComponent instantiatedComponent = (InstantiatedVersionedComponent) component;
-            dto.setComponentId(instantiatedComponent.getInstanceId());
+            dto.setComponentId(instantiatedComponent.getInstanceIdentifier());
             dto.setProcessGroupId(instantiatedComponent.getInstanceGroupId());
         } else {
             dto.setComponentId(component.getIdentifier());
@@ -2675,43 +2649,43 @@ public final class DtoFactory {
     public Map<String, String> createVersionControlComponentMappingDto(final InstantiatedVersionedProcessGroup group) {
         final Map<String, String> mapping = new HashMap<>();
 
-        mapping.put(group.getInstanceId(), group.getIdentifier());
+        mapping.put(group.getInstanceIdentifier(), group.getIdentifier());
         group.getProcessors().stream()
             .map(proc -> (InstantiatedVersionedProcessor) proc)
-            .forEach(proc -> mapping.put(proc.getInstanceId(), proc.getIdentifier()));
+            .forEach(proc -> mapping.put(proc.getInstanceIdentifier(), proc.getIdentifier()));
         group.getFunnels().stream()
             .map(funnel -> (InstantiatedVersionedFunnel) funnel)
-            .forEach(funnel -> mapping.put(funnel.getInstanceId(), funnel.getIdentifier()));
+            .forEach(funnel -> mapping.put(funnel.getInstanceIdentifier(), funnel.getIdentifier()));
         group.getInputPorts().stream()
             .map(port -> (InstantiatedVersionedPort) port)
-            .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+            .forEach(port -> mapping.put(port.getInstanceIdentifier(), port.getIdentifier()));
         group.getOutputPorts().stream()
             .map(port -> (InstantiatedVersionedPort) port)
-            .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+            .forEach(port -> mapping.put(port.getInstanceIdentifier(), port.getIdentifier()));
         group.getControllerServices().stream()
             .map(service -> (InstantiatedVersionedControllerService) service)
-            .forEach(service -> mapping.put(service.getInstanceId(), service.getIdentifier()));
+            .forEach(service -> mapping.put(service.getInstanceIdentifier(), service.getIdentifier()));
         group.getLabels().stream()
             .map(label -> (InstantiatedVersionedLabel) label)
-            .forEach(label -> mapping.put(label.getInstanceId(), label.getIdentifier()));
+            .forEach(label -> mapping.put(label.getInstanceIdentifier(), label.getIdentifier()));
         group.getConnections().stream()
             .map(conn -> (InstantiatedVersionedConnection) conn)
-            .forEach(conn -> mapping.put(conn.getInstanceId(), conn.getIdentifier()));
+            .forEach(conn -> mapping.put(conn.getInstanceIdentifier(), conn.getIdentifier()));
         group.getRemoteProcessGroups().stream()
             .map(rpg -> (InstantiatedVersionedRemoteProcessGroup) rpg)
             .forEach(rpg -> {
-                mapping.put(rpg.getInstanceId(), rpg.getIdentifier());
+                mapping.put(rpg.getInstanceIdentifier(), rpg.getIdentifier());
 
                 if (rpg.getInputPorts() != null) {
                     rpg.getInputPorts().stream()
                         .map(port -> (InstantiatedVersionedRemoteGroupPort) port)
-                        .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+                        .forEach(port -> mapping.put(port.getInstanceIdentifier(), port.getIdentifier()));
                 }
 
                 if (rpg.getOutputPorts() != null) {
                     rpg.getOutputPorts().stream()
                         .map(port -> (InstantiatedVersionedRemoteGroupPort) port)
-                        .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+                        .forEach(port -> mapping.put(port.getInstanceIdentifier(), port.getIdentifier()));
                 }
             });
 

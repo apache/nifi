@@ -26,8 +26,6 @@ import org.apache.nifi.cluster.coordination.http.replication.util.MockReplicatio
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
-import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
 import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.events.EventReporter;
@@ -47,19 +45,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.ProcessingException;
-import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import java.net.SocketTimeoutException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -321,77 +315,6 @@ public class TestThreadPoolRequestReplicator {
         });
 
         return coordinator;
-    }
-
-    @Test
-    public void testMutableRequestRequiresAllNodesConnected() throws URISyntaxException {
-        final ClusterCoordinator coordinator = createClusterCoordinator();
-
-        // build a map of connection state to node ids
-        final Map<NodeConnectionState, List<NodeIdentifier>> nodeMap = new HashMap<>();
-        final List<NodeIdentifier> connectedNodes = new ArrayList<>();
-        connectedNodes.add(new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false));
-        connectedNodes.add(new NodeIdentifier("2", "localhost", 8200, "localhost", 8201, "localhost", 8202, 8203, false));
-        nodeMap.put(NodeConnectionState.CONNECTED, connectedNodes);
-
-        final List<NodeIdentifier> otherState = new ArrayList<>();
-        otherState.add(new NodeIdentifier("3", "localhost", 8300, "localhost", 8301, "localhost", 8302, 8303, false));
-        nodeMap.put(NodeConnectionState.CONNECTING, otherState);
-
-        when(coordinator.getConnectionStates()).thenReturn(nodeMap);
-        final NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null);
-
-        final MockReplicationClient client = new MockReplicationClient();
-        final RequestCompletionCallback requestCompletionCallback = (uri, method, responses) -> {
-        };
-
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(5, 100, client, coordinator, requestCompletionCallback, EventReporter.NO_OP, props) {
-            @Override
-            public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers,
-                                                  boolean indicateReplicated, boolean verify) {
-                return null;
-            }
-        };
-
-        try {
-            // set the user
-            final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(StandardNiFiUser.ANONYMOUS));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            try {
-                replicator.replicate(HttpMethod.POST, new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>());
-                Assert.fail("Expected ConnectingNodeMutableRequestException");
-            } catch (final ConnectingNodeMutableRequestException e) {
-                // expected behavior
-            }
-
-            nodeMap.remove(NodeConnectionState.CONNECTING);
-            nodeMap.put(NodeConnectionState.DISCONNECTED, otherState);
-            try {
-                replicator.replicate(HttpMethod.POST, new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>());
-                Assert.fail("Expected DisconnectedNodeMutableRequestException");
-            } catch (final DisconnectedNodeMutableRequestException e) {
-                // expected behavior
-            }
-
-            nodeMap.remove(NodeConnectionState.DISCONNECTED);
-            nodeMap.put(NodeConnectionState.DISCONNECTING, otherState);
-            try {
-                replicator.replicate(HttpMethod.POST, new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>());
-                Assert.fail("Expected DisconnectedNodeMutableRequestException");
-            } catch (final DisconnectedNodeMutableRequestException e) {
-                // expected behavior
-            }
-
-            // should not throw an Exception because it's a GET
-            replicator.replicate(HttpMethod.GET, new URI("http://localhost:80/processors/1"), new MultivaluedHashMap<>(), new HashMap<>());
-
-            // should not throw an Exception because all nodes are now connected
-            nodeMap.remove(NodeConnectionState.DISCONNECTING);
-            replicator.replicate(HttpMethod.POST, new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>());
-        } finally {
-            replicator.shutdown();
-        }
     }
 
     @Test(timeout = 15000)

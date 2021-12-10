@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
+import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
@@ -153,4 +154,33 @@ public class JerseyReportingTasksClient extends AbstractJerseyClient implements 
             return getRequestBuilder(target).delete(VerifyConfigRequestEntity.class);
         });
     }
+
+    @Override
+    public ReportingTaskEntity deleteReportingTask(final ReportingTaskEntity reportingTask) throws NiFiClientException, IOException {
+        if (reportingTask == null) {
+            throw new IllegalArgumentException("Reporting Task Entity cannot be null");
+        }
+        if (reportingTask.getId() == null) {
+            throw new IllegalArgumentException("Reporting Task ID cannot be null");
+        }
+
+        final RevisionDTO revision = reportingTask.getRevision();
+        if (revision == null) {
+            throw new IllegalArgumentException("Revision cannot be null");
+        }
+
+        return executeAction("Error deleting Reporting Task", () -> {
+            WebTarget target = reportingTasksTarget
+                .path("{id}").resolveTemplate("id", reportingTask.getId())
+                .queryParam("version", revision.getVersion())
+                .queryParam("clientId", revision.getClientId());
+
+            if (reportingTask.isDisconnectedNodeAcknowledged() == Boolean.TRUE) {
+                target = target.queryParam("disconnectedNodeAcknowledged", "true");
+            }
+
+            return getRequestBuilder(target).delete(ReportingTaskEntity.class);
+        });
+    }
+
 }

@@ -52,7 +52,7 @@ public class FlowConfigurationDiagnosticTask implements DiagnosticTask {
         details.add("Local Input Ports: " + counts.getLocalInputPortCount());
         details.add("Local Output Ports: " + counts.getLocalOutputPortCount());
         details.add("Site-to-Site Input Ports: " + counts.getPublicInputPortCount());
-        details.add("Site-to-Site Input Ports: " + counts.getPublicOutputPortCount());
+        details.add("Site-to-Site Output Ports: " + counts.getPublicOutputPortCount());
         details.add("Active RPG Ports: " + counts.getActiveRemotePortCount());
         details.add("Inactive RPG Ports: " + counts.getInactiveRemotePortCount());
         details.add("");

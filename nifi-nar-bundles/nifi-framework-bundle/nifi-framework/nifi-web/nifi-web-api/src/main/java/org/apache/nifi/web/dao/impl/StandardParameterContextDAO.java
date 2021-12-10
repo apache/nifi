@@ -82,11 +82,15 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
         final AtomicReference<ParameterContext> parameterContextReference = new AtomicReference<>();
         flowManager.withParameterContextResolution(() -> {
-            final ParameterContext parameterContext = flowManager.createParameterContext(parameterContextDto.getId(), parameterContextDto.getName(),
-                    parameters, parameterContextDto.getInheritedParameterContexts());
+            final List<String> referencedIds = parameterContextDto.getInheritedParameterContexts().stream()
+                .map(ParameterContextReferenceEntity::getId)
+                .collect(Collectors.toList());
+
+            final ParameterContext parameterContext = flowManager.createParameterContext(parameterContextDto.getId(), parameterContextDto.getName(), parameters, referencedIds);
             if (parameterContextDto.getDescription() != null) {
                 parameterContext.setDescription(parameterContextDto.getDescription());
             }
+
             parameterContextReference.set(parameterContext);
         });
         return parameterContextReference.get();
@@ -232,9 +236,11 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         resolveInheritedParameterContexts(parameterContextDto);
 
         final List<ParameterContext> inheritedParameterContexts = new ArrayList<>();
-        inheritedParameterContexts.addAll(parameterContextDto.getInheritedParameterContexts().stream()
-                .map(entity -> flowManager.getParameterContextManager().getParameterContext(entity.getComponent().getId()))
-                .collect(Collectors.toList()));
+        if (parameterContextDto.getInheritedParameterContexts() != null) {
+            inheritedParameterContexts.addAll(parameterContextDto.getInheritedParameterContexts().stream()
+                    .map(entity -> flowManager.getParameterContextManager().getParameterContext(entity.getComponent().getId()))
+                    .collect(Collectors.toList()));
+        }
 
         return inheritedParameterContexts;
     }

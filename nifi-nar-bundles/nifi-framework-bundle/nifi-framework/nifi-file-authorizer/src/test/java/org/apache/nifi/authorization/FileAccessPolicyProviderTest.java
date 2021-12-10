@@ -145,6 +145,7 @@ public class FileAccessPolicyProviderTest {
     private File restoreAuthorizations;
     private File restoreTenants;
     private File flow;
+    private File flowJson;
     private File flowNoPorts;
     private File flowWithDns;
 
@@ -171,6 +172,8 @@ public class FileAccessPolicyProviderTest {
         flow = new File("src/test/resources/flow.xml.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flow.getParentFile());
 
+        flowJson = new File("src/test/resources/flow.json.gz");
+
         flowNoPorts = new File("src/test/resources/flow-no-ports.xml.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flowNoPorts.getParentFile());
 
@@ -180,6 +183,7 @@ public class FileAccessPolicyProviderTest {
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flow);
+        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
 
         userGroupProvider = new FileUserGroupProvider();
         userGroupProvider.setNiFiProperties(properties);
@@ -465,6 +469,7 @@ public class FileAccessPolicyProviderTest {
         properties = getNiFiProperties(props);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flowWithDns);
+        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
 
         userGroupProvider.setNiFiProperties(properties);
         accessPolicyProvider.setNiFiProperties(properties);
@@ -577,6 +582,7 @@ public class FileAccessPolicyProviderTest {
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(new File("src/test/resources/does-not-exist.xml.gz"));
+        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
 
         userGroupProvider.setNiFiProperties(properties);
         accessPolicyProvider.setNiFiProperties(properties);
@@ -617,6 +623,7 @@ public class FileAccessPolicyProviderTest {
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(null);
+        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
 
         userGroupProvider.setNiFiProperties(properties);
         accessPolicyProvider.setNiFiProperties(properties);
@@ -660,6 +667,7 @@ public class FileAccessPolicyProviderTest {
         properties = getNiFiProperties(props);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flow);
+        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
 
         userGroupProvider.setNiFiProperties(properties);
         accessPolicyProvider.setNiFiProperties(properties);

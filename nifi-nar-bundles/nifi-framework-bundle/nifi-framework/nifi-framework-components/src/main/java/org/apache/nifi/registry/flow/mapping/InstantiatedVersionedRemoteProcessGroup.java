@@ -29,7 +29,7 @@ public class InstantiatedVersionedRemoteProcessGroup extends VersionedRemoteProc
     }
 
     @Override
-    public String getInstanceId() {
+    public String getInstanceIdentifier() {
         return instanceId;
     }
 

@@ -23,7 +23,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -65,7 +65,7 @@ public class BulletinMergerTest {
         final NodeIdentifier node1 = new NodeIdentifier("node-1", "host-1", 8080, "host-1", 19998, null, null, null, false);
         final NodeIdentifier node2 = new NodeIdentifier("node-2", "host-2", 8081, "host-2", 19999, null, null, null, false);
 
-        final Map<NodeIdentifier, List<BulletinEntity>> nodeMap = new HashMap<>();
+        final Map<NodeIdentifier, List<BulletinEntity>> nodeMap = new LinkedHashMap<>();
         nodeMap.put(node1, new ArrayList<>());
         nodeMap.put(node2, new ArrayList<>());
 
@@ -77,8 +77,8 @@ public class BulletinMergerTest {
 
         final List<BulletinEntity> bulletinEntities = BulletinMerger.mergeBulletins(nodeMap, nodeMap.size());
         assertEquals(bulletinEntities.size(), 3);
-        assertTrue(bulletinEntities.contains(copyOfBulletin1));
-        assertEquals(copyOfBulletin1.getNodeAddress(), ALL_NODES_MESSAGE);
+        assertTrue(bulletinEntities.contains(bulletinEntity1));
+        assertEquals(bulletinEntity1.getNodeAddress(), ALL_NODES_MESSAGE);
         assertTrue(bulletinEntities.contains(bulletinEntity2));
         assertTrue(bulletinEntities.contains(unauthorizedBulletin));
     }

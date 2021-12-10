@@ -29,7 +29,7 @@ public class InstantiatedVersionedRemoteGroupPort extends VersionedRemoteGroupPo
     }
 
     @Override
-    public String getInstanceId() {
+    public String getInstanceIdentifier() {
         return instanceId;
     }
 
