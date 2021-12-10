@@ -39,6 +39,7 @@
         <module>nifi-stateless</module>
         <module>nifi-registry</module>
         <module>nifi-toolkit</module>
+        <module>c2</module>
     </modules>
     <url>https://nifi.apache.org</url>
     <organization>
