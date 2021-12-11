@@ -131,7 +131,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
     static final AllowableValue RECORD_PATH_KEY_RESOLVER_SELECTION = new AllowableValue("RecordPathResolver",
             "RecordPathResolver", "The <Message Key Field> property will be interpreted as a record path of the message value.");
     static final AllowableValue SIMPLE_VALUE_KEY_RESOLVER_SELECTION = new AllowableValue("ExpressionLanguageResolver",
-            "ExpressionLanguageResolver", "The <Message Key Field> property will be interpreted as a expression for directly " +
+            "ExpressionLanguageResolver", "The <Message Key Field> property will be interpreted as an expression for directly " +
             "deriving the message key value, e.g. '${kafka.key}'.");
 
     static final PropertyDescriptor TOPIC = new Builder()
