@@ -40,7 +40,7 @@ public class TrapSNMPIntegrationTest {
 
     @Test
     public void testSendReceiveV1Trap() throws InterruptedException {
-        final int listenPort = NetworkUtils.availablePort();
+        final int listenPort = NetworkUtils.getAvailableUdpPort();
 
         final V1TrapConfiguration v1TrapConfiguration = TrapConfigurationFactory.getV1TrapConfiguration();
         final SNMPTestRunnerFactory v1TestRunnerFactory = new SNMPV1TestRunnerFactory();
@@ -72,7 +72,7 @@ public class TrapSNMPIntegrationTest {
 
     @Test
     public void testSendReceiveV2Trap() throws InterruptedException {
-        final int listenPort = NetworkUtils.availablePort();
+        final int listenPort = NetworkUtils.getAvailableUdpPort();
 
         final V2TrapConfiguration v2TrapConfiguration = TrapConfigurationFactory.getV2TrapConfiguration();
         final SNMPTestRunnerFactory v2cTestRunnerFactory = new SNMPV2cTestRunnerFactory();

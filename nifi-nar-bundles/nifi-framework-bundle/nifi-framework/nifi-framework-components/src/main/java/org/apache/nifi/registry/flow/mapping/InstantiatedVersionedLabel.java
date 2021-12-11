@@ -29,7 +29,7 @@ public class InstantiatedVersionedLabel extends VersionedLabel implements Instan
     }
 
     @Override
-    public String getInstanceId() {
+    public String getInstanceIdentifier() {
         return instanceId;
     }
 

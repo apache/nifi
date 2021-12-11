@@ -22,10 +22,10 @@ import org.apache.nifi.controller.MissingBundleException;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+import org.apache.nifi.groups.BundleUpdateStrategy;
 import org.apache.nifi.services.FlowService;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -47,6 +47,7 @@ public interface FlowConfigurationDAO {
      * @param controller a controller
      * @param dataFlow the flow to load
      * @param flowService the flow service
+     * @param bundleUpdateStrategy specifies how to handle bundle updates
      * @throws java.io.IOException
      *
      * @throws FlowSerializationException if proposed flow is not a valid flow configuration file
@@ -54,7 +55,7 @@ public interface FlowConfigurationDAO {
      * @throws FlowSynchronizationException if updates to the controller failed. If this exception is thrown, then the controller should be considered unsafe to be used
      * @throws MissingBundleException if the proposed flow cannot be loaded by the controller because it contains a bundle that does not exist in the controller
      */
-    void load(FlowController controller, DataFlow dataFlow, FlowService flowService)
+    void load(FlowController controller, DataFlow dataFlow, FlowService flowService, BundleUpdateStrategy bundleUpdateStrategy)
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException;
 
     /**
@@ -73,14 +74,6 @@ public interface FlowConfigurationDAO {
      * @throws IOException if unable to load the flow
      */
     void load(OutputStream os, boolean compressed) throws IOException;
-
-    /**
-     * Saves the given stream as the stored flow.
-     *
-     * @param is an input stream
-     * @throws IOException if unable to save the flow
-     */
-    void save(InputStream is) throws IOException;
 
     /**
      * Saves all changes made to the given flow to the given File.

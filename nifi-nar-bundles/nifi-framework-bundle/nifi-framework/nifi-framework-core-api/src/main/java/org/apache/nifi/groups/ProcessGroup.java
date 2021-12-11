@@ -41,6 +41,7 @@ import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.remote.RemoteGroupPort;
 
 import java.util.Collection;
@@ -882,6 +883,15 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void updateFlow(VersionedFlowSnapshot proposedSnapshot, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings, boolean updateDescendantVersionedFlows);
 
     /**
+     * Updates the Process Group to match the proposed flow
+     *
+     * @param proposedSnapshot the proposed flow
+     * @param synchronizationOptions options for how the synchronization should occur
+     * @param flowMappingOptions options for how to map the existing dataflow into Versioned components so that it can be compared to the proposed snapshot
+     */
+    void synchronizeFlow(VersionedFlowSnapshot proposedSnapshot, GroupSynchronizationOptions synchronizationOptions, FlowMappingOptions flowMappingOptions);
+
+    /**
      * Verifies a template with the specified name can be created.
      *
      * @param name name of the template
@@ -1207,7 +1217,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void setDefaultBackPressureObjectThreshold(Long defaultBackPressureObjectThreshold);
 
     /**
-     * @returnthe default back pressure size threshold of this ProcessGroup
+     * @return the default back pressure size threshold of this ProcessGroup
      */
     String getDefaultBackPressureDataSizeThreshold();
 

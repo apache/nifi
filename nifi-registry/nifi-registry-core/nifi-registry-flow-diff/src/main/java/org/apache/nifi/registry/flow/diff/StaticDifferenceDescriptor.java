@@ -17,11 +17,10 @@
 
 package org.apache.nifi.registry.flow.diff;
 
-import java.util.Objects;
-
-import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
+
+import java.util.Objects;
 
 /**
  * Describes differences between flows as if the flows are two disparate flows that are being
@@ -51,6 +50,9 @@ public class StaticDifferenceDescriptor implements DifferenceDescriptor {
                 description = String.format("Property '%s' exists for %s with ID %s in %s but not in %s",
                     fieldName, componentA.getComponentType().getTypeName(), componentA.getIdentifier(), flowAName, flowBName);
                 break;
+            case PROPERTY_CHANGED:
+                description = String.format("Property '%s' for %s with ID %s is different", fieldName, componentA.getComponentType().getTypeName(), componentA.getIdentifier());
+                break;
             case PROPERTY_PARAMETERIZED:
                 description = String.format("Property '%s' is a parameter reference in %s but not in %s", fieldName, flowAName, flowBName);
                 break;
@@ -58,11 +60,7 @@ public class StaticDifferenceDescriptor implements DifferenceDescriptor {
                 description = String.format("Property '%s' is a parameter reference in %s but not in %s", fieldName, flowBName, flowAName);
                 break;
             case SCHEDULED_STATE_CHANGED:
-                if (ScheduledState.DISABLED.equals(valueA)) {
-                    description = String.format("%s is disabled in %s but enabled in %s", componentA.getComponentType().getTypeName(), flowAName, flowBName);
-                } else {
-                    description = String.format("%s is enabled in %s but disabled in %s", componentA.getComponentType().getTypeName(), flowAName, flowBName);
-                }
+                description = String.format("%s has a Scheduled State of %s in %s but %s in %s", componentA.getComponentType(), valueA, flowAName, valueB, flowBName);
                 break;
             case VARIABLE_ADDED:
                 description = String.format("Variable '%s' exists for Process Group with ID %s in %s but not in %s",

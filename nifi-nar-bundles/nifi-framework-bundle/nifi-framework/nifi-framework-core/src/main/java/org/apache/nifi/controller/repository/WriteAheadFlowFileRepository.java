@@ -830,7 +830,9 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     @Override
     public Set<String> findQueuesWithFlowFiles(final FlowFileSwapManager swapManager) throws IOException {
-        recoveredRecords = wal.recoverRecords();
+        if (recoveredRecords == null) {
+            recoveredRecords = wal.recoverRecords();
+        }
 
         final Set<String> queueIds = new HashSet<>();
         for (final SerializedRepositoryRecord record : recoveredRecords) {

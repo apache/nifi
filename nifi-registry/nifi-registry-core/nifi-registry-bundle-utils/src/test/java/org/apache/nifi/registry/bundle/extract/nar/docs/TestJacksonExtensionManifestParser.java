@@ -247,6 +247,31 @@ public class TestJacksonExtensionManifestParser {
         assertEquals(ResourceType.FILE, resourceTypes.get(0));
     }
 
+    @Test
+    public void testBundleAndBuildInfo() throws IOException {
+        final ExtensionManifest extensionManifest = parse("src/test/resources/descriptors/extension-manifest-kafka-2-6-nar.xml");
+        assertNotNull(extensionManifest);
+
+        assertEquals("org.apache.nifi", extensionManifest.getGroupId());
+        assertEquals("nifi-kafka-2-6-nar", extensionManifest.getArtifactId());
+        assertEquals("1.16.0-SNAPSHOT", extensionManifest.getVersion());
+
+        assertNotNull(extensionManifest.getParentNar());
+        assertEquals("org.apache.nifi", extensionManifest.getParentNar().getGroupId());
+        assertEquals("nifi-standard-services-api-nar", extensionManifest.getParentNar().getArtifactId());
+        assertEquals("1.16.0-SNAPSHOT", extensionManifest.getParentNar().getVersion());
+
+        assertNotNull(extensionManifest.getBuildInfo());
+        assertEquals("nifi-1.15.0-RC3", extensionManifest.getBuildInfo().getTag());
+        assertEquals("main", extensionManifest.getBuildInfo().getBranch());
+        assertEquals("123", extensionManifest.getBuildInfo().getRevision());
+        assertEquals("1.8.0_282", extensionManifest.getBuildInfo().getJdk());
+        assertEquals("jsmith", extensionManifest.getBuildInfo().getBuiltBy());
+        assertEquals("2021-11-29T15:18:55Z", extensionManifest.getBuildInfo().getTimestamp());
+
+        assertEquals("1.16.0-SNAPSHOT", extensionManifest.getSystemApiVersion());
+    }
+
     private ExtensionManifest parse(final String file) throws IOException {
         try (final InputStream inputStream = new FileInputStream(file)) {
             return parser.parse(inputStream);

@@ -47,6 +47,7 @@ import org.apache.nifi.controller.service.mock.ServiceB;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorFactory;
+import org.apache.nifi.groups.BundleUpdateStrategy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
@@ -75,7 +76,6 @@ import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -198,7 +198,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWithReportingTaskAndProcessorReferencingControllerService() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
@@ -208,7 +208,7 @@ public class TestFlowController {
 
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
 
         // should be two controller services
         final Set<ControllerServiceNode> controllerServiceNodes = controller.getFlowManager().getAllControllerServices();
@@ -260,7 +260,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWithProcessorReferencingControllerService() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
@@ -270,7 +270,7 @@ public class TestFlowController {
 
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
 
         try {
             // should be two controller services
@@ -302,7 +302,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenAuthorizationsAreEqual() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
@@ -310,14 +310,14 @@ public class TestFlowController {
         final DataFlow proposedDataFlow = mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
 
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }
 
     @Test(expected = UninheritableFlowException.class)
     public void testSynchronizeFlowWhenAuthorizationsAreDifferent() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
         final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.xml");
@@ -326,11 +326,11 @@ public class TestFlowController {
         final String authFingerprint = "<authorizations></authorizations>";
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
         controller.initializeFlow();
 
         try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
             assertNotEquals(authFingerprint, authorizer.getFingerprint());
         } finally {
             purgeFlow();
@@ -339,7 +339,7 @@ public class TestFlowController {
 
     @Test(expected = FlowSynchronizationException.class)
     public void testSynchronizeFlowWithInvalidParameterContextReference() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
         final File flowFile = new File("src/test/resources/conf/parameter-context-flow-error.xml");
@@ -349,7 +349,7 @@ public class TestFlowController {
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
         try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
             controller.initializeFlow();
         } finally {
             purgeFlow();
@@ -358,7 +358,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWithNestedParameterContexts() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
         final File flowFile = new File("src/test/resources/conf/parameter-context-flow.xml");
@@ -368,7 +368,7 @@ public class TestFlowController {
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
         try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
             controller.initializeFlow();
 
             ParameterContext parameterContext = controller.getFlowManager().getParameterContextManager().getParameterContext("context");
@@ -383,7 +383,7 @@ public class TestFlowController {
 
     @Test
     public void testCreateParameterContextWithAndWithoutValidation() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
         final File flowFile = new File("src/test/resources/conf/parameter-context-flow.xml");
@@ -393,7 +393,7 @@ public class TestFlowController {
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
         try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
             controller.initializeFlow();
 
             final Map<String, Parameter> parameters = new HashMap<>();
@@ -403,19 +403,17 @@ public class TestFlowController {
             controller.getFlowManager().createParameterContext("id", "name", parameters, Collections.emptyList());
 
             final ParameterContext existingParameterContext = controller.getFlowManager().getParameterContextManager().getParameterContext("context");
-            final ParameterContextReferenceEntity ref = new ParameterContextReferenceEntity();
-            ref.setId(existingParameterContext.getIdentifier());
             final ParameterContextReferenceDTO dto = new ParameterContextReferenceDTO();
             dto.setId(existingParameterContext.getIdentifier());
             dto.setName(existingParameterContext.getName());
 
             // This is not wrapped in FlowManager#withParameterContextResolution(Runnable), so it will throw an exception
             assertThrows(IllegalStateException.class, () ->
-                    controller.getFlowManager().createParameterContext("id", "name", parameters, Collections.singletonList(ref)));
+                    controller.getFlowManager().createParameterContext("id", "name", parameters, Collections.singletonList(existingParameterContext.getIdentifier())));
 
             // Instead, this is how it should be called
             controller.getFlowManager().withParameterContextResolution(() -> controller
-                    .getFlowManager().createParameterContext("id2", "name2", parameters, Collections.singletonList(ref)));
+                    .getFlowManager().createParameterContext("id2", "name2", parameters, Collections.singletonList(existingParameterContext.getIdentifier())));
 
         } finally {
             purgeFlow();
@@ -434,7 +432,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenAuthorizationsAreDifferentAndFlowEmpty() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with different auth fingerprint as the current authorizer
@@ -442,7 +440,7 @@ public class TestFlowController {
         final DataFlow proposedDataFlow = mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
         assertNotEquals(authFingerprint, authorizer.getFingerprint());
 
         assertTrue(authorizer.getGroups().isEmpty());
@@ -452,7 +450,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenProposedAuthorizationsAreNull() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
         final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.xml");
@@ -460,14 +458,14 @@ public class TestFlowController {
 
         final String authFingerprint = "<authorizations></authorizations>";
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
 
         controller.initializeFlow();
 
         final DataFlow dataflowWithNullAuthorizations = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, null, Collections.emptySet());
 
         try {
-            controller.synchronize(standardFlowSynchronizer, dataflowWithNullAuthorizations, mock(FlowService.class));
+            controller.synchronize(standardFlowSynchronizer, dataflowWithNullAuthorizations, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
             Assert.fail("Was able to synchronize controller with null authorizations but dataflow wasn't empty");
         } catch (final UninheritableFlowException expected) {
             // expected
@@ -478,13 +476,13 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenProposedAuthorizationsAreNullAndEmptyFlow() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
         final DataFlow proposedDataFlow = mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(null);
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
 
         assertTrue(authorizer.getGroups().isEmpty());
         assertTrue(authorizer.getUsers().isEmpty());
@@ -510,7 +508,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenCurrentAuthorizationsAreEmptyAndProposedAreNot() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
@@ -523,14 +521,14 @@ public class TestFlowController {
 
         controller.shutdown(true);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-                auditService, encryptor, bulletinRepo, variableRegistry, mock(FlowRegistryClient.class), extensionManager, statusHistoryRepository);
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
+            auditService, encryptor, bulletinRepo, variableRegistry, mock(FlowRegistryClient.class), extensionManager, statusHistoryRepository);
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }
 
     @Test
     public void testSynchronizeFlowWhenProposedMissingComponentsAreDifferent() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
         final Set<String> missingComponents = new HashSet<>();
@@ -541,7 +539,7 @@ public class TestFlowController {
         when(proposedDataFlow.getMissingComponents()).thenReturn(missingComponents);
 
         try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class));
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
             Assert.fail("Should have thrown exception");
         } catch (UninheritableFlowException e) {
             assertTrue(e.getMessage().contains("Proposed flow has missing components that are not considered missing in the current flow (1,2)"));
@@ -551,7 +549,7 @@ public class TestFlowController {
     @Test
     public void testSynchronizeFlowWhenExistingMissingComponentsAreDifferent() throws IOException {
         final PropertyEncryptor encryptor = PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties);
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(encryptor, nifiProperties, extensionManager);
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(encryptor, nifiProperties, extensionManager);
 
         final ProcessorNode mockProcessorNode = mock(ProcessorNode.class);
         when(mockProcessorNode.getIdentifier()).thenReturn("1");
@@ -586,7 +584,7 @@ public class TestFlowController {
         when(proposedDataFlow.getMissingComponents()).thenReturn(new HashSet<>());
 
         try {
-            standardFlowSynchronizer.sync(mockFlowController, proposedDataFlow, encryptor, mock(FlowService.class));
+            standardFlowSynchronizer.sync(mockFlowController, proposedDataFlow, encryptor, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
             Assert.fail("Should have thrown exception");
         } catch (UninheritableFlowException e) {
             assertTrue(e.getMessage(), e.getMessage().contains("Current flow has missing components that are not considered missing in the proposed flow (1,2,3)"));
@@ -595,7 +593,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenBundlesAreSame() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
@@ -607,7 +605,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenBundlesAreDifferent() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+        final FlowSynchronizer standardFlowSynchronizer = new XmlFlowSynchronizer(
                 PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
@@ -639,7 +637,7 @@ public class TestFlowController {
         final byte[] authFingerprintBytes = authFingerprint.getBytes(StandardCharsets.UTF_8);
         final DataFlow proposedDataFlow1 = new StandardDataFlow(flowBytes, null, authFingerprintBytes, Collections.emptySet());
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow1, mock(FlowService.class));
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow1, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
     }
 
     @Test

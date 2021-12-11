@@ -17,6 +17,7 @@
 package org.apache.nifi.registry.extension.component.manifest;
 
 import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -29,6 +30,14 @@ import java.util.List;
 @XmlRootElement(name = "extensionManifest")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class ExtensionManifest {
+
+    private String groupId;
+    private String artifactId;
+    private String version;
+
+    private ParentNar parentNar;
+
+    private BuildInfo buildInfo;
 
     @XmlElement(required = true)
     private String systemApiVersion;
@@ -45,6 +54,43 @@ public class ExtensionManifest {
         this.extensions = extensions;
     }
 
+    @ApiModelProperty(value = "The group id of this NAR")
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    @ApiModelProperty(value = "The artifact id of this NAR")
+    public String getArtifactId() {
+        return artifactId;
+    }
+
+    public void setArtifactId(String artifactId) {
+        this.artifactId = artifactId;
+    }
+
+    @ApiModelProperty(value = "The version of this NAR")
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
+    @ApiModelProperty(value = "The info for the parent NAR of this NAR")
+    public ParentNar getParentNar() {
+        return parentNar;
+    }
+
+    public void setParentNar(ParentNar parentNar) {
+        this.parentNar = parentNar;
+    }
+
+    @ApiModelProperty(value = "The version of nifi-api this NAR was built against")
     public String getSystemApiVersion() {
         return systemApiVersion;
     }
@@ -53,6 +99,16 @@ public class ExtensionManifest {
         this.systemApiVersion = systemApiVersion;
     }
 
+    @ApiModelProperty(value = "The build info for the NAR")
+    public BuildInfo getBuildInfo() {
+        return buildInfo;
+    }
+
+    public void setBuildInfo(BuildInfo buildInfo) {
+        this.buildInfo = buildInfo;
+    }
+
+    @ApiModelProperty(value = "The list of extensions contained in this NAR")
     public List<Extension> getExtensions() {
         return extensions;
     }

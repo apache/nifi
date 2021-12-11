@@ -23,6 +23,7 @@ import java.util.Objects;
 
 public class ConnectableComponent {
     private String id;
+    private String instanceId;
     private ConnectableComponentType type;
     private String groupId;
     private String name;
@@ -35,6 +36,15 @@ public class ConnectableComponent {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    @ApiModelProperty("The instance ID of an existing component that is described by this VersionedComponent, or null if this is not mapped to an instantiated component")
+    public String getInstanceIdentifier() {
+        return instanceId;
+    }
+
+    public void setInstanceIdentifier(String instanceIdentifier) {
+        this.instanceId = instanceIdentifier;
     }
 
     @ApiModelProperty(value = "The type of component the connectable is.", required = true)
@@ -91,5 +101,16 @@ public class ConnectableComponent {
         }
         final ConnectableComponent other = (ConnectableComponent) obj;
         return Objects.equals(id, other.id);
+    }
+
+    @Override
+    public String toString() {
+        return "ConnectableComponent{" +
+            "id='" + id + '\'' +
+            ", instanceId='" + instanceId + '\'' +
+            ", type=" + type +
+            ", groupId='" + groupId + '\'' +
+            ", name='" + name + '\'' +
+            '}';
     }
 }

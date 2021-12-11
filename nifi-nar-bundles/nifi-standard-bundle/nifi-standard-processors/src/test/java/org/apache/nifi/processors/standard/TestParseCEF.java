@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -340,6 +341,37 @@ public class TestParseCEF {
 
         JsonNode extension = results.get("extension");
         Assert.assertEquals(200, extension.get("http_response").asInt());
+    }
+
+    @Test
+    public void testAcceptEmptyExtensions() throws Exception {
+        String sample3 = "CEF:0|TestVendor|TestProduct|TestVersion|TestEventClassID|TestName|Low|" +
+                "rt=Feb 09 2015 00:27:43 UTC cn3Label=Test Long cn3= " +
+                "cfp1=1.234 cfp1Label=Test FP Number smac=00:00:0c:07:ac:00 " +
+                "c6a3=2001:cdba::3257:9652 c6a3Label=Test IPv6 cs1Label=Test String cs1=test test test chocolate " +
+                "destinationTranslatedAddress=123.123.123.123 " +
+                "deviceCustomDate1=Feb 06 2015 13:27:43 " +
+                "dpt= agt= dlat=";
+
+        final TestRunner runner = TestRunners.newTestRunner(new ParseCEF());
+        runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_CONTENT);
+        runner.setProperty(ParseCEF.TIME_REPRESENTATION, ParseCEF.UTC);
+        runner.setProperty(ParseCEF.INCLUDE_CUSTOM_EXTENSIONS, "true");
+        runner.setProperty(ParseCEF.ACCEPT_EMPTY_EXTENSIONS, "true");
+        runner.setProperty(ParseCEF.VALIDATE_DATA, "false");
+        runner.enqueue(sample3.getBytes());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 1);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
+
+        byte [] rawJson = mff.toByteArray();
+
+        JsonNode results = new ObjectMapper().readTree(rawJson);
+
+        JsonNode extensions = results.get("extension");
+        Assert.assertTrue(extensions.has("cn3"));
+        Assert.assertTrue(extensions.get("cn3").isNull());
     }
 
     @Test

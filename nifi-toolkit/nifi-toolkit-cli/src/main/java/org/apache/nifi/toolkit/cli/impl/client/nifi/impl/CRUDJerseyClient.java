@@ -108,10 +108,14 @@ public class CRUDJerseyClient<T extends ComponentEntity> extends AbstractJerseyC
         }
 
         return executeAction("Error deleting " + componentType, () -> {
-            final WebTarget target = accessTarget
+            WebTarget target = accessTarget
                 .queryParam("version", revision.getVersion())
                 .queryParam("clientId", revision.getClientId())
                 .resolveTemplate("id", entity.getId());
+
+            if (entity.isDisconnectedNodeAcknowledged() == Boolean.TRUE) {
+                target = target.queryParam("disconnectedNodeAcknowledged", "true");
+            }
 
             return getRequestBuilder(target).delete(entityType);
         });

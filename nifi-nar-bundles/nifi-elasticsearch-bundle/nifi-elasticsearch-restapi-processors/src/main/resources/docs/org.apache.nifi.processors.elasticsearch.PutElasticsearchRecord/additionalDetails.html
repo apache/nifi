@@ -22,7 +22,7 @@
 <body>
 <p>
     This processor is for accessing the Elasticsearch Bulk API. It provides the ability to configure bulk operations on
-    a per-record basis which is what separates it from PutElasticsearchHttpRecord. For example, it is possible to define
+    a per-record basis which is what separates it from PutElasticsearchJson. For example, it is possible to define
     multiple commands to index documents, followed by deletes, creates and update operations against the same index or
     other indices as desired.
 </p>
@@ -41,7 +41,10 @@
     The index, operation and (optional) type fields are configured with default values that can be overridden using
     record path operations that find an index or type value in the record set.
     The ID and operation type (create, index, update, upsert or delete) can also be extracted in a similar fashion from
-    the record set. The following is an example of a document exercising all of these features:
+    the record set.
+    An "@timestamp" field can be added to the data either using a default or by extracting it from the record set.
+    This is useful if the documents are being indexed into an Elasticsearch Data Stream.
+    The following is an example of a document exercising all of these features:
 </p>
 <pre>
     {
@@ -52,7 +55,8 @@
             "operation": "index"
         },
         "message": "Hello, world",
-        "from": "john.smith"
+        "from": "john.smith",
+        "ts": "2021-12-03'T'14:00:00.000Z"
     }
 </pre>
 <pre>
@@ -71,6 +75,7 @@
     <li>/metadata/index</li>
     <li>metadata/type</li>
     <li>metadata/operation</li>
+    <li>/ts</li>
 </ul>
 <p>Valid values for "operation" are:</p>
 <ul>
