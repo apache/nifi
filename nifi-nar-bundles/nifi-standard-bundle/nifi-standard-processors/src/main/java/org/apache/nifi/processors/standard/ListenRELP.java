@@ -116,7 +116,7 @@ public class ListenRELP extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(ProcessContext context) throws IOException {
-        int maxConnections = context.getProperty(ListenerProperties.MAX_CONNECTIONS).asInteger();
+        int workerThreads = context.getProperty(ListenerProperties.WORKER_THREADS).asInteger();
         int bufferSize = context.getProperty(ListenerProperties.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final String networkInterface = context.getProperty(ListenerProperties.NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
         InetAddress hostname = NetworkUtils.getInterfaceAddress(networkInterface);
@@ -130,7 +130,7 @@ public class ListenRELP extends AbstractProcessor {
         messageDemarcatorBytes = msgDemarcator.getBytes(charset);
         final NettyEventServerFactory eventFactory = getNettyEventServerFactory(hostname, port, charset, events);
         eventFactory.setSocketReceiveBuffer(bufferSize);
-        eventFactory.setWorkerThreads(maxConnections);
+        eventFactory.setWorkerThreads(workerThreads);
         configureFactoryForSsl(context, eventFactory);
 
         try {
@@ -157,7 +157,7 @@ public class ListenRELP extends AbstractProcessor {
         descriptors.add(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE);
         descriptors.add(ListenerProperties.MAX_SOCKET_BUFFER_SIZE);
         descriptors.add(ListenerProperties.CHARSET);
-        descriptors.add(ListenerProperties.MAX_CONNECTIONS);
+        descriptors.add(ListenerProperties.WORKER_THREADS);
         descriptors.add(ListenerProperties.MAX_BATCH_SIZE);
         descriptors.add(ListenerProperties.MESSAGE_DELIMITER);
         descriptors.add(SSL_CONTEXT_SERVICE);
