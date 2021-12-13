@@ -196,6 +196,9 @@
      * Reset the dialog.
      */
     var resetDialog = function () {
+        // clean up any tooltips that may have been generated
+        nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
+
         $('#parameter-context-name').val('');
         $('#parameter-context-name-read-only').text('');
 
@@ -227,9 +230,6 @@
 
         // reset the current parameter context
         currentParameterContextEntity = null;
-
-        // clean up any tooltips that may have been generated
-        nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle');
     };
 
     /**
@@ -861,6 +861,9 @@
                 parameterContext: parameterContext
             });
 
+            // clean up any tooltips that may have been generated
+            nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
+
             if (_.isNil(param.id)) {
                 var matchingParameter = _.find(parameterData.getItems(), {name: parameter.name});
                 if (_.isNil(matchingParameter)) {
@@ -993,13 +996,13 @@
         var serializedValue;
 
         var value = input.val();
-        if (!isChecked && _.isEmpty(value)) {
+        if (!isChecked && value === '') {
             value = null;
         }
 
         var hasChanged = parameter.value !== value;
 
-        if (!nfCommon.isBlank(value)) {
+        if (nfCommon.isDefinedAndNotNull(value)) {
             // if the value is sensitive and the user has not made a change
             if (!_.isEmpty(parameter) && parameter.sensitive === true && input.hasClass('sensitive') && parameter.isNew === false) {
                 serializedValue = parameter.previousValue;
@@ -1007,7 +1010,6 @@
             } else {
                 // value is not sensitive or it is sensitive and the user has changed it then always take the current value
                 serializedValue = value;
-
                 // if the param is sensitive and the param value has not "changed", that means it matches the mask and it should still be considered changed
                 if (!hasChanged && !_.isEmpty(parameter) && parameter.sensitive === true && parameter.isNew === false) {
                     hasChanged = true;
@@ -1060,6 +1062,9 @@
                 isInherited: originalParameter.isInherited,
                 parameterContext: originalParameter.parameterContext
             });
+
+            // clean up any tooltips that may have been generated
+            nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
 
             // update row for the parameter
             parameterData.updateItem(originalParameter.id, parameter);
@@ -1129,6 +1134,9 @@
      * @returns {*}
      */
     var updateParameterContext = function (parameterContextEntity) {
+        // clean up any tooltips that may have been generated
+        nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
+
         var parameters = marshalParameters();
         var inheritedParameterContexts = marshalInheritedParameterContexts();
 
@@ -1831,6 +1839,7 @@
         };
 
         var valueFormatter = function (row, cell, value, columnDef, dataContext) {
+            var valueWidthOffset = 0;
             if (dataContext.sensitive === true && !_.isNil(value)) {
                 return '<span class="table-cell sensitive">Sensitive value set</span>';
             } else if (value === '') {
@@ -1838,7 +1847,28 @@
             } else if (_.isNil(value)) {
                 return '<span class="unset">No value set</span>';
             } else {
-                return nfCommon.escapeHtml(value);
+                var valueMarkup;
+                valueWidthOffset = 15;
+
+                // check for multi-line
+                if (nfCommon.isMultiLine(value)) {
+                    valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre multi-line-clamp-ellipsis">' + nfCommon.escapeHtml(value) + '</div></div>';
+                } else {
+                    valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre">' + nfCommon.escapeHtml(value) + '</div></div>';
+                }
+
+                // check for leading or trailing whitespace
+                if (nfCommon.hasLeadTrailWhitespace(value)) {
+                    valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
+                    valueWidthOffset = 30;
+                }
+
+                // adjust the width accordingly
+                var content = $(valueMarkup);
+                var contentValue = content.find('.ellipsis-white-space-pre');
+                contentValue.attr('title', contentValue.text()).width(columnDef.width - valueWidthOffset);
+
+                return $('<div />').append(content).html();
             }
         };
 
@@ -1922,6 +1952,9 @@
 
                 // determine the desired action
                 if (target.hasClass('delete-parameter')) {
+                    // clean any tooltips that may have been added for this item
+                    nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
+
                     if (!parameter.isNew) {
                         // mark the parameter in question for removal and refresh the table
                         parameterData.updateItem(parameter.id, $.extend(parameter, {
@@ -1978,7 +2011,10 @@
                         $('#parameter-sensitive-radio-button').prop('disabled', true);
                         $('#parameter-not-sensitive-radio-button').prop('disabled', true);
                         if (parameter.value === '') {
-                            $('#parameter-set-empty-string-field').removeClass('checkbox-unchecked').addClass('checkbox-checked');
+                            if (!parameter.sensitive) {
+                                $('#parameter-set-empty-string-field').removeClass('checkbox-unchecked').addClass('checkbox-checked');
+                                $('#parameter-value-field').prop('disabled', true);
+                            }
                         } else {
                             $('#parameter-set-empty-string-field').removeClass('checkbox-checked').addClass('checkbox-unchecked');
                         }
@@ -1988,6 +2024,7 @@
                             $('#parameter-not-sensitive-radio-button').prop('checked', false);
                             if (!_.isNil(parameter.value)) {
                                 $('#parameter-value-field').addClass('sensitive').val(nfCommon.config.sensitiveText).select();
+                                $('#parameter-set-empty-string-field').removeClass('checkbox-checked').addClass('checkbox-unchecked');
                             }
                         } else {
                             $('#parameter-sensitive-radio-button').prop('checked', false);
@@ -2124,6 +2161,17 @@
                         }));
                 }
             }
+
+            var whitespaceIcon = $(this).find('div.fa-info');
+            if (whitespaceIcon.length && !whitespaceIcon.data('qtip')) {
+                var whitespaceTooltip = nfCommon.formatWhitespaceTooltip();
+
+                whitespaceIcon.qtip($.extend({},
+                    nfCommon.config.tooltipConfig,
+                    {
+                        content: whitespaceTooltip
+                    }));
+            }
         });
     };
 
@@ -2202,6 +2250,8 @@
 
         $('#add-parameter').on('click', function () {
             var closeHandler = function () {
+                // clean up any tooltips that may have been generated
+                nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
                 resetParameterDialog();
             };
 
