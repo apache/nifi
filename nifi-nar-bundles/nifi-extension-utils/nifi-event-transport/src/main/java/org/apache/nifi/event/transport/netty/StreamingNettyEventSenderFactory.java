@@ -43,9 +43,9 @@ public class StreamingNettyEventSenderFactory extends NettyEventSenderFactory<In
         final InputStreamMessageEncoder inputStreamMessageEncoder = new InputStreamMessageEncoder();
 
         setHandlerSupplier(() -> Arrays.asList(
-                logExceptionChannelHandler,
                 new ChunkedWriteHandler(),
-                inputStreamMessageEncoder
+                inputStreamMessageEncoder,
+                logExceptionChannelHandler
         ));
     }
 }

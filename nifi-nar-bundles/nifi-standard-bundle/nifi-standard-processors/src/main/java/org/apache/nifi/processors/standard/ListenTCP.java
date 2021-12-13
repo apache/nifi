@@ -139,10 +139,9 @@ public class ListenTCP extends AbstractProcessor {
         descriptors.add(ListenerProperties.PORT);
         descriptors.add(ListenerProperties.RECV_BUFFER_SIZE);
         descriptors.add(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE);
-        // Deprecated
         descriptors.add(ListenerProperties.MAX_SOCKET_BUFFER_SIZE);
         descriptors.add(ListenerProperties.CHARSET);
-        descriptors.add(ListenerProperties.MAX_CONNECTIONS);
+        descriptors.add(ListenerProperties.WORKER_THREADS);
         descriptors.add(ListenerProperties.MAX_BATCH_SIZE);
         descriptors.add(ListenerProperties.MESSAGE_DELIMITER);
         // Deprecated
@@ -160,8 +159,9 @@ public class ListenTCP extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(ProcessContext context) throws IOException {
-        int maxConnections = context.getProperty(ListenerProperties.MAX_CONNECTIONS).asInteger();
+        int workerThreads = context.getProperty(ListenerProperties.WORKER_THREADS).asInteger();
         int bufferSize = context.getProperty(ListenerProperties.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        int socketBufferSize = context.getProperty(ListenerProperties.MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final String networkInterface = context.getProperty(ListenerProperties.NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
         InetAddress address = NetworkUtils.getInterfaceAddress(networkInterface);
         Charset charset = Charset.forName(context.getProperty(ListenerProperties.CHARSET).getValue());
@@ -181,8 +181,8 @@ public class ListenTCP extends AbstractProcessor {
             eventFactory.setClientAuth(clientAuth);
         }
 
-        eventFactory.setSocketReceiveBuffer(bufferSize);
-        eventFactory.setWorkerThreads(maxConnections);
+        eventFactory.setSocketReceiveBuffer(socketBufferSize);
+        eventFactory.setWorkerThreads(workerThreads);
         eventFactory.setThreadNamePrefix(String.format("%s[%s]", getClass().getSimpleName(), getIdentifier()));
 
         try {

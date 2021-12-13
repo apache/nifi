@@ -46,12 +46,12 @@ public class StringNettyEventSenderFactory extends NettyEventSenderFactory<Strin
     public StringNettyEventSenderFactory(final ComponentLog log, final String address, final int port, final TransportProtocol protocol, final Charset charset, final LineEnding lineEnding) {
         super(address, port, protocol);
         final List<ChannelHandler> handlers = new ArrayList<>();
-        handlers.add(new LogExceptionChannelHandler(log));
         handlers.add(new StringEncoder(charset));
 
         if (LineEnding.UNIX.equals(lineEnding)) {
             handlers.add(new LineEncoder(LineSeparator.UNIX, charset));
         }
+        handlers.add(new LogExceptionChannelHandler(log));
         setHandlerSupplier(() -> handlers);
     }
 }

@@ -126,9 +126,10 @@ public class ListenerProperties {
             .defaultValue("10000")
             .required(true)
             .build();
-    public static final PropertyDescriptor MAX_CONNECTIONS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor WORKER_THREADS = new PropertyDescriptor.Builder()
             .name("Max Number of TCP Connections")
-            .description("The maximum number of concurrent TCP connections to accept.")
+            .displayName("Max Number of Worker Threads")
+            .description("The maximum number of worker threads available for servicing TCP connections.")
             .addValidator(StandardValidators.createLongValidator(1, 65535, true))
             .defaultValue("2")
             .required(true)
