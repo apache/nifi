@@ -1292,7 +1292,7 @@
         // function for formatting the property value
         var valueFormatter = function (row, cell, value, columnDef, dataContext) {
             var valueMarkup;
-            var nameWidthOffset = 0;
+            var valueWidthOffset = 0;
             if (nfCommon.isDefinedAndNotNull(value)) {
                 // get the property descriptor
                 var descriptors = table.data('descriptors');
@@ -1323,14 +1323,20 @@
                         if (!resolvedAllowableValue && nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
                             valueMarkup = '<span class="table-cell blank">Incompatible Controller Service Configured</div>';
                         } else {
-                            valueMarkup = '<div class="table-cell value"><pre class="ellipsis">' + nfCommon.escapeHtml(value) + '</pre></div>';
+                            valueWidthOffset = 10;
 
-                            // add a tooltip icon for trailing and/or leading whitespace
-                            if (nfCommon.hasLeadTrailWhitespace(value)) {
-                                valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
-                                nameWidthOffset = 20; // 10 + icon width (10)
+                            // check for multi-line
+                            if (nfCommon.isMultiLine(value)) {
+                                valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre multi-line-clamp-ellipsis">' + nfCommon.escapeHtml(value) + '</div></div>';
+                            } else {
+                                valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre">' + nfCommon.escapeHtml(value) + '</div></div>';
                             }
 
+                            // check for leading or trailing whitespace
+                            if (nfCommon.hasLeadTrailWhitespace(value)) {
+                                valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
+                                valueWidthOffset = 20;
+                            }
                         }
                     }
                 }
@@ -1343,7 +1349,8 @@
             if (dataContext.type === 'required') {
                 content.addClass('required');
             }
-            content.find('.ellipsis').width(columnDef.width - 10 - nameWidthOffset).ellipsis();
+            var contentValue = content.find('.ellipsis-white-space-pre');
+            contentValue.attr('title', contentValue.text()).width(columnDef.width - 10 - valueWidthOffset);
 
             // return the appropriate markup
             return $('<div />').append(content).html();
@@ -1789,13 +1796,11 @@
             if (whitespaceIcon.length && !whitespaceIcon.data('qtip')) {
                 var whitespaceTooltip = nfCommon.formatWhitespaceTooltip();
 
-                if (nfCommon.isDefinedAndNotNull(whitespaceTooltip)) {
-                    whitespaceIcon.qtip($.extend({},
-                        nfCommon.config.tooltipConfig,
-                        {
-                            content: whitespaceTooltip
-                        }));
-                }
+                whitespaceIcon.qtip($.extend({},
+                    nfCommon.config.tooltipConfig,
+                    {
+                        content: whitespaceTooltip
+                    }));
             }
         });
     };

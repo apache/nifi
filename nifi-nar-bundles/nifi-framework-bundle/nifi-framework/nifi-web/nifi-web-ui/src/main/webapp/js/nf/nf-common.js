@@ -1008,16 +1008,20 @@
         },
 
         /**
-         * Checks the specified value for leading and/or trailing whitespace.
+         * Constant regex for leading and/or trailing whitespace.
+         */
+        LEAD_TRAIL_WHITE_SPACE_REGEX: /^[ \s]+|[ \s]+$/,
+
+        /**
+         * Checks the specified value for leading and/or trailing whitespace only.
          *
          * @argument {string} value     The value to check
          */
         hasLeadTrailWhitespace : function (value) {
-            if ( !value || value.trim().length === 0 ) {
+            if (nfCommon.isBlank(value)) {
                 return false;
             }
-            var leadOrTrailWhitespaceRegex = /^[ \s]+|[ \s]+$/;
-            return leadOrTrailWhitespaceRegex.test(value);
+            return nfCommon.LEAD_TRAIL_WHITE_SPACE_REGEX.test(value);
         },
 
         /**
@@ -1817,6 +1821,20 @@
             return key.split('.').reduce(function(o,x){
                 return(typeof o === undefined || o === null)? o : (typeof o[x] == 'function')?o[x]():o[x];
             }, obj);
+        },
+
+        /**
+         * Checks if the given value has multi-lines.
+         *
+         * @param value to check
+         * @returns {boolean}
+         */
+        isMultiLine: function (value) {
+            const multiLineMatcher = /\n/.exec(value);
+            if (multiLineMatcher) {
+                return true;
+            }
+            return false;
         }
 
     };
