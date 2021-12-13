@@ -61,17 +61,17 @@ public class ByteArrayMessageNettyEventServerFactory extends NettyEventServerFac
 
         if (TransportProtocol.UDP.equals(protocol)) {
             setHandlerSupplier(() -> Arrays.asList(
-                    logExceptionChannelHandler,
                     new DatagramByteArrayMessageDecoder(),
-                    byteArrayMessageChannelHandler
+                    byteArrayMessageChannelHandler,
+                    logExceptionChannelHandler
             ));
         } else {
             setHandlerSupplier(() -> Arrays.asList(
-                    logExceptionChannelHandler,
                     new DelimiterBasedFrameDecoder(maxFrameLength, STRIP_DELIMITER, Unpooled.wrappedBuffer(delimiter)),
                     new ByteArrayDecoder(),
                     new SocketByteArrayMessageDecoder(),
-                    byteArrayMessageChannelHandler
+                    byteArrayMessageChannelHandler,
+                    logExceptionChannelHandler
             ));
         }
     }
