@@ -485,6 +485,14 @@
                 <artifactId>aspectjweaver</artifactId>
                 <version>${aspectj.version}</version>
             </dependency>
+            <!-- Ensure log4j-core 2.15.0 is used by any transitive dependencies to remediate Log4Shell vulnerability -->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-bom</artifactId>
+                <version>2.15.0</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -787,6 +795,8 @@
                                         <exclude>com.google.code.findbugs:jsr305:*:*:compile</exclude>
                                         <!-- Log4J excluded in favor of log4j-over-slf4j and logback -->
                                         <exclude>log4j:log4j:*</exclude>
+                                        <!-- Ban log4j-core less than 2.15.0 due to Log4Shell vulnerability -->
+                                        <exclude>org.apache.logging.log4j:log4j-core:(,2.15.0)</exclude>
                                     </excludes>
                                     <includes>
                                         <!-- Versions of JSR305 after 3.0.1 are allowed https://github.com/findbugsproject/findbugs/issues/128 -->

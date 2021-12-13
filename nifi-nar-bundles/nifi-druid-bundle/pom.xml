@@ -76,14 +76,6 @@
                 <artifactId>snakeyaml</artifactId>
                 <version>1.29</version>
             </dependency>
-            <!-- Override log4j 2.5 from druid -->
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-bom</artifactId>
-                <version>2.15.0</version>
-                <scope>import</scope>
-                <type>pom</type>
-            </dependency>
             <!-- Override zookeeper -->
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
