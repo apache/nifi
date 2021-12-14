@@ -107,6 +107,7 @@ limitations under the License.
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
+            <version>${org.bouncycastle.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
