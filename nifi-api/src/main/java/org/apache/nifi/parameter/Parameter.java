@@ -24,11 +24,11 @@ public class Parameter {
     private final String parameterContextId;
     private final boolean provided;
 
-    public Parameter(final ParameterDescriptor descriptor, final String value, final String parameterContextId, final boolean provided) {
+    public Parameter(final ParameterDescriptor descriptor, final String value, final String parameterContextId, final Boolean provided) {
         this.descriptor = descriptor;
         this.value = value;
         this.parameterContextId = parameterContextId;
-        this.provided = provided;
+        this.provided = provided == null ? false : provided.booleanValue();
     }
 
     public Parameter(final Parameter parameter, final String parameterContextId) {
