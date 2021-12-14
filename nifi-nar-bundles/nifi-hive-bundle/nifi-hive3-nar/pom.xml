@@ -114,6 +114,10 @@
                     <artifactId>hadoop-cloud-storage</artifactId>
                     <version>${hadoop.version}</version>
                     <exclusions>
+                        <exclusion>
+                            <groupId>log4j</groupId>
+                            <artifactId>log4j</artifactId>
+                        </exclusion>
                       <exclusion>
                           <groupId>commons-logging</groupId>
                           <artifactId>commons-logging</artifactId>
