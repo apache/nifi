@@ -17,11 +17,14 @@
 package org.apache.nifi.processors.aws.s3;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.amazonaws.SdkClientException;
+import com.google.common.collect.ImmutableMap;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -256,6 +259,72 @@ public class TestFetchS3Object {
     }
 
     @Test
+    public void testFetchObject_FailAdditionalAttributesBucketName() {
+        runner.setProperty(FetchS3Object.REGION, "us-east-1");
+        runner.setProperty(FetchS3Object.BUCKET, "request-bucket-bad-name");
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "request-key");
+        runner.enqueue(new byte[0], attrs);
+
+        final AmazonS3Exception exception = new AmazonS3Exception("The specified bucket does not exist");
+        exception.setAdditionalDetails(ImmutableMap.of("BucketName", "us-east-1", "Error", "ABC123"));
+        exception.setErrorCode("NoSuchBucket");
+        exception.setStatusCode(HttpURLConnection.HTTP_NOT_FOUND);
+        Mockito.doThrow(exception).when(mockS3Client).getObject(Mockito.any());
+        runner.run(1);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchS3Object.REL_FAILURE);
+        assertEquals(1, flowFiles.size());
+        final MockFlowFile flowFile = flowFiles.iterator().next();
+        assertEquals("NoSuchBucket", flowFile.getAttribute("s3.errorCode"));
+        assertTrue(exception.getMessage().startsWith(flowFile.getAttribute("s3.errorMessage")));
+        assertEquals("404", flowFile.getAttribute("s3.statusCode"));
+        assertEquals(exception.getClass().getName(), flowFile.getAttribute("s3.exception"));
+    }
+
+    @Test
+    public void testFetchObject_FailAdditionalAttributesAuthentication() {
+        runner.setProperty(FetchS3Object.REGION, "us-east-1");
+        runner.setProperty(FetchS3Object.BUCKET, "request-bucket-bad-name");
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "request-key");
+        runner.enqueue(new byte[0], attrs);
+
+        final AmazonS3Exception exception = new AmazonS3Exception("signature");
+        exception.setAdditionalDetails(ImmutableMap.of("CanonicalRequestBytes", "AA BB CC DD EE FF"));
+        exception.setErrorCode("SignatureDoesNotMatch");
+        exception.setStatusCode(HttpURLConnection.HTTP_FORBIDDEN);
+        Mockito.doThrow(exception).when(mockS3Client).getObject(Mockito.any());
+        runner.run(1);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchS3Object.REL_FAILURE);
+        assertEquals(1, flowFiles.size());
+        final MockFlowFile flowFile = flowFiles.iterator().next();
+        assertEquals("SignatureDoesNotMatch", flowFile.getAttribute("s3.errorCode"));
+        assertTrue(exception.getMessage().startsWith(flowFile.getAttribute("s3.errorMessage")));
+        assertEquals("403", flowFile.getAttribute("s3.statusCode"));
+        assertEquals(exception.getClass().getName(), flowFile.getAttribute("s3.exception"));
+    }
+
+    @Test
+    public void testFetchObject_FailAdditionalAttributesNetworkFailure() {
+        runner.setProperty(FetchS3Object.REGION, "us-east-1");
+        runner.setProperty(FetchS3Object.BUCKET, "request-bucket-bad-name");
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "request-key");
+        runner.enqueue(new byte[0], attrs);
+
+        final SdkClientException exception = new SdkClientException("message");
+        Mockito.doThrow(exception).when(mockS3Client).getObject(Mockito.any());
+        runner.run(1);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchS3Object.REL_FAILURE);
+        assertEquals(1, flowFiles.size());
+        final MockFlowFile flowFile = flowFiles.iterator().next();
+        assertEquals(exception.getClass().getName(), flowFile.getAttribute("s3.exception"));
+    }
+
+    @Test
     public void testGetObjectReturnsNull() throws IOException {
         runner.setProperty(FetchS3Object.REGION, "us-east-1");
         runner.setProperty(FetchS3Object.BUCKET, "request-bucket");
@@ -284,6 +353,7 @@ public class TestFetchS3Object {
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_FAILURE, 1);
     }
+
     @Test
     public void testGetPropertyDescriptors() throws Exception {
         FetchS3Object processor = new FetchS3Object();

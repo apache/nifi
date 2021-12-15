@@ -72,6 +72,11 @@ import java.util.concurrent.TimeUnit;
     @WritesAttribute(attribute = "hash.algorithm", description = "MD5"),
     @WritesAttribute(attribute = "mime.type", description = "If S3 provides the content type/MIME type, this attribute will hold that file"),
     @WritesAttribute(attribute = "s3.etag", description = "The ETag that can be used to see if the file has changed"),
+    @WritesAttribute(attribute = "s3.exception", description = "The class name of the exception thrown during processor execution"),
+    @WritesAttribute(attribute = "s3.additionalDetails", description = "The S3 supplied detail from the failed operation"),
+    @WritesAttribute(attribute = "s3.statusCode", description = "The HTTP error code (if available) from the failed operation"),
+    @WritesAttribute(attribute = "s3.errorCode", description = "The S3 moniker of the failed operation"),
+    @WritesAttribute(attribute = "s3.errorMessage", description = "The S3 exception message from the failed operation"),
     @WritesAttribute(attribute = "s3.expirationTime", description = "If the file has an expiration date, this attribute will be set, containing the milliseconds since epoch in UTC time"),
     @WritesAttribute(attribute = "s3.expirationTimeRuleId", description = "The ID of the rule that dictates this object's expiration time"),
     @WritesAttribute(attribute = "s3.sseAlgorithm", description = "The server side encryption algorithm of the object"),
@@ -251,13 +256,15 @@ public class FetchS3Object extends AbstractS3Processor {
                 attributes.put("s3.version", metadata.getVersionId());
             }
         } catch (final IOException | AmazonClientException ioe) {
-            getLogger().error("Failed to retrieve S3 Object for {}; routing to failure", new Object[]{flowFile, ioe});
+            flowFile = extractExceptionDetails(ioe, session, flowFile);
+            getLogger().error("Failed to retrieve S3 Object for {}; routing to failure", flowFile, ioe);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (final FlowFileAccessException ffae) {
             if (ExceptionUtils.indexOfType(ffae, AmazonClientException.class) != -1) {
-                getLogger().error("Failed to retrieve S3 Object for {}; routing to failure", new Object[]{flowFile, ffae});
+                getLogger().error("Failed to retrieve S3 Object for {}; routing to failure", flowFile, ffae);
+                flowFile = extractExceptionDetails(ffae, session, flowFile);
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 return;

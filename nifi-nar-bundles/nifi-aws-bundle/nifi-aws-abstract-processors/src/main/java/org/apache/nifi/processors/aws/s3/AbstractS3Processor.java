@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -24,6 +25,7 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CanonicalGrantee;
 import com.amazonaws.services.s3.model.EmailAddressGrantee;
@@ -36,6 +38,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
@@ -313,6 +316,24 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         }
 
         return acl;
+    }
+
+    protected FlowFile extractExceptionDetails(final Exception e, final ProcessSession session, FlowFile flowFile) {
+        flowFile = session.putAttribute(flowFile, "s3.exception", e.getClass().getName());
+        if (e instanceof AmazonS3Exception) {
+            flowFile = putAttribute(session, flowFile, "s3.additionalDetails", ((AmazonS3Exception) e).getAdditionalDetails());
+        }
+        if (e instanceof AmazonServiceException) {
+            final AmazonServiceException ase = (AmazonServiceException) e;
+            flowFile = putAttribute(session, flowFile, "s3.statusCode", ase.getStatusCode());
+            flowFile = putAttribute(session, flowFile, "s3.errorCode", ase.getErrorCode());
+            flowFile = putAttribute(session, flowFile, "s3.errorMessage", ase.getErrorMessage());
+        }
+        return flowFile;
+    }
+
+    private FlowFile putAttribute(final ProcessSession session, final FlowFile flowFile, final String key, final Object value) {
+        return (value == null) ? flowFile : session.putAttribute(flowFile, key, value.toString());
     }
 
     /**
