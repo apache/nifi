@@ -52,9 +52,9 @@ public class RELPMessageServerFactory extends NettyEventServerFactory {
         final RELPMessageChannelHandler relpChannelHandler = new RELPMessageChannelHandler(events, charset);
 
         setHandlerSupplier(() -> Arrays.asList(
-                logExceptionChannelHandler,
                 new RELPFrameDecoder(log, charset),
-                relpChannelHandler
+                relpChannelHandler,
+                logExceptionChannelHandler
         ));
     }
 }
