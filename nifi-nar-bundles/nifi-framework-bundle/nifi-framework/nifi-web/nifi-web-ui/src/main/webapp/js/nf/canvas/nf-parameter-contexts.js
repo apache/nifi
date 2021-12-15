@@ -37,7 +37,7 @@
                 'nf.Processor',
                 'nf.ProcessGroup',
                 'nf.ProcessGroupConfiguration',
-                'lodash-core'],
+                'lodash'],
             function ($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfNgBridge, nfErrorHandler, nfFilteredDialogCommon, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration, _) {
                 return (nf.ParameterContexts = factory($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfNgBridge, nfErrorHandler, nfFilteredDialogCommon, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration, _));
             });
@@ -61,7 +61,7 @@
                 require('nf.Processor'),
                 require('nf.ProcessGroup'),
                 require('nf.ProcessGroupConfiguration'),
-                require('lodash-core')));
+                require('lodash')));
     } else {
         nf.ParameterContexts = factory(root.$,
             root.Slick,
