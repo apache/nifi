@@ -140,11 +140,6 @@ The following binary components are provided under the Apache Software License v
       This project contains annotations derived from JCIP-ANNOTATIONS
       Copyright (c) 2005 Brian Goetz and Tim Peierls. See https://www.jcip.net
 
-  (ASLv2) Apache Commons Logging
-    The following NOTICE information applies:
-      Apache Commons Logging
-      Copyright 2003-2014 The Apache Software Foundation
-
   (ASLv2) Apache Commons Net
     The following NOTICE information applies:
       Apache Commons Net

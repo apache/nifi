@@ -797,6 +797,8 @@
                                         <exclude>log4j:log4j:*</exclude>
                                         <!-- Ban log4j-core less than 2.15.0 due to Log4Shell vulnerability -->
                                         <exclude>org.apache.logging.log4j:log4j-core:(,2.15.0)</exclude>
+                                        <!-- Commons Logging excluded in favor of jcl-over-slf4j -->
+                                        <exclude>commons-logging:commons-logging:*</exclude>
                                     </excludes>
                                     <includes>
                                         <!-- Versions of JSR305 after 3.0.1 are allowed https://github.com/findbugsproject/findbugs/issues/128 -->

@@ -204,11 +204,6 @@ The following binary components are provided under the Apache Software License v
       Apache Jakarta HttpClient
       Copyright 1999-2007 The Apache Software Foundation
 
-  (ASLv2) Apache Commons Logging
-    The following NOTICE information applies:
-      Apache Commons Logging
-      Copyright 2003-2016 The Apache Software Foundation
-
     (ASLv2) Apache Commons VFS
       The following NOTICE information applies:
         Apache Commons VFS
@@ -1530,14 +1525,6 @@ The following binary components are provided under the Apache Software License v
   	    * license/LICENSE.caliper.txt (Apache License 2.0)
   	  * HOMEPAGE:
   	    * https://github.com/google/caliper
-
-  	This product optionally depends on 'Apache Commons Logging', a logging
-  	framework, which can be obtained at:
-
-  	  * LICENSE:
-  	    * license/LICENSE.commons-logging.txt (Apache License 2.0)
-  	  * HOMEPAGE:
-  	    * http://commons.apache.org/logging/
 
   	This product optionally depends on 'Apache Log4J', a logging framework, which
   	can be obtained at:

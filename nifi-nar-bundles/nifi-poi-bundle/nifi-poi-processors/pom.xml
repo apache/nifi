@@ -53,6 +53,16 @@
             <groupId>de.rototor.pdfbox</groupId>
             <artifactId>graphics2d</artifactId>
             <version>0.32</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.poi</groupId>
