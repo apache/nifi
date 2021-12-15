@@ -19,10 +19,21 @@ package org.apache.nifi.registry.provider.flow.git;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.LsRemoteCommand;
+import org.eclipse.jgit.api.MergeResult;
+import org.eclipse.jgit.api.PullCommand;
+import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.PushCommand;
 import org.eclipse.jgit.api.Status;
+import org.eclipse.jgit.api.MergeCommand.FastForwardMode;
+import org.eclipse.jgit.api.errors.CanceledException;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.InvalidConfigurationException;
+import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.api.errors.NoHeadException;
+import org.eclipse.jgit.api.errors.RefNotAdvertisedException;
+import org.eclipse.jgit.api.errors.RefNotFoundException;
+import org.eclipse.jgit.api.errors.TransportException;
+import org.eclipse.jgit.api.errors.WrongRepositoryStateException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -171,6 +182,23 @@ class GitFlowMetaData {
             return true;
         }
         return false;
+    }
+
+    public boolean pullFromRemote() throws IOException, WrongRepositoryStateException, InvalidConfigurationException, InvalidRemoteException, CanceledException, RefNotFoundException, RefNotAdvertisedException, NoHeadException, TransportException, GitAPIException {
+        PullResult result;
+        try (Git git = new Git(gitRepo)) {
+            PullCommand command = git.pull();
+            command.setFastForward(FastForwardMode.FF_ONLY);
+            command.setRebase(false);
+            result = command.call();
+        }
+        if (MergeResult.MergeStatus.FAST_FORWARD.equals(result.getMergeResult().getMergeStatus())) {
+            return true;
+        } else if (MergeResult.MergeStatus.ALREADY_UP_TO_DATE.equals(result.getMergeResult().getMergeStatus())) {
+            return false;
+        }
+
+        throw new IOException("Pull failed: " + result);
     }
 
     /**

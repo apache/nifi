@@ -188,6 +188,8 @@ public interface ServiceFacade {
 
     Set<String> getFlowFields();
 
+    boolean updateGit() throws IOException;
+
     // ---------------------- User methods ----------------------------------------------
 
     User createUser(User user);

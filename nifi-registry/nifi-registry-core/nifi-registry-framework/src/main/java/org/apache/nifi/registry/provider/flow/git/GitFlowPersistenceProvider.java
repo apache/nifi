@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.registry.provider.flow.git;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.nifi.registry.db.entity.BucketEntity;
 import org.apache.nifi.registry.flow.FlowPersistenceException;
 import org.apache.nifi.registry.flow.FlowSnapshotContext;
 import org.apache.nifi.registry.flow.MetadataAwareFlowPersistenceProvider;
@@ -24,6 +26,8 @@ import org.apache.nifi.registry.metadata.FlowMetadata;
 import org.apache.nifi.registry.metadata.FlowSnapshotMetadata;
 import org.apache.nifi.registry.provider.ProviderConfigurationContext;
 import org.apache.nifi.registry.provider.ProviderCreationException;
+import org.apache.nifi.registry.provider.flow.FlowMetadataSynchronizer;
+import org.apache.nifi.registry.service.MetadataService;
 import org.apache.nifi.registry.util.FileUtils;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.slf4j.Logger;
@@ -55,6 +59,12 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
 
     private File flowStorageDir;
     private GitFlowMetaData flowMetaData;
+
+    @Autowired
+    public FlowMetadataSynchronizer flowMetadataSynchronizer;
+
+    @Autowired
+    private MetadataService metadataService;
 
     @Override
     public void onConfigured(ProviderConfigurationContext configurationContext) throws ProviderCreationException {
@@ -359,5 +369,24 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
         }
 
         return flowSnapshotMetadataList;
+    }
+
+    public boolean pullFromRemote() throws IOException {
+        boolean result;
+        try {
+            result = flowMetaData.pullFromRemote();
+            if (result) {
+                flowMetaData.loadGitRepository(flowStorageDir);
+                List<BucketEntity> buckets = metadataService.getAllBuckets();
+                for (BucketEntity bucket : buckets) {
+                    metadataService.deleteBucket(bucket);
+                }
+                flowMetadataSynchronizer.synchronize();
+            }
+        } catch (IOException | GitAPIException e) {
+            throw new IOException(e);
+        }
+
+        return result;
     }
 }

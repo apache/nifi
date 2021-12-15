@@ -47,6 +47,7 @@ import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.provider.extension.StandardBundleCoordinate;
 import org.apache.nifi.registry.provider.flow.StandardFlowSnapshotContext;
+import org.apache.nifi.registry.provider.flow.git.GitFlowPersistenceProvider;
 import org.apache.nifi.registry.serialization.FlowContent;
 import org.apache.nifi.registry.serialization.FlowContentSerializer;
 import org.apache.nifi.registry.service.alias.RegistryUrlAliasService;
@@ -63,6 +64,7 @@ import javax.validation.ConstraintViolationException;
 import javax.validation.Validator;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -980,6 +982,21 @@ public class RegistryService {
 
     public Set<String> getFlowFields() {
         return metadataService.getFlowFields();
+    }
+
+    public boolean updateGit() throws IOException {
+        if (!(flowPersistenceProvider instanceof GitFlowPersistenceProvider)) {
+            throw new IllegalStateException(
+                "Git update called with persistence type " + flowPersistenceProvider.getClass());
+        }
+        GitFlowPersistenceProvider gitFlow =
+            (GitFlowPersistenceProvider) flowPersistenceProvider;
+            try {
+                return gitFlow.pullFromRemote();
+            } catch (IOException e) {
+                LOGGER.error("Error pulling from git", e);
+                throw e;
+            }
     }
 
 }

@@ -849,6 +849,11 @@ public class StandardServiceFacade implements ServiceFacade {
         return registryService.getFlowFields();
     }
 
+    @Override
+    public boolean updateGit() throws IOException {
+        return registryService.updateGit();
+    }
+
     // ---------------------- User methods ----------------------------------------------
 
     @Override

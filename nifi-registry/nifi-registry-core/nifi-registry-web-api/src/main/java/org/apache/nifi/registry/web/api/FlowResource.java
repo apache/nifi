@@ -35,11 +35,14 @@ import org.springframework.stereotype.Component;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import java.io.IOException;
 import java.util.Set;
 import java.util.SortedSet;
 
@@ -70,6 +73,25 @@ public class FlowResource extends ApplicationResource {
         final Set<String> flowFields = serviceFacade.getFlowFields();
         final Fields fields = new Fields(flowFields);
         return Response.status(Response.Status.OK).entity(fields).build();
+    }
+
+    @POST
+    @Path("updateGit")
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @ApiOperation(
+            value = "Update git",
+            notes = "Performs a git pull and updates the registry",
+            response = Response.Status.class
+    )
+    public Response updateGit() {
+        try {
+                boolean response = serviceFacade.updateGit();
+                return Response.status(Response.Status.OK).
+                        entity(response ? "updated" :"already-up-to-date").build();
+        } catch (IOException e) {
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @GET
