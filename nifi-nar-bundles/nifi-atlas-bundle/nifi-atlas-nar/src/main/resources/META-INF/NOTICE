@@ -120,11 +120,6 @@ The following binary components are provided under the Apache Software License v
       This product includes software from the Spring Framework,
       under the Apache License 2.0 (see: StringUtils.containsWhitespace())
 
-  (ASLv2) Apache Commons Logging
-    The following NOTICE information applies:
-      Apache Commons Logging
-      Copyright 2003-2014 The Apache Software Foundation
-
   (ASLv2) Apache Commons Math
     The following NOTICE information applies:
       Apache Commons Math
@@ -404,14 +399,6 @@ The following binary components are provided under the Apache Software License v
         * license/LICENSE.slf4j.txt (MIT License)
       * HOMEPAGE:
         * http://www.slf4j.org/
-
-    This product optionally depends on 'Apache Commons Logging', a logging
-    framework, which can be obtained at:
-
-      * LICENSE:
-        * license/LICENSE.commons-logging.txt (Apache License 2.0)
-      * HOMEPAGE:
-        * http://commons.apache.org/logging/
 
     This product optionally depends on 'Apache Log4J', a logging framework,
     which can be obtained at:
