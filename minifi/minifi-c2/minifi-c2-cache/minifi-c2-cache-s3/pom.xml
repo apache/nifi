@@ -35,11 +35,21 @@ limitations under the License.
              <groupId>com.amazonaws</groupId>
              <artifactId>aws-java-sdk-s3</artifactId>
              <version>${aws.sdk.version}</version>
+             <exclusions>
+                 <exclusion>
+                     <groupId>commons-logging</groupId>
+                     <artifactId>commons-logging</artifactId>
+                 </exclusion>
+             </exclusions>
          </dependency>
          <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-        </dependency>         
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
