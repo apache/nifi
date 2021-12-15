@@ -117,6 +117,11 @@ expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
     @WritesAttribute(attribute = "s3.key", description = "The S3 key within where the Object was put in S3"),
     @WritesAttribute(attribute = "s3.contenttype", description = "The S3 content type of the S3 Object that put in S3"),
     @WritesAttribute(attribute = "s3.version", description = "The version of the S3 Object that was put to S3"),
+    @WritesAttribute(attribute = "s3.exception", description = "The class name of the exception thrown during processor execution"),
+    @WritesAttribute(attribute = "s3.additionalDetails", description = "The S3 supplied detail from the failed operation"),
+    @WritesAttribute(attribute = "s3.statusCode", description = "The HTTP error code (if available) from the failed operation"),
+    @WritesAttribute(attribute = "s3.errorCode", description = "The S3 moniker of the failed operation"),
+    @WritesAttribute(attribute = "s3.errorMessage", description = "The S3 exception message from the failed operation"),
     @WritesAttribute(attribute = "s3.etag", description = "The ETag of the S3 Object"),
     @WritesAttribute(attribute = "s3.contentdisposition", description = "The content disposition of the S3 Object that put in S3"),
     @WritesAttribute(attribute = "s3.cachecontrol", description = "The cache-control header of the S3 Object"),
@@ -833,6 +838,7 @@ public class PutS3Object extends AbstractS3Processor {
                         new Object[]{cacheKey, e.getMessage()});
             }
         } catch (final ProcessException | AmazonClientException pe) {
+            extractExceptionDetails(pe, session, flowFile);
             if (pe.getMessage().contains(S3_PROCESS_UNSCHEDULED_MESSAGE)) {
                 getLogger().info(pe.getMessage());
                 session.rollback();
