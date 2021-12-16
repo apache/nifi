@@ -23,7 +23,7 @@
         define(['jquery',
                 'd3',
                 'nf.AuthorizationStorage',
-                'lodash-core',
+                'lodash',
                 'moment'],
             function ($, d3, nfAuthorizationStorage, _, moment) {
                 return (nf.Common = factory($, d3, nfAuthorizationStorage, _, moment));
@@ -32,7 +32,7 @@
         module.exports = (nf.Common = factory(require('jquery'),
             require('d3'),
             require('nf.AuthorizationStorage'),
-            require('lodash-core'),
+            require('lodash'),
             require('moment')));
     } else {
         nf.Common = factory(root.$,

@@ -27,7 +27,7 @@
                 'nf.ErrorHandler',
                 'nf.Client',
                 'nf.CanvasUtils',
-                'lodash-core'],
+                'lodash'],
             function ($, d3, nfCommon, nfDialog, nfStorage, nfErrorHandler, nfClient, nfCanvasUtils, _) {
                 return (nf.Connection = factory($, d3, nfCommon, nfDialog, nfStorage, nfErrorHandler, nfClient, nfCanvasUtils, _));
             });

@@ -33,7 +33,7 @@
                 'nf.ProcessGroupConfiguration',
                 'nf.Settings',
                 'nf.ParameterContexts',
-                'lodash-core'],
+                'lodash'],
             function ($,
                       Slick,
                       nfCommon,
@@ -74,7 +74,7 @@
             require('nf.ProcessGroupConfiguration'),
             require('nf.Settings'),
             recuire('nf.ParameterContexts'),
-            require('lodash-core'));
+            require('lodash'));
     } else {
         factory(root.$,
             root.Slick,

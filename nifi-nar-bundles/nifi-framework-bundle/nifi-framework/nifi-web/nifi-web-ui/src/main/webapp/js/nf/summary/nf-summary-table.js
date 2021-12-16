@@ -26,7 +26,7 @@
                 'nf.ProcessorDetails',
                 'nf.ConnectionDetails',
                 'nf.ng.Bridge',
-                'lodash-core'],
+                'lodash'],
             function ($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge, _) {
                 return (nf.SummaryTable = factory($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge, _));
             });
@@ -40,7 +40,7 @@
                 require('nf.ProcessorDetails'),
                 require('nf.ConnectionDetails'),
                 require('nf.ng.Bridge'),
-                require('lodash-core')));
+                require('lodash')));
     } else {
         nf.SummaryTable = factory(root.$,
             root.Slick,
