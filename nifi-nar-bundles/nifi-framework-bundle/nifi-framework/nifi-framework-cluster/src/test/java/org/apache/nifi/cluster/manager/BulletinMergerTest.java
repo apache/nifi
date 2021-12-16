@@ -19,68 +19,81 @@ package org.apache.nifi.cluster.manager;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.entity.BulletinEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.cluster.manager.BulletinMerger.ALL_NODES_MESSAGE;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BulletinMergerTest {
+    private static final Date FIRST_TIMESTAMP = new Date(86400);
 
-    long bulletinId = 0;
+    private static final Date SECOND_TIMESTAMP = new Date(178000);
 
-    private BulletinEntity createBulletin(final String message) {
+    private static final NodeIdentifier FIRST_NODE = new NodeIdentifier("node-1", "host-1", 8080, "host-address-1", 8888, null, null, null, false);
+
+    private static final NodeIdentifier SECOND_NODE = new NodeIdentifier("node-2", "host-2", 8080, "host-address-2", 8888, null, null, null, false);
+
+    private long bulletinId = 0;
+
+    private BulletinEntity createBulletin(final String message, final Date timestamp, final boolean readable) {
         final BulletinDTO bulletin = new BulletinDTO();
         bulletin.setId(bulletinId++);
         bulletin.setMessage(message);
-        bulletin.setTimestamp(new Date());
+        bulletin.setTimestamp(timestamp);
 
         final BulletinEntity entity = new BulletinEntity();
         entity.setId(bulletin.getId());
         entity.setTimestamp(bulletin.getTimestamp());
-        entity.setCanRead(true);
+        entity.setCanRead(readable);
         entity.setBulletin(bulletin);
 
         return entity;
     }
 
     @Test
-    public void mergeBulletins() throws Exception {
-        final BulletinEntity bulletinEntity1 = createBulletin("This is bulletin 1");
-        final BulletinEntity bulletinEntity2 = createBulletin("This is bulletin 2");
-
-        final BulletinEntity unauthorizedBulletin = new BulletinEntity();
-        unauthorizedBulletin.setId(bulletinId++);
-        unauthorizedBulletin.setTimestamp(new Date());
-        unauthorizedBulletin.setCanRead(false);
-
-        final BulletinEntity copyOfBulletin1 = createBulletin("This is bulletin 1");
-
-        final NodeIdentifier node1 = new NodeIdentifier("node-1", "host-1", 8080, "host-1", 19998, null, null, null, false);
-        final NodeIdentifier node2 = new NodeIdentifier("node-2", "host-2", 8081, "host-2", 19999, null, null, null, false);
+    public void testMergeBulletins() {
+        final BulletinEntity bulletinEntity1 = createBulletin("This is bulletin 1", FIRST_TIMESTAMP, true);
+        final BulletinEntity bulletinEntity2 = createBulletin("This is bulletin 2", FIRST_TIMESTAMP,true);
+        final BulletinEntity unauthorizedBulletin = createBulletin("Protected Bulletin", FIRST_TIMESTAMP, false);
+        final List<BulletinEntity> bulletins = Arrays.asList(bulletinEntity1, bulletinEntity2, unauthorizedBulletin);
 
         final Map<NodeIdentifier, List<BulletinEntity>> nodeMap = new LinkedHashMap<>();
-        nodeMap.put(node1, new ArrayList<>());
-        nodeMap.put(node2, new ArrayList<>());
+        nodeMap.put(FIRST_NODE, bulletins);
+        nodeMap.put(SECOND_NODE, Collections.singletonList(bulletinEntity1));
 
-        nodeMap.get(node1).add(bulletinEntity1);
-        nodeMap.get(node1).add(bulletinEntity2);
-        nodeMap.get(node1).add(unauthorizedBulletin);
+        final List<BulletinEntity> merged = BulletinMerger.mergeBulletins(nodeMap, nodeMap.size());
 
-        nodeMap.get(node2).add(copyOfBulletin1);
+        assertEquals(merged.size(), bulletins.size());
+        assertTrue(merged.contains(bulletinEntity1), "First Bulletin not found");
+        assertTrue(merged.contains(bulletinEntity2), "Second Bulletin not found");
+        assertTrue(merged.contains(unauthorizedBulletin), "Protected Bulletin not found");
 
-        final List<BulletinEntity> bulletinEntities = BulletinMerger.mergeBulletins(nodeMap, nodeMap.size());
-        assertEquals(bulletinEntities.size(), 3);
-        assertTrue(bulletinEntities.contains(bulletinEntity1));
         assertEquals(bulletinEntity1.getNodeAddress(), ALL_NODES_MESSAGE);
-        assertTrue(bulletinEntities.contains(bulletinEntity2));
-        assertTrue(bulletinEntities.contains(unauthorizedBulletin));
     }
 
+    @Test
+    public void testMergeBulletinsSortedOldestNewest() {
+        final BulletinEntity newerBulletin = createBulletin("Second Message", SECOND_TIMESTAMP, true);
+        final BulletinEntity olderBulletin = createBulletin("First Message", FIRST_TIMESTAMP, true);
+        final List<BulletinEntity> bulletins = Arrays.asList(newerBulletin, olderBulletin);
+
+        final Map<NodeIdentifier, List<BulletinEntity>> nodeMap = new LinkedHashMap<>();
+        nodeMap.put(FIRST_NODE, bulletins);
+
+        final List<BulletinEntity> merged = BulletinMerger.mergeBulletins(nodeMap, nodeMap.size());
+        assertEquals(merged.size(), bulletins.size());
+
+        final Iterator<BulletinEntity> mergedBulletins = merged.iterator();
+        assertEquals(olderBulletin, mergedBulletins.next(), "Older Bulletin not matched");
+        assertEquals(newerBulletin, mergedBulletins.next(), "Newer Bulletin not matched");
+    }
 }
