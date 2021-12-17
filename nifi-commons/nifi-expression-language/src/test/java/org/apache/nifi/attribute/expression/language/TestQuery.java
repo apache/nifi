@@ -2203,39 +2203,54 @@ public class TestQuery {
     }
 
     @Test
-    public void testGeohashLongEncode(){
+    public void testGeohashLongEncode() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("lat", "41.702");
         attributes.put("lon", "0.083");
-        attributes.put("invalid_lat", "441.702");
-        attributes.put("invalid_lon", "-183");
+        attributes.put("lat_null", null);
+        attributes.put("lat_invalid", "441.702");
+        attributes.put("lon_invalid", "-183");
+        attributes.put("lat_illegal", "hello");
+        attributes.put("lon_illegal", "cat");
 
         verifyEquals("${geohashLongEncode(${lat}, ${lon}, 12)}", attributes, -4231957587308838032L);
+        verifyEmpty("${geohashLongEncode(${lat}, '', 12)}", attributes);
+        verifyEmpty("${geohashLongEncode(${lat_null}, ${lon}, 12)}", attributes);
 
         assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashLongEncode(${lat}, ${lon}, 15)}", attributes, ""));
-        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashLongEncode(${invalid_lat}, ${lon}, 12)}", attributes, ""));
-        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashLongEncode(${lat}, ${invalid_lon}, 12)}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashLongEncode(${lat_invalid}, ${lon}, 12)}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashLongEncode(${lat}, ${lon_invalid}, 12)}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashLongEncode(${lat_illegal}, ${lon}, 12)}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashLongEncode(${lat}, ${lon_illegal}, 12)}", attributes, ""));
     }
+
     @Test
-    public void testGeohashStringEncode(){
+    public void testGeohashStringEncode() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("lat", "41.702");
         attributes.put("lon", "0.083");
-        attributes.put("invalid_lat", "441.702");
-        attributes.put("invalid_lon", "-183");
+        attributes.put("lat_null", null);
+        attributes.put("lat_invalid", "441.702");
+        attributes.put("lon_invalid", "-183");
+        attributes.put("lat_illegal", "hello");
+        attributes.put("lon_illegal", "cat");
 
         verifyEquals("${geohashStringEncode(${lat}, ${lon}, 3)}", attributes, "sp2");
         verifyEquals("${geohashStringEncode(${lat}, ${lon}, 12, 'BASE32')}", attributes, "sp2j1zs7y01r");
         verifyEquals("${geohashStringEncode(${lat}, ${lon}, 3, 'BINARY')}", attributes, "110001010100010");
+        verifyEmpty("${geohashStringEncode('', ${lon}, 12)}", attributes);
+        verifyEmpty("${geohashStringEncode(${lat_null}, '', 12)}", attributes);
 
         assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashStringEncode(${lat}, ${lon}, 15)}", attributes, ""));
         assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashStringEncode(${lat}, ${lon}, 12, 'NOT_A_FORMAT')}", attributes, ""));
-        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashStringEncode(${invalid_lat}, ${lon}, 12)}", attributes, ""));
-        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashStringEncode(${lat}, ${invalid_lon}, 12)}", attributes, ""));
-
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashStringEncode(${lat_invalid}, ${lon}, 12)}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashStringEncode(${lat}, ${lon_invalid}, 12)}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashStringEncode(${lat_illegal}, ${lon}, 12)}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohashStringEncode(${lat}, ${lon_illegal}, 12)}", attributes, ""));
     }
+
     @Test
-    public void testGeohashDecodeLatitude(){
+    public void testGeohashDecodeLatitude() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("geohash_base32", "sp2j1");
         attributes.put("geohash_binary", "110001010100010");
@@ -2249,8 +2264,9 @@ public class TestQuery {
         assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohash_base32:geohashDecodeLatitude('NOT_A_FORMAT')}", attributes, 41.68212890625));
         assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohash_base32:geohashDecodeLatitude()}", attributes, 41.68212890625));
     }
+
     @Test
-    public void testGeohashDecodeLongitude(){
+    public void testGeohashDecodeLongitude() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("geohash_base32", "sp2j1");
         attributes.put("geohash_binary", "110001010100010");

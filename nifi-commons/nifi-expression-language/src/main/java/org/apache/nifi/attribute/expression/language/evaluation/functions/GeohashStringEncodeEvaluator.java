@@ -49,6 +49,10 @@ public class GeohashStringEncodeEvaluator extends StringEvaluator {
     public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
         final Number latitudeValue = latitude.evaluate(evaluationContext).getValue();
         if (latitudeValue == null) {
+            final Object latitudeSubjectValue = latitude.getSubjectEvaluator().evaluate(evaluationContext).getValue();
+            if (latitudeSubjectValue != null && !latitudeSubjectValue.toString().isEmpty()) {
+                throw new AttributeExpressionLanguageException("Unable to cast provided latitude values to Number");
+            }
             return new StringQueryResult(null);
         }
         if (latitudeValue.doubleValue() < -90 || latitudeValue.doubleValue() > 90) {
@@ -57,6 +61,10 @@ public class GeohashStringEncodeEvaluator extends StringEvaluator {
 
         final Number longitudeValue = longitude.evaluate(evaluationContext).getValue();
         if (longitudeValue == null) {
+            final Object longitudeSubjectValue = longitude.getSubjectEvaluator().evaluate(evaluationContext).getValue();
+            if (longitudeSubjectValue != null && !longitudeSubjectValue.toString().isEmpty()) {
+                throw new AttributeExpressionLanguageException("Unable to cast provided longitude values to Number");
+            }
             return new StringQueryResult(null);
         }
         if (longitudeValue.doubleValue() < -180 || longitudeValue.doubleValue() > 180) {
@@ -71,7 +79,7 @@ public class GeohashStringEncodeEvaluator extends StringEvaluator {
         //Optional argument. If not specified, defaults to BASE_32_STRING.
         final GeohashStringFormat geohashStringFormatValue;
         if (format != null) {
-            if(!EnumUtils.isValidEnum(GeohashStringFormat.class, format.evaluate(evaluationContext).getValue())) {
+            if (!EnumUtils.isValidEnum(GeohashStringFormat.class, format.evaluate(evaluationContext).getValue())) {
                 throw new AttributeExpressionLanguageException("Format values must be either 'BASE32' or 'BINARY'");
             }
             geohashStringFormatValue = GeohashStringFormat.valueOf(format.evaluate(evaluationContext).getValue());
