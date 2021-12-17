@@ -145,6 +145,13 @@ public class TestStandardParameterContext {
         final Parameter updatedParameter = new Parameter(xyzDescriptor2, "123");
         updates.put("xyz", updatedParameter);
         assertEquals(1, context.getEffectiveParameterUpdates(updates, Collections.emptyList()).size());
+
+        // Now there is no change, since the description is the same
+        final Map<String, Parameter> updates2 = new HashMap<>();
+        final ParameterDescriptor xyzDescriptor3 = new ParameterDescriptor.Builder().from(xyzDescriptor).description("changed").build();
+        final Parameter updatedParameter2 = new Parameter(xyzDescriptor3, "123");
+        updates.put("xyz", updatedParameter2);
+        assertEquals(0, context.getEffectiveParameterUpdates(updates2, Collections.emptyList()).size());
     }
 
     @Test
