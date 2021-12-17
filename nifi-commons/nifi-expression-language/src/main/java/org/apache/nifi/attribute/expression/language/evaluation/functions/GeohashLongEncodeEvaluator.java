@@ -41,23 +41,15 @@ public class GeohashLongEncodeEvaluator extends WholeNumberEvaluator {
     public QueryResult<Long> evaluate(final EvaluationContext evaluationContext) {
         final Number latitudeValue = latitude.evaluate(evaluationContext).getValue();
         if (latitudeValue == null) {
-            if (!isProvidedValueEmpty(latitude, evaluationContext)) {
-                throw new AttributeExpressionLanguageException("Unable to cast provided latitude values to Number");
-            }
-            return new WholeNumberQueryResult(null);
-        }
-        if (latitudeValue.doubleValue() < -90 || latitudeValue.doubleValue() > 90) {
+            return getQueryResultWithEmptyCoord(latitude, evaluationContext, "latitude");
+        } else if (latitudeValue.doubleValue() < -90 || latitudeValue.doubleValue() > 90) {
             throw new AttributeExpressionLanguageException("Latitude values must be between -90 and 90.");
         }
 
         final Number longitudeValue = longitude.evaluate(evaluationContext).getValue();
         if (longitudeValue == null) {
-            if (!isProvidedValueEmpty(longitude, evaluationContext)) {
-                throw new AttributeExpressionLanguageException("Unable to cast provided longitude values to Number");
-            }
-            return new WholeNumberQueryResult(null);
-        }
-        if (longitudeValue.doubleValue() < -180 || longitudeValue.doubleValue() > 180) {
+            return getQueryResultWithEmptyCoord(longitude, evaluationContext, "longitude");
+        } else if (longitudeValue.doubleValue() < -180 || longitudeValue.doubleValue() > 180) {
             throw new AttributeExpressionLanguageException("Longitude values must be between -180 and 180.");
         }
 
@@ -73,12 +65,12 @@ public class GeohashLongEncodeEvaluator extends WholeNumberEvaluator {
         }
     }
 
-    private Boolean isProvidedValueEmpty(final Evaluator<Number> evaluator, final EvaluationContext evaluationContext) {
+    private WholeNumberQueryResult getQueryResultWithEmptyCoord(final Evaluator<Number> evaluator, final EvaluationContext evaluationContext, String label) {
         final Object subjectValue = evaluator.getSubjectEvaluator().evaluate(evaluationContext).getValue();
         if (subjectValue != null && !subjectValue.toString().isEmpty()) {
-            return false;
+            throw new AttributeExpressionLanguageException("Unable to cast provided " + label + " values to Number");
         }
-        return true;
+        return new WholeNumberQueryResult(null);
     }
 
     @Override
