@@ -41,8 +41,7 @@ public class GeohashLongEncodeEvaluator extends WholeNumberEvaluator {
     public QueryResult<Long> evaluate(final EvaluationContext evaluationContext) {
         final Number latitudeValue = latitude.evaluate(evaluationContext).getValue();
         if (latitudeValue == null) {
-            final Object latitudeSubjectValue = latitude.getSubjectEvaluator().evaluate(evaluationContext).getValue();
-            if (latitudeSubjectValue != null && !latitudeSubjectValue.toString().isEmpty()) {
+            if (!isProvidedValueEmpty(latitude, evaluationContext)) {
                 throw new AttributeExpressionLanguageException("Unable to cast provided latitude values to Number");
             }
             return new WholeNumberQueryResult(null);
@@ -53,8 +52,7 @@ public class GeohashLongEncodeEvaluator extends WholeNumberEvaluator {
 
         final Number longitudeValue = longitude.evaluate(evaluationContext).getValue();
         if (longitudeValue == null) {
-            final Object longitudeSubjectValue = longitude.getSubjectEvaluator().evaluate(evaluationContext).getValue();
-            if (longitudeSubjectValue != null && !longitudeSubjectValue.toString().isEmpty()) {
+            if (!isProvidedValueEmpty(longitude, evaluationContext)) {
                 throw new AttributeExpressionLanguageException("Unable to cast provided longitude values to Number");
             }
             return new WholeNumberQueryResult(null);
@@ -73,6 +71,14 @@ public class GeohashLongEncodeEvaluator extends WholeNumberEvaluator {
         } catch (IllegalArgumentException e) {
             throw new AttributeExpressionLanguageException("Unable to encode lat/lon to the long format of Geohash", e);
         }
+    }
+
+    private Boolean isProvidedValueEmpty(final Evaluator<Number> evaluator, final EvaluationContext evaluationContext) {
+        final Object subjectValue = evaluator.getSubjectEvaluator().evaluate(evaluationContext).getValue();
+        if (subjectValue != null && !subjectValue.toString().isEmpty()) {
+            return false;
+        }
+        return true;
     }
 
     @Override
