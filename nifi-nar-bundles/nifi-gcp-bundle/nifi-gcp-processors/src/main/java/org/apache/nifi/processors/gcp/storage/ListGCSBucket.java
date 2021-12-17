@@ -474,6 +474,51 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         listingAction.finishListing(listCount, maxTimestamp, keysMatchingTimestamp);
     }
 
+    private List<Storage.BlobListOption> getBlobListOptions(ProcessContext context) {
+        final String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
+        final boolean useGenerations = context.getProperty(USE_GENERATIONS).asBoolean();
+
+        final List<Storage.BlobListOption> listOptions = new ArrayList<>();
+
+        if (prefix != null) {
+            listOptions.add(Storage.BlobListOption.prefix(prefix));
+        }
+        if (useGenerations) {
+            listOptions.add(Storage.BlobListOption.versions(true));
+        }
+
+        return listOptions;
+    }
+
+    private void listByTrackingEntities(ProcessContext context, ProcessSession session) {
+        listedEntityTracker.trackEntities(context, session, justElectedPrimaryNode, Scope.CLUSTER, minTimestampToList -> {
+            List<ListableBlob> listedEntities = new ArrayList<>();
+
+            Storage storage = getCloudService();
+            String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+            final List<Storage.BlobListOption> listOptions = getBlobListOptions(context);
+
+            Page<Blob> blobPage = storage.list(bucket, listOptions.toArray(new Storage.BlobListOption[0]));
+            int pageNr=0;
+            do {
+                for (final Blob blob : blobPage.getValues()) {
+                    if (blob.getUpdateTime() >= minTimestampToList) {
+                        listedEntities.add(new ListableBlob(
+                            blob,
+                            pageNr
+                        ));
+                    }
+                }
+                blobPage = blobPage.getNextPage();
+                pageNr++;
+            } while (blobPage != null);
+
+            return listedEntities;
+        }, null);
+
+        justElectedPrimaryNode = false;
+    }
+
     private void commit(final ProcessSession session, final int listCount) {
         if (listCount > 0) {
             getLogger().info("Successfully listed {} new files from GCS; routing to success", new Object[] {listCount});
@@ -547,51 +592,6 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         }
     }
 
-    private List<Storage.BlobListOption> getBlobListOptions(ProcessContext context) {
-        final String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
-        final boolean useGenerations = context.getProperty(USE_GENERATIONS).asBoolean();
-
-        final List<Storage.BlobListOption> listOptions = new ArrayList<>();
-
-        if (prefix != null) {
-            listOptions.add(Storage.BlobListOption.prefix(prefix));
-        }
-        if (useGenerations) {
-            listOptions.add(Storage.BlobListOption.versions(true));
-        }
-
-        return listOptions;
-    }
-
-    private void listByTrackingEntities(ProcessContext context, ProcessSession session) {
-        listedEntityTracker.trackEntities(context, session, justElectedPrimaryNode, Scope.CLUSTER, minTimestampToList -> {
-            List<ListableBlob> listedEntities = new ArrayList<>();
-
-            Storage storage = getCloudService();
-            String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
-            final List<Storage.BlobListOption> listOptions = getBlobListOptions(context);
-
-            Page<Blob> blobPage = storage.list(bucket, listOptions.toArray(new Storage.BlobListOption[0]));
-            int pageNr=0;
-            do {
-                for (final Blob blob : blobPage.getValues()) {
-                    if (blob.getUpdateTime() >= minTimestampToList) {
-                        listedEntities.add(new ListableBlob(
-                            blob,
-                            pageNr
-                        ));
-                    }
-                }
-                blobPage = blobPage.getNextPage();
-                pageNr++;
-            } while (blobPage != null);
-
-            return listedEntities;
-        }, null);
-
-        justElectedPrimaryNode = false;
-    }
-
     protected class ListedBlobTracker extends ListedEntityTracker<ListableBlob> {
         public ListedBlobTracker() {
             super(getIdentifier(), getLogger(), RecordBlobWriter.RECORD_SCHEMA);
@@ -616,9 +616,6 @@ public class ListGCSBucket extends AbstractGCSProcessor {
                 writer = new RecordBlobWriter(session, writerFactory, getLogger());
             }
 
-            long maxTimestamp = 0L;
-            final Set<String> keysMatchingTimestamp = new HashSet<>();
-
             try {
                 writer.beginListing();
 
@@ -633,7 +630,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
                     listCount++;
 
                     if (pageNr != -1 && pageNr != currentPageNr && writer.isCheckpoint()) {
-                        commit(session, listCount, maxTimestamp, keysMatchingTimestamp);
+                        commit(session, listCount);
                         listCount = 0;
                     }
 
