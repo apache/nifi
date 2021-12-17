@@ -175,7 +175,8 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
     public void onTrigger(ProcessContext context, final ProcessSession session) throws ProcessException {
 
         FlowFile flowFile = session.get();
-        if (flowFile == null) {
+        // Wait on a FlowFile if there's an incoming connection, otherwise proceed
+        if (flowFile == null && context.hasIncomingConnection()) {
             return;
         }
 

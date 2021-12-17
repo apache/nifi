@@ -16,6 +16,29 @@
  */
 package org.apache.nifi.controller.livy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.controller.api.livy.LivySessionService;
+import org.apache.nifi.controller.api.livy.exception.SessionManagerException;
+import org.apache.nifi.controller.livy.utilities.LivyHelpers;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.SSLContextService;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
@@ -28,29 +51,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
-import org.apache.nifi.controller.api.livy.exception.SessionManagerException;
-import org.apache.nifi.controller.livy.utilities.LivyHelpers;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.SSLContextService;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-
-import org.apache.nifi.controller.api.livy.LivySessionService;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 
 @Tags({"Livy", "REST", "Spark", "http"})
 @CapabilityDescription("Manages pool of Spark sessions over HTTP")
@@ -140,6 +140,7 @@ public class LivySessionController extends AbstractControllerService implements 
     private volatile Integer executorCores;
     private volatile Integer numExecutors;
     private volatile String sessionName;
+    private volatile PropertyValue sessionNameDescriptor;
     private volatile String conf;
     private volatile boolean cleanupSessions;
     private volatile boolean keepSessionsAlive;
@@ -149,7 +150,7 @@ public class LivySessionController extends AbstractControllerService implements 
     private volatile String files;
     private volatile String pyFiles;
     private volatile String archives;
-    private volatile Map<Integer, JSONObject> sessions = new ConcurrentHashMap<>();
+    private final Map<Integer, JSONObject> sessions = new ConcurrentHashMap<>();
     private volatile SSLContextService sslContextService;
     private volatile int connectTimeout;
     private volatile Thread livySessionManagerThread = null;
@@ -245,17 +246,23 @@ public class LivySessionController extends AbstractControllerService implements 
         this.executorMemory = executorMemory;
         this.executorCores = executorCores;
         this.numExecutors = numExecutors;
-        this.sessionName = StringUtils.isEmpty(sessionName)?this.getIdentifier():sessionName;
+        if (StringUtils.isEmpty(sessionName)) {
+            this.sessionName = this.getIdentifier();
+            this.sessionNameDescriptor = null;
+        } else {
+            this.sessionName = null; // Will be populated from the descriptor once Expression Language is evaluated
+            this.sessionNameDescriptor = context.getProperty(SESSION_NAME);
+        }
         this.conf = conf;
         this.cleanupSessions = cleanupSessions;
         this.keepSessionsAlive = keepSessionsAlive;
         this.enabled = true;
 
         // Store a copy of the credentialsService principal name for easy string matching
-        if(credentialsService != null) {
-            credentialPrincipal = credentialsService.getPrincipal();
-            credentialPrincipal = credentialPrincipal.substring(0, credentialPrincipal.indexOf("@"));
-            appropriateProxy = StringUtils.isEmpty(proxyUser)?credentialPrincipal:proxyUser;
+        if (credentialsService != null) {
+            final String rawCredentialPrincipal = credentialsService.getPrincipal();
+            credentialPrincipal = rawCredentialPrincipal.substring(0, rawCredentialPrincipal.indexOf("@"));
+            appropriateProxy = StringUtils.isEmpty(proxyUser) ? credentialPrincipal : proxyUser;
         }
 
         livySessionManagerThread = new Thread(() -> {
@@ -288,8 +295,8 @@ public class LivySessionController extends AbstractControllerService implements 
             livySessionManagerThread.join();
 
             // If we need to cleanup opened sessions
-            if(this.cleanupSessions){
-                for(Integer s : sessions.keySet()) {
+            if (this.cleanupSessions) {
+                for (Integer s : sessions.keySet()) {
                     // Don't re-throw session cleanup errors, just log
                     try {
                         JSONObject deleteMessage = this.deleteSession(s);
@@ -356,11 +363,11 @@ public class LivySessionController extends AbstractControllerService implements 
                     String state = currentSession.getString("state");
                     String sessionKind = currentSession.getString("kind");
 
-                    String sessionOwner = currentSession.has("owner")?currentSession.getString("owner"):"";
-                    String sessionProxy = currentSession.has("proxyUser")?currentSession.getString("proxyUser"):"";
+                    String sessionOwner = currentSession.has("owner") ? currentSession.getString("owner") : "";
+                    String sessionProxy = currentSession.has("proxyUser") ? currentSession.getString("proxyUser") : "";
 
                     log.debug("manageSessions() session ID: {}, session owner: {}, session proxy: {}, controller kind: {}, session kind: {}, session state: {}",
-                            new Object[]{sessionId,sessionOwner, sessionProxy, controllerKind, sessionKind, state});
+                            sessionId, sessionOwner, sessionProxy, controllerKind, sessionKind, state);
 
                     if (!sessionKind.equalsIgnoreCase(controllerKind)) {
                         // Prune sessions of kind != controllerKind, and where Owner is not contained in principal name
@@ -372,10 +379,10 @@ public class LivySessionController extends AbstractControllerService implements 
 
                     // If security is enabled, do owner/proxy checks
                     if (credentialsService != null && (!credentialPrincipal.equals(sessionOwner)
-                                    || !appropriateProxy.equals(sessionProxy))) {
+                            || !appropriateProxy.equals(sessionProxy))) {
 
                         log.debug("manageSessions() Dropping session, not owned or proxied by this account. session ID: {}",
-                                new Object[]{sessionId, sessionOwner, sessionProxy, controllerKind, sessionKind, state});
+                                sessionId, sessionOwner, sessionProxy, controllerKind, sessionKind, state);
                         // where Owner or Proxy is not contained in principal name
                         sessions.remove(sessionId);
                         //Remove session from session list source of truth snapshot since it has been dealt with
@@ -393,7 +400,7 @@ public class LivySessionController extends AbstractControllerService implements 
                         sessionsInfo.remove(sessionId);
                     } else if ((state.equalsIgnoreCase("busy") || state.equalsIgnoreCase("starting"))) {
                         // Track starting instance count
-                        if(state.equalsIgnoreCase("starting")){
+                        if (state.equalsIgnoreCase("starting")) {
                             startingSessions++;
                         }
 
@@ -422,16 +429,23 @@ public class LivySessionController extends AbstractControllerService implements 
             if (numSessions == 0) {
                 for (int i = 0; i < sessionPoolSize; i++) {
                     newSessionInfo = openSession();
-                    sessions.put(newSessionInfo.getInt("id"), newSessionInfo);
-                    log.debug("manageSessions() Registered new session: " + newSessionInfo);
+                    // If the new session is already dead, it failed on startup so don't add it, instead indicate an error
+                    if (newSessionInfo.getString("state").equalsIgnoreCase("dead")) {
+                        deleteSession(newSessionInfo.getInt("id"));
+                        throw new IOException("The session attempted to be opened is already dead and has been deleted. This usually indicates that it failed fast, "
+                                + "perhaps from a misconfiguration (missing file(s), e.g.)");
+                    } else {
+                        sessions.put(newSessionInfo.getInt("id"), newSessionInfo);
+                        log.debug("manageSessions() Registered new session: " + newSessionInfo);
+                    }
                 }
             } else {
                 // If we exceeded our session pool size, look for `idle` sessions we can shut down
                 //  Two scenarios: we have no elastic pool sizing, in which case definitely look for candidates
                 //  Or, we do have elastic pool sizing, in which case we need to make sure we are above our max
                 //      pool size
-                if(idleSessions > 0 && numSessions > sessionPoolSize && (!elasticSessionPool || numSessions > maxSessionPoolSize)) {
-                    int sessionID = idleSessionInfo.keySet().stream().findFirst().get();
+                if (idleSessions > 0 && numSessions > sessionPoolSize && (!elasticSessionPool || numSessions > maxSessionPoolSize)) {
+                    int sessionID = idleSessionInfo.keySet().iterator().next();
                     log.debug("manageSessions() There are " + numSessions + " sessions in the pool, " +
                             "this exceeds the maximum number of allowed sessions, shutting down idle Livy session " + sessionID + "...");
                     deleteSession(sessionID);
@@ -443,26 +457,40 @@ public class LivySessionController extends AbstractControllerService implements 
                     log.debug("manageSessions() There are " + numSessions + " sessions in the pool, " +
                             "none of them are idle sessions and Elastic Session Pool Sizing is enabled, creating...");
                     newSessionInfo = openSession();
-                    sessions.put(newSessionInfo.getInt("id"), newSessionInfo);
-                    log.debug("manageSessions() Registered new session: " + newSessionInfo);
+                    // If the new session is already dead, it failed on startup so don't add it, instead indicate an error
+                    if (newSessionInfo.getString("state").equalsIgnoreCase("dead")) {
+                        deleteSession(newSessionInfo.getInt("id"));
+                        throw new IOException("The session attempted to be opened is already dead and has been deleted. This usually indicates that it failed fast, "
+                                + "perhaps from a misconfiguration (missing file(s), e.g.)");
+                    } else {
+                        sessions.put(newSessionInfo.getInt("id"), newSessionInfo);
+                        log.debug("manageSessions() Registered new session: " + newSessionInfo);
+                    }
                 }
                 // Open more sessions if number of sessions is less than target pool size
                 if (numSessions < sessionPoolSize) {
                     log.debug("manageSessions() There are " + numSessions + ", need more sessions to equal requested pool size of " + sessionPoolSize + ", creating...");
                     for (int i = 0; i < sessionPoolSize - numSessions; i++) {
                         newSessionInfo = openSession();
-                        sessions.put(newSessionInfo.getInt("id"), newSessionInfo);
-                        log.debug("manageSessions() Registered new session: " + newSessionInfo);
+                        // If the new session is already dead, it failed on startup so don't add it, instead indicate an error
+                        if (newSessionInfo.getString("state").equalsIgnoreCase("dead")) {
+                            deleteSession(newSessionInfo.getInt("id"));
+                            throw new IOException("The session attempted to be opened is already dead and has been deleted. This usually indicates that it failed fast, "
+                                    + "perhaps from a misconfiguration (missing file(s), e.g.)");
+                        } else {
+                            sessions.put(newSessionInfo.getInt("id"), newSessionInfo);
+                            log.debug("manageSessions() Registered new session: " + newSessionInfo);
+                        }
                     }
                 }
 
                 // Sessions that are running may need to be "connected" to remotely to reset their timeouts.
                 // Otherwise Livy will kill them based on bug LIVY-547.
-                if(keepSessionsAlive){
-                    for(Map.Entry<Integer, JSONObject> me : sessionsInfo.entrySet()) {
+                if (keepSessionsAlive) {
+                    for (Map.Entry<Integer, JSONObject> me : sessionsInfo.entrySet()) {
                         // Check if session is busy before updating it's activity date
                         String state = me.getValue().getString("state");
-                        if(state.equalsIgnoreCase("busy")){
+                        if (state.equalsIgnoreCase("busy")) {
                             getSessionConnect(me.getKey());
                             log.debug("manageSessions() Connected to session to keep it alive: " + me.getKey());
                         }
@@ -486,7 +514,7 @@ public class LivySessionController extends AbstractControllerService implements 
         headers.put("X-Requested-By", USER);
         try {
             sessionsInfo = LivyHelpers.readJSONFromUrl(
-                    sslContextService, credentialsService, connectTimeout,sessionsUrl, headers);
+                    sslContextService, credentialsService, connectTimeout, sessionsUrl, headers);
             numSessions = sessionsInfo.getJSONArray("sessions").length();
             for (int i = 0; i < numSessions; i++) {
                 int currentSessionId = sessionsInfo.getJSONArray("sessions").getJSONObject(i).getInt("id");
@@ -603,6 +631,10 @@ public class LivySessionController extends AbstractControllerService implements 
         if (numExecutors != null) {
             payload.append(",\"numExecutors\": ");
             payload.append(numExecutors);
+        }
+        // Re-evaluate the Session Name in case the value includes Expression Language
+        if (sessionNameDescriptor != null) {
+            this.sessionName = sessionNameDescriptor.evaluateAttributeExpressions().getValue();
         }
         if (sessionName != null) {
             payload.append(",\"name\": \"");

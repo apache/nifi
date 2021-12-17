@@ -1,5 +1,22 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.controller.livy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -16,7 +33,6 @@ import org.apache.nifi.controller.livy.utilities.LivyHelpers;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.ssl.SSLContextService;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -120,7 +136,7 @@ public class LivyBatchController extends AbstractControllerService implements Li
         this.enabled = true;
 
         // Store a copy of the credentialsService principal name for easy string matching
-        if(credentialsService != null) {
+        if (credentialsService != null) {
             credentialPrincipal = credentialsService.getPrincipal();
             credentialPrincipal = credentialPrincipal.substring(0, credentialPrincipal.indexOf("@"));
         }
@@ -139,7 +155,7 @@ public class LivyBatchController extends AbstractControllerService implements Li
         headers.put("X-Requested-By", USER);
         try {
             JSONObject sessionsInfo = LivyHelpers.readJSONFromUrl(
-                    sslContextService, credentialsService, connectTimeout,sessionsUrl, headers);
+                    sslContextService, credentialsService, connectTimeout, sessionsUrl, headers);
 
             LivyBatch livyBatch = new LivyBatch();
             livyBatch.id = batchid;
@@ -148,15 +164,15 @@ public class LivyBatchController extends AbstractControllerService implements Li
 
             // Get log list, which is a list of String
             JSONArray logList = sessionsInfo.getJSONArray("log");
-            if(logList != null){
+            if (logList != null) {
                 livyBatch.log = new String[logList.length()];
-                for(int l=0;l<logList.length();l++){
+                for (int l = 0; l < logList.length(); l++) {
                     livyBatch.log[l] = logList.getString(l);
                 }
             }
 
             return livyBatch;
-        } catch (JSONException|IOException e) {
+        } catch (JSONException | IOException e) {
             throw new SessionManagerException(e);
         }
     }
@@ -175,7 +191,7 @@ public class LivyBatchController extends AbstractControllerService implements Li
                     headers);
 
             return batchState.getString("state");
-        } catch(JSONException|IOException e){
+        } catch (JSONException | IOException e) {
             throw new SessionManagerException(e);
         }
     }
@@ -217,7 +233,7 @@ public class LivyBatchController extends AbstractControllerService implements Li
                 payload.append(",\"archives\":");
                 payload.append(splitCollect(archives));
             }
-        } catch (IOException e){
+        } catch (IOException e) {
             throw new SessionManagerException(e);
         }
 
@@ -239,32 +255,38 @@ public class LivyBatchController extends AbstractControllerService implements Li
                     sslContextService, credentialsService, connectTimeout, batchUrl, headers, payload.toString());
 
             return output.getInt("id");
-        } catch (JSONException|IOException e){
+        } catch (JSONException | IOException e) {
             throw new SessionManagerException(e);
         }
     }
 
     final ObjectMapper mapper = new ObjectMapper();
 
-    private void appendSubObject(StringBuilder payload, String key, String val){
+    private void appendSubObject(StringBuilder payload, String key, String val) {
         if (val != null) {
-            payload.append(",\"" + key + "\": ");
-            payload.append(val);
+            payload.append(",\"")
+                    .append(key)
+                    .append("\": ")
+                    .append(val);
         }
     }
 
-    private void appendValue(StringBuilder payload, String key, String val){
+    private void appendValue(StringBuilder payload, String key, String val) {
         if (val != null) {
-            payload.append(",\"" + key + "\": \"");
-            payload.append(val);
-            payload.append("\"");
+            payload.append(",\"")
+                    .append(key)
+                    .append("\": \"")
+                    .append(val)
+                    .append("\"");
         }
     }
 
-    private void appendValue(StringBuilder payload, String key, Integer val){
+    private void appendValue(StringBuilder payload, String key, Integer val) {
         if (val != null) {
-            payload.append(",\"" + key + "\": ");
-            payload.append(val);
+            payload.append(",\"")
+                    .append(key)
+                    .append("\": ")
+                    .append(val);
         }
     }
 

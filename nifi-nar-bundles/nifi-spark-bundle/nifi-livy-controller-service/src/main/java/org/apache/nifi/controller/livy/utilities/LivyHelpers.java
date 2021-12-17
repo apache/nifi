@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.controller.livy.utilities;
 
 import org.apache.commons.io.IOUtils;
@@ -19,6 +35,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hadoop.KerberosKeytabCredentials;
 import org.apache.nifi.hadoop.KerberosKeytabSPNegoAuthSchemeProvider;
@@ -140,7 +157,7 @@ public class LivyHelpers {
 
     public static final PropertyDescriptor CONF = new PropertyDescriptor.Builder()
             .name("livy-cs-session-conf")
-            .displayName("Conf")
+            .displayName("Configuration Properties")
             .description("Spark configuration properties, in JSON format. Ex: {\"spark.driver.maxResultSize\": \"0\", \"spark.submit.deployMode\": \"cluster\"}")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -150,7 +167,7 @@ public class LivyHelpers {
     public static final PropertyDescriptor JARS = new PropertyDescriptor.Builder()
             .name("livy-cs-session-jars")
             .displayName("Session JARs")
-            .description("JARs to be used in the Spark session.")
+            .description("JARs to be used in the Spark session. Note that these are expected to be available to the Spark cluster (in HDFS, e.g.) versus files local to the NiFi instance")
             .required(false)
             .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.FILE_EXISTS_VALIDATOR))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -159,9 +176,9 @@ public class LivyHelpers {
     public static final PropertyDescriptor FILES = new PropertyDescriptor.Builder()
             .name("livy-cs-session-files")
             .displayName("Session Files")
-            .description("Files to be used in the Spark session.")
+            .description("Files to be used in the Spark session. Note that these are expected to be available to the Spark cluster (in HDFS, e.g.) versus files local to the NiFi instance")
             .required(false)
-            .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.FILE_EXISTS_VALIDATOR))
+            .addValidator(StandardValidators.createListValidator(true, true, Validator.VALID))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue(null)
             .build();
@@ -169,9 +186,9 @@ public class LivyHelpers {
     public static final PropertyDescriptor PY_FILES = new PropertyDescriptor.Builder()
             .name("livy-cs-session-py-files")
             .displayName("Session Python Files")
-            .description("Python files to be used in this session")
+            .description("Python files to be used in this session. Note that these are expected to be available to the Spark cluster (in HDFS, e.g.) versus files local to the NiFi instance")
             .required(false)
-            .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.FILE_EXISTS_VALIDATOR))
+            .addValidator(StandardValidators.createListValidator(true, true, Validator.VALID))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue(null)
             .build();
@@ -179,9 +196,9 @@ public class LivyHelpers {
     public static final PropertyDescriptor ARCHIVES = new PropertyDescriptor.Builder()
             .name("livy-cs-session-archives")
             .displayName("Session Archives")
-            .description("Archives to be used in this session")
+            .description("Archives to be used in this session. Note that these are expected to be available to the Spark cluster (in HDFS, e.g.) versus files local to the NiFi instance")
             .required(false)
-            .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.FILE_EXISTS_VALIDATOR))
+            .addValidator(StandardValidators.createListValidator(true, true, Validator.VALID))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue(null)
             .build();
@@ -198,7 +215,7 @@ public class LivyHelpers {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
+            .description("The SSL Context Service used to provide client certificate information for TLS/SSL (HTTPS) connections.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
@@ -220,8 +237,8 @@ public class LivyHelpers {
             .build();
 
     public static CloseableHttpClient openConnection(SSLContextService sslContextService,
-                                            KerberosCredentialsService credentialsService,
-                                            int connectTimeout) throws IOException {
+                                                     KerberosCredentialsService credentialsService,
+                                                     int connectTimeout) throws IOException {
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
 
         if (sslContextService != null) {
@@ -238,7 +255,7 @@ public class LivyHelpers {
             credentialsProvider.setCredentials(new AuthScope(null, -1, null),
                     new KerberosKeytabCredentials(credentialsService.getPrincipal(), credentialsService.getKeytab()));
             httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-            Lookup<AuthSchemeProvider> authSchemeRegistry = RegistryBuilder.<AuthSchemeProvider> create()
+            Lookup<AuthSchemeProvider> authSchemeRegistry = RegistryBuilder.<AuthSchemeProvider>create()
                     .register(AuthSchemes.SPNEGO, new KerberosKeytabSPNegoAuthSchemeProvider()).build();
             httpClientBuilder.setDefaultAuthSchemeRegistry(authSchemeRegistry);
         }
@@ -258,25 +275,31 @@ public class LivyHelpers {
             int connectTimeout,
             String urlString, Map<String, String> headers, String payload) throws IOException, JSONException {
 
-        try(CloseableHttpClient httpClient = openConnection(sslContextService, credentialsService, connectTimeout)){
+        try (CloseableHttpClient httpClient = openConnection(sslContextService, credentialsService, connectTimeout)) {
             HttpPost request = new HttpPost(urlString);
             for (Map.Entry<String, String> entry : headers.entrySet()) {
                 request.addHeader(entry.getKey(), entry.getValue());
             }
 
-            if(payload != null) {
+            if (payload != null) {
                 HttpEntity httpEntity = new StringEntity(payload);
                 request.setEntity(httpEntity);
             }
 
             HttpResponse response = httpClient.execute(request);
+            InputStream content = response.getEntity().getContent();
+            JSONObject responseEntity = readAllIntoJSONObject(content);
 
             if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK && response.getStatusLine().getStatusCode() != HttpStatus.SC_CREATED) {
-                throw new RuntimeException("Failed : HTTP error code : " + response.getStatusLine().getStatusCode() + " : " + response.getStatusLine().getReasonPhrase());
+                throw new RuntimeException("Failed : HTTP error code : "
+                        + response.getStatusLine().getStatusCode()
+                        + " : "
+                        + response.getStatusLine().getReasonPhrase()
+                        + " : "
+                        + responseEntity.getString("msg"));
             }
 
-            InputStream content = response.getEntity().getContent();
-            return readAllIntoJSONObject(content);
+            return responseEntity;
         }
     }
 
@@ -286,7 +309,7 @@ public class LivyHelpers {
             int connectTimeout,
             String urlString, Map<String, String> headers) throws IOException, JSONException {
 
-        try(CloseableHttpClient httpClient = openConnection(sslContextService, credentialsService, connectTimeout)) {
+        try (CloseableHttpClient httpClient = openConnection(sslContextService, credentialsService, connectTimeout)) {
             HttpGet request = new HttpGet(urlString);
             for (Map.Entry<String, String> entry : headers.entrySet()) {
                 request.addHeader(entry.getKey(), entry.getValue());
@@ -304,7 +327,7 @@ public class LivyHelpers {
             int connectTimeout,
             String urlString, Map<String, String> headers) throws IOException, JSONException {
 
-        try(CloseableHttpClient httpClient = openConnection(sslContextService, credentialsService, connectTimeout)) {
+        try (CloseableHttpClient httpClient = openConnection(sslContextService, credentialsService, connectTimeout)) {
             HttpDelete request = new HttpDelete(urlString);
             for (Map.Entry<String, String> entry : headers.entrySet()) {
                 request.addHeader(entry.getKey(), entry.getValue());
