@@ -95,7 +95,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <okhttp.version>4.9.2</okhttp.version>
-        <org.bouncycastle.version>1.69</org.bouncycastle.version>
+        <org.bouncycastle.version>1.70</org.bouncycastle.version>
         <org.slf4j.version>1.7.32</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
         <jetty.version>9.4.44.v20210927</jetty.version>
