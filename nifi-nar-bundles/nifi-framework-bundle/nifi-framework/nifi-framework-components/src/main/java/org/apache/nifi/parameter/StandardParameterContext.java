@@ -545,7 +545,8 @@ public class StandardParameterContext implements ParameterContext {
             final Parameter proposedParameter = entry.getValue();
             if (currentEffectiveParameters.containsKey(proposedParameterDescriptor)) {
                 final Parameter currentParameter = currentEffectiveParameters.get(proposedParameterDescriptor);
-                if (!currentParameter.equals(proposedParameter) || currentParameter.getDescriptor().isSensitive() != proposedParameter.getDescriptor().isSensitive()) {
+                if (!currentParameter.equals(proposedParameter) || currentParameter.getDescriptor().isSensitive() != proposedParameter.getDescriptor().isSensitive()
+                        || currentParameter.getDescriptor().getDescription() != proposedParameter.getDescriptor().getDescription()) {
                     // The parameter has been updated in some way
                     effectiveParameterUpdates.put(proposedParameterDescriptor.getName(), proposedParameter);
                 }

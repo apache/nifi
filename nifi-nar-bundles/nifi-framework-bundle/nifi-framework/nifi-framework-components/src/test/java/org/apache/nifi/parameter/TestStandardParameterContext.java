@@ -132,6 +132,22 @@ public class TestStandardParameterContext {
     }
 
     @Test
+    public void testChangeDescription() {
+        final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
+        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
+        final ParameterDescriptor xyzDescriptor = new ParameterDescriptor.Builder().name("xyz").build();
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("xyz", new Parameter(xyzDescriptor, "123"));
+        context.setParameters(parameters);
+
+        final Map<String, Parameter> updates = new HashMap<>();
+        final ParameterDescriptor xyzDescriptor2 = new ParameterDescriptor.Builder().from(xyzDescriptor).description("changed").build();
+        final Parameter updatedParameter = new Parameter(xyzDescriptor2, "123");
+        updates.put("xyz", updatedParameter);
+        assertEquals(1, context.getEffectiveParameterUpdates(updates, Collections.emptyList()).size());
+    }
+
+    @Test
     public void testChangingSensitivity() {
         // Ensure no changes applied
         final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
