@@ -143,7 +143,11 @@ public class TestStandardParameterContext {
     @Test
     public void testChangeDescription() {
         final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
+        final StandardParameterContext context = new StandardParameterContext.Builder()
+                .id("unit-test-context")
+                .name("unit-test-context")
+                .parameterReferenceManager(referenceManager)
+                .build();
         final ParameterDescriptor xyzDescriptor = new ParameterDescriptor.Builder().name("xyz").build();
         final Map<String, Parameter> parameters = new HashMap<>();
         parameters.put("xyz", new Parameter(xyzDescriptor, "123"));
@@ -153,14 +157,14 @@ public class TestStandardParameterContext {
         final ParameterDescriptor xyzDescriptor2 = new ParameterDescriptor.Builder().from(xyzDescriptor).description("changed").build();
         final Parameter updatedParameter = new Parameter(xyzDescriptor2, "123");
         updates.put("xyz", updatedParameter);
-        assertEquals(1, context.getEffectiveParameterUpdates(updates, Collections.emptyList()).size());
+        assertEquals(1, context.getEffectiveParameterUpdates(updates, Collections.emptyList(), null, null).size());
 
         // Now there is no change, since the description is the same
         final Map<String, Parameter> updates2 = new HashMap<>();
         final ParameterDescriptor xyzDescriptor3 = new ParameterDescriptor.Builder().from(xyzDescriptor).description("changed").build();
         final Parameter updatedParameter2 = new Parameter(xyzDescriptor3, "123");
         updates.put("xyz", updatedParameter2);
-        assertEquals(0, context.getEffectiveParameterUpdates(updates2, Collections.emptyList()).size());
+        assertEquals(0, context.getEffectiveParameterUpdates(updates2, Collections.emptyList(), null, null).size());
     }
 
     @Test
