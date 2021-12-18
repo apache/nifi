@@ -26,6 +26,7 @@ on:
       - 'nifi-framework-api/**'
       - 'nifi-nar-bundles/nifi-framework-bundle/**'
       - 'nifi-system-tests/**'
+      - 'nifi-stateless/**'
 
 env:
   DEFAULT_MAVEN_OPTS: >-
@@ -89,6 +90,7 @@ jobs:
           ${{ env.MAVEN_RUN_ARGUMENTS }}
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Troubleshooting Logs
+        if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
           name: ubuntu-latest-troubleshooting-logs
@@ -132,6 +134,7 @@ jobs:
           ${{ env.MAVEN_RUN_ARGUMENTS }}
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Troubleshooting Logs
+        if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
           name: macos-latest-troubleshooting-logs
