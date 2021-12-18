@@ -1569,7 +1569,8 @@ This function returns null if either latitude or longitude is empty and generate
 *Examples*: If we have a geohash binary string attribute named "geohash" with a value of "110001010100010",
 then the Expression `${geohash:geohashDecodeLatitude('BINARY')}` will return 41.484375.
 
-
+This function returns null if geohash attribute is null and returns 0.0 if an empty value is provided.
+It generates an exception bulletin if the geohash value provided is invalid.
 
 [.function]
 === geohashDecodeLongitude
@@ -1588,7 +1589,8 @@ then the Expression `${geohash:geohashDecodeLatitude('BINARY')}` will return 41.
 *Examples*: If we have a standard geohash string attribute named "geohash" with a value of "sp2j1zs7y01r",
 then the Expression `${geohash:geohashDecodeLongitude('BASE32')}` will return 0.08300011977553368.
 
-
+This function returns null if geohash attribute is null and returns 0.0 if an empty value is provided.
+It generates an exception bulletin if the geohash value provided is invalid.
 
 [[searching]]
 == Searching

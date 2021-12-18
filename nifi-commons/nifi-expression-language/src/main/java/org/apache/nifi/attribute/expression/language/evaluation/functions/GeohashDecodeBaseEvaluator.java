@@ -49,7 +49,7 @@ public abstract class GeohashDecodeBaseEvaluator extends NumberEvaluator {
         //Optional argument. If not specified, defaults to BASE_32_STRING.
         final GeohashFormat geohashFormatValue;
         if (format != null) {
-            if(!EnumUtils.isValidEnum(GeohashFormat.class, format.evaluate(evaluationContext).getValue())) {
+            if (!EnumUtils.isValidEnum(GeohashFormat.class, format.evaluate(evaluationContext).getValue())) {
                 throw new AttributeExpressionLanguageException("Format values must be 'BASE32', 'BINARY' or 'LONG'");
             }
             geohashFormatValue = GeohashFormat.valueOf(format.evaluate(evaluationContext).getValue());
@@ -84,7 +84,8 @@ public abstract class GeohashDecodeBaseEvaluator extends NumberEvaluator {
             } else {
                 return new NumberQueryResult(boundingBoxCenter.getLongitude());
             }
-
+        } catch (NullPointerException e) {
+            throw new AttributeExpressionLanguageException("Invalid Geohash value is provided");
         } catch (IllegalArgumentException e) {
             throw new AttributeExpressionLanguageException("Unable to decode Geohash", e);
         }

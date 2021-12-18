@@ -2255,14 +2255,20 @@ public class TestQuery {
         attributes.put("geohash_base32", "sp2j1");
         attributes.put("geohash_binary", "110001010100010");
         attributes.put("geohash_long", "-4231957587308838032");
+        attributes.put("geohash_base32_invalid", "cat");
+        attributes.put("geohash_empty", "");
+        attributes.put("geohash_null", null);
 
         verifyEquals("${geohash_base32:geohashDecodeLatitude('BASE32')}", attributes, 41.68212890625);
         verifyEquals("${geohash_binary:geohashDecodeLatitude('BINARY')}", attributes, 41.484375);
         verifyEquals("${geohash_long:geohashDecodeLatitude('LONG')}", attributes, 41.701999905053526);
+        verifyEquals("${geohash_empty:geohashDecodeLatitude('BASE32')}", attributes, 0.0);
+        verifyEmpty("${geohash_null:geohashDecodeLatitude('BASE32')}", attributes);
 
         assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohash_base32:geohashDecodeLatitude('BINARY')}", attributes, 41.68212890625));
         assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohash_base32:geohashDecodeLatitude('NOT_A_FORMAT')}", attributes, 41.68212890625));
         assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohash_base32:geohashDecodeLatitude()}", attributes, 41.68212890625));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohash_base32_invalid:geohashDecodeLatitude('BASE32')}", attributes, ""));
     }
 
     @Test
@@ -2271,14 +2277,20 @@ public class TestQuery {
         attributes.put("geohash_base32", "sp2j1");
         attributes.put("geohash_binary", "110001010100010");
         attributes.put("geohash_long", "-4231957587308838032");
+        attributes.put("geohash_base32_invalid", "hello");
+        attributes.put("geohash_empty", "");
+        attributes.put("geohash_null", null);
 
         verifyEquals("${geohash_base32:geohashDecodeLongitude('BASE32')}", attributes, 0.06591796875);
         verifyEquals("${geohash_binary:geohashDecodeLongitude('BINARY')}", attributes, 0.703125);
         verifyEquals("${geohash_long:geohashDecodeLongitude('LONG')}", attributes, 0.0829999940469861);
+        verifyEquals("${geohash_empty:geohashDecodeLongitude('BASE32')}", attributes, 0.0);
+        verifyEmpty("${geohash_null:geohashDecodeLongitude('BASE32')}", attributes);
 
         assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohash_long:geohashDecodeLongitude('BINARY')}", attributes, 0.0829999940469861));
         assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohash_long:geohashDecodeLongitude('NOT_A_FORMAT')}", attributes, 0.0829999940469861));
         assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohash_long:geohashDecodeLongitude()}", attributes, 0.0829999940469861));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${geohash_base32_invalid:geohashDecodeLongitude('BASE32')}", attributes, ""));
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
