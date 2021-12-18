@@ -36,9 +36,7 @@ import javax.ws.rs.core.StreamingOutput;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,11 +48,15 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TestFlowResource {
-    private static final String INSTANCE_ID = TestFlowResource.class.getSimpleName();
+    private static final String LABEL_VALUE = TestFlowResource.class.getSimpleName();
 
     private static final String THREAD_COUNT_NAME = "nifi_jvm_thread_count";
 
     private static final String HEAP_USAGE_NAME = "nifi_jvm_heap_usage";
+
+    private static final String HEAP_USED_NAME = "nifi_jvm_heap_used";
+
+    private static final String HEAP_STARTS_WITH_PATTERN = "nifi_jvm_heap.*";
 
     @InjectMocks
     private FlowResource resource = new FlowResource();
@@ -64,7 +66,7 @@ public class TestFlowResource {
 
     @Test
     public void testGetFlowMetricsProducerInvalid() {
-        assertThrows(ResourceNotFoundException.class, () -> resource.getFlowMetrics(String.class.toString(), Collections.emptySet(), Collections.emptySet()));
+        assertThrows(ResourceNotFoundException.class, () -> resource.getFlowMetrics(String.class.toString(), Collections.emptySet(), null, null));
     }
 
     @Test
@@ -72,7 +74,7 @@ public class TestFlowResource {
         final List<CollectorRegistry> registries = getCollectorRegistries();
         when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), Collections.emptySet());
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), null, null);
 
         assertNotNull(response);
         assertEquals(MediaType.valueOf(TextFormat.CONTENT_TYPE_004), response.getMediaType());
@@ -84,12 +86,11 @@ public class TestFlowResource {
     }
 
     @Test
-    public void testGetFlowMetricsPrometheusIncludedNames() throws IOException {
+    public void testGetFlowMetricsPrometheusSampleName() throws IOException {
         final List<CollectorRegistry> registries = getCollectorRegistries();
         when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
 
-        final Set<String> includedNames = new HashSet<>(Collections.singletonList(THREAD_COUNT_NAME));
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), includedNames);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), THREAD_COUNT_NAME, null);
 
         assertNotNull(response);
         assertEquals(MediaType.valueOf(TextFormat.CONTENT_TYPE_004), response.getMediaType());
@@ -98,6 +99,38 @@ public class TestFlowResource {
 
         assertTrue(output.contains(THREAD_COUNT_NAME), "Thread Count name not found");
         assertFalse(output.contains(HEAP_USAGE_NAME), "Heap Usage name not filtered");
+    }
+
+    @Test
+    public void testGetFlowMetricsPrometheusSampleNameStartsWithPattern() throws IOException {
+        final List<CollectorRegistry> registries = getCollectorRegistries();
+        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), HEAP_STARTS_WITH_PATTERN, null);
+
+        assertNotNull(response);
+        assertEquals(MediaType.valueOf(TextFormat.CONTENT_TYPE_004), response.getMediaType());
+
+        final String output = getResponseOutput(response);
+
+        assertTrue(output.contains(HEAP_USAGE_NAME), "Heap Usage name not found");
+        assertTrue(output.contains(HEAP_USED_NAME), "Heap Used name not found");
+        assertFalse(output.contains(THREAD_COUNT_NAME), "Heap Usage name not filtered");
+    }
+
+    @Test
+    public void testGetFlowMetricsPrometheusSampleLabelValue() throws IOException {
+        final List<CollectorRegistry> registries = getCollectorRegistries();
+        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), null, LABEL_VALUE);
+
+        assertNotNull(response);
+        assertEquals(MediaType.valueOf(TextFormat.CONTENT_TYPE_004), response.getMediaType());
+
+        final String output = getResponseOutput(response);
+
+        assertTrue(output.contains(LABEL_VALUE), "Label Value not found");
     }
 
     private String getResponseOutput(final Response response) throws IOException {
@@ -110,7 +143,7 @@ public class TestFlowResource {
 
     private List<CollectorRegistry> getCollectorRegistries() {
         final JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
-        final CollectorRegistry jvmCollectorRegistry = PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), INSTANCE_ID);
+        final CollectorRegistry jvmCollectorRegistry = PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), LABEL_VALUE);
         return Collections.singletonList(jvmCollectorRegistry);
     }
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import io.prometheus.client.Collector;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.exporter.common.TextFormat;
 import io.swagger.annotations.Api;
@@ -112,6 +111,8 @@ import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowsEntity;
+import org.apache.nifi.web.api.metrics.TextFormatPrometheusMetricsWriter;
+import org.apache.nifi.web.api.metrics.PrometheusMetricsWriter;
 import org.apache.nifi.web.api.request.BulletinBoardPatternParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
 import org.apache.nifi.web.api.request.FlowMetricsProducer;
@@ -134,16 +135,12 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
-import java.io.BufferedWriter;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -425,30 +422,26 @@ public class FlowResource extends ApplicationResource {
             )
             @QueryParam("includedRegistries") final Set<FlowMetricsRegistry> includedRegistries,
             @ApiParam(
-                    value = "Set of included metric family sample names"
+                    value = "Regular Expression Pattern to be applied against the sample name field"
             )
-            @QueryParam("includedNames") final Set<String> includedNames
+            @QueryParam("sampleName") final String sampleName,
+            @ApiParam(
+                    value = "Regular Expression Pattern to be applied against the sample label value field"
+            )
+            @QueryParam("sampleLabelValue") final String sampleLabelValue
     ) {
 
         authorizeFlow();
 
-        if (FlowMetricsProducer.PROMETHEUS.getProducer().equalsIgnoreCase(producer)) {
-            final Set<FlowMetricsRegistry> selectedRegistries = includedRegistries == null ? Collections.emptySet() : includedRegistries;
-            final Collection<CollectorRegistry> allRegistries = serviceFacade.generateFlowMetrics(selectedRegistries);
-            final StreamingOutput response = output -> {
-                final Writer writer = new BufferedWriter(new OutputStreamWriter(output));
-                for (final CollectorRegistry collectorRegistry : allRegistries) {
-                    final Enumeration<Collector.MetricFamilySamples> metricFamilySamples = collectorRegistry.filteredMetricFamilySamples(includedNames);
-                    TextFormat.write004(writer, metricFamilySamples);
-                    writer.flush();
-                }
-                writer.flush();
-                writer.close();
-            };
+        final Set<FlowMetricsRegistry> selectedRegistries = includedRegistries == null ? Collections.emptySet() : includedRegistries;
+        final Collection<CollectorRegistry> registries = serviceFacade.generateFlowMetrics(selectedRegistries);
 
-            return generateOkResponse(response)
-                    .type(TextFormat.CONTENT_TYPE_004)
-                    .build();
+        if (FlowMetricsProducer.PROMETHEUS.getProducer().equalsIgnoreCase(producer)) {
+            final StreamingOutput response = (outputStream -> {
+                final PrometheusMetricsWriter prometheusMetricsWriter = new TextFormatPrometheusMetricsWriter(sampleName, sampleLabelValue);
+                prometheusMetricsWriter.write(registries, outputStream);
+            });
+            return generateOkResponse(response).type(TextFormat.CONTENT_TYPE_004).build();
         } else {
             throw new ResourceNotFoundException("The specified producer is missing or invalid.");
         }
