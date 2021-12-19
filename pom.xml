@@ -795,8 +795,8 @@
                                         <exclude>com.google.code.findbugs:jsr305:*:*:compile</exclude>
                                         <!-- Log4J excluded in favor of log4j-over-slf4j and logback -->
                                         <exclude>log4j:log4j:*</exclude>
-                                        <!-- Ban log4j-core less than 2.17.0 due to multiple vulnerability -->
-                                        <exclude>org.apache.logging.log4j:log4j-core:(,2.17.0)</exclude>
+                                        <!-- Log4j 2 log4j-core excluded in favor of log4j-to-slf4j routing to logback -->
+                                        <exclude>org.apache.logging.log4j:log4j-core:*</exclude>
                                         <!-- Commons Logging excluded in favor of jcl-over-slf4j -->
                                         <exclude>commons-logging:commons-logging:*</exclude>
                                     </excludes>
