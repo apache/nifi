@@ -57,7 +57,7 @@ public class ReportingTaskDefinition extends ExtensionComponent implements Confi
         this.supportsDynamicProperties = supportsDynamicProperties;
     }
 
-    @ApiModelProperty
+    @ApiModelProperty("The supported scheduling strategies, such as TIME_DRIVER or CRON.")
     public List<String> getSupportedSchedulingStrategies() {
         return (supportedSchedulingStrategies != null ? Collections.unmodifiableList(supportedSchedulingStrategies) : null);
     }
@@ -66,7 +66,7 @@ public class ReportingTaskDefinition extends ExtensionComponent implements Confi
         this.supportedSchedulingStrategies = supportedSchedulingStrategies;
     }
 
-    @ApiModelProperty
+    @ApiModelProperty("The default scheduling strategy for the reporting task.")
     public String getDefaultSchedulingStrategy() {
         return defaultSchedulingStrategy;
     }
@@ -75,7 +75,8 @@ public class ReportingTaskDefinition extends ExtensionComponent implements Confi
         this.defaultSchedulingStrategy = defaultSchedulingStrategy;
     }
 
-    @ApiModelProperty("The default scheduling period for each scheduling strategy")
+    @ApiModelProperty("The default scheduling period for each scheduling strategy. " +
+            "The scheduling period is expected to be a time period, such as \"30 sec\".")
     public Map<String, String> getDefaultSchedulingPeriodBySchedulingStrategy() {
         return defaultSchedulingPeriodBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultSchedulingPeriodBySchedulingStrategy) : null;
     }
