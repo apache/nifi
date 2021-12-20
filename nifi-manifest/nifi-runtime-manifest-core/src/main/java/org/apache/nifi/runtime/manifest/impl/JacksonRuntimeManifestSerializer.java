@@ -23,6 +23,7 @@ import org.apache.nifi.runtime.manifest.RuntimeManifestSerializer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Jackson implementation of RuntimeManifestSerializer.
@@ -37,7 +38,7 @@ public class JacksonRuntimeManifestSerializer implements RuntimeManifestSerializ
 
     @Override
     public void write(final RuntimeManifest runtimeManifest, final OutputStream outputStream) throws IOException {
-        try (final OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream)) {
+        try (final OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8)) {
             objectWriter.writeValue(outputStreamWriter, runtimeManifest);
         }
     }
