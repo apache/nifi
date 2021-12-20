@@ -18,7 +18,7 @@ package org.apache.nifi.registry.db.mapper;
 
 import org.apache.nifi.registry.db.entity.ExtensionEntity;
 import org.apache.nifi.registry.extension.bundle.BundleType;
-import org.apache.nifi.registry.extension.component.manifest.ExtensionType;
+import org.apache.nifi.extension.manifest.ExtensionType;
 import org.springframework.jdbc.core.RowMapper;
 
 import java.sql.ResultSet;

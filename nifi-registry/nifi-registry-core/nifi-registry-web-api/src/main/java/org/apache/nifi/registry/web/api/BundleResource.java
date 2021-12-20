@@ -31,7 +31,7 @@ import org.apache.nifi.registry.extension.bundle.BundleFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleVersion;
 import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
-import org.apache.nifi.registry.extension.component.ExtensionMetadata;
+import org.apache.nifi.extension.ExtensionMetadata;
 import org.apache.nifi.registry.web.service.ServiceFacade;
 import org.apache.nifi.registry.web.service.StreamingContent;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -375,7 +375,7 @@ public class BundleResource extends ApplicationResource {
             value = "Get bundle version extension",
             notes = "Gets the metadata about the extension with the given name in the given extension bundle version. " + NON_GUARANTEED_ENDPOINT,
             nickname = "globalGetBundleVersionExtension",
-            response = org.apache.nifi.registry.extension.component.manifest.Extension.class,
+            response = org.apache.nifi.extension.manifest.Extension.class,
             responseContainer = "List",
             extensions = {
                     @Extension(name = "access-policy", properties = {
@@ -401,7 +401,7 @@ public class BundleResource extends ApplicationResource {
                 final String name
             ) {
 
-        final org.apache.nifi.registry.extension.component.manifest.Extension extension =
+        final org.apache.nifi.extension.manifest.Extension extension =
                 serviceFacade.getExtension(bundleId, version, name);
         return Response.ok(extension).build();
     }

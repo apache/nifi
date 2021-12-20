@@ -29,7 +29,7 @@ import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.exception.ResourceNotFoundException;
 import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
-import org.apache.nifi.registry.extension.component.ExtensionMetadata;
+import org.apache.nifi.extension.ExtensionMetadata;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoArtifact;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoBucket;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoExtensionMetadata;
@@ -278,7 +278,7 @@ public class ExtensionRepoResource extends ApplicationResource {
             value = "Get extension repo extension",
             notes = "Gets information about the extension with the given name in " +
                     "the given bucket, group, artifact, and version. " + NON_GUARANTEED_ENDPOINT,
-            response = org.apache.nifi.registry.extension.component.manifest.Extension.class,
+            response = org.apache.nifi.extension.manifest.Extension.class,
             extensions = {
                     @Extension(name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
@@ -308,7 +308,7 @@ public class ExtensionRepoResource extends ApplicationResource {
             @ApiParam("The fully qualified name of the extension")
                 final String name
     ) {
-        final org.apache.nifi.registry.extension.component.manifest.Extension extension =
+        final org.apache.nifi.extension.manifest.Extension extension =
                 serviceFacade.getExtensionRepoExtension(
                         getBaseUri(), bucketName, groupId, artifactId, version, name);
         return Response.ok(extension).build();
