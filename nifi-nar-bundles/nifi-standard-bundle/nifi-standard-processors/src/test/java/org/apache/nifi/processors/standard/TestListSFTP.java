@@ -81,7 +81,7 @@ public class TestListSFTP {
         sftpServer.deleteAllFilesAndDirectories();
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void testListingWhileConcurrentlyWritingIntoMultipleDirectories() throws Exception {
         AtomicInteger fileCounter = new AtomicInteger(1);
 

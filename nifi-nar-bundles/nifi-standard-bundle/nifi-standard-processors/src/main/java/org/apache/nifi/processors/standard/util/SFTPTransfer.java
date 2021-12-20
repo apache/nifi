@@ -16,13 +16,9 @@
  */
 package org.apache.nifi.processors.standard.util;
 
-import net.schmizz.keepalive.KeepAlive;
-import net.schmizz.keepalive.KeepAliveProvider;
-import net.schmizz.sshj.Config;
 import net.schmizz.sshj.DefaultConfig;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.common.Factory;
-import net.schmizz.sshj.connection.ConnectionImpl;
 import net.schmizz.sshj.sftp.FileAttributes;
 import net.schmizz.sshj.sftp.FileMode;
 import net.schmizz.sshj.sftp.RemoteFile;
@@ -31,17 +27,6 @@ import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import net.schmizz.sshj.sftp.Response;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.sftp.SFTPException;
-import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
-import net.schmizz.sshj.userauth.keyprovider.KeyFormat;
-import net.schmizz.sshj.userauth.keyprovider.KeyProvider;
-import net.schmizz.sshj.userauth.keyprovider.KeyProviderUtil;
-import net.schmizz.sshj.userauth.method.AuthKeyboardInteractive;
-import net.schmizz.sshj.userauth.method.AuthMethod;
-import net.schmizz.sshj.userauth.method.AuthPassword;
-import net.schmizz.sshj.userauth.method.AuthPublickey;
-import net.schmizz.sshj.userauth.method.PasswordResponseProvider;
-import net.schmizz.sshj.userauth.password.PasswordFinder;
-import net.schmizz.sshj.userauth.password.PasswordUtils;
 import net.schmizz.sshj.xfer.FilePermission;
 import net.schmizz.sshj.xfer.LocalSourceFile;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -58,39 +43,35 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.ssh.SSHClientProvider;
+import org.apache.nifi.processors.standard.ssh.StandardSSHClientProvider;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.stream.io.StreamUtils;
 
-import javax.net.SocketFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.Proxy;
-import java.net.Socket;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.apache.nifi.processors.standard.util.FTPTransfer.createComponentProxyConfigSupplier;
-
 public class SFTPTransfer implements FileTransfer {
-    private static final int KEEP_ALIVE_INTERVAL_SECONDS = 5;
+    private static final SSHClientProvider SSH_CLIENT_PROVIDER = new StandardSSHClientProvider();
 
     private static final Set<String> DEFAULT_KEY_ALGORITHM_NAMES;
     private static final Set<String> DEFAULT_CIPHER_NAMES;
@@ -561,32 +542,6 @@ public class SFTPTransfer implements FileTransfer {
         }
     }
 
-    private static final KeepAliveProvider NO_OP_KEEP_ALIVE = new KeepAliveProvider() {
-        @Override
-        public KeepAlive provide(final ConnectionImpl connection) {
-            return new KeepAlive(connection, "no-op-keep-alive") {
-                @Override
-                protected void doKeepAlive() {
-                    // do nothing;
-                }
-            };
-        }
-    };
-
-    private static final KeepAliveProvider DEFAULT_KEEP_ALIVE_PROVIDER = new KeepAliveProvider() {
-        @Override
-        public KeepAlive provide(final ConnectionImpl connection) {
-            final KeepAlive keepAlive = KeepAliveProvider.KEEP_ALIVE.provide(connection);
-            keepAlive.setKeepAliveInterval(KEEP_ALIVE_INTERVAL_SECONDS);
-            return keepAlive;
-        }
-    };
-
-    protected KeepAliveProvider getKeepAliveProvider() {
-        final boolean useKeepAliveOnTimeout = ctx.getProperty(USE_KEEPALIVE_ON_TIMEOUT).asBoolean();
-        return useKeepAliveOnTimeout ? DEFAULT_KEEP_ALIVE_PROVIDER : NO_OP_KEEP_ALIVE;
-    }
-
     protected SFTPClient getSFTPClient(final FlowFile flowFile) throws IOException {
         // If the client is already initialized then compare the host that the client is connected to with the current
         // host from the properties/flow-file, and if different then we need to close and reinitialize, if same we can reuse
@@ -602,95 +557,8 @@ public class SFTPTransfer implements FileTransfer {
             }
         }
 
-        // Initialize a new SSHClient...
-        final DefaultConfig sshClientConfig = new DefaultConfig();
-        sshClientConfig.setKeepAliveProvider(getKeepAliveProvider());
-        updateConfigAlgorithms(sshClientConfig);
-
-        final SSHClient sshClient = new SSHClient(sshClientConfig);
-
-        // Create a Proxy if the config was specified, proxy will be null if type was NO_PROXY
-        final Proxy proxy;
-        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(ctx, createComponentProxyConfigSupplier(ctx));
-        switch (proxyConfig.getProxyType()) {
-            case HTTP:
-            case SOCKS:
-                proxy = proxyConfig.createProxy();
-                break;
-            default:
-                proxy = null;
-                break;
-        }
-
-        // If a proxy was specified, configure the client to use a SocketFactory that creates Sockets using the proxy
-        if (proxy != null) {
-            sshClient.setSocketFactory(new SocketFactory() {
-                @Override
-                public Socket createSocket() {
-                    return new Socket(proxy);
-                }
-
-                @Override
-                public Socket createSocket(String s, int i) {
-                    return new Socket(proxy);
-                }
-
-                @Override
-                public Socket createSocket(String s, int i, InetAddress inetAddress, int i1) {
-                    return new Socket(proxy);
-                }
-
-                @Override
-                public Socket createSocket(InetAddress inetAddress, int i) {
-                    return new Socket(proxy);
-                }
-
-                @Override
-                public Socket createSocket(InetAddress inetAddress, int i, InetAddress inetAddress1, int i1) {
-                    return new Socket(proxy);
-                }
-            });
-        }
-
-        // If strict host key checking is false, add a HostKeyVerifier that always returns true
-        final boolean strictHostKeyChecking = ctx.getProperty(STRICT_HOST_KEY_CHECKING).asBoolean();
-        if (!strictHostKeyChecking) {
-            sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        }
-
-        // Load known hosts file if specified, otherwise load default
-        final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();
-        if (hostKeyVal != null) {
-            sshClient.loadKnownHosts(new File(hostKeyVal));
-            // Load default known_hosts file only when 'Strict Host Key Checking' property is enabled
-        } else if (strictHostKeyChecking) {
-            sshClient.loadKnownHosts();
-        }
-
-        // Enable compression on the client if specified in properties
-        final PropertyValue compressionValue = ctx.getProperty(FileTransfer.USE_COMPRESSION);
-        if (compressionValue != null && "true".equalsIgnoreCase(compressionValue.getValue())) {
-            sshClient.useCompression();
-        }
-
-        // Configure connection timeout
-        final int connectionTimeoutMillis = ctx.getProperty(FileTransfer.CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        sshClient.setTimeout(connectionTimeoutMillis);
-
-        // Connect to the host and port
-        final String hostname = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
-        final int port = ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger();
-        sshClient.connect(hostname, port);
-
-        // Setup authentication methods...
-        final List<AuthMethod> authMethods = getAuthMethods(sshClient, flowFile);
-
-        // Authenticate...
-        final String username = ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
-        sshClient.auth(username, authMethods);
-
-        // At this point we are connected and can create a new SFTPClient which means everything is good
-        this.sshClient = sshClient;
+        final Map<String, String> attributes = flowFile == null ? Collections.emptyMap() : flowFile.getAttributes();
+        this.sshClient = SSH_CLIENT_PROVIDER.getClient(ctx, attributes);
         this.sftpClient = sshClient.newSFTPClient();
         this.closed = false;
 
@@ -705,48 +573,10 @@ public class SFTPTransfer implements FileTransfer {
             this.homeDir = "";
             // For some combination of server configuration and user home directory, getHome() can fail with "2: File not found"
             // Since  homeDir is only used tor SEND provenance event transit uri, this is harmless. Log and continue.
-            logger.debug("Failed to retrieve {} home directory due to {}", username, e.getMessage());
+            logger.debug("Failed to retrieve home directory due to {}", e.getMessage());
         }
 
         return sftpClient;
-    }
-
-    void updateConfigAlgorithms(final Config config) {
-        if (ctx.getProperty(CIPHERS_ALLOWED).isSet()) {
-            Set<String> allowedCiphers = Arrays.stream(ctx.getProperty(CIPHERS_ALLOWED).evaluateAttributeExpressions().getValue().split(","))
-                    .map(String::trim)
-                    .collect(Collectors.toSet());
-            config.setCipherFactories(config.getCipherFactories().stream()
-                    .filter(cipherNamed -> allowedCiphers.contains(cipherNamed.getName()))
-                    .collect(Collectors.toList()));
-        }
-
-        if (ctx.getProperty(KEY_ALGORITHMS_ALLOWED).isSet()) {
-            Set<String> allowedKeyAlgorithms = Arrays.stream(ctx.getProperty(KEY_ALGORITHMS_ALLOWED).evaluateAttributeExpressions().getValue().split(","))
-                    .map(String::trim)
-                    .collect(Collectors.toSet());
-            config.setKeyAlgorithms(config.getKeyAlgorithms().stream()
-                    .filter(keyAlgorithmNamed -> allowedKeyAlgorithms.contains(keyAlgorithmNamed.getName()))
-                    .collect(Collectors.toList()));
-        }
-
-        if (ctx.getProperty(KEY_EXCHANGE_ALGORITHMS_ALLOWED).isSet()) {
-            Set<String> allowedKeyExchangeAlgorithms = Arrays.stream(ctx.getProperty(KEY_EXCHANGE_ALGORITHMS_ALLOWED).evaluateAttributeExpressions().getValue().split(","))
-                    .map(String::trim)
-                    .collect(Collectors.toSet());
-            config.setKeyExchangeFactories(config.getKeyExchangeFactories().stream()
-                    .filter(keyExchangeNamed -> allowedKeyExchangeAlgorithms.contains(keyExchangeNamed.getName()))
-                    .collect(Collectors.toList()));
-        }
-
-        if (ctx.getProperty(MESSAGE_AUTHENTICATION_CODES_ALLOWED).isSet()) {
-            Set<String> allowedMessageAuthenticationCodes = Arrays.stream(ctx.getProperty(MESSAGE_AUTHENTICATION_CODES_ALLOWED).evaluateAttributeExpressions().getValue().split(","))
-                    .map(String::trim)
-                    .collect(Collectors.toSet());
-            config.setMACFactories(config.getMACFactories().stream()
-                    .filter(macNamed -> allowedMessageAuthenticationCodes.contains(macNamed.getName()))
-                    .collect(Collectors.toList()));
-        }
     }
 
     @Override
@@ -960,56 +790,5 @@ public class SFTPTransfer implements FileTransfer {
             }
         }
         return number;
-    }
-
-    protected List<AuthMethod> getAuthMethods(final SSHClient client, final FlowFile flowFile) {
-        final List<AuthMethod> authMethods = new ArrayList<>();
-
-        final String privateKeyPath = ctx.getProperty(PRIVATE_KEY_PATH).evaluateAttributeExpressions(flowFile).getValue();
-        if (privateKeyPath != null) {
-            final String privateKeyPassphrase = ctx.getProperty(PRIVATE_KEY_PASSPHRASE).evaluateAttributeExpressions(flowFile).getValue();
-            final KeyProvider keyProvider = getKeyProvider(client, privateKeyPath, privateKeyPassphrase);
-            final AuthMethod authPublicKey = new AuthPublickey(keyProvider);
-            authMethods.add(authPublicKey);
-        }
-
-        final String password = ctx.getProperty(FileTransfer.PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
-        if (password != null) {
-            final AuthMethod authPassword = new AuthPassword(getPasswordFinder(password));
-            authMethods.add(authPassword);
-
-            final PasswordResponseProvider passwordProvider = new PasswordResponseProvider(getPasswordFinder(password));
-            final AuthMethod authKeyboardInteractive = new AuthKeyboardInteractive(passwordProvider);
-            authMethods.add(authKeyboardInteractive);
-        }
-
-        if (logger.isDebugEnabled()) {
-            final List<String> methods = authMethods.stream().map(AuthMethod::getName).collect(Collectors.toList());
-            logger.debug("Authentication Methods Configured {}", methods);
-        }
-        return authMethods;
-    }
-
-    private KeyProvider getKeyProvider(final SSHClient client, final String privateKeyLocation, final String privateKeyPassphrase) {
-        final KeyFormat keyFormat = getKeyFormat(privateKeyLocation);
-        logger.debug("Loading Private Key File [{}] Format [{}]", privateKeyLocation, keyFormat);
-        try {
-            return privateKeyPassphrase == null ? client.loadKeys(privateKeyLocation) : client.loadKeys(privateKeyLocation, privateKeyPassphrase);
-        } catch (final IOException e) {
-            throw new ProcessException(String.format("Loading Private Key File [%s] Format [%s] Failed", privateKeyLocation, keyFormat), e);
-        }
-    }
-
-    private KeyFormat getKeyFormat(final String privateKeyLocation) {
-        try {
-            final File privateKeyFile = new File(privateKeyLocation);
-            return KeyProviderUtil.detectKeyFileFormat(privateKeyFile);
-        } catch (final IOException e) {
-            throw new ProcessException(String.format("Reading Private Key File [%s] Format Failed", privateKeyLocation), e);
-        }
-    }
-
-    private PasswordFinder getPasswordFinder(final String password) {
-        return PasswordUtils.createOneOff(password.toCharArray());
     }
 }
