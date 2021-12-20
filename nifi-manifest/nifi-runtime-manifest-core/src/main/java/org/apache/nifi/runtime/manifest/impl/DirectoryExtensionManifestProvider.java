@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.runtime.manifest.impl;
 
-import org.apache.nifi.registry.bundle.extract.nar.docs.ExtensionManifestParser;
+import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.apache.nifi.extension.manifest.ExtensionManifest;
 import org.apache.nifi.runtime.manifest.ExtensionManifestProvider;
 import org.slf4j.Logger;

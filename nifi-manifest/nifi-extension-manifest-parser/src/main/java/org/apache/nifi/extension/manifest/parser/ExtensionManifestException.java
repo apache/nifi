@@ -14,17 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.registry.bundle.extract.nar.docs;
+package org.apache.nifi.extension.manifest.parser;
 
-import org.apache.nifi.extension.manifest.ExtensionManifest;
+public class ExtensionManifestException extends RuntimeException {
 
-import java.io.InputStream;
+    public ExtensionManifestException(String message) {
+        super(message);
+    }
 
-/**
- * Parses an InputStream that is expected to contain the content of META-INF/docs/extensions-manifest.xml from a NAR.
- */
-public interface ExtensionManifestParser {
-
-    ExtensionManifest parse(InputStream inputStream);
+    public ExtensionManifestException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
 }

@@ -14,14 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.registry.bundle.extract.nar.docs;
+package org.apache.nifi.extension.manifest.parser.jackson;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
-import org.apache.nifi.registry.bundle.extract.BundleException;
 import org.apache.nifi.extension.manifest.ExtensionManifest;
+import org.apache.nifi.extension.manifest.parser.ExtensionManifestException;
+import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,7 +46,7 @@ public class JacksonExtensionManifestParser implements ExtensionManifestParser {
         try {
             return mapper.readValue(inputStream, ExtensionManifest.class);
         } catch (IOException e) {
-            throw new BundleException("Unable to parse extension manifest due to: " + e.getMessage(), e);
+            throw new ExtensionManifestException("Unable to parse extension manifest due to: " + e.getMessage(), e);
         }
     }
 }

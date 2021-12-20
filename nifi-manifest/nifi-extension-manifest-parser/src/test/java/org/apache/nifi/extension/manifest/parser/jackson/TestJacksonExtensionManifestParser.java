@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.registry.bundle.extract.nar.docs;
+package org.apache.nifi.extension.manifest.parser.jackson;
 
 import org.apache.nifi.extension.manifest.Cardinality;
 import org.apache.nifi.extension.manifest.DefaultSchedule;
@@ -29,6 +29,7 @@ import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.extension.manifest.ResourceDefinition;
 import org.apache.nifi.extension.manifest.ResourceType;
 import org.apache.nifi.extension.manifest.Restriction;
+import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,7 +55,7 @@ public class TestJacksonExtensionManifestParser {
 
     @Test
     public void testDocsWithProcessors() throws IOException {
-        final ExtensionManifest extensionManifest = parse("src/test/resources/descriptors/extension-manifest-hadoop-nar.xml");
+        final ExtensionManifest extensionManifest = parse("src/test/resources/manifests/extension-manifest-hadoop-nar.xml");
         assertNotNull(extensionManifest);
         assertEquals("1.10.0-SNAPSHOT", extensionManifest.getSystemApiVersion());
 
@@ -94,7 +95,7 @@ public class TestJacksonExtensionManifestParser {
 
     @Test
     public void testDocsWithControllerService() throws IOException {
-        final ExtensionManifest extensionManifest = parse("src/test/resources/descriptors/extension-manifest-dbcp-service-nar.xml");
+        final ExtensionManifest extensionManifest = parse("src/test/resources/manifests/extension-manifest-dbcp-service-nar.xml");
         assertNotNull(extensionManifest);
         assertEquals("1.10.0-SNAPSHOT", extensionManifest.getSystemApiVersion());
 
@@ -123,7 +124,7 @@ public class TestJacksonExtensionManifestParser {
 
     @Test
     public void testDocsWithReportingTask() throws IOException {
-        final ExtensionManifest extensionManifest = parse("src/test/resources/descriptors/extension-manifest-ambari-nar.xml");
+        final ExtensionManifest extensionManifest = parse("src/test/resources/manifests/extension-manifest-ambari-nar.xml");
         assertNotNull(extensionManifest);
         assertEquals("1.10.0-SNAPSHOT", extensionManifest.getSystemApiVersion());
 
@@ -147,7 +148,7 @@ public class TestJacksonExtensionManifestParser {
 
     @Test
     public void testDocsForTestComponents() throws IOException {
-        final ExtensionManifest extensionManifest = parse("src/test/resources/descriptors/extension-manifest-test-components.xml");
+        final ExtensionManifest extensionManifest = parse("src/test/resources/manifests/extension-manifest-test-components.xml");
         assertNotNull(extensionManifest);
         assertEquals("1.8.0", extensionManifest.getSystemApiVersion());
 
@@ -198,13 +199,13 @@ public class TestJacksonExtensionManifestParser {
 
     @Test
     public void testDocsForMissingSystemApi() throws IOException {
-        final ExtensionManifest extensionManifest = parse("src/test/resources/descriptors/extension-manifest-missing-sys-api.xml");
+        final ExtensionManifest extensionManifest = parse("src/test/resources/manifests/extension-manifest-missing-sys-api.xml");
         assertNotNull(extensionManifest);
     }
 
     @Test
     public void testDocsForUnknownProperties() throws IOException {
-        final ExtensionManifest extensionManifest = parse("src/test/resources/descriptors/extension-manifest-unknown-property.xml");
+        final ExtensionManifest extensionManifest = parse("src/test/resources/manifests/extension-manifest-unknown-property.xml");
         assertNotNull(extensionManifest);
         assertEquals("1.8.0", extensionManifest.getSystemApiVersion());
 
@@ -215,7 +216,7 @@ public class TestJacksonExtensionManifestParser {
 
     @Test
     public void testDocsWithDependentProperties() throws IOException {
-        final ExtensionManifest extensionManifest = parse("src/test/resources/descriptors/extension-manifest-kafka-2-6-nar.xml");
+        final ExtensionManifest extensionManifest = parse("src/test/resources/manifests/extension-manifest-kafka-2-6-nar.xml");
         assertNotNull(extensionManifest);
         assertEquals("1.16.0-SNAPSHOT", extensionManifest.getSystemApiVersion());
 
@@ -257,7 +258,7 @@ public class TestJacksonExtensionManifestParser {
 
     @Test
     public void testDocsWithResourceDefinitions() throws IOException {
-        final ExtensionManifest extensionManifest = parse("src/test/resources/descriptors/extension-manifest-kafka-2-6-nar.xml");
+        final ExtensionManifest extensionManifest = parse("src/test/resources/manifests/extension-manifest-kafka-2-6-nar.xml");
         assertNotNull(extensionManifest);
         assertEquals("1.16.0-SNAPSHOT", extensionManifest.getSystemApiVersion());
 
@@ -292,7 +293,7 @@ public class TestJacksonExtensionManifestParser {
 
     @Test
     public void testBundleAndBuildInfo() throws IOException {
-        final ExtensionManifest extensionManifest = parse("src/test/resources/descriptors/extension-manifest-kafka-2-6-nar.xml");
+        final ExtensionManifest extensionManifest = parse("src/test/resources/manifests/extension-manifest-kafka-2-6-nar.xml");
         assertNotNull(extensionManifest);
 
         assertEquals("org.apache.nifi", extensionManifest.getGroupId());

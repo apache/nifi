@@ -18,8 +18,8 @@ package org.apache.nifi.registry.bundle.extract.nar;
 
 import org.apache.nifi.registry.bundle.extract.BundleException;
 import org.apache.nifi.registry.bundle.extract.BundleExtractor;
-import org.apache.nifi.registry.bundle.extract.nar.docs.ExtensionManifestParser;
-import org.apache.nifi.registry.bundle.extract.nar.docs.JacksonExtensionManifestParser;
+import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
+import org.apache.nifi.extension.manifest.parser.jackson.JacksonExtensionManifestParser;
 import org.apache.nifi.registry.bundle.model.BundleIdentifier;
 import org.apache.nifi.registry.bundle.model.BundleDetails;
 import org.apache.nifi.registry.extension.bundle.BuildInfo;
