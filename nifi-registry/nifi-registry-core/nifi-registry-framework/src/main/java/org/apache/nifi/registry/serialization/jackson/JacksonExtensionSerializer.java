@@ -17,7 +17,7 @@
 package org.apache.nifi.registry.serialization.jackson;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.nifi.registry.extension.component.manifest.Extension;
+import org.apache.nifi.extension.manifest.Extension;
 import org.apache.nifi.registry.serialization.SerializationException;
 
 /**

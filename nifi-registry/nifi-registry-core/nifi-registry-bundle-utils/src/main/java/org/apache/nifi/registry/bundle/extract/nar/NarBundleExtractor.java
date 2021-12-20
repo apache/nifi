@@ -23,7 +23,7 @@ import org.apache.nifi.registry.bundle.extract.nar.docs.JacksonExtensionManifest
 import org.apache.nifi.registry.bundle.model.BundleIdentifier;
 import org.apache.nifi.registry.bundle.model.BundleDetails;
 import org.apache.nifi.registry.extension.bundle.BuildInfo;
-import org.apache.nifi.registry.extension.component.manifest.ExtensionManifest;
+import org.apache.nifi.extension.manifest.ExtensionManifest;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

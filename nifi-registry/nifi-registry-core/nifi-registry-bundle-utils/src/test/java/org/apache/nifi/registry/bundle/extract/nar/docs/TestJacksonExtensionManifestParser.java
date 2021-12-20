@@ -16,19 +16,19 @@
  */
 package org.apache.nifi.registry.bundle.extract.nar.docs;
 
-import org.apache.nifi.registry.extension.component.manifest.Cardinality;
-import org.apache.nifi.registry.extension.component.manifest.DefaultSchedule;
-import org.apache.nifi.registry.extension.component.manifest.DefaultSettings;
-import org.apache.nifi.registry.extension.component.manifest.Dependency;
-import org.apache.nifi.registry.extension.component.manifest.DependentValues;
-import org.apache.nifi.registry.extension.component.manifest.Extension;
-import org.apache.nifi.registry.extension.component.manifest.ExtensionManifest;
-import org.apache.nifi.registry.extension.component.manifest.ExtensionType;
-import org.apache.nifi.registry.extension.component.manifest.Property;
-import org.apache.nifi.registry.extension.component.manifest.ProvidedServiceAPI;
-import org.apache.nifi.registry.extension.component.manifest.ResourceDefinition;
-import org.apache.nifi.registry.extension.component.manifest.ResourceType;
-import org.apache.nifi.registry.extension.component.manifest.Restriction;
+import org.apache.nifi.extension.manifest.Cardinality;
+import org.apache.nifi.extension.manifest.DefaultSchedule;
+import org.apache.nifi.extension.manifest.DefaultSettings;
+import org.apache.nifi.extension.manifest.Dependency;
+import org.apache.nifi.extension.manifest.DependentValues;
+import org.apache.nifi.extension.manifest.Extension;
+import org.apache.nifi.extension.manifest.ExtensionManifest;
+import org.apache.nifi.extension.manifest.ExtensionType;
+import org.apache.nifi.extension.manifest.Property;
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
+import org.apache.nifi.extension.manifest.ResourceDefinition;
+import org.apache.nifi.extension.manifest.ResourceType;
+import org.apache.nifi.extension.manifest.Restriction;
 import org.junit.Before;
 import org.junit.Test;
 

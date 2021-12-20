@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.bundle.extract.nar.docs;
 
-import org.apache.nifi.registry.extension.component.manifest.ExtensionManifest;
+import org.apache.nifi.extension.manifest.ExtensionManifest;
 
 import java.io.InputStream;
 

@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import org.apache.nifi.registry.bundle.extract.BundleException;
-import org.apache.nifi.registry.extension.component.manifest.ExtensionManifest;
+import org.apache.nifi.extension.manifest.ExtensionManifest;
 
 import java.io.IOException;
 import java.io.InputStream;
