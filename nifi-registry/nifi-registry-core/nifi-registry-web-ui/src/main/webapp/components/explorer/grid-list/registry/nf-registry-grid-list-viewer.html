@@ -23,6 +23,13 @@ limitations under the License.
                 <div class="push-top-sm" id="droplet-sort-by-field">{{nfRegistryService.getSortByLabel()}}</div>
                 <i class="push-top-sm fa fa-caret-down pad-left-sm" aria-hidden="true"></i>
             </div>
+            <mat-menu #dropletGridSortMenu="matMenu" [overlapTrigger]="false">
+                <div *ngFor="let column of nfRegistryService.dropletColumns">
+                    <button mat-menu-item *ngIf="column.sortable" (click)="nfRegistryService.sortDroplets(column);">
+                        {{nfRegistryService.generateSortMenuLabels(column)}}
+                    </button>
+                </div>
+            </mat-menu>
         </div>
         <div flex fxLayout="row" fxLayoutAlign="end center">
             <td-chips [(ngModel)]="nfRegistryService.dropletsSearchTerms"
@@ -30,13 +37,6 @@ limitations under the License.
                       (add)="nfRegistryService.filterDroplets(nfRegistryService.activeDropletColumn.name, nfRegistryService.activeDropletColumn.sortOrder);"
                       (remove)="nfRegistryService.filterDroplets(nfRegistryService.activeDropletColumn.name, nfRegistryService.activeDropletColumn.sortOrder);"class="push-right-sm"></td-chips>
         </div>
-        <mat-menu #dropletGridSortMenu="matMenu" [overlapTrigger]="false">
-            <div *ngFor="let column of nfRegistryService.dropletColumns">
-                <button mat-menu-item *ngIf="column.sortable" (click)="nfRegistryService.sortDroplets(column);">
-                    {{nfRegistryService.generateSortMenuLabels(column)}}
-                </button>
-            </div>
-        </mat-menu>
         <button [disabled]="nfRegistryService.buckets.length === 0 || (nfRegistryService.filterWritableBuckets(nfRegistryService.buckets)).length === 0"
                 (click)="nfRegistryService.openImportNewFlowDialog(nfRegistryService.buckets, nfRegistryService.bucket)"
                 class="push-left-sm push-top-sm" data-automation-id="import-new-flow-button"
@@ -50,7 +50,7 @@ limitations under the License.
 </div>
 <div id="nifi-registry-explorer-grid-list-viewer-droplet-container" class="pad-right-xxl pad-left-xxl"
      *ngIf="nfRegistryService.filteredDroplets.length > 0">
-    <div *ngFor="let droplet of nfRegistryService.filteredDroplets" [@flyInOut]>
+    <div *ngFor="let droplet of nfRegistryService.filteredDroplets trackBy: trackByFn" [@flyInOut]>
         <td-expansion-panel class="mat-elevation-z5" label={{droplet.name}} sublabel={{droplet.type}}
                             [disabled]="disabled" (expanded)="nfRegistryService.getDropletSnapshotMetadata(droplet)">
             <ng-template td-expansion-panel-label>
