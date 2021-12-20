@@ -20,7 +20,7 @@ import org.apache.nifi.c2.protocol.component.api.BuildInfo;
 import org.apache.nifi.c2.protocol.component.api.Bundle;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.c2.protocol.component.api.SchedulingDefaults;
-import org.apache.nifi.registry.extension.component.manifest.ExtensionManifest;
+import org.apache.nifi.extension.manifest.ExtensionManifest;
 
 /**
  * Builder for creating a RuntimeManifest.

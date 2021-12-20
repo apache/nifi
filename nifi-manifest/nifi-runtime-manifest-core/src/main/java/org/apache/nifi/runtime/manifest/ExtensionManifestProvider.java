@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.runtime.manifest;
 
-import org.apache.nifi.registry.extension.component.manifest.ExtensionManifest;
+import org.apache.nifi.extension.manifest.ExtensionManifest;
 
 import java.util.List;
 

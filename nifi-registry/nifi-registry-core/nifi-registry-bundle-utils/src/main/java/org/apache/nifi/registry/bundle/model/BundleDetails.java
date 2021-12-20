@@ -19,7 +19,7 @@ package org.apache.nifi.registry.bundle.model;
 
 import org.apache.nifi.registry.bundle.extract.BundleExtractor;
 import org.apache.nifi.registry.extension.bundle.BuildInfo;
-import org.apache.nifi.registry.extension.component.manifest.Extension;
+import org.apache.nifi.extension.manifest.Extension;
 
 import java.util.Collections;
 import java.util.HashMap;

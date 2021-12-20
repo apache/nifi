@@ -18,7 +18,7 @@ package org.apache.nifi.registry.extension.repo;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.registry.extension.component.ExtensionMetadata;
+import org.apache.nifi.extension.ExtensionMetadata;
 import org.apache.nifi.registry.link.LinkAdapter;
 import org.apache.nifi.registry.link.LinkableDocs;
 import org.apache.nifi.registry.link.LinkableEntity;

@@ -21,11 +21,11 @@ import org.apache.nifi.registry.client.ExtensionClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.client.RequestConfig;
 import org.apache.nifi.registry.extension.bundle.BundleType;
-import org.apache.nifi.registry.extension.component.ExtensionFilterParams;
-import org.apache.nifi.registry.extension.component.ExtensionMetadataContainer;
-import org.apache.nifi.registry.extension.component.TagCount;
-import org.apache.nifi.registry.extension.component.manifest.ExtensionType;
-import org.apache.nifi.registry.extension.component.manifest.ProvidedServiceAPI;
+import org.apache.nifi.extension.ExtensionFilterParams;
+import org.apache.nifi.extension.ExtensionMetadataContainer;
+import org.apache.nifi.extension.TagCount;
+import org.apache.nifi.extension.manifest.ExtensionType;
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 
 import javax.ws.rs.client.WebTarget;
 import java.io.IOException;

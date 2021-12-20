@@ -37,17 +37,17 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.LogLevel;
-import org.apache.nifi.registry.extension.component.manifest.AllowableValue;
-import org.apache.nifi.registry.extension.component.manifest.DefaultSchedule;
-import org.apache.nifi.registry.extension.component.manifest.DefaultSettings;
-import org.apache.nifi.registry.extension.component.manifest.Dependency;
-import org.apache.nifi.registry.extension.component.manifest.DependentValues;
-import org.apache.nifi.registry.extension.component.manifest.DeprecationNotice;
-import org.apache.nifi.registry.extension.component.manifest.Extension;
-import org.apache.nifi.registry.extension.component.manifest.ExtensionManifest;
-import org.apache.nifi.registry.extension.component.manifest.Property;
-import org.apache.nifi.registry.extension.component.manifest.ProvidedServiceAPI;
-import org.apache.nifi.registry.extension.component.manifest.ResourceDefinition;
+import org.apache.nifi.extension.manifest.AllowableValue;
+import org.apache.nifi.extension.manifest.DefaultSchedule;
+import org.apache.nifi.extension.manifest.DefaultSettings;
+import org.apache.nifi.extension.manifest.Dependency;
+import org.apache.nifi.extension.manifest.DependentValues;
+import org.apache.nifi.extension.manifest.DeprecationNotice;
+import org.apache.nifi.extension.manifest.Extension;
+import org.apache.nifi.extension.manifest.ExtensionManifest;
+import org.apache.nifi.extension.manifest.Property;
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
+import org.apache.nifi.extension.manifest.ResourceDefinition;
 import org.apache.nifi.runtime.manifest.ComponentManifestBuilder;
 import org.apache.nifi.runtime.manifest.RuntimeManifestBuilder;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -235,7 +235,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         componentManifestBuilder.addProcessor(processorDefinition);
     }
 
-    private InputRequirement.Requirement getInputRequirement(final org.apache.nifi.registry.extension.component.manifest.InputRequirement inputRequirement) {
+    private InputRequirement.Requirement getInputRequirement(final org.apache.nifi.extension.manifest.InputRequirement inputRequirement) {
         if (inputRequirement == null) {
             return null;
         }
@@ -252,13 +252,13 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         }
     }
 
-    private List<Relationship> getSupportedRelationships(final List<org.apache.nifi.registry.extension.component.manifest.Relationship> relationships) {
+    private List<Relationship> getSupportedRelationships(final List<org.apache.nifi.extension.manifest.Relationship> relationships) {
         if (relationships == null || relationships.isEmpty()) {
             return null;
         }
 
         final List<Relationship> componentRelationships = new ArrayList<>();
-        for (final org.apache.nifi.registry.extension.component.manifest.Relationship relationship : relationships) {
+        for (final org.apache.nifi.extension.manifest.Relationship relationship : relationships) {
             final Relationship componentRelationship = new Relationship();
             componentRelationship.setName(relationship.getName());
             componentRelationship.setDescription(relationship.getDescription());
@@ -315,7 +315,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
     }
 
     private void populateExtensionComponent(final ExtensionManifest extensionManifest, final Extension extension, final ExtensionComponent extensionComponent) {
-        final org.apache.nifi.registry.extension.component.manifest.BuildInfo buildInfo = extensionManifest.getBuildInfo();
+        final org.apache.nifi.extension.manifest.BuildInfo buildInfo = extensionManifest.getBuildInfo();
         if (buildInfo != null) {
             final BuildInfo componentBuildInfo = new BuildInfo();
             componentBuildInfo.setRevision(buildInfo.getRevision());
@@ -433,7 +433,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         return propertyResourceDefinition;
     }
 
-    private ResourceType getResourceType(final org.apache.nifi.registry.extension.component.manifest.ResourceType resourceType) {
+    private ResourceType getResourceType(final org.apache.nifi.extension.manifest.ResourceType resourceType) {
         switch (resourceType) {
             case URL:
                 return ResourceType.URL;
@@ -448,7 +448,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         }
     }
 
-    private ExpressionLanguageScope getELScope(final org.apache.nifi.registry.extension.component.manifest.ExpressionLanguageScope elScope) {
+    private ExpressionLanguageScope getELScope(final org.apache.nifi.extension.manifest.ExpressionLanguageScope elScope) {
         if (elScope == null) {
             return null;
         }
@@ -482,7 +482,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
     }
 
     private DefinedType getControllerServiceDefinedType(
-            final org.apache.nifi.registry.extension.component.manifest.ControllerServiceDefinition controllerServiceDefinition) {
+            final org.apache.nifi.extension.manifest.ControllerServiceDefinition controllerServiceDefinition) {
         if (controllerServiceDefinition == null) {
             return null;
         }

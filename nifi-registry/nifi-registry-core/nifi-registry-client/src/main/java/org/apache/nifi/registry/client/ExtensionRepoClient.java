@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.client;
 
-import org.apache.nifi.registry.extension.component.manifest.Extension;
+import org.apache.nifi.extension.manifest.Extension;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoArtifact;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoBucket;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoExtensionMetadata;

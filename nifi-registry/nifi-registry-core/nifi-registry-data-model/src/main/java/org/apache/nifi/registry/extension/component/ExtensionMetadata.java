@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.registry.extension.component;
+package org.apache.nifi.extension;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.extension.manifest.DeprecationNotice;
+import org.apache.nifi.extension.manifest.ExtensionType;
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
+import org.apache.nifi.extension.manifest.Restricted;
 import org.apache.nifi.registry.extension.bundle.BundleInfo;
-import org.apache.nifi.registry.extension.component.manifest.DeprecationNotice;
-import org.apache.nifi.registry.extension.component.manifest.ExtensionType;
-import org.apache.nifi.registry.extension.component.manifest.ProvidedServiceAPI;
-import org.apache.nifi.registry.extension.component.manifest.Restricted;
 import org.apache.nifi.registry.link.LinkAdapter;
 import org.apache.nifi.registry.link.LinkableDocs;
 import org.apache.nifi.registry.link.LinkableEntity;

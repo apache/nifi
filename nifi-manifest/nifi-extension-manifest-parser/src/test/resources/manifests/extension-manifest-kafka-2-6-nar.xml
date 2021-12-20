@@ -1,0 +1,3206 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<extensionManifest>
+    <groupId>org.apache.nifi</groupId>
+    <artifactId>nifi-kafka-2-6-nar</artifactId>
+    <version>1.16.0-SNAPSHOT</version>
+    <parentNar>
+        <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi-standard-services-api-nar</artifactId>
+        <version>1.16.0-SNAPSHOT</version>
+    </parentNar>
+    <systemApiVersion>1.16.0-SNAPSHOT</systemApiVersion>
+    <buildInfo>
+        <tag>nifi-1.15.0-RC3</tag>
+        <branch>main</branch>
+        <revision>123</revision>
+        <jdk>1.8.0_282</jdk>
+        <builtBy>jsmith</builtBy>
+        <timestamp>2021-11-29T15:18:55Z</timestamp>
+    </buildInfo>
+    <extensions>
+        <extension>
+            <name>org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_6</name>
+            <type>PROCESSOR</type>
+            <deprecationNotice/>
+            <description>Consumes messages from Apache Kafka specifically built against the Kafka 2.6 Consumer API. The
+                complementary NiFi processor for sending messages is PublishKafka_2_6.
+            </description>
+            <tags>
+                <tag>Kafka</tag>
+                <tag>Get</tag>
+                <tag>Ingest</tag>
+                <tag>Ingress</tag>
+                <tag>Topic</tag>
+                <tag>PubSub</tag>
+                <tag>Consume</tag>
+                <tag>2.6</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>bootstrap.servers</name>
+                    <displayName>Kafka Brokers</displayName>
+                    <description>A comma-separated list of known Kafka Brokers in the format &lt;host&gt;:&lt;port&gt;
+                    </description>
+                    <defaultValue>localhost:9092</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>topic</name>
+                    <displayName>Topic Name(s)</displayName>
+                    <description>The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma
+                        separated.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>topic_type</name>
+                    <displayName>Topic Name Format</displayName>
+                    <description>Specifies whether the Topic(s) provided are a comma separated list of names or a single
+                        regular expression
+                    </description>
+                    <defaultValue>names</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>names</displayName>
+                            <value>names</value>
+                            <description>Topic is a full topic name or comma separated list of names</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>pattern</displayName>
+                            <value>pattern</value>
+                            <description>Topic is a regex using the Java Pattern syntax</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>group.id</name>
+                    <displayName>Group ID</displayName>
+                    <description>A Group ID is used to identify consumers that are within the same consumer group.
+                        Corresponds to Kafka's 'group.id' property.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>Commit Offsets</name>
+                    <displayName>Commit Offsets</displayName>
+                    <description>Specifies whether or not this Processor should commit the offsets to Kafka after
+                        receiving messages. Typically, we want this value set to true so that messages that are received
+                        are not duplicated. However, in certain scenarios, we may want to avoid committing the offsets,
+                        that the data can be processed and later acknowledged by PublishKafkaRecord in order to provide
+                        Exactly Once semantics. See Processor's Usage / Additional Details for more information.
+                    </description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>max-uncommit-offset-wait</name>
+                    <displayName>Max Uncommitted Time</displayName>
+                    <description>Specifies the maximum amount of time allowed to pass before offsets must be committed.
+                        This value impacts how often offsets will be committed. Committing offsets less often increases
+                        throughput but also increases the window of potential data duplication in the event of a
+                        rebalance or JVM restart between commits. This value is also related to maximum poll records and
+                        the use of a message demarcator. When using a message demarcator we can have far more
+                        uncommitted messages than when we're not as there is much less for us to keep track of in
+                        memory.
+                    </description>
+                    <defaultValue>1 secs</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                    <dependencies>
+                        <dependency>
+                            <propertyName>Commit Offsets</propertyName>
+                            <propertyDisplayName>Commit Offsets</propertyDisplayName>
+                            <dependentValues>
+                                <dependentValue>true</dependentValue>
+                            </dependentValues>
+                        </dependency>
+                    </dependencies>
+                </property>
+                <property>
+                    <name>honor-transactions</name>
+                    <displayName>Honor Transactions</displayName>
+                    <description>Specifies whether or not NiFi should honor transactional guarantees when communicating
+                        with Kafka. If false, the Processor will use an "isolation level" of read_uncomitted. This means
+                        that messages will be received as soon as they are written to Kafka but will be pulled, even if
+                        the producer cancels the transactions. If this value is true, NiFi will not receive any messages
+                        for which the producer's transaction was canceled, but this can result in some latency since the
+                        consumer must wait for the producer to finish its entire transaction instead of pulling as the
+                        messages become available.
+                    </description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>message-demarcator</name>
+                    <displayName>Message Demarcator</displayName>
+                    <description>Since KafkaConsumer receives messages in batches, you have an option to output
+                        FlowFiles which contains all Kafka messages in a single batch for a given topic and partition
+                        and this property allows you to provide a string (interpreted as UTF-8) to use for demarcating
+                        apart multiple Kafka messages. This is an optional property and if not provided each Kafka
+                        message received will result in a single FlowFile which time it is triggered. To enter special
+                        character such as 'new line' use CTRL+Enter or Shift+Enter depending on the OS
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>separate-by-key</name>
+                    <displayName>Separate By Key</displayName>
+                    <description>If true, and the &lt;Message Demarcator&gt; property is set, two messages will only be
+                        added to the same FlowFile if both of the Kafka Messages have identical keys.
+                    </description>
+                    <defaultValue>false</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>security.protocol</name>
+                    <displayName>Security Protocol</displayName>
+                    <description>Protocol used to communicate with brokers. Corresponds to Kafka's 'security.protocol'
+                        property.
+                    </description>
+                    <defaultValue>PLAINTEXT</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>PLAINTEXT</displayName>
+                            <value>PLAINTEXT</value>
+                            <description>PLAINTEXT</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SSL</displayName>
+                            <value>SSL</value>
+                            <description>SSL</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SASL_PLAINTEXT</displayName>
+                            <value>SASL_PLAINTEXT</value>
+                            <description>SASL_PLAINTEXT</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SASL_SSL</displayName>
+                            <value>SASL_SSL</value>
+                            <description>SASL_SSL</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.mechanism</name>
+                    <displayName>SASL Mechanism</displayName>
+                    <description>The SASL mechanism to use for authentication. Corresponds to Kafka's 'sasl.mechanism'
+                        property.
+                    </description>
+                    <defaultValue>GSSAPI</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>GSSAPI</displayName>
+                            <value>GSSAPI</value>
+                            <description>The mechanism for authentication via Kerberos. The principal and keytab must be
+                                provided to the processor by using a Keytab Credential service, or by specifying the
+                                properties directly in the processor.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>PLAIN</displayName>
+                            <value>PLAIN</value>
+                            <description>The mechanism for authentication via username and password. The username and
+                                password properties must be populated when using this mechanism.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SCRAM-SHA-256</displayName>
+                            <value>SCRAM-SHA-256</value>
+                            <description>The Salted Challenge Response Authentication Mechanism using SHA-256. The
+                                username and password properties must be set when using this mechanism.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SCRAM-SHA-512</displayName>
+                            <value>SCRAM-SHA-512</value>
+                            <description>The Salted Challenge Response Authentication Mechanism using SHA-512. The
+                                username and password properties must be set when using this mechanism.
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>kerberos-user-service</name>
+                    <displayName>Kerberos User Service</displayName>
+                    <description>Specifies the Kerberos User Controller Service that should be used for authenticating
+                        with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.SelfContainedKerberosUserService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.kerberos.service.name</name>
+                    <displayName>Kerberos Service Name</displayName>
+                    <description>The service name that matches the primary name of the Kafka server configured in the
+                        broker JAAS file.This can be defined either in Kafka's JAAS config or in Kafka's config.
+                        Corresponds to Kafka's 'security.protocol' property.It is ignored unless one of the SASL options
+                        of the &lt;Security Protocol&gt; are selected.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.kerberos.principal</name>
+                    <displayName>Kerberos Principal</displayName>
+                    <description>The Kerberos principal that will be used to connect to brokers. If not set, it is
+                        expected to set a JAAS configuration file in the JVM properties defined in the bootstrap.conf
+                        file. This principal will be set into 'sasl.jaas.config' Kafka's property.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.kerberos.keytab</name>
+                    <displayName>Kerberos Keytab</displayName>
+                    <description>The Kerberos keytab that will be used to connect to brokers. If not set, it is expected
+                        to set a JAAS configuration file in the JVM properties defined in the bootstrap.conf file. This
+                        principal will be set into 'sasl.jaas.config' Kafka's property.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition>
+                        <cardinality>SINGLE</cardinality>
+                        <resourceTypes>
+                            <resourceType>FILE</resourceType>
+                        </resourceTypes>
+                    </resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.username</name>
+                    <displayName>Username</displayName>
+                    <description>The username when the SASL Mechanism is PLAIN or SCRAM-SHA-256/SCRAM-SHA-512
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.password</name>
+                    <displayName>Password</displayName>
+                    <description>The password for the given username when the SASL Mechanism is PLAIN or
+                        SCRAM-SHA-256/SCRAM-SHA-512
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>true</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.token.auth</name>
+                    <displayName>Token Auth</displayName>
+                    <description>When SASL Mechanism is SCRAM-SHA-256 or SCRAM-SHA-512, this property indicates if token
+                        authentication should be used.
+                    </description>
+                    <defaultValue>false</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>ssl.context.service</name>
+                    <displayName>SSL Context Service</displayName>
+                    <description>Specifies the SSL Context Service to use for communicating with Kafka.</description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.ssl.SSLContextService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>key-attribute-encoding</name>
+                    <displayName>Key Attribute Encoding</displayName>
+                    <description>FlowFiles that are emitted have an attribute named 'kafka.key'. This property dictates
+                        how the value of the attribute should be encoded.
+                    </description>
+                    <defaultValue>utf-8</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>UTF-8 Encoded</displayName>
+                            <value>utf-8</value>
+                            <description>The key is interpreted as a UTF-8 Encoded string.</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Hex Encoded</displayName>
+                            <value>hex</value>
+                            <description>The key is interpreted as arbitrary binary data and is encoded using
+                                hexadecimal characters with uppercase letters
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>auto.offset.reset</name>
+                    <displayName>Offset Reset</displayName>
+                    <description>Allows you to manage the condition when there is no initial offset in Kafka or if the
+                        current offset does not exist any more on the server (e.g. because that data has been deleted).
+                        Corresponds to Kafka's 'auto.offset.reset' property.
+                    </description>
+                    <defaultValue>latest</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>earliest</displayName>
+                            <value>earliest</value>
+                            <description>Automatically reset the offset to the earliest offset</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>latest</displayName>
+                            <value>latest</value>
+                            <description>Automatically reset the offset to the latest offset</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>none</displayName>
+                            <value>none</value>
+                            <description>Throw exception to the consumer if no previous offset is found for the
+                                consumer's group
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>message-header-encoding</name>
+                    <displayName>Message Header Encoding</displayName>
+                    <description>Any message header that is found on a Kafka message will be added to the outbound
+                        FlowFile as an attribute. This property indicates the Character Encoding to use for
+                        deserializing the headers.
+                    </description>
+                    <defaultValue>UTF-8</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>header-name-regex</name>
+                    <displayName>Headers to Add as Attributes (Regex)</displayName>
+                    <description>A Regular Expression that is matched against all message headers. Any message header
+                        whose name matches the regex will be added to the FlowFile as an Attribute. If not specified, no
+                        Header values will be added as FlowFile attributes. If two messages have a different value for
+                        the same header and that header is selected by the provided regex, then those two messages must
+                        be added to different FlowFiles. As a result, users should be cautious about using a regex like
+                        ".*" if messages are expected to have header values that are unique per message, such as an
+                        identifier or timestamp, because it will prevent NiFi from bundling the messages together
+                        efficiently.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>max.poll.records</name>
+                    <displayName>Max Poll Records</displayName>
+                    <description>Specifies the maximum number of records Kafka should return in a single poll.
+                    </description>
+                    <defaultValue>10000</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>Communications Timeout</name>
+                    <displayName>Communications Timeout</displayName>
+                    <description>Specifies the timeout that the consumer should use when communicating with the Kafka
+                        Broker
+                    </description>
+                    <defaultValue>60 secs</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+            </properties>
+            <dynamicProperties>
+                <dynamicProperty>
+                    <name>The name of a Kafka configuration property.</name>
+                    <value>The value of a given Kafka configuration property.</value>
+                    <description>These properties will be added on the Kafka configuration after loading any provided
+                        configuration properties. In the event a dynamic property represents a property that was already
+                        set, its value will be ignored and WARN message logged. For the list of available Kafka
+                        properties please refer to: http://kafka.apache.org/documentation.html#configuration.
+                    </description>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                </dynamicProperty>
+            </dynamicProperties>
+            <relationships>
+                <relationship>
+                    <name>success</name>
+                    <description>FlowFiles received from Kafka. Depending on demarcation strategy it is a flow file per
+                        message or a bundle of messages grouped by topic and partition.
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+            </relationships>
+            <dynamicRelationship></dynamicRelationship>
+            <readsAttributes></readsAttributes>
+            <writesAttributes>
+                <writesAttribute>
+                    <name>kafka.count</name>
+                    <description>The number of messages written if more than one</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>kafka.key</name>
+                    <description>The key of message if present and if single message. How the key is encoded depends on
+                        the value of the 'Key Attribute Encoding' property.
+                    </description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>kafka.offset</name>
+                    <description>The offset of the message in the partition of the topic.</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>kafka.timestamp</name>
+                    <description>The timestamp of the message in the partition of the topic.</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>kafka.partition</name>
+                    <description>The partition of the topic the message or message bundle is from</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>kafka.topic</name>
+                    <description>The topic the message or message bundle is from</description>
+                </writesAttribute>
+            </writesAttributes>
+            <stateful></stateful>
+            <restricted></restricted>
+            <inputRequirement>INPUT_FORBIDDEN</inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso/>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.processors.kafka.pubsub.PublishKafka_2_6</name>
+            <type>PROCESSOR</type>
+            <deprecationNotice/>
+            <description>Sends the contents of a FlowFile as a message to Apache Kafka using the Kafka 2.6 Producer
+                API.The messages to send may be individual FlowFiles or may be delimited, using a user-specified
+                delimiter, such as a new-line. The complementary NiFi processor for fetching messages is
+                ConsumeKafka_2_6.
+            </description>
+            <tags>
+                <tag>Apache</tag>
+                <tag>Kafka</tag>
+                <tag>Put</tag>
+                <tag>Send</tag>
+                <tag>Message</tag>
+                <tag>PubSub</tag>
+                <tag>2.6</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>bootstrap.servers</name>
+                    <displayName>Kafka Brokers</displayName>
+                    <description>A comma-separated list of known Kafka Brokers in the format &lt;host&gt;:&lt;port&gt;
+                    </description>
+                    <defaultValue>localhost:9092</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>topic</name>
+                    <displayName>Topic Name</displayName>
+                    <description>The name of the Kafka Topic to publish to.</description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>use-transactions</name>
+                    <displayName>Use Transactions</displayName>
+                    <description>Specifies whether or not NiFi should provide Transactional guarantees when
+                        communicating with Kafka. If there is a problem sending data to Kafka, and this property is set
+                        to false, then the messages that have already been sent to Kafka will continue on and be
+                        delivered to consumers. If this is set to true, then the Kafka transaction will be rolled back
+                        so that those messages are not available to consumers. Setting this to true requires that the
+                        &lt;Delivery Guarantee&gt; property be set to "Guarantee Replicated Delivery."
+                    </description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>transactional-id-prefix</name>
+                    <displayName>Transactional Id Prefix</displayName>
+                    <description>When Use Transaction is set to true, KafkaProducer config 'transactional.id' will be a
+                        generated UUID and will be prefixed with this string.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                    <dependencies>
+                        <dependency>
+                            <propertyName>use-transactions</propertyName>
+                            <propertyDisplayName>Use Transactions</propertyDisplayName>
+                            <dependentValues>
+                                <dependentValue>true</dependentValue>
+                            </dependentValues>
+                        </dependency>
+                    </dependencies>
+                </property>
+                <property>
+                    <name>message-demarcator</name>
+                    <displayName>Message Demarcator</displayName>
+                    <description>Specifies the string (interpreted as UTF-8) to use for demarcating multiple messages
+                        within a single FlowFile. If not specified, the entire content of the FlowFile will be used as a
+                        single message. If specified, the contents of the FlowFile will be split on this delimiter and
+                        each section sent as a separate Kafka message. To enter special character such as 'new line' use
+                        CTRL+Enter or Shift+Enter, depending on your OS.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>Failure Strategy</name>
+                    <displayName>Failure Strategy</displayName>
+                    <description>Dictates how the processor handles a FlowFile if it is unable to publish the data to
+                        Kafka
+                    </description>
+                    <defaultValue>Route to Failure</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>Route to Failure</displayName>
+                            <value>Route to Failure</value>
+                            <description>When unable to publish a FlowFile to Kafka, the FlowFile will be routed to the
+                                'failure' relationship.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Rollback</displayName>
+                            <value>Rollback</value>
+                            <description>When unable to publish a FlowFile to Kafka, the FlowFile will be placed back on
+                                the top of its queue so that it will be the next FlowFile tried again. For dataflows
+                                where ordering of FlowFiles is important, this strategy can be used along with ensuring
+                                that the each processor in the dataflow uses only a single Concurrent Task.
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>acks</name>
+                    <displayName>Delivery Guarantee</displayName>
+                    <description>Specifies the requirement for guaranteeing that a message is sent to Kafka. Corresponds
+                        to Kafka's 'acks' property.
+                    </description>
+                    <defaultValue>0</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>Best Effort</displayName>
+                            <value>0</value>
+                            <description>FlowFile will be routed to success after successfully writing the content to a
+                                Kafka node, without waiting for a response. This provides the best performance but may
+                                result in data loss.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Guarantee Single Node Delivery</displayName>
+                            <value>1</value>
+                            <description>FlowFile will be routed to success if the message is received by a single Kafka
+                                node, whether or not it is replicated. This is faster than &lt;Guarantee Replicated
+                                Delivery&gt; but can result in data loss if a Kafka node crashes
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Guarantee Replicated Delivery</displayName>
+                            <value>all</value>
+                            <description>FlowFile will be routed to failure unless the message is replicated to the
+                                appropriate number of Kafka Nodes according to the Topic configuration
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>attribute-name-regex</name>
+                    <displayName>Attributes to Send as Headers (Regex)</displayName>
+                    <description>A Regular Expression that is matched against all FlowFile attribute names. Any
+                        attribute whose name matches the regex will be added to the Kafka messages as a Header. If not
+                        specified, no FlowFile attributes will be added as headers.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>message-header-encoding</name>
+                    <displayName>Message Header Encoding</displayName>
+                    <description>For any attribute that is added as a message header, as configured via the &lt;Attributes
+                        to Send as Headers&gt; property, this property indicates the Character Encoding to use for
+                        serializing the headers.
+                    </description>
+                    <defaultValue>UTF-8</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>security.protocol</name>
+                    <displayName>Security Protocol</displayName>
+                    <description>Protocol used to communicate with brokers. Corresponds to Kafka's 'security.protocol'
+                        property.
+                    </description>
+                    <defaultValue>PLAINTEXT</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>PLAINTEXT</displayName>
+                            <value>PLAINTEXT</value>
+                            <description>PLAINTEXT</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SSL</displayName>
+                            <value>SSL</value>
+                            <description>SSL</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SASL_PLAINTEXT</displayName>
+                            <value>SASL_PLAINTEXT</value>
+                            <description>SASL_PLAINTEXT</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SASL_SSL</displayName>
+                            <value>SASL_SSL</value>
+                            <description>SASL_SSL</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.mechanism</name>
+                    <displayName>SASL Mechanism</displayName>
+                    <description>The SASL mechanism to use for authentication. Corresponds to Kafka's 'sasl.mechanism'
+                        property.
+                    </description>
+                    <defaultValue>GSSAPI</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>GSSAPI</displayName>
+                            <value>GSSAPI</value>
+                            <description>The mechanism for authentication via Kerberos. The principal and keytab must be
+                                provided to the processor by using a Keytab Credential service, or by specifying the
+                                properties directly in the processor.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>PLAIN</displayName>
+                            <value>PLAIN</value>
+                            <description>The mechanism for authentication via username and password. The username and
+                                password properties must be populated when using this mechanism.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SCRAM-SHA-256</displayName>
+                            <value>SCRAM-SHA-256</value>
+                            <description>The Salted Challenge Response Authentication Mechanism using SHA-256. The
+                                username and password properties must be set when using this mechanism.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SCRAM-SHA-512</displayName>
+                            <value>SCRAM-SHA-512</value>
+                            <description>The Salted Challenge Response Authentication Mechanism using SHA-512. The
+                                username and password properties must be set when using this mechanism.
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>kerberos-user-service</name>
+                    <displayName>Kerberos User Service</displayName>
+                    <description>Specifies the Kerberos User Controller Service that should be used for authenticating
+                        with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.SelfContainedKerberosUserService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.kerberos.service.name</name>
+                    <displayName>Kerberos Service Name</displayName>
+                    <description>The service name that matches the primary name of the Kafka server configured in the
+                        broker JAAS file.This can be defined either in Kafka's JAAS config or in Kafka's config.
+                        Corresponds to Kafka's 'security.protocol' property.It is ignored unless one of the SASL options
+                        of the &lt;Security Protocol&gt; are selected.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.kerberos.principal</name>
+                    <displayName>Kerberos Principal</displayName>
+                    <description>The Kerberos principal that will be used to connect to brokers. If not set, it is
+                        expected to set a JAAS configuration file in the JVM properties defined in the bootstrap.conf
+                        file. This principal will be set into 'sasl.jaas.config' Kafka's property.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.kerberos.keytab</name>
+                    <displayName>Kerberos Keytab</displayName>
+                    <description>The Kerberos keytab that will be used to connect to brokers. If not set, it is expected
+                        to set a JAAS configuration file in the JVM properties defined in the bootstrap.conf file. This
+                        principal will be set into 'sasl.jaas.config' Kafka's property.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition>
+                        <cardinality>SINGLE</cardinality>
+                        <resourceTypes>
+                            <resourceType>FILE</resourceType>
+                        </resourceTypes>
+                    </resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.username</name>
+                    <displayName>Username</displayName>
+                    <description>The username when the SASL Mechanism is PLAIN or SCRAM-SHA-256/SCRAM-SHA-512
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.password</name>
+                    <displayName>Password</displayName>
+                    <description>The password for the given username when the SASL Mechanism is PLAIN or
+                        SCRAM-SHA-256/SCRAM-SHA-512
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>true</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.token.auth</name>
+                    <displayName>Token Auth</displayName>
+                    <description>When SASL Mechanism is SCRAM-SHA-256 or SCRAM-SHA-512, this property indicates if token
+                        authentication should be used.
+                    </description>
+                    <defaultValue>false</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>ssl.context.service</name>
+                    <displayName>SSL Context Service</displayName>
+                    <description>Specifies the SSL Context Service to use for communicating with Kafka.</description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.ssl.SSLContextService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>kafka-key</name>
+                    <displayName>Kafka Key</displayName>
+                    <description>The Key to use for the Message. If not specified, the flow file attribute 'kafka.key'
+                        is used as the message key, if it is present.Beware that setting Kafka key and demarcating at
+                        the same time may potentially lead to many Kafka messages with the same key.Normally this is not
+                        a problem as Kafka does not enforce or assume message and key uniqueness. Still, setting the
+                        demarcator and Kafka key at the same time poses a risk of data loss on Kafka. During a topic
+                        compaction on Kafka, messages will be deduplicated based on this key.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>key-attribute-encoding</name>
+                    <displayName>Key Attribute Encoding</displayName>
+                    <description>FlowFiles that are emitted have an attribute named 'kafka.key'. This property dictates
+                        how the value of the attribute should be encoded.
+                    </description>
+                    <defaultValue>utf-8</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>UTF-8 Encoded</displayName>
+                            <value>utf-8</value>
+                            <description>The key is interpreted as a UTF-8 Encoded string.</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Hex Encoded</displayName>
+                            <value>hex</value>
+                            <description>The key is interpreted as arbitrary binary data that is encoded using
+                                hexadecimal characters with uppercase letters.
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>max.request.size</name>
+                    <displayName>Max Request Size</displayName>
+                    <description>The maximum size of a request in bytes. Corresponds to Kafka's 'max.request.size'
+                        property and defaults to 1 MB (1048576).
+                    </description>
+                    <defaultValue>1 MB</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>ack.wait.time</name>
+                    <displayName>Acknowledgment Wait Time</displayName>
+                    <description>After sending a message to Kafka, this indicates the amount of time that we are willing
+                        to wait for a response from Kafka. If Kafka does not acknowledge the message within this time
+                        period, the FlowFile will be routed to 'failure'.
+                    </description>
+                    <defaultValue>5 secs</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>max.block.ms</name>
+                    <displayName>Max Metadata Wait Time</displayName>
+                    <description>The amount of time publisher will wait to obtain metadata or wait for the buffer to
+                        flush during the 'send' call before failing the entire 'send' call. Corresponds to Kafka's
+                        'max.block.ms' property
+                    </description>
+                    <defaultValue>5 sec</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>partitioner.class</name>
+                    <displayName>Partitioner class</displayName>
+                    <description>Specifies which class to use to compute a partition id for a message. Corresponds to
+                        Kafka's 'partitioner.class' property.
+                    </description>
+                    <defaultValue>org.apache.kafka.clients.producer.internals.DefaultPartitioner</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>RoundRobinPartitioner</displayName>
+                            <value>org.apache.nifi.processors.kafka.pubsub.Partitioners$RoundRobinPartitioner</value>
+                            <description>Messages will be assigned partitions in a round-robin fashion, sending the
+                                first message to Partition 1, the next Partition to Partition 2, and so on, wrapping as
+                                necessary.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>DefaultPartitioner</displayName>
+                            <value>org.apache.kafka.clients.producer.internals.DefaultPartitioner</value>
+                            <description>Messages will be assigned to random partitions.</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Expression Language Partitioner</displayName>
+                            <value>org.apache.nifi.processors.kafka.pubsub.Partitioners$ExpressionLanguagePartitioner
+                            </value>
+                            <description>Interprets the &lt;Partition&gt; property as Expression Language that will be
+                                evaluated against each FlowFile. This Expression will be evaluated once against the
+                                FlowFile, so all Records in a given FlowFile will go to the same partition.
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>partition</name>
+                    <displayName>Partition</displayName>
+                    <description>Specifies which Partition Records will go to.</description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>compression.type</name>
+                    <displayName>Compression Type</displayName>
+                    <description>This parameter allows you to specify the compression codec for all data generated by
+                        this producer.
+                    </description>
+                    <defaultValue>none</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>none</displayName>
+                            <value>none</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>gzip</displayName>
+                            <value>gzip</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>snappy</displayName>
+                            <value>snappy</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>lz4</displayName>
+                            <value>lz4</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+            </properties>
+            <dynamicProperties>
+                <dynamicProperty>
+                    <name>The name of a Kafka configuration property.</name>
+                    <value>The value of a given Kafka configuration property.</value>
+                    <description>These properties will be added on the Kafka configuration after loading any provided
+                        configuration properties. In the event a dynamic property represents a property that was already
+                        set, its value will be ignored and WARN message logged. For the list of available Kafka
+                        properties please refer to: http://kafka.apache.org/documentation.html#configuration.
+                    </description>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                </dynamicProperty>
+            </dynamicProperties>
+            <relationships>
+                <relationship>
+                    <name>success</name>
+                    <description>FlowFiles for which all content was sent to Kafka.</description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+                <relationship>
+                    <name>failure</name>
+                    <description>Any FlowFile that cannot be sent to Kafka will be routed to this Relationship
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+            </relationships>
+            <dynamicRelationship></dynamicRelationship>
+            <readsAttributes></readsAttributes>
+            <writesAttributes>
+                <writesAttribute>
+                    <name>msg.count</name>
+                    <description>The number of messages that were sent to Kafka for this FlowFile. This attribute is
+                        added only to FlowFiles that are routed to success. If the &lt;Message Demarcator&gt; Property
+                        is not set, this will always be 1, but if the Property is set, it may be greater than 1.
+                    </description>
+                </writesAttribute>
+            </writesAttributes>
+            <stateful></stateful>
+            <restricted></restricted>
+            <inputRequirement>INPUT_REQUIRED</inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso/>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.processors.kafka.pubsub.PublishKafkaRecord_2_6</name>
+            <type>PROCESSOR</type>
+            <deprecationNotice/>
+            <description>Sends the contents of a FlowFile as individual records to Apache Kafka using the Kafka 2.6
+                Producer API. The contents of the FlowFile are expected to be record-oriented data that can be read by
+                the configured Record Reader. The complementary NiFi processor for fetching messages is
+                ConsumeKafkaRecord_2_6.
+            </description>
+            <tags>
+                <tag>Apache</tag>
+                <tag>Kafka</tag>
+                <tag>Record</tag>
+                <tag>csv</tag>
+                <tag>json</tag>
+                <tag>avro</tag>
+                <tag>logs</tag>
+                <tag>Put</tag>
+                <tag>Send</tag>
+                <tag>Message</tag>
+                <tag>PubSub</tag>
+                <tag>2.6</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>bootstrap.servers</name>
+                    <displayName>Kafka Brokers</displayName>
+                    <description>A comma-separated list of known Kafka Brokers in the format &lt;host&gt;:&lt;port&gt;
+                    </description>
+                    <defaultValue>localhost:9092</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>topic</name>
+                    <displayName>Topic Name</displayName>
+                    <description>The name of the Kafka Topic to publish to.</description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>record-reader</name>
+                    <displayName>Record Reader</displayName>
+                    <description>The Record Reader to use for incoming FlowFiles</description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.serialization.RecordReaderFactory</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>record-writer</name>
+                    <displayName>Record Writer</displayName>
+                    <description>The Record Writer to use in order to serialize the data before sending to Kafka
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.serialization.RecordSetWriterFactory</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>use-transactions</name>
+                    <displayName>Use Transactions</displayName>
+                    <description>Specifies whether or not NiFi should provide Transactional guarantees when
+                        communicating with Kafka. If there is a problem sending data to Kafka, and this property is set
+                        to false, then the messages that have already been sent to Kafka will continue on and be
+                        delivered to consumers. If this is set to true, then the Kafka transaction will be rolled back
+                        so that those messages are not available to consumers. Setting this to true requires that the
+                        &lt;Delivery Guarantee&gt; property be set to "Guarantee Replicated Delivery."
+                    </description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>transactional-id-prefix</name>
+                    <displayName>Transactional Id Prefix</displayName>
+                    <description>When Use Transaction is set to true, KafkaProducer config 'transactional.id' will be a
+                        generated UUID and will be prefixed with this string.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                    <dependencies>
+                        <dependency>
+                            <propertyName>use-transactions</propertyName>
+                            <propertyDisplayName>Use Transactions</propertyDisplayName>
+                            <dependentValues>
+                                <dependentValue>true</dependentValue>
+                            </dependentValues>
+                        </dependency>
+                    </dependencies>
+                </property>
+                <property>
+                    <name>Failure Strategy</name>
+                    <displayName>Failure Strategy</displayName>
+                    <description>Dictates how the processor handles a FlowFile if it is unable to publish the data to
+                        Kafka
+                    </description>
+                    <defaultValue>Route to Failure</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>Route to Failure</displayName>
+                            <value>Route to Failure</value>
+                            <description>When unable to publish a FlowFile to Kafka, the FlowFile will be routed to the
+                                'failure' relationship.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Rollback</displayName>
+                            <value>Rollback</value>
+                            <description>When unable to publish a FlowFile to Kafka, the FlowFile will be placed back on
+                                the top of its queue so that it will be the next FlowFile tried again. For dataflows
+                                where ordering of FlowFiles is important, this strategy can be used along with ensuring
+                                that the each processor in the dataflow uses only a single Concurrent Task.
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>acks</name>
+                    <displayName>Delivery Guarantee</displayName>
+                    <description>Specifies the requirement for guaranteeing that a message is sent to Kafka. Corresponds
+                        to Kafka's 'acks' property.
+                    </description>
+                    <defaultValue>0</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>Best Effort</displayName>
+                            <value>0</value>
+                            <description>FlowFile will be routed to success after successfully writing the content to a
+                                Kafka node, without waiting for a response. This provides the best performance but may
+                                result in data loss.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Guarantee Single Node Delivery</displayName>
+                            <value>1</value>
+                            <description>FlowFile will be routed to success if the message is received by a single Kafka
+                                node, whether or not it is replicated. This is faster than &lt;Guarantee Replicated
+                                Delivery&gt; but can result in data loss if a Kafka node crashes
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Guarantee Replicated Delivery</displayName>
+                            <value>all</value>
+                            <description>FlowFile will be routed to failure unless the message is replicated to the
+                                appropriate number of Kafka Nodes according to the Topic configuration
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>attribute-name-regex</name>
+                    <displayName>Attributes to Send as Headers (Regex)</displayName>
+                    <description>A Regular Expression that is matched against all FlowFile attribute names. Any
+                        attribute whose name matches the regex will be added to the Kafka messages as a Header. If not
+                        specified, no FlowFile attributes will be added as headers.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>message-header-encoding</name>
+                    <displayName>Message Header Encoding</displayName>
+                    <description>For any attribute that is added as a message header, as configured via the &lt;Attributes
+                        to Send as Headers&gt; property, this property indicates the Character Encoding to use for
+                        serializing the headers.
+                    </description>
+                    <defaultValue>UTF-8</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>security.protocol</name>
+                    <displayName>Security Protocol</displayName>
+                    <description>Protocol used to communicate with brokers. Corresponds to Kafka's 'security.protocol'
+                        property.
+                    </description>
+                    <defaultValue>PLAINTEXT</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>PLAINTEXT</displayName>
+                            <value>PLAINTEXT</value>
+                            <description>PLAINTEXT</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SSL</displayName>
+                            <value>SSL</value>
+                            <description>SSL</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SASL_PLAINTEXT</displayName>
+                            <value>SASL_PLAINTEXT</value>
+                            <description>SASL_PLAINTEXT</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SASL_SSL</displayName>
+                            <value>SASL_SSL</value>
+                            <description>SASL_SSL</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.mechanism</name>
+                    <displayName>SASL Mechanism</displayName>
+                    <description>The SASL mechanism to use for authentication. Corresponds to Kafka's 'sasl.mechanism'
+                        property.
+                    </description>
+                    <defaultValue>GSSAPI</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>GSSAPI</displayName>
+                            <value>GSSAPI</value>
+                            <description>The mechanism for authentication via Kerberos. The principal and keytab must be
+                                provided to the processor by using a Keytab Credential service, or by specifying the
+                                properties directly in the processor.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>PLAIN</displayName>
+                            <value>PLAIN</value>
+                            <description>The mechanism for authentication via username and password. The username and
+                                password properties must be populated when using this mechanism.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SCRAM-SHA-256</displayName>
+                            <value>SCRAM-SHA-256</value>
+                            <description>The Salted Challenge Response Authentication Mechanism using SHA-256. The
+                                username and password properties must be set when using this mechanism.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SCRAM-SHA-512</displayName>
+                            <value>SCRAM-SHA-512</value>
+                            <description>The Salted Challenge Response Authentication Mechanism using SHA-512. The
+                                username and password properties must be set when using this mechanism.
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>kerberos-user-service</name>
+                    <displayName>Kerberos User Service</displayName>
+                    <description>Specifies the Kerberos User Controller Service that should be used for authenticating
+                        with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.SelfContainedKerberosUserService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.kerberos.service.name</name>
+                    <displayName>Kerberos Service Name</displayName>
+                    <description>The service name that matches the primary name of the Kafka server configured in the
+                        broker JAAS file.This can be defined either in Kafka's JAAS config or in Kafka's config.
+                        Corresponds to Kafka's 'security.protocol' property.It is ignored unless one of the SASL options
+                        of the &lt;Security Protocol&gt; are selected.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.kerberos.principal</name>
+                    <displayName>Kerberos Principal</displayName>
+                    <description>The Kerberos principal that will be used to connect to brokers. If not set, it is
+                        expected to set a JAAS configuration file in the JVM properties defined in the bootstrap.conf
+                        file. This principal will be set into 'sasl.jaas.config' Kafka's property.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.kerberos.keytab</name>
+                    <displayName>Kerberos Keytab</displayName>
+                    <description>The Kerberos keytab that will be used to connect to brokers. If not set, it is expected
+                        to set a JAAS configuration file in the JVM properties defined in the bootstrap.conf file. This
+                        principal will be set into 'sasl.jaas.config' Kafka's property.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition>
+                        <cardinality>SINGLE</cardinality>
+                        <resourceTypes>
+                            <resourceType>FILE</resourceType>
+                        </resourceTypes>
+                    </resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.username</name>
+                    <displayName>Username</displayName>
+                    <description>The username when the SASL Mechanism is PLAIN or SCRAM-SHA-256/SCRAM-SHA-512
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.password</name>
+                    <displayName>Password</displayName>
+                    <description>The password for the given username when the SASL Mechanism is PLAIN or
+                        SCRAM-SHA-256/SCRAM-SHA-512
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>true</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.token.auth</name>
+                    <displayName>Token Auth</displayName>
+                    <description>When SASL Mechanism is SCRAM-SHA-256 or SCRAM-SHA-512, this property indicates if token
+                        authentication should be used.
+                    </description>
+                    <defaultValue>false</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>ssl.context.service</name>
+                    <displayName>SSL Context Service</displayName>
+                    <description>Specifies the SSL Context Service to use for communicating with Kafka.</description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.ssl.SSLContextService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>message-key-field</name>
+                    <displayName>Message Key Field</displayName>
+                    <description>The name of a field in the Input Records that should be used as the Key for the Kafka
+                        message.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>max.request.size</name>
+                    <displayName>Max Request Size</displayName>
+                    <description>The maximum size of a request in bytes. Corresponds to Kafka's 'max.request.size'
+                        property and defaults to 1 MB (1048576).
+                    </description>
+                    <defaultValue>1 MB</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>ack.wait.time</name>
+                    <displayName>Acknowledgment Wait Time</displayName>
+                    <description>After sending a message to Kafka, this indicates the amount of time that we are willing
+                        to wait for a response from Kafka. If Kafka does not acknowledge the message within this time
+                        period, the FlowFile will be routed to 'failure'.
+                    </description>
+                    <defaultValue>5 secs</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>max.block.ms</name>
+                    <displayName>Max Metadata Wait Time</displayName>
+                    <description>The amount of time publisher will wait to obtain metadata or wait for the buffer to
+                        flush during the 'send' call before failing the entire 'send' call. Corresponds to Kafka's
+                        'max.block.ms' property
+                    </description>
+                    <defaultValue>5 sec</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>partitioner.class</name>
+                    <displayName>Partitioner class</displayName>
+                    <description>Specifies which class to use to compute a partition id for a message. Corresponds to
+                        Kafka's 'partitioner.class' property.
+                    </description>
+                    <defaultValue>org.apache.kafka.clients.producer.internals.DefaultPartitioner</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>RoundRobinPartitioner</displayName>
+                            <value>org.apache.nifi.processors.kafka.pubsub.Partitioners$RoundRobinPartitioner</value>
+                            <description>Messages will be assigned partitions in a round-robin fashion, sending the
+                                first message to Partition 1, the next Partition to Partition 2, and so on, wrapping as
+                                necessary.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>DefaultPartitioner</displayName>
+                            <value>org.apache.kafka.clients.producer.internals.DefaultPartitioner</value>
+                            <description>Messages will be assigned to random partitions.</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>RecordPath Partitioner</displayName>
+                            <value>org.apache.nifi.processors.kafka.pubsub.Partitioners$RecordPathPartitioner</value>
+                            <description>Interprets the &lt;Partition&gt; property as a RecordPath that will be
+                                evaluated against each Record to determine which partition the Record will go to. All
+                                Records that have the same value for the given RecordPath will go to the same Partition.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Expression Language Partitioner</displayName>
+                            <value>org.apache.nifi.processors.kafka.pubsub.Partitioners$ExpressionLanguagePartitioner
+                            </value>
+                            <description>Interprets the &lt;Partition&gt; property as Expression Language that will be
+                                evaluated against each FlowFile. This Expression will be evaluated once against the
+                                FlowFile, so all Records in a given FlowFile will go to the same partition.
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>partition</name>
+                    <displayName>Partition</displayName>
+                    <description>Specifies which Partition Records will go to. How this value is interpreted is dictated
+                        by the &lt;Partitioner class&gt; property.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>compression.type</name>
+                    <displayName>Compression Type</displayName>
+                    <description>This parameter allows you to specify the compression codec for all data generated by
+                        this producer.
+                    </description>
+                    <defaultValue>none</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>none</displayName>
+                            <value>none</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>gzip</displayName>
+                            <value>gzip</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>snappy</displayName>
+                            <value>snappy</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>lz4</displayName>
+                            <value>lz4</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+            </properties>
+            <dynamicProperties>
+                <dynamicProperty>
+                    <name>The name of a Kafka configuration property.</name>
+                    <value>The value of a given Kafka configuration property.</value>
+                    <description>These properties will be added on the Kafka configuration after loading any provided
+                        configuration properties. In the event a dynamic property represents a property that was already
+                        set, its value will be ignored and WARN message logged. For the list of available Kafka
+                        properties please refer to: http://kafka.apache.org/documentation.html#configuration.
+                    </description>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                </dynamicProperty>
+            </dynamicProperties>
+            <relationships>
+                <relationship>
+                    <name>success</name>
+                    <description>FlowFiles for which all content was sent to Kafka.</description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+                <relationship>
+                    <name>failure</name>
+                    <description>Any FlowFile that cannot be sent to Kafka will be routed to this Relationship
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+            </relationships>
+            <dynamicRelationship></dynamicRelationship>
+            <readsAttributes></readsAttributes>
+            <writesAttributes>
+                <writesAttribute>
+                    <name>msg.count</name>
+                    <description>The number of messages that were sent to Kafka for this FlowFile. This attribute is
+                        added only to FlowFiles that are routed to success.
+                    </description>
+                </writesAttribute>
+            </writesAttributes>
+            <stateful></stateful>
+            <restricted></restricted>
+            <inputRequirement>INPUT_REQUIRED</inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso>
+                <see>org.apache.nifi.processors.kafka.pubsub.PublishKafka_2_6</see>
+                <see>org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_6</see>
+                <see>org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_2_6</see>
+            </seeAlso>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_2_6</name>
+            <type>PROCESSOR</type>
+            <deprecationNotice/>
+            <description>Consumes messages from Apache Kafka specifically built against the Kafka 2.6 Consumer API. The
+                complementary NiFi processor for sending messages is PublishKafkaRecord_2_6. Please note that, at this
+                time, the Processor assumes that all records that are retrieved from a given partition have the same
+                schema. If any of the Kafka messages are pulled but cannot be parsed or written with the configured
+                Record Reader or Record Writer, the contents of the message will be written to a separate FlowFile, and
+                that FlowFile will be transferred to the 'parse.failure' relationship. Otherwise, each FlowFile is sent
+                to the 'success' relationship and may contain many individual messages within the single FlowFile. A
+                'record.count' attribute is added to indicate how many messages are contained in the FlowFile. No two
+                Kafka messages will be placed into the same FlowFile if they have different schemas, or if they have
+                different values for a message header that is included by the &lt;Headers to Add as Attributes&gt;
+                property.
+            </description>
+            <tags>
+                <tag>Kafka</tag>
+                <tag>Get</tag>
+                <tag>Record</tag>
+                <tag>csv</tag>
+                <tag>avro</tag>
+                <tag>json</tag>
+                <tag>Ingest</tag>
+                <tag>Ingress</tag>
+                <tag>Topic</tag>
+                <tag>PubSub</tag>
+                <tag>Consume</tag>
+                <tag>2.6</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>bootstrap.servers</name>
+                    <displayName>Kafka Brokers</displayName>
+                    <description>A comma-separated list of known Kafka Brokers in the format &lt;host&gt;:&lt;port&gt;
+                    </description>
+                    <defaultValue>localhost:9092</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>topic</name>
+                    <displayName>Topic Name(s)</displayName>
+                    <description>The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma
+                        separated.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>topic_type</name>
+                    <displayName>Topic Name Format</displayName>
+                    <description>Specifies whether the Topic(s) provided are a comma separated list of names or a single
+                        regular expression
+                    </description>
+                    <defaultValue>names</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>names</displayName>
+                            <value>names</value>
+                            <description>Topic is a full topic name or comma separated list of names</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>pattern</displayName>
+                            <value>pattern</value>
+                            <description>Topic is a regex using the Java Pattern syntax</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>record-reader</name>
+                    <displayName>Record Reader</displayName>
+                    <description>The Record Reader to use for incoming FlowFiles</description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.serialization.RecordReaderFactory</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>record-writer</name>
+                    <displayName>Record Writer</displayName>
+                    <description>The Record Writer to use in order to serialize the data before sending to Kafka
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.serialization.RecordSetWriterFactory</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>group.id</name>
+                    <displayName>Group ID</displayName>
+                    <description>A Group ID is used to identify consumers that are within the same consumer group.
+                        Corresponds to Kafka's 'group.id' property.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>Commit Offsets</name>
+                    <displayName>Commit Offsets</displayName>
+                    <description>Specifies whether or not this Processor should commit the offsets to Kafka after
+                        receiving messages. This value should be false when a PublishKafkaRecord processor is expected
+                        to commit the offsets using Exactly Once semantics, and should be reserved for dataflows that
+                        are designed to run within Stateless NiFi. See Processor's Usage / Additional Details for more
+                        information. Note that setting this value to false can lead to significant data duplication or
+                        potentially even data loss if the dataflow is not properly configured.
+                    </description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>max-uncommit-offset-wait</name>
+                    <displayName>Max Uncommitted Time</displayName>
+                    <description>Specifies the maximum amount of time allowed to pass before offsets must be committed.
+                        This value impacts how often offsets will be committed. Committing offsets less often increases
+                        throughput but also increases the window of potential data duplication in the event of a
+                        rebalance or JVM restart between commits. This value is also related to maximum poll records and
+                        the use of a message demarcator. When using a message demarcator we can have far more
+                        uncommitted messages than when we're not as there is much less for us to keep track of in
+                        memory.
+                    </description>
+                    <defaultValue>1 secs</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                    <dependencies>
+                        <dependency>
+                            <propertyName>Commit Offsets</propertyName>
+                            <propertyDisplayName>Commit Offsets</propertyDisplayName>
+                            <dependentValues>
+                                <dependentValue>true</dependentValue>
+                            </dependentValues>
+                        </dependency>
+                    </dependencies>
+                </property>
+                <property>
+                    <name>honor-transactions</name>
+                    <displayName>Honor Transactions</displayName>
+                    <description>Specifies whether or not NiFi should honor transactional guarantees when communicating
+                        with Kafka. If false, the Processor will use an "isolation level" of read_uncomitted. This means
+                        that messages will be received as soon as they are written to Kafka but will be pulled, even if
+                        the producer cancels the transactions. If this value is true, NiFi will not receive any messages
+                        for which the producer's transaction was canceled, but this can result in some latency since the
+                        consumer must wait for the producer to finish its entire transaction instead of pulling as the
+                        messages become available.
+                    </description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>security.protocol</name>
+                    <displayName>Security Protocol</displayName>
+                    <description>Protocol used to communicate with brokers. Corresponds to Kafka's 'security.protocol'
+                        property.
+                    </description>
+                    <defaultValue>PLAINTEXT</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>PLAINTEXT</displayName>
+                            <value>PLAINTEXT</value>
+                            <description>PLAINTEXT</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SSL</displayName>
+                            <value>SSL</value>
+                            <description>SSL</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SASL_PLAINTEXT</displayName>
+                            <value>SASL_PLAINTEXT</value>
+                            <description>SASL_PLAINTEXT</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SASL_SSL</displayName>
+                            <value>SASL_SSL</value>
+                            <description>SASL_SSL</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.mechanism</name>
+                    <displayName>SASL Mechanism</displayName>
+                    <description>The SASL mechanism to use for authentication. Corresponds to Kafka's 'sasl.mechanism'
+                        property.
+                    </description>
+                    <defaultValue>GSSAPI</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>GSSAPI</displayName>
+                            <value>GSSAPI</value>
+                            <description>The mechanism for authentication via Kerberos. The principal and keytab must be
+                                provided to the processor by using a Keytab Credential service, or by specifying the
+                                properties directly in the processor.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>PLAIN</displayName>
+                            <value>PLAIN</value>
+                            <description>The mechanism for authentication via username and password. The username and
+                                password properties must be populated when using this mechanism.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SCRAM-SHA-256</displayName>
+                            <value>SCRAM-SHA-256</value>
+                            <description>The Salted Challenge Response Authentication Mechanism using SHA-256. The
+                                username and password properties must be set when using this mechanism.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SCRAM-SHA-512</displayName>
+                            <value>SCRAM-SHA-512</value>
+                            <description>The Salted Challenge Response Authentication Mechanism using SHA-512. The
+                                username and password properties must be set when using this mechanism.
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.kerberos.service.name</name>
+                    <displayName>Kerberos Service Name</displayName>
+                    <description>The service name that matches the primary name of the Kafka server configured in the
+                        broker JAAS file.This can be defined either in Kafka's JAAS config or in Kafka's config.
+                        Corresponds to Kafka's 'security.protocol' property.It is ignored unless one of the SASL options
+                        of the &lt;Security Protocol&gt; are selected.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.kerberos.principal</name>
+                    <displayName>Kerberos Principal</displayName>
+                    <description>The Kerberos principal that will be used to connect to brokers. If not set, it is
+                        expected to set a JAAS configuration file in the JVM properties defined in the bootstrap.conf
+                        file. This principal will be set into 'sasl.jaas.config' Kafka's property.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.kerberos.keytab</name>
+                    <displayName>Kerberos Keytab</displayName>
+                    <description>The Kerberos keytab that will be used to connect to brokers. If not set, it is expected
+                        to set a JAAS configuration file in the JVM properties defined in the bootstrap.conf file. This
+                        principal will be set into 'sasl.jaas.config' Kafka's property.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition>
+                        <cardinality>SINGLE</cardinality>
+                        <resourceTypes>
+                            <resourceType>FILE</resourceType>
+                        </resourceTypes>
+                    </resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.username</name>
+                    <displayName>Username</displayName>
+                    <description>The username when the SASL Mechanism is PLAIN or SCRAM-SHA-256/SCRAM-SHA-512
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.password</name>
+                    <displayName>Password</displayName>
+                    <description>The password for the given username when the SASL Mechanism is PLAIN or
+                        SCRAM-SHA-256/SCRAM-SHA-512
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>true</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.token.auth</name>
+                    <displayName>Token Auth</displayName>
+                    <description>When SASL Mechanism is SCRAM-SHA-256 or SCRAM-SHA-512, this property indicates if token
+                        authentication should be used.
+                    </description>
+                    <defaultValue>false</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>ssl.context.service</name>
+                    <displayName>SSL Context Service</displayName>
+                    <description>Specifies the SSL Context Service to use for communicating with Kafka.</description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.ssl.SSLContextService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>separate-by-key</name>
+                    <displayName>Separate By Key</displayName>
+                    <description>If true, two Records will only be added to the same FlowFile if both of the Kafka
+                        Messages have identical keys.
+                    </description>
+                    <defaultValue>false</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>key-attribute-encoding</name>
+                    <displayName>Key Attribute Encoding</displayName>
+                    <description>If the &lt;Separate By Key&gt; property is set to true, FlowFiles that are emitted have
+                        an attribute named 'kafka.key'. This property dictates how the value of the attribute should be
+                        encoded.
+                    </description>
+                    <defaultValue>utf-8</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>UTF-8 Encoded</displayName>
+                            <value>utf-8</value>
+                            <description>The key is interpreted as a UTF-8 Encoded string.</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Hex Encoded</displayName>
+                            <value>hex</value>
+                            <description>The key is interpreted as arbitrary binary data and is encoded using
+                                hexadecimal characters with uppercase letters
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Do Not Add Key as Attribute</displayName>
+                            <value>do-not-add</value>
+                            <description>The key will not be added as an Attribute</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>auto.offset.reset</name>
+                    <displayName>Offset Reset</displayName>
+                    <description>Allows you to manage the condition when there is no initial offset in Kafka or if the
+                        current offset does not exist any more on the server (e.g. because that data has been deleted).
+                        Corresponds to Kafka's 'auto.offset.reset' property.
+                    </description>
+                    <defaultValue>latest</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>earliest</displayName>
+                            <value>earliest</value>
+                            <description>Automatically reset the offset to the earliest offset</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>latest</displayName>
+                            <value>latest</value>
+                            <description>Automatically reset the offset to the latest offset</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>none</displayName>
+                            <value>none</value>
+                            <description>Throw exception to the consumer if no previous offset is found for the
+                                consumer's group
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>message-header-encoding</name>
+                    <displayName>Message Header Encoding</displayName>
+                    <description>Any message header that is found on a Kafka message will be added to the outbound
+                        FlowFile as an attribute. This property indicates the Character Encoding to use for
+                        deserializing the headers.
+                    </description>
+                    <defaultValue>UTF-8</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>header-name-regex</name>
+                    <displayName>Headers to Add as Attributes (Regex)</displayName>
+                    <description>A Regular Expression that is matched against all message headers. Any message header
+                        whose name matches the regex will be added to the FlowFile as an Attribute. If not specified, no
+                        Header values will be added as FlowFile attributes. If two messages have a different value for
+                        the same header and that header is selected by the provided regex, then those two messages must
+                        be added to different FlowFiles. As a result, users should be cautious about using a regex like
+                        ".*" if messages are expected to have header values that are unique per message, such as an
+                        identifier or timestamp, because it will prevent NiFi from bundling the messages together
+                        efficiently.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>max.poll.records</name>
+                    <displayName>Max Poll Records</displayName>
+                    <description>Specifies the maximum number of records Kafka should return in a single poll.
+                    </description>
+                    <defaultValue>10000</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>Communications Timeout</name>
+                    <displayName>Communications Timeout</displayName>
+                    <description>Specifies the timeout that the consumer should use when communicating with the Kafka
+                        Broker
+                    </description>
+                    <defaultValue>60 secs</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+            </properties>
+            <dynamicProperties>
+                <dynamicProperty>
+                    <name>The name of a Kafka configuration property.</name>
+                    <value>The value of a given Kafka configuration property.</value>
+                    <description>These properties will be added on the Kafka configuration after loading any provided
+                        configuration properties. In the event a dynamic property represents a property that was already
+                        set, its value will be ignored and WARN message logged. For the list of available Kafka
+                        properties please refer to: http://kafka.apache.org/documentation.html#configuration.
+                    </description>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                </dynamicProperty>
+            </dynamicProperties>
+            <relationships>
+                <relationship>
+                    <name>success</name>
+                    <description>FlowFiles received from Kafka. Depending on demarcation strategy it is a flow file per
+                        message or a bundle of messages grouped by topic and partition.
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+                <relationship>
+                    <name>parse.failure</name>
+                    <description>If a message from Kafka cannot be parsed using the configured Record Reader, the
+                        contents of the message will be routed to this Relationship as its own individual FlowFile.
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+            </relationships>
+            <dynamicRelationship></dynamicRelationship>
+            <readsAttributes></readsAttributes>
+            <writesAttributes>
+                <writesAttribute>
+                    <name>record.count</name>
+                    <description>The number of records received</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>mime.type</name>
+                    <description>The MIME Type that is provided by the configured Record Writer</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>kafka.partition</name>
+                    <description>The partition of the topic the records are from</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>kafka.timestamp</name>
+                    <description>The timestamp of the message in the partition of the topic.</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>kafka.topic</name>
+                    <description>The topic records are from</description>
+                </writesAttribute>
+            </writesAttributes>
+            <stateful></stateful>
+            <restricted></restricted>
+            <inputRequirement>INPUT_FORBIDDEN</inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso>
+                <see>org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_6</see>
+                <see>org.apache.nifi.processors.kafka.pubsub.PublishKafka_2_6</see>
+                <see>org.apache.nifi.processors.kafka.pubsub.PublishKafkaRecord_2_6</see>
+            </seeAlso>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.record.sink.kafka.KafkaRecordSink_2_6</name>
+            <type>CONTROLLER_SERVICE</type>
+            <deprecationNotice/>
+            <description>Provides a service to write records to a Kafka 2.6+ topic.</description>
+            <tags>
+                <tag>kafka</tag>
+                <tag>record</tag>
+                <tag>sink</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>bootstrap.servers</name>
+                    <displayName>Kafka Brokers</displayName>
+                    <description>A comma-separated list of known Kafka Brokers in the format &lt;host&gt;:&lt;port&gt;
+                    </description>
+                    <defaultValue>localhost:9092</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>topic</name>
+                    <displayName>Topic Name</displayName>
+                    <description>The name of the Kafka Topic to publish to.</description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>record-sink-record-writer</name>
+                    <displayName>Record Writer</displayName>
+                    <description>Specifies the Controller Service to use for writing out the records.</description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.serialization.RecordSetWriterFactory</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>acks</name>
+                    <displayName>Delivery Guarantee</displayName>
+                    <description>Specifies the requirement for guaranteeing that a message is sent to Kafka. Corresponds
+                        to Kafka's 'acks' property.
+                    </description>
+                    <defaultValue>0</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>Best Effort</displayName>
+                            <value>0</value>
+                            <description>Records are considered 'transmitted successfully' after successfully writing
+                                the content to a Kafka node, without waiting for a response. This provides the best
+                                performance but may result in data loss.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Guarantee Single Node Delivery</displayName>
+                            <value>1</value>
+                            <description>Records are considered 'transmitted successfully' if the message is received by
+                                a single Kafka node, whether or not it is replicated. This is faster than &lt;Guarantee
+                                Replicated Delivery&gt; but can result in data loss if a Kafka node crashes.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Guarantee Replicated Delivery</displayName>
+                            <value>all</value>
+                            <description>Records are considered 'transmitted unsuccessfully' unless the message is
+                                replicated to the appropriate number of Kafka Nodes according to the Topic
+                                configuration.
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>message-header-encoding</name>
+                    <displayName>Message Header Encoding</displayName>
+                    <description>For any attribute that is added as a message header, as configured via the &lt;Attributes
+                        to Send as Headers&gt; property, this property indicates the Character Encoding to use for
+                        serializing the headers.
+                    </description>
+                    <defaultValue>UTF-8</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>security.protocol</name>
+                    <displayName>Security Protocol</displayName>
+                    <description>Protocol used to communicate with brokers. Corresponds to Kafka's 'security.protocol'
+                        property.
+                    </description>
+                    <defaultValue>PLAINTEXT</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>PLAINTEXT</displayName>
+                            <value>PLAINTEXT</value>
+                            <description>PLAINTEXT</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SSL</displayName>
+                            <value>SSL</value>
+                            <description>SSL</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SASL_PLAINTEXT</displayName>
+                            <value>SASL_PLAINTEXT</value>
+                            <description>SASL_PLAINTEXT</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SASL_SSL</displayName>
+                            <value>SASL_SSL</value>
+                            <description>SASL_SSL</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>sasl.kerberos.service.name</name>
+                    <displayName>Kerberos Service Name</displayName>
+                    <description>The service name that matches the primary name of the Kafka server configured in the
+                        broker JAAS file.This can be defined either in Kafka's JAAS config or in Kafka's config.
+                        Corresponds to Kafka's 'security.protocol' property.It is ignored unless one of the SASL options
+                        of the &lt;Security Protocol&gt; are selected.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>ssl.context.service</name>
+                    <displayName>SSL Context Service</displayName>
+                    <description>Specifies the SSL Context Service to use for communicating with Kafka.</description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.ssl.SSLContextService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>1.16.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>max.request.size</name>
+                    <displayName>Max Request Size</displayName>
+                    <description>The maximum size of a request in bytes. Corresponds to Kafka's 'max.request.size'
+                        property and defaults to 1 MB (1048576).
+                    </description>
+                    <defaultValue>1 MB</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>ack.wait.time</name>
+                    <displayName>Acknowledgment Wait Time</displayName>
+                    <description>After sending a message to Kafka, this indicates the amount of time that we are willing
+                        to wait for a response from Kafka. If Kafka does not acknowledge the message within this time
+                        period, the FlowFile will be routed to 'failure'.
+                    </description>
+                    <defaultValue>5 secs</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>max.block.ms</name>
+                    <displayName>Max Metadata Wait Time</displayName>
+                    <description>The amount of time publisher will wait to obtain metadata or wait for the buffer to
+                        flush during the 'send' call before failing the entire 'send' call. Corresponds to Kafka's
+                        'max.block.ms' property
+                    </description>
+                    <defaultValue>5 sec</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+                <property>
+                    <name>compression.type</name>
+                    <displayName>Compression Type</displayName>
+                    <description>This parameter allows you to specify the compression codec for all data generated by
+                        this producer.
+                    </description>
+                    <defaultValue>none</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>none</displayName>
+                            <value>none</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>gzip</displayName>
+                            <value>gzip</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>snappy</displayName>
+                            <value>snappy</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>lz4</displayName>
+                            <value>lz4</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition></resourceDefinition>
+                </property>
+            </properties>
+            <dynamicProperties></dynamicProperties>
+            <stateful></stateful>
+            <restricted></restricted>
+            <inputRequirement></inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso/>
+            <providedServiceAPIs>
+                <providedServiceAPI>
+                    <className>org.apache.nifi.record.sink.RecordSinkService</className>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-standard-services-api-nar</artifactId>
+                    <version>1.16.0-SNAPSHOT</version>
+                </providedServiceAPI>
+            </providedServiceAPIs>
+        </extension>
+    </extensions>
+</extensionManifest>

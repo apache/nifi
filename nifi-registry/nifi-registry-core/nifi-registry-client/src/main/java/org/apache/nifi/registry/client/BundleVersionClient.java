@@ -20,8 +20,8 @@ import org.apache.nifi.registry.extension.bundle.BundleType;
 import org.apache.nifi.registry.extension.bundle.BundleVersion;
 import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
-import org.apache.nifi.registry.extension.component.manifest.Extension;
-import org.apache.nifi.registry.extension.component.ExtensionMetadata;
+import org.apache.nifi.extension.manifest.Extension;
+import org.apache.nifi.extension.ExtensionMetadata;
 
 import java.io.File;
 import java.io.IOException;

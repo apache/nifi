@@ -20,7 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.client.ExtensionRepoClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.client.RequestConfig;
-import org.apache.nifi.registry.extension.component.manifest.Extension;
+import org.apache.nifi.extension.manifest.Extension;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoArtifact;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoBucket;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoExtensionMetadata;

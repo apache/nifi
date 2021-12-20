@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry;
 
-import org.apache.nifi.registry.extension.component.manifest.ExtensionManifest;
+import org.apache.nifi.extension.manifest.ExtensionManifest;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;

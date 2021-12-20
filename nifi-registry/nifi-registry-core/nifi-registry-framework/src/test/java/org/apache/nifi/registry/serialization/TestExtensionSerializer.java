@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.serialization;
 
-import org.apache.nifi.registry.extension.component.manifest.Extension;
+import org.apache.nifi.extension.manifest.Extension;
 import org.junit.Before;
 import org.junit.Test;
 

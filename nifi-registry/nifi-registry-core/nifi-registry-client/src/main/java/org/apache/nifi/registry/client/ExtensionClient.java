@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.registry.client;
 
-import org.apache.nifi.registry.extension.component.ExtensionFilterParams;
-import org.apache.nifi.registry.extension.component.ExtensionMetadataContainer;
-import org.apache.nifi.registry.extension.component.TagCount;
-import org.apache.nifi.registry.extension.component.manifest.ProvidedServiceAPI;
+import org.apache.nifi.extension.ExtensionFilterParams;
+import org.apache.nifi.extension.ExtensionMetadataContainer;
+import org.apache.nifi.extension.TagCount;
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 
 import java.io.IOException;
 import java.util.List;
