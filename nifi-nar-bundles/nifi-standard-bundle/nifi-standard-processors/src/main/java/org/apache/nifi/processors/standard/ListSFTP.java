@@ -79,13 +79,11 @@ public class ListSFTP extends ListFileTransfer {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final PropertyDescriptor port = new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("22").build();
-
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(FILE_TRANSFER_LISTING_STRATEGY);
-        properties.add(HOSTNAME);
-        properties.add(port);
-        properties.add(USERNAME);
+        properties.add(SFTPTransfer.HOSTNAME);
+        properties.add(SFTPTransfer.PORT);
+        properties.add(SFTPTransfer.USERNAME);
         properties.add(SFTPTransfer.PASSWORD);
         properties.add(SFTPTransfer.PRIVATE_KEY_PATH);
         properties.add(SFTPTransfer.PRIVATE_KEY_PASSPHRASE);
@@ -103,6 +101,7 @@ public class ListSFTP extends ListFileTransfer {
         properties.add(SFTPTransfer.DATA_TIMEOUT);
         properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
         properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
+        properties.add(SFTPTransfer.USE_COMPRESSION);
         properties.add(SFTPTransfer.PROXY_CONFIGURATION_SERVICE);
         properties.add(FTPTransfer.PROXY_TYPE);
         properties.add(FTPTransfer.PROXY_HOST);
