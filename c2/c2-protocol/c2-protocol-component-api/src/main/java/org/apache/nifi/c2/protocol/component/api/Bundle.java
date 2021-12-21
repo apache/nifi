@@ -19,9 +19,9 @@ package org.apache.nifi.c2.protocol.component.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+
 import java.io.Serializable;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import java.util.Objects;
 
 @ApiModel
 public class Bundle implements Serializable {
@@ -104,21 +104,15 @@ public class Bundle implements Serializable {
             return false;
         }
 
-        Bundle bundle = (Bundle) o;
+        final Bundle bundle = (Bundle) o;
 
-        return new EqualsBuilder()
-            .append(group, bundle.group)
-            .append(artifact, bundle.artifact)
-            .append(version, bundle.version)
-            .isEquals();
+        return Objects.equals(group, bundle.group)
+                && Objects.equals(artifact, bundle.artifact)
+                && Objects.equals(version, bundle.version);
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-            .append(group)
-            .append(artifact)
-            .append(version)
-            .toHashCode();
+        return Objects.hash(group, artifact, version);
     }
 }

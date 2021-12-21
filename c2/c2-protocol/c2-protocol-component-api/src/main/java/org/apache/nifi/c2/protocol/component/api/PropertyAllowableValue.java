@@ -19,9 +19,9 @@ package org.apache.nifi.c2.protocol.component.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+
 import java.io.Serializable;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import java.util.Objects;
 
 @ApiModel
 public class PropertyAllowableValue implements Serializable {
@@ -68,17 +68,12 @@ public class PropertyAllowableValue implements Serializable {
             return false;
         }
 
-        PropertyAllowableValue that = (PropertyAllowableValue) o;
-
-        return new EqualsBuilder()
-            .append(value, that.value)
-            .isEquals();
+        final PropertyAllowableValue that = (PropertyAllowableValue) o;
+        return Objects.equals(value, that.value);
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-            .append(value)
-            .toHashCode();
+        return Objects.hash(value);
     }
 }

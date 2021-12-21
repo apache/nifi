@@ -19,9 +19,9 @@ package org.apache.nifi.c2.protocol.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+
 import java.io.Serializable;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import java.util.Objects;
 
 /**
  * An object representation of a Heartbeat in the C2 protocol
@@ -133,17 +133,13 @@ public class C2Heartbeat implements Serializable {
             return false;
         }
 
-        C2Heartbeat that = (C2Heartbeat) o;
-
-        return new EqualsBuilder()
-            .append(identifier, that.identifier)
-            .isEquals();
+        final C2Heartbeat that = (C2Heartbeat) o;
+        return Objects.equals(identifier, that.identifier);
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-            .append(identifier)
-            .toHashCode();
+        return Objects.hash(identifier);
     }
+
 }
