@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.extension.manifest.parser.jackson;
+package org.apache.nifi.extension.manifest.parser.jaxb;
 
 import org.apache.nifi.extension.manifest.Cardinality;
 import org.apache.nifi.extension.manifest.DefaultSchedule;
@@ -44,13 +44,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class TestJacksonExtensionManifestParser {
+public class TestJAXBExtensionManifestParser {
 
     private ExtensionManifestParser parser;
 
     @Before
     public void setup() {
-        parser = new JacksonExtensionManifestParser();
+        parser = new JAXBExtensionManifestParser();
     }
 
     @Test

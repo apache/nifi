@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import org.apache.nifi.c2.protocol.component.api.BuildInfo;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
-import org.apache.nifi.extension.manifest.parser.jackson.JacksonExtensionManifestParser;
+import org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParser;
 import org.apache.nifi.runtime.manifest.ExtensionManifestProvider;
 import org.apache.nifi.runtime.manifest.RuntimeManifestSerializer;
 import org.slf4j.Logger;
@@ -97,7 +97,7 @@ public class RuntimeManifestGenerator {
     }
 
     private ExtensionManifestProvider createExtensionManifestProvider() {
-        final ExtensionManifestParser extensionManifestParser = new JacksonExtensionManifestParser();
+        final ExtensionManifestParser extensionManifestParser = new JAXBExtensionManifestParser();
         return new DirectoryExtensionManifestProvider(extensionManifestBaseDir, extensionManifestParser);
     }
 

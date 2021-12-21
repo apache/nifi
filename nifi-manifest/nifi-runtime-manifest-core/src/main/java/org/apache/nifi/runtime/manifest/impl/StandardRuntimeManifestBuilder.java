@@ -410,7 +410,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
     }
 
     private PropertyResourceDefinition getPropertyResourceDefinition(final ResourceDefinition resourceDefinition) {
-        if (resourceDefinition == null) {
+        if (resourceDefinition == null || resourceDefinition.getCardinality() == null) {
             return null;
         }
 
