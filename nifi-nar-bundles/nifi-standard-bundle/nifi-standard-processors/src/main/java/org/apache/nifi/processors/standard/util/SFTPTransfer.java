@@ -43,6 +43,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.ssh.PatchedSFTPEngine;
 import org.apache.nifi.processors.standard.ssh.SSHClientProvider;
 import org.apache.nifi.processors.standard.ssh.StandardSSHClientProvider;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -559,7 +560,7 @@ public class SFTPTransfer implements FileTransfer {
 
         final Map<String, String> attributes = flowFile == null ? Collections.emptyMap() : flowFile.getAttributes();
         this.sshClient = SSH_CLIENT_PROVIDER.getClient(ctx, attributes);
-        this.sftpClient = sshClient.newSFTPClient();
+        this.sftpClient = new SFTPClient(new PatchedSFTPEngine(sshClient).init());
         this.closed = false;
 
         // Configure timeout for sftp operations
