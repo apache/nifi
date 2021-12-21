@@ -38,7 +38,7 @@
 
     <profiles>
         <profile>
-            <!-- This profile provides configuration to allow NiFi Registry to be compiled on JDKs above 1.8. -->
+            <!-- This profile provides configuration to allow compiling on JDKs above 1.8. -->
             <id>jigsaw</id>
             <activation>
                 <jdk>(1.8,)</jdk>

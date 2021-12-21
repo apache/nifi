@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.runtime.manifest.impl;
 
-import org.apache.commons.lang3.Validate;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.c2.protocol.component.api.BuildInfo;
 import org.apache.nifi.c2.protocol.component.api.Bundle;
@@ -36,7 +35,6 @@ import org.apache.nifi.c2.protocol.component.api.SchedulingDefaults;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.extension.manifest.AllowableValue;
 import org.apache.nifi.extension.manifest.DefaultSchedule;
 import org.apache.nifi.extension.manifest.DefaultSettings;
@@ -48,6 +46,7 @@ import org.apache.nifi.extension.manifest.ExtensionManifest;
 import org.apache.nifi.extension.manifest.Property;
 import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.extension.manifest.ResourceDefinition;
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.runtime.manifest.ComponentManifestBuilder;
 import org.apache.nifi.runtime.manifest.RuntimeManifestBuilder;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -102,10 +101,18 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
 
     @Override
     public RuntimeManifestBuilder addBundle(final ExtensionManifest extensionManifest) {
-        Validate.notNull(extensionManifest, "Extension manifest is required");
-        Validate.notBlank(extensionManifest.getGroupId(), "Extension manifest groupId is required");
-        Validate.notBlank(extensionManifest.getArtifactId(), "Extension manifest artifactId is required");
-        Validate.notBlank(extensionManifest.getVersion(), "Extension manifest version is required");
+        if (extensionManifest == null) {
+            throw new IllegalArgumentException("Extension manifest is required");
+        }
+        if (extensionManifest.getGroupId() == null || extensionManifest.getGroupId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Extension manifest groupId is required");
+        }
+        if (extensionManifest.getArtifactId() == null || extensionManifest.getArtifactId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Extension manifest artifactId is required");
+        }
+        if (extensionManifest.getVersion() == null || extensionManifest.getVersion().trim().isEmpty()) {
+            throw new IllegalArgumentException("Extension manifest version is required");
+        }
 
         final Bundle bundle = new Bundle();
         bundle.setGroup(extensionManifest.getGroupId());
@@ -410,7 +417,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
     }
 
     private PropertyResourceDefinition getPropertyResourceDefinition(final ResourceDefinition resourceDefinition) {
-        if (resourceDefinition == null) {
+        if (resourceDefinition == null || resourceDefinition.getCardinality() == null) {
             return null;
         }
 

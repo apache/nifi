@@ -29,11 +29,23 @@
             <artifactId>nifi-extension-manifest-model</artifactId>
             <version>1.16.0-SNAPSHOT</version>
         </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-xml</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
     </dependencies>
+
+    <profiles>
+        <profile>
+            <!-- This profile provides configuration to allow compiling on JDKs above 1.8. -->
+            <id>jigsaw</id>
+            <activation>
+                <jdk>(1.8,)</jdk>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.glassfish.jaxb</groupId>
+                    <artifactId>jaxb-runtime</artifactId>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 
 </project>
