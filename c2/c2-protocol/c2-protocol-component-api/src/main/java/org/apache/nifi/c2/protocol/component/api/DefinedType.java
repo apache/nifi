@@ -19,9 +19,9 @@ package org.apache.nifi.c2.protocol.component.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+
 import java.io.Serializable;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import java.util.Objects;
 
 /**
  * A reference to a defined type identified by bundle and fully qualified class type identifiers
@@ -94,23 +94,16 @@ public class DefinedType implements Serializable {
             return false;
         }
 
-        DefinedType that = (DefinedType) o;
+        final DefinedType that = (DefinedType) o;
 
-        return new EqualsBuilder()
-            .append(group, that.group)
-            .append(artifact, that.artifact)
-            .append(version, that.version)
-            .append(type, that.type)
-            .isEquals();
+        return Objects.equals(group, that.group)
+                && Objects.equals(artifact, that.artifact)
+                && Objects.equals(version, that.version)
+                && Objects.equals(type, that.type);
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-            .append(group)
-            .append(artifact)
-            .append(version)
-            .append(type)
-            .toHashCode();
+        return Objects.hash(group, artifact, version, type);
     }
 }

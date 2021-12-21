@@ -46,6 +46,7 @@ import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
@@ -3620,6 +3621,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroup, final String bundleArtifact, final String type) {
         return controllerFacade.getReportingTaskTypes(bundleGroup, bundleArtifact, type);
+    }
+
+    @Override
+    public RuntimeManifest getRuntimeManifest() {
+        return controllerFacade.getRuntimeManifest();
     }
 
     @Override

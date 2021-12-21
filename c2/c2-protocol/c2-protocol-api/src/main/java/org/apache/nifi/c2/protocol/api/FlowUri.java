@@ -18,10 +18,9 @@
 package org.apache.nifi.c2.protocol.api;
 
 import io.swagger.annotations.ApiModel;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 @ApiModel(
         value = "FlowUri",
@@ -53,17 +52,12 @@ public class FlowUri implements Serializable {
             return false;
         }
 
-        FlowUri flowUri = (FlowUri) o;
-
-        return new EqualsBuilder()
-                .append(uriString, flowUri.uriString)
-                .isEquals();
+        final FlowUri flowUri = (FlowUri) o;
+        return Objects.equals(uriString, flowUri.uriString);
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-                .append(uriString)
-                .toHashCode();
+        return Objects.hash(uriString);
     }
 }
