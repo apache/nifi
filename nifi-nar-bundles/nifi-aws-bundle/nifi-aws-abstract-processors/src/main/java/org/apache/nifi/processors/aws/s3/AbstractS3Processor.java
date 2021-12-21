@@ -324,9 +324,10 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             flowFile = putAttribute(session, flowFile, "s3.additionalDetails", ((AmazonS3Exception) e).getAdditionalDetails());
         }
         if (e instanceof AmazonServiceException) {
-            flowFile = putAttribute(session, flowFile, "s3.statusCode", ((AmazonServiceException) e).getStatusCode());
-            flowFile = putAttribute(session, flowFile, "s3.errorCode", ((AmazonServiceException) e).getErrorCode());
-            flowFile = putAttribute(session, flowFile, "s3.errorMessage", ((AmazonServiceException) e).getErrorMessage());
+            final AmazonServiceException ase = (AmazonServiceException) e;
+            flowFile = putAttribute(session, flowFile, "s3.statusCode", ase.getStatusCode());
+            flowFile = putAttribute(session, flowFile, "s3.errorCode", ase.getErrorCode());
+            flowFile = putAttribute(session, flowFile, "s3.errorMessage", ase.getErrorMessage());
         }
         return flowFile;
     }
