@@ -30,7 +30,6 @@
         <module>nifi-standard-nar</module>
         <module>nifi-jolt-transform-json-ui</module>
         <module>nifi-standard-utils</module>
-        <module>nifi-standard-web-test-utils</module>
     </modules>
     <properties>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>

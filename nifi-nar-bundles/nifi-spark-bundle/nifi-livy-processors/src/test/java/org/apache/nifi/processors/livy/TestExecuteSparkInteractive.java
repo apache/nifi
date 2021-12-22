@@ -16,50 +16,52 @@
  */
 package org.apache.nifi.processors.livy;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpVersion;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.message.BasicHttpResponse;
+import org.apache.nifi.controller.api.livy.LivySessionService;
+import org.apache.nifi.controller.api.livy.exception.SessionManagerException;
 import org.apache.nifi.controller.livy.LivySessionController;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.web.util.TestServer;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-public class TestExecuteSparkInteractive extends ExecuteSparkInteractiveTestBase {
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-    private static TestServer server;
-    private static String url;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.when;
 
-    @BeforeAll
-    public static void beforeClass() throws Exception {
-        // useful for verbose logging output
-        // don't commit this with this property enabled, or any 'mvn test' will be really verbose
-        // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
+@ExtendWith(MockitoExtension.class)
+public class TestExecuteSparkInteractive {
+    @Mock
+    private LivySessionService livySessionService;
 
-        // create a Jetty server on a random port
-        server = createServer();
-        server.startServer();
+    @Mock
+    private HttpClient httpClient;
 
-        // this is the base url with the random port
-        url = server.getUrl();
-    }
-
-    @AfterAll
-    public static void afterClass() throws Exception {
-        server.shutdownServer();
-    }
+    private TestRunner runner;
 
     @BeforeEach
     public void before() throws Exception {
+        final String identifier = LivySessionController.class.getSimpleName();
         runner = TestRunners.newTestRunner(ExecuteSparkInteractive.class);
-        LivySessionController livyControllerService = new LivySessionController();
-        runner.addControllerService("livyCS", livyControllerService);
-        runner.setProperty(livyControllerService, LivySessionController.LIVY_HOST, url.substring(url.indexOf("://") + 3, url.lastIndexOf(":")));
-        runner.setProperty(livyControllerService, LivySessionController.LIVY_PORT, url.substring(url.lastIndexOf(":") + 1));
-        runner.enableControllerService(livyControllerService);
-        runner.setProperty(ExecuteSparkInteractive.LIVY_CONTROLLER_SERVICE, "livyCS");
 
-        server.clearHandlers();
+        when(livySessionService.getIdentifier()).thenReturn(identifier);
+        runner.addControllerService(identifier, livySessionService);
+        runner.enableControllerService(livySessionService);
+        runner.setProperty(ExecuteSparkInteractive.LIVY_CONTROLLER_SERVICE, identifier);
     }
 
     @AfterEach
@@ -67,17 +69,47 @@ public class TestExecuteSparkInteractive extends ExecuteSparkInteractiveTestBase
         runner.shutdown();
     }
 
-    private static TestServer createServer() {
-        return new TestServer();
+    @Test
+    public void testSparkSession() throws SessionManagerException, IOException {
+        testCode("print \"hello world\"");
     }
 
     @Test
-    public void testSparkSession() throws Exception {
-        testCode(server, "print \"hello world\"");
+    public void testSparkSessionWithSpecialChars() throws SessionManagerException, IOException {
+        testCode("print \"/'?!<>[]{}()$&*=%;.|_-\\\"");
     }
 
-    @Test
-    public void testSparkSessionWithSpecialChars() throws Exception {
-        testCode(server, "print \"/'?!<>[]{}()$&*=%;.|_-\\\"");
+    private void testCode(final String code) throws SessionManagerException, IOException {
+        runner.enqueue(code);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ExecuteSparkInteractive.REL_WAIT);
+
+        final String sessionId = "1";
+        final Map<String, String> sessions = new LinkedHashMap<>();
+        sessions.put("sessionId", sessionId);
+        when(livySessionService.getSession()).thenReturn(sessions);
+
+        when(livySessionService.getConnection()).thenReturn(httpClient);
+
+        final HttpResponse jobId = getSuccessResponse();
+        jobId.setEntity(new StringEntity("{\"id\":\"1\"}"));
+        when(httpClient.execute(isA(HttpPost.class))).thenReturn(jobId);
+
+        final HttpResponse jobState = getSuccessResponse();
+        final String dataObject = "{\"completed\":1}";
+        jobState.setEntity(new StringEntity(String.format("{\"state\":\"available\", \"output\":{\"data\":%s}}", dataObject)));
+        when(httpClient.execute(isA(HttpGet.class))).thenReturn(jobState);
+
+        runner.clearTransferState();
+        runner.enqueue(code);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteSparkInteractive.REL_SUCCESS);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteSparkInteractive.REL_SUCCESS).iterator().next();
+        flowFile.assertContentEquals(dataObject);
+    }
+
+    private HttpResponse getSuccessResponse() {
+        return new BasicHttpResponse(HttpVersion.HTTP_1_1, 200, "OK");
     }
 }
