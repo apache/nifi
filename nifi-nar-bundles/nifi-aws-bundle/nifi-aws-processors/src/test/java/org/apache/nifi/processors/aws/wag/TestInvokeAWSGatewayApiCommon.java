@@ -22,14 +22,17 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
+
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
@@ -38,53 +41,60 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.web.util.TestServer;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.AbstractHandler;
+
 import org.junit.Assert;
 import org.junit.Test;
 
 public abstract class TestInvokeAWSGatewayApiCommon {
 
-    public static TestServer server;
-    public static String url;
+    private static final String SUCCESS_RESPONSE_BODY = "{\"status\":\"200\"}";
+
+    private static final String APPLICATION_JSON = "application/json";
+
     public TestRunner runner;
 
-    public void setupControllerService() throws InitializationException {
+    protected MockWebServer mockWebServer;
+
+    protected void setupControllerService() throws InitializationException {
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
         runner.setProperty(serviceImpl, InvokeAWSGatewayApi.ACCESS_KEY, "awsAccessKey");
         runner.setProperty(serviceImpl, InvokeAWSGatewayApi.SECRET_KEY, "awsSecretKey");
         runner.enableControllerService(serviceImpl);
         runner.setProperty(InvokeAWSGatewayApi.AWS_CREDENTIALS_PROVIDER_SERVICE,
-                           "awsCredentialsProvider");
-
+                "awsCredentialsProvider");
     }
 
-    public void setupAuth() {
+    protected void setupAuth() {
         runner.setProperty(InvokeAWSGatewayApi.ACCESS_KEY, "testAccessKey");
         runner.setProperty(InvokeAWSGatewayApi.SECRET_KEY, "testSecretKey");
     }
 
-    public void setupCredFile() {
+    protected void setupCredFile() {
         runner.setProperty(AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE,
-                           "src/test/resources/mock-aws-credentials.properties");
+                "src/test/resources/mock-aws-credentials.properties");
     }
 
     public void setupEndpointAndRegion() {
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_REGION, "us-east-1");
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_API_KEY, "abcd");
-        runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, url);
+        runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, mockWebServer.url("/").toString());
     }
 
-    public void addHandler(Handler handler) {
-        server.addHandler(handler);
+    private void enqueueSuccess() {
+        mockWebServer.enqueue(
+                new MockResponse()
+                        .setResponseCode(200)
+                        .addHeader("Content-Type", APPLICATION_JSON)
+                        .setBody(SUCCESS_RESPONSE_BODY)
+        );
     }
 
     @Test
     public void test200() throws Exception {
-        addHandler(new GetOrHeadHandler());
+        enqueueSuccess();
+        enqueueSuccess();
+
         setupEndpointAndRegion();
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/status/200");
@@ -105,7 +115,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // expected in request status.code and status.message
         // original flow file (+attributes)
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
         bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
@@ -153,7 +163,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testOutputResponseRegardless() throws Exception {
-        addHandler(new GetOrHeadHandler(true));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(404));
 
         setupEndpointAndRegion();
 
@@ -174,7 +184,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // expected in request status.code and status.message
         // original flow file (+attributes)
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
         bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "404");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Not Found");
@@ -184,17 +194,15 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // status code, status message, all headers from server response --> ff attributes
         // server response message body into payload of ff
         final MockFlowFile bundle1 = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
-        bundle1.assertContentEquals("{ \"error\": \"oops\"}".getBytes(StandardCharsets.UTF_8));
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "404");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Not Found");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "application/json");
     }
 
     @Test
     public void testOutputResponseRegardlessWithOutputInAttribute() throws Exception {
-        addHandler(new GetOrHeadHandler(true));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(404));
 
         setupEndpointAndRegion();
 
@@ -216,28 +224,25 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // expected in request status.code and status.message
         // original flow file (+attributes)
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
         bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "404");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Not Found");
-        bundle.assertAttributeEquals("outputBody", "{ \"error\": \"oops\"}");
         bundle.assertAttributeEquals("Foo", "Bar");
 
         // expected in response
         // status code, status message, all headers from server response --> ff attributes
         // server response message body into payload of ff
         final MockFlowFile bundle1 = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
-        bundle1.assertContentEquals("{ \"error\": \"oops\"}".getBytes(StandardCharsets.UTF_8));
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "404");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Not Found");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "application/json");
     }
 
     @Test
     public void testOutputResponseSetMimeTypeToResponseContentType() throws Exception {
-        addHandler(new GetOrHeadHandler());
+        enqueueSuccess();
 
         setupEndpointAndRegion();
 
@@ -260,19 +265,17 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // expected in request status.code and status.message
         // original flow file (+attributes)
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
         bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
-        bundle.assertAttributeEquals("outputBody", "{\"status\":\"200\"}");
         bundle.assertAttributeEquals("Foo", "Bar");
 
         // expected in response
         // status code, status message, all headers from server response --> ff attributes
         // server response message body into payload of ff
         final MockFlowFile bundle1 = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
-        bundle1.assertContentEquals("{\"status\":\"200\"}".getBytes(StandardCharsets.UTF_8));
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
@@ -282,7 +285,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testOutputResponseRegardlessWithOutputInAttributeLarge() throws Exception {
-        addHandler(new GetLargeHandler(true));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(404));
 
         setupEndpointAndRegion();
 
@@ -306,34 +309,27 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // expected in request status.code and status.message
         // original flow file (+attributes)
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
         bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "404");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Not Found");
-        bundle.assertAttributeEquals("outputBody", "{\"name\":\"Lo");
         bundle.assertAttributeEquals("Foo", "Bar");
 
         // expected in response
         // status code, status message, all headers from server response --> ff attributes
         // server response message body into payload of ff
         final MockFlowFile bundle1 = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
-        bundle1.assertContentEquals(
-            "{\"name\":\"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. "
-                + "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor "
-                + "in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, "
-                + "sunt in culpa qui officia deserunt mollit anim id est laborum.\"}");
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "404");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Not Found");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "application/json");
     }
 
 
     @Test
     // NOTE : Amazon does not support multiple headers with the same name!!!
     public void testMultipleSameHeaders() throws Exception {
-        addHandler(new GetMultipleHeaderHandler());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("double", "2").addHeader("double", "2"));
 
         setupEndpointAndRegion();
 
@@ -352,7 +348,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // expected in request status.code and status.message
         // original flow file (+attributes)
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
         bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
@@ -362,8 +358,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // status code, status message, all headers from server response --> ff attributes
         // server response message body into payload of ff
         final MockFlowFile bundle1 = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
-        bundle1.assertContentEquals("/status/200".getBytes(StandardCharsets.UTF_8));
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
@@ -371,12 +366,11 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // this is in the amazon layer, we only get Map<String,String> for headers so the 1 has been stripped
         // already
         bundle1.assertAttributeEquals("double", "2");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
     }
 
     @Test
     public void testPutResponseHeadersInRequest() throws Exception {
-        addHandler(new GetMultipleHeaderHandler());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("Content-Type", APPLICATION_JSON).addHeader("double", "2"));
 
         setupEndpointAndRegion();
 
@@ -397,30 +391,29 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // expected in request status.code and status.message
         // original flow file (+all attributes from response)
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
         bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
         bundle.assertAttributeEquals("Foo", "Bar");
         bundle.assertAttributeEquals("double", "2");
-        bundle.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
+        bundle.assertAttributeEquals("Content-Type", APPLICATION_JSON);
 
         // expected in response
         // status code, status message, all headers from server response --> ff attributes
         // server response message body into payload of ff
         final MockFlowFile bundle1 = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
-        bundle1.assertContentEquals("/status/200".getBytes(StandardCharsets.UTF_8));
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
         bundle1.assertAttributeEquals("double", "2");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", APPLICATION_JSON);
     }
 
     @Test
     public void testToRequestAttribute() throws Exception {
-        addHandler(new GetOrHeadHandler());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200));
 
         setupEndpointAndRegion();
 
@@ -441,17 +434,16 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // expected in request status.code, status.message and body of response in attribute
         // original flow file (+attributes)
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
         bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
-        bundle.assertAttributeEquals("outputBody", "{\"status\":\"200\"}");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
         bundle.assertAttributeEquals("Foo", "Bar");
     }
 
     @Test
-    public void testNoInput() throws Exception {
-        addHandler(new GetOrHeadHandler());
+    public void testNoInput() {
+        enqueueSuccess();
 
         setupEndpointAndRegion();
 
@@ -472,16 +464,15 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // status code, status message, all headers from server response --> ff attributes
         // server response message body into payload of ff
         final MockFlowFile bundle1 = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
-        bundle1.assertContentEquals("{\"status\":\"200\"}".getBytes(StandardCharsets.UTF_8));
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
-        bundle1.assertAttributeEquals("Content-Type", "application/json");
+        bundle1.assertAttributeEquals("Content-Type", APPLICATION_JSON);
     }
 
     @Test
-    public void testNoInputWithAttributes() throws Exception {
-        addHandler(new GetOrHeadHandler());
+    public void testNoInputWithAttributes() {
+        enqueueSuccess();
 
         setupEndpointAndRegion();
 
@@ -503,8 +494,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // status code, status message, all headers from server response --> ff attributes
         // server response message body into payload of ff
         final MockFlowFile bundle1 = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
-        bundle1.assertContentEquals("{\"status\":\"200\"}".getBytes(StandardCharsets.UTF_8));
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Content-Type", "application/json");
@@ -512,7 +502,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testNoInputSendToAttribute() throws Exception {
-        addHandler(new GetOrHeadHandler());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200));
 
         setupEndpointAndRegion();
 
@@ -535,14 +525,13 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         // server response message body into attribute of ff
         final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ).get(0);
         bundle1.assertContentEquals("".getBytes(StandardCharsets.UTF_8));
-        bundle1.assertAttributeEquals("outputBody", "{\"status\":\"200\"}");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
     }
 
     @Test
     public void test500() {
-        addHandler(new GetOrHeadHandler());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(500));
 
         setupEndpointAndRegion();
 
@@ -560,11 +549,10 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         // expected in response
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RETRY_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RETRY_NAME).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "500");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Internal Server Error");
-        bundle.assertAttributeEquals(InvokeAWSGatewayApi.RESPONSE_BODY, "{\"status\":\"500\"}");
 
         final String expected = "Hello";
         Assert.assertEquals(expected, actual);
@@ -574,7 +562,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void test300() {
-        addHandler(new GetOrHeadHandler());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(302));
 
         setupEndpointAndRegion();
 
@@ -592,7 +580,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         // expected in response
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
 
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "302");
@@ -605,7 +593,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void test304() {
-        addHandler(new GetOrHeadHandler());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(304));
 
         setupEndpointAndRegion();
 
@@ -613,7 +601,6 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         createFlowFiles(runner);
 
-        //assertTrue(server.jetty.isRunning());
         runner.run();
         runner.assertTransferCount(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME, 0);
         runner.assertTransferCount(InvokeAWSGatewayApi.REL_RESPONSE_NAME, 0);
@@ -624,7 +611,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         // expected in response
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
 
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "304");
@@ -637,7 +624,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void test400() {
-        addHandler(new GetOrHeadHandler());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(400));
 
         setupEndpointAndRegion();
 
@@ -654,12 +641,11 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         runner.assertPenalizeCount(0);
         // expected in response
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
 
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "400");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Bad Request");
-        bundle.assertAttributeEquals(InvokeAWSGatewayApi.RESPONSE_BODY, "{\"status\":\"400\"}");
         final String expected = "Hello";
         Assert.assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
@@ -668,7 +654,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void test400WithPenalizeNoRetry() {
-        addHandler(new GetOrHeadHandler());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(400));
 
         setupEndpointAndRegion();
 
@@ -686,12 +672,11 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         runner.assertPenalizeCount(1);
         // expected in response
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
 
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "400");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Bad Request");
-        bundle.assertAttributeEquals(InvokeAWSGatewayApi.RESPONSE_BODY, "{\"status\":\"400\"}");
         final String expected = "Hello";
         Assert.assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
@@ -699,7 +684,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void test412() {
-        addHandler(new GetOrHeadHandler());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(412));
 
         setupEndpointAndRegion();
 
@@ -717,12 +702,11 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         // expected in response
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_NO_RETRY_NAME).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
 
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "412");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Precondition Failed");
-        bundle.assertAttributeEquals(InvokeAWSGatewayApi.RESPONSE_BODY, "{\"status\":\"412\"}");
         final String expected = "Hello";
         Assert.assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
@@ -731,7 +715,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testHead() throws Exception {
-        addHandler(new GetOrHeadHandler());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200));
 
         setupEndpointAndRegion();
 
@@ -749,14 +733,14 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         runner.assertPenalizeCount(0);
 
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
         bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
         bundle.assertAttributeEquals("Foo", "Bar");
 
         final MockFlowFile bundle1 = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
         bundle1.assertContentEquals("".getBytes(StandardCharsets.UTF_8));
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
@@ -768,7 +752,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testPost() throws Exception {
-        addHandler(new MutativeMethodHandler(MutativeMethod.POST));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200));
 
         setupEndpointAndRegion();
 
@@ -786,14 +770,14 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         runner.assertPenalizeCount(0);
 
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
         bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
         bundle.assertAttributeEquals("Foo", "Bar");
 
         final MockFlowFile bundle1 = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
         bundle1.assertContentEquals("".getBytes(StandardCharsets.UTF_8));
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
@@ -808,7 +792,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
     @Test
     public void testPostWithMimeType() {
         final String suppliedMimeType = "text/plain";
-        addHandler(new MutativeMethodHandler(MutativeMethod.POST, suppliedMimeType));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("Content-Type", suppliedMimeType));
 
         setupEndpointAndRegion();
 
@@ -827,8 +811,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testPostWithEmptyELExpression() {
-        addHandler(new MutativeMethodHandler(MutativeMethod.POST,
-                                             InvokeAWSGatewayApi.DEFAULT_CONTENT_TYPE));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("Content-Type", InvokeAWSGatewayApi.DEFAULT_CONTENT_TYPE));
 
         setupEndpointAndRegion();
 
@@ -847,7 +830,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
     @Test
     public void testPostWithContentTypeProperty() {
         final String suppliedMimeType = "text/plain";
-        addHandler(new MutativeMethodHandler(MutativeMethod.POST, suppliedMimeType));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("Content-Type", suppliedMimeType));
 
         setupEndpointAndRegion();
 
@@ -867,7 +850,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
     @Test
     public void testPostWithEmptyBodySet() {
         final String suppliedMimeType = "";
-        addHandler(new MutativeMethodHandler(MutativeMethod.POST, suppliedMimeType));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("Content-Type", suppliedMimeType));
 
         setupEndpointAndRegion();
 
@@ -885,10 +868,11 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         runner.assertTransferCount(InvokeAWSGatewayApi.REL_RESPONSE_NAME, 1);
     }
 
+
     @Test
     public void testPutWithMimeType() {
         final String suppliedMimeType = "text/plain";
-        addHandler(new MutativeMethodHandler(MutativeMethod.PUT, suppliedMimeType));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("Content-Type", suppliedMimeType));
 
         setupEndpointAndRegion();
 
@@ -907,7 +891,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testPutWithEmptyELExpression() {
-        addHandler(new MutativeMethodHandler(MutativeMethod.PUT, InvokeAWSGatewayApi.DEFAULT_CONTENT_TYPE));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("Content-Type", InvokeAWSGatewayApi.DEFAULT_CONTENT_TYPE));
         setupEndpointAndRegion();
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/post");
@@ -925,7 +909,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
     @Test
     public void testPutWithContentTypeProperty() {
         final String suppliedMimeType = "text/plain";
-        addHandler(new MutativeMethodHandler(MutativeMethod.PUT, suppliedMimeType));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("Content-Type", suppliedMimeType));
         setupEndpointAndRegion();
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/post");
@@ -943,7 +927,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testPut() throws Exception {
-        addHandler(new MutativeMethodHandler(MutativeMethod.PUT));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200));
 
         setupEndpointAndRegion();
 
@@ -980,7 +964,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testPatch() throws Exception {
-        addHandler(new MutativeMethodHandler(MutativeMethod.PATCH));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200));
         setupEndpointAndRegion();
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/patch");
@@ -1018,7 +1002,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
     @Test
     public void testPatchWithMimeType() {
         final String suppliedMimeType = "text/plain";
-        addHandler(new MutativeMethodHandler(MutativeMethod.PATCH, suppliedMimeType));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("Content-Type", suppliedMimeType));
 
         setupEndpointAndRegion();
 
@@ -1037,7 +1021,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testPatchWithEmptyELExpression() {
-        addHandler(new MutativeMethodHandler(MutativeMethod.PATCH, InvokeAWSGatewayApi.DEFAULT_CONTENT_TYPE));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("Content-Type", InvokeAWSGatewayApi.DEFAULT_CONTENT_TYPE));
 
         setupEndpointAndRegion();
 
@@ -1056,7 +1040,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
     @Test
     public void testPatchWithContentTypeProperty() {
         final String suppliedMimeType = "text/plain";
-        addHandler(new MutativeMethodHandler(MutativeMethod.PATCH, suppliedMimeType));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("Content-Type", suppliedMimeType));
 
         setupEndpointAndRegion();
 
@@ -1075,7 +1059,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testDelete() throws Exception {
-        addHandler(new DeleteHandler());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200));
         setupEndpointAndRegion();
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/status/200");
@@ -1109,7 +1093,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testOptions() throws Exception {
-        addHandler(new OptionsHandler());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200));
         setupEndpointAndRegion();
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/status/200");
@@ -1132,7 +1116,6 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         bundle.assertAttributeEquals("Foo", "Bar");
 
         final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE).get(0);
-        bundle1.assertContentEquals("{\"status\":\"200\"}".getBytes(StandardCharsets.UTF_8));
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
@@ -1140,13 +1123,14 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testSendAttributes() throws Exception {
-        addHandler(new AttributesSentHandler());
+        enqueueSuccess();
 
         setupEndpointAndRegion();
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/status/200");
         runner.setProperty(InvokeAWSGatewayApi.PROP_ATTRIBUTES_TO_SEND, "F.*");
-        runner.setProperty("dynamicHeader", "yes!");
+        final String dynamicValue = "testing";
+        runner.setProperty("dynamicHeader", dynamicValue);
 
         createFlowFiles(runner);
 
@@ -1162,7 +1146,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         //expected in request status.code and status.message
         //original flow file (+attributes)
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ_NAME).get(0);
         bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
@@ -1172,23 +1156,24 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         //status code, status message, all headers from server response --> ff attributes
         //server response message body into payload of ff
         final MockFlowFile bundle1 = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
-        bundle1.assertContentEquals("Bar".getBytes(StandardCharsets.UTF_8));
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE_NAME).get(0);
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
-        bundle1.assertAttributeEquals("dynamicHeader", "yes!");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", APPLICATION_JSON);
+
+        final RecordedRequest recordedRequest = mockWebServer.takeRequest();
+        assertEquals(dynamicValue, recordedRequest.getHeader("dynamicHeader"));
     }
 
     @Test
     public void testReadTimeout() {
-        addHandler(new ReadTimeoutHandler());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setHeadersDelay(1, TimeUnit.SECONDS));
 
         setupEndpointAndRegion();
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/status/200");
-        runner.setProperty(InvokeAWSGatewayApi.TIMEOUT, "5 secs");
+        runner.setProperty(InvokeAWSGatewayApi.TIMEOUT, "500 ms");
 
         createFlowFiles(runner);
 
@@ -1202,7 +1187,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         runner.assertPenalizeCount(1);
 
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_FAILURE_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_FAILURE_NAME).get(0);
 
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
         final String expected = "Hello";
@@ -1212,8 +1197,6 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testConnectFailBadPort() {
-        addHandler(new GetOrHeadHandler());
-
         setupEndpointAndRegion();
         // this is the bad urls
         final String badurlport = "http://localhost:" + 445;
@@ -1232,7 +1215,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         runner.assertPenalizeCount(1);
 
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_FAILURE_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_FAILURE_NAME).get(0);
 
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
         final String expected = "Hello";
@@ -1242,8 +1225,6 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
     @Test
     public void testConnectFailBadHost() {
-        addHandler(new GetOrHeadHandler());
-
         setupEndpointAndRegion();
         final String badurlhost = "http://localhOOst:" + 445;
 
@@ -1261,7 +1242,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         runner.assertPenalizeCount(1);
 
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_FAILURE_NAME).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_FAILURE_NAME).get(0);
 
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
         final String expected = "Hello";
@@ -1269,8 +1250,9 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         bundle.assertAttributeEquals("Foo", "Bar");
     }
 
-    @Test(expected = java.lang.AssertionError.class)
+    @Test
     public void testArbitraryRequestFailsValidation() {
+
         setupEndpointAndRegion();
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/status/200");
@@ -1278,14 +1260,15 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         createFlowFiles(runner);
 
-        runner.run();
+        assertThrows(AssertionError.class, runner::run);
     }
 
     @Test
     public void testProxy() throws Exception {
-        addHandler(new MyProxyHandler());
+        final String contentType = "text/plain;charset=iso-8859-1";
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("Content-Type", contentType));
         setupEndpointAndRegion();
-        URL proxyURL = new URL(url);
+        URL proxyURL = mockWebServer.url("/").url();
 
         runner.setVariable("proxy.host", proxyURL.getHost());
         runner.setVariable("proxy.port", String.valueOf(proxyURL.getPort()));
@@ -1294,21 +1277,11 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, "http://nifi.apache.org/");
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/status/200");
-
-        // Expect assertion error when proxy port isn't set but host is.
         runner.setProperty(InvokeAWSGatewayApi.PROXY_HOST, "${proxy.host}");
-        final AssertionError aePort = assertThrows(AssertionError.class, () -> runner.run());
-        assertEquals("Processor has 1 validation failures:\n" +
-                "'Proxy Host and Port' is invalid because If Proxy Host or Proxy Port is set, both must be set\n",
-                aePort.getMessage());
         runner.setProperty(InvokeAWSGatewayApi.PROXY_HOST_PORT, "${proxy.port}");
-
-        // Expect assertion error when proxy password isn't set but username is.
         runner.setProperty(InvokeAWSGatewayApi.PROXY_USERNAME, "${proxy.username}");
-        final AssertionError aePassword = assertThrows(AssertionError.class, () -> runner.run());
-        assertEquals("Processor has 1 validation failures:\n" +
-                    "'Proxy User and Password' is invalid because If Proxy Username or Proxy Password is set, both must be set\n",
-                aePassword.getMessage());
+
+        runner.assertNotValid();
         runner.setProperty(InvokeAWSGatewayApi.PROXY_PASSWORD, "${proxy.password}");
 
         createFlowFiles(runner);
@@ -1325,7 +1298,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         //expected in request status.code and status.message
         //original flow file (+attributes)
         final MockFlowFile bundle = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ).get(0);
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_SUCCESS_REQ).get(0);
         bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
@@ -1335,334 +1308,18 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         //status code, status message, all headers from server response --> ff attributes
         //server response message body into payload of ff
         final MockFlowFile bundle1 = runner
-            .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE).get(0);
-        bundle1.assertContentEquals("http://nifi.apache.org/status/200".getBytes(StandardCharsets.UTF_8));
+                .getFlowFilesForRelationship(InvokeAWSGatewayApi.REL_RESPONSE).get(0);
+
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", contentType);
     }
 
     public static void createFlowFiles(final TestRunner testRunner) {
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
         attributes.put("Foo", "Bar");
         testRunner.enqueue("Hello".getBytes(StandardCharsets.UTF_8), attributes);
-    }
-
-    protected static class DateHandler extends AbstractHandler {
-        @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request,
-                           HttpServletResponse response) throws IOException {
-            baseRequest.setHandled(true);
-
-            response.setStatus(200);
-            response.setContentType("text/plain");
-            response.getWriter().println("Way to go!");
-        }
-    }
-
-    private enum MutativeMethod {POST, PUT, PATCH}
-
-
-    public static class MutativeMethodHandler extends AbstractHandler {
-
-        private final MutativeMethod method;
-        private final String expectedContentType;
-
-        public MutativeMethodHandler(final MutativeMethod method) {
-            this(method, "application/plain-text");
-        }
-
-        public MutativeMethodHandler(final MutativeMethod method,
-                                     final String expectedContentType) {
-            this.method = method;
-            this.expectedContentType = expectedContentType;
-        }
-
-        @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request,
-                           HttpServletResponse response) throws IOException {
-
-            baseRequest.setHandled(true);
-
-            if (method.name().equals(request.getMethod())) {
-                if (this.expectedContentType.isEmpty()) {
-                    // with nothing set, aws defaults to no Content-Type
-                    Assert.assertNull("Content-Type", request.getHeader("Content-Type"));
-                } else {
-                    assertEquals(this.expectedContentType, request.getHeader("Content-Type"));
-                }
-
-                final String body = request.getReader().readLine();
-
-                if (this.expectedContentType.isEmpty()) {
-                    Assert.assertNull(body);
-                } else {
-                    assertEquals("Hello", body);
-                }
-            } else {
-                response.setStatus(404);
-                response.setContentType("text/plain");
-                response.setContentLength(0);
-            }
-        }
-    }
-
-    public static class GetOrHeadHandler extends AbstractHandler {
-
-        boolean force404 = false;
-
-        public GetOrHeadHandler() {
-        }
-
-        public GetOrHeadHandler(boolean force404) {
-            this.force404 = force404;
-        }
-
-        @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request,
-                           HttpServletResponse response) throws IOException {
-            baseRequest.setHandled(true);
-
-            final int status = Integer.parseInt(target.substring("/status".length() + 1));
-            response.setStatus(status);
-
-            if (!force404 && "GET".equalsIgnoreCase(request.getMethod())) {
-                if (status == 304) {
-                    // Status code 304 ("Not Modified") must not contain a message body
-                    response.getWriter().write("{\"name\":\"test\"}");
-                    return;
-                } else if (status == 302) {
-                    // this will be treated as an error
-                    // the target content must be json
-                    target = "{\"status\":\"moved\"}";
-                } else {
-                    target = String.format("{\"status\":\"%d\"}", status);
-                }
-                response.setContentType("application/json");
-                response.setContentLength(target.length());
-                response.setHeader("Cache-Control", "public,max-age=1");
-
-                try (PrintWriter writer = response.getWriter()) {
-                    writer.print(target);
-                    writer.flush();
-                }
-            } else if (force404 || !"HEAD".equalsIgnoreCase(request.getMethod())) {
-                response.setStatus(404);
-                response.setContentType("application/json");
-                String body = "{ \"error\": \"oops\"}";
-                response.setContentLength(body.length());
-
-                try (PrintWriter writer = response.getWriter()) {
-                    writer.print(body);
-                    writer.flush();
-                }
-            }
-        }
-    }
-
-    public static class GetLargeHandler extends AbstractHandler {
-
-        private final boolean force404;
-
-        public GetLargeHandler(boolean force404) {
-            this.force404 = force404;
-        }
-
-        @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request,
-                           HttpServletResponse response) throws IOException {
-            baseRequest.setHandled(true);
-
-            final int status = Integer.parseInt(target.substring("/status".length() + 1));
-            response.setStatus(status);
-
-            response.setContentType("text/plain");
-            response.setContentLength(target.length());
-
-            if (!force404 && "GET".equalsIgnoreCase(request.getMethod())) {
-                try (PrintWriter writer = response.getWriter()) {
-                    writer.print(target);
-                    writer.flush();
-                }
-            } else {
-                response.setStatus(404);
-                response.setContentType("application/json");
-
-                //Lorem Ipsum
-                String body =
-                    "{\"name\":\"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. "
-                        + "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor "
-                        + "in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, "
-                        + "sunt in culpa qui officia deserunt mollit anim id est laborum.\"}";
-
-                response.setContentLength(body.length());
-                response.setContentType("application/json");
-
-                try (PrintWriter writer = response.getWriter()) {
-                    writer.print(body);
-                    writer.flush();
-                }
-            }
-
-        }
-    }
-
-    public static class GetMultipleHeaderHandler extends AbstractHandler {
-
-        @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request,
-                           HttpServletResponse response) throws IOException {
-            baseRequest.setHandled(true);
-
-            final int status = Integer.parseInt(target.substring("/status".length() + 1));
-            response.setStatus(status);
-
-            response.setContentType("text/plain");
-            response.setContentLength(target.length());
-
-            if ("GET".equalsIgnoreCase(request.getMethod())) {
-                response.addHeader("double", "1");
-                response.addHeader("double", "2");
-
-                try (PrintWriter writer = response.getWriter()) {
-                    writer.print(target);
-                    writer.flush();
-                }
-            } else {
-                response.setStatus(404);
-                response.setContentType("text/plain");
-                response.setContentLength(0);
-            }
-        }
-    }
-
-    public static class DeleteHandler extends AbstractHandler {
-
-        @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request,
-                           HttpServletResponse response) {
-            baseRequest.setHandled(true);
-
-            if ("DELETE".equalsIgnoreCase(request.getMethod())) {
-                final int status = Integer.parseInt(target.substring("/status".length() + 1));
-                response.setStatus(status);
-            } else {
-                response.setStatus(404);
-                response.setContentType("text/plain");
-            }
-            response.setContentLength(0);
-        }
-    }
-
-    public static class OptionsHandler extends AbstractHandler {
-
-        @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request,
-                           HttpServletResponse response) throws IOException {
-            baseRequest.setHandled(true);
-
-            if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-                final int status = Integer.parseInt(target.substring("/status".length() + 1));
-                response.setStatus(status);
-                response.setContentType("application/json");
-                target = String.format("{\"status\":\"%d\"}", status);
-                response.setContentLength(target.length());
-
-                try (PrintWriter writer = response.getWriter()) {
-                    writer.print(target);
-                    writer.flush();
-                }
-            } else {
-                response.setStatus(404);
-                response.setContentType("text/plain");
-                response.setContentLength(target.length());
-            }
-        }
-    }
-
-    public static class AttributesSentHandler extends AbstractHandler {
-
-        @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request,
-                           HttpServletResponse response) throws IOException {
-            baseRequest.setHandled(true);
-
-            if ("Get".equalsIgnoreCase(request.getMethod())) {
-                String headerValue = request.getHeader("Foo");
-                response.setHeader("dynamicHeader", request.getHeader("dynamicHeader"));
-                final int status = Integer.parseInt(target.substring("/status".length() + 1));
-                response.setStatus(status);
-                response.setContentLength(headerValue.length());
-                response.setContentType("text/plain");
-
-                try (PrintWriter writer = response.getWriter()) {
-                    writer.print(headerValue);
-                    writer.flush();
-                }
-            } else {
-                response.setStatus(404);
-                response.setContentType("text/plain");
-                response.setContentLength(0);
-            }
-        }
-    }
-
-    public static class ReadTimeoutHandler extends AbstractHandler {
-
-        @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request,
-                           HttpServletResponse response) throws IOException {
-            baseRequest.setHandled(true);
-
-            if ("Get".equalsIgnoreCase(request.getMethod())) {
-                try {
-                    Thread.sleep(10000);
-                } catch (InterruptedException e) {
-                    return;
-                }
-                String headerValue = request.getHeader("Foo");
-                headerValue = headerValue == null ? "" : headerValue;
-                final int status = Integer.parseInt(target.substring("/status".length() + 1));
-                response.setStatus(status);
-                response.setContentLength(headerValue.length());
-                response.setContentType("text/plain");
-
-                try (PrintWriter writer = response.getWriter()) {
-                    writer.print(headerValue);
-                    writer.flush();
-                }
-            } else {
-                response.setStatus(404);
-                response.setContentType("text/plain");
-                response.setContentLength(0);
-            }
-        }
-    }
-
-    public static class MyProxyHandler extends AbstractHandler {
-
-        @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request,
-                           HttpServletResponse response) throws IOException {
-            baseRequest.setHandled(true);
-
-            if ("Get".equalsIgnoreCase(request.getMethod())) {
-                response.setStatus(200);
-                String proxyPath = baseRequest.getHttpURI().toString();
-                response.setContentLength(proxyPath.length());
-                response.setContentType("text/plain");
-
-                try (PrintWriter writer = response.getWriter()) {
-                    writer.print(proxyPath);
-                    writer.flush();
-                }
-            } else {
-                response.setStatus(404);
-                response.setContentType("text/plain");
-                response.setContentLength(0);
-            }
-        }
     }
 }
