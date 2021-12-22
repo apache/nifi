@@ -34,7 +34,6 @@ import org.apache.nifi.ssl.SSLContextService
 import org.apache.nifi.util.StringUtils
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.apache.nifi.web.util.ssl.SslContextUtils
 import org.junit.After
 import org.junit.Assert
 import org.junit.Assume
@@ -500,26 +499,6 @@ class ElasticSearchClientService_IT {
     void testGetNotFound() {
         final ElasticsearchException ee = Assert.assertThrows(ElasticsearchException.class, { -> service.get(INDEX, TYPE, "not_found", null) })
         Assert.assertTrue(ee.isNotFound())
-    }
-
-    @Test
-    void testSSL() {
-        final String serviceIdentifier = SSLContextService.class.getName()
-        final SSLContextService sslContext = mock(SSLContextService.class)
-        when(sslContext.getIdentifier()).thenReturn(serviceIdentifier)
-
-        final SSLContext clientSslContext = SslContextUtils.createSslContext(truststoreTlsConfiguration)
-        when(sslContext.createContext()).thenReturn(clientSslContext)
-        when(sslContext.createTlsConfiguration()).thenReturn(truststoreTlsConfiguration)
-
-        runner.addControllerService(serviceIdentifier, sslContext)
-        runner.enableControllerService(sslContext)
-
-        runner.disableControllerService(service)
-        runner.setProperty(service, ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE, serviceIdentifier)
-        runner.enableControllerService(service)
-
-        runner.assertValid(service)
     }
 
     @Test

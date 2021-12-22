@@ -16,43 +16,20 @@
  */
 package org.apache.nifi.processors.aws.wag;
 
-import java.io.IOException;
+import okhttp3.mockwebserver.MockWebServer;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.web.util.TestServer;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.Test;
 
-
-public class TestInvokeInvokeAmazonGatewayApiWithControllerService extends
-                                                                   TestInvokeAWSGatewayApiCommon {
-
-    @BeforeClass
-    public static void beforeClass() throws Exception {
-        // useful for verbose logging output
-        // don't commit this with this property enabled, or any 'mvn test' will be really verbose
-        // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
-
-        // create a Jetty server on a random port
-        server = createServer();
-        server.startServer();
-
-        // this is the base url with the random port
-        url = server.getUrl();
-    }
-
-    @AfterClass
-    public static void afterClass() throws Exception {
-        server.shutdownServer();
-    }
+public class TestInvokeInvokeAmazonGatewayApi extends TestInvokeAWSGatewayApiCommon {
 
     @Before
     public void before() throws Exception {
         runner = TestRunners.newTestRunner(InvokeAWSGatewayApi.class);
         runner.setValidateExpressionUsage(false);
-        server.clearHandlers();
         setupControllerService();
+        mockWebServer = new MockWebServer();
     }
 
     @After
@@ -60,7 +37,17 @@ public class TestInvokeInvokeAmazonGatewayApiWithControllerService extends
         runner.shutdown();
     }
 
-    private static TestServer createServer() throws IOException {
-        return new TestServer();
+    @Test
+    public void testStaticCredentials() throws Exception {
+        runner.clearProperties();
+        setupAuth();
+        test200();
+    }
+
+    @Test
+    public void testCredentialsFile() throws Exception {
+        runner.clearProperties();
+        setupCredFile();
+        test200();
     }
 }

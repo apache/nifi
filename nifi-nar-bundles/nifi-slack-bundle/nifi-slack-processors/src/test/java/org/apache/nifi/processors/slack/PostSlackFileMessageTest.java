@@ -16,52 +16,47 @@
  */
 package org.apache.nifi.processors.slack;
 
+import okhttp3.Headers;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.web.util.TestServer;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_PATH_SUCCESS_FILE_MSG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PostSlackFileMessageTest {
 
+    private static final String RESPONSE_SUCCESS_FILE_MSG = "{\"ok\": true, \"file\": {\"url_private\": \"slack-file-url\"}}";
+
     private TestRunner testRunner;
 
-    private TestServer server;
-    private PostSlackCaptureServlet servlet;
+    private MockWebServer mockWebServer;
+
+    private String url;
 
     @BeforeEach
-    public void setup() throws Exception {
+    public void init() {
+        mockWebServer = new MockWebServer();
+        url = mockWebServer.url("/").toString();
         testRunner = TestRunners.newTestRunner(PostSlack.class);
-
-        servlet = new PostSlackCaptureServlet();
-
-        ServletContextHandler handler = new ServletContextHandler();
-        handler.addServlet(new ServletHolder(servlet), "/*");
-
-        server = new TestServer();
-        server.addHandler(handler);
-        server.startServer();
     }
 
     @Test
-    public void sendMessageWithBasicPropertiesSuccessfully() {
-        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, server.getUrl() + REQUEST_PATH_SUCCESS_FILE_MSG);
+    public void sendMessageWithBasicPropertiesSuccessfully() throws InterruptedException {
+        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.UPLOAD_FLOWFILE, PostSlack.UPLOAD_FLOWFILE_YES);
@@ -69,6 +64,8 @@ public class PostSlackFileMessageTest {
         Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), "my-file-name");
         flowFileAttributes.put(CoreAttributes.MIME_TYPE.key(), "image/png");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_FILE_MSG));
 
         // in order not to make the assertion logic (even more) complicated, the file content is tested with character data instead of binary data
         testRunner.enqueue("my-data", flowFileAttributes);
@@ -83,8 +80,8 @@ public class PostSlackFileMessageTest {
     }
 
     @Test
-    public void sendMessageWithAllPropertiesSuccessfully() {
-        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, server.getUrl() + REQUEST_PATH_SUCCESS_FILE_MSG);
+    public void sendMessageWithAllPropertiesSuccessfully() throws InterruptedException {
+        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "my-text");
@@ -92,6 +89,8 @@ public class PostSlackFileMessageTest {
         testRunner.setProperty(PostSlack.FILE_TITLE, "my-file-title");
         testRunner.setProperty(PostSlack.FILE_NAME, "my-file-name");
         testRunner.setProperty(PostSlack.FILE_MIME_TYPE, "image/png");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_FILE_MSG));
 
         testRunner.enqueue("my-data");
         testRunner.run(1);
@@ -106,27 +105,29 @@ public class PostSlackFileMessageTest {
 
     @Test
     public void processShouldFailWhenChannelIsEmpty() {
-        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, server.getUrl());
+        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "${dummy}");
         testRunner.setProperty(PostSlack.UPLOAD_FLOWFILE, PostSlack.UPLOAD_FLOWFILE_YES);
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
 
         testRunner.enqueue("my-data");
         testRunner.run(1);
 
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_FAILURE);
-
-        assertFalse(servlet.hasBeenInteracted());
     }
 
     @Test
-    public void fileNameShouldHaveFallbackValueWhenEmpty() {
-        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, server.getUrl() + REQUEST_PATH_SUCCESS_FILE_MSG);
+    public void fileNameShouldHaveFallbackValueWhenEmpty() throws InterruptedException {
+        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.UPLOAD_FLOWFILE, PostSlack.UPLOAD_FLOWFILE_YES);
         testRunner.setProperty(PostSlack.FILE_NAME, "${dummy}");
         testRunner.setProperty(PostSlack.FILE_MIME_TYPE, "image/png");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_FILE_MSG));
 
         testRunner.enqueue("my-data");
         testRunner.run(1);
@@ -141,14 +142,16 @@ public class PostSlackFileMessageTest {
     }
 
     @Test
-    public void mimeTypeShouldHaveFallbackValueWhenEmpty() {
-        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, server.getUrl() + REQUEST_PATH_SUCCESS_FILE_MSG);
+    public void mimeTypeShouldHaveFallbackValueWhenEmpty() throws InterruptedException {
+        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.UPLOAD_FLOWFILE, PostSlack.UPLOAD_FLOWFILE_YES);
         testRunner.setProperty(PostSlack.FILE_NAME, "my-file-name");
         testRunner.setProperty(PostSlack.FILE_MIME_TYPE, "${dummy}");
 
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_FILE_MSG));
+
         testRunner.enqueue("my-data");
         testRunner.run(1);
 
@@ -162,14 +165,16 @@ public class PostSlackFileMessageTest {
     }
 
     @Test
-    public void mimeTypeShouldHaveFallbackValueWhenInvalid() {
-        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, server.getUrl() + REQUEST_PATH_SUCCESS_FILE_MSG);
+    public void mimeTypeShouldHaveFallbackValueWhenInvalid() throws InterruptedException {
+        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.UPLOAD_FLOWFILE, PostSlack.UPLOAD_FLOWFILE_YES);
         testRunner.setProperty(PostSlack.FILE_NAME, "my-file-name");
         testRunner.setProperty(PostSlack.FILE_MIME_TYPE, "invalid");
 
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_FILE_MSG));
+
         testRunner.enqueue("my-data");
         testRunner.run(1);
 
@@ -183,20 +188,27 @@ public class PostSlackFileMessageTest {
     }
 
     @Test
-    public void sendInternationalMessageSuccessfully() {
-        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, server.getUrl() + REQUEST_PATH_SUCCESS_FILE_MSG);
+    public void sendInternationalMessageSuccessfully() throws InterruptedException {
+        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "Iñtërnâtiônàližætiøn");
         testRunner.setProperty(PostSlack.UPLOAD_FLOWFILE, PostSlack.UPLOAD_FLOWFILE_YES);
         testRunner.setProperty(PostSlack.FILE_TITLE, "Iñtërnâtiônàližætiøn");
 
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_FILE_MSG));
+
         testRunner.enqueue(new byte[0]);
         testRunner.run(1);
 
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_SUCCESS);
 
-        Map<String, String> parts = parsePostBodyParts(parseMultipartBoundary(servlet.getLastPostHeaders().get("Content-Type")));
+        final RecordedRequest recordedRequest = mockWebServer.takeRequest();
+        final String body = recordedRequest.getBody().readString(StandardCharsets.UTF_8);
+
+        final Headers headers = recordedRequest.getHeaders();
+
+        Map<String, String> parts = parsePostBodyParts(parseMultipartBoundary(headers.get("Content-Type")), body);
         assertEquals("Iñtërnâtiônàližætiøn", parts.get("initial_comment"));
         assertEquals("Iñtërnâtiônàližætiøn", parts.get("title"));
 
@@ -204,17 +216,20 @@ public class PostSlackFileMessageTest {
         assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
     }
 
-    private void assertRequest(String fileName, String mimeType, String text, String title) {
-        Map<String, String> requestHeaders = servlet.getLastPostHeaders();
-        assertEquals("Bearer my-access-token", requestHeaders.get("Authorization"));
+    private void assertRequest(String fileName, String mimeType, String text, String title) throws InterruptedException {
+        final RecordedRequest recordedRequest = mockWebServer.takeRequest();
+        final String body = recordedRequest.getBody().readString(StandardCharsets.UTF_8);
 
-        String contentType = requestHeaders.get("Content-Type");
+        final Headers headers = recordedRequest.getHeaders();
+        assertEquals("Bearer my-access-token", headers.get("Authorization"));
+
+        String contentType = headers.get("Content-Type");
         assertTrue(contentType.startsWith("multipart/form-data"));
 
         String boundary = parseMultipartBoundary(contentType);
         assertNotNull(boundary, "Multipart boundary not found in Content-Type header: " + contentType);
 
-        Map<String, String> parts = parsePostBodyParts(boundary);
+        Map<String, String> parts = parsePostBodyParts(boundary, body);
 
         assertNotNull(parts.get("channels"), "'channels' parameter not found in the POST request body");
         assertEquals("my-channel", parts.get("channels"), "'channels' parameter has wrong value");
@@ -234,7 +249,8 @@ public class PostSlackFileMessageTest {
 
         assertNotNull(parts.get("file"), "The file part not found in the POST request body");
 
-        Map<String, String> fileParameters = parseFilePart(boundary);
+
+        Map<String, String> fileParameters = parseFilePart(boundary, body);
         assertEquals("my-data", fileParameters.get("data"), "File data is wrong in the POST request body");
         assertEquals(fileName, fileParameters.get("filename"), "'filename' attribute of the file part has wrong value");
         assertEquals(mimeType, fileParameters.get("contentType"), "Content-Type of the file part is wrong");
@@ -253,11 +269,11 @@ public class PostSlackFileMessageTest {
         return boundary;
     }
 
-    private Map<String, String> parsePostBodyParts(String boundary) {
+    private Map<String, String> parsePostBodyParts(String boundary, String body) {
         Pattern partNamePattern = Pattern.compile("name=\"(.*?)\"");
         Pattern partDataPattern = Pattern.compile("\r\n\r\n(.*?)\r\n$");
 
-        String[] postBodyParts = new String(servlet.getLastPostBody(), Charset.forName("UTF-8")).split(boundary);
+        String[] postBodyParts = body.split(boundary);
 
         Map<String, String> parts = new HashMap<>();
 
@@ -276,13 +292,13 @@ public class PostSlackFileMessageTest {
         return parts;
     }
 
-    private Map<String, String> parseFilePart(String boundary) {
+    private Map<String, String> parseFilePart(String boundary, String body) {
         Pattern partNamePattern = Pattern.compile("name=\"file\"");
         Pattern partDataPattern = Pattern.compile("\r\n\r\n(.*?)\r\n$");
         Pattern partFilenamePattern = Pattern.compile("filename=\"(.*?)\"");
         Pattern partContentTypePattern = Pattern.compile("Content-Type: (.*?)\r\n");
 
-        String[] postBodyParts = new String(servlet.getLastPostBody(), Charset.forName("UTF-8")).split(boundary);
+        String[] postBodyParts = body.split(boundary);
 
         Map<String, String> fileParameters = new HashMap<>();
 
