@@ -344,7 +344,11 @@ public class JoltTransformJSON extends AbstractProcessor {
 
         try {
             if (context.getProperty(MODULES).isSet()) {
-                customClassLoader = ClassLoaderUtils.getCustomClassLoader(context.getProperty(MODULES).evaluateAttributeExpressions().getValue(), this.getClass().getClassLoader(), getJarFilenameFilter());
+                customClassLoader = ClassLoaderUtils.getCustomClassLoader(
+                        context.getProperty(MODULES).evaluateAttributeExpressions().getValue(),
+                        this.getClass().getClassLoader(),
+                        getJarFilenameFilter()
+                );
             } else {
                 customClassLoader = this.getClass().getClassLoader();
             }
