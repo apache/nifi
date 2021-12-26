@@ -170,10 +170,11 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor AUTO_COMMIT = new PropertyDescriptor.Builder()
-            .name("auto commit")
+            .name("esql-auto-commit")
             .displayName("Set Auto Commit")
-            .description("Enables or disables the auto commit functionality of the DB connection. For some JDBC drivers, it is required to disable the auto committing "
-                    + "to limit the number of result rows fetching at a time. Ex: PostgreSQL")
+            .description("Enables or disables the auto commit functionality of the DB connection. Default value is 'true'. The default value can be used with most of the JDBC drivers and this functionality doesn't have any impact in most of the cases since this processor is used to read data." +
+                    "However, for some JDBC drivers such as PostgreSQL driver, it is required to disable the auto committing functionality to limit the number of result rows fetching at a time. When auto commit is enabled, postgreSQL driver loads whole result set to memory at once." +
+                    "This could lead for a large amount of memory usage when executing queries which fetch large data sets. More Details of this behaviour in PostgreSQL driver can be found in https://jdbc.postgresql.org//documentation/head/query.html. ")
             .allowableValues("true", "false")
             .defaultValue("true")
             .required(true)
