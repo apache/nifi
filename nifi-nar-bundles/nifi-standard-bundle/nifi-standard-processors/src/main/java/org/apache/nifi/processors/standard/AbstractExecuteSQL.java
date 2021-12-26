@@ -413,6 +413,11 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                     throw failure.getRight();
                 }
 
+                // If the auto commit is set to false, commit() is called for consistency
+                if (!con.getAutoCommit()) {
+                    con.commit();
+                }
+
                 // Transfer any remaining files to SUCCESS
                 session.transfer(resultSetFlowFiles, REL_SUCCESS);
                 resultSetFlowFiles.clear();
