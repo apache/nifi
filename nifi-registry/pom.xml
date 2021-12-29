@@ -378,29 +378,6 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>enforce-maven</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <requireSameVersions>
-                                    <plugins>
-                                        <plugin>org.apache.maven.plugins:maven-surefire-plugin</plugin>
-                                        <plugin>org.apache.maven.plugins:maven-failsafe-plugin</plugin>
-                                        <plugin>org.apache.maven.plugins:maven-surefire-report-plugin</plugin>
-                                    </plugins>
-                                </requireSameVersions>
-                            </rules>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <executions>
                     <execution>
