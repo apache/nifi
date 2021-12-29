@@ -755,7 +755,7 @@
                 <version>3.0.0</version>
                 <executions>
                     <execution>
-                        <id>enforce-maven</id>
+                        <id>enforce-maven-version</id>
                         <goals>
                             <goal>enforce</goal>
                         </goals>
@@ -769,22 +769,10 @@
                                     </plugins>
                                 </requireSameVersions>
                                 <requireMavenVersion>
-                                    <!-- We do not test this value so we should probably make it something fairly recent -->
                                     <version>3.6.0</version>
                                 </requireMavenVersion>
-                            </rules>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>enforce-no-snapshots</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
                                 <requireReleaseDeps>
-                                    <message>Other than org apache nifi components themselves no snapshot dependencies are allowed</message>
-                                    <!-- If we want to only enforce this for nifi release itself we should add 'onlyWhenRelease' and remove 'failWhenParentIsSnapshot' element -->
+                                    <message>Dependencies outside of Apache NiFi must not use SNAPSHOT versions</message>
                                     <failWhenParentIsSnapshot>false</failWhenParentIsSnapshot>
                                     <excludes>
                                         <exclude>org.apache.nifi:*</exclude>
@@ -792,17 +780,6 @@
                                         <exclude>org.apache.nifi.registry:*</exclude>
                                     </excludes>
                                 </requireReleaseDeps>
-                            </rules>
-                            <fail>true</fail>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>enforce-banned-dependencies</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
                                 <bannedDependencies>
                                     <excludes>
                                         <!-- Cat-X Deps -->
