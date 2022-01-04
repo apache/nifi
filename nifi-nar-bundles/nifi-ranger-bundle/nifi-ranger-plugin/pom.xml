@@ -264,6 +264,12 @@
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-cloud-storage</artifactId>
                     <version>${ranger.hadoop.version}</version>
+                    <exclusions>
+                      <exclusion>
+                          <groupId>commons-logging</groupId>
+                          <artifactId>commons-logging</artifactId>
+                      </exclusion>
+                    </exclusions>
                 </dependency>
             </dependencies>
         </profile>
@@ -278,6 +284,16 @@
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-ozone-client</artifactId>
                     <version>${ozone.version}</version>
+                    <exclusions>
+                      <exclusion>
+                          <groupId>commons-logging</groupId>
+                          <artifactId>commons-logging</artifactId>
+                      </exclusion>
+                      <exclusion>
+                          <groupId>org.apache.logging.log4j</groupId>
+                          <artifactId>log4j-core</artifactId>
+                      </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.hadoop</groupId>
