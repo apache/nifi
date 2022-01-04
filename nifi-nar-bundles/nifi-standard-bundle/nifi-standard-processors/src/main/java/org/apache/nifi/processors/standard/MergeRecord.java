@@ -323,56 +323,64 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             }
         }
 
-        final ProcessSession session = sessionFactory.createSession();
-        final List<FlowFile> flowFiles = session.get(FlowFileFilters.newSizeBasedFilter(250, DataUnit.KB, 250));
-        if (getLogger().isDebugEnabled()) {
-            final List<String> ids = flowFiles.stream().map(ff -> "id=" + ff.getId()).collect(Collectors.toList());
-            getLogger().debug("Pulled {} FlowFiles from queue: {}", new Object[] {ids.size(), ids});
-        }
-
-        final String mergeStrategy = context.getProperty(MERGE_STRATEGY).getValue();
-        final boolean block;
-        if (MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
-            block = true;
-        } else if (context.getProperty(CORRELATION_ATTRIBUTE_NAME).isSet()) {
-            block = true;
-        } else {
-            block = false;
-        }
-
-        try {
-            for (final FlowFile flowFile : flowFiles) {
-                try {
-                    binFlowFile(context, flowFile, session, manager, block);
-                } catch (final Exception e) {
-                    getLogger().error("Failed to bin {} due to {}", new Object[] {flowFile, e});
-                    session.transfer(flowFile, REL_FAILURE);
-                }
+        while (isScheduled()) {
+            final ProcessSession session = sessionFactory.createSession();
+            final List<FlowFile> flowFiles = session.get(FlowFileFilters.newSizeBasedFilter(250, DataUnit.KB, 250));
+            if (flowFiles.isEmpty()) {
+                break;
             }
-        } finally {
-            session.commitAsync();
-        }
+            if (getLogger().isDebugEnabled()) {
+                final List<String> ids = flowFiles.stream().map(ff -> "id=" + ff.getId()).collect(Collectors.toList());
+                getLogger().debug("Pulled {} FlowFiles from queue: {}", ids.size(), ids);
+            }
 
-        // If there is no more data queued up, or strategy is defragment, complete any bin that meets our minimum threshold
-        // Otherwise, run one more cycle to process queued FlowFiles to add more fragment into available bins.
-        int completedBins = 0;
-        if (flowFiles.isEmpty() || MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
+            final String mergeStrategy = context.getProperty(MERGE_STRATEGY).getValue();
+            final boolean block;
+            if (MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
+                block = true;
+            } else if (context.getProperty(CORRELATION_ATTRIBUTE_NAME).isSet()) {
+                block = true;
+            } else {
+                block = false;
+            }
+
             try {
-                completedBins += manager.completeFullEnoughBins();
+                for (final FlowFile flowFile : flowFiles) {
+                    try {
+                        binFlowFile(context, flowFile, session, manager, block);
+                    } catch (final Exception e) {
+                        getLogger().error("Failed to bin {} due to {}", flowFile, e, e);
+                        session.transfer(flowFile, REL_FAILURE);
+                    }
+                }
+            } finally {
+                session.commitAsync();
+            }
+
+            // Complete any bins that have reached their expiration date
+            try {
+                manager.completeExpiredBins();
             } catch (final Exception e) {
-                getLogger().error("Failed to merge FlowFiles to create new bin due to " + e, e);
+                getLogger().error("Failed to merge FlowFiles to create new bin due to {}", e, e);
             }
         }
 
-        // Complete any bins that have reached their expiration date
-        try {
-            completedBins += manager.completeExpiredBins();
-        } catch (final Exception e) {
-            getLogger().error("Failed to merge FlowFiles to create new bin due to " + e, e);
-        }
+        if (isScheduled()) {
+            // Complete any bins that have reached their expiration date
+            try {
+                manager.completeExpiredBins();
+            } catch (final Exception e) {
+                getLogger().error("Failed to merge FlowFiles to create new bin due to {}", e, e);
+            }
 
-        if (completedBins == 0 && flowFiles.isEmpty()) {
-            getLogger().debug("No FlowFiles to bin; will yield");
+            // Complete any bins that meet their minimum size requirements
+            try {
+                manager.completeFullEnoughBins();
+            } catch (final Exception e) {
+                getLogger().error("Failed to merge FlowFiles to create new bin due to {}", e, e);
+            }
+
+            getLogger().debug("No more FlowFiles to bin; will yield");
             context.yield();
         }
     }
@@ -386,7 +394,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             final RecordSchema schema = reader.getSchema();
 
             final String groupId = getGroupId(context, flowFile, schema, session);
-            getLogger().debug("Got Group ID {} for {}", new Object[] {groupId, flowFile});
+            getLogger().debug("Got Group ID {} for {}", groupId, flowFile);
 
             binManager.add(groupId, flowFile, reader, session, block);
         } catch (MalformedRecordException | IOException | SchemaNotFoundException e) {

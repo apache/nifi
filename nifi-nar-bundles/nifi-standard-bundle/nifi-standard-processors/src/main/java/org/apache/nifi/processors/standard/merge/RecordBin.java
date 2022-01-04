@@ -205,6 +205,11 @@ public class RecordBin {
                 return false;
             }
 
+            if (thresholds.getFragmentCountAttribute().isPresent()) {
+                // Defragment strategy: Compare with the target fragment count.
+                return this.fragmentCount == thresholds.getFragmentCount();
+            }
+
             int maxRecords = thresholds.getMaxRecords();
 
             if (recordCount >= maxRecords) {
@@ -241,7 +246,7 @@ public class RecordBin {
             }
 
             if (thresholds.getFragmentCountAttribute().isPresent()) {
-                // Compare with the target fragment count.
+                // Defragment strategy: Compare with the target fragment count.
                 return this.fragmentCount == thresholds.getFragmentCount();
             }
 
