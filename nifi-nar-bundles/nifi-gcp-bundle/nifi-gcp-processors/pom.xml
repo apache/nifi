@@ -102,17 +102,6 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-pubsublite</artifactId>
-            <version>1.3.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
             <groupId>com.tdunning</groupId>
             <artifactId>json</artifactId>
             <version>1.8</version>
