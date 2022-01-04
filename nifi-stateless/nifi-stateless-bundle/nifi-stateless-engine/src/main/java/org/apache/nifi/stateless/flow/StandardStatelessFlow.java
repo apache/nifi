@@ -139,7 +139,6 @@ public class StandardStatelessFlow implements StatelessDataflow {
         internalFlowFileQueues = discoverInternalFlowFileQueues(rootGroup);
     }
 
-
     private List<FlowFileQueue> discoverInternalFlowFileQueues(final ProcessGroup group) {
         final Set<Port> rootGroupInputPorts = rootGroup.getInputPorts();
         final Set<Port> rootGroupOutputPorts = rootGroup.getOutputPorts();

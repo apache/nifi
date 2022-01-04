@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.tests.system;
 
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.flowfile.FlowFile;
@@ -36,6 +37,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+@TriggerWhenEmpty
 public class ConcatenateFlowFiles extends AbstractProcessor {
     static final PropertyDescriptor FLOWFILE_COUNT = new Builder()
         .name("FlowFile Count")

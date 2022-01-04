@@ -17,10 +17,11 @@
 
 package org.apache.nifi.stateless.basics;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
@@ -28,11 +29,15 @@ import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.apache.nifi.stateless.flow.TriggerResult;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,6 +49,130 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class RequiresAdditionalInputIT extends StatelessSystemIT {
+
+    @Test
+    public void testMergeAsFirstProcessor() throws IOException, StatelessConfigurationException, InterruptedException {
+        final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
+        final VersionedPort inPort = flowBuilder.createInputPort("In");
+        final VersionedPort outPort = flowBuilder.createOutputPort("Out");
+
+        final VersionedProcessor merge = flowBuilder.createSimpleProcessor("ConcatenateRangeOfFlowFiles");
+        merge.setAutoTerminatedRelationships(new HashSet<>(Arrays.asList("original", "failure")));
+
+        flowBuilder.createConnection(inPort, merge, Relationship.ANONYMOUS.getName());
+        flowBuilder.createConnection(merge, outPort, "merged");
+
+        // Startup the dataflow
+        final StatelessDataflow dataflow = loadDataflow(flowBuilder.getFlowSnapshot(), Collections.emptyList(), Collections.emptySet(), createTransactionThresholds(1000));
+
+        // Enqueue data and trigger
+        for (int i=1; i <= 3; i++) {
+            dataflow.enqueue(String.valueOf(i).getBytes(StandardCharsets.UTF_8), Collections.emptyMap(), "In");
+        }
+
+        final DataflowTrigger trigger = dataflow.trigger();
+        final TriggerResult result = trigger.getResult();
+        assertTrue(result.isSuccessful());
+
+        final List<FlowFile> flowFiles = result.getOutputFlowFiles("Out");
+        Assert.assertEquals(1, flowFiles.size());
+
+        final FlowFile first = flowFiles.get(0);
+        final String outputContent = new String(result.readContentAsByteArray(first));
+        Assert.assertEquals("123", outputContent);
+
+        result.acknowledge();
+    }
+
+
+    @Test
+    public void testMergeAsFirstProcessorWithoutEnoughData() throws IOException, StatelessConfigurationException, InterruptedException {
+        final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
+        final VersionedPort inPort = flowBuilder.createInputPort("In");
+        final VersionedPort outPort = flowBuilder.createOutputPort("Out");
+
+        final VersionedProcessor merge = flowBuilder.createSimpleProcessor("ConcatenateRangeOfFlowFiles");
+        merge.setProperties(Collections.singletonMap("Minimum Number of Entries", "100"));
+        merge.setAutoTerminatedRelationships(new HashSet<>(Arrays.asList("original", "failure")));
+
+        flowBuilder.createConnection(inPort, merge, Relationship.ANONYMOUS.getName());
+        flowBuilder.createConnection(merge, outPort, "merged");
+
+        // Startup the dataflow
+        final StatelessDataflow dataflow = loadDataflow(flowBuilder.getFlowSnapshot(), Collections.emptyList(), Collections.emptySet(), createTransactionThresholds(1000));
+
+        // Enqueue data and trigger
+        for (int i=1; i <= 3; i++) {
+            dataflow.enqueue(String.valueOf(i).getBytes(StandardCharsets.UTF_8), Collections.emptyMap(), "In");
+        }
+
+        final DataflowTrigger trigger = dataflow.trigger();
+        final Optional<TriggerResult> resultOption = trigger.getResult(2, TimeUnit.SECONDS);
+
+        // We expect this to timeout
+        assertFalse(resultOption.isPresent());
+
+        trigger.cancel();
+    }
+
+
+    @Test
+    public void testMergeDownstream() throws IOException, StatelessConfigurationException, InterruptedException {
+        final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
+        final VersionedPort inPort = flowBuilder.createInputPort("In");
+        final VersionedPort outPort = flowBuilder.createOutputPort("Out");
+
+        final VersionedProcessor firstUpdate = flowBuilder.createSimpleProcessor("UpdateContent");
+        final Map<String, String> firstUpdateProperties = new HashMap<>();
+        firstUpdateProperties.put("Content", "\n1");
+        firstUpdateProperties.put("Update Strategy", "Append");
+        firstUpdate.setProperties(firstUpdateProperties);
+
+        final VersionedProcessor secondUpdate = flowBuilder.createSimpleProcessor("UpdateContent");
+        final Map<String, String> secondUpdateProperties = new HashMap<>();
+        secondUpdateProperties.put("Content", "\n2");
+        secondUpdateProperties.put("Update Strategy", "Append");
+        secondUpdate.setProperties(secondUpdateProperties);
+
+        final VersionedProcessor thirdUpdate = flowBuilder.createSimpleProcessor("UpdateContent");
+        final Map<String, String> thirdUpdateProperties = new HashMap<>();
+        thirdUpdateProperties.put("Content", "\n3");
+        thirdUpdateProperties.put("Update Strategy", "Append");
+        thirdUpdate.setProperties(thirdUpdateProperties);
+
+        final VersionedProcessor merge = flowBuilder.createSimpleProcessor("ConcatenateRangeOfFlowFiles");
+        merge.setAutoTerminatedRelationships(new HashSet<>(Arrays.asList("original", "failure")));
+
+        flowBuilder.createConnection(inPort, firstUpdate, Relationship.ANONYMOUS.getName());
+        flowBuilder.createConnection(firstUpdate, secondUpdate, "success");
+        flowBuilder.createConnection(secondUpdate, thirdUpdate, "success");
+        flowBuilder.createConnection(thirdUpdate, merge, "success");
+        flowBuilder.createConnection(merge, outPort, "merged");
+
+        // Startup the dataflow
+        final StatelessDataflow dataflow = loadDataflow(flowBuilder.getFlowSnapshot(), Collections.emptyList(), Collections.emptySet(), createTransactionThresholds(1000));
+
+        // Enqueue data and trigger
+        for (int i=1; i <= 3; i++) {
+            dataflow.enqueue(("hello " + i).getBytes(StandardCharsets.UTF_8), Collections.emptyMap(), "In");
+        }
+
+        final DataflowTrigger trigger = dataflow.trigger();
+        final TriggerResult result = trigger.getResult();
+        assertTrue(result.isSuccessful());
+
+        final List<FlowFile> out = result.getOutputFlowFiles("Out");
+        assertEquals(1, out.size());
+        final byte[] outputContent = result.readContentAsByteArray(out.get(0));
+        final String outputText = new String(outputContent, StandardCharsets.UTF_8);
+
+        final StringBuilder expectedContentBuilder = new StringBuilder();
+        for (int i=1; i <= 3; i++) {
+            expectedContentBuilder.append("hello ").append(i).append("\n1\n2\n3");
+        }
+        final String expectedContent = expectedContentBuilder.toString();
+        assertEquals(expectedContent, outputText);
+    }
 
     @Test
     public void testSourceProcessorsTriggeredAsOftenAsRequired() throws IOException, StatelessConfigurationException, InterruptedException {

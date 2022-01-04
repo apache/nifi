@@ -188,7 +188,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             return;
         }
 
-        final int binsMigrated = migrateBins(context);
+        final int binsMigrated = migrateBins(context, flowFilesBinned == 0);
         final int binsProcessed = processBins(context);
         //If we accomplished nothing then let's yield
         if (flowFilesBinned == 0 && binsMigrated == 0 && binsProcessed == 0) {
@@ -196,9 +196,9 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         }
     }
 
-    private int migrateBins(final ProcessContext context) {
+    private int migrateBins(final ProcessContext context, final boolean relaxFullnessConstraint) {
         int added = 0;
-        for (final Bin bin : binManager.removeReadyBins(true)) {
+        for (final Bin bin : binManager.removeReadyBins(relaxFullnessConstraint)) {
             this.readyBins.add(bin);
             added++;
         }

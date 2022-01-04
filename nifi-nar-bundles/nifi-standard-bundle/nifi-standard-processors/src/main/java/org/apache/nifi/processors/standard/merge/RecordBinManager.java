@@ -245,6 +245,10 @@ public class RecordBinManager {
         return handleCompletedBins(RecordBin::isFullEnough, "Bin is full enough");
     }
 
+    public int completeFullBins() throws IOException {
+        return handleCompletedBins(RecordBin::isFull, "Bin is completely full");
+    }
+
     private int handleCompletedBins(final Predicate<RecordBin> completionTest, final String completionReason) throws IOException {
         final Map<String, List<RecordBin>> completedBinMap = new HashMap<>();
 

@@ -17,6 +17,14 @@
 
 package org.apache.nifi.stateless.flow;
 
+/**
+ * The StatelessFlowCurrent is responsible for facilitating the flow of data. Like a current of air, water, etc.
+ * is the body that moves, the StatelessFlowCurrent is the piece of the Stateless framework that deals with movement of data
+ */
 public interface StatelessFlowCurrent {
+    /**
+     * Triggers the dataflow, starting from 'root' or 'source' components all the way through the end of the dataflow until either
+     * the source components provide no data or all data that is provided is processed.
+     */
     void triggerFlow();
 }
