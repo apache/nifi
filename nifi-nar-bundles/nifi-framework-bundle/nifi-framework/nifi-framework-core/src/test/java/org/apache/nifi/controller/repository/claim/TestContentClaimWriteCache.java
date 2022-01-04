@@ -25,8 +25,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import org.apache.nifi.controller.repository.FileSystemRepository;
+import org.apache.nifi.controller.repository.StandardContentRepositoryContext;
 import org.apache.nifi.controller.repository.TestFileSystemRepository;
 import org.apache.nifi.controller.repository.util.DiskUtils;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
@@ -49,7 +51,7 @@ public class TestContentClaimWriteCache {
         }
         repository = new FileSystemRepository(nifiProperties);
         claimManager = new StandardResourceClaimManager();
-        repository.initialize(claimManager);
+        repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
         repository.purge();
     }
 

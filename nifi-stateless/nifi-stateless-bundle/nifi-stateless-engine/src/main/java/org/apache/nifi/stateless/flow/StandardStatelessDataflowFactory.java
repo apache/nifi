@@ -20,6 +20,7 @@ package org.apache.nifi.stateless.flow;
 import org.apache.nifi.components.state.StatelessStateManagerProvider;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.ContentRepositoryContext;
 import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
@@ -33,6 +34,7 @@ import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptionMethod;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
+import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.extensions.ExtensionClient;
@@ -51,6 +53,7 @@ import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.InMemoryFlowRegistry;
 import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
@@ -215,7 +218,21 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             // Initialize components. This is generally needed because of the interdependencies between the components.
             // There are some circular dependencies that are resolved by passing objects via initialization rather than by providing to the constructors.
             final ResourceClaimManager resourceClaimManager = new StandardResourceClaimManager();
-            contentRepo.initialize(resourceClaimManager);
+            final EventReporter eventReporter = (severity, category, message) -> {
+                final Bulletin bulletin = BulletinFactory.createBulletin(category, severity.name(), message);
+                bulletinRepository.addBulletin(bulletin);
+            };
+            contentRepo.initialize(new ContentRepositoryContext() {
+                @Override
+                public ResourceClaimManager getResourceClaimManager() {
+                    return resourceClaimManager;
+                }
+
+                @Override
+                public EventReporter getEventReporter() {
+                    return eventReporter;
+                }
+            });
             flowFileRepo.initialize(resourceClaimManager);
             flowManager.initialize(controllerServiceProvider);
 

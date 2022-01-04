@@ -17,9 +17,11 @@
 package org.apache.nifi.controller.repository.crypto
 
 import org.apache.commons.lang3.SystemUtils
+import org.apache.nifi.controller.repository.StandardContentRepositoryContext
 import org.apache.nifi.controller.repository.claim.ContentClaim
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager
 import org.apache.nifi.controller.repository.util.DiskUtils
+import org.apache.nifi.events.EventReporter
 import org.apache.nifi.security.kms.StaticKeyProvider
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -94,7 +96,7 @@ class EncryptedFileSystemRepositoryTest {
 
         EncryptedFileSystemRepository repository = new EncryptedFileSystemRepository(nifiProperties)
         StandardResourceClaimManager claimManager = new StandardResourceClaimManager()
-        repository.initialize(claimManager)
+        repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP))
         repository.purge()
         logger.info("Created EFSR with nifi.properties [${nifiPropertiesPath}] and ${additionalProperties.size()} additional properties: ${additionalProperties}")
 

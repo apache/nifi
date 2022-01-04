@@ -23,7 +23,9 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.stream.io.SynchronizedByteCountingOutputStream;
@@ -80,7 +82,6 @@ import java.util.regex.Pattern;
 
 /**
  * Is thread safe
- *
  */
 public class FileSystemRepository implements ContentRepository {
 
@@ -126,6 +127,7 @@ public class FileSystemRepository implements ContentRepository {
     private final ScheduledExecutorService containerCleanupExecutor;
 
     private ResourceClaimManager resourceClaimManager; // effectively final
+    private EventReporter eventReporter;
 
     // Map of container to archived files that should be deleted next.
     private final Map<String, BlockingQueue<ArchiveInfo>> archivedFiles = new HashMap<>();
@@ -160,7 +162,7 @@ public class FileSystemRepository implements ContentRepository {
             Files.createDirectories(path);
         }
         this.maxFlowFilesPerClaim = nifiProperties.getMaxFlowFilesPerClaim();
-        this.writableClaimQueue  = new LinkedBlockingQueue<>(maxFlowFilesPerClaim);
+        this.writableClaimQueue = new LinkedBlockingQueue<>(maxFlowFilesPerClaim);
         final long configuredAppendableClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
         final long appendableClaimLengthCap = DataUnit.parseDataSize(APPENDABLE_CLAIM_LENGTH_CAP, DataUnit.B).longValue();
         if (configuredAppendableClaimLength > appendableClaimLengthCap) {
@@ -224,7 +226,7 @@ public class FileSystemRepository implements ContentRepository {
                 final String containerName = container.getKey();
 
                 final long capacity = container.getValue().toFile().getTotalSpace();
-                if(capacity==0) {
+                if (capacity == 0) {
                     throw new RuntimeException("System returned total space of the partition for " + containerName + " is zero byte. Nifi can not create a zero sized FileSystemRepository");
                 }
                 final long maxArchiveBytes = (long) (capacity * (1D - (maxArchiveRatio - 0.02)));
@@ -256,8 +258,9 @@ public class FileSystemRepository implements ContentRepository {
     }
 
     @Override
-    public void initialize(final ResourceClaimManager claimManager) {
-        this.resourceClaimManager = claimManager;
+    public void initialize(final ContentRepositoryContext context) {
+        this.resourceClaimManager = context.getResourceClaimManager();
+        this.eventReporter = context.getEventReporter();
 
         final Map<String, Path> fileRespositoryPaths = nifiProperties.getContentRepositoryPaths();
 
@@ -413,7 +416,7 @@ public class FileSystemRepository implements ContentRepository {
 
         long capacity = FileUtils.getContainerCapacity(path);
 
-        if(capacity==0) {
+        if (capacity == 0) {
             throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
                     + "Nifi can not create a zero sized FileSystemRepository.");
         }
@@ -748,7 +751,7 @@ public class FileSystemRepository implements ContentRepository {
 
         final ContentClaim newClaim = create(lossTolerant);
         try (final InputStream in = read(original);
-                final OutputStream out = write(newClaim)) {
+             final OutputStream out = write(newClaim)) {
             StreamUtils.copy(in, out);
         } catch (final IOException ioe) {
             decrementClaimantCount(newClaim);
@@ -813,7 +816,7 @@ public class FileSystemRepository implements ContentRepository {
         }
 
         try (final InputStream in = read(claim);
-                final FileOutputStream fos = new FileOutputStream(destination.toFile(), append)) {
+             final FileOutputStream fos = new FileOutputStream(destination.toFile(), append)) {
             final long copied = StreamUtils.copy(in, fos);
             if (alwaysSync) {
                 fos.getFD().sync();
@@ -842,7 +845,7 @@ public class FileSystemRepository implements ContentRepository {
         }
 
         try (final InputStream in = read(claim);
-                final FileOutputStream fos = new FileOutputStream(destination.toFile(), append)) {
+             final FileOutputStream fos = new FileOutputStream(destination.toFile(), append)) {
             if (offset > 0) {
                 StreamUtils.skip(in, offset);
             }
@@ -932,7 +935,7 @@ public class FileSystemRepository implements ContentRepository {
                     resourceClaimBytes = Files.size(path);
                 } catch (final IOException e) {
                     throw new ContentNotFoundException(claim, "Content Claim has an offset of " + claim.getOffset()
-                        + " but Resource Claim has fewer than this many bytes (actual length of the resource claim could not be determined)");
+                            + " but Resource Claim has fewer than this many bytes (actual length of the resource claim could not be determined)");
                 }
 
                 throw new ContentNotFoundException(claim, "Content Claim has an offset of " + claim.getOffset() + " but Resource Claim " + path + " is only " + resourceClaimBytes + " bytes");
@@ -1417,7 +1420,7 @@ public class FileSystemRepository implements ContentRepository {
                 // users know what is going on, so that the system doesn't appear to just completely freeze up periodically.
                 if (archiveFilesDeleted % 25_000 == 0 && archiveFilesDeleted > 0) {
                     LOG.info("So far in this iteration, successfully deleted {} files ({}) from archive because the Content Repository size was exceeding the max configured size. Will continue " +
-                            "deleting files from the archive until the usage drops below the threshold or until all {} archived files have been removed",
+                                    "deleting files from the archive until the usage drops below the threshold or until all {} archived files have been removed",
                             archiveFilesDeleted, FormatUtils.formatDataSize(archiveBytesDeleted), notYetExceedingThreshold.size());
                 }
             } catch (final IOException ioe) {
@@ -1694,7 +1697,10 @@ public class FileSystemRepository implements ContentRepository {
             try {
                 while (isWaitRequired()) {
                     try {
-                        LOG.info("Unable to write to container {} due to archive file size constraints; waiting for archive cleanup", containerName);
+                        final String message = String.format("Unable to write flowfile content to content repository container %s due to archive file size constraints;" +
+                                " waiting for archive cleanup", containerName);
+                        LOG.warn(message);
+                        eventReporter.reportEvent(Severity.WARNING, "FileSystemRepository", message);
                         condition.await();
                     } catch (final InterruptedException e) {
                     }

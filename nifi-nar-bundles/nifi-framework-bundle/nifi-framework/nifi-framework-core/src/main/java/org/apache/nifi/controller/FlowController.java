@@ -88,6 +88,7 @@ import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.QueueProvider;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
+import org.apache.nifi.controller.repository.StandardContentRepositoryContext;
 import org.apache.nifi.controller.repository.StandardCounterRepository;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.controller.repository.StandardQueueProvider;
@@ -1169,7 +1170,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         try {
             final ContentRepository contentRepo = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, ContentRepository.class, properties);
             synchronized (contentRepo) {
-                contentRepo.initialize(resourceClaimManager);
+                contentRepo.initialize(new StandardContentRepositoryContext(resourceClaimManager, createEventReporter()));
             }
             return contentRepo;
         } catch (final Exception e) {

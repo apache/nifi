@@ -17,9 +17,12 @@
 
 package org.apache.nifi.stateless.repository;
 
+import org.apache.nifi.controller.repository.ContentRepositoryContext;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,10 +44,22 @@ public class TestStatelessFileSystemContentRepository {
     private final File repoDirectory = new File("target/test-stateless-file-system-repository");
     private StatelessFileSystemContentRepository repository;
 
+    private final ContentRepositoryContext contentRepositoryContext = new ContentRepositoryContext() {
+        @Override
+        public ResourceClaimManager getResourceClaimManager() {
+            return new StandardResourceClaimManager();
+        }
+
+        @Override
+        public EventReporter getEventReporter() {
+            return EventReporter.NO_OP;
+        }
+    };
+
     @BeforeEach
     public void setup() throws IOException {
         repository = new StatelessFileSystemContentRepository(repoDirectory);
-        repository.initialize(new StandardResourceClaimManager());
+        repository.initialize(contentRepositoryContext);
     }
 
     @AfterEach
