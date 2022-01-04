@@ -81,7 +81,7 @@ public class TestMergeRecord {
         runner.enqueue("Name, Age\nJohn, 35");
         runner.enqueue("Name, Age\nJane, 34");
 
-        runner.run(1);
+        runner.run(2);
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 2);
 
@@ -110,6 +110,7 @@ public class TestMergeRecord {
         runner.enqueue("Name, Age\nJane, 34");
         runner.enqueue("Name, Color\nJohn, Blue");
 
+        runner.run(1, false, false);
         runner.run(1, true, false);
 
         runner.assertTransferCount(MergeRecord.REL_MERGED, 2);
@@ -339,7 +340,7 @@ public class TestMergeRecord {
         }
         runner.enqueue(sb.toString());
 
-        runner.run();
+        runner.run(2);
 
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 3);
@@ -377,7 +378,7 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 0);
 
         runner.enqueue("Name, Age\nJohn, 35");
-        runner.run();
+        runner.run(2);
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 4);
     }
@@ -511,6 +512,7 @@ public class TestMergeRecord {
         runner.run(1, false);
 
         Thread.sleep(50L);
+        runner.run(1, false, false);
         runner.run(1, true, false);
 
         runner.assertTransferCount(MergeRecord.REL_MERGED, 0);

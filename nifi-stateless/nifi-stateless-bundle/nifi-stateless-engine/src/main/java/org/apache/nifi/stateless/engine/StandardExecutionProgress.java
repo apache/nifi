@@ -109,7 +109,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
     @Override
     public boolean isDataQueued() {
         for (final FlowFileQueue queue : internalFlowFileQueues) {
-            if (!queue.isActiveQueueEmpty()) {
+            if (!queue.isActiveQueueEmpty() || queue.isUnacknowledgedFlowFile()) {
                 return true;
             }
         }
