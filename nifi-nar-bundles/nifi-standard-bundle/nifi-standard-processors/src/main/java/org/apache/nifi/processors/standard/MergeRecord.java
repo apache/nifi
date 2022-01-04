@@ -323,12 +323,15 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             }
         }
 
+        boolean flowFilePolled = false;
         while (isScheduled()) {
             final ProcessSession session = sessionFactory.createSession();
             final List<FlowFile> flowFiles = session.get(FlowFileFilters.newSizeBasedFilter(250, DataUnit.KB, 250));
             if (flowFiles.isEmpty()) {
                 break;
             }
+
+            flowFilePolled = true;
             if (getLogger().isDebugEnabled()) {
                 final List<String> ids = flowFiles.stream().map(ff -> "id=" + ff.getId()).collect(Collectors.toList());
                 getLogger().debug("Pulled {} FlowFiles from queue: {}", ids.size(), ids);
@@ -373,15 +376,20 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
                 getLogger().error("Failed to merge FlowFiles to create new bin due to {}", e, e);
             }
 
-            // Complete any bins that meet their minimum size requirements
             try {
-                manager.completeFullEnoughBins();
+                if (flowFilePolled) {
+                    // At least one new FlowFile was pulled in. Only complete the bins that are entirely full
+                    manager.completeFullBins();
+                } else {
+                    // No FlowFiles available. Complete any bins that meet their minimum size requirements
+                    manager.completeFullEnoughBins();
+
+                    getLogger().debug("No more FlowFiles to bin; will yield");
+                    context.yield();
+                }
             } catch (final Exception e) {
                 getLogger().error("Failed to merge FlowFiles to create new bin due to {}", e, e);
             }
-
-            getLogger().debug("No more FlowFiles to bin; will yield");
-            context.yield();
         }
     }
 
