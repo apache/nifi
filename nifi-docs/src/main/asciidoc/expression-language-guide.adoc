@@ -2679,7 +2679,7 @@ provides several functions for evaluating the same conditions against groups of 
 |===============================================================================
 | Expression | Value
 | `${allDelineatedValues("${word_list}", ","):contains("o")}` | `true`
-| `${allDelineatedValues("${number_list}", ","):count()}` | `4`
+| `${allDelineatedValues("${number_list}", ","):count()}` | `5`
 | `${allDelineatedValues("${number_list}", ","):matches("[0-9]+")}` | `true`
 | `${allDelineatedValues("${word_list}", ","):matches('e')}` | `false`
 |===============================================================================
