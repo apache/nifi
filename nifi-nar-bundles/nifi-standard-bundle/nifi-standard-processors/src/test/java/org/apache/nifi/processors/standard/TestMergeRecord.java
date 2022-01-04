@@ -78,13 +78,10 @@ public class TestMergeRecord {
 
     @Test
     public void testMergeSimple() {
-        runner.setProperty(MergeRecord.MIN_RECORDS, "2");
-        runner.setProperty(MergeRecord.MAX_RECORDS, "2");
-
         runner.enqueue("Name, Age\nJohn, 35");
         runner.enqueue("Name, Age\nJane, 34");
 
-        runner.run(2);
+        runner.run(1);
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 2);
 
@@ -101,12 +98,11 @@ public class TestMergeRecord {
     @Test
     public void testDifferentSchema() {
         runner.setProperty(MergeRecord.MIN_RECORDS, "2");
-        runner.setProperty(MergeRecord.MAX_RECORDS, "2");
 
         runner.enqueue("Name, Age\nJohn, 35");
         runner.enqueue("Name, Color\nJane, Red");
 
-        runner.run(2, false, true);
+        runner.run(1, false, true);
 
         runner.assertTransferCount(MergeRecord.REL_MERGED, 0);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 0);
@@ -114,7 +110,7 @@ public class TestMergeRecord {
         runner.enqueue("Name, Age\nJane, 34");
         runner.enqueue("Name, Color\nJohn, Blue");
 
-        runner.run(2, true, false);
+        runner.run(1, true, false);
 
         runner.assertTransferCount(MergeRecord.REL_MERGED, 2);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 4);
@@ -133,8 +129,7 @@ public class TestMergeRecord {
 
     @Test
     public void testFailureToParse() {
-        runner.setProperty(MergeRecord.MIN_RECORDS, "2");
-        runner.setProperty(MergeRecord.MAX_RECORDS, "3");
+        runner.setProperty(MergeRecord.MIN_RECORDS, "3");
 
         readerService.failAfter(2);
 
@@ -329,7 +324,6 @@ public class TestMergeRecord {
     @Test
     public void testMinSize() {
         runner.setProperty(MergeRecord.MIN_RECORDS, "2");
-        runner.setProperty(MergeRecord.MAX_RECORDS, "2");
         runner.setProperty(MergeRecord.MIN_SIZE, "500 B");
 
         runner.enqueue("Name, Age\nJohn, 35");
@@ -367,7 +361,6 @@ public class TestMergeRecord {
     @Test
     public void testMinRecords() {
         runner.setProperty(MergeRecord.MIN_RECORDS, "103");
-        runner.setProperty(MergeRecord.MAX_RECORDS, "110");
         runner.setProperty(MergeRecord.MIN_SIZE, "500 B");
 
         runner.enqueue("Name, Age\nJohn, 35");
@@ -384,7 +377,7 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 0);
 
         runner.enqueue("Name, Age\nJohn, 35");
-        runner.run(2);
+        runner.run();
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 4);
     }
@@ -477,8 +470,6 @@ public class TestMergeRecord {
 
     @Test
     public void testDefragmentOldestBinFailsWhenTooManyBins() {
-        runner.setProperty(MergeRecord.MIN_RECORDS, "5");
-        runner.setProperty(MergeRecord.MAX_RECORDS, "10");
         runner.setProperty(MergeRecord.MAX_BIN_COUNT, "5");
         runner.setProperty(MergeRecord.MERGE_STRATEGY, MergeRecord.MERGE_STRATEGY_DEFRAGMENT);
 

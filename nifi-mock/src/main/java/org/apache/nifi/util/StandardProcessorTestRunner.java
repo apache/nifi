@@ -230,7 +230,7 @@ public class StandardProcessorTestRunner implements TestRunner {
                         throw new AssertionError(thrown);
                     }
 
-                    if (++finishedCount == 1) {
+                    if (++finishedCount == 1 && stopOnFinish) {
                         unscheduledRun = true;
                         unSchedule();
                     }
@@ -238,7 +238,7 @@ public class StandardProcessorTestRunner implements TestRunner {
                 }
             }
 
-            if (!unscheduledRun) {
+            if (!unscheduledRun && stopOnFinish) {
                 unSchedule();
             }
 
