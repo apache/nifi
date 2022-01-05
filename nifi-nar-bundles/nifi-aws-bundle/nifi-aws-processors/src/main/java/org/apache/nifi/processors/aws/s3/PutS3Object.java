@@ -35,10 +35,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.Tag;
@@ -140,6 +143,10 @@ public class PutS3Object extends AbstractS3Processor {
     public static final String CONTENT_DISPOSITION_INLINE = "inline";
     public static final String CONTENT_DISPOSITION_ATTACHMENT = "attachment";
 
+    private static final Set<String> STORAGE_CLASSES = Collections.unmodifiableSortedSet(new TreeSet<>(
+            Arrays.stream(StorageClass.values()).map(StorageClass::name).collect(Collectors.toSet())
+    ));
+
     public static final PropertyDescriptor EXPIRATION_RULE_ID = new PropertyDescriptor.Builder()
             .name("Expiration Time Rule")
             .required(false)
@@ -183,9 +190,7 @@ public class PutS3Object extends AbstractS3Processor {
     public static final PropertyDescriptor STORAGE_CLASS = new PropertyDescriptor.Builder()
             .name("Storage Class")
             .required(true)
-            .allowableValues(StorageClass.Standard.name(), StorageClass.IntelligentTiering.name(), StorageClass.StandardInfrequentAccess.name(),
-                    StorageClass.OneZoneInfrequentAccess.name(), StorageClass.Glacier.name(), StorageClass.DeepArchive.name(),
-                    StorageClass.ReducedRedundancy.name(), StorageClass.Outposts.name())
+            .allowableValues(STORAGE_CLASSES)
             .defaultValue(StorageClass.Standard.name())
             .build();
 
