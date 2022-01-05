@@ -21,20 +21,8 @@
     </parent>
     <artifactId>nifi-vault-utils</artifactId>
     <properties>
-        <spring.version>5.3.11</spring.version>
         <spring.vault.version>2.3.2</spring.vault.version>
     </properties>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-framework-bom</artifactId>
-                <version>${spring.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.springframework.vault</groupId>

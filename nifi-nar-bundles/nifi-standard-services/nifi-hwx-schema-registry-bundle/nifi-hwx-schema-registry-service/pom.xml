@@ -96,7 +96,6 @@ limitations under the License.
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-crypto</artifactId>
-            <version>${spring.security.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.stephenc.findbugs</groupId>
