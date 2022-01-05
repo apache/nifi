@@ -45,7 +45,6 @@ import org.apache.nifi.security.xml.SafeXMLConfiguration;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
@@ -77,8 +76,8 @@ import java.util.concurrent.atomic.AtomicReference;
         + "is contained in the specified attribute. It is not recommended to use attributes to hold large XML documents; doing so could adversely affect system performance. "
         + "Full schema validation is performed if the processor is configured with the XSD schema details. Otherwise, the only validation performed is "
         + "to ensure the XML syntax is correct and well-formed, e.g. all opening tags are properly closed.")
-@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "While this processor supports processing XML within attributes, it is strongly discouraged to hold large amounts of data in attributes. "
-        + "In general, attribute values should be as small as possible and hold no more than a couple hundred characters.")
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "While this processor supports processing XML within attributes, it is strongly discouraged to hold "
+        + "large amounts of data in attributes. In general, attribute values should be as small as possible and hold no more than a couple hundred characters.")
 public class ValidateXml extends AbstractProcessor {
 
     public static final String ERROR_ATTRIBUTE_KEY = "validatexml.invalid.error";
