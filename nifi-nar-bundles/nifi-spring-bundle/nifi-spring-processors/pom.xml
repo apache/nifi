@@ -18,21 +18,18 @@
     <artifactId>nifi-spring-processors</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <spring.version>5.3.11</spring.version>
-        <spring.integration.version>5.5.2</spring.integration.version>
+        <spring.integration.version>5.5.7</spring.integration.version>
     </properties>
     <dependencies>
 
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-messaging</artifactId>
-            <version>${spring.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>${spring.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
