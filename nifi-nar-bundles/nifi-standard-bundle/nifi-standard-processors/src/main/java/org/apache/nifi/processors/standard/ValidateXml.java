@@ -41,6 +41,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.xml.SafeXMLConfiguration;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -164,12 +165,11 @@ public class ValidateXml extends AbstractProcessor {
         for (FlowFile flowFile : flowFiles) {
             final AtomicBoolean valid = new AtomicBoolean(true);
             final AtomicReference<Exception> exception = new AtomicReference<>(null);
-            final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setValidating(false);
-            factory.setNamespaceAware(true);
+            SafeXMLConfiguration safeXMLConfiguration = new SafeXMLConfiguration();
+            safeXMLConfiguration.setValidating(false);
 
             try {
-                DocumentBuilder docBuilder = factory.newDocumentBuilder();
+                DocumentBuilder docBuilder = safeXMLConfiguration.createDocumentBuilder();
 
                 if (attributeContainsXML) {
                     // If XML source attribute is set, validate attribute value
