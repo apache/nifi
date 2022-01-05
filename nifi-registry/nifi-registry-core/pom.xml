@@ -107,7 +107,6 @@
                 <artifactId>javax.el</artifactId>
                 <version>3.0.1-b08</version>
             </dependency>
-            <!-- Spring Boot 2.0 Requires Jackson 2.9.x -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>

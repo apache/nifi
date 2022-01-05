@@ -23,9 +23,6 @@
 
     <artifactId>nifi-easyrules-bundle</artifactId>
     <packaging>pom</packaging>
-    <properties>
-        <spring.version>5.3.11</spring.version>
-    </properties>
     <modules>
         <module>nifi-easyrules-service</module>
         <module>nifi-easyrules-nar</module>
@@ -37,12 +34,6 @@
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-easyrules-service</artifactId>
                 <version>1.16.0-SNAPSHOT</version>
-            </dependency>
-            <!-- Set Spring Expression version for easy-rules-spel -->
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-expression</artifactId>
-                <version>${spring.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

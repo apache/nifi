@@ -23,9 +23,6 @@
 
     <artifactId>nifi-rules-action-handler-service</artifactId>
     <packaging>jar</packaging>
-    <properties>
-        <spring.version>5.3.11</spring.version>
-    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -69,7 +66,6 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-expression</artifactId>
-            <version>${spring.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jeasy</groupId>
@@ -82,6 +78,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-
 </project>
