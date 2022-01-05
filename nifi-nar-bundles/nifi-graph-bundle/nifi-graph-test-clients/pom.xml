@@ -124,11 +124,5 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
         </dependency>
-        <!-- Override Netty 4 -->
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
-            <version>${netty.4.version}</version>
-        </dependency>
     </dependencies>
 </project>
