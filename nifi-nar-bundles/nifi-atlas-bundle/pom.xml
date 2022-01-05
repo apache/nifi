@@ -86,17 +86,6 @@
                 <artifactId>commons-compress</artifactId>
                 <version>1.21</version>
             </dependency>
-            <!-- Override Netty 4 -->
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-handler</artifactId>
-                <version>${netty.4.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-transport-native-epoll</artifactId>
-                <version>${netty.4.version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
