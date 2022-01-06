@@ -60,7 +60,6 @@ import org.apache.nifi.groups.ComponentIdGenerator;
 import org.apache.nifi.groups.ComponentScheduler;
 import org.apache.nifi.groups.GroupSynchronizationOptions;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -349,8 +348,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
                 // Inherit templates, now that all necessary Process Groups have been created
                 inheritTemplates(controller, versionedFlow);
-
-                rootGroup.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
             }
 
             inheritSnippets(controller, proposedFlow);
