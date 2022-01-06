@@ -193,7 +193,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
      * @return a list of relationships
      */
     protected List<Relationship> getAdditionalRelationships() {
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
     }
 
     /**
@@ -202,7 +202,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
      * @return a list of properties
      */
     protected List<PropertyDescriptor> getAdditionalProperties() {
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
     }
 
     @Override
@@ -251,6 +251,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
         factory.setMaxConnections(context.getMaxConcurrentTasks());
         factory.setSocketSendBufferSize(context.getProperty(MAX_SOCKET_SEND_BUFFER_SIZE).asDataSize(DataUnit.B).intValue());
         factory.setSingleEventPerConnection(singleEventPerConnection);
+        factory.setShutdownQuietPeriod(Duration.ZERO); // Quiet period not necessary since sending threads will have completed before shutting down event sender
 
         final int timeout = context.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         factory.setTimeout(Duration.ofMillis(timeout));
