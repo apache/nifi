@@ -539,14 +539,16 @@ public class TestLookupRecord {
         runner.setProperty("lookupFoo", "/foo/foo");
 
         lookupService.addValue("FR", "France");
-        lookupService.addValue("CA", "Canada");
         lookupService.addValue("fr", "French");
         lookupService.addValue("badkey", "value");
 
-        runner.enqueue(new File("src/test/resources/TestLookupRecord/lookup-array-input.json").toPath());
+        runner.enqueue(new File("src/test/resources/TestLookupRecord/lookup-array-input-unmatched.json").toPath());
         runner.run();
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_UNMATCHED);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).get(0);
+        System.out.println(out.getContent());
+        out.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output-unmatched.json").toPath());
     }
 
     private static class MapLookup extends AbstractControllerService implements StringLookupService {
