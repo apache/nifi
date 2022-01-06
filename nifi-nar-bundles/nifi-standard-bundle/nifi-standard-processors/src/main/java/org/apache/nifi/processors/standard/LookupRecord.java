@@ -325,8 +325,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
             }
 
             for (FieldValue fieldValue : lookupFieldValues) {
-                final Object coordinateValue = (fieldValue.getValue() instanceof Number || fieldValue.getValue() instanceof Boolean)
-                        ? fieldValue.getValue() : DataTypeUtils.toString(fieldValue.getValue(), (String) null);
+                final Object coordinateValue = DataTypeUtils.convertType(fieldValue.getValue(), fieldValue.getField().getDataType(), null, null, null, fieldValue.getField().getFieldName());
 
                 lookupCoordinates.clear();
                 lookupCoordinates.put(coordinateKey, coordinateValue);
@@ -382,8 +381,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
             }
 
             final FieldValue fieldValue = lookupFieldValues.get(0);
-            final Object coordinateValue = (fieldValue.getValue() instanceof Number || fieldValue.getValue() instanceof Boolean)
-                    ? fieldValue.getValue() : DataTypeUtils.toString(fieldValue.getValue(), (String) null);
+            final Object coordinateValue = DataTypeUtils.convertType(fieldValue.getValue(), fieldValue.getField().getDataType(), null, null, null, fieldValue.getField().getFieldName());
             lookupCoordinates.put(coordinateKey, coordinateValue);
         }
 
@@ -392,7 +390,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
             lookupValueOption = lookupService.lookup(lookupCoordinates, flowFile.getAttributes());
         } catch (final Exception e) {
             throw new ProcessException("Failed to lookup coordinates " + lookupCoordinates + " in Lookup Service", e);
-        }
+            }
 
         if (!lookupValueOption.isPresent()) {
             final Set<Relationship> rels = routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
