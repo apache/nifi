@@ -1870,7 +1870,7 @@ public final class DtoFactory {
         dto.setName(group.getName());
         dto.setPosition(createPositionDto(group.getPosition()));
         dto.setComments(group.getComments());
-        dto.setTransmitting(group.isTransmitting());
+        dto.setTransmitting(group.isConfiguredToTransmit());
         dto.setCommunicationsTimeout(group.getCommunicationsTimeout());
         dto.setYieldDuration(group.getYieldDuration());
         dto.setParentGroupId(group.getProcessGroup().getIdentifier());
