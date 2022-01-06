@@ -18,7 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -27,7 +27,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
@@ -37,53 +36,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-/**
- * <p>
- * The PutUDP processor receives a FlowFile and packages the FlowFile content into a single UDP datagram packet which is then transmitted to the configured UDP server. The user must ensure that the
- * FlowFile content being fed to this processor is not larger than the maximum size for the underlying UDP transport. The maximum transport size will vary based on the platform setup but is generally
- * just under 64KB. FlowFiles will be marked as failed if their content is larger than the maximum transport size.
- * </p>
- *
- * <p>
- * This processor has the following required properties:
- * <ul>
- * <li><b>Hostname</b> - The IP address or host name of the destination UDP server.</li>
- * <li><b>Port</b> - The UDP port of the destination UDP server.</li>
- * </ul>
- * </p>
- *
- * <p>
- * This processor has the following optional properties:
- * <ul>
- * <li><b>Max Size of Socket Send Buffer</b> - The maximum size of the socket send buffer that should be used. This is a suggestion to the Operating System to indicate how big the socket buffer should
- * be. If this value is set too low, the buffer may fill up before the data can be read, and incoming data will be dropped.</li>
- * <li><b>Idle Connection Expiration</b> - The time threshold after which a UDP Datagram sender is deemed eligible for pruning.</li>
- * </ul>
- * </p>
- *
- * <p>
- * The following relationships are required:
- * <ul>
- * <li><b>failure</b> - Where to route FlowFiles that failed to be sent.</li>
- * <li><b>success</b> - Where to route FlowFiles after they were successfully sent to the UDP server.</li>
- * </ul>
- * </p>
- *
- */
 @CapabilityDescription("The PutUDP processor receives a FlowFile and packages the FlowFile content into a single UDP datagram packet which is then transmitted to the configured UDP server."
         + " The user must ensure that the FlowFile content being fed to this processor is not larger than the maximum size for the underlying UDP transport. The maximum transport size will "
         + "vary based on the platform setup but is generally just under 64KB. FlowFiles will be marked as failed if their content is larger than the maximum transport size.")
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@SeeAlso(ListenUDP.class)
+@SeeAlso({ListenUDP.class, PutTCP.class})
 @Tags({ "remote", "egress", "put", "udp" })
-@TriggerWhenEmpty // trigger even when queue is empty so that the processor can check for idle senders to prune.
+@SupportsBatching
 public class PutUDP extends AbstractPutEventProcessor {
 
     /**
      * Creates a Universal Resource Identifier (URI) for this processor. Constructs a URI of the form UDP://host:port where the host and port values are taken from the configured property values.
      *
-     * @param context
-     *            - the current process context.
+     * @param context - the current process context.
      *
      * @return The URI value as a String.
      */
@@ -93,19 +58,9 @@ public class PutUDP extends AbstractPutEventProcessor {
         final String host = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
 
-        return new StringBuilder().append(protocol).append("://").append(host).append(":").append(port).toString();
+        return protocol + "://" + host + ":" + port;
     }
 
-    /**
-     * event handler method to handle the FlowFile being forwarded to the Processor by the framework. The FlowFile contents is sent out as a UDP datagram using an acquired ChannelSender object. If the
-     * FlowFile contents was sent out successfully then the FlowFile is forwarded to the success relationship. If an error occurred then the FlowFile is forwarded to the failure relationship.
-     *
-     * @param context
-     *            - the current process context.
-     *
-     * @param sessionFactory
-     *            - a factory object to obtain a process session.
-     */
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         final ProcessSession session = sessionFactory.createSession();
@@ -115,61 +70,31 @@ public class PutUDP extends AbstractPutEventProcessor {
         }
 
         try {
-            final byte[] content = readContent(session, flowFile);
             StopWatch stopWatch = new StopWatch(true);
-            if (content != null) {
-                eventSender.sendEvent(content);
-            }
+            final byte[] content = readContent(session, flowFile);
+            eventSender.sendEvent(content);
+
             session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
             session.commitAsync();
         } catch (Exception e) {
-            getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[] { flowFile }, e);
-            onFailure(context, session, flowFile);
+            getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[]{flowFile}, e);
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            context.yield();
         }
-    }
-
-    /**
-     * event handler method to perform the required actions when a failure has occurred. The FlowFile is penalized, forwarded to the failure relationship and the context is yielded.
-     *
-     * @param context
-     *            - the current process context.
-     *
-     * @param session
-     *            - the current process session.
-     * @param flowFile
-     *            - the FlowFile that has failed to have been processed.
-     */
-    protected void onFailure(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
-        session.transfer(session.penalize(flowFile), REL_FAILURE);
-        session.commitAsync();
-        context.yield();
-    }
-
-    /**
-     * Helper method to read the FlowFile content stream into a byte array.
-     *
-     * @param session
-     *            - the current process session.
-     * @param flowFile
-     *            - the FlowFile to read the content from.
-     *
-     * @return byte array representation of the FlowFile content.
-     */
-    protected byte[] readContent(final ProcessSession session, final FlowFile flowFile) {
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream((int) flowFile.getSize() + 1);
-        session.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream in) throws IOException {
-                StreamUtils.copy(in, baos);
-            }
-        });
-
-        return baos.toByteArray();
     }
 
     @Override
     protected String getProtocol(final ProcessContext context) {
         return UDP_VALUE.getValue();
+    }
+
+    private byte[] readContent(final ProcessSession session, final FlowFile flowFile) throws IOException {
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream((int) flowFile.getSize());
+        try (final InputStream in = session.read(flowFile)) {
+            StreamUtils.copy(in, baos);
+        }
+
+        return baos.toByteArray();
     }
 }

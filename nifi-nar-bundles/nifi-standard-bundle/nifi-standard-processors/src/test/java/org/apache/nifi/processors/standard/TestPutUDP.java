@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
-import java.net.InetAddress;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
@@ -40,6 +30,16 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.net.InetAddress;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 public class TestPutUDP {
 
     private final static String UDP_SERVER_ADDRESS = "127.0.0.1";
@@ -50,13 +50,13 @@ public class TestPutUDP {
     private final static int MAX_FRAME_LENGTH = 32800;
     private final static int VALID_LARGE_FILE_SIZE = 32768;
     private final static int VALID_SMALL_FILE_SIZE = 64;
-    private final static int INVALID_LARGE_FILE_SIZE = 1000000;
+    private final static int INVALID_LARGE_FILE_SIZE = 1_000_000;
     private final static int LOAD_TEST_ITERATIONS = 500;
     private final static int LOAD_TEST_THREAD_COUNT = 1;
     private final static int DEFAULT_ITERATIONS = 1;
     private final static int DEFAULT_THREAD_COUNT = 1;
     private final static char CONTENT_CHAR = 'x';
-    private final static int DATA_WAIT_PERIOD = 1000;
+    private final static int DATA_WAIT_PERIOD = 50;
     private final static int DEFAULT_TEST_TIMEOUT_PERIOD = 10000;
     private final static int LONG_TEST_TIMEOUT_PERIOD = 100000;
 
@@ -153,10 +153,12 @@ public class TestPutUDP {
         sendTestData(VALID_FILES);
         checkReceivedAllData(VALID_FILES);
         reset(port);
+
         configureProperties(UDP_SERVER_ADDRESS);
         sendTestData(VALID_FILES);
         checkReceivedAllData(VALID_FILES);
         reset(port);
+
         configureProperties(UDP_SERVER_ADDRESS);
         sendTestData(VALID_FILES);
         checkReceivedAllData(VALID_FILES);

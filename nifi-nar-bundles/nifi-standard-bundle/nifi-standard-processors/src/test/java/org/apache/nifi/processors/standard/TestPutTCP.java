@@ -149,7 +149,6 @@ public class TestPutTCP {
         assertMessagesReceived(VALID_FILES);
 
         runner.setProperty(PutTCP.IDLE_EXPIRATION, "500 ms");
-        Thread.sleep(1000);
         runner.run(1, false, false);
         runner.clearTransferState();
         sendTestData(VALID_FILES);
@@ -181,7 +180,6 @@ public class TestPutTCP {
 
         shutdownServer();
         sendTestData(VALID_FILES);
-        Thread.sleep(500);
         runner.assertQueueEmpty();
 
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
@@ -212,7 +210,6 @@ public class TestPutTCP {
     public void testRunSuccessFiveHundredMessages() throws Exception {
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
         createTestServer(port);
-        Thread.sleep(1000);
         final String[] testData = createContent(VALID_SMALL_FILE_SIZE);
         sendTestData(testData, LOAD_TEST_ITERATIONS, LOAD_TEST_THREAD_COUNT);
         assertMessagesReceived(testData, LOAD_TEST_ITERATIONS);
