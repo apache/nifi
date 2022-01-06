@@ -443,9 +443,9 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         final Boolean isTransmitting = remoteProcessGroupDTO.isTransmitting();
         if (isNotNull(isTransmitting)) {
             // start or stop as necessary
-            if (!remoteProcessGroup.isTransmitting() && isTransmitting) {
+            if (!remoteProcessGroup.isConfiguredToTransmit() && isTransmitting) {
                 remoteProcessGroup.startTransmitting();
-            } else if (remoteProcessGroup.isTransmitting() && !isTransmitting) {
+            } else if (remoteProcessGroup.isConfiguredToTransmit() && !isTransmitting) {
                 remoteProcessGroup.stopTransmitting();
             }
         }

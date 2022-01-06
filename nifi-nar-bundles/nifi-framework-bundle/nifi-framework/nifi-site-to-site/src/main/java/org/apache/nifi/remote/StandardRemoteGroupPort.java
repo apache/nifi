@@ -39,6 +39,7 @@ import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
+import org.apache.nifi.remote.exception.TransmissionDisabledException;
 import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.exception.UnreachableClusterException;
 import org.apache.nifi.remote.protocol.DataPacket;
@@ -273,14 +274,21 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             session.commitAsync();
         } catch (final Throwable t) {
             final String message = String.format("%s failed to communicate with remote NiFi instance due to %s", this, t.toString());
-            logger.error("{} failed to communicate with remote NiFi instance due to {}", this, t.toString());
-            if (logger.isDebugEnabled()) {
-                logger.error("", t);
+
+            // If Exception is a TransmissionDisabledException, it's because the user explicitly terminated the connection in the middle.
+            // No need to log errors for this, just debug log and move on. Otherwise, log the error.
+            if (t instanceof TransmissionDisabledException) {
+                logger.debug(message, t);
+            } else {
+                logger.error("{} failed to communicate with remote NiFi instance due to {}", this, t.toString());
+                if (logger.isDebugEnabled()) {
+                    logger.error("", t);
+                }
+
+                remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
             }
 
-            remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
             transaction.error();
-
             throw new ProcessException(t);
         }
     }
