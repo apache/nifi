@@ -43,6 +43,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -85,9 +86,9 @@ public class TestLookupRecord {
         recordReader.addSchemaField("age", RecordFieldType.INT);
         recordReader.addSchemaField("sport", RecordFieldType.STRING);
 
-        recordReader.addRecord("John Doe", 48, null);
-        recordReader.addRecord("Jane Doe", 47, null);
-        recordReader.addRecord("Jimmy Doe", 14, null);
+        recordReader.addRecord("John Doe", 48, null, null);
+        recordReader.addRecord("Jane Doe", 47, null, null);
+        recordReader.addRecord("Jimmy Doe", 14, null, null);
     }
 
     @Test
@@ -131,6 +132,30 @@ public class TestLookupRecord {
         out.assertAttributeEquals("record.count", "3");
         out.assertAttributeEquals("mime.type", "text/plain");
         out.assertContentEquals("John Doe,48,Soccer\nJane Doe,47,Basketball\nJimmy Doe,14,Football\n");
+    }
+
+    @Test
+    public void testLookupWithTimestamp() {
+        recordReader.addSchemaField("record_timestamp", RecordFieldType.TIMESTAMP);
+        runner.setProperty("lookup", "/record_timestamp");
+
+        final Timestamp timestamp = new Timestamp(0L);
+        final String timestampKey = timestamp.toString();
+        recordReader.addRecord("Jason Doe", 15, null, timestamp);
+
+        lookupService.addValue(timestampKey, "Bowling");
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(LookupRecord.REL_MATCHED, 1);
+        runner.assertTransferCount(LookupRecord.REL_UNMATCHED, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+
+        out.assertAttributeEquals("record.count", "1");
+        out.assertAttributeEquals("mime.type", "text/plain");
+        String contents = out.getContent();
+        assertTrue(contents.matches("Jason Doe,15,Bowling,19[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\n"));
     }
 
     @Test
@@ -549,7 +574,7 @@ public class TestLookupRecord {
                 return Optional.empty();
             }
 
-            final String key = (String)coordinates.get("lookup");
+            final String key = coordinates.containsKey("lookup") ? coordinates.get("lookup").toString() : null;
             if (key == null) {
                 return Optional.empty();
             }
