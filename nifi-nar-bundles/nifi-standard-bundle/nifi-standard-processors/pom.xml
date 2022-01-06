@@ -624,7 +624,9 @@
                         <exclude>src/test/resources/TestValidateRecord/timestamp.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/timestamp.json</exclude>
                         <exclude>src/test/resources/TestLookupRecord/lookup-array-input.json</exclude>
+                        <exclude>src/test/resources/TestLookupRecord/lookup-array-input-unmatched.json</exclude>
                         <exclude>src/test/resources/TestLookupRecord/lookup-array-output.json</exclude>
+                        <exclude>src/test/resources/TestLookupRecord/lookup-array-output-unmatched.json</exclude>
                         <exclude>src/test/resources/TestValidateRecord/int-maps-schema.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/int-maps-data.json</exclude>
                         <exclude>src/test/resources/TestValidateRecord/array-and-map-with-null-element.avro</exclude>
