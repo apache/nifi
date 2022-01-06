@@ -708,8 +708,14 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // request to stop all remote process groups
             flowManager.getRootGroup().findAllRemoteProcessGroups()
-                    .stream().filter(rpg -> rpg.isTransmitting())
-                    .forEach(RemoteProcessGroup::stopTransmitting);
+                    .stream().filter(RemoteProcessGroup::isTransmitting)
+                    .forEach(rpg -> {
+                        try {
+                            rpg.stopTransmitting().get(rpg.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+                        } catch (final Exception e) {
+                            logger.warn("Encountered failure while waiting for {} to shutdown", rpg, e);
+                        }
+                    });
 
             // offload all queues on node
             final Set<Connection> connections = flowManager.findAllConnections();

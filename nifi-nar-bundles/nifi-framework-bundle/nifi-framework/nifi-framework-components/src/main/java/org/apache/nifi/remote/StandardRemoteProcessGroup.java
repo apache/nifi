@@ -69,6 +69,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -108,6 +109,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private final AtomicReference<String> comments = new AtomicReference<>();
     private final AtomicReference<ProcessGroup> processGroup;
     private final AtomicBoolean transmitting = new AtomicBoolean(false);
+    private final AtomicBoolean configuredToTransmit = new AtomicBoolean(false);
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final SSLContext sslContext;
 
@@ -183,7 +185,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         }
 
         initialized = true;
-        backgroundThreadExecutor.submit(() -> {
+        backgroundThreadExecutor.schedule(() -> {
             try {
                 refreshFlowContents();
             } catch (final Exception e) {
@@ -194,7 +196,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     logger.warn("Unable to communicate with remote instance {}", this, e);
                 }
             }
-        });
+        }, 3, TimeUnit.SECONDS);
 
         final Runnable checkAuthorizations = new InitializationTask();
         backgroundThreadExecutor.scheduleWithFixedDelay(checkAuthorizations, 0L, 60L, TimeUnit.SECONDS);
@@ -1043,6 +1045,11 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     @Override
+    public boolean isConfiguredToTransmit() {
+        return configuredToTransmit.get();
+    }
+
+    @Override
     public void startTransmitting() {
         writeLock.lock();
         try {
@@ -1063,6 +1070,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             }
 
             transmitting.set(true);
+            configuredToTransmit.set(true);
         } finally {
             writeLock.unlock();
         }
@@ -1081,13 +1089,14 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             scheduler.startPort(port);
 
             transmitting.set(true);
+            configuredToTransmit.set(true);
         } finally {
             writeLock.unlock();
         }
     }
 
     @Override
-    public void stopTransmitting() {
+    public Future<?> stopTransmitting() {
         writeLock.lock();
         try {
             verifyCanStopTransmitting();
@@ -1100,12 +1109,24 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 scheduler.stopPort(port);
             }
 
-            // Wait for the ports to stop
+            configuredToTransmit.set(false);
+
+            return scheduler.submitFrameworkTask(this::waitForPortShutdown);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    private void waitForPortShutdown() {
+        // Wait for the ports to stop
+        try {
             for (final RemoteGroupPort port : getInputPorts()) {
                 while (port.isRunning()) {
                     try {
                         Thread.sleep(50L);
                     } catch (final InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return;
                     }
                 }
             }
@@ -1115,13 +1136,13 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     try {
                         Thread.sleep(50L);
                     } catch (final InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return;
                     }
                 }
             }
-
-            transmitting.set(false);
         } finally {
-            writeLock.unlock();
+            transmitting.set(false);
         }
     }
 
@@ -1142,6 +1163,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 try {
                     Thread.sleep(50L);
                 } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
                 }
             }
 
@@ -1163,6 +1185,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 }
             }
 
+            configuredToTransmit.set(stillTransmitting);
             transmitting.set(stillTransmitting);
         } finally {
             writeLock.unlock();
