@@ -91,7 +91,7 @@ public class DistributeLoad extends AbstractProcessor {
     public static final AllowableValue STRATEGY_LOAD_DISTRIBUTION_SERVICE = new AllowableValue(LOAD_DISTRIBUTION_SERVICE, LOAD_DISTRIBUTION_SERVICE,
             "Relationship selection is distributed by supplied LoadDistributionService Controller Service; at least one relationship must be available.");
     public static final AllowableValue STRATEGY_OVERFLOW = new AllowableValue(OVERFLOW, OVERFLOW,
-            "Relationship selection is the highest weighted relationship available without further distribution; at least one relationship must be available.");
+            "Relationship selection is the first available relationship without further distribution among all relationships; at least one relationship must be available.");
 
 
 
