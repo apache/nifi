@@ -123,7 +123,7 @@ public class TestDistributeLoad {
         final TestRunner testRunner = TestRunners.newTestRunner(new DistributeLoad());
 
         testRunner.setProperty(DistributeLoad.NUM_RELATIONSHIPS.getName(), "100");
-        testRunner.setProperty(DistributeLoad.DISTRIBUTION_STRATEGY.getName(), DistributeLoad.STRATEGY_NEXT_AVAILABLE);
+        testRunner.setProperty(DistributeLoad.DISTRIBUTION_STRATEGY.getName(), DistributeLoad.STRATEGY_NEXT_AVAILABLE.getValue());
 
         for (int i = 0; i < 99; i++) {
             testRunner.enqueue(new byte[0]);
@@ -161,5 +161,49 @@ public class TestDistributeLoad {
             final MockFlowFile mockFlowFile = flowFilesForRelationship.get(0);
             assertEquals(String.valueOf(i), mockFlowFile.getAttribute(DistributeLoad.RELATIONSHIP_ATTRIBUTE));
         }
+    }
+
+    @Test
+    public void testOverflow() {
+        final TestRunner testRunner = TestRunners.newTestRunner(new DistributeLoad());
+
+        testRunner.setProperty(DistributeLoad.NUM_RELATIONSHIPS.getName(), "3");
+        testRunner.setProperty(DistributeLoad.DISTRIBUTION_STRATEGY.getName(), DistributeLoad.STRATEGY_OVERFLOW.getValue());
+
+        // Queue all FlowFiles required for this test
+        for (int i = 0; i < 8; i++) {
+            testRunner.enqueue(new byte[0]);
+        }
+
+        // Repeatedly send to highest weighted relationship as long as it is available
+        testRunner.run(2, false);
+        testRunner.assertTransferCount("1", 2);
+        testRunner.assertTransferCount("2", 0);
+        testRunner.assertTransferCount("3", 0);
+
+        // When highest weighted relationship becomes unavailable, repeatedly send to next-highest weighted relationship
+        testRunner.clearTransferState();
+        testRunner.setRelationshipUnavailable("1");
+        testRunner.run(2, false);
+        testRunner.assertTransferCount("1", 0);
+        testRunner.assertTransferCount("2", 2);
+        testRunner.assertTransferCount("3", 0);
+
+        // Return to highest weighted relationship when it becomes available again
+        testRunner.clearTransferState();
+        testRunner.setRelationshipAvailable("1");
+        testRunner.run(2, false);
+        testRunner.assertTransferCount("1", 2);
+        testRunner.assertTransferCount("2", 0);
+        testRunner.assertTransferCount("3", 0);
+
+        // Skip ahead and repeatedly send to the first available relationship when multiple relationships are unavailable
+        testRunner.clearTransferState();
+        testRunner.setRelationshipUnavailable("1");
+        testRunner.setRelationshipUnavailable("2");
+        testRunner.run(2, false);
+        testRunner.assertTransferCount("1", 0);
+        testRunner.assertTransferCount("2", 0);
+        testRunner.assertTransferCount("3", 2);
     }
 }
