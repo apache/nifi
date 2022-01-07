@@ -17,12 +17,10 @@
 package org.apache.nifi.processors.standard.util;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.sshd.common.NamedFactory;
 import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory;
-import org.apache.sshd.server.Command;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
-import org.apache.sshd.server.subsystem.sftp.SftpSubsystemFactory;
+import org.apache.sshd.sftp.server.SftpSubsystemFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,6 +30,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SSHTestServer {
+    private static SshServer sshd;
+
+    private String virtualFileSystemPath = "target/ssh_vfs/";
+
+    private String host = "127.0.0.1";
+
+    private String username = "nifiuser";
+
+    private String password = "nifipassword";
+
     public int getSSHPort(){
         return sshd.getPort();
     }
@@ -60,19 +68,13 @@ public class SSHTestServer {
         this.password = password;
     }
 
-    private static SshServer sshd;
-    private String virtualFileSystemPath = "target/ssh_vfs/";
-
-    private String username = "nifiuser";
-    private String password = "nifipassword";
-
-    public void SSHTestServer(){
-
+    public String getHost() {
+        return host;
     }
 
     public void startServer() throws IOException {
         sshd = SshServer.setUpDefaultServer();
-        sshd.setHost("localhost");
+        sshd.setHost(host);
 
         sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
 
@@ -88,8 +90,7 @@ public class SSHTestServer {
         Files.createDirectories(dir);
         sshd.setFileSystemFactory(new VirtualFileSystemFactory(dir.toAbsolutePath()));
 
-        //Add SFTP support
-        List<NamedFactory<Command>> sftpCommandFactory = new ArrayList<>();
+        List<SftpSubsystemFactory> sftpCommandFactory = new ArrayList<>();
         sftpCommandFactory.add(new SftpSubsystemFactory());
         sshd.setSubsystemFactories(sftpCommandFactory);
 
@@ -97,10 +98,11 @@ public class SSHTestServer {
     }
 
     public void stopServer() throws IOException {
-        if(sshd == null) return;
+        if (sshd == null) {
+            return;
+        }
         sshd.stop(true);
 
-        //Delete Virtual File System folder
         Path dir = Paths.get(getVirtualFileSystemPath());
         FileUtils.deleteDirectory(dir.toFile());
     }
