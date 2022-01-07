@@ -14,193 +14,73 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.processors.standard;
 
-import com.github.stefanbirkner.fakesftpserver.rule.FakeSftpServerRule;
-
+import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.UUID;
 
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
-import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.VerifiableProcessor;
-import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
-import org.apache.nifi.processors.standard.util.FileInfo;
-import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
+import org.apache.nifi.processors.standard.util.SSHTestServer;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.Rule;
-import java.security.SecureRandom;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class TestListSFTP {
-    @Rule
-    public final FakeSftpServerRule sftpServer = new FakeSftpServerRule();
-    int port;
+    private static final String REMOTE_DIRECTORY = "/";
 
-    final String username = "nifi-sftp-user";
-    final String password = "Test test test chocolate";
+    private static final byte[] FILE_CONTENTS = String.class.getName().getBytes(StandardCharsets.UTF_8);
+
+    private TestRunner runner;
+
+    private SSHTestServer sshServer;
+
+    private String tempFileName;
 
     @Before
     public void setUp() throws Exception {
-        sftpServer.addUser(username, password);
-        port = sftpServer.getPort();
+        sshServer = new SSHTestServer();
+        sshServer.startServer();
 
+        writeTempFile();
 
-        sftpServer.putFile("/directory/smallfile.txt", "byte", StandardCharsets.UTF_8);
+        runner = TestRunners.newTestRunner(ListSFTP.class);
+        runner.setProperty(ListSFTP.HOSTNAME, sshServer.getHost());
+        runner.setProperty(ListSFTP.USERNAME, sshServer.getUsername());
+        runner.setProperty(SFTPTransfer.PASSWORD, sshServer.getPassword());
+        runner.setProperty(FTPTransfer.PORT, Integer.toString(sshServer.getSSHPort()));
+        runner.setProperty(ListSFTP.REMOTE_PATH, REMOTE_DIRECTORY);
+        runner.setProperty(ListFile.TARGET_SYSTEM_TIMESTAMP_PRECISION, ListFile.PRECISION_MILLIS);
 
-        sftpServer.putFile("/directory/file.txt", "a bit more content in this file", StandardCharsets.UTF_8);
-
-        byte[] bytes = new byte[120];
-        SecureRandom.getInstanceStrong().nextBytes(bytes);
-
-        sftpServer.putFile("/directory/file.bin", bytes);
+        runner.assertValid();
+        assertVerificationSuccess();
     }
 
     @After
     public void tearDown() throws Exception {
-        sftpServer.deleteAllFilesAndDirectories();
-    }
-
-    @Test(timeout = 5000)
-    public void testListingWhileConcurrentlyWritingIntoMultipleDirectories() throws Exception {
-        AtomicInteger fileCounter = new AtomicInteger(1);
-
-        List<String> createdFileNames = new ArrayList<>();
-
-        CountDownLatch finishScheduledRun = new CountDownLatch(1);
-        CountDownLatch reachScanningSubDir = new CountDownLatch(1);
-        CountDownLatch writeMoreFiles = new CountDownLatch(1);
-
-        String baseDir = "/base/";
-        String subDir = "/base/subdir/";
-
-        TestRunner runner = TestRunners.newTestRunner(new ListSFTP() {
-            @Override
-            protected FileTransfer getFileTransfer(ProcessContext context) {
-                return new SFTPTransfer(context, getLogger()){
-                    @Override
-                    protected void getListing(String path, int depth, int maxResults, List<FileInfo> listing, boolean applyFilters) throws IOException {
-                        if (path.contains("subdir")) {
-                            reachScanningSubDir.countDown();
-                            try {
-                                writeMoreFiles.await();
-                            } catch (InterruptedException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-
-                        super.getListing(path, depth, maxResults, listing, applyFilters);
-                    }
-                };
-            }
-        });
-
-        // This test fails with BY_TIMESTAMPS
-//        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_TIMESTAMPS.getValue());
-        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_TIME_WINDOW.getValue());
-        runner.setProperty(ListSFTP.HOSTNAME, "localhost");
-        runner.setProperty(ListSFTP.USERNAME, username);
-        runner.setProperty(SFTPTransfer.PASSWORD, password);
-        runner.setProperty(FTPTransfer.PORT, Integer.toString(port));
-        runner.setProperty(ListSFTP.REMOTE_PATH, baseDir);
-        runner.setProperty(FileTransfer.RECURSIVE_SEARCH, "true");
-
-        runner.assertValid();
-
-        ExecutorService executorService = null;
-        try {
-            executorService = Executors.newFixedThreadPool(1);
-            sftpServer.createDirectory("/base");
-
-            uploadFile(baseDir, fileCounter.getAndIncrement(), createdFileNames);
-            uploadFile(subDir, "sub." + fileCounter.getAndIncrement(), createdFileNames);
-
-            executorService.submit(() -> {
-                try {
-                    runner.run(1, false);
-                } finally {
-                    finishScheduledRun.countDown();
-                }
-            });
-
-            reachScanningSubDir.await();
-
-            uploadFile(baseDir, fileCounter.getAndIncrement(), createdFileNames);
-            Thread.sleep(1100); // Make sure the next file has greater timestamp
-            uploadFile(subDir, "sub." + fileCounter.getAndIncrement(), createdFileNames);
-
-            writeMoreFiles.countDown();
-
-            Thread.sleep(1100); // Need to wait for 1+ sec if the file timestamps have only sec precision.
-            finishScheduledRun.await();
-            runner.run();
-
-            List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
-
-            List<String> successFileNames = successFiles.stream()
-                .map(MockFlowFile::getAttributes)
-                .map(attributes -> attributes.get("filename"))
-                .sorted()
-                .collect(Collectors.toList());
-
-            Collections.sort(createdFileNames);
-
-            assertEquals(createdFileNames, successFileNames);
-        } finally {
-            if (executorService != null) {
-                executorService.shutdown();
-            }
-        }
-    }
-
-    private void uploadFile(String baseDir, Object fileSuffix, List<String> createdFileNames) throws Exception {
-        String fileName = "file." + fileSuffix;
-
-        sftpServer.putFile(baseDir + fileName, "unimportant", StandardCharsets.UTF_8);
-
-        createdFileNames.add(fileName);
+        sshServer.stopServer();
     }
 
     @Test
-    public void basicFileList() throws InterruptedException {
-        TestRunner runner = TestRunners.newTestRunner(ListSFTP.class);
-        runner.setProperty(ListSFTP.HOSTNAME, "localhost");
-        runner.setProperty(ListSFTP.USERNAME, username);
-        runner.setProperty(SFTPTransfer.PASSWORD, password);
-        runner.setProperty(FTPTransfer.PORT, Integer.toString(port));
-        runner.setProperty(ListSFTP.REMOTE_PATH, "/directory/");
-
-        runner.setProperty(ListFile.TARGET_SYSTEM_TIMESTAMP_PRECISION, ListFile.PRECISION_MILLIS);
-        runner.assertValid();
-
-        // Ensure wait for enough lag time.
-        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS.get(TimeUnit.MILLISECONDS) * 2);
-
+    public void testRunFileFound() {
         runner.run();
-        assertVerificationOutcome(runner, Outcome.SUCCESSFUL, ".* Found 3 objects.  Of those, 3 match the filter.");
 
-        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 3);
-
+        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
         runner.assertAllFlowFilesContainAttribute("sftp.remote.host");
         runner.assertAllFlowFilesContainAttribute("sftp.remote.port");
         runner.assertAllFlowFilesContainAttribute("sftp.listing.user");
@@ -212,46 +92,34 @@ public class TestListSFTP {
         runner.assertAllFlowFilesContainAttribute( "filename");
 
         final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(ListSFTP.REL_SUCCESS).get(0);
-        retrievedFile.assertAttributeEquals("sftp.listing.user", username);
+        retrievedFile.assertAttributeEquals("sftp.listing.user", sshServer.getUsername());
+        retrievedFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), tempFileName);
     }
 
-
     @Test
-    public void sizeFilteredFileList() throws InterruptedException {
-        TestRunner runner = TestRunners.newTestRunner(ListSFTP.class);
-        runner.setProperty(ListSFTP.HOSTNAME, "localhost");
-        runner.setProperty(ListSFTP.USERNAME, username);
-        runner.setProperty(SFTPTransfer.PASSWORD, password);
-        runner.setProperty(FTPTransfer.PORT, Integer.toString(port));
-        runner.setProperty(ListSFTP.REMOTE_PATH, "/directory/");
-        runner.setProperty(ListFile.MIN_SIZE, "8B");
-        runner.setProperty(ListFile.MAX_SIZE, "100B");
-
-
-        runner.setProperty(ListFile.TARGET_SYSTEM_TIMESTAMP_PRECISION, ListFile.PRECISION_MILLIS);
-        runner.assertValid();
-
-        // Ensure wait for enough lag time.
-        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS.get(TimeUnit.MILLISECONDS) * 2);
+    public void testRunFileNotFoundMinSizeFiltered() {
+        runner.setProperty(ListFile.MIN_SIZE, "1KB");
 
         runner.run();
 
-        assertVerificationOutcome(runner, Outcome.SUCCESSFUL, ".* Found 3 objects.  Of those, 1 matches the filter.");
-        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
-
-        final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(ListSFTP.REL_SUCCESS).get(0);
-        //the only file between the limits
-        retrievedFile.assertAttributeEquals("filename", "file.txt");
+        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 0);
     }
 
-    private void assertVerificationOutcome(final TestRunner runner, final Outcome expectedOutcome, final String expectedExplanationRegex) {
+    private void assertVerificationSuccess() {
         final List<ConfigVerificationResult> results = ((VerifiableProcessor) runner.getProcessor())
                 .verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
-
         assertEquals(1, results.size());
         final ConfigVerificationResult result = results.get(0);
-        assertEquals(expectedOutcome, result.getOutcome());
-        assertTrue(String.format("Expected verification result to match pattern [%s].  Actual explanation was: %s", expectedExplanationRegex, result.getExplanation()),
-                result.getExplanation().matches(expectedExplanationRegex));
+        assertEquals(Outcome.SUCCESSFUL, result.getOutcome());
+    }
+
+    private void writeTempFile() {
+        final File file = new File(sshServer.getVirtualFileSystemPath(), String.format("%s-%s", getClass().getSimpleName(), UUID.randomUUID()));
+        try {
+            Files.write(file.toPath(), FILE_CONTENTS);
+            tempFileName = file.getName();
+        } catch (final IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }
