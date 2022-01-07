@@ -27,7 +27,7 @@
     <properties>
         <httpclient.group>org.apache.httpcomponents</httpclient.group>
         <httpclient.artifact>httpclient</httpclient.artifact>
-        <httpclient.version>4.5.5</httpclient.version>
+        <httpclient.version>${org.apache.httpcomponents.httpclient.version}</httpclient.version>
     </properties>
 
     <dependencies>
