@@ -43,6 +43,7 @@ public class AsynchronousCommitTracker {
     private int flowFilesProduced = 0;
     private long bytesProduced = 0L;
     private boolean progressMade = false;
+    private final Stack<List<Connectable>> previouslyReadyStack = new Stack<>();
 
     public void addConnectable(final Connectable connectable) {
         // this.ready is a LinkedHashSet that is responsible for ensuring that when a Connectable is added,
@@ -63,19 +64,46 @@ public class AsynchronousCommitTracker {
         }
     }
 
+    /**
+     * Returns a List of components that may be ready to be triggered. Note that one or more components may be returned in the List
+     * that are not truly ready to be triggered, according to {@link #isReady(Connectable)}.
+     *
+     * @return the List of components that may be ready to be triggered, in the order that they should be triggered.
+     */
     public List<Connectable> getReady() {
+        if (ready.isEmpty()) {
+            if (previouslyReadyStack.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            final List<Connectable> previouslyReady = previouslyReadyStack.pop();
+            ready.addAll(previouslyReady);
+            return previouslyReady;
+        }
+
         final List<Connectable> connectables = new ArrayList<>(ready);
         Collections.reverse(connectables);
         return connectables;
     }
 
+    /**
+     * Determines if there are any components that may be ready to be triggered. Note that a value of <code>true</code> may be returned, even if there are no components
+     * that currently are ready according to {@link #isReady(Connectable)}.
+     *
+     * @return <code>true</code> if any component is expected to be ready to trigger, <code>false</code> otherwise
+     */
     public boolean isAnyReady() {
-        final boolean anyReady = !ready.isEmpty();
-
+        final boolean anyReady = !ready.isEmpty() || !previouslyReadyStack.isEmpty();
         logger.debug("{} Any components ready = {}, list={}", this, anyReady, ready);
         return anyReady;
     }
 
+    /**
+     * Checks if the given component is ready to be triggered and if not removes the component from the internal list of ready components
+     *
+     * @param connectable the components to check
+     * @return <code>true</code> if the component is ready to be triggered, <code>false</code> otherwise
+     */
     public boolean isReady(final Connectable connectable) {
         if (!ready.contains(connectable)) {
             logger.debug("{} {} is not ready because it's not in the list of ready components", this, connectable);
@@ -89,7 +117,7 @@ public class AsynchronousCommitTracker {
             return false;
         }
 
-        if (isDataQueued(connectable)) {
+        if (isDataQueued(connectable) || (connectable.isTriggerWhenEmpty() && isDataHeld(connectable))) {
             logger.debug("{} {} is ready because it has data queued", this, connectable);
             return true;
         }
@@ -111,7 +139,22 @@ public class AsynchronousCommitTracker {
 
     private boolean isDataQueued(final Connectable connectable) {
         for (final Connection incoming : connectable.getIncomingConnections()) {
-            if (!incoming.getFlowFileQueue().isEmpty()) {
+            if (!incoming.getFlowFileQueue().isActiveQueueEmpty()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determines if data is currently being held by the given connectable (i.e., it has at least one incoming Connection with unacknowledged FlowFiles)
+     * @param connectable the connectable to check
+     * @return <code>true</code> if the Connectable is holding onto data, <code>false</code> otherwise
+     */
+    private boolean isDataHeld(final Connectable connectable) {
+        for (final Connection incoming : connectable.getIncomingConnections()) {
+            if (incoming.getFlowFileQueue().isUnacknowledgedFlowFile()) {
                 return true;
             }
         }
@@ -187,6 +230,22 @@ public class AsynchronousCommitTracker {
         this.flowFilesProduced = 0;
         this.bytesProduced = 0L;
         this.progressMade = false;
+    }
+
+    /**
+     * Takes the set of components that are currently considered ready to run and 'shelves' them,
+     * clearing the set of ready components. This allows the flow to be triggered from the beginning
+     * without losing the collection of components that are ready to be run.
+     *
+     * Once all components that are ready to be run have completed, these shelves components will then be made available
+     * as ready components once again.
+     */
+    public void shelveReadyComponents() {
+        if (!ready.isEmpty()) {
+            final List<Connectable> readyCopy = new ArrayList<>(ready);
+            previouslyReadyStack.push(readyCopy);
+            this.ready.clear();
+        }
     }
 
     public boolean isProgress() {

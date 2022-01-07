@@ -86,7 +86,7 @@ public class TestAsynchronousCommitTracker {
         final Connection connection = Mockito.mock(Connection.class);
         final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
         Mockito.when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
-        Mockito.when(flowFileQueue.isEmpty()).thenReturn(false);
+        Mockito.when(flowFileQueue.isActiveQueueEmpty()).thenReturn(false);
         Mockito.when(connectable2.getIncomingConnections()).thenReturn(Collections.singletonList(connection));
 
         assertTrue(tracker.isReady(connectable2));
@@ -95,7 +95,7 @@ public class TestAsynchronousCommitTracker {
 
         // If we then indicate that the FlowFileQueue is empty, we should see that Connectable2 is no longer ready and it should be evicted from the collection of ready components.
         // This should then also result in isAnyReady() being false.
-        Mockito.when(flowFileQueue.isEmpty()).thenReturn(true);
+        Mockito.when(flowFileQueue.isActiveQueueEmpty()).thenReturn(true);
         assertFalse(tracker.isReady(connectable2));
         assertFalse(tracker.isAnyReady());
         assertEquals(Collections.emptyList(), tracker.getReady());

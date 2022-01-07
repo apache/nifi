@@ -19,6 +19,7 @@ package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.processor.ProcessContext;
@@ -57,23 +58,22 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
         this.processContextFactory = builder.processContextFactory;
     }
 
-    public Connectable getCurrentComponent() {
-        return currentComponent;
-    }
-
     @Override
     public void triggerFlow() {
         try {
             boolean completionReached = false;
             while (!completionReached) {
+                tracker.shelveReadyComponents();
                 triggerRootConnectables();
 
                 NextConnectable nextConnectable = NextConnectable.NEXT_READY;
                 while (tracker.isAnyReady() && nextConnectable == NextConnectable.NEXT_READY) {
+                    // Get the list of components that are currently ready to be triggered
                     final List<Connectable> next = tracker.getReady();
                     logger.debug("The following {} components are ready to be triggered: {}", next.size(), next);
 
                     for (final Connectable connectable : next) {
+                        // Continually trigger the given component as long as it is ready to be triggered
                         nextConnectable = triggerWhileReady(connectable);
 
                         // If there's nothing left to do, return
@@ -91,7 +91,9 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
                     }
                 }
 
-                completionReached = !tracker.isAnyReady();
+                // We have reached completion if the tracker does not know of any components ready to be triggered AND
+                // we have no data queued in the flow (with the exception of Output Ports).
+                completionReached = !tracker.isAnyReady() && isFlowQueueEmpty();
             }
         } catch (final Throwable t) {
             if (t instanceof TerminatedTaskException) {
@@ -104,6 +106,29 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
             tracker.triggerFailureCallbacks(t);
             throw t;
         }
+    }
+
+    /**
+     * Returns <code>true</code> if all data in the flow has been fully processed. This includes both 'internal queues'
+     * that are available via the executionProgress, as well as considering any data that has been consumed from the queues by
+     * the 'rootConnectables' that has not yet completed processing
+     *
+     * @return <code>true</code> if all FlowFiles have completed processing and no data is available, <code>false</code> otherwise
+     */
+    private boolean isFlowQueueEmpty() {
+        if (executionProgress.isDataQueued()) {
+            return false;
+        }
+
+        for (final Connectable rootConnectable : rootConnectables) {
+            for (final Connection connection : rootConnectable.getIncomingConnections()) {
+                if (connection.getFlowFileQueue().isUnacknowledgedFlowFile()) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private void triggerRootConnectables() {
@@ -202,7 +227,7 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
 
         SOURCE_CONNECTABLE,
 
-        NONE;
+        NONE
     }
 
     public static class Builder {
