@@ -61,6 +61,7 @@
             <includes>
                 <include>org.apache.nifi:nifi-ranger-resources:jar</include>
                 <include>org.slf4j:slf4j-api</include>
+                <include>org.slf4j:jcl-over-slf4j</include>
             </includes>
         </dependencySet>
         <!-- Write out scripts from nifi-ranger-resources to ext/ranger/scripts -->
