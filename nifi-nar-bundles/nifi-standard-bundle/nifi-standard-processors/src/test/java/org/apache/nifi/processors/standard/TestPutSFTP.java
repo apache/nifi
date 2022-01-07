@@ -28,8 +28,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,9 +38,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class TestPutSFTP {
-
-    private static final Logger logger = LoggerFactory.getLogger(TestPutSFTP.class);
-
     private TestRunner putSFTPRunner;
     private static SSHTestServer sshTestServer;
 
