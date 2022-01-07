@@ -253,6 +253,19 @@ public class TestCEFSchemaInference {
         whenInferSchema();
     }
 
+    @Test
+    public void testInferBasedOnMisformattedRowWhenNonFailFast() throws Exception{
+        // given
+        givenRecordSourceWhenNonFailFast(TestCEFUtil.INPUT_MISFORMATTED_ROW);
+        givenTestSubject();
+
+        // when
+        whenInferSchema();
+
+        // then
+        thenSchemaConsistsOf(CEFSchemaUtil.getHeaderFields());
+    }
+
     private void givenIncludeExtensions() {
         this.includeExtensions = true;
     }
@@ -271,8 +284,16 @@ public class TestCEFSchemaInference {
     }
 
     private void givenRecordSource(final String inputFile) throws FileNotFoundException {
+        givenRecordSource(inputFile, true);
+    }
+
+    private void givenRecordSource(final String inputFile, final boolean failFast) throws FileNotFoundException {
         final FileInputStream inputStream = new FileInputStream(inputFile);
-        this.recordSource = new CEFRecordSource(inputStream, parser, Locale.US, true);
+        this.recordSource = new CEFRecordSource(inputStream, parser, Locale.US, true, failFast);
+    }
+
+    private void givenRecordSourceWhenNonFailFast(final String inputFile) throws FileNotFoundException {
+        givenRecordSource(inputFile, false);
     }
 
     private void whenInferSchema() throws IOException {

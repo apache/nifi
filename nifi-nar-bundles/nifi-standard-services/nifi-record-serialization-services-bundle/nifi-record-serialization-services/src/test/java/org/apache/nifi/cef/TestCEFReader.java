@@ -41,6 +41,7 @@ import org.junit.Test;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -132,6 +133,33 @@ public class TestCEFReader {
         // then
         thenAssertNumberOfResults(1);
         thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, "123"));
+    }
+
+    @Test
+    public void testMisformattedRowsWithoutInvalidFieldIsBeingSet() throws Exception {
+        // given
+        givenReaderSetUp();
+        givenSchemaIsInferred(CEFReader.CUSTOM_EXTENSIONS_INFERRED);
+        givenReaderIsEnabled();
+
+        // when
+        whenProcessorRunsWithError(TestCEFUtil.INPUT_MISFORMATTED_ROW);
+    }
+
+    @Test
+    public void testMisformattedRowsWithInvalidFieldIsSet() throws Exception {
+        // given
+        givenReaderSetUp();
+        givenInvalidFieldIsSet();
+        givenSchemaIsInferred(CEFReader.CUSTOM_EXTENSIONS_INFERRED);
+        givenReaderIsEnabled();
+
+        // when
+        whenProcessorRuns(TestCEFUtil.INPUT_MISFORMATTED_ROW);
+
+        // then
+        thenAssertNumberOfResults(3);
+        thenAssertFieldsAre(1, Collections.singletonMap("invalid", "Oct 12 04:16:11 localhost CEF:0|nxlog.org|nxlog|2.7.1243|"));
     }
 
     @Test
@@ -242,6 +270,10 @@ public class TestCEFReader {
         runner.setProperty(reader, CEFReader.INFERENCE_STRATEGY, value);
     }
 
+    private void givenInvalidFieldIsSet() {
+        runner.setProperty(reader, CEFReader.INVALID_FIELD, "invalid");
+    }
+
     private void givenSchema(List<RecordField> fields) throws InitializationException {
         final MockSchemaRegistry registry = new MockSchemaRegistry();
         registry.addSchema("predefinedSchema", new SimpleRecordSchema(fields));
@@ -267,12 +299,30 @@ public class TestCEFReader {
         runner.assertAllFlowFilesTransferred(TestCEFProcessor.SUCCESS);
     }
 
+    private void whenProcessorRunsWithError(final String input) {
+        try {
+            runner.enqueue(new FileInputStream(input));
+            runner.run();
+            Assert.fail();
+        } catch (final Throwable e) {
+            // the TestCEFProcessor wraps the original exception into a RuntimeException
+            Assert.assertTrue(e.getCause() instanceof RuntimeException);
+            Assert.assertTrue(e.getCause().getCause() instanceof IOException);
+        }
+    }
+
     private void thenAssertNumberOfResults(final int numberOfResults) {
         Assert.assertEquals(numberOfResults, processor.getRecords().size());
     }
 
     private void thenAssertInvalid() {
         runner.assertNotValid(reader);
+    }
+
+    private void thenAssertFieldsAre(final int number, final Map<String, Object>... fieldGroups) {
+        final Map<String, Object> expectedFields = new HashMap<>();
+        Arrays.stream(fieldGroups).forEach(fieldGroup -> expectedFields.putAll(fieldGroup));
+        TestCEFUtil.thenAssertFieldsAre(processor.getRecords().get(number), expectedFields);
     }
 
     private void thenAssertFieldsAre(final Map<String, Object>... fieldGroups) {

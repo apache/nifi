@@ -22,9 +22,11 @@ import com.fluenda.parcefone.parser.CEFParser;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -35,6 +37,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.text.DateFormat;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -64,6 +67,7 @@ final class CEFRecordReader implements RecordReader {
     private final ComponentLog logger;
     private final Locale locale;
     private final String rawMessageField;
+    private final String invalidField;
 
     /**
      * It would not cause any functional drawback to acquire the custom extensions all the time, but there are some cases
@@ -80,6 +84,7 @@ final class CEFRecordReader implements RecordReader {
         final ComponentLog logger,
         final Locale locale,
         final String rawMessageField,
+        final String invalidField,
         final boolean includeCustomExtensions,
         final boolean acceptEmptyExtensions
     ) {
@@ -89,6 +94,7 @@ final class CEFRecordReader implements RecordReader {
         this.logger = logger;
         this.locale = locale;
         this.rawMessageField = rawMessageField;
+        this.invalidField = invalidField;
         this.includeCustomExtensions = includeCustomExtensions;
         this.acceptEmptyExtensions = acceptEmptyExtensions;
     }
@@ -105,7 +111,14 @@ final class CEFRecordReader implements RecordReader {
 
         if (event == null) {
             logger.debug("Event parsing resulted no event");
-            return null;
+
+            if (invalidField != null && !invalidField.isEmpty()) {
+                final RecordField field = new RecordField(invalidField, RecordFieldType.STRING.getDataType());
+                final RecordSchema failureSchema = new SimpleRecordSchema(Collections.singletonList(field));
+                return new MapRecord(failureSchema, Collections.singletonMap(invalidField, line));
+            } else {
+                throw new MalformedRecordException("The following line could not be parsed by the CEF parser: " + line);
+            }
         }
 
         final Map<String, Object> values = new HashMap<>();

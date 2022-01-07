@@ -31,12 +31,14 @@ final class CEFRecordSource implements RecordSource<CommonEvent> {
     private final BufferedReader reader;
     private final Locale locale;
     private final boolean acceptEmptyExtensions;
+    private final boolean failFast;
 
-    CEFRecordSource(final InputStream in, final CEFParser parser, final Locale locale, final boolean acceptEmptyExtensions) {
+    CEFRecordSource(final InputStream in, final CEFParser parser, final Locale locale, final boolean acceptEmptyExtensions, final boolean failFast) {
         this.parser = parser;
         this.reader = new BufferedReader(new InputStreamReader(in));
         this.locale = locale;
         this.acceptEmptyExtensions = acceptEmptyExtensions;
+        this.failFast = failFast;
     }
 
     @Override
@@ -49,7 +51,7 @@ final class CEFRecordSource implements RecordSource<CommonEvent> {
 
         final CommonEvent event = parser.parse(line, true, acceptEmptyExtensions, locale);
 
-        if (event == null) {
+        if (event == null && failFast) {
             throw new IOException("Could not parse event");
         }
 

@@ -182,5 +182,18 @@ Oct 12 04:16:11 localhost CEF:0|Company|Product|1.2.3|audit-login|Successful log
             This allows the Record Reader to infer a schema accurately, since it is inferred based on all data in the FlowFile, and still allows this to happen efficiently since the schema
             will typically only be inferred once, regardless of how many Processors handle the data.
         </p>
+
+        <h2>Handling invalid events</h2>
+
+        <p>
+            An event is considered invalid if it is malformed in a way that the underlying CEF parser cannot read it properly. CEFReader has two ways to deal with malformed events determined by
+            the usage of the property "Invalid Field". If the property is not set, the reading will fail at the time of reading the first invalid event. If the property is set, a product of the read
+            will be a record with single field. The field is named based on the property and the value of the field will be the original event text. By default, the "Invalid Field" property is not set.
+        </p>
+
+        <p>
+            When the "Invalid Field" property is set, the read records might contain both records representing well formed CEF events and malformed ones as well. As of this, further steps might be needed
+            in order to separate these before further processing.
+        </p>
 	</body>
 </html>

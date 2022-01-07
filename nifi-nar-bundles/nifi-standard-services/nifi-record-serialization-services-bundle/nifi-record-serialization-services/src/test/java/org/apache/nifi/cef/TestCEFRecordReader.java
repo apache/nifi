@@ -57,6 +57,7 @@ public class TestCEFRecordReader {
     private boolean acceptEmptyExtensions;
     private boolean dropUnknownFields;
     private String rawField;
+    private String invalidField;
 
     @Before
     public void setUp() {
@@ -68,6 +69,7 @@ public class TestCEFRecordReader {
         acceptEmptyExtensions = false;
         dropUnknownFields = true;
         rawField = null;
+        invalidField = null;
     }
 
     @After
@@ -305,7 +307,7 @@ public class TestCEFRecordReader {
         thenAssertNumberOfResults(0);
     }
 
-    @Test
+    @Test(expected = MalformedRecordException.class)
     public void testReadingMisformattedRow()  throws Exception {
         // given
         givenSchema(CEFSchemaUtil.getHeaderFields());
@@ -313,9 +315,20 @@ public class TestCEFRecordReader {
 
         // when
         whenReadingRecords();
+    }
 
-        // then
-        thenAssertNumberOfResults(0);
+    @Test
+    public void testReadingMisformattedRowWhenInvalidFieldIsSet()  throws Exception {
+        // given
+        givenInvalidFieldIsSet();
+        givenSchema(CEFSchemaUtil.getHeaderFields());
+        givenReader(TestCEFUtil.INPUT_MISFORMATTED_ROW);
+
+        // when
+        whenReadingRecords();
+
+        //
+        thenAssertNumberOfResults(3);
     }
 
     @Test
@@ -470,9 +483,13 @@ public class TestCEFRecordReader {
         dropUnknownFields = false;
     }
 
+    private void givenInvalidFieldIsSet() {
+        invalidField = "invalid";
+    }
+
     private void givenReader(final String file) throws FileNotFoundException {
         inputStream = new FileInputStream(file);
-        testSubject = new CEFRecordReader(inputStream, schema, parser, new MockComponentLogger(), Locale.US, rawField, includeCustomExtensions, acceptEmptyExtensions);
+        testSubject = new CEFRecordReader(inputStream, schema, parser, new MockComponentLogger(), Locale.US, rawField, invalidField, includeCustomExtensions, acceptEmptyExtensions);
     }
 
     private void whenReadingRecords() throws IOException, MalformedRecordException {

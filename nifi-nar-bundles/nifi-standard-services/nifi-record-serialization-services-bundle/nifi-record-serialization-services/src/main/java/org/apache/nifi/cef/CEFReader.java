@@ -89,6 +89,17 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    static final PropertyDescriptor INVALID_FIELD = new PropertyDescriptor.Builder()
+            .name("invalid-message-field")
+            .displayName("Invalid Field")
+            .description("Used when a line in the FlowFile cannot be parsed by the CEF parser. " +
+                    "If set, instead of failing to process the FlowFile, a record is being added with one field. " +
+                    "This record contains one field with the name specified by the property and the raw message as value.")
+            .addValidator(new ValidateRawField())
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     static final PropertyDescriptor DATETIME_REPRESENTATION = new PropertyDescriptor.Builder()
             .name("datetime-representation")
             .displayName("DateTime Locale")
@@ -115,6 +126,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
     private final CEFParser parser = new CEFParser(validator);
 
     private volatile String rawMessageField;
+    private volatile String invalidField;
     private volatile Locale parcefoneLocale;
     private volatile boolean includeCustomExtensions;
     private volatile boolean acceptEmptyExtensions;
@@ -123,6 +135,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(RAW_FIELD);
+        properties.add(INVALID_FIELD);
         properties.add(DATETIME_REPRESENTATION);
         properties.add(INFERENCE_STRATEGY);
 
@@ -166,12 +179,13 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
                 builder.withRawMessage(rawMessageField);
             }
 
+            final boolean failFast = invalidField == null || invalidField.isEmpty();
             final CEFSchemaInference inference = builder.build();
             return SchemaInferenceUtil.getSchemaAccessStrategy(
                 strategy,
                 context,
                 getLogger(),
-                (variables, in) -> new CEFRecordSource(in, parser, parcefoneLocale, acceptEmptyExtensions),
+                (variables, in) -> new CEFRecordSource(in, parser, parcefoneLocale, acceptEmptyExtensions, failFast),
                 () -> inference,
                 () -> super.getSchemaAccessStrategy(strategy, schemaRegistry, context));
         }
@@ -182,6 +196,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         rawMessageField = context.getProperty(RAW_FIELD).evaluateAttributeExpressions().getValue();
+        invalidField = context.getProperty(INVALID_FIELD).evaluateAttributeExpressions().getValue();
         parcefoneLocale = Locale.forLanguageTag(context.getProperty(DATETIME_REPRESENTATION).evaluateAttributeExpressions().getValue());
 
         final String inferenceStrategy = context.getProperty(INFERENCE_STRATEGY).getValue();
@@ -197,7 +212,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
         final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger
     ) throws MalformedRecordException, IOException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
-        return new CEFRecordReader(in, schema, parser, logger, parcefoneLocale, rawMessageField, includeCustomExtensions, acceptEmptyExtensions);
+        return new CEFRecordReader(in, schema, parser, logger, parcefoneLocale, rawMessageField, invalidField, includeCustomExtensions, acceptEmptyExtensions);
     }
 
     private static class ValidateRawField implements Validator {
