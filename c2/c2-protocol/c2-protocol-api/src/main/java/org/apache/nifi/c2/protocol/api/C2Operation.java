@@ -17,6 +17,8 @@
 
 package org.apache.nifi.c2.protocol.api;
 
+import static java.lang.String.format;
+
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
@@ -29,7 +31,7 @@ public class C2Operation implements Serializable {
 
     private String identifier;
     private OperationType operation;
-    private String operand;
+    private OperandType operand;
     private Map<String, String> args;
     private Set<String> dependencies;
 
@@ -48,6 +50,10 @@ public class C2Operation implements Serializable {
     }
 
     public void setOperation(OperationType operation) {
+        if (operand != null && !operation.isSupportedOperand(operand)) {
+            throw new IllegalArgumentException(format("%s is not a valid operand for %s", operand, operation));
+        }
+
         this.operation = operation;
     }
 
@@ -58,11 +64,15 @@ public class C2Operation implements Serializable {
             "If no operand is needed, this field will be absent." +
             "If one operand is insufficient, the operation will contain an args map" +
             "with additional keyword parameters and values (see 'args').")
-    public String getOperand() {
+    public OperandType getOperand() {
         return operand;
     }
 
-    public void setOperand(String operand) {
+    public void setOperand(OperandType operand) {
+        if (operation != null && !operation.isSupportedOperand(operand)) {
+            throw new IllegalArgumentException(format("%s is not a valid operand for %s", operand, operation));
+        }
+
         this.operand = operand;
     }
 
